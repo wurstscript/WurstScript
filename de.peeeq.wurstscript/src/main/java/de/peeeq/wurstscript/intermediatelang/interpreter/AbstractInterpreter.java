@@ -5,20 +5,18 @@ import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import org.eclipse.jdt.annotation.Nullable;
 
-/**
- *
- */
+/** */
 public interface AbstractInterpreter {
 
-    void runFuncRef(ILconstFuncRef obj, @Nullable Element trace);
+  void runFuncRef(ILconstFuncRef obj, @Nullable Element trace);
 
-    TimerMockHandler getTimerMockHandler();
+  TimerMockHandler getTimerMockHandler();
 
-    void completeTimers();
+  void completeTimers();
 
-    ImProg getImProg();
+  ImProg getImProg();
 
-    int getInstanceCount(int val);
+  int getInstanceCount(int val);
 
-    int getMaxInstanceCount(int val);
+  int getMaxInstanceCount(int val);
 }

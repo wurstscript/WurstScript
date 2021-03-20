@@ -6,33 +6,35 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
-
 public class WurstTypeHandle extends WurstTypePrimitive {
 
-    private static final WurstTypeHandle instance = new WurstTypeHandle();
+  private static final WurstTypeHandle instance = new WurstTypeHandle();
 
-    // make constructor private as we only need one instance
-    private WurstTypeHandle() {
-        super("handle");
-    }
+  // make constructor private as we only need one instance
+  private WurstTypeHandle() {
+    super("handle");
+  }
 
-    @Override
-    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        return other instanceof WurstTypeHandle ? mapping : null;
-    }
+  @Override
+  VariableBinding matchAgainstSupertypeIntern(
+      WurstType other,
+      @Nullable Element location,
+      VariableBinding mapping,
+      VariablePosition variablePosition) {
+    return other instanceof WurstTypeHandle ? mapping : null;
+  }
 
+  public static WurstTypeHandle instance() {
+    return instance;
+  }
 
-    public static WurstTypeHandle instance() {
-        return instance;
-    }
+  @Override
+  public ImExprOpt getDefaultValue(ImTranslator tr) {
+    return JassIm.ImNull(imTranslateType());
+  }
 
-    @Override
-    public ImExprOpt getDefaultValue(ImTranslator tr) {
-        return JassIm.ImNull(imTranslateType());
-    }
-
-    @Override
-    protected boolean isNullable() {
-        return true;
-    }
+  @Override
+  protected boolean isNullable() {
+    return true;
+  }
 }

@@ -6,20 +6,17 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class RegionProvider extends Provider {
 
+  public RegionProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
 
-    public RegionProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
-    }
+  public IlConstHandle CreateRegion() {
+    return new IlConstHandle(NameProvider.getRandomName("region"), new RegionMock());
+  }
 
-    public IlConstHandle CreateRegion() {
-        return new IlConstHandle(NameProvider.getRandomName("region"), new RegionMock());
-    }
+  public void RemoveRegion(IlConstHandle region) {}
 
-    public void RemoveRegion(IlConstHandle region) {
-    }
-
-    public void RegionAddRect(IlConstHandle region, IlConstHandle rect) {
-        // TODO
-    }
-
+  public void RegionAddRect(IlConstHandle region, IlConstHandle rect) {
+    // TODO
+  }
 }

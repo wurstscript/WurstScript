@@ -27,28 +27,23 @@ package java.io;
 
 import java.nio.charset.Charset;
 
-
 public class InputStreamReader extends Reader {
 
-    public InputStreamReader(InputStream in) {
-        super(in);
-    }
-    
-    public InputStreamReader(InputStream in, String charcode) {
-        super(in);
-    }
+  public InputStreamReader(InputStream in) {
+    super(in);
+  }
 
-	public InputStreamReader(FileInputStream fis, Charset cs) {
-	}
+  public InputStreamReader(InputStream in, String charcode) {
+    super(in);
+  }
 
-	@Override
-	public int read(char[] cbuf, int off, int len) throws IOException {
-		return 0;
-	}
+  public InputStreamReader(FileInputStream fis, Charset cs) {}
 
-	@Override
-	public void close() throws IOException {
-	}
+  @Override
+  public int read(char[] cbuf, int off, int len) throws IOException {
+    return 0;
+  }
 
-   
+  @Override
+  public void close() throws IOException {}
 }

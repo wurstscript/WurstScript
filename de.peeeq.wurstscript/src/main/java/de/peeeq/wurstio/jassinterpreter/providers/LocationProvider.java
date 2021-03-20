@@ -6,31 +6,30 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class LocationProvider extends Provider {
-    private static IlConstHandle lastExpiredMock = null;
+  private static IlConstHandle lastExpiredMock = null;
 
-    public LocationProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
-    }
+  public LocationProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
 
-    public IlConstHandle Location(ILconstReal x, ILconstReal y) {
-        return new IlConstHandle(NameProvider.getRandomName("location"), new LocationMock(x, y));
-    }
+  public IlConstHandle Location(ILconstReal x, ILconstReal y) {
+    return new IlConstHandle(NameProvider.getRandomName("location"), new LocationMock(x, y));
+  }
 
-    public void RemoveLocation(IlConstHandle location) {
-    }
+  public void RemoveLocation(IlConstHandle location) {}
 
-    public void MoveLocation(IlConstHandle location, ILconstReal x, ILconstReal y) {
-        LocationMock locationMock = (LocationMock) location.getObj();
-        locationMock.move(x, y);
-    }
+  public void MoveLocation(IlConstHandle location, ILconstReal x, ILconstReal y) {
+    LocationMock locationMock = (LocationMock) location.getObj();
+    locationMock.move(x, y);
+  }
 
-    public ILconstReal GetLocationX(IlConstHandle location) {
-        LocationMock locationMock = (LocationMock) location.getObj();
-        return locationMock.x;
-    }
+  public ILconstReal GetLocationX(IlConstHandle location) {
+    LocationMock locationMock = (LocationMock) location.getObj();
+    return locationMock.x;
+  }
 
-    public ILconstReal GetLocationY(IlConstHandle location) {
-        LocationMock locationMock = (LocationMock) location.getObj();
-        return locationMock.y;
-    }
+  public ILconstReal GetLocationY(IlConstHandle location) {
+    LocationMock locationMock = (LocationMock) location.getObj();
+    return locationMock.y;
+  }
 }

@@ -6,13 +6,11 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class HandleProvider extends Provider {
 
-    public HandleProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
-    }
+  public HandleProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
 
-    public ILconstInt GetHandleId(IlConstHandle handle) {
-        return ILconstInt.create(handle.hashCode());
-    }
-
-
+  public ILconstInt GetHandleId(IlConstHandle handle) {
+    return ILconstInt.create(handle.hashCode());
+  }
 }

@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -20,96 +19,94 @@ import java.util.stream.Collectors;
 
 public class InterfaceTranslator {
 
-    private InterfaceDef interfaceDef;
-    private ImTranslator translator;
-    private ImClass imClass;
+  private InterfaceDef interfaceDef;
+  private ImTranslator translator;
+  private ImClass imClass;
 
-    public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
-        this.interfaceDef = interfaceDef;
-        this.translator = translator;
-        imClass = translator.getClassFor(interfaceDef);
+  public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
+    this.interfaceDef = interfaceDef;
+    this.translator = translator;
+    imClass = translator.getClassFor(interfaceDef);
+  }
+
+  public void translate() {
+    translator.getImProg().getClasses().add(imClass);
+
+    // set super-classes
+    for (TypeExpr ext : interfaceDef.getExtendsList()) {
+      imClass.getSuperClasses().add((ImClassType) ext.attrTyp().imTranslateType(translator));
     }
 
-    public void translate() {
-        translator.getImProg().getClasses().add(imClass);
-
-        // set super-classes
-        for (TypeExpr ext : interfaceDef.getExtendsList()) {
-            imClass.getSuperClasses().add((ImClassType) ext.attrTyp().imTranslateType(translator));
-        }
-
-        // create dispatch methods
-        for (FuncDef f : interfaceDef.getMethods()) {
-            translateInterfaceFuncDef(f);
-        }
-
-        // add destroy method
-        addDestroyMethod();
+    // create dispatch methods
+    for (FuncDef f : interfaceDef.getMethods()) {
+      translateInterfaceFuncDef(f);
     }
 
-    public void addDestroyMethod() {
-        ImMethod m = translator.destroyMethod.getFor(interfaceDef);
-        imClass.getMethods().add(m);
+    // add destroy method
+    addDestroyMethod();
+  }
 
-        List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
+  public void addDestroyMethod() {
+    ImMethod m = translator.destroyMethod.getFor(interfaceDef);
+    imClass.getMethods().add(m);
 
-        // set sub methods
-        for (ClassDef sc : subClasses) {
-            ImMethod dm = translator.destroyMethod.getFor(sc);
-            m.getSubMethods().add(dm);
-        }
+    List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
 
-        // deallocate
-        ImFunction f = translator.destroyFunc.getFor(interfaceDef);
-        ImVar thisVar = f.getParameters().get(0);
-        f.getBody().add(JassIm.ImDealloc(interfaceDef, imClassType(), JassIm.ImVarAccess(thisVar)));
+    // set sub methods
+    for (ClassDef sc : subClasses) {
+      ImMethod dm = translator.destroyMethod.getFor(sc);
+      m.getSubMethods().add(dm);
     }
 
-    private ImClassType imClassType() {
-        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
-                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
-        return JassIm.ImClassType(imClass, typeArgs);
+    // deallocate
+    ImFunction f = translator.destroyFunc.getFor(interfaceDef);
+    ImVar thisVar = f.getParameters().get(0);
+    f.getBody().add(JassIm.ImDealloc(interfaceDef, imClassType(), JassIm.ImVarAccess(thisVar)));
+  }
+
+  private ImClassType imClassType() {
+    ImTypeArguments typeArgs =
+        imClass.getTypeVariables().stream()
+            .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+            .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+    return JassIm.ImClassType(imClass, typeArgs);
+  }
+
+  private void translateInterfaceFuncDef(FuncDef f) {
+    ImMethod imMeth = translator.getMethodFor(f);
+    ImFunction imFunc = translator.getFuncFor(f);
+    imClass.getMethods().add(imMeth);
+
+    // translate implementation
+    if (f.attrHasEmptyBody()) {
+      imMeth.setIsAbstract(true);
+    } else {
+      // there is a default implementation
+      imFunc.getBody().addAll(translator.translateStatements(imFunc, f.getBody()));
     }
 
-    private void translateInterfaceFuncDef(FuncDef f) {
-        ImMethod imMeth = translator.getMethodFor(f);
-        ImFunction imFunc = translator.getFuncFor(f);
-        imClass.getMethods().add(imMeth);
+    List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
+    // TODO also add extended interfaces
 
-        // translate implementation
-        if (f.attrHasEmptyBody()) {
-            imMeth.setIsAbstract(true);
-        } else {
-            // there is a default implementation
-            imFunc.getBody().addAll(translator.translateStatements(imFunc, f.getBody()));
-        }
+    // set sub methods
+    Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
+    for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
+      ClassDef subC = subE.getKey();
+      WurstTypeClass subCT = subC.attrTypC();
+      ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
 
+      VariableBinding typeBinding =
+          interfaces.stream()
+              .filter(t -> t.getDef() == interfaceDef)
+              .map(WurstTypeNamedScope::getTypeArgBinding)
+              .findFirst()
+              .orElse(VariableBinding.emptyMapping());
 
-        List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
-        // TODO also add extended interfaces
+      FuncDef subM = subE.getValue();
+      ImMethod m = translator.getMethodFor(subM);
 
-        // set sub methods
-        Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
-        for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
-            ClassDef subC = subE.getKey();
-            WurstTypeClass subCT = subC.attrTypC();
-            ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
-
-            VariableBinding typeBinding =
-                    interfaces.stream()
-                            .filter(t -> t.getDef() == interfaceDef)
-                            .map(WurstTypeNamedScope::getTypeArgBinding)
-                            .findFirst()
-                            .orElse(VariableBinding.emptyMapping());
-
-            FuncDef subM = subE.getValue();
-            ImMethod m = translator.getMethodFor(subM);
-
-            ImClass mClass = translator.getClassFor(subC);
-            OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
-        }
-
+      ImClass mClass = translator.getClassFor(subC);
+      OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
     }
-
+  }
 }

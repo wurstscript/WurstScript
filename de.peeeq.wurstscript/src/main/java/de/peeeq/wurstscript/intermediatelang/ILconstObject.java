@@ -6,73 +6,69 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-
 import java.util.*;
 
 public class ILconstObject extends ILconstAbstract {
-    private final ImClassType classType;
-    private final int objectId;
-    private final Table<ImVar, List<Integer>, ILconst> attributes = HashBasedTable.create();
-    private boolean destroyed = false;
-    private final Element trace;
+  private final ImClassType classType;
+  private final int objectId;
+  private final Table<ImVar, List<Integer>, ILconst> attributes = HashBasedTable.create();
+  private boolean destroyed = false;
+  private final Element trace;
 
-    public ILconstObject(ImClassType classType, int objectId, Element trace) {
-        this.classType = classType;
-        this.objectId = objectId;
-        this.trace = trace;
-    }
+  public ILconstObject(ImClassType classType, int objectId, Element trace) {
+    this.classType = classType;
+    this.objectId = objectId;
+    this.trace = trace;
+  }
 
-    public int getObjectId() {
-        return objectId;
-    }
+  public int getObjectId() {
+    return objectId;
+  }
 
-    @Override
-    public String print() {
-        return classType + "_" + hashCode();
-    }
+  @Override
+  public String print() {
+    return classType + "_" + hashCode();
+  }
 
+  @Override
+  public boolean isEqualTo(ILconst other) {
+    return other == this;
+  }
 
+  public void set(ImVar attr, List<Integer> indexes, ILconst value) {
+    attributes.put(attr, indexes, value);
+  }
 
-    @Override
-    public boolean isEqualTo(ILconst other) {
-        return other == this;
-    }
+  public Optional<ILconst> get(ImVar attr, List<Integer> indexes) {
+    return Optional.ofNullable(attributes.get(attr, indexes));
+  }
 
-    public void set(ImVar attr, List<Integer> indexes, ILconst value) {
-        attributes.put(attr, indexes, value);
-    }
+  public boolean isDestroyed() {
+    return destroyed;
+  }
 
-    public Optional<ILconst> get(ImVar attr, List<Integer> indexes) {
-        return Optional.ofNullable(attributes.get(attr, indexes));
-    }
+  public void destroy() {
+    destroyed = true;
+  }
 
+  public ImClass getImClass() {
+    return classType.getClassDef();
+  }
 
-    public boolean isDestroyed() {
-        return destroyed;
-    }
+  public Element getTrace() {
+    return trace;
+  }
 
-    public void destroy() {
-        destroyed = true;
-    }
+  public ImClassType getType() {
+    return classType;
+  }
 
-    public ImClass getImClass() {
-        return classType.getClassDef();
-    }
+  @Override
+  public int hashCode() {
+    return objectId;
+  }
 
-    public Element getTrace() {
-        return trace;
-    }
-
-    public ImClassType getType() {
-        return classType;
-    }
-
-    @Override
-    public int hashCode() {
-        return objectId;
-    }
-
-    public Table<ImVar, List<Integer>, ILconst> getAttributes() {
-        return attributes;
-    }
+  public Table<ImVar, List<Integer>, ILconst> getAttributes() {
+    return attributes;
+  }
 }

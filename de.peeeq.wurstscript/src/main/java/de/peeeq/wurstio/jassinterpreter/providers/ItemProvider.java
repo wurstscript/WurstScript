@@ -8,19 +8,18 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class ItemProvider extends Provider {
-    public ItemProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
-    }
+  public ItemProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
 
-    public IlConstHandle CreateItem(ILconstInt itemid, ILconstReal x, ILconstReal y) {
-        return new IlConstHandle(NameProvider.getRandomName("item"), new ItemMock(itemid, x, y));
-    }
+  public IlConstHandle CreateItem(ILconstInt itemid, ILconstReal x, ILconstReal y) {
+    return new IlConstHandle(NameProvider.getRandomName("item"), new ItemMock(itemid, x, y));
+  }
 
-    public void RemoveItem(IlConstHandle item) {
-    }
+  public void RemoveItem(IlConstHandle item) {}
 
-    public void SetItemVisible(IlConstHandle item, ILconstBool show) {
-        ItemMock itemMock = (ItemMock) item.getObj();
-        itemMock.setVisible(show);
-    }
+  public void SetItemVisible(IlConstHandle item, ILconstBool show) {
+    ItemMock itemMock = (ItemMock) item.getObj();
+    itemMock.setVisible(show);
+  }
 }

@@ -22,6 +22,7 @@ before_install:
 before_script: 
   - cd de.peeeq.wurstscript
   - chmod +x gradlew
+  - ./gradlew verGJF
 
 script:
   - ./gradlew assemble test --info

@@ -6,42 +6,34 @@ import de.peeeq.wurstscript.jassAst.JassFunction;
 
 public interface ExecutableJassFunction {
 
-    ILconst execute(JassInterpreter jassInterpreter, ILconst... arguments);
-
-
+  ILconst execute(JassInterpreter jassInterpreter, ILconst... arguments);
 }
 
 class UserDefinedJassFunction implements ExecutableJassFunction {
 
-    private JassFunction jassFunction;
+  private JassFunction jassFunction;
 
-    public UserDefinedJassFunction(JassFunction f) {
-        this.jassFunction = f;
-    }
+  public UserDefinedJassFunction(JassFunction f) {
+    this.jassFunction = f;
+  }
 
-    @Override
-    public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
-        return jassInterpreter.executeJassFunction(jassFunction, arguments);
-    }
-
+  @Override
+  public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
+    return jassInterpreter.executeJassFunction(jassFunction, arguments);
+  }
 }
-
-
-
 
 class UnknownJassFunction implements ExecutableJassFunction {
 
-    private String name;
+  private String name;
 
-    public UnknownJassFunction(String name) {
-        this.name = name;
-    }
+  public UnknownJassFunction(String name) {
+    this.name = name;
+  }
 
-    @Override
-    public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
-        WLogger.info("Function " + name + " could not be found.");
-        throw new InterpreterException("Function " + name + " could not be found.");
-    }
-
+  @Override
+  public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
+    WLogger.info("Function " + name + " could not be found.");
+    throw new InterpreterException("Function " + name + " could not be found.");
+  }
 }
-

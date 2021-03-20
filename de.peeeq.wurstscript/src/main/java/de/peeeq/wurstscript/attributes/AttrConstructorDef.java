@@ -4,40 +4,32 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.TypeDef;
+import java.util.List;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.List;
-
-
-/**
- * find the constructor for a "new" call
- */
+/** find the constructor for a "new" call */
 public class AttrConstructorDef {
 
-    public static @Nullable ConstructorDef calculate(final ExprNewObject node) {
+  public static @Nullable ConstructorDef calculate(final ExprNewObject node) {
 
-        TypeDef typeDef = node.attrTypeDef();
+    TypeDef typeDef = node.attrTypeDef();
 
+    if (typeDef instanceof ClassDef) {
 
-        if (typeDef instanceof ClassDef) {
+      ClassDef classDef = (ClassDef) typeDef;
 
-            ClassDef classDef = (ClassDef) typeDef;
+      List<ConstructorDef> constructors = classDef.getConstructors();
 
-            List<ConstructorDef> constructors = classDef.getConstructors();
+      ConstructorDef constr = OverloadingResolver.resolveExprNew(constructors, node);
 
-            ConstructorDef constr = OverloadingResolver.resolveExprNew(constructors, node);
+      if (constr != null && constr.attrIsPrivate() && !node.isSubtreeOf(classDef)) {
+        node.addError("This constructor for class " + classDef.getName() + " is not visible here.");
+      }
 
-            if (constr != null && constr.attrIsPrivate() && !node.isSubtreeOf(classDef)) {
-                node.addError("This constructor for class " + classDef.getName() + " is not visible here.");
-            }
-
-            return constr;
-        } else {
-            node.addError("Can only create instances of classes.");
-            return null;
-        }
-
+      return constr;
+    } else {
+      node.addError("Can only create instances of classes.");
+      return null;
     }
-
-
+  }
 }

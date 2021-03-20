@@ -5,41 +5,45 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class TimerProvider extends Provider {
-    private IlConstHandle lastExpiredMock = null;
+  private IlConstHandle lastExpiredMock = null;
 
-    public TimerProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
-    }
+  public TimerProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
 
-    public IlConstHandle CreateTimer() {
-        TimerMock mock = new TimerMock(interpreter, this);
-        IlConstHandle timer = new IlConstHandle(NameProvider.getRandomName("timer"), mock);
-        mock.setHandle(timer);
-        return timer;
-    }
+  public IlConstHandle CreateTimer() {
+    TimerMock mock = new TimerMock(interpreter, this);
+    IlConstHandle timer = new IlConstHandle(NameProvider.getRandomName("timer"), mock);
+    mock.setHandle(timer);
+    return timer;
+  }
 
-    public void DestroyTimer(IlConstHandle timer) {
-        TimerMock timerMock = (TimerMock) timer.getObj();
-        timerMock.destroy();
-    }
+  public void DestroyTimer(IlConstHandle timer) {
+    TimerMock timerMock = (TimerMock) timer.getObj();
+    timerMock.destroy();
+  }
 
-    public void PauseTimer(IlConstHandle timer) {
-        TimerMock timerMock = (TimerMock) timer.getObj();
-        timerMock.pause();
-    }
+  public void PauseTimer(IlConstHandle timer) {
+    TimerMock timerMock = (TimerMock) timer.getObj();
+    timerMock.pause();
+  }
 
-    public IlConstHandle GetExpiredTimer() {
-        return lastExpiredMock;
-    }
+  public IlConstHandle GetExpiredTimer() {
+    return lastExpiredMock;
+  }
 
-    public void TimerStart(IlConstHandle whichTimer, ILconstReal timeout, ILconstBool periodic, ILconstAbstract handlerFunc) {
-        TimerMock timerMock = (TimerMock) whichTimer.getObj();
-        if (handlerFunc instanceof ILconstFuncRef) {
-            timerMock.start(timeout, periodic, (ILconstFuncRef) handlerFunc);
-        }
+  public void TimerStart(
+      IlConstHandle whichTimer,
+      ILconstReal timeout,
+      ILconstBool periodic,
+      ILconstAbstract handlerFunc) {
+    TimerMock timerMock = (TimerMock) whichTimer.getObj();
+    if (handlerFunc instanceof ILconstFuncRef) {
+      timerMock.start(timeout, periodic, (ILconstFuncRef) handlerFunc);
     }
+  }
 
-    public void setLastExpiredMock(IlConstHandle lastExpiredMock) {
-        this.lastExpiredMock = lastExpiredMock;
-    }
+  public void setLastExpiredMock(IlConstHandle lastExpiredMock) {
+    this.lastExpiredMock = lastExpiredMock;
+  }
 }

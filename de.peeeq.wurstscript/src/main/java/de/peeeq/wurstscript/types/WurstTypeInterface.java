@@ -5,78 +5,72 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-
 import java.util.List;
-
 
 public class WurstTypeInterface extends WurstTypeClassOrInterface {
 
+  private final InterfaceDef interfaceDef;
 
-    private final InterfaceDef interfaceDef;
+  //	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
+  //		super(staticRef);
+  //		if (interfaceDef == null) throw new IllegalArgumentException();
+  //		this.interfaceDef = interfaceDef;
+  //	}
 
-//	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
-//		super(staticRef);
-//		if (interfaceDef == null) throw new IllegalArgumentException();
-//		this.interfaceDef = interfaceDef;
-//	}
+  public WurstTypeInterface(
+      InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes, boolean isStaticRef) {
+    super(newTypes, isStaticRef);
+    if (interfaceDef == null) throw new IllegalArgumentException();
+    this.interfaceDef = interfaceDef;
+  }
 
-    public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes, boolean isStaticRef) {
-        super(newTypes, isStaticRef);
-        if (interfaceDef == null) throw new IllegalArgumentException();
-        this.interfaceDef = interfaceDef;
+  public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes) {
+    super(newTypes);
+    if (interfaceDef == null) throw new IllegalArgumentException();
+    this.interfaceDef = interfaceDef;
+  }
+
+  @Override
+  public InterfaceDef getDef() {
+    return interfaceDef;
+  }
+
+  @Override
+  public ImmutableList<WurstTypeInterface> directSupertypes() {
+    return extendedInterfaces();
+  }
+
+  public InterfaceDef getInterfaceDef() {
+    return interfaceDef;
+  }
+
+  @Override
+  public String getName() {
+    return getDef().getName() + printTypeParams();
+  }
+
+  @Override
+  public WurstType dynamic() {
+    if (isStaticRef()) {
+      return new WurstTypeInterface(getInterfaceDef(), getTypeParameters(), false);
     }
+    return this;
+  }
 
-    public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes) {
-        super(newTypes);
-        if (interfaceDef == null) throw new IllegalArgumentException();
-        this.interfaceDef = interfaceDef;
-    }
+  @Override
+  public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
+    return new WurstTypeInterface(getInterfaceDef(), newTypes);
+  }
 
-    @Override
-    public InterfaceDef getDef() {
-        return interfaceDef;
-    }
+  public ImmutableList<WurstTypeInterface> extendedInterfaces() {
+    return interfaceDef.getExtendsList().stream()
+        .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+        .filter(i -> i.level() < level())
+        .collect(ImmutableList.toImmutableList());
+  }
 
-    @Override
-    public ImmutableList<WurstTypeInterface> directSupertypes() {
-        return extendedInterfaces();
-    }
-
-    public InterfaceDef getInterfaceDef() {
-        return interfaceDef;
-    }
-
-    @Override
-    public String getName() {
-        return getDef().getName() + printTypeParams();
-    }
-
-    @Override
-    public WurstType dynamic() {
-        if (isStaticRef()) {
-            return new WurstTypeInterface(getInterfaceDef(), getTypeParameters(), false);
-        }
-        return this;
-    }
-
-    @Override
-    public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
-        return new WurstTypeInterface(getInterfaceDef(), newTypes);
-    }
-
-
-    public ImmutableList<WurstTypeInterface> extendedInterfaces() {
-        return interfaceDef.getExtendsList().stream()
-                .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
-                .filter(i -> i.level() < level())
-                .collect(ImmutableList.toImmutableList());
-    }
-
-
-    @Override
-    public ImExprOpt getDefaultValue(ImTranslator tr) {
-        return JassIm.ImNull(TypesHelper.imInt());
-    }
-
-
+  @Override
+  public ImExprOpt getDefaultValue(ImTranslator tr) {
+    return JassIm.ImNull(TypesHelper.imInt());
+  }
 }

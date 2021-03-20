@@ -9,21 +9,20 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class FunctionReference {
 
-    public static @Nullable JassFunction get(JassExprFuncRef ref) {
-        String funcName = ref.getFuncName();
-        Element node = ref.getParent();
-        while (node != null) {
-            if (node instanceof JassProgs) {
-                JassProgs jassProgs = (JassProgs) node;
-                JassFunction v = jassProgs.getFunction(funcName);
-                if (v != null) {
-                    return v;
-                }
-            }
-            node = node.getParent();
+  public static @Nullable JassFunction get(JassExprFuncRef ref) {
+    String funcName = ref.getFuncName();
+    Element node = ref.getParent();
+    while (node != null) {
+      if (node instanceof JassProgs) {
+        JassProgs jassProgs = (JassProgs) node;
+        JassFunction v = jassProgs.getFunction(funcName);
+        if (v != null) {
+          return v;
         }
-        JassErrors.addError("Could not find function '" + funcName + "'.", ref.getLine());
-        return null;
+      }
+      node = node.getParent();
     }
-
+    JassErrors.addError("Could not find function '" + funcName + "'.", ref.getLine());
+    return null;
+  }
 }

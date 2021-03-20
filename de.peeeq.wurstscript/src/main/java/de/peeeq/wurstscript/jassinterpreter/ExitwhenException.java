@@ -1,15 +1,12 @@
 package de.peeeq.wurstscript.jassinterpreter;
 
-
 public class ExitwhenException extends Error {
-    private static final long serialVersionUID = -7104108904090494021L;
-    private static ExitwhenException instance = new ExitwhenException();
+  private static final long serialVersionUID = -7104108904090494021L;
+  private static ExitwhenException instance = new ExitwhenException();
 
-    private ExitwhenException() {
-    }
+  private ExitwhenException() {}
 
-    public static ExitwhenException instance() {
-        return instance;
-    }
-
+  public static ExitwhenException instance() {
+    return instance;
+  }
 }

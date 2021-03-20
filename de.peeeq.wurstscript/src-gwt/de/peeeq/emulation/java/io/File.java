@@ -2,74 +2,72 @@ package java.io;
 
 public class File {
 
-	public final static String separator = "/";
-	
-	public File(String filename) {
-	}
+  public static final String separator = "/";
 
-	public boolean exists() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  public File(String filename) {}
 
-	public File[] listFiles() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  public boolean exists() {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
-	public boolean isDirectory() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  public File[] listFiles() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  public boolean isDirectory() {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
-	public File getParentFile() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  public String getName() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public String getAbsolutePath() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  public File getParentFile() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public boolean mkdirs() {
-		return false;
-		// TODO Auto-generated method stub
-		
-	}
+  public String getAbsolutePath() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public boolean delete() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  public boolean mkdirs() {
+    return false;
+    // TODO Auto-generated method stub
 
-	public String getParent() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  }
 
-	public String getPath() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+  public boolean delete() {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
-	public boolean isFile() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+  public String getParent() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public long lastModified() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
+  public String getPath() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-	public int length() {
-		return 0;
-	}
+  public boolean isFile() {
+    // TODO Auto-generated method stub
+    return false;
+  }
 
+  public long lastModified() {
+    // TODO Auto-generated method stub
+    return 0;
+  }
+
+  public int length() {
+    return 0;
+  }
 }

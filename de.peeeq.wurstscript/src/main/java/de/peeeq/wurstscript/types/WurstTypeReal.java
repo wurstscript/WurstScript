@@ -6,30 +6,30 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
-
 public class WurstTypeReal extends WurstTypePrimitive {
 
-    private static final WurstTypeReal instance = new WurstTypeReal();
+  private static final WurstTypeReal instance = new WurstTypeReal();
 
-    // make constructor private as we only need one instance
-    private WurstTypeReal() {
-        super("real");
-    }
+  // make constructor private as we only need one instance
+  private WurstTypeReal() {
+    super("real");
+  }
 
-    @Override
-    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        return other instanceof WurstTypeReal ? mapping : null;
-    }
+  @Override
+  VariableBinding matchAgainstSupertypeIntern(
+      WurstType other,
+      @Nullable Element location,
+      VariableBinding mapping,
+      VariablePosition variablePosition) {
+    return other instanceof WurstTypeReal ? mapping : null;
+  }
 
+  public static WurstTypeReal instance() {
+    return instance;
+  }
 
-    public static WurstTypeReal instance() {
-        return instance;
-    }
-
-    @Override
-    public ImExprOpt getDefaultValue(ImTranslator tr) {
-        return JassIm.ImRealVal("0.");
-    }
-
-
+  @Override
+  public ImExprOpt getDefaultValue(ImTranslator tr) {
+    return JassIm.ImRealVal("0.");
+  }
 }

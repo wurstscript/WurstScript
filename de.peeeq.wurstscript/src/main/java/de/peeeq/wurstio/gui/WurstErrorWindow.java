@@ -15,12 +15,6 @@ import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
-
-import javax.imageio.ImageIO;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -30,304 +24,348 @@ import java.io.IOException;
 import java.io.Reader;
 import java.net.URISyntaxException;
 import java.util.Objects;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.*;
+import org.eclipse.jdt.annotation.Nullable;
 
-/**
- * @author Frotty
- */
+/** @author Frotty */
 public class WurstErrorWindow extends javax.swing.JFrame {
-    private static final long serialVersionUID = -451256551943066085L;
+  private static final long serialVersionUID = -451256551943066085L;
 
+  // Variables declaration - do not modify//GEN-BEGIN:variables
+  private javax.swing.JButton closeButton;
+  private javax.swing.JTextPane codeArea;
+  private javax.swing.JLabel currentStatus;
+  private javax.swing.JTextArea errorDetailsPanel;
+  private DefaultListModel<CompileError> errorListModel;
+  //    private javax.swing.JList errorList;
+  private javax.swing.JScrollPane jScrollPane1;
+  private javax.swing.JScrollPane jScrollPane2;
+  private javax.swing.JScrollPane jScrollPane3;
+  private javax.swing.JButton aboutButton;
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton closeButton;
-    private javax.swing.JTextPane codeArea;
-    private javax.swing.JLabel currentStatus;
-    private javax.swing.JTextArea errorDetailsPanel;
-    private DefaultListModel<CompileError> errorListModel;
-    //    private javax.swing.JList errorList;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JButton aboutButton;
+  private File currentFile = null;
 
-    private File currentFile = null;
+  public AboutDialog ab;
 
-    public AboutDialog ab;
+  private String workspaceRoot;
+  private SimpleAttributeSet attributes = new SimpleAttributeSet();
 
+  /**
+   * Creates new form WurstErrorWindow
+   *
+   * @param workspaceRoot
+   */
+  @SuppressWarnings("null")
+  public WurstErrorWindow(String workspaceRoot) {
+    super("Errors");
+    this.workspaceRoot = workspaceRoot;
+    BufferedImage image = null;
+    try {
+      image = ImageIO.read(getClass().getClassLoader().getResource("icon.png"));
+    } catch (IOException e) {
+      WLogger.severe(e);
+    }
+    setIconImage(image);
 
-    private String workspaceRoot;
-    private SimpleAttributeSet attributes = new SimpleAttributeSet();
-
-    /**
-     * Creates new form WurstErrorWindow
-     *
-     * @param workspaceRoot
-     */
-    @SuppressWarnings("null")
-    public WurstErrorWindow(String workspaceRoot) {
-        super("Errors");
-        this.workspaceRoot = workspaceRoot;
-        BufferedImage image = null;
-        try {
-            image = ImageIO.read(getClass().getClassLoader().getResource("icon.png"));
-        } catch (IOException e) {
-            WLogger.severe(e);
-        }
-        setIconImage(image);
-
-        try {
-            ab = new AboutDialog(this, true);
-        } catch (URISyntaxException e) {
-            java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, e);
-        }
-
-        try {
-            UIManager.setLookAndFeel(
-                    UIManager.getSystemLookAndFeelClassName());
-        } catch (ClassNotFoundException | InstantiationException | UnsupportedLookAndFeelException | IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        initComponents();
-        this.setSize(800, 650);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        GuiUtils.setWindowToCenterOfScreen(this);
-        toFront();
-        setState(Frame.NORMAL);
-
+    try {
+      ab = new AboutDialog(this, true);
+    } catch (URISyntaxException e) {
+      java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName())
+          .log(java.util.logging.Level.SEVERE, null, e);
     }
 
-    public void setTabs(JTextPane textPane, float charactersPerTab)   {
-        FontMetrics fm = textPane.getFontMetrics( textPane.getFont() );
-        int charWidth = fm.charWidth( 'w' );
-        int tabWidth = (int) (charWidth * charactersPerTab);
+    try {
+      UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+    } catch (ClassNotFoundException
+        | InstantiationException
+        | UnsupportedLookAndFeelException
+        | IllegalAccessException ex) {
+      java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName())
+          .log(java.util.logging.Level.SEVERE, null, ex);
+    }
+    // </editor-fold>
 
-        TabStop[] tabs = new TabStop[10];
+    initComponents();
+    this.setSize(800, 650);
+    setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    GuiUtils.setWindowToCenterOfScreen(this);
+    toFront();
+    setState(Frame.NORMAL);
+  }
 
-        for (int j = 0; j < tabs.length; j++)
-        {
-            int tab = j + 1;
-            tabs[j] = new TabStop( tab * tabWidth );
-        }
+  public void setTabs(JTextPane textPane, float charactersPerTab) {
+    FontMetrics fm = textPane.getFontMetrics(textPane.getFont());
+    int charWidth = fm.charWidth('w');
+    int tabWidth = (int) (charWidth * charactersPerTab);
 
-        TabSet tabSet = new TabSet(tabs);
-        StyleConstants.setTabSet(attributes, tabSet);
-        int length = textPane.getDocument().getLength();
-        textPane.getStyledDocument().setParagraphAttributes(0, length, attributes, true);
+    TabStop[] tabs = new TabStop[10];
+
+    for (int j = 0; j < tabs.length; j++) {
+      int tab = j + 1;
+      tabs[j] = new TabStop(tab * tabWidth);
     }
 
+    TabSet tabSet = new TabSet(tabs);
+    StyleConstants.setTabSet(attributes, tabSet);
+    int length = textPane.getDocument().getLength();
+    textPane.getStyledDocument().setParagraphAttributes(0, length, attributes, true);
+  }
 
-    /**
-     * This method is called from within the constructor to
-     * initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is
-     * always regenerated by the Form Editor.
-     */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
-        currentStatus = new javax.swing.JLabel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        errorListModel = new DefaultListModel<>();
-        final JList<CompileError> errorList = new JList<>(errorListModel);
-        closeButton = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        codeArea = new javax.swing.JTextPane();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        errorDetailsPanel = new javax.swing.JTextArea();
-        aboutButton = new javax.swing.JButton();
+  /**
+   * This method is called from within the constructor to initialize the form. WARNING: Do NOT
+   * modify this code. The content of this method is always regenerated by the Form Editor.
+   */
+  // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+  private void initComponents() {
+    currentStatus = new javax.swing.JLabel();
+    jScrollPane1 = new javax.swing.JScrollPane();
+    errorListModel = new DefaultListModel<>();
+    final JList<CompileError> errorList = new JList<>(errorListModel);
+    closeButton = new javax.swing.JButton();
+    jScrollPane2 = new javax.swing.JScrollPane();
+    codeArea = new javax.swing.JTextPane();
+    jScrollPane3 = new javax.swing.JScrollPane();
+    errorDetailsPanel = new javax.swing.JTextArea();
+    aboutButton = new javax.swing.JButton();
 
-        errorList.addListSelectionListener(e -> {
-            int index = errorList.getSelectedIndex();
-            if (index >= 0) {
-                CompileError err = errorListModel.get(index);
-                viewErrorDetail(err);
-            }
+    errorList.addListSelectionListener(
+        e -> {
+          int index = errorList.getSelectedIndex();
+          if (index >= 0) {
+            CompileError err = errorListModel.get(index);
+            viewErrorDetail(err);
+          }
         });
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        codeArea.setEditable(false);
+    setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+    codeArea.setEditable(false);
 
-        currentStatus.setFont(new java.awt.Font("Tahoma", Font.BOLD, 12));
-        currentStatus.setText("Status");
+    currentStatus.setFont(new java.awt.Font("Tahoma", Font.BOLD, 12));
+    currentStatus.setText("Status");
 
-        jScrollPane1.setViewportView(errorList);
-        jScrollPane1.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    jScrollPane1.setViewportView(errorList);
+    jScrollPane1.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        closeButton.setText("Close");
-        closeButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(@Nullable MouseEvent evt) {
-                Preconditions.checkNotNull(evt);
-                closeButtonMouseClicked(evt);
-            }
+    closeButton.setText("Close");
+    closeButton.addMouseListener(
+        new java.awt.event.MouseAdapter() {
+          @Override
+          public void mouseClicked(@Nullable MouseEvent evt) {
+            Preconditions.checkNotNull(evt);
+            closeButtonMouseClicked(evt);
+          }
         });
 
-        jScrollPane2.setViewportView(codeArea);
+    jScrollPane2.setViewportView(codeArea);
 
-        aboutButton.setText("AboutDialog...");
-        aboutButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(@Nullable MouseEvent evt) {
-                Preconditions.checkNotNull(evt);
-                aboutButtonMouseClicked(evt);
-            }
+    aboutButton.setText("AboutDialog...");
+    aboutButton.addMouseListener(
+        new java.awt.event.MouseAdapter() {
+          @Override
+          public void mouseClicked(@Nullable MouseEvent evt) {
+            Preconditions.checkNotNull(evt);
+            aboutButtonMouseClicked(evt);
+          }
         });
 
+    errorDetailsPanel.setFont(new java.awt.Font("Tahoma", Font.PLAIN, 12)); // NOI18N
+    errorDetailsPanel.setLineWrap(true);
+    errorDetailsPanel.setWrapStyleWord(true);
+    errorDetailsPanel.setEditable(false);
+    errorDetailsPanel.setFont(this.getFont());
+    errorDetailsPanel.setBorder(new EmptyBorder(1, 1, 1, 1));
+    errorDetailsPanel.setBackground(this.getBackground());
+    errorDetailsPanel.setDragEnabled(true);
 
-        errorDetailsPanel.setFont(new java.awt.Font("Tahoma", Font.PLAIN, 12)); // NOI18N
-        errorDetailsPanel.setLineWrap(true);
-        errorDetailsPanel.setWrapStyleWord(true);
-        errorDetailsPanel.setEditable(false);
-        errorDetailsPanel.setFont(this.getFont());
-        errorDetailsPanel.setBorder(new EmptyBorder(1, 1, 1, 1));
-        errorDetailsPanel.setBackground(this.getBackground());
-        errorDetailsPanel.setDragEnabled(true);
+    jScrollPane3.setViewportView(errorDetailsPanel);
+    jScrollPane3.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        jScrollPane3.setViewportView(errorDetailsPanel);
-        jScrollPane3.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+    getContentPane().setLayout(layout);
+    layout.setHorizontalGroup(
+        layout
+            .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(
+                javax.swing.GroupLayout.Alignment.TRAILING,
+                layout
+                    .createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(
+                        layout
+                            .createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(
+                                jScrollPane3,
+                                javax.swing.GroupLayout.Alignment.LEADING,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                801,
+                                Short.MAX_VALUE)
+                            .addComponent(
+                                jScrollPane2,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                801,
+                                Short.MAX_VALUE)
+                            .addComponent(
+                                jScrollPane1,
+                                javax.swing.GroupLayout.Alignment.LEADING,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                801,
+                                Short.MAX_VALUE)
+                            .addComponent(
+                                currentStatus,
+                                javax.swing.GroupLayout.Alignment.LEADING,
+                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                700,
+                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(
+                                layout
+                                    .createSequentialGroup()
+                                    .addComponent(aboutButton)
+                                    .addPreferredGap(
+                                        javax.swing.LayoutStyle.ComponentPlacement.RELATED,
+                                        669,
+                                        Short.MAX_VALUE)
+                                    .addComponent(closeButton)))
+                    .addContainerGap()));
+    layout.setVerticalGroup(
+        layout
+            .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(
+                layout
+                    .createSequentialGroup()
+                    .addContainerGap()
+                    .addComponent(currentStatus)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(
+                        jScrollPane1,
+                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                        159,
+                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(
+                        jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(
+                        jScrollPane2,
+                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                        327,
+                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addGroup(
+                        layout
+                            .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(
+                                aboutButton,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                Short.MAX_VALUE)
+                            .addComponent(
+                                closeButton,
+                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                30,
+                                Short.MAX_VALUE))
+                    .addContainerGap()));
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                        .addComponent(jScrollPane3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 801,
-                                                Short.MAX_VALUE)
-                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 801, Short.MAX_VALUE)
-                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 801,
-                                                Short.MAX_VALUE)
-                                        .addComponent(currentStatus, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 700,
-                                                javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(aboutButton)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 669, Short.MAX_VALUE)
-                                                .addComponent(closeButton)))
-                                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(currentStatus)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 327, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addComponent(aboutButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(closeButton, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE))
-                                .addContainerGap())
-        );
+    pack();
+  }
 
-        pack();
+  private void closeButtonMouseClicked(java.awt.event.MouseEvent evt) {
+    this.dispose();
+  }
+
+  private void aboutButtonMouseClicked(java.awt.event.MouseEvent evt) {
+    ab.setVisible(true);
+  }
+
+  private void viewErrorDetail(CompileError err) {
+    setVisible(true);
+    this.errorDetailsPanel.setText(err.getMessage());
+
+    File errFile = new File(err.getSource().getFile());
+    File workspaceErrFile = new File(workspaceRoot + "/" + err.getSource().getFile());
+
+    if (!errFile.exists() && workspaceErrFile.exists()) {
+      errFile = workspaceErrFile;
     }
 
-    private void closeButtonMouseClicked(java.awt.event.MouseEvent evt) {
-        this.dispose();
-    }
-
-    private void aboutButtonMouseClicked(java.awt.event.MouseEvent evt) {
-        ab.setVisible(true);
-    }
-
-    private void viewErrorDetail(CompileError err) {
-        setVisible(true);
-        this.errorDetailsPanel.setText(err.getMessage());
-
-        File errFile = new File(err.getSource().getFile());
-        File workspaceErrFile = new File(workspaceRoot + "/" + err.getSource().getFile());
-
-        if (!errFile.exists() && workspaceErrFile.exists()) {
-            errFile = workspaceErrFile;
+    try {
+      if (!Objects.equals(currentFile, errFile)) {
+        currentFile = errFile;
+        try (Reader fr = FileReading.getFileReader(errFile)) {
+          codeArea.read(fr, errFile);
         }
+      }
 
-        try {
-            if (!Objects.equals(currentFile, errFile)) {
-                currentFile = errFile;
-                try (Reader fr = FileReading.getFileReader(errFile)) {
-                    codeArea.read(fr, errFile);
-                }
-            }
+      String text = codeArea.getText();
 
-            String text = codeArea.getText();
+      StyleConstants.setUnderline(attributes, false);
+      StyleConstants.setBackground(attributes, new Color(255, 255, 255));
+      // reset highlighting
+      codeArea.getStyledDocument().setCharacterAttributes(0, text.length() - 1, attributes, true);
 
-            StyleConstants.setUnderline(attributes, false);
-            StyleConstants.setBackground(attributes, new Color(255, 255, 255));
-            // reset highlighting
-            codeArea.getStyledDocument().setCharacterAttributes(0, text.length() - 1, attributes, true);
+      int selectionStart = err.getSource().getLeftPos();
+      // select at least one character:
+      int selectionEnd = err.getSource().getRightPos();
 
-            int selectionStart = err.getSource().getLeftPos();
-            // select at least one character:
-            int selectionEnd = err.getSource().getRightPos();
+      if (selectionStart == selectionEnd && selectionStart > 0) {
+        // select at least one char
+        selectionStart--;
+      }
 
-            if (selectionStart == selectionEnd && selectionStart > 0) {
-                // select at least one char
-                selectionStart--;
-            }
+      StyledDocument doc = codeArea.getStyledDocument();
+      String docText = doc.getText(0, doc.getLength());
 
-            StyledDocument doc = codeArea.getStyledDocument();
-            String docText = doc.getText(0, doc.getLength());
-
-
-            // correct ignored chars (fix for newlines with carriage return):
-            int ignoredChars = 0;
-            for (int i = 0; i < selectionStart - ignoredChars; i++) {
-                char docChar = docText.charAt(i);
-                char textChar = text.charAt(i + ignoredChars);
-                if (docChar == '\n' && textChar == '\r') {
-                    ignoredChars++;
-                } else if (docChar != textChar) {
-                    System.err.println("unexpected deviation in texts: " + docChar + " != " + textChar);
-                    break;
-                }
-            }
-
-            selectionStart -= ignoredChars;
-            selectionEnd -= ignoredChars;
-
-            selectionStart = Utils.inBorders(0, selectionStart, docText.length() - 2);
-            selectionEnd = Utils.inBorders(1, selectionEnd, docText.length() - 1);
-
-
-            StyleConstants.setUnderline(attributes, true);
-            StyleConstants.setBackground(attributes, new Color(255, 150, 150));
-
-
-            doc.setCharacterAttributes(selectionStart, selectionEnd - selectionStart, attributes, true);
-
-            codeArea.select(selectionStart, selectionEnd);
-
-            setTabs(codeArea, 4);
-        } catch (FileNotFoundException e) {
-            codeArea.setText("Could not load file: " + errFile);
-        } catch (IOException e) {
-            codeArea.setText("Could not read file: " + errFile);
-            WLogger.info(e);
-        } catch (BadLocationException e) {
-            WLogger.severe(e);
+      // correct ignored chars (fix for newlines with carriage return):
+      int ignoredChars = 0;
+      for (int i = 0; i < selectionStart - ignoredChars; i++) {
+        char docChar = docText.charAt(i);
+        char textChar = text.charAt(i + ignoredChars);
+        if (docChar == '\n' && textChar == '\r') {
+          ignoredChars++;
+        } else if (docChar != textChar) {
+          System.err.println("unexpected deviation in texts: " + docChar + " != " + textChar);
+          break;
         }
+      }
+
+      selectionStart -= ignoredChars;
+      selectionEnd -= ignoredChars;
+
+      selectionStart = Utils.inBorders(0, selectionStart, docText.length() - 2);
+      selectionEnd = Utils.inBorders(1, selectionEnd, docText.length() - 1);
+
+      StyleConstants.setUnderline(attributes, true);
+      StyleConstants.setBackground(attributes, new Color(255, 150, 150));
+
+      doc.setCharacterAttributes(selectionStart, selectionEnd - selectionStart, attributes, true);
+
+      codeArea.select(selectionStart, selectionEnd);
+
+      setTabs(codeArea, 4);
+    } catch (FileNotFoundException e) {
+      codeArea.setText("Could not load file: " + errFile);
+    } catch (IOException e) {
+      codeArea.setText("Could not read file: " + errFile);
+      WLogger.info(e);
+    } catch (BadLocationException e) {
+      WLogger.severe(e);
     }
+  }
 
-    //	@Override
-    public void sendError(CompileError elem) {
-        if (errorListModel.isEmpty()) {
-            viewErrorDetail(elem);
-        }
-        errorListModel.addElement(elem);
-        this.requestFocus();
+  //	@Override
+  public void sendError(CompileError elem) {
+    if (errorListModel.isEmpty()) {
+      viewErrorDetail(elem);
     }
+    errorListModel.addElement(elem);
+    this.requestFocus();
+  }
 
-    public void sendFinished() {
-        if (errorListModel.isEmpty()) {
-            dispose();
-        }
+  public void sendFinished() {
+    if (errorListModel.isEmpty()) {
+      dispose();
     }
-
-
+  }
 }

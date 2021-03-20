@@ -6,21 +6,19 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class SubClasses {
 
-
-    public static @Nullable ConstructorDef getSuperConstructor(ConstructorDef constr) {
-        ClassDef c = constr.attrNearestClassDef();
-        if (c == null) {
-            return null;
-        }
-        WurstTypeClass ct = c.attrTypC();
-        WurstTypeClass superClass = ct.extendedClass();
-        if (superClass == null) {
-            return null;
-        }
-        // call super constructor
-        ClassDef superClassDef = superClass.getDef();
-        ConstructorDefs constructors = superClassDef.getConstructors();
-        return OverloadingResolver.resolveSuperCall(constructors, constr);
+  public static @Nullable ConstructorDef getSuperConstructor(ConstructorDef constr) {
+    ClassDef c = constr.attrNearestClassDef();
+    if (c == null) {
+      return null;
     }
-
+    WurstTypeClass ct = c.attrTypC();
+    WurstTypeClass superClass = ct.extendedClass();
+    if (superClass == null) {
+      return null;
+    }
+    // call super constructor
+    ClassDef superClassDef = superClass.getDef();
+    ConstructorDefs constructors = superClassDef.getConstructors();
+    return OverloadingResolver.resolveSuperCall(constructors, constr);
+  }
 }

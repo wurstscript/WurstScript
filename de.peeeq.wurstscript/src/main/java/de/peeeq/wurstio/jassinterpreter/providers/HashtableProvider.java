@@ -4,200 +4,281 @@ import com.google.common.collect.ArrayListMultimap;
 import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-
 import java.util.Objects;
 
 public class HashtableProvider extends Provider {
-    public HashtableProvider(AbstractInterpreter interpreter) {
-        super(interpreter);
+  public HashtableProvider(AbstractInterpreter interpreter) {
+    super(interpreter);
+  }
+
+  public static class KeyPair {
+    private final int parentkey;
+    private final int childkey;
+
+    KeyPair(int parentkey, int childkey) {
+      this.parentkey = parentkey;
+      this.childkey = childkey;
     }
 
-    public static class KeyPair {
-        private final int parentkey;
-        private final int childkey;
-
-        KeyPair(int parentkey, int childkey) {
-            this.parentkey = parentkey;
-            this.childkey = childkey;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            KeyPair keyPair = (KeyPair) o;
-            return parentkey == keyPair.parentkey &&
-                    childkey == keyPair.childkey;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(parentkey, childkey);
-        }
-
-        public int getParentkey() {
-            return parentkey;
-        }
-
-        public int getChildkey() {
-            return childkey;
-        }
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      KeyPair keyPair = (KeyPair) o;
+      return parentkey == keyPair.parentkey && childkey == keyPair.childkey;
     }
 
-    public IlConstHandle InitHashtable() {
-        return new IlConstHandle(NameProvider.getRandomName("ht"), ArrayListMultimap.create());
+    @Override
+    public int hashCode() {
+      return Objects.hash(parentkey, childkey);
     }
 
-    @Implements(funcNames = {"SaveInteger", "SaveStr", "SaveReal", "SaveBoolean", "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle",
-            "SaveItemHandle", "SaveUnitHandle", "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
-            "SaveTriggerActionHandle", "SaveTriggerEventHandle", "SaveForceHandle", "SaveGroupHandle", "SaveLocationHandle", "SaveRectHandle",
-            "SaveBooleanExprHandle", "SaveSoundHandle", "SaveEffectHandle", "SaveUnitPoolHandle", "SaveItemPoolHandle", "SaveQuestHandle",
-            "SaveQuestItemHandle", "SaveDefeatConditionHandle", "SaveTimerDialogHandle", "SaveLeaderboardHandle", "SaveMultiboardHandle",
-            "SaveMultiboardItemHandle", "SaveTrackableHandle", "SaveDialogHandle", "SaveButtonHandle", "SaveTextTagHandle", "SaveLightningHandle",
-            "SaveImageHandle", "SaveUbersplatHandle", "SaveRegionHandle", "SaveFogStateHandle", "SaveFogModifierHandle", "SaveAgentHandle",
-            "SaveHashtableHandle",
-    })
-    public void Save(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        deleteIfPresent(map, keyPair, value.getClass());
-        map.put(keyPair, value);
+    public int getParentkey() {
+      return parentkey;
     }
 
-    public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstInt.class) ? load(ht, key1, key2, ILconstInt.class) : ILconstInt.create(0);
+    public int getChildkey() {
+      return childkey;
     }
+  }
 
-    public ILconstReal LoadReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstReal.class) ? load(ht, key1, key2, ILconstReal.class) : new ILconstReal(0);
-    }
+  public IlConstHandle InitHashtable() {
+    return new IlConstHandle(NameProvider.getRandomName("ht"), ArrayListMultimap.create());
+  }
 
-    public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return  haveSaved(ht, key1, key2, ILconstString.class) ? load(ht, key1, key2, ILconstString.class) : new ILconstString("");
-    }
+  @Implements(
+      funcNames = {
+        "SaveInteger",
+        "SaveStr",
+        "SaveReal",
+        "SaveBoolean",
+        "SavePlayerHandle",
+        "SaveWidgetHandle",
+        "SaveDestructableHandle",
+        "SaveItemHandle",
+        "SaveUnitHandle",
+        "SaveAbilityHandle",
+        "SaveTimerHandle",
+        "SaveTriggerHandle",
+        "SaveTriggerConditionHandle",
+        "SaveTriggerActionHandle",
+        "SaveTriggerEventHandle",
+        "SaveForceHandle",
+        "SaveGroupHandle",
+        "SaveLocationHandle",
+        "SaveRectHandle",
+        "SaveBooleanExprHandle",
+        "SaveSoundHandle",
+        "SaveEffectHandle",
+        "SaveUnitPoolHandle",
+        "SaveItemPoolHandle",
+        "SaveQuestHandle",
+        "SaveQuestItemHandle",
+        "SaveDefeatConditionHandle",
+        "SaveTimerDialogHandle",
+        "SaveLeaderboardHandle",
+        "SaveMultiboardHandle",
+        "SaveMultiboardItemHandle",
+        "SaveTrackableHandle",
+        "SaveDialogHandle",
+        "SaveButtonHandle",
+        "SaveTextTagHandle",
+        "SaveLightningHandle",
+        "SaveImageHandle",
+        "SaveUbersplatHandle",
+        "SaveRegionHandle",
+        "SaveFogStateHandle",
+        "SaveFogModifierHandle",
+        "SaveAgentHandle",
+        "SaveHashtableHandle",
+      })
+  public void Save(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
+    deleteIfPresent(map, keyPair, value.getClass());
+    map.put(keyPair, value);
+  }
 
-    public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return haveSaved(ht, key1, key2, ILconstBool.class) ? load(ht, key1, key2, ILconstBool.class) : ILconstBool.FALSE;
-    }
+  public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return haveSaved(ht, key1, key2, ILconstInt.class)
+        ? load(ht, key1, key2, ILconstInt.class)
+        : ILconstInt.create(0);
+  }
 
-    @Implements(funcNames = {"LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle", "LoadAbilityHandle",
-            "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle", "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle",
-            "LoadGroupHandle", "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle", "LoadUnitPoolHandle",
-            "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle", "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle",
-            "LoadMultiboardHandle", "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle", "LoadTextTagHandle",
-            "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle", "LoadFogStateHandle", "LoadFogModifierHandle",
-            "LoadHashtableHandle"})
-    public IlConstHandle LoadHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return load(ht, key1, key2, IlConstHandle.class);
-    }
+  public ILconstReal LoadReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return haveSaved(ht, key1, key2, ILconstReal.class)
+        ? load(ht, key1, key2, ILconstReal.class)
+        : new ILconstReal(0);
+  }
 
-    public void FlushParentHashtable(IlConstHandle ht) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        map.clear();
-    }
+  public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return haveSaved(ht, key1, key2, ILconstString.class)
+        ? load(ht, key1, key2, ILconstString.class)
+        : new ILconstString("");
+  }
 
-    public void FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        map.entries().removeIf(entry -> entry.getKey().parentkey == parentKey.getVal());
-    }
+  public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return haveSaved(ht, key1, key2, ILconstBool.class)
+        ? load(ht, key1, key2, ILconstBool.class)
+        : ILconstBool.FALSE;
+  }
 
-    public void RemoveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        removeSaved(ht, key1, key2, ILconstInt.class);
-    }
+  @Implements(
+      funcNames = {
+        "LoadPlayerHandle",
+        "LoadWidgetHandle",
+        "LoadDestructableHandle",
+        "LoadItemHandle",
+        "LoadUnitHandle",
+        "LoadAbilityHandle",
+        "LoadTimerHandle",
+        "LoadTriggerHandle",
+        "LoadTriggerConditionHandle",
+        "LoadTriggerActionHandle",
+        "LoadTriggerEventHandle",
+        "LoadForceHandle",
+        "LoadGroupHandle",
+        "LoadLocationHandle",
+        "LoadRectHandle",
+        "LoadBooleanExprHandle",
+        "LoadSoundHandle",
+        "LoadEffectHandle",
+        "LoadUnitPoolHandle",
+        "LoadItemPoolHandle",
+        "LoadQuestHandle",
+        "LoadQuestItemHandle",
+        "LoadDefeatConditionHandle",
+        "LoadTimerDialogHandle",
+        "LoadLeaderboardHandle",
+        "LoadMultiboardHandle",
+        "LoadMultiboardItemHandle",
+        "LoadTrackableHandle",
+        "LoadDialogHandle",
+        "LoadButtonHandle",
+        "LoadTextTagHandle",
+        "LoadLightningHandle",
+        "LoadImageHandle",
+        "LoadUbersplatHandle",
+        "LoadRegionHandle",
+        "LoadFogStateHandle",
+        "LoadFogModifierHandle",
+        "LoadHashtableHandle"
+      })
+  public IlConstHandle LoadHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return load(ht, key1, key2, IlConstHandle.class);
+  }
 
-    public void RemoveSavedReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        removeSaved(ht, key1, key2, ILconstReal.class);
-    }
+  public void FlushParentHashtable(IlConstHandle ht) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    map.clear();
+  }
 
-    public void RemoveSavedBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        removeSaved(ht, key1, key2, ILconstBool.class);
-    }
+  public void FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    map.entries().removeIf(entry -> entry.getKey().parentkey == parentKey.getVal());
+  }
 
-    public void RemoveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        removeSaved(ht, key1, key2, ILconstString.class);
-    }
+  public void RemoveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    removeSaved(ht, key1, key2, ILconstInt.class);
+  }
 
-    public void RemoveSavedHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        removeSaved(ht, key1, key2, IlConstHandle.class);
-    }
+  public void RemoveSavedReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    removeSaved(ht, key1, key2, ILconstReal.class);
+  }
 
-    public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class));
-    }
+  public void RemoveSavedBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    removeSaved(ht, key1, key2, ILconstBool.class);
+  }
 
-    public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstInt.class));
-    }
+  public void RemoveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    removeSaved(ht, key1, key2, ILconstString.class);
+  }
 
-    public ILconstBool HaveSavedReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstReal.class));
-    }
+  public void RemoveSavedHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    removeSaved(ht, key1, key2, IlConstHandle.class);
+  }
 
-    public ILconstBool HaveSavedBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstBool.class));
-    }
+  public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class));
+  }
 
-    public ILconstBool HaveSavedHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, IlConstHandle.class));
-    }
+  public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstInt.class));
+  }
 
-    private <T> T load(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        if (hasValueOfType(map, keyPair, clazz)) {
-            return getValueOfType(map, keyPair, clazz);
-        }
-        return null;
-    }
+  public ILconstBool HaveSavedReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstReal.class));
+  }
 
-    private <T> void removeSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, T type) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        deleteIfPresent(map, keyPair, type);
-    }
+  public ILconstBool HaveSavedBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstBool.class));
+  }
 
-    private <T> boolean haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
-        @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
-        KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        return hasValueOfType(map, keyPair, clazz);
-    }
+  public ILconstBool HaveSavedHandle(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    return ILconstBool.instance(haveSaved(ht, key1, key2, IlConstHandle.class));
+  }
 
-    private static <T> T getValueOfType(ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> clazz) {
-        for (Object o : map.get(key)) {
-            if (o.getClass() == clazz) {
-                return (T) o;
-            }
-        }
-        return null;
+  private <T> T load(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
+    if (hasValueOfType(map, keyPair, clazz)) {
+      return getValueOfType(map, keyPair, clazz);
     }
+    return null;
+  }
 
-    private static <T> boolean hasValueOfType(ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> type) {
-        for (Object o : map.get(key)) {
-            if (o.getClass() == type) {
-                return true;
-            }
-        }
-        return false;
-    }
+  private <T> void removeSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, T type) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
+    deleteIfPresent(map, keyPair, type);
+  }
 
-    private static <T> void deleteIfPresent(ArrayListMultimap<KeyPair, Object> map, KeyPair key, T type) {
-        Object toRemove = null;
-        for (Object o : map.get(key)) {
-            if (o.getClass() == type) {
-                toRemove = o;
-                break;
-            }
-        }
-        if (toRemove != null) {
-            if(!map.remove(key, toRemove)) {
-                throw new Error("object was found but not deleted");
-            }
-        }
+  private <T> boolean haveSaved(
+      IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+    KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
+    return hasValueOfType(map, keyPair, clazz);
+  }
+
+  private static <T> T getValueOfType(
+      ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> clazz) {
+    for (Object o : map.get(key)) {
+      if (o.getClass() == clazz) {
+        return (T) o;
+      }
     }
+    return null;
+  }
+
+  private static <T> boolean hasValueOfType(
+      ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> type) {
+    for (Object o : map.get(key)) {
+      if (o.getClass() == type) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static <T> void deleteIfPresent(
+      ArrayListMultimap<KeyPair, Object> map, KeyPair key, T type) {
+    Object toRemove = null;
+    for (Object o : map.get(key)) {
+      if (o.getClass() == type) {
+        toRemove = o;
+        break;
+      }
+    }
+    if (toRemove != null) {
+      if (!map.remove(key, toRemove)) {
+        throw new Error("object was found but not deleted");
+      }
+    }
+  }
 }

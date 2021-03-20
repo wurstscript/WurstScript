@@ -6,25 +6,23 @@ import de.peeeq.wurstscript.types.WurstTypeInfer;
 
 public class ILconstUnsafeDefault extends ILconstAbstract {
 
+  private final ImTypeVar typeVariable;
 
-    private final ImTypeVar typeVariable;
+  public ILconstUnsafeDefault(ImTypeVar typeVariable) {
+    this.typeVariable = typeVariable;
+  }
 
-    public ILconstUnsafeDefault(ImTypeVar typeVariable) {
-        this.typeVariable = typeVariable;
-    }
+  @Override
+  public String print() {
+    return "unsafe-default<" + typeVariable.getName() + ">";
+  }
 
-    @Override
-    public String print() {
-        return "unsafe-default<" + typeVariable.getName() + ">";
-    }
+  public WurstType getType() {
+    return WurstTypeInfer.instance();
+  }
 
-    public WurstType getType() {
-        return WurstTypeInfer.instance();
-    }
-
-    @Override
-    public boolean isEqualTo(ILconst other) {
-        return other instanceof ILconstUnsafeDefault;
-    }
-
+  @Override
+  public boolean isEqualTo(ILconst other) {
+    return other instanceof ILconstUnsafeDefault;
+  }
 }

@@ -5,10 +5,10 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 
 public class PlayerMock {
-    public final ILconstInt id;
-    public ILconst playerColor = ILconstNull.instance();
+  public final ILconstInt id;
+  public ILconst playerColor = ILconstNull.instance();
 
-    public PlayerMock(ILconstInt p) {
-        this.id = p;
-    }
+  public PlayerMock(ILconstInt p) {
+    this.id = p;
+  }
 }

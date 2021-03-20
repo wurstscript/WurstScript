@@ -8,15 +8,14 @@ import de.peeeq.wurstscript.ast.ModuleUse;
 
 public class AttrUsedModules {
 
-    public static ImmutableCollection<ModuleDef> calculate(ClassOrModule c) {
-        ImmutableCollection.Builder<ModuleDef> result = ImmutableList.builder();
-        for (ModuleUse moduleUse : c.getModuleUses()) {
-            ModuleDef usedModule = moduleUse.attrModuleDef();
-            if (usedModule != null) {
-                result.add(usedModule);
-            }
-        }
-        return result.build();
+  public static ImmutableCollection<ModuleDef> calculate(ClassOrModule c) {
+    ImmutableCollection.Builder<ModuleDef> result = ImmutableList.builder();
+    for (ModuleUse moduleUse : c.getModuleUses()) {
+      ModuleDef usedModule = moduleUse.attrModuleDef();
+      if (usedModule != null) {
+        result.add(usedModule);
+      }
     }
-
+    return result.build();
+  }
 }

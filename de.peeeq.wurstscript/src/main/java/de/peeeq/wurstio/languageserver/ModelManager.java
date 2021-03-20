@@ -4,58 +4,56 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ModuleInstanciations;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
-import org.eclipse.jdt.annotation.Nullable;
-import org.eclipse.lsp4j.PublishDiagnosticsParams;
-
 import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 public interface ModelManager {
 
-    boolean removeCompilationUnit(WFile filename);
+  boolean removeCompilationUnit(WFile filename);
 
-    /**
-     * cleans the model
-     */
-    void clean();
+  /** cleans the model */
+  void clean();
 
-    List<CompileError> getParseErrors();
+  List<CompileError> getParseErrors();
 
-    void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
+  void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 
-    void buildProject();
+  void buildProject();
 
-    void syncCompilationUnit(WFile changedFilePath);
+  void syncCompilationUnit(WFile changedFilePath);
 
-    void syncCompilationUnitContent(WFile filename, String contents);
+  void syncCompilationUnitContent(WFile filename, String contents);
 
-    CompilationUnit replaceCompilationUnitContent(WFile filename, String buffer, boolean reportErrors);
+  CompilationUnit replaceCompilationUnitContent(
+      WFile filename, String buffer, boolean reportErrors);
 
-    /**
-     * get all wurst files in dependency folders
-     */
-    Set<File> getDependencyWurstFiles();
+  /** get all wurst files in dependency folders */
+  Set<File> getDependencyWurstFiles();
 
-    @Nullable CompilationUnit getCompilationUnit(WFile filename);
+  @Nullable
+  CompilationUnit getCompilationUnit(WFile filename);
 
-    WurstModel getModel();
+  WurstModel getModel();
 
-    boolean hasErrors();
+  boolean hasErrors();
 
-    static WurstModel copy(WurstModel model) {
-        WurstModel m = model.copy();
-        // clear all module instantiations, since they might include old stuff
-        m.accept(new WurstModel.DefaultVisitor() {
-            @Override
-            public void visit(ModuleInstanciations mis) {
-                super.visit(mis);
-                mis.clear();
-            }
+  static WurstModel copy(WurstModel model) {
+    WurstModel m = model.copy();
+    // clear all module instantiations, since they might include old stuff
+    m.accept(
+        new WurstModel.DefaultVisitor() {
+          @Override
+          public void visit(ModuleInstanciations mis) {
+            super.visit(mis);
+            mis.clear();
+          }
         });
-        return m;
-    }
+    return m;
+  }
 
-    File getProjectPath();
+  File getProjectPath();
 }

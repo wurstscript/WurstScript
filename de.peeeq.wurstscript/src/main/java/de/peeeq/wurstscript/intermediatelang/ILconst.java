@@ -2,11 +2,10 @@ package de.peeeq.wurstscript.intermediatelang;
 
 public interface ILconst {
 
-    String print();
+  String print();
 
-    boolean isEqualTo(ILconst other);
+  boolean isEqualTo(ILconst other);
 
-    @Override
-    String toString();
-
+  @Override
+  String toString();
 }
