@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -25,6 +26,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
     }
 
+    @Ignore
     @Test
     public void testExecution() {
         test().testLua(true).executeProg().lines(
@@ -60,6 +62,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("takesString(\"\")") && !compiled.contains("takesString(nil)"));
     }
 
+    @Ignore
     @Test
     public void nullString3() {
         test().testLua(true).executeProg().lines(
