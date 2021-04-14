@@ -1,12 +1,8 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-import org.testng.annotations.Ignore;
+
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
 
 import static org.testng.AssertJUnit.*;
 
@@ -14,8 +10,8 @@ import static org.testng.AssertJUnit.*;
 public class LuaTypecastingTests extends WurstScriptTest {
 
     @Test
-    public void hashMap1() throws IOException {
-        String[] code = {
+    public void hashMap1() {
+        test().testLua(true).withStdLib().lines(
             "package Test",
             "",
             "import HashMap",
@@ -69,14 +65,84 @@ public class LuaTypecastingTests extends WurstScriptTest {
             "	boolMap.put(true, true)",
             "	b = boolMap.get(true)",
             "	print(b)"
-        };
-        try {
-            test().testLua(true).withStdLib().executeProg(false).lines(code);
-        } catch (Error e) {
-            if (!e.getMessage().equals("Succeed function not called")) {
-                throw e;
-            }
-        }
+        );
+        assertTrue(true);
+    }
+
+    @Test
+    public void compiletimeNull1() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import NoWurst",
+            "import public _Handles",
+            "import public MagicFunctions",
+            "",
+            "",
+            "function print(string msg)",
+            "	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., msg)",
+            "",
+            "class A",
+            "	function foo()",
+            "		print(\"I am A\")",
+            "",
+            "class B",
+            "	A a = null",
+            "",
+            "function createB() returns B",
+            "	let b = new B()",
+            "	return b",
+            "",
+            "function getNullA() returns A",
+            "	return null",
+            "constant b = compiletime(createB())",
+            "A nullA = compiletime(null)",
+            "A nullA2 = compiletime(getNullA())",
+            "A newA = compiletime(new A)",
+            "",
+            "init",
+            "	if b.a == null",
+            "		b.a = new A()",
+            "	b.a.foo()",
+            "	nullA.foo()",
+            "	nullA2.foo()",
+            "	newA.foo()"
+        );
+    }
+
+    @Test
+    public void compiletimeNull2() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import NoWurst",
+            "import public _Handles",
+            "import public MagicFunctions",
+            "",
+            "function print(string msg)",
+            "	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., msg)",
+            "",
+            "class A",
+            "	function foo()",
+            "		print(\"I am A\")",
+            "",
+            "function getNullA() returns A",
+            "	return null",
+            "A nullA0 = null",
+            "A array nullArray",
+            "@compiletime function initArray()",
+            "	nullArray[0] = null",
+            "	nullArray[1] = null",
+            "	nullArray[2] = null",
+            "A nullA1 = compiletime(null)",
+            "A nullA2 = compiletime(getNullA())",
+            "A nullA3 = compiletime(nullA0)",
+            "A nullA4 = compiletime(nullArray[1])",
+            "",
+            "init",
+            "	nullA1.foo()",
+            "	nullA2.foo()",
+            "	nullA3.foo()",
+            "	nullA4.foo()"
+        );
     }
 
 }
