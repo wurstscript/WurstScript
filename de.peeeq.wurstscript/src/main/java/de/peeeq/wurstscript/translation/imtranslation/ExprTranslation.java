@@ -99,36 +99,35 @@ public class ExprTranslation {
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }
 
-    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
-        if (t.isLuaTarget()) {
-            // use ensureType functions for lua
-            // these functions convert nil to the default value for primitive types (int, string, bool, real)
-            if (actualType instanceof WurstTypeBoundTypeParam) {
-                WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+    static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {
+        // use ensureType functions for lua
+        // these functions convert nil to the default value for primitive types (int, string, bool, real)
+        if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
+            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
 
-                @Nullable ImFunction ensureType = null;
-                switch (wtb.getName()) {
-                    case "integer":
-                        ensureType = t.ensureIntFunc;
-                        break;
-                    case "string":
-                        ensureType = t.ensureStrFunc;
-                        break;
-                    case "bool":
-                        ensureType = t.ensureBoolFunc;
-                        break;
-                    case "real":
-                        ensureType = t.ensureRealFunc;
-                        break;
-                }
-                if(ensureType != null) {
-                    return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
-                }
+            @Nullable ImFunction ensureType = null;
+            switch (wtb.getName()) {
+                case "integer":
+                    ensureType = t.ensureIntFunc;
+                    break;
+                case "string":
+                    ensureType = t.ensureStrFunc;
+                    break;
+                case "boolean":
+                    ensureType = t.ensureBoolFunc;
+                    break;
+                case "real":
+                    ensureType = t.ensureRealFunc;
+                    break;
             }
-            return translated;
+            if(ensureType != null) {
+                return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
         }
+        return translated;
+    }
 
-
+    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -153,15 +152,18 @@ public class ExprTranslation {
         if (toIndex != null && fromIndex != null) {
 //            System.out.println("  --> cancel");
             // the two conversions cancel each other out
-            return translated;
+            return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            if(t.isLuaTarget()) {
+                translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
+            return wrapLua(trace, t, ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         } else if (toIndex != null) {
 //            System.out.println("  --> toIndex");
-            return ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        return translated;
+        return wrapLua(trace, t, translated, actualType);
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
