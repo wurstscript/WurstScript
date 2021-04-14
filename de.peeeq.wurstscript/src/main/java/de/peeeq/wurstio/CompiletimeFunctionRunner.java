@@ -240,7 +240,10 @@ public class CompiletimeFunctionRunner {
                     } else if(expr instanceof ImVarAccess) {
                         exprType = ((ImVarAccess)expr).getVar().getType();
                     } else if(expr instanceof ImVarArrayAccess) {
-                        exprType = ((ImVarArrayAccess)expr).getVar().getType();
+                        ImType type = ((ImVarArrayAccess)expr).getVar().getType();
+                        if(type instanceof ImArrayLikeType) {
+                            exprType = ((ImArrayLikeType) type).getEntryType();
+                        }
                     }
                     if(exprType != null && !TypesHelper.isIntType(exprType) && !TypesHelper.isRealType(exprType)) {
                         newExpr = ImHelper.nullExpr();
@@ -286,7 +289,11 @@ public class CompiletimeFunctionRunner {
                                 .collect(Collectors.toCollection(JassIm::ImExprs));
                         ImExpr value2 = constantToExpr(trace, attrValue);
                         if(translator.isLuaTarget() && value2.toString().equals("0")) {
-                            if(!TypesHelper.isIntType(res.getType()) && !TypesHelper.isRealType(res.getType())) {
+                            ImType varType = var.getType();
+                            if(varType instanceof ImArrayLikeType) {
+                                varType = ((ImArrayLikeType) varType).getEntryType();
+                            }
+                            if (!TypesHelper.isIntType(varType) && !TypesHelper.isRealType(varType)) {
                                 value2 = ImHelper.nullExpr();
                             }
                         }
