@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +101,30 @@ public class ExprTranslation {
 
     static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
         if (t.isLuaTarget()) {
-            // for lua we do not need fromIndex/toIndex
+            // use ensureType functions for lua
+            // these functions convert nil to the default value for primitive types (int, string, bool, real)
+            if (actualType instanceof WurstTypeBoundTypeParam) {
+                WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+
+                @Nullable ImFunction ensureType = null;
+                switch (wtb.getName()) {
+                    case "integer":
+                        ensureType = t.ensureIntFunc;
+                        break;
+                    case "string":
+                        ensureType = t.ensureStrFunc;
+                        break;
+                    case "bool":
+                        ensureType = t.ensureBoolFunc;
+                        break;
+                    case "real":
+                        ensureType = t.ensureRealFunc;
+                        break;
+                }
+                if(ensureType != null) {
+                    return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+                }
+            }
             return translated;
         }
 

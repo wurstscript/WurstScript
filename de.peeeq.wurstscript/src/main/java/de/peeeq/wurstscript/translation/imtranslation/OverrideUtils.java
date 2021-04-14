@@ -77,7 +77,7 @@ public class OverrideUtils {
             }
         }
 
-        if (!needConversion) {
+        if (!needConversion || tr.isLuaTarget()) {
             superMethodIm.getSubMethods().add(subMethod);
             return;
         }
