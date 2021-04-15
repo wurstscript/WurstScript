@@ -102,7 +102,11 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
-        return LuaAst.LuaExprNull();
+        if(isStringType(e.getType())) {
+            return LuaAst.LuaExprStringVal("");
+        } else {
+            return LuaAst.LuaExprNull();
+        }
     }
 
     public static LuaExpr translate(ImOperatorCall e, LuaTranslator tr) {

@@ -23,6 +23,7 @@
             <class name="tests.wurstscript.tests.InterfaceTests"/>
             <class name="tests.wurstscript.tests.InterfaceExtendedTests"/>
             <class name="tests.wurstscript.tests.LexerTests"/>
+            <class name="tests.wurstscript.tests.LuaTranslationTests"/>
             <class name="tests.wurstscript.tests.ModuleTests"/>
             <class name="tests.wurstscript.tests.MpqTest"/>
             <class name="tests.wurstscript.tests.NewFeatureTests"/>
