@@ -18,6 +18,11 @@ public class TimerProvider extends Provider {
         return timer;
     }
 
+    public ILconstReal TimerGetElapsed(IlConstHandle timer) {
+        TimerMock timerMock = (TimerMock) timer.getObj();
+        return new ILconstReal(timerMock.getElapsed());
+    }
+
     public void DestroyTimer(IlConstHandle timer) {
         TimerMock timerMock = (TimerMock) timer.getObj();
         timerMock.destroy();

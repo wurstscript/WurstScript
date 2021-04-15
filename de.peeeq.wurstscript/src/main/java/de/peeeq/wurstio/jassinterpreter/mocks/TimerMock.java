@@ -16,6 +16,7 @@ public class TimerMock {
     private IlConstHandle timerHandle;
     private TimerMockHandler.RunTask runTask;
     private TimerMockHandler.PausedTask pausedTask;
+    private long startedMillis;
 
     public class TimerMockRunnable implements Runnable {
 
@@ -63,6 +64,7 @@ public class TimerMock {
             timerMockHandler.cancelTask(runTask);
         }
         pausedTask = null;
+        startedMillis = System.currentTimeMillis();
         TimerMockRunnable toRun = new TimerMockRunnable(handlerFunc, periodic.getVal(), timeout.getVal());
         this.runTask = timerMockHandler.registerTimedAction(timeout.getVal(), toRun);
     }
@@ -96,5 +98,9 @@ public class TimerMock {
         }
         runTask = timerMockHandler.resumeTask(pausedTask);
         pausedTask = null;
+    }
+
+    public long getElapsed() {
+        return (System.currentTimeMillis() - startedMillis) / 1000;
     }
 }
