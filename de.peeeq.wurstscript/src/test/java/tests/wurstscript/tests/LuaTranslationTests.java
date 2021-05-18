@@ -8,11 +8,37 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static org.testng.AssertJUnit.*;
 
 
 public class LuaTranslationTests extends WurstScriptTest {
 
+    private void assertFunctionReturns(String output, String functionName, String returnValue) {
+        /*
+        The function functionName must only return returnValue and do nothing else.
+         */
+        Pattern pattern = Pattern.compile("function\\s+" + functionName + "\\(.*?\\)\\s+return\\s+" + returnValue + "\\s+end");
+        Matcher matcher = pattern.matcher(output);
+        assertTrue("Function " + functionName + " with return value " + returnValue + " was not found.", matcher.find());
+    }
+
+    private void assertFunctionCall(String output, String functionName, String arguments) {
+        /*
+        The function declaration is ignored by using negative lookbehind.
+        All function calls must use the specified arguments.
+         */
+        Pattern pattern = Pattern.compile("(?<!\\sfunction\\s)" + functionName + "\\((.*)\\)");
+        Matcher matcher = pattern.matcher(output);
+        boolean findAtLeastOne = false;
+        while (matcher.find()) {
+            assertEquals(arguments, matcher.group(1));
+            findAtLeastOne = true;
+        }
+        assertTrue("Function call to function " + functionName + " with arguments (" + arguments + ") was not found.", findAtLeastOne);
+    }
 
     @Test
     public void testStdLib() throws IOException {
@@ -47,7 +73,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   nullString()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullString1.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("return \"\"") && !compiled.contains("return nil"));
+        assertFunctionReturns(compiled, "nullString", "\"\"");
     }
 
     @Test
@@ -59,7 +85,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   takesString(null)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullString2.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("takesString(\"\")") && !compiled.contains("takesString(nil)"));
+        assertFunctionCall(compiled, "takesString", "\"\"");
     }
 
     @Ignore
@@ -91,7 +117,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   nullObject()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullObject1.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("return nil") && !compiled.contains("return \"\""));
+        assertFunctionReturns(compiled, "nullObject", "nil");
     }
 
     @Test
@@ -104,7 +130,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   takesObject(null)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullObject2.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("takesObject(nil)") && !compiled.contains("takesObject(\"\")"));
+        assertFunctionCall(compiled, "takesObject", "nil");
     }
 
     @Test
@@ -117,7 +143,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   nullUnit()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullUnit1.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("return nil") && !compiled.contains("return \"\""));
+        assertFunctionReturns(compiled, "nullUnit", "nil");
     }
 
     @Test
@@ -129,7 +155,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "   takesUnit(null)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullUnit2.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("takesUnit(nil)") && !compiled.contains("takesUnit(\"\")"));
+        assertFunctionCall(compiled, "takesUnit", "nil");
     }
 }
 
