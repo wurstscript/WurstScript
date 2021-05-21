@@ -290,9 +290,9 @@ public class LuaPrinter {
     }
 
     public static void print(LuaTableConstructor e, StringBuilder sb, int indent) {
-        sb.append("{");
+        sb.append("({");
         e.getTableFields().print(sb, indent);
-        sb.append("}");
+        sb.append("})");
     }
 
     public static void print(LuaTableExprField e, StringBuilder sb, int indent) {
