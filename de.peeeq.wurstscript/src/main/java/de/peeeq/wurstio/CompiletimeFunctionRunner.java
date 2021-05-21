@@ -31,6 +31,7 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -226,6 +227,33 @@ public class CompiletimeFunctionRunner {
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
             ImExpr newExpr = constantToExpr(cte.getTrace(), value);
+            if(translator.isLuaTarget() && value.toString().equals("0")) {
+                // convert 0 to null/nil, if the value is 0 and not a numeric type
+                ImExpr expr = cte.getExpr();
+
+                if(expr instanceof ImNull) {
+                    newExpr = ImHelper.nullExpr();
+                } else {
+                    @Nullable ImType exprType = null;
+                    if(expr instanceof ImFunctionCall) {
+                        exprType = ((ImFunctionCall) expr).getFunc().getReturnType();
+                    } else if(expr instanceof ImVarAccess) {
+                        exprType = ((ImVarAccess)expr).getVar().getType();
+                    } else if(expr instanceof ImVarArrayAccess) {
+                        ImType type = ((ImVarArrayAccess)expr).getVar().getType();
+                        if(type instanceof ImArrayLikeType) {
+                            exprType = ((ImArrayLikeType) type).getEntryType();
+                        }
+                    }
+                    if(exprType != null && !TypesHelper.isIntType(exprType) && !TypesHelper.isRealType(exprType)) {
+                        newExpr = ImHelper.nullExpr();
+                    }
+                }
+                // TODO is this complete? Are there more cases where 0 must be replaced?
+                // A function can return null
+                // null can be a literal
+                // null can be a variable
+            }
             cte.replaceBy(newExpr);
         } catch (InterpreterException e) {
             String msg = ILInterpreter.buildStacktrace(globalState, e);
@@ -259,7 +287,17 @@ public class CompiletimeFunctionRunner {
                         ImExprs indexesT = indexes.stream()
                                 .map(i -> constantToExpr(trace, ILconstInt.create(i)))
                                 .collect(Collectors.toCollection(JassIm::ImExprs));
-                        addCompiletimeStateInit(JassIm.ImSet(trace, JassIm.ImMemberAccess(trace, JassIm.ImVarAccess(res), JassIm.ImTypeArguments(), var, indexesT), constantToExpr(trace, attrValue)));
+                        ImExpr value2 = constantToExpr(trace, attrValue);
+                        if(translator.isLuaTarget() && value2.toString().equals("0")) {
+                            ImType varType = var.getType();
+                            if(varType instanceof ImArrayLikeType) {
+                                varType = ((ImArrayLikeType) varType).getEntryType();
+                            }
+                            if (!TypesHelper.isIntType(varType) && !TypesHelper.isRealType(varType)) {
+                                value2 = ImHelper.nullExpr();
+                            }
+                        }
+                        addCompiletimeStateInit(JassIm.ImSet(trace, JassIm.ImMemberAccess(trace, JassIm.ImVarAccess(res), JassIm.ImTypeArguments(), var, indexesT), value2));
                     }
                 }
             });

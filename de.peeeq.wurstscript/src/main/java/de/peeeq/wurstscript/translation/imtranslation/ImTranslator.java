@@ -89,6 +89,11 @@ public class ImTranslator {
 
     private @Nullable ImFunction configFunc = null;
 
+    @Nullable public ImFunction ensureIntFunc = null;
+    @Nullable public ImFunction ensureBoolFunc = null;
+    @Nullable public ImFunction ensureRealFunc = null;
+    @Nullable public ImFunction ensureStrFunc = null;
+
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
 
     private boolean isUnitTestMode;
@@ -122,6 +127,17 @@ public class ImTranslator {
             debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "msg",
                     false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
+            if(isLuaTarget()) {
+                ensureIntFunc = JassIm.ImFunction(emptyTrace, "intEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeInt.instance().imTranslateType(this), "x", false)), WurstTypeInt.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+                ensureBoolFunc = JassIm.ImFunction(emptyTrace, "boolEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeBool.instance().imTranslateType(this), "x", false)), WurstTypeBool.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+                ensureRealFunc = JassIm.ImFunction(emptyTrace, "realEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeReal.instance().imTranslateType(this), "x", false)), WurstTypeReal.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+                ensureStrFunc = JassIm.ImFunction(emptyTrace, "stringEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+                addFunction(ensureIntFunc);
+                addFunction(ensureBoolFunc);
+                addFunction(ensureRealFunc);
+                addFunction(ensureStrFunc);
+            }
+
             calculateCompiletimeOrder();
 
             for (CompilationUnit cu : wurstProg) {
@@ -136,6 +152,7 @@ public class ImTranslator {
                 configFunc = ImFunction(emptyTrace, "config", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
                 addFunction(configFunc);
             }
+
             finishInitFunctions();
             EliminateCallFunctionsWithAnnotation.process(imProg);
             removeDuplicateNatives(imProg);

@@ -42,6 +42,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new ImageProvider(interpreter));
         addProvider(new IntegerProvider(interpreter));
         addProvider(new FrameProvider(interpreter));
+        addProvider(new LuaEnsureTypeProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {
