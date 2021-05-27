@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImCompressor {
@@ -36,7 +37,7 @@ public class ImCompressor {
     }
 
     public void compressFunctions() {
-        for (ImFunction func : prog.getFunctions()) {
+        for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
             if (func.isNative() || func.isBj() || func.isCompiletime() || func.isExtern()) {
                 // do not rename builtin an bj functions
                 continue;

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -74,7 +75,7 @@ public class RemoveGarbage {
 
     public static void removeGarbage(ImProg prog) {
         Used used = new Used();
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.getName().equals("main")
                 || f.getName().equals("config")) {
                 visitFunction(f, used);
