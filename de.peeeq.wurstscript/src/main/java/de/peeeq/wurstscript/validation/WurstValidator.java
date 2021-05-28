@@ -159,6 +159,20 @@ public class WurstValidator {
         return result;
     }
 
+    private WPackage getConfiguredPackage(Element e) {
+        PackageOrGlobal p = e.attrNearestPackage();
+        if(p instanceof WPackage) {
+            if (p.getModel().attrConfigOverridePackages().containsValue(p)) {
+                for(WPackage k : p.getModel().attrConfigOverridePackages().keySet()) {
+                    if(p.getModel().attrConfigOverridePackages().get(k).equals(p)) {
+                        return k;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private void collectUsedPackages(Set<PackageOrGlobal> used, Element e) {
         for (int i = 0; i < e.size(); i++) {
             collectUsedPackages(used, e.get(i));
@@ -169,6 +183,12 @@ public class WurstValidator {
             FuncLink link = fr.attrFuncLink();
             if (link != null) {
                 used.add(link.getDef().attrNearestPackage());
+                if(link.getDef().attrHasAnnotation("@config")) {
+                    WPackage configPackage = getConfiguredPackage(link.getDef());
+                    if(configPackage != null) {
+                        used.add(configPackage);
+                    }
+                }
             }
         }
         if (e instanceof NameRef) {
@@ -176,6 +196,12 @@ public class WurstValidator {
             NameLink def = nr.attrNameLink();
             if (def != null) {
                 used.add(def.getDef().attrNearestPackage());
+                if(def.getDef().attrHasAnnotation("@config")) {
+                    WPackage configPackage = getConfiguredPackage(def.getDef());
+                    if(configPackage != null) {
+                        used.add(configPackage);
+                    }
+                }
             }
         }
         if (e instanceof TypeRef) {
