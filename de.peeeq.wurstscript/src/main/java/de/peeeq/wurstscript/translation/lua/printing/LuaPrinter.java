@@ -20,10 +20,16 @@ public class LuaPrinter {
             if (d instanceof LuaVariable) {
                 // don't translate global variables as locals:
                 printVariable((LuaVariable) d, sb, indent);
-            } else {
+                sb.append("\n");
+            } else if(d instanceof LuaAssignment) {
+                // these are top level assignments that are not inside functions
                 d.print(sb, indent);
+                sb.append("\n");
+            } else {
+                // every other statement is considered a block and has an empty line after it
+                d.print(sb, indent);
+                sb.append("\n\n");
             }
-            sb.append("\n\n");
         }
     }
 
