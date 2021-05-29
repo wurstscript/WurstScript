@@ -89,7 +89,7 @@ public class ConfigPackageTests extends WurstScriptTest {
     }
 
     @Test
-    public void configCyclicImport() {
+    public void configCyclicImportWarning() {
         testAssertErrorsLines(false,
             "Cyclic init dependency between packages",
             "package Test",
