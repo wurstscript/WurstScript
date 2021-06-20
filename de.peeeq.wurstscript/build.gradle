@@ -79,7 +79,7 @@ repositories {
 dependencies {
 
     // Antlr parsing library
-    antlr "org.antlr:antlr4:4.9"
+    antlr "org.antlr:antlr4:4.9.2"
 
     // tool for generating AST-classes
     compileOnly 'com.github.peterzeller:abstractsyntaxgen:3510802026'
@@ -110,10 +110,10 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // Crigges' jmpq
-    compile 'com.github.inwc3:jmpq3:1.8.0'
+    compile 'com.github.inwc3:jmpq3:1.8.1'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:ca3c159ccd'
+    compile 'com.github.inwc3:wc3libs:2641ac25e2'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:4c65824b40'
