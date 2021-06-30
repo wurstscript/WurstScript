@@ -5,6 +5,7 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -165,7 +166,7 @@ public class SideEffectAnalyzer {
             return callRelation;
         }
         callRelation = LinkedListMultimap.create();
-        for (ImFunction caller : prog.getFunctions()) {
+        for (ImFunction caller : ImHelper.calculateFunctionsOfProg(prog)) {
             callRelation.putAll(caller, directlyCalledFunctions(caller));
         }
         return callRelation;
@@ -190,7 +191,7 @@ public class SideEffectAnalyzer {
             return usedGlobals;
         }
         usedGlobals = LinkedHashMultimap.create();
-        for (ImFunction function : prog.getFunctions()) {
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
             for (ImVar v : directlyUsedVariables(function)) {
                 if (v.isGlobal()) {
                     usedGlobals.put(function, v);
@@ -249,6 +250,12 @@ public class SideEffectAnalyzer {
             public void visit(ImFunctionCall c) {
                 super.visit(c);
                 calledFunctions.add(c.getFunc());
+            }
+
+            @Override
+            public void visit(ImMethodCall c) {
+                super.visit(c);
+                calledFunctions.add(c.getMethod().getImplementation());
             }
         });
         return calledFunctions;
@@ -322,7 +329,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public void case_ImMemberAccess(ImMemberAccess v) {
-                throw new RuntimeException("Should run after objects");
+                imVars.add(v.getVar());
             }
 
             @Override

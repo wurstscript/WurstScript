@@ -50,6 +50,7 @@ public class ControlFlowGraph {
     private Map<ImStmt, Node> nodes = new HashMap<>();
     private Map<ImIf, Node> ifEnd = new HashMap<>();
     private Map<ImLoop, Node> loopEnd = new HashMap<>();
+    private Map<ImVarargLoop, Node> varargLoopEnd = new HashMap<>();
     private List<Node> nodeList = new ArrayList<>();
 
     public ControlFlowGraph(ImStmts stmts) {
@@ -72,6 +73,17 @@ public class ControlFlowGraph {
                 Node endloopNode = getEndloopNode(imLoop);
                 nodeList.add(endloopNode);
                 getSuccessors(imLoop, i).forEach(succ -> addSuccessor(endloopNode, succ));
+            } else if(s instanceof ImVarargLoop) {
+                ImVarargLoop imVarargLoop = (ImVarargLoop) s;
+                ImStmts body = imVarargLoop.getBody();
+                buildCfg(body);
+                if(!body.isEmpty()) {
+                    addSuccessor(current, getNode(body.get(0)));
+                }
+                Node endloopNode = getEndVarargLoopNode(imVarargLoop);
+                addSuccessor(current, endloopNode);
+                nodeList.add(endloopNode);
+                getSuccessors(imVarargLoop, i).forEach(succ -> addSuccessor(endloopNode, succ));
             } else if (s instanceof ImIf) {
                 ImIf imIf = (ImIf) s;
                 ImStmts thenBlock = imIf.getThenBlock();
@@ -147,6 +159,9 @@ public class ControlFlowGraph {
         if (par instanceof ImLoop) {
             // successor is beginning of loop
             return Collections.singletonList(getNode(par));
+        } else if(par instanceof ImVarargLoop){
+            // successor is beginning of loop
+            return Collections.singletonList(getNode(par));
         } else if (par instanceof ImIf) {
             // successor is end of if
             return Collections.singletonList(getEndIfNode((ImIf) par));
@@ -167,12 +182,19 @@ public class ControlFlowGraph {
         } else if (stmt instanceof ImLoop) {
             result.setName("loop");
             result.stmt = null;
+        } else if(stmt instanceof ImVarargLoop) {
+            result.setName("vararg loop");
+            result.stmt = null;
         }
         return result;
     }
 
     private Node getEndloopNode(ImLoop e) {
         return getNode(loopEnd, e, null).setName("endloop");
+    }
+
+    private Node getEndVarargLoopNode(ImVarargLoop e) {
+        return getNode(varargLoopEnd, e, null).setName("endvarargloop");
     }
 
     private Node getEndIfNode(ImIf e) {

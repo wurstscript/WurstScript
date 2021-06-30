@@ -4,6 +4,7 @@ import de.peeeq.datastructures.Worklist;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
@@ -18,8 +19,10 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         ImProg prog = trans.getImProg();
 
         totalPropagated = 0;
-        for (ImFunction func : prog.getFunctions()) {
-            optimizeFunc(func);
+        for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
+            if (!func.isNative() && !func.isBj()) {
+                optimizeFunc(func);
+            }
         }
         return totalPropagated;
     }

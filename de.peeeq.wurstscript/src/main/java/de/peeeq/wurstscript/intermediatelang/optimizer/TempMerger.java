@@ -35,7 +35,7 @@ public class TempMerger implements OptimizerPass {
         totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
         prog.clearAttributes();
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             optimizeFunc(f);
         }
         // flatten the program because we introduced null-statements
@@ -90,6 +90,9 @@ public class TempMerger implements OptimizerPass {
             } else if (s instanceof ImLoop) {
                 ImLoop imLoop = (ImLoop) s;
                 optimizeStatements(imLoop.getBody());
+            } else if (s instanceof ImVarargLoop) {
+                ImVarargLoop imVarargLoop = (ImVarargLoop) s;
+                optimizeStatements(imVarargLoop.getBody());
             }
         }
     }
@@ -115,7 +118,7 @@ public class TempMerger implements OptimizerPass {
                 ImVarArrayAccess va = (ImVarArrayAccess) imSet.getLeft();
                 kn.invalidateVar(va.getVar());
             }
-        } else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop) {
+        } else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop || s instanceof ImVarargLoop) {
             kn.clear();
             // TODO this could be more precise for local variables,
             // but for now we just forget everything if we see a loop or if statement
@@ -133,6 +136,8 @@ public class TempMerger implements OptimizerPass {
                 return kn.getReplacementIfPossible(va);
             }
         } else if (elem instanceof ImLoop) {
+            return null;
+        } else if (elem instanceof ImVarargLoop) {
             return null;
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
@@ -154,7 +159,10 @@ public class TempMerger implements OptimizerPass {
         if (elem instanceof ImFunctionCall) {
             // function call invalidates globals
             kn.invalidateGlobals();
-        } else if (elem instanceof ImVarRead) {
+        } else if (elem instanceof ImMethodCall) {
+            // method call invalidates globals
+            kn.invalidateGlobals();
+        } else if (elem instanceof ImVarRead) { // this already covers member access as well
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar().isGlobal()) {
                 // in case we read a global variable
@@ -166,7 +174,7 @@ public class TempMerger implements OptimizerPass {
 
 
     private boolean containsFuncCall(Element elem) {
-        if (elem instanceof ImFunctionCall) {
+        if (elem instanceof ImFunctionCall || elem instanceof ImMethodCall) {
             return true;
         }
         // process children
@@ -188,6 +196,11 @@ public class TempMerger implements OptimizerPass {
                 return true;
             }
         }
+        if (elem instanceof ImMemberAccess) {
+            if(((ImMemberAccess) elem).getVar() == left) {
+                return true;
+            }
+        }
         // process children
         for (int i = 0; i < elem.size(); i++) {
             if (readsVar(elem.get(i), left)) {
@@ -204,6 +217,9 @@ public class TempMerger implements OptimizerPass {
             if (va.getVar().isGlobal()) {
                 return true;
             }
+        }
+        if (elem instanceof ImMemberAccess) {
+            return true;
         }
         // process children
         for (int i = 0; i < elem.size(); i++) {

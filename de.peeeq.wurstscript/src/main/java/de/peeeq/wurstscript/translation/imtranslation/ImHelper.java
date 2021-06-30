@@ -9,8 +9,18 @@ import de.peeeq.wurstscript.utils.Constants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 public class ImHelper {
+
+    public static Set<ImFunction> calculateFunctionsOfProg(ImProg prog) {
+        Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
+        for(ImClass c : prog.getClasses()) {
+            allFunctions.addAll(c.getFunctions());
+        }
+        return allFunctions;
+    }
 
     static void translateParameters(WParameters params, ImVars result, ImTranslator t) {
         for (WParameter p : params) {
