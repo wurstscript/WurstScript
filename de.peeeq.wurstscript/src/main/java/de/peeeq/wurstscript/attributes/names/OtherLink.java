@@ -13,6 +13,8 @@ import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  *
@@ -415,6 +417,16 @@ public abstract class OtherLink extends NameLink {
         }
 
         @Override
+        public void forEachElement(Consumer<? super Element> action) {
+
+        }
+
+        @Override
+        public void trimToSize() {
+            NameDef.super.trimToSize();
+        }
+
+        @Override
         public void setParent(Element parent) {
 
         }
@@ -427,6 +439,16 @@ public abstract class OtherLink extends NameLink {
         @Override
         public boolean structuralEquals(Element elem) {
             return false;
+        }
+
+        @Override
+        public List<Integer> pathTo(Element elem) {
+            return NameDef.super.pathTo(elem);
+        }
+
+        @Override
+        public Element followPath(Iterable<Integer> path) {
+            return NameDef.super.followPath(path);
         }
 
         @Override

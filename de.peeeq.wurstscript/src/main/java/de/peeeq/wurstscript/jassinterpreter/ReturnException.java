@@ -8,6 +8,7 @@ public class ReturnException extends Error {
     private @Nullable ILconst val;
 
     public ReturnException(@Nullable ILconst value) {
+        super(null, null, true, false);
         this.val = value;
     }
 
