@@ -24,14 +24,19 @@ public class GroupProvider extends Provider {
         ((LinkedHashSet<IlConstHandle>) group.getObj()).clear();
     }
 
-    public void GroupAddUnit(IlConstHandle group, IlConstHandle unit) {
+    public ILconstBool GroupAddUnit(IlConstHandle group, IlConstHandle unit) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         groupList.add(unit);
+        return ILconstBool.TRUE;
     }
 
-    public void GroupRemoveUnit(IlConstHandle group, IlConstHandle unit) {
+    public ILconstBool GroupRemoveUnit(IlConstHandle group, IlConstHandle unit) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
-        groupList.remove(unit);
+        if (groupList.contains(unit)) {
+            groupList.remove(unit);
+            return ILconstBool.TRUE;
+        }
+        return ILconstBool.FALSE;
     }
 
     public ILconst FirstOfGroup(IlConstHandle group) {
@@ -75,7 +80,7 @@ public class GroupProvider extends Provider {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         return ILconstInt.create(groupList.size());
     }
-	
+
     public ILconst BlzGroupUnitAt(IlConstHandle group, ILconstInt index) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         ILconst elem = ILconstNull.instance();
@@ -90,7 +95,7 @@ public class GroupProvider extends Provider {
             return FirstOfGroup(group);
         return elem;
     }
-    
+
     public ILconstInt BlzGroupAddGroupFast(IlConstHandle group, IlConstHandle groupAdd) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) groupAdd.getObj();
         groupList.addAll((LinkedHashSet<IlConstHandle>) group.getObj());
@@ -101,5 +106,5 @@ public class GroupProvider extends Provider {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) groupRm.getObj();
         groupList.removeAll((LinkedHashSet<IlConstHandle>) group.getObj());
         return ILconstInt.create(groupList.size());
-    }	
+    }
 }
