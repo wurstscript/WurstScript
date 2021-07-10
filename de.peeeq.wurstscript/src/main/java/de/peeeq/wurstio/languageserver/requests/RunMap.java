@@ -49,6 +49,9 @@ public class RunMap extends MapRequest {
     public RunMap(ConfigProvider configProvider, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
             List<String> compileArgs) {
         super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
+        if (!configProvider.getConfig("safeRunmapTypecheck", "false").equals("true")) {
+            safeCompilation = SafetyLevel.QuickAndDirty;
+        }
     }
 
     @Override

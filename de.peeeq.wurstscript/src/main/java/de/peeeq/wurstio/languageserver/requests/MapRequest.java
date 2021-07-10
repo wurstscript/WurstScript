@@ -58,7 +58,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
-    private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
+    protected SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
 
     enum SafetyLevel {
         QuickAndDirty, KindOfSafe
