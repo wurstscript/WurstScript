@@ -2179,38 +2179,39 @@ public class WurstValidator {
             if (nameLinks.size() <= 1) {
                 continue;
             }
-            List<FuncLink> funcs = Lists.newArrayList();
-            List<NameLink> other = Lists.newArrayList();
+            @Nullable List<FuncLink> funcs = null;
+            @Nullable List<NameLink> other = null;
             for (NameLink nl : nameLinks) {
                 if (nl.getDefinedIn() == scope) {
                     if (nl instanceof FuncLink) {
-                        funcs.add(((FuncLink) nl));
+                        if (funcs == null) {
+                            funcs = Lists.newArrayList();
+                        }
+                        FuncLink funcLink = (FuncLink) nl;
+                        for (FuncLink link : funcs) {
+                            if (!distinctFunctions(funcLink, link)) {
+                                funcLink.getDef().addError(
+                                    "Function already defined : " + Utils.printElementWithSource(Optional.of(link.getDef())));
+                                link.getDef().addError(
+                                    "Function already defined : " + Utils.printElementWithSource(Optional.of(funcLink.getDef())));
+                            }
+                        }
+
+                        funcs.add(funcLink);
                     } else {
+                        if (other == null) {
+                            other = Lists.newArrayList();
+                        }
                         other.add(nl);
                     }
                 }
             }
-            if (other.size() > 1) {
+            if (other != null && other.size() > 1) {
                 other.sort(Comparator.comparingInt(o -> o.getDef().attrSource().getLeftPos()));
                 NameLink l1 = other.get(0);
                 for (int j = 1; j < other.size(); j++) {
                     other.get(j).getDef().addError("An element with name " + name + " already exists: "
-                            + Utils.printElementWithSource(Optional.of(l1.getDef())));
-                }
-            }
-            if (funcs.size() <= 1) {
-                continue;
-            }
-            for (int i = 0; i < funcs.size() - 1; i++) {
-                FuncLink f1 = funcs.get(i);
-                for (int j = i + 1; j < funcs.size(); j++) {
-                    FuncLink f2 = funcs.get(j);
-                    if (!distinctFunctions(f1, f2)) {
-                        f1.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(Optional.of(f2.getDef())));
-                        f2.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(Optional.of(f1.getDef())));
-                    }
+                        + Utils.printElementWithSource(Optional.of(l1.getDef())));
                 }
             }
         }

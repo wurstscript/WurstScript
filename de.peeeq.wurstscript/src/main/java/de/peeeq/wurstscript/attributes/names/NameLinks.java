@@ -44,7 +44,7 @@ public class NameLinks {
 
         if (c instanceof ClassDef) {
             WurstTypeClass classType = ((ClassDef) c).attrTypC();
-            addNamesFormSuperClass(result, classType, overrideCheckResults);
+            addNamesFromSuperClass(result, classType, overrideCheckResults);
             addNamesFromImplementedInterfaces(result, classType, overrideCheckResults);
         }
 
@@ -112,7 +112,7 @@ public class NameLinks {
         }
     }
 
-    private static void addNamesFormSuperClass(Multimap<String, DefLink> result, WurstTypeClass c, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+    private static void addNamesFromSuperClass(Multimap<String, DefLink> result, WurstTypeClass c, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         @Nullable WurstTypeClass superClass = c.extendedClass();
         if (superClass != null) {
             addNewNameLinks(result, overrideCheckResults, superClass.nameLinks(), false);
