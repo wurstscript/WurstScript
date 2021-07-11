@@ -26,6 +26,9 @@ public class GroupProvider extends Provider {
 
     public ILconstBool GroupAddUnit(IlConstHandle group, IlConstHandle unit) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        if (groupList.contains(unit)) {
+            return ILconstBool.FALSE;
+        }
         groupList.add(unit);
         return ILconstBool.TRUE;
     }
