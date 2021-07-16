@@ -114,7 +114,8 @@ public class GroupProvider extends Provider {
 
     public ILconstInt BlzGroupRemoveGroupFast(IlConstHandle group, IlConstHandle groupRm) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) groupRm.getObj();
+        int sizeBefore = groupList.size();
         groupList.removeAll((LinkedHashSet<IlConstHandle>) group.getObj());
-        return ILconstInt.create(groupList.size());
+        return ILconstInt.create(sizeBefore - groupList.size());
     }
 }
