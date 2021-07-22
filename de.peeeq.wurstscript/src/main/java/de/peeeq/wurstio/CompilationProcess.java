@@ -84,8 +84,7 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions",
-            compiler::runCompiletime);
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(null));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);

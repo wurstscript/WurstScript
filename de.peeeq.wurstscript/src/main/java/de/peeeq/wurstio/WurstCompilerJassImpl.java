@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.io.Files;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -99,13 +100,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     @Override
-    public void runCompiletime() {
+    public void runCompiletime(WurstProjectConfigData projectConfigData) {
         if (runArgs.runCompiletimeFunctions()) {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
             CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
-                    CompiletimeFunctions);
+                    CompiletimeFunctions, projectConfigData);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.setOutputStream(new PrintStream(System.err));
             ctr.run();

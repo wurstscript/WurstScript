@@ -147,7 +147,7 @@ public class RunTests extends UserRequest<Object> {
         WurstGui gui = new TestGui();
 
         CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
-            CompiletimeFunctions);
+            CompiletimeFunctions, null);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
