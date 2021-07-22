@@ -132,7 +132,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void test_init_order_globals_warning() {
-        testAssertErrorsLines(false, "Global variable b must be declared before it is used.",
+        testAssertErrorsLines(false, "Global variable <b> must be declared before it is used.",
                 "package test",
                 "	integer a = b",
                 "	integer b = 3",
