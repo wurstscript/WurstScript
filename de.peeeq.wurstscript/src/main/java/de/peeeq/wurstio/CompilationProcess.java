@@ -1,5 +1,6 @@
 package de.peeeq.wurstio;
 
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -84,7 +85,7 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(null));
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData()));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);
