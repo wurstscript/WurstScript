@@ -22,6 +22,12 @@ public class UsedVariables {
                 super.visit(e);
                 result.add(e.getVar());
             }
+
+            @Override
+            public void visit(ImMemberAccess e) {
+                super.visit(e);
+                result.add(e.getVar());
+            }
         });
         return result;
     }
@@ -78,6 +84,12 @@ public class UsedVariables {
 
             @Override
             public void visit(ImVarArrayAccess e) {
+                super.visit(e);
+                result.add(e.getVar());
+            }
+
+            @Override
+            public void visit(ImMemberAccess e) {
                 super.visit(e);
                 result.add(e.getVar());
             }

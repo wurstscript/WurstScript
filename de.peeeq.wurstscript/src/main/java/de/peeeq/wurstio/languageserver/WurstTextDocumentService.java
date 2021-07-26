@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.*;
-import de.peeeq.wurstio.languageserver.requests.CodeLensRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -35,21 +34,21 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<Hover> hover(TextDocumentPositionParams position) {
+    public CompletableFuture<Hover> hover(HoverParams hoverParams) {
         WLogger.info("hover");
-        return worker.handle(new HoverInfo(position, worker.getBufferManager()));
+        return worker.handle(new HoverInfo(hoverParams, worker.getBufferManager()));
     }
 
     @Override
-    public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams position) {
+    public CompletableFuture<SignatureHelp> signatureHelp(SignatureHelpParams helpParams) {
         WLogger.info("signatureHelp");
-        return worker.handle(new SignatureInfo(position));
+        return worker.handle(new SignatureInfo(helpParams));
     }
 
     @Override
-    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams position) {
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams definitionParams) {
         WLogger.info("definition");
-        return worker.handle(new GetDefinition(position, worker.getBufferManager()));
+        return worker.handle(new GetDefinition(definitionParams, worker.getBufferManager()));
     }
 
     @Override
@@ -63,9 +62,9 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams position) {
+    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(DocumentHighlightParams highlightParams) {
         WLogger.info("documentHighlight");
-        return worker.handle(new GetUsages(position, worker.getBufferManager(), false))
+        return worker.handle(new GetUsages(highlightParams, worker.getBufferManager(), false))
                 .thenApply((List<GetUsages.UsagesData> udList) ->
                         udList.stream()
                                 .map(GetUsages.UsagesData::toDocumentHighlight)

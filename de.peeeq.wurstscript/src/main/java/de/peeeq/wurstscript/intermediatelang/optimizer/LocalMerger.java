@@ -1,27 +1,21 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import de.peeeq.datastructures.Worklist;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
-import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
 /**
  * merges local variable, if they have disjoint live-spans
@@ -35,7 +29,7 @@ public class LocalMerger implements OptimizerPass {
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
         totalLocalsMerged = 0;
-        for (ImFunction func : prog.getFunctions()) {
+        for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
             if (!func.isNative() && !func.isBj()) {
                 optimizeFunc(func);
             }
@@ -55,6 +49,10 @@ public class LocalMerger implements OptimizerPass {
         mergeLocals(livenessInfo, func);
     }
 
+    private boolean canMerge(ImType a, ImType b) {
+        return a.equalsType(b);
+    }
+
     private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
         Map<ImVar, Set<ImVar>> inferenceGraph = calculateInferenceGraph(livenessInfo);
 
@@ -67,7 +65,9 @@ public class LocalMerger implements OptimizerPass {
 
         // variables which represent their own 'color', initially these are the parameters
         List<ImVar> assigned = new ArrayList<>(func.getParameters());
-
+        if(func.hasFlag(IS_VARARG)) {
+            assigned.remove(assigned.size() - 1);
+        }
         Map<ImVar, ImVar> merges = new HashMap<>();
 
         nextVar:
@@ -77,7 +77,7 @@ public class LocalMerger implements OptimizerPass {
             // check if there is some other variable which is already assigned, has the same type and does not interfere
             nextAssigned:
             for (ImVar other : assigned) {
-                if (other.getType().equalsType(v.getType())) {
+                if (canMerge(other.getType(), v.getType()) ) {
                     for (ImVar inferingVar : inferenceGraph.get(v)) {
                         if (merges.getOrDefault(inferingVar, inferingVar) == other) {
                             // variable already used by infering var, try next color
@@ -114,6 +114,15 @@ public class LocalMerger implements OptimizerPass {
                     }
                 }
             }
+
+            @Override
+            public void visit(ImVarargLoop varargLoop) {
+                super.visit(varargLoop);
+                ImVar v = varargLoop.getLoopVar();
+                if (merges.containsKey(v)) {
+                    varargLoop.setLoopVar(merges.get(v));
+                }
+            }
         });
     }
 
@@ -129,7 +138,7 @@ public class LocalMerger implements OptimizerPass {
             Set<ImVar> live = livenessInfo.get(s);
             for (ImVar v1 : live) {
                 Set<ImVar> inferenceSet = inferenceGraph.getOrDefault(v1, HashSet.empty());
-                inferenceSet = inferenceSet.addAll(live.filter(v2 -> v1.getType().equalsType(v2.getType())));
+                inferenceSet = inferenceSet.addAll(live.filter(v2 -> canMerge(v1.getType(), v2.getType()) ));
                 inferenceGraph.put(v1, inferenceSet);
             }
         }

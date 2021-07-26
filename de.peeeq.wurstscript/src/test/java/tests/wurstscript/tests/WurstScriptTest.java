@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
@@ -22,7 +23,6 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
@@ -206,7 +206,7 @@ public class WurstScriptTest {
 
             testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            if (testLua && executeProg && !withStdLib) {
+            if (testLua) {
                 // test lua translation
                 runArgs = runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
@@ -217,8 +217,15 @@ public class WurstScriptTest {
         }
 
         public void file(File file) throws IOException {
-            String content = Files.toString(file, StandardCharsets.UTF_8);
-            additionalCompilationUnits.add(new CU(file.getName(), content));
+            try {
+                String content = Files.asCharSource(file, StandardCharsets.UTF_8).read();
+                additionalCompilationUnits.add(new CU(file.getName(), content));
+            } catch (FileNotFoundException e) {
+                throw new FileNotFoundException("Failed to open file "
+                    + file.getAbsolutePath()
+                    + " - can read? "
+                    + file.canRead());
+            }
             run();
         }
 
@@ -309,6 +316,10 @@ public class WurstScriptTest {
         test().executeProg(executeProg).expectError(errorMessage).lines(input);
     }
 
+    public void testAssertErrorsLinesWithStdLib(boolean executeProg, String errorMessage, String... input) {
+        test().withStdLib().executeProg(executeProg).expectError(errorMessage).lines(input);
+    }
+
     protected void testAssertOk(String name, boolean executeProg, String prog) {
         testAssertOkLines(executeProg, prog);
     }
@@ -382,7 +393,7 @@ public class WurstScriptTest {
 
             compiler.translateProgToIm(model);
 
-            compiler.runCompiletime();
+            compiler.runCompiletime(new WurstProjectConfigData());
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
@@ -466,7 +477,7 @@ public class WurstScriptTest {
             }
         }
 
-        compiler.runCompiletime();
+        compiler.runCompiletime(new WurstProjectConfigData());
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {
@@ -543,7 +554,7 @@ public class WurstScriptTest {
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
         try {
             // run the interpreter on the intermediate language
-            ILInterpreter interpreter = new ILInterpreter(imProg, gui, null, false);
+            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
@@ -567,8 +578,8 @@ public class WurstScriptTest {
     }
 
     private void executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {
-        RunTests runTests = new RunTests(null, 0, 0, null);
-        RunTests.TestResult res = runTests.runTests(translator, imProg, null, null);
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty());
+        RunTests.TestResult res = runTests.runTests(translator, imProg, Optional.empty(), Optional.empty());
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
                     gui.getErrors());

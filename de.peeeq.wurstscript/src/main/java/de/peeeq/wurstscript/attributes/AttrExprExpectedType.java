@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * This attribute calculates the expected type for an expression
@@ -97,8 +98,10 @@ public class AttrExprExpectedType {
                 }
             }
         } catch (CyclicDependencyError | CompileError t) {
-            WLogger.info("Something went wrong while computing the expected type for " + Utils.printElementWithSource(expr) + "\n" +
-                    "This is probably not a bug, but we are logging it anyway since it might help to improve error messages.");
+            WLogger.info("Something went wrong while computing the expected type for "
+                    + Utils.printElementWithSource(Optional.of(expr))
+                    + "\nThis is probably not a bug, but we are logging it anyway since it might help to improve error "
+                    + "messages.");
             WLogger.info(t);
         }
 

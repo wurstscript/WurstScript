@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ImOptimizer {
     private int totalFunctionsRemoved = 0;
@@ -80,9 +82,7 @@ public class ImOptimizer {
             WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
         }
         WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
-        totalCount.forEach((k, v) -> {
-            WLogger.info("== " + k + ":   " + v);
-        });
+        totalCount.forEach((k, v) -> WLogger.info("== " + k + ":   " + v));
     }
 
     public void doNullsetting() {
@@ -110,7 +110,16 @@ public class ImOptimizer {
             int functionsAfter = prog.getFunctions().size();
             int functionsRemoved = functionsBefore - functionsAfter;
             totalFunctionsRemoved += functionsRemoved;
-            for (ImFunction f : prog.getFunctions()) {
+            // also consider class functions
+            Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
+            for (ImClass c : prog.getClasses()) {
+                int classFunctionsBefore = c.getFunctions().size();
+                changes |= c.getFunctions().retainAll(trans.getUsedFunctions());
+                int classFunctionsAfter = c.getFunctions().size();
+                totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
+                allFunctions.addAll(c.getFunctions());
+            }
+            for (ImFunction f : allFunctions) {
                 // remove set statements to unread variables
                 final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
                 f.accept(new ImFunction.DefaultVisitor() {

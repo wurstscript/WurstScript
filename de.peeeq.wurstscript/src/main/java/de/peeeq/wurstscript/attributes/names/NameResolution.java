@@ -14,6 +14,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class NameResolution {
 
@@ -117,7 +118,7 @@ public class NameResolution {
             if (scope instanceof LoopStatementWithVarDef) {
                 LoopStatementWithVarDef loop = (LoopStatementWithVarDef) scope;
                 // only consider this scope if node is in the body:
-                if (!Utils.elementContained(node, loop.getBody())) {
+                if (!Utils.elementContained(Optional.of(node), loop.getBody())) {
                     continue;
                 }
             }
@@ -161,8 +162,8 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
-                        " If you want to access it, declare it public.");
+                node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
+                        + " is not visible inside this package. If you want to access it, declare it public.");
                 return privateCandidate;
             }
         }
@@ -260,8 +261,8 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find type " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
-                        " If you want to access it, declare it public.");
+                node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
+                        + " is not visible inside this package. If you want to access it, declare it public.");
                 return (TypeDef) privateCandidate.getDef();
             }
         }

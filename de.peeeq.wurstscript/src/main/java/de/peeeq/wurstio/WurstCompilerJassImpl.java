@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.io.Files;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -22,6 +23,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
@@ -50,7 +52,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private WurstGui gui;
     private boolean hasCommonJ;
     private RunArgs runArgs;
-    private @Nullable File mapFile;
+    private Optional<File> mapFile = Optional.empty();
     private @Nullable File projectFolder;
     private ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
@@ -99,13 +101,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     @Override
-    public void runCompiletime() {
+    public void runCompiletime(WurstProjectConfigData projectConfigData) {
         if (runArgs.runCompiletimeFunctions()) {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
             CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
-                    CompiletimeFunctions);
+                    CompiletimeFunctions, projectConfigData);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.setOutputStream(new PrintStream(System.err));
             ctr.run();
@@ -142,7 +144,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadFile(f);
             } else if (f.getName().equals("wurst.dependencies")) {
                 addDependencyFile(f);
-            } else if ((mapFile == null || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
+            } else if ((!mapFile.isPresent() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
                 loadFile(f);
             }
         }
@@ -179,7 +181,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // search mapFile
         for (File file : files) {
             if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
-                mapFile = file;
+                mapFile = Optional.ofNullable(file);
             } else if (file.isDirectory()) {
                 if (projectFolder != null && !file.getParent().equals(projectFolder.getAbsolutePath())) {
                     throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to non parent " + projectFolder);
@@ -191,10 +193,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 
         // import wurst folder if it exists
-        File l_mapFile = mapFile;
-        if (l_mapFile != null) {
+        Optional<File> l_mapFile = mapFile;
+        if (l_mapFile.isPresent()) {
             if (projectFolder == null) {
-                projectFolder = l_mapFile.getParentFile();
+                projectFolder = l_mapFile.get().getParentFile();
             }
             File relativeWurstDir = new File(projectFolder, "wurst");
             if (relativeWurstDir.exists()) {
@@ -627,7 +629,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     private CompilationUnit processMap(File file) {
         gui.sendProgress("Processing Map " + file.getName());
-        if (!file.equals(mapFile)) {
+        if (!mapFile.isPresent() || !file.equals(mapFile.get())) {
             // TODO check if file != mapFile is possible, would be strange
             // so this should definitely be done differently
             throw new Error("file: " + file + " is not the mapfile: " + mapFile);
@@ -748,7 +750,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public @Nullable File getMapFile() {
+    public Optional<File> getMapFile() {
         return mapFile;
     }
 
@@ -793,7 +795,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
     }
 
-    public void setMapFile(File mapFile) {
+    public void setMapFile(Optional<File> mapFile) {
         this.mapFile = mapFile;
     }
 
@@ -803,6 +805,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     public LuaCompilationUnit transformProgToLua() {
 
+        ImAttrType.setWurstClassType(null);
+        int stage;
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg);
@@ -813,9 +817,51 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
             }
         }
+        ImTranslator imTranslator2 = getImTranslator();
+        ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
+        // inliner
+        stage = 5;
+        if (runArgs.isInline()) {
+            beginPhase(5, "inlining");
+            optimizer.doInlining();
+            imTranslator2.assertProperties();
 
+            printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
+        }
+
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+
+        stage = 10;
+        if (runArgs.isLocalOptimizations()) {
+            beginPhase(10, "local optimizations");
+            optimizer.localOptimizations();
+        }
+
+        printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
+
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+
+        // Re-run to avoid #883
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+
+        printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
+
+        stage = 12;
+        if (runArgs.isOptimize()) {
+            beginPhase(12, "froptimize");
+            optimizer.optimize();
+
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+            printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
+        }
+        beginPhase(13, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
+        ImAttrType.setWurstClassType(TypesHelper.imInt());
         return luaCode;
     }
 }

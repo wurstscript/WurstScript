@@ -14,6 +14,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -30,6 +31,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 import static de.peeeq.wurstio.languageserver.WurstCommands.getCompileArgs;
@@ -108,7 +110,7 @@ public class Main {
             try {
                 WurstProjectConfigData projectConfig = null;
                 Path buildDir = null;
-                Path target = null;
+                Optional<Path> target = Optional.empty();
                 String workspaceroot = runArgs.getWorkspaceroot();
                 if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
                     Path root = Paths.get(workspaceroot);
@@ -118,9 +120,9 @@ public class Main {
                     if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
                         buildDir = root.resolve("_build");
                         java.nio.file.Files.createDirectories(buildDir);
-                        target = buildDir.resolve(projectConfig.getBuildMapData().getFileName() + ".w3x");
-                        java.nio.file.Files.copy(inputMap, target, StandardCopyOption.REPLACE_EXISTING);
-                        runArgs.setMapFile(target.toAbsolutePath().toString());
+                        target = Optional.of(buildDir.resolve(projectConfig.getBuildMapData().getFileName() + ".w3x"));
+                        java.nio.file.Files.copy(inputMap, target.get(), StandardCopyOption.REPLACE_EXISTING);
+                        runArgs.setMapFile(target.get().toAbsolutePath().toString());
                     }
                 }
 
@@ -139,7 +141,7 @@ public class Main {
                 @Nullable CharSequence compiledScript;
 
                 if (mapFilePath != null && workspaceroot != null) {
-                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
+                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(new File(mapFilePath)))) {
                         File projectFolder = Paths.get(workspaceroot).toFile();
                         compiledScript = compilationProcess.doCompilation(mpqEditor, projectFolder);
                         if (compiledScript != null) {
@@ -158,11 +160,12 @@ public class Main {
                     File scriptFile = new File("compiled.j.txt");
                     Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
 
-                    if (projectConfig != null && target != null) {
-                        ProjectConfigBuilder.apply(projectConfig, target.toFile(), scriptFile, buildDir.toFile(), runArgs);
+                    if (projectConfig != null && target.isPresent()) {
+                        ProjectConfigBuilder.apply(projectConfig, target.get().toFile(), scriptFile, buildDir.toFile(),
+                            runArgs, new W3InstallationData());
 
                         WLogger.info("map build success");
-                        System.out.println("Build succeeded. Output file: <" + target.toAbsolutePath() + ">");
+                        System.out.println("Build succeeded. Output file: <" + target.get().toAbsolutePath() + ">");
                     }
                 }
 

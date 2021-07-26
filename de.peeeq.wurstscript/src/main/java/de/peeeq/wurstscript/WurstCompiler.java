@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import config.WurstProjectConfigData;
 import de.peeeq.wurstscript.ast.WurstModel;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -14,5 +15,5 @@ public interface WurstCompiler {
 
     void loadFiles(File... files);
 
-    void runCompiletime();
+    void runCompiletime(WurstProjectConfigData projectConfigData);
 }

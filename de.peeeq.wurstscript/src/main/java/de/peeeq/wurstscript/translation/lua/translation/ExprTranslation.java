@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -71,7 +72,11 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
-        return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), tr.translateExprList(e.getArguments()));
+        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
+        if (f.getName().equals(ImTranslator.$DEBUG_PRINT)) {
+            f.setName("BJDebugMsg");
+        }
+        return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
@@ -102,7 +107,11 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
-        return LuaAst.LuaExprNull();
+        if(isStringType(e.getType())) {
+            return LuaAst.LuaExprStringVal("");
+        } else {
+            return LuaAst.LuaExprNull();
+        }
     }
 
     public static LuaExpr translate(ImOperatorCall e, LuaTranslator tr) {

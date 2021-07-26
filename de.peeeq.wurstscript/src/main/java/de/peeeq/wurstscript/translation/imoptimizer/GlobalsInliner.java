@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.validation.TRVEHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,16 +68,20 @@ public class GlobalsInliner implements OptimizerPass {
                     return isInInit(nearestFunc);
                 }).collect(Collectors.toList());
                 if (initWrites.size() == 1) {
-                    ImExpr write = v.attrWrites().iterator().next().getRight();
-                    try {
-                        ImExpr defaultValue = ImHelper.defaultValueForType((ImSimpleType) v.getType());
-                        boolean isDefault = defaultValue.structuralEquals(write);
-                        if (isDefault) {
-                            // Assignment is default value and can be removed
-                            v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
+                    if(v.getType() instanceof ImSimpleType) {
+                        ImExpr write = v.attrWrites().iterator().next().getRight();
+                        try {
+                            ImExpr defaultValue = ImHelper.defaultValueForType((ImSimpleType) v.getType());
+                            boolean isDefault = defaultValue.structuralEquals(write);
+                            if (isDefault) {
+                                // Assignment is default value and can be removed
+                                v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
+                            }
+                        } catch (Exception e) {
+                            throw new CompileError(write.attrTrace().attrErrorPos(),
+                                "Could not inline " + Utils.printElementWithSource(Optional.of(v.getTrace())),
+                                CompileError.ErrorType.ERROR, e);
                         }
-                    } catch (Exception e) {
-                        throw new CompileError(write.attrTrace().attrErrorPos(), "Could not inline " + Utils.printElementWithSource(v.getTrace()), CompileError.ErrorType.ERROR, e);
                     }
                 }
             }

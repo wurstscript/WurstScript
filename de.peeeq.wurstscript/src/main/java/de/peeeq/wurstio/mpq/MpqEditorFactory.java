@@ -1,14 +1,17 @@
 package de.peeeq.wurstio.mpq;
 
 import java.io.File;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 
 public class MpqEditorFactory {
 
-    static public MpqEditor getEditor(File f) throws Exception {
-        if (f == null) {
+    static public @Nullable MpqEditor getEditor(Optional<File> f) throws Exception {
+        if (!f.isPresent()) {
             return null;
         }
-        return new Jmpq3BasedEditor(f);
+        return new Jmpq3BasedEditor(f.get());
     }
 }

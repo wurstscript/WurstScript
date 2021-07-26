@@ -1,14 +1,12 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
-import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
@@ -16,7 +14,6 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
@@ -130,6 +127,11 @@ public class LuaTranslator {
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
+    LuaFunction ensureIntFunction = LuaAst.LuaFunction(uniqueName("intEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction ensureStrFunction = LuaAst.LuaFunction(uniqueName("stringEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction ensureBoolFunction = LuaAst.LuaFunction(uniqueName("boolEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction ensureRealFunction = LuaAst.LuaFunction(uniqueName("realEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
         this.getProg().getFunctions().stream()
             .flatMap(f -> {
@@ -181,6 +183,7 @@ public class LuaTranslator {
         createStringConcatFunction();
         createInstanceOfFunction();
         createObjectIndexFunctions();
+        createEnsureTypeFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -380,6 +383,26 @@ public class LuaTranslator {
             arrayInitFunction.getBody().add(LuaAst.LuaLiteral(c));
         }
         luaModel.add(arrayInitFunction);
+    }
+
+    private void createEnsureTypeFunctions() {
+        LuaFunction[] ensureTypeFunctions = {ensureIntFunction, ensureBoolFunction, ensureRealFunction, ensureStrFunction};
+        String[] defaultValue = {"0", "false", "0.0", "\"\""};
+        for(int i = 0; i < ensureTypeFunctions.length; ++i) {
+            String[] code = {
+                "if x == nil then",
+                "    return " + defaultValue[i],
+                "else",
+                "    return x",
+                "end"
+            };
+
+            ensureTypeFunctions[i].getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                ensureTypeFunctions[i].getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(ensureTypeFunctions[i]);
+        }
     }
 
     private void cleanStatements() {

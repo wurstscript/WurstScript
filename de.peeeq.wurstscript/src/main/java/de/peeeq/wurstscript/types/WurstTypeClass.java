@@ -59,7 +59,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {
-        classDef.getImplementsList().stream().forEach(i -> {
+        classDef.getImplementsList().forEach(i -> {
             if(!(i.attrTyp() instanceof WurstTypeInterface)) {
                 @Nullable NameDef nameDef = i.tryGetNameDef();
                 if(nameDef != null) {

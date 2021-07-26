@@ -58,12 +58,6 @@ public class ModelManagerImpl implements ModelManager {
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
         try {
-            Path jassdoc = getBuildDir().toPath().resolve("dependencies").resolve("jassdoc");
-            if (jassdoc.toFile().exists()) {
-                List<CompilationUnit> jassdocCUs = getJassdocCUs(jassdoc, gui);
-                jassdocCUs.add(cu);
-                return Ast.WurstModel(jassdocCUs);
-            }
             CompilationUnit commonJ = compileFromJar(gui, "common.j");
             CompilationUnit blizzardJ = compileFromJar(gui, "blizzard.j");
             return Ast.WurstModel(blizzardJ, commonJ, cu);
@@ -373,7 +367,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void updateModel(CompilationUnit cu, WurstGui gui) {
-        WLogger.info("update model with " + cu.getCuInfo().getFile());
+        WLogger.trace("update model with " + cu.getCuInfo().getFile());
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -518,15 +512,16 @@ public class ModelManagerImpl implements ModelManager {
         }
         if (fileHashcodes.containsKey(filename)) {
             int oldHash = fileHashcodes.get(filename);
-            WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
             if (oldHash == contents.hashCode()) {
                 // no change
-                WLogger.info("CU " + filename + " was unchanged.");
+                WLogger.trace("CU " + filename + " was unchanged.");
                 return getCompilationUnit(filename);
+            } else {
+                WLogger.info("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
             }
         }
 
-        WLogger.info("replace CU " + filename);
+        WLogger.trace("replace CU " + filename);
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
@@ -534,7 +529,9 @@ public class ModelManagerImpl implements ModelManager {
         updateModel(cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
-            WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
+            if (gui.getErrorCount() > 0) {
+                WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
+            }
             reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
         }
         return cu;
@@ -635,13 +632,6 @@ public class ModelManagerImpl implements ModelManager {
         addImportingPackages(affectedPackages, model, result);
 
         return result;
-    }
-
-    private Collection<String> providedPackages(Collection<CompilationUnit> result) {
-        return result.stream()
-                .flatMap(cu -> cu.getPackages().stream())
-                .map(WPackage::getName)
-                .collect(Collectors.toSet());
     }
 
     private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {

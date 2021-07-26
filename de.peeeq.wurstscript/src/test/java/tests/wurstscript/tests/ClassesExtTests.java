@@ -391,12 +391,12 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    class A extends T",
                 "    class B extends T",
                 "        ondestroy",
                 "            s += \"B\"",
                 "    abstract class T",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -411,6 +411,7 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    class A implements T",
                 "    class B implements T",
                 "        ondestroy",
@@ -418,7 +419,6 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    interface T",
                 "        function f()",
                 "            skip",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -433,6 +433,7 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    abstract class C",
                 "        ondestroy",
                 "            s+=\"C\"",
@@ -443,7 +444,6 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    interface T",
                 "        function f()",
                 "            skip",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -904,5 +904,35 @@ public class ClassesExtTests extends WurstScriptTest {
             "endpackage"
         );
     }
+
+
+    @Test
+    public void testRecursiveMemberDispatch() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "public class Base",
+            "    Base next",
+            "    function clear()",
+            "        if next != null",
+            "            next.clear()",
+            "",
+            "public class SubClassA extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "public class SubClassB extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "        testSuccess()",
+            "init",
+            "    let suba = new SubClassA()",
+            "    let subb = new SubClassB()",
+            "    suba.next = subb",
+            "    suba.clear()",
+            "endpackage"
+        );
+    }
+
+
 
 }

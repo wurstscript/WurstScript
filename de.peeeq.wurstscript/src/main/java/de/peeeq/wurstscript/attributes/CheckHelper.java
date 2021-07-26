@@ -2,14 +2,10 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import io.vavr.collection.TreeMap;
 
-import java.util.Map;
 import java.util.Optional;
 
 public class CheckHelper {

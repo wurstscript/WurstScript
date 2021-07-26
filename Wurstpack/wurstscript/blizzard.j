@@ -33,6 +33,10 @@ globals
     constant real      bj_QUEUE_DELAY_HINT              =  5.00
     constant real      bj_QUEUE_DELAY_SECRET            =  3.00
     constant real      bj_HANDICAP_EASY                 = 60.00
+    constant real      bj_HANDICAP_NORMAL               = 90.00
+    constant real      bj_HANDICAPDAMAGE_EASY           = 50.00
+    constant real      bj_HANDICAPDAMAGE_NORMAL         = 90.00
+	constant real      bj_HANDICAPREVIVE_NOTHARD        = 50.00
     constant real      bj_GAME_STARTED_THRESHOLD        =  0.01
     constant real      bj_WAIT_FOR_COND_MIN_INTERVAL    =  0.10
     constant real      bj_POLLED_WAIT_INTERVAL          =  0.10
@@ -48,6 +52,9 @@ globals
     constant integer   bj_MAX_STOCK_ITEM_SLOTS          =  11
     constant integer   bj_MAX_STOCK_UNIT_SLOTS          =  11
     constant integer   bj_MAX_ITEM_LEVEL                =  10
+
+    // Auto Save constants
+    constant integer   bj_MAX_CHECKPOINTS               =  5
 
     // Ideally these would be looked up from Units/MiscData.txt,
     // but there is currently no script functionality exposed to do that
@@ -159,15 +166,18 @@ globals
     constant integer   bj_CAMPAIGN_OFFSET_U       = 2
     constant integer   bj_CAMPAIGN_OFFSET_O       = 3
     constant integer   bj_CAMPAIGN_OFFSET_N       = 4
-    constant integer   bj_CAMPAIGN_OFFSET_XN      = 0
-    constant integer   bj_CAMPAIGN_OFFSET_XH      = 1
-    constant integer   bj_CAMPAIGN_OFFSET_XU      = 2
-    constant integer   bj_CAMPAIGN_OFFSET_XO      = 3
+    constant integer   bj_CAMPAIGN_OFFSET_XN      = 5
+    constant integer   bj_CAMPAIGN_OFFSET_XH      = 6
+    constant integer   bj_CAMPAIGN_OFFSET_XU      = 7
+    constant integer   bj_CAMPAIGN_OFFSET_XO      = 8
 
     // Mission indexing constants
     // Tutorial
     constant integer   bj_MISSION_INDEX_T00       = bj_CAMPAIGN_OFFSET_T * 1000 + 0
     constant integer   bj_MISSION_INDEX_T01       = bj_CAMPAIGN_OFFSET_T * 1000 + 1
+    constant integer   bj_MISSION_INDEX_T02       = bj_CAMPAIGN_OFFSET_T * 1000 + 2
+    constant integer   bj_MISSION_INDEX_T03       = bj_CAMPAIGN_OFFSET_T * 1000 + 3
+    constant integer   bj_MISSION_INDEX_T04       = bj_CAMPAIGN_OFFSET_T * 1000 + 4
     // Human
     constant integer   bj_MISSION_INDEX_H00       = bj_CAMPAIGN_OFFSET_H * 1000 + 0
     constant integer   bj_MISSION_INDEX_H01       = bj_CAMPAIGN_OFFSET_H * 1000 + 1
@@ -382,7 +392,7 @@ globals
 	constant integer   bj_GAMECACHE_REAL                    = 2
 	constant integer   bj_GAMECACHE_UNIT                    = 3
 	constant integer   bj_GAMECACHE_STRING                  = 4
-	
+
 	// Hashtable value types
 	constant integer   bj_HASHTABLE_BOOLEAN                 = 0
 	constant integer   bj_HASHTABLE_INTEGER                 = 1
@@ -407,6 +417,17 @@ globals
     constant integer   bj_MINIMAPPINGSTYLE_SIMPLE  = 0
     constant integer   bj_MINIMAPPINGSTYLE_FLASHY  = 1
     constant integer   bj_MINIMAPPINGSTYLE_ATTACK  = 2
+
+    // Campaign Minimap icon styles
+    constant integer   bj_CAMPPINGSTYLE_PRIMARY			= 0
+    constant integer   bj_CAMPPINGSTYLE_PRIMARY_GREEN   = 1
+    constant integer   bj_CAMPPINGSTYLE_PRIMARY_RED     = 2
+    constant integer   bj_CAMPPINGSTYLE_BONUS			= 3
+    constant integer   bj_CAMPPINGSTYLE_TURNIN			= 4
+	constant integer   bj_CAMPPINGSTYLE_BOSS			= 5
+	constant integer   bj_CAMPPINGSTYLE_CONTROL_ALLY	= 6
+	constant integer   bj_CAMPPINGSTYLE_CONTROL_NEUTRAL	= 7
+	constant integer   bj_CAMPPINGSTYLE_CONTROL_ENEMY	= 8
 
     // Corpse creation settings
     constant real      bj_CORPSE_MAX_DEATH_TIME    = 8.00
@@ -626,6 +647,8 @@ globals
     lightning          bj_lastCreatedLightning     = null
     image              bj_lastCreatedImage         = null
     ubersplat          bj_lastCreatedUbersplat     = null
+    minimapicon        bj_lastCreatedMinimapIcon   = null
+	commandbuttoneffect bj_lastCreatedCommandButtonEffect = null
 
     // Filter function vars
     boolexpr           filterIssueHauntOrderAtLocBJ      = null
@@ -1214,7 +1237,8 @@ endfunction
 // clipping the result to 0..max in case the input is invalid.
 //
 function PercentToInt takes real percentage, integer max returns integer
-    local integer result = R2I(percentage * I2R(max) * 0.01)
+    local real realpercent = percentage * I2R(max) * 0.01
+    local integer result = MathRound(realpercent)
 
     if (result < 0) then
         set result = 0
@@ -1307,6 +1331,14 @@ function CameraSetupApplyForPlayer takes boolean doPan, camerasetup whichSetup, 
     if (GetLocalPlayer() == whichPlayer) then
         // Use only local code (no net traffic) within this block to avoid desyncs.
         call CameraSetupApplyForceDuration(whichSetup, doPan, duration)
+    endif
+endfunction
+
+//===========================================================================
+function CameraSetupApplyForPlayerSmooth takes boolean doPan, camerasetup whichSetup, player whichPlayer, real forcedDuration, real easeInDuration, real easeOutDuration, real smoothFactor returns nothing
+    if (GetLocalPlayer() == whichPlayer) then
+        // Use only local code (no net traffic) within this block to avoid desyncs.
+        call BlzCameraSetupApplyForceDurationSmooth(whichSetup, doPan, forcedDuration, easeInDuration, easeOutDuration, smoothFactor)
     endif
 endfunction
 
@@ -1648,8 +1680,8 @@ endfunction
 //
 function SubStringBJ takes string source, integer start, integer end returns string
     return SubString(source, start-1, end)
-endfunction  
-  
+endfunction
+
 function GetHandleIdBJ takes handle h returns integer
     return GetHandleId(h)
 endfunction
@@ -1848,6 +1880,31 @@ endfunction
 //===========================================================================
 function TriggerRegisterBuildSubmenuEventBJ takes trigger trig returns event
     return TriggerRegisterGameEvent(trig, EVENT_GAME_BUILD_SUBMENU)
+endfunction
+
+//===========================================================================
+function TriggerRegisterBuildCommandEventBJ takes trigger trig, integer unitId returns event
+	call TriggerRegisterCommandEvent(trig, 'ANbu', UnitId2String(unitId))
+	call TriggerRegisterCommandEvent(trig, 'AHbu', UnitId2String(unitId))
+	call TriggerRegisterCommandEvent(trig, 'AEbu', UnitId2String(unitId))
+	call TriggerRegisterCommandEvent(trig, 'AObu', UnitId2String(unitId))
+	call TriggerRegisterCommandEvent(trig, 'AUbu', UnitId2String(unitId))
+    return TriggerRegisterCommandEvent(trig, 'AGbu', UnitId2String(unitId))
+endfunction
+
+//===========================================================================
+function TriggerRegisterTrainCommandEventBJ takes trigger trig, integer unitId returns event
+    return TriggerRegisterCommandEvent(trig, 'Aque', UnitId2String(unitId))
+endfunction
+
+//===========================================================================
+function TriggerRegisterUpgradeCommandEventBJ takes trigger trig, integer techId returns event
+    return TriggerRegisterUpgradeCommandEvent(trig, techId)
+endfunction
+
+//===========================================================================
+function TriggerRegisterCommonCommandEventBJ takes trigger trig, string order returns event
+    return TriggerRegisterCommandEvent(trig, 0, order)
 endfunction
 
 //===========================================================================
@@ -2187,6 +2244,159 @@ function GetLastCreatedUbersplat takes nothing returns ubersplat
     return bj_lastCreatedUbersplat
 endfunction
 
+//============================================================================
+function GetLastCreatedMinimapIcon takes nothing returns minimapicon
+    return bj_lastCreatedMinimapIcon
+endfunction
+
+//============================================================================
+function CreateMinimapIconOnUnitBJ takes unit whichUnit, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+    set bj_lastCreatedMinimapIcon = CreateMinimapIconOnUnit(whichUnit, red, green, blue, pingPath, fogVisibility)
+    return bj_lastCreatedMinimapIcon
+endfunction
+
+//============================================================================
+function CreateMinimapIconAtLocBJ takes location where, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+    set bj_lastCreatedMinimapIcon = CreateMinimapIconAtLoc(where, red, green, blue, pingPath, fogVisibility)
+    return bj_lastCreatedMinimapIcon
+endfunction
+
+//============================================================================
+function CreateMinimapIconBJ takes real x, real y, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+    set bj_lastCreatedMinimapIcon = CreateMinimapIcon(x, y, red, green, blue, pingPath, fogVisibility)
+    return bj_lastCreatedMinimapIcon
+endfunction
+
+//============================================================================
+function CampaignMinimapIconUnitBJ takes unit whichUnit, integer style returns nothing
+	local integer	red
+	local integer 	green
+	local integer 	blue
+	local string 	path
+	if ( style == bj_CAMPPINGSTYLE_PRIMARY ) then
+		// green
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_PRIMARY_GREEN ) then
+		// green
+		set red 	= 0
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_PRIMARY_RED ) then
+		// green
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_BONUS ) then
+		// yellow
+		set red 	= 255
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectiveBonus" )
+	elseif ( style == bj_CAMPPINGSTYLE_TURNIN ) then
+		// yellow
+		set red 	= 255
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestTurnIn" )
+	elseif ( style == bj_CAMPPINGSTYLE_BOSS ) then
+		// red
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestBoss" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_ALLY ) then
+		// green
+		set red 	= 0
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_NEUTRAL ) then
+		// white
+		set red 	= 255
+		set green 	= 255
+		set blue	= 255
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_ENEMY ) then
+		// red
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	endif
+	call CreateMinimapIconOnUnitBJ( whichUnit, red, green, blue, path, FOG_OF_WAR_MASKED )
+    call SetMinimapIconOrphanDestroy( bj_lastCreatedMinimapIcon, true )
+endfunction
+
+
+//============================================================================
+function CampaignMinimapIconLocBJ takes location where, integer style returns nothing
+	local integer	red
+	local integer 	green
+	local integer 	blue
+	local string 	path
+	if ( style == bj_CAMPPINGSTYLE_PRIMARY ) then
+		// green (different from the unit version)
+		set red 	= 0
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_PRIMARY_GREEN ) then
+		// green (different from the unit version)
+		set red 	= 0
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_PRIMARY_RED ) then
+		// green (different from the unit version)
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectivePrimary" )
+	elseif ( style == bj_CAMPPINGSTYLE_BONUS ) then
+		// yellow
+		set red 	= 255
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestObjectiveBonus" )
+	elseif ( style == bj_CAMPPINGSTYLE_TURNIN ) then
+		// yellow
+		set red 	= 255
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestTurnIn" )
+	elseif ( style == bj_CAMPPINGSTYLE_BOSS ) then
+		// red
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestBoss" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_ALLY ) then
+		// green
+		set red 	= 0
+		set green 	= 255
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_NEUTRAL ) then
+		// white
+		set red 	= 255
+		set green 	= 255
+		set blue	= 255
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	elseif ( style == bj_CAMPPINGSTYLE_CONTROL_ENEMY ) then
+		// red
+		set red 	= 255
+		set green 	= 0
+		set blue	= 0
+		set path	= SkinManagerGetLocalPath( "MinimapQuestControlPoint" )
+	endif
+	call CreateMinimapIconAtLocBJ( where, red, green, blue, path, FOG_OF_WAR_MASKED )
+endfunction
+
 
 //***************************************************************************
 //*
@@ -2318,6 +2528,11 @@ endfunction
 //===========================================================================
 function SetMusicVolumeBJ takes real volumePercent returns nothing
     call SetMusicVolume(PercentToInt(volumePercent, 127))
+endfunction
+
+//===========================================================================
+function SetThematicMusicVolumeBJ takes real volumePercent returns nothing
+    call SetThematicMusicVolume(PercentToInt(volumePercent, 127))
 endfunction
 
 //===========================================================================
@@ -2570,6 +2785,67 @@ endfunction
 
 //***************************************************************************
 //*
+//*  Command Button Effect Utility Functions
+//*
+//***************************************************************************
+
+//===========================================================================
+function CreateCommandButtonEffectBJ takes integer abilityId, string order returns commandbuttoneffect
+    set bj_lastCreatedCommandButtonEffect = CreateCommandButtonEffect(abilityId, order)
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function CreateTrainCommandButtonEffectBJ takes integer unitId returns commandbuttoneffect
+    set bj_lastCreatedCommandButtonEffect = CreateCommandButtonEffect('Aque', UnitId2String(unitId))
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function CreateUpgradeCommandButtonEffectBJ takes integer techId returns commandbuttoneffect
+    set bj_lastCreatedCommandButtonEffect = CreateUpgradeCommandButtonEffect(techId)
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function CreateCommonCommandButtonEffectBJ takes string order returns commandbuttoneffect
+    set bj_lastCreatedCommandButtonEffect = CreateCommandButtonEffect(0, order)
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function CreateLearnCommandButtonEffectBJ takes integer abilityId returns commandbuttoneffect
+    set bj_lastCreatedCommandButtonEffect = CreateLearnCommandButtonEffect(abilityId)
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function CreateBuildCommandButtonEffectBJ takes integer unitId returns commandbuttoneffect
+	local race r = GetPlayerRace(GetLocalPlayer())
+	local integer abilityId
+	if (r == RACE_HUMAN) then
+        set abilityId = 'AHbu'
+    elseif (r == RACE_ORC) then
+        set abilityId = 'AObu'
+    elseif (r == RACE_UNDEAD) then
+        set abilityId = 'AUbu'
+    elseif (r == RACE_NIGHTELF) then
+        set abilityId = 'AEbu'
+    else
+        set abilityId = 'ANbu'
+    endif
+    set bj_lastCreatedCommandButtonEffect = CreateCommandButtonEffect(abilityId, UnitId2String(unitId))
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+//===========================================================================
+function GetLastCreatedCommandButtonEffectBJ takes nothing returns commandbuttoneffect
+    return bj_lastCreatedCommandButtonEffect
+endfunction
+
+
+//***************************************************************************
+//*
 //*  Hero and Item Utility Functions
 //*
 //***************************************************************************
@@ -2646,7 +2922,7 @@ endfunction
 function UnitAddItemByIdSwapped takes integer itemId, unit whichHero returns item
     // Create the item at the hero's feet first, and then give it to him.
     // This is to ensure that the item will be left at the hero's feet if
-    // his inventory is full. 
+    // his inventory is full.
     set bj_lastCreatedItem = CreateItem(itemId, GetUnitX(whichHero), GetUnitY(whichHero))
     call UnitAddItem(whichHero, bj_lastCreatedItem)
     return bj_lastCreatedItem
@@ -2695,6 +2971,26 @@ endfunction
 //===========================================================================
 function SuspendHeroXPBJ takes boolean flag, unit whichHero returns nothing
     call SuspendHeroXP(whichHero, not flag)
+endfunction
+
+//===========================================================================
+function SetPlayerHandicapDamageBJ takes player whichPlayer, real handicapPercent returns nothing
+    call SetPlayerHandicapDamage(whichPlayer, handicapPercent * 0.01)
+endfunction
+
+//===========================================================================
+function GetPlayerHandicapDamageBJ takes player whichPlayer returns real
+    return GetPlayerHandicapDamage(whichPlayer) * 100
+endfunction
+
+//===========================================================================
+function SetPlayerHandicapReviveTimeBJ takes player whichPlayer, real handicapPercent returns nothing
+    call SetPlayerHandicapReviveTime(whichPlayer, handicapPercent * 0.01)
+endfunction
+
+//===========================================================================
+function GetPlayerHandicapReviveTimeBJ takes player whichPlayer returns real
+    return GetPlayerHandicapReviveTime(whichPlayer) * 100
 endfunction
 
 //===========================================================================
@@ -3024,7 +3320,7 @@ endfunction
 //===========================================================================
 function String2OrderIdBJ takes string orderIdString returns integer
     local integer orderId
-    
+
     // Check to see if it's a generic order.
     set orderId = OrderId(orderIdString)
     if (orderId != 0) then
@@ -3589,7 +3885,7 @@ function PauseAllUnitsBJEnum takes nothing returns nothing
 endfunction
 
 //===========================================================================
-// Pause all units 
+// Pause all units
 function PauseAllUnitsBJ takes boolean pause returns nothing
     local integer index
     local player  indexPlayer
@@ -4978,7 +5274,7 @@ function PlayersAreCoAllied takes player playerA, player playerB returns boolean
 endfunction
 
 //===========================================================================
-// Force (whichPlayer) AI player to share vision and advanced unit control 
+// Force (whichPlayer) AI player to share vision and advanced unit control
 // with all AI players of its allies.
 //
 function ShareEverythingWithTeamAI takes player whichPlayer returns nothing
@@ -5026,7 +5322,7 @@ endfunction
 //===========================================================================
 // Creates a 'Neutral Victim' player slot.  This slot is passive towards all
 // other players, but all other players are aggressive towards him/her.
-// 
+//
 function ConfigureNeutralVictim takes nothing returns nothing
     local integer index
     local player indexPlayer
@@ -6301,7 +6597,7 @@ function PingMinimapForForceEx takes force whichForce, real x, real y, real dura
         else
             // Unrecognized ping style - ignore the request.
         endif
-        
+
         //call StartSound(bj_pingMinimapSound)
     endif
 endfunction
@@ -6367,8 +6663,8 @@ endfunction
 //===========================================================================
 function SetCinematicSceneBJ takes sound soundHandle, integer portraitUnitId, playercolor color, string speakerTitle, string text, real sceneDuration, real voiceoverDuration returns nothing
     set bj_cineSceneLastSound = soundHandle
-    call PlaySoundBJ(soundHandle)
     call SetCinematicScene(portraitUnitId, color, speakerTitle, text, sceneDuration, voiceoverDuration)
+    call PlaySoundBJ(soundHandle)
 endfunction
 
 //===========================================================================
@@ -6442,6 +6738,8 @@ endfunction
 function TransmissionFromUnitWithNameBJ takes force toForce, unit whichUnit, string unitName, sound soundHandle, string message, integer timeType, real timeVal, boolean wait returns nothing
     call TryInitCinematicBehaviorBJ()
 
+    call AttachSoundToUnit(soundHandle, whichUnit)
+
     // Ensure that the time value is non-negative.
     set timeVal = RMaxBJ(timeVal, 0)
 
@@ -6467,6 +6765,62 @@ function TransmissionFromUnitWithNameBJ takes force toForce, unit whichUnit, str
         call WaitTransmissionDuration(soundHandle, timeType, timeVal)
     endif
 
+endfunction
+
+//===========================================================================
+function PlayDialogueFromSpeakerEx takes force toForce, unit speaker, integer speakerType, sound soundHandle, integer timeType, real timeVal, boolean wait returns boolean
+    //Make sure that the runtime unit type and the parameter are the same,
+    //otherwise the offline animations will not match and will fail
+    if GetUnitTypeId(speaker) != speakerType then
+        debug call BJDebugMsg(("Attempted to play FacialAnimation with the wrong speaker UnitType - Param: " + I2S(speakerType) + " Runtime: " +  I2S(GetUnitTypeId(speaker))))
+        //return false
+    endif
+
+    call TryInitCinematicBehaviorBJ()
+
+    call AttachSoundToUnit(soundHandle, speaker)
+
+    // Ensure that the time value is non-negative.
+    set timeVal = RMaxBJ(timeVal, 0)
+
+    set bj_lastTransmissionDuration = GetTransmissionDuration(soundHandle, timeType, timeVal)
+    set bj_lastPlayedSound = soundHandle
+
+    if (IsPlayerInForce(GetLocalPlayer(), toForce)) then
+        call SetCinematicSceneBJ(soundHandle, speakerType, GetPlayerColor(GetOwningPlayer(speaker)), GetLocalizedString(GetDialogueSpeakerNameKey(soundHandle)), GetLocalizedString(GetDialogueTextKey(soundHandle)), bj_lastTransmissionDuration + bj_TRANSMISSION_PORT_HANGTIME, bj_lastTransmissionDuration)
+    endif
+
+    if wait and (bj_lastTransmissionDuration > 0) then
+        // call TriggerSleepAction(bj_lastTransmissionDuration)
+        call WaitTransmissionDuration(soundHandle, timeType, timeVal)
+    endif
+
+    return true
+endfunction
+
+//===========================================================================
+function PlayDialogueFromSpeakerTypeEx takes force toForce, player fromPlayer, integer speakerType, location loc, sound soundHandle, integer timeType, real timeVal, boolean wait returns boolean
+    call TryInitCinematicBehaviorBJ()
+
+    // Ensure that the time value is non-negative.
+    set timeVal = RMaxBJ(timeVal, 0)
+
+    set bj_lastTransmissionDuration = GetTransmissionDuration(soundHandle, timeType, timeVal)
+    set bj_lastPlayedSound = soundHandle
+
+    if (IsPlayerInForce(GetLocalPlayer(), toForce)) then
+        call SetCinematicSceneBJ(soundHandle, speakerType, GetPlayerColor(fromPlayer), GetLocalizedString(GetDialogueSpeakerNameKey(soundHandle)), GetLocalizedString(GetDialogueTextKey(soundHandle)), bj_lastTransmissionDuration + bj_TRANSMISSION_PORT_HANGTIME, bj_lastTransmissionDuration)
+        if(speakerType != 0) then
+            call PingMinimap(GetLocationX(loc), GetLocationY(loc), bj_TRANSMISSION_PING_TIME)
+        endif
+    endif
+
+    if wait and (bj_lastTransmissionDuration > 0) then
+        // call TriggerSleepAction(bj_lastTransmissionDuration)
+        call WaitTransmissionDuration(soundHandle, timeType, timeVal)
+    endif
+
+    return true
 endfunction
 
 //===========================================================================
@@ -6540,6 +6894,7 @@ function CinematicModeExBJ takes boolean cineMode, force forForce, real interfac
     if (cineMode) then
         // Save the UI state so that we can restore it later.
         if (not bj_cineModeAlreadyIn) then
+            call SetCinematicAudio(true)
             set bj_cineModeAlreadyIn = true
             set bj_cineModePriorSpeed = GetGameSpeed()
             set bj_cineModePriorFogSetting = IsFogEnabled()
@@ -6570,6 +6925,7 @@ function CinematicModeExBJ takes boolean cineMode, force forForce, real interfac
         call SetRandomSeed(0)
     else
         set bj_cineModeAlreadyIn = false
+        call SetCinematicAudio(false)
 
         // Perform local changes
         if (IsPlayerInForce(GetLocalPlayer(), forForce)) then
@@ -6624,8 +6980,8 @@ function CinematicFadeCommonBJ takes real red, real green, real blue, real durat
     call SetCineFilterTexMapFlags(TEXMAP_FLAG_NONE)
     call SetCineFilterStartUV(0, 0, 1, 1)
     call SetCineFilterEndUV(0, 0, 1, 1)
-    call SetCineFilterStartColor(PercentTo255(red), PercentTo255(green), PercentTo255(blue), PercentTo255(100-startTrans))
-    call SetCineFilterEndColor(PercentTo255(red), PercentTo255(green), PercentTo255(blue), PercentTo255(100-endTrans))
+    call SetCineFilterStartColor(PercentTo255(red), PercentTo255(green), PercentTo255(blue), PercentTo255(100.0-startTrans))
+    call SetCineFilterEndColor(PercentTo255(red), PercentTo255(green), PercentTo255(blue), PercentTo255(100.0-endTrans))
     call SetCineFilterDuration(duration)
     call DisplayCineFilter(true)
 endfunction
@@ -6709,8 +7065,8 @@ function CinematicFilterGenericBJ takes real duration, blendmode bmode, string t
     call SetCineFilterTexMapFlags(TEXMAP_FLAG_NONE)
     call SetCineFilterStartUV(0, 0, 1, 1)
     call SetCineFilterEndUV(0, 0, 1, 1)
-    call SetCineFilterStartColor(PercentTo255(red0), PercentTo255(green0), PercentTo255(blue0), PercentTo255(100-trans0))
-    call SetCineFilterEndColor(PercentTo255(red1), PercentTo255(green1), PercentTo255(blue1), PercentTo255(100-trans1))
+    call SetCineFilterStartColor(PercentTo255(red0), PercentTo255(green0), PercentTo255(blue0), PercentTo255(100.0-trans0))
+    call SetCineFilterEndColor(PercentTo255(red1), PercentTo255(green1), PercentTo255(blue1), PercentTo255(100.0-trans1))
     call SetCineFilterDuration(duration)
     call DisplayCineFilter(true)
 endfunction
@@ -6957,7 +7313,7 @@ function SetCinematicAvailableBJ takes boolean available, integer cinematicIndex
         call PlayCinematic( "NightElfEd" )
     elseif (cinematicIndex == bj_CINEMATICINDEX_XOP) then
         call SetOpCinematicAvailable( bj_CAMPAIGN_OFFSET_XN, available )
-        call PlayCinematic( "IntroX" )
+        // call PlayCinematic( "IntroX" )
     elseif (cinematicIndex == bj_CINEMATICINDEX_XED) then
         call SetEdCinematicAvailable( bj_CAMPAIGN_OFFSET_XU, available )
         call PlayCinematic( "OutroX" )
@@ -7570,6 +7926,13 @@ function IsCustomCampaignButtonVisibile takes integer whichButton returns boolea
 endfunction
 
 //===========================================================================
+// Placeholder function for auto save feature
+//===========================================================================
+function SaveGameCheckPointBJ takes string mapSaveName, boolean doCheckpointHint returns nothing
+	call SaveGameCheckpoint(mapSaveName, doCheckpointHint)
+endfunction
+
+//===========================================================================
 function LoadGameBJ takes string loadFileName, boolean doScoreScreen returns nothing
     call LoadGame(loadFileName, doScoreScreen)
 endfunction
@@ -8120,7 +8483,7 @@ endfunction
 //===========================================================================
 function MeleeClearNearbyUnits takes real x, real y, real range returns nothing
     local group nearbyUnits
-    
+
     set nearbyUnits = CreateGroup()
     call GroupEnumUnitsInRange(nearbyUnits, x, y, range, null)
     call ForGroup(nearbyUnits, function MeleeClearExcessUnit)
@@ -8282,7 +8645,7 @@ function MeleeStartingUnitsHuman takes player whichPlayer, location startLoc, bo
     if (nearestMine != null) then
         // Spawn Town Hall at the start location.
         set townHall = CreateUnitAtLoc(whichPlayer, 'htow', startLoc, bj_UNIT_FACING)
-        
+
         // Spawn Peasants near the mine.
         set nearMineLoc = MeleeGetProjectedLoc(GetUnitLoc(nearestMine), startLoc, 320, 0)
         set peonX = GetLocationX(nearMineLoc)
@@ -8298,7 +8661,7 @@ function MeleeStartingUnitsHuman takes player whichPlayer, location startLoc, bo
     else
         // Spawn Town Hall at the start location.
         set townHall = CreateUnitAtLoc(whichPlayer, 'htow', startLoc, bj_UNIT_FACING)
-        
+
         // Spawn Peasants directly south of the town hall.
         set peonX = GetLocationX(startLoc)
         set peonY = GetLocationY(startLoc) - 224.00
@@ -8356,7 +8719,7 @@ function MeleeStartingUnitsOrc takes player whichPlayer, location startLoc, bool
     if (nearestMine != null) then
         // Spawn Great Hall at the start location.
         call CreateUnitAtLoc(whichPlayer, 'ogre', startLoc, bj_UNIT_FACING)
-        
+
         // Spawn Peons near the mine.
         set nearMineLoc = MeleeGetProjectedLoc(GetUnitLoc(nearestMine), startLoc, 320, 0)
         set peonX = GetLocationX(nearMineLoc)
@@ -8372,7 +8735,7 @@ function MeleeStartingUnitsOrc takes player whichPlayer, location startLoc, bool
     else
         // Spawn Great Hall at the start location.
         call CreateUnitAtLoc(whichPlayer, 'ogre', startLoc, bj_UNIT_FACING)
-        
+
         // Spawn Peons directly south of the town hall.
         set peonX = GetLocationX(startLoc)
         set peonY = GetLocationY(startLoc) - 224.00
@@ -8431,7 +8794,7 @@ function MeleeStartingUnitsUndead takes player whichPlayer, location startLoc, b
     if (nearestMine != null) then
         // Spawn Necropolis at the start location.
         call CreateUnitAtLoc(whichPlayer, 'unpl', startLoc, bj_UNIT_FACING)
-        
+
         // Replace the nearest gold mine with a blighted version.
         set nearestMine = BlightGoldMineForPlayerBJ(nearestMine, whichPlayer)
 
@@ -8457,7 +8820,7 @@ function MeleeStartingUnitsUndead takes player whichPlayer, location startLoc, b
     else
         // Spawn Necropolis at the start location.
         call CreateUnitAtLoc(whichPlayer, 'unpl', startLoc, bj_UNIT_FACING)
-        
+
         // Spawn Acolytes and Ghoul directly south of the Necropolis.
         set peonX = GetLocationX(startLoc)
         set peonY = GetLocationY(startLoc) - 224.00
@@ -8631,7 +8994,7 @@ function MeleeStartingUnits takes nothing returns nothing
         set index = index + 1
         exitwhen index == bj_MAX_PLAYERS
     endloop
-    
+
 endfunction
 
 //===========================================================================
@@ -8785,7 +9148,7 @@ function MeleeGetAllyStructureCount takes player whichPlayer returns integer
         if (PlayersAreCoAllied(whichPlayer, indexPlayer)) then
             set buildingCount = buildingCount + GetPlayerStructureCount(indexPlayer, true)
         endif
-            
+
         set playerIndex = playerIndex + 1
         exitwhen playerIndex == bj_MAX_PLAYERS
     endloop
@@ -8834,12 +9197,9 @@ function MeleeGetAllyKeyStructureCount takes player whichPlayer returns integer
     loop
         set indexPlayer = Player(playerIndex)
         if (PlayersAreCoAllied(whichPlayer, indexPlayer)) then
-            set keyStructs = keyStructs + GetPlayerTypedUnitCount(indexPlayer, "townhall", true, true)
-            set keyStructs = keyStructs + GetPlayerTypedUnitCount(indexPlayer, "greathall", true, true)
-            set keyStructs = keyStructs + GetPlayerTypedUnitCount(indexPlayer, "treeoflife", true, true)
-            set keyStructs = keyStructs + GetPlayerTypedUnitCount(indexPlayer, "necropolis", true, true)
+            set keyStructs = keyStructs + BlzGetPlayerTownHallCount(indexPlayer)
         endif
-            
+
         set playerIndex = playerIndex + 1
         exitwhen playerIndex == bj_MAX_PLAYERS
     endloop
@@ -8905,7 +9265,7 @@ endfunction
 
 //===========================================================================
 // Remove all observers
-// 
+//
 function MeleeRemoveObservers takes nothing returns nothing
     local integer    playerIndex
     local player     indexPlayer
@@ -9009,7 +9369,7 @@ function MeleeCheckForLosersAndVictors takes nothing returns nothing
                 set bj_meleeDefeated[playerIndex] = true
             endif
         endif
-            
+
         set playerIndex = playerIndex + 1
         exitwhen playerIndex == bj_MAX_PLAYERS
     endloop
@@ -9175,11 +9535,11 @@ endfunction
 
 //===========================================================================
 function MeleePlayerIsCrippled takes player whichPlayer returns boolean
-    local integer allyStructures    = MeleeGetAllyStructureCount(whichPlayer)
-    local integer allyKeyStructures = MeleeGetAllyKeyStructureCount(whichPlayer)
+    local integer playerStructures  = GetPlayerStructureCount(whichPlayer, true)
+    local integer playerKeyStructures = BlzGetPlayerTownHallCount(whichPlayer)
 
-    // Dead teams are not considered to be crippled.
-    return (allyStructures > 0) and (allyKeyStructures <= 0)
+    // Dead players are not considered to be crippled.
+    return (playerStructures > 0) and (playerKeyStructures <= 0)
 endfunction
 
 //===========================================================================
@@ -9245,7 +9605,7 @@ function MeleeCheckForCrippledPlayers takes nothing returns nothing
             call MeleeExposePlayer(indexPlayer, false)
 
         endif
-            
+
         set playerIndex = playerIndex + 1
         exitwhen playerIndex == bj_MAX_PLAYERS
     endloop
@@ -9332,7 +9692,7 @@ function MeleeTriggerActionPlayerLeft takes nothing returns nothing
 
     call CachePlayerHeroData(thePlayer)
 
-    // This is the same as defeat except the player generates the message 
+    // This is the same as defeat except the player generates the message
     // "player left the game" as opposed to "player was defeated".
 
     if (MeleeGetAllyCount(thePlayer) > 0) then
@@ -10134,7 +10494,7 @@ endfunction
 //*
 //*  - RandomDistChoose will use the current distribution list to choose
 //*    one of the objects randomly based on the chance distribution
-//*  
+//*
 //*  Note that the chances are effectively normalized by their sum,
 //*  so only the relative values of each chance are important
 //*
@@ -10376,7 +10736,7 @@ function BlzRemoveAbilityStringLevelArrayFieldBJ takes ability whichAbility, abi
     set bj_lastInstObjFuncSuccessful = BlzRemoveAbilityStringLevelArrayField(whichAbility, whichField, level, value)
 endfunction
 
-// Item 
+// Item
 //=============================================================
 function BlzItemAddAbilityBJ takes item whichItem, integer abilCode returns nothing
     set bj_lastInstObjFuncSuccessful = BlzItemAddAbility(whichItem, abilCode)
@@ -10408,7 +10768,7 @@ function BlzSetItemStringFieldBJ takes item whichItem, itemstringfield whichFiel
 endfunction
 
 
-// Unit 
+// Unit
 //===========================================================================
 function BlzSetUnitBooleanFieldBJ takes unit whichUnit, unitbooleanfield whichField, boolean value returns nothing
     set bj_lastInstObjFuncSuccessful = BlzSetUnitBooleanField(whichUnit, whichField, value)

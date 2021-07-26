@@ -7,10 +7,8 @@ import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
-import io.vavr.collection.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -136,7 +134,7 @@ public class VarLink extends DefLink {
         if (getReceiverType() != null) {
             r += getReceiverType() + ".";
         }
-        return r + Utils.printElementWithSource(def);
+        return r + Utils.printElementWithSource(Optional.of(def));
     }
 
     public VarLink withTypeArgBinding(Element context, VariableBinding binding) {

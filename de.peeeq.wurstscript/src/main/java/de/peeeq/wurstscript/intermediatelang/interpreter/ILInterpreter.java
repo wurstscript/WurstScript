@@ -19,6 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ILInterpreter implements AbstractInterpreter {
@@ -26,14 +27,14 @@ public class ILInterpreter implements AbstractInterpreter {
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
-        globalState.addNativeProvider(new NativeFunctions());
+//        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, boolean isCompiletime) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
@@ -46,9 +47,7 @@ public class ILInterpreter implements AbstractInterpreter {
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
                 // for vararg functions, rewrite args and put last argument
                 ILconst[] newArgs = new ILconst[f.getParameters().size()];
-                for (int i = 0; i < newArgs.length - 1; i++) {
-                    newArgs[i] = args[i];
-                }
+                if (newArgs.length - 1 >= 0) System.arraycopy(args, 0, newArgs, 0, newArgs.length - 1);
 
                 ILconst[] varargArray = new ILconst[1 + args.length - newArgs.length];
                 for (int i = newArgs.length - 1, j = 0; i < args.length; i++, j++) {

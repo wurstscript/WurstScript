@@ -82,12 +82,11 @@ public abstract class OverloadingResolver<F extends Element, C> {
         String alts = funcs.stream()
                 .map((F f) -> {
                     if (f instanceof FunctionDefinition) {
-                        FunctionDefinition functionDefinition = (FunctionDefinition) f;
-                        FunctionDefinition func = functionDefinition;
+                        FunctionDefinition func = (FunctionDefinition) f;
                         return "function " + func.getName() + " defined in " +
                                 "  line " + func.getSource().getLine();
                     }
-                    return Utils.printElementWithSource(f);
+                    return Utils.printElementWithSource(Optional.of(f));
                 }).collect(Collectors.joining("\n * "));
         handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
 

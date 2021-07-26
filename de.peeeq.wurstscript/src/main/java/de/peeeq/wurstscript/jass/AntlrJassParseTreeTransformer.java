@@ -504,7 +504,7 @@ public class AntlrJassParseTreeTransformer {
         return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
-    class FuncSig {
+    static class FuncSig {
         Identifier name;
         TypeParamDefs typeParams;
         WParameters formalParameters;

@@ -219,6 +219,26 @@ public class JurstTests extends WurstScriptTest {
     }
 
     @Test
+    public void jassAgentTypeComparison() {
+        String jassCode = Utils.string(
+            "function bar takes sound s, rect r returns boolean",
+            "return s == r",
+            "endfunction\n");
+
+
+        String jurstCode = Utils.string(
+            "package test",
+            "	init",
+            "		if bar(null, null)",
+            "			testSuccess()",
+            "		end",
+            "	end",
+            "endpackage");
+
+        testJurstWithJass(true, true, jassCode, jurstCode);
+    }
+
+    @Test
     public void testBigJassScript() throws IOException {
         String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
 

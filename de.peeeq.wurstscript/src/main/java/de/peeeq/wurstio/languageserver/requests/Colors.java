@@ -4,7 +4,6 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,13 +34,14 @@ public class Colors {
 
         @Override
         public List<ColorInformation> execute(ModelManager modelManager) throws IOException {
-            CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument));
-            if (cu == null) {
+            Optional<CompilationUnit> cu = Optional.ofNullable(
+                modelManager.getCompilationUnit(WFile.create(textDocument)));
+            if (!cu.isPresent()) {
                 return Collections.emptyList();
             }
 
             List<ColorInformation> result = new ArrayList<>();
-            cu.accept(new Element.DefaultVisitor() {
+            cu.get().accept(new Element.DefaultVisitor() {
                 @Override
                 public void visit(ExprFunctionCall call) {
                     Arguments args = call.getArgs();
@@ -100,18 +101,24 @@ public class Colors {
 
         @Override
         public List<ColorPresentation> execute(ModelManager modelManager) {
-            CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument));
-            if (cu == null) {
+            Optional<CompilationUnit> cu = Optional.ofNullable(
+                modelManager.getCompilationUnit(WFile.create(textDocument)));
+            if (!cu.isPresent()) {
                 return Collections.emptyList();
             }
-            Element elem = Utils.getAstElementAtPos(cu, range.getStart().getLine() + 1, range.getStart().getCharacter() + 2, false);
+            Optional<Element> elemAtPos = Utils.getAstElementAtPos(cu.get(), range.getStart().getLine() + 1,
+                range.getStart().getCharacter() + 2, false);
+            if (!elemAtPos.isPresent()) {
+                return Collections.emptyList();
+            }
+            Element elem = elemAtPos.get();
 
             if (elem instanceof ExprIntVal
-                    && elem.getParent() != null) {
+                    && Optional.ofNullable(elem.getParent()).isPresent()) {
                 elem = elem.getParent();
             }
             if (elem instanceof Arguments
-                    && elem.getParent() != null) {
+                    && Optional.ofNullable(elem.getParent()).isPresent()) {
                 elem = elem.getParent();
             }
 
@@ -153,7 +160,7 @@ public class Colors {
         s = Utils.escapeStringWithoutQuotes(s);
         Matcher matcher = colorPattern.matcher(s);
 
-        for (int i = 0; matcher.find(); i++) {
+        for ( ; matcher.find(); ) {
             double red = Integer.parseInt(matcher.group(2), 16) / 255.;
             double green = Integer.parseInt(matcher.group(3), 16) / 255.;
             double blue = Integer.parseInt(matcher.group(4), 16) / 255.;

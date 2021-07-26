@@ -11,4 +11,4 @@ it might take a long time until they get merged, if at all.
 Thus it should be your goal to make as small and encapsulated PRs as possible, mainly focusing on one specific issue or feature.
 The smaller the PR, the faster it can be reviewed and finally merged.
 
-Feel free to use our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues) or drop by our [IRC](https://webchat.quakenet.org/?channels=#inwc.de-maps) channel.
+Feel free to use our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues) or drop by our [Discord](https://discord.gg/mSHZpWcadz).

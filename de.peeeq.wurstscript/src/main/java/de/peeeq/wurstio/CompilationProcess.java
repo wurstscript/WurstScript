@@ -1,5 +1,6 @@
 package de.peeeq.wurstio;
 
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -18,6 +19,8 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  *
@@ -54,7 +57,7 @@ public class CompilationProcess {
             compiler.loadFiles(file);
         }
         WurstModel model = timeTaker.measure("parse files",
-                () -> compiler.parseFiles());
+            compiler::parseFiles);
 
         if (gui.getErrorCount() > 0) {
             return null;
@@ -77,18 +80,15 @@ public class CompilationProcess {
             return null;
         }
 
-        File mapFile = compiler.getMapFile();
-
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
-                    () -> runTests(compiler.getImTranslator(), compiler));
+                    () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions",
-                () -> compiler.runCompiletime());
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData()));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
-                () -> compiler.transformProgToJass());
+            compiler::transformProgToJass);
 
         if (jassProg == null || gui.getErrorCount() > 0) {
             return null;
@@ -101,7 +101,7 @@ public class CompilationProcess {
 
         JassPrinter printer = new JassPrinter(withSpace, jassProg);
         CharSequence mapScript = timeTaker.measure("Print Jass",
-                () -> printer.printProg());
+            (Supplier<String>) printer::printProg);
 
         // output to file
         File outputMapscript = timeTaker.measure("Print Jass",
@@ -142,7 +142,6 @@ public class CompilationProcess {
         if (runArgs.getOutFile() != null) {
             outputMapscript = new File(runArgs.getOutFile());
         } else {
-            //outputMapscript = File.createTempFile("outputMapscript", ".j");
             outputMapscript = new File("./temp/output.j");
         }
         outputMapscript.getParentFile().mkdirs();
@@ -154,18 +153,18 @@ public class CompilationProcess {
         }
     }
 
-    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler) {
+    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler, int testTimeout) {
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
         System.out.println("Running tests");
-        RunTests runTests = new RunTests(null, 0, 0, null) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout) {
             @Override
             protected void print(String message) {
                 out.print(message);
             }
         };
-        runTests.runTests(translator, compiler.getImProg(), null, null);
+        runTests.runTests(translator, compiler.getImProg(), Optional.empty(), Optional.empty());
 
         for (RunTests.TestFailure e : runTests.getFailTests()) {
             gui.sendError(new CompileError(e.getFunction(), e.getMessage()));
@@ -179,6 +178,4 @@ public class CompilationProcess {
 
         System.out.println("Finished running tests");
     }
-
-
 }

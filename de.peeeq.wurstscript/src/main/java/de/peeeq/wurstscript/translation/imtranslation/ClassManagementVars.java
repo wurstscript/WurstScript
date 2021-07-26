@@ -7,8 +7,6 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 
-import java.lang.reflect.Type;
-
 public class ClassManagementVars {
     /**
      * array, nextFree[x] is the element which comes next in the queue

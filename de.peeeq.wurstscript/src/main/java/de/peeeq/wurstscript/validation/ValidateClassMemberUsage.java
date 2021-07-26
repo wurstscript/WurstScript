@@ -146,7 +146,7 @@ public class ValidateClassMemberUsage {
         });
 
         definedFuncs.forEach(funcDef -> {
-            if (funcDef.attrIsPrivate()) {
+            if (funcDef.attrIsPrivate() && !(funcDef.attrIsStatic() && funcDef.hasAnnotation("@compiletime"))) {
                 funcDef.addWarning("Private function <" + funcDef.getName() + "> is never used.");
             }
         });

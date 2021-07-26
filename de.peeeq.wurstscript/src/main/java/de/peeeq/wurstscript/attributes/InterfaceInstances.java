@@ -4,16 +4,11 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableCollection.Builder;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.VariableBinding;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
-import io.vavr.collection.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.Map;
 
 public class InterfaceInstances {
 

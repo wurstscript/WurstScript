@@ -19,7 +19,6 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -159,7 +158,7 @@ public class ModelManagerTests {
         {
             // check that jump to decl in package A works correctly
             CompilationUnit cu = manager.getCompilationUnit(fileA);
-            FunctionCall functionCallFoo = (FunctionCall) Utils.getAstElementAtPos(cu, 4, 5, false);
+            FunctionCall functionCallFoo = (FunctionCall) Utils.getAstElementAtPos(cu, 4, 5, false).get();
             FunctionDefinition def = functionCallFoo.attrFuncDef();
             assertEquals(WFile.create(def.attrSource().getFile()), fileTest1);
         }
@@ -174,7 +173,7 @@ public class ModelManagerTests {
         {
             // check that jump to decl in package A works correctly after the change
             CompilationUnit cu = manager.getCompilationUnit(fileA);
-            FunctionCall functionCallFoo = (FunctionCall) Utils.getAstElementAtPos(cu, 4, 5, false);
+            FunctionCall functionCallFoo = (FunctionCall) Utils.getAstElementAtPos(cu, 4, 5, false).get();
             FunctionDefinition def = functionCallFoo.attrFuncDef();
             assertNotNull(def);
             assertEquals(WFile.create(def.attrSource().getFile()), fileTest2);

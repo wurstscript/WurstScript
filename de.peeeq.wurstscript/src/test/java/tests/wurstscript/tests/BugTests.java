@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class BugTests extends WurstScriptTest {
-
-
     private static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
@@ -134,7 +132,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void test_init_order_globals_warning() {
-        testAssertErrorsLines(false, "Global variable b must be declared before it is used.",
+        testAssertErrorsLines(false, "Global variable <b> must be declared before it is used.",
                 "package test",
                 "	integer a = b",
                 "	integer b = 3",
@@ -1381,6 +1379,17 @@ public class BugTests extends WurstScriptTest {
             "    a.bar()", // calling a function to ensure stacktraces are needed
             "init",
             "    ExecuteFunc(\"foo\")"
+        );
+    }
+
+    @Test
+    public void agentTypeComparisonsWurst() {
+        testAssertErrorsLinesWithStdLib(true, "Cannot compare types sound with rect",
+            "package Test",
+            "function compare(sound s, rect r) returns boolean",
+            "    return s == r",
+            "init",
+            "    compare(null, null)"
         );
     }
 

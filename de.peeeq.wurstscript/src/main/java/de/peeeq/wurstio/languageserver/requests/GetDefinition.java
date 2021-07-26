@@ -6,8 +6,6 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
@@ -45,7 +43,7 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
         if (cu == null) {
             return Collections.emptyList();
         }
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
+        Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;

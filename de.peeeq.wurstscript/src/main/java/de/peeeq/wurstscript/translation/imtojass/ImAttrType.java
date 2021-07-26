@@ -4,10 +4,15 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ImAttrType {
+
+    static ImType wurstClassType = TypesHelper.imInt();
+
+    public static void setWurstClassType(ImType newType) {
+        wurstClassType = newType;
+    }
 
     public static ImType getType(ImBoolVal e) {
         return WurstTypeBool.instance().imTranslateType();
@@ -184,7 +189,11 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImAlloc imAlloc) {
-        return TypesHelper.imInt();
+        if(wurstClassType != null) {
+            return wurstClassType;
+        } else {
+            return imAlloc.getClazz();
+        }
     }
 
     public static ImType getType(ImDealloc imDealloc) {

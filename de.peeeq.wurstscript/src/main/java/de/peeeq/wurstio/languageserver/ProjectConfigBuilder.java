@@ -6,12 +6,15 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.RunArgs;
 import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
+import net.moonlightflower.wc3libs.bin.app.W3I.Force;
+import net.moonlightflower.wc3libs.bin.app.W3I.Player;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
+import net.moonlightflower.wc3libs.dataTypes.app.LoadingScreenBackground;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
@@ -28,13 +31,14 @@ import java.util.Optional;
 public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
 
-    public static void apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir, RunArgs runArgs) throws IOException {
+    public static void apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
+            RunArgs runArgs, W3InstallationData w3data) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
 
 
-        try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
             File file = new File(buildDir, "wc3libs_injected.j");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
@@ -48,8 +52,8 @@ public class ProjectConfigBuilder {
                     // TODO apply config for hot start before JHCR transformation
                     scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
                 } else {
-                    if (W3Utils.getWc3PatchVersion() != null) {
-                        w3I.injectConfigsInJassScript(inputStream, sw, W3Utils.getWc3PatchVersion());
+                    if (w3data.getWc3PatchVersion().isPresent()) {
+                        w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
                     } else {
                         w3I.injectConfigsInJassScript(inputStream, sw, GameVersion.VERSION_1_32);
                     }
@@ -95,7 +99,7 @@ public class ProjectConfigBuilder {
     }
 
     private static W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
-        try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
             W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
             WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
             if (StringUtils.isNotBlank(buildMapData.getName())) {
@@ -141,7 +145,12 @@ public class ProjectConfigBuilder {
     }
 
     private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
-        w3I.setLoadingScreenModel(loadingScreen.getModel());
+        if (StringUtils.isNotBlank(loadingScreen.getModel())) {
+            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreen.getModel())));
+        } else {
+            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreen.getBackground()));
+        }
+
         w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
         w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
         w3I.getLoadingScreen().setText(loadingScreen.getText());
@@ -151,7 +160,7 @@ public class ProjectConfigBuilder {
         w3I.clearForces();
         ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
         for (WurstProjectBuildForce wforce : forces) {
-            W3I.Force force = w3I.addForce();
+            W3I.Force force = new Force();
             force.setName(wforce.getName());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED, wforce.getFlags().getAllied());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED_VICTORY, wforce.getFlags().getAlliedVictory());
@@ -159,6 +168,7 @@ public class ProjectConfigBuilder {
             force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL, wforce.getFlags().getSharedControl());
             force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL_ADVANCED, wforce.getFlags().getSharedControlAdvanced());
             force.addPlayerNums(wforce.getPlayerIds());
+            w3I.addForce(force);
         }
         w3I.setFlag(MapFlag.USE_CUSTOM_FORCES, true);
     }
@@ -169,8 +179,9 @@ public class ProjectConfigBuilder {
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
             Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
-            W3I.Player player = w3I.addPlayer();
+            W3I.Player player = new Player();
             player.setNum(wplayer.getId());
+            w3I.addPlayer(player);
 
             old.ifPresent(player1 -> applyExistingPlayerConfig(player1, player));
 

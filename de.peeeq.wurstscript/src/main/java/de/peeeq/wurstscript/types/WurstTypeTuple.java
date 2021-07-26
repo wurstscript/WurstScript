@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public class WurstTypeTuple extends WurstType {
@@ -80,7 +81,11 @@ public class WurstTypeTuple extends WurstType {
         WParameter v = (WParameter) varDef;
         int index = tupleDef.getParameters().indexOf(v);
         if (index < 0) {
-            throw new CompileError(varDef.getSource(), "Could not determine tuple index of " + Utils.printElementWithSource(varDef) + " in tuple " + this);
+            throw new CompileError(varDef.getSource(),
+                "Could not determine tuple index of "
+                + Utils.printElementWithSource(Optional.of(varDef))
+                + " in tuple "
+                + this);
         }
         return index;
     }

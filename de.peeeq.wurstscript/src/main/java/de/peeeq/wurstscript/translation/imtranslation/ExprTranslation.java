@@ -18,10 +18,12 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -97,13 +99,35 @@ public class ExprTranslation {
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }
 
-    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
-        if (t.isLuaTarget()) {
-            // for lua we do not need fromIndex/toIndex
-            return translated;
+    static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {
+        // use ensureType functions for lua
+        // these functions convert nil to the default value for primitive types (int, string, bool, real)
+        if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
+            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+
+            @Nullable ImFunction ensureType = null;
+            switch (wtb.getName()) {
+                case "integer":
+                    ensureType = t.ensureIntFunc;
+                    break;
+                case "string":
+                    ensureType = t.ensureStrFunc;
+                    break;
+                case "boolean":
+                    ensureType = t.ensureBoolFunc;
+                    break;
+                case "real":
+                    ensureType = t.ensureRealFunc;
+                    break;
+            }
+            if(ensureType != null) {
+                return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
         }
+        return translated;
+    }
 
-
+    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -128,15 +152,19 @@ public class ExprTranslation {
         if (toIndex != null && fromIndex != null) {
 //            System.out.println("  --> cancel");
             // the two conversions cancel each other out
-            return translated;
+            return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
+            if(t.isLuaTarget()) {
+                translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
+            // no ensure type necessary here, because the fromIndex function is already type safe
             return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
 //            System.out.println("  --> toIndex");
-            return ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        return translated;
+        return wrapLua(trace, t, translated, actualType);
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
@@ -149,7 +177,7 @@ public class ExprTranslation {
             return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
-            if (Utils.isJassCode(e)) {
+            if (Utils.isJassCode(Optional.of(e))) {
                 if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
                         && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
                     // in jass when we have int1 / int2 this actually means int1
@@ -476,7 +504,7 @@ public class ExprTranslation {
             calledFunc = calledFunc.attrRealFuncDef();
         }
 
-        if (calledFunc == e.attrNearestFuncDef()) {
+        if (leftExpr instanceof ExprThis && calledFunc == e.attrNearestFuncDef()) {
             // recursive self calls are bound statically
             // this is different to other objectoriented languages but it is
             // necessary

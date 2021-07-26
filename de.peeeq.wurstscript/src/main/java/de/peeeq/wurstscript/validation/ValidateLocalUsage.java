@@ -27,7 +27,9 @@ public class ValidateLocalUsage {
             public void visit(LocalVarDef varDef) {
                 super.visit(varDef);
                 if (!varDef.attrIsConstant() && !(varDef.getParent() instanceof LoopStatement)) {
-                    locals.add(varDef);
+                    if (!(varDef.getInitialExpr() instanceof ExprClosure)) {
+                        locals.add(varDef);
+                    }
                 }
             }
         });

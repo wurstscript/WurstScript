@@ -16,14 +16,27 @@ public class LuaPrinter {
     }
 
     public static void print(LuaCompilationUnit cu, StringBuilder sb, int indent) {
+        boolean statementBlock = false;
         for (LuaStatement d : cu) {
             if (d instanceof LuaVariable) {
                 // don't translate global variables as locals:
                 printVariable((LuaVariable) d, sb, indent);
-            } else {
+                sb.append("\n");
+                statementBlock = true;
+            } else if(d instanceof LuaAssignment) {
+                // these are top level assignments that are not inside functions
                 d.print(sb, indent);
+                sb.append("\n");
+                statementBlock = true;
+            } else {
+                // every other statement is considered a block and has an empty line after it
+                if(statementBlock) {
+                    sb.append("\n");
+                }
+                d.print(sb, indent);
+                sb.append("\n\n");
+                statementBlock = false;
             }
-            sb.append("\n\n");
         }
     }
 
@@ -290,9 +303,9 @@ public class LuaPrinter {
     }
 
     public static void print(LuaTableConstructor e, StringBuilder sb, int indent) {
-        sb.append("{");
+        sb.append("({");
         e.getTableFields().print(sb, indent);
-        sb.append("}");
+        sb.append("})");
     }
 
     public static void print(LuaTableExprField e, StringBuilder sb, int indent) {

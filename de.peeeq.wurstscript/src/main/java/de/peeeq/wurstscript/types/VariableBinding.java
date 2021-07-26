@@ -5,13 +5,11 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Set;
-import io.vavr.collection.SortedSet;
 import io.vavr.collection.HashMap;
 import io.vavr.control.Option;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
-import java.util.Spliterators;
 
 /**
  * VariableBinding
@@ -86,7 +84,7 @@ public class VariableBinding implements Iterable<Tuple2<TypeParamDef, WurstTypeB
                 if (!first) {
                     s.append(", ");
                 }
-                s.append(t.getName() + " line " + t.getSource().getLine());
+                s.append(t.getName()).append(" line ").append(t.getSource().getLine());
                 first = false;
             }
             s.append(">");

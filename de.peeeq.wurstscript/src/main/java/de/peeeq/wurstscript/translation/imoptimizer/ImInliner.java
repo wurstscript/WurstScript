@@ -10,6 +10,7 @@ import java.util.*;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
 public class ImInliner {
     private static final String FORCEINLINE = "@inline";
@@ -46,7 +47,7 @@ public class ImInliner {
 
     private void inlineFunctions() {
 
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             inlineFunctions(f);
         }
     }
@@ -274,12 +275,17 @@ public class ImInliner {
     }
 
     private void collectInlinableFunctions() {
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
                 // do not inline natives
                 continue;
             }
             if (f == translator.getGlobalInitFunc()) {
+                continue;
+            }
+            if (f.hasFlag(IS_VARARG)) {
+                // do not inline vararg functions
+                // this is only relevant for lua, because in JASS they are eliminated before inlining
                 continue;
             }
             if (maxOneReturn(f)) {

@@ -56,6 +56,7 @@ type mapvisibility      extends     handle
 type mapsetting         extends     handle
 type mapdensity         extends     handle
 type mapcontrol         extends     handle
+type minimapicon        extends     handle
 type playerslotstate    extends     handle
 type volumegroup        extends     handle
 type camerafield        extends     handle
@@ -136,6 +137,7 @@ type defensetype                    extends handle
 type regentype                      extends handle
 type unitcategory                   extends handle
 type pathingflag                    extends handle
+type commandbuttoneffect            extends handle
 
 
 constant native ConvertRace                 takes integer i returns race
@@ -727,48 +729,48 @@ globals
     constant unitevent EVENT_UNIT_HIDDEN                                = ConvertUnitEvent(56)
     constant unitevent EVENT_UNIT_SELECTED                              = ConvertUnitEvent(57)
     constant unitevent EVENT_UNIT_DESELECTED                            = ConvertUnitEvent(58)
+                                                                        
+    constant unitevent EVENT_UNIT_STATE_LIMIT                           = ConvertUnitEvent(59)                                                                        
 
-    constant unitevent EVENT_UNIT_STATE_LIMIT                           = ConvertUnitEvent(59)
-
-    // Events which may have a filter for the "other unit"
-    //
+    // Events which may have a filter for the "other unit"              
+    //                                                                  
     constant unitevent EVENT_UNIT_ACQUIRED_TARGET                       = ConvertUnitEvent(60)
     constant unitevent EVENT_UNIT_TARGET_IN_RANGE                       = ConvertUnitEvent(61)
     constant unitevent EVENT_UNIT_ATTACKED                              = ConvertUnitEvent(62)
     constant unitevent EVENT_UNIT_RESCUED                               = ConvertUnitEvent(63)
-
+                                                                        
     constant unitevent EVENT_UNIT_CONSTRUCT_CANCEL                      = ConvertUnitEvent(64)
     constant unitevent EVENT_UNIT_CONSTRUCT_FINISH                      = ConvertUnitEvent(65)
-
+                                                                        
     constant unitevent EVENT_UNIT_UPGRADE_START                         = ConvertUnitEvent(66)
     constant unitevent EVENT_UNIT_UPGRADE_CANCEL                        = ConvertUnitEvent(67)
     constant unitevent EVENT_UNIT_UPGRADE_FINISH                        = ConvertUnitEvent(68)
-
-    // Events which involve the specified unit performing
-    // training of other units
-    //
+                                                                        
+    // Events which involve the specified unit performing               
+    // training of other units                                          
+    //                                                                  
     constant unitevent EVENT_UNIT_TRAIN_START                           = ConvertUnitEvent(69)
     constant unitevent EVENT_UNIT_TRAIN_CANCEL                          = ConvertUnitEvent(70)
     constant unitevent EVENT_UNIT_TRAIN_FINISH                          = ConvertUnitEvent(71)
-
+                                                                        
     constant unitevent EVENT_UNIT_RESEARCH_START                        = ConvertUnitEvent(72)
     constant unitevent EVENT_UNIT_RESEARCH_CANCEL                       = ConvertUnitEvent(73)
     constant unitevent EVENT_UNIT_RESEARCH_FINISH                       = ConvertUnitEvent(74)
-
+                                                                        
     constant unitevent EVENT_UNIT_ISSUED_ORDER                          = ConvertUnitEvent(75)
     constant unitevent EVENT_UNIT_ISSUED_POINT_ORDER                    = ConvertUnitEvent(76)
     constant unitevent EVENT_UNIT_ISSUED_TARGET_ORDER                   = ConvertUnitEvent(77)
-
+                                                                       
     constant unitevent EVENT_UNIT_HERO_LEVEL                            = ConvertUnitEvent(78)
     constant unitevent EVENT_UNIT_HERO_SKILL                            = ConvertUnitEvent(79)
-
+                                                                        
     constant unitevent EVENT_UNIT_HERO_REVIVABLE                        = ConvertUnitEvent(80)
     constant unitevent EVENT_UNIT_HERO_REVIVE_START                     = ConvertUnitEvent(81)
     constant unitevent EVENT_UNIT_HERO_REVIVE_CANCEL                    = ConvertUnitEvent(82)
     constant unitevent EVENT_UNIT_HERO_REVIVE_FINISH                    = ConvertUnitEvent(83)
-
+                                                                        
     constant unitevent EVENT_UNIT_SUMMON                                = ConvertUnitEvent(84)
-
+                                                                        
     constant unitevent EVENT_UNIT_DROP_ITEM                             = ConvertUnitEvent(85)
     constant unitevent EVENT_UNIT_PICKUP_ITEM                           = ConvertUnitEvent(86)
     constant unitevent EVENT_UNIT_USE_ITEM                              = ConvertUnitEvent(87)
@@ -783,6 +785,10 @@ globals
     //===================================================
     // Frozen Throne Expansion Events
     // Need to be added here to preserve compat
+    //===================================================
+   
+    //===================================================    
+    // For use with TriggerRegisterGameEvent
     //===================================================
 
     constant gameevent          EVENT_GAME_LOADED                       = ConvertGameEvent(256)
@@ -824,6 +830,7 @@ globals
     constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_FINISH          = ConvertPlayerUnitEvent(275)
     constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_ENDCAST         = ConvertPlayerUnitEvent(276)
     constant playerunitevent    EVENT_PLAYER_UNIT_PAWN_ITEM             = ConvertPlayerUnitEvent(277)
+    constant playerunitevent    EVENT_PLAYER_UNIT_STACK_ITEM            = ConvertPlayerUnitEvent(319)
 
     //===================================================
     // For use with TriggerRegisterUnitEvent
@@ -838,6 +845,7 @@ globals
     constant unitevent          EVENT_UNIT_SPELL_FINISH                 = ConvertUnitEvent(292)
     constant unitevent          EVENT_UNIT_SPELL_ENDCAST                = ConvertUnitEvent(293)
     constant unitevent          EVENT_UNIT_PAWN_ITEM                    = ConvertUnitEvent(294)
+    constant unitevent          EVENT_UNIT_STACK_ITEM                   = ConvertUnitEvent(318)
 
     //===================================================
     // Limit Event API constants
@@ -970,24 +978,29 @@ globals
 // Custom UI API constants
 //===================================================
 
-    constant originframetype        ORIGIN_FRAME_GAME_UI                 = ConvertOriginFrameType(0)
-    constant originframetype        ORIGIN_FRAME_COMMAND_BUTTON          = ConvertOriginFrameType(1)
-    constant originframetype        ORIGIN_FRAME_HERO_BAR                = ConvertOriginFrameType(2)
-    constant originframetype        ORIGIN_FRAME_HERO_BUTTON             = ConvertOriginFrameType(3)
-    constant originframetype        ORIGIN_FRAME_HERO_HP_BAR             = ConvertOriginFrameType(4)
-    constant originframetype        ORIGIN_FRAME_HERO_MANA_BAR           = ConvertOriginFrameType(5)
-    constant originframetype        ORIGIN_FRAME_HERO_BUTTON_INDICATOR   = ConvertOriginFrameType(6)
-    constant originframetype        ORIGIN_FRAME_ITEM_BUTTON             = ConvertOriginFrameType(7)
-    constant originframetype        ORIGIN_FRAME_MINIMAP                 = ConvertOriginFrameType(8)
-    constant originframetype        ORIGIN_FRAME_MINIMAP_BUTTON          = ConvertOriginFrameType(9)
-    constant originframetype        ORIGIN_FRAME_SYSTEM_BUTTON           = ConvertOriginFrameType(10)
-    constant originframetype        ORIGIN_FRAME_TOOLTIP                 = ConvertOriginFrameType(11)
-    constant originframetype        ORIGIN_FRAME_UBERTOOLTIP             = ConvertOriginFrameType(12)
-    constant originframetype        ORIGIN_FRAME_CHAT_MSG                = ConvertOriginFrameType(13)
-    constant originframetype        ORIGIN_FRAME_UNIT_MSG                = ConvertOriginFrameType(14)
-    constant originframetype        ORIGIN_FRAME_TOP_MSG                 = ConvertOriginFrameType(15)
-    constant originframetype        ORIGIN_FRAME_PORTRAIT                = ConvertOriginFrameType(16)
-    constant originframetype        ORIGIN_FRAME_WORLD_FRAME             = ConvertOriginFrameType(17)
+    constant originframetype        ORIGIN_FRAME_GAME_UI                    = ConvertOriginFrameType(0)
+    constant originframetype        ORIGIN_FRAME_COMMAND_BUTTON             = ConvertOriginFrameType(1)
+    constant originframetype        ORIGIN_FRAME_HERO_BAR                   = ConvertOriginFrameType(2)
+    constant originframetype        ORIGIN_FRAME_HERO_BUTTON                = ConvertOriginFrameType(3)
+    constant originframetype        ORIGIN_FRAME_HERO_HP_BAR                = ConvertOriginFrameType(4)
+    constant originframetype        ORIGIN_FRAME_HERO_MANA_BAR              = ConvertOriginFrameType(5)
+    constant originframetype        ORIGIN_FRAME_HERO_BUTTON_INDICATOR      = ConvertOriginFrameType(6)
+    constant originframetype        ORIGIN_FRAME_ITEM_BUTTON                = ConvertOriginFrameType(7)
+    constant originframetype        ORIGIN_FRAME_MINIMAP                    = ConvertOriginFrameType(8)
+    constant originframetype        ORIGIN_FRAME_MINIMAP_BUTTON             = ConvertOriginFrameType(9)
+    constant originframetype        ORIGIN_FRAME_SYSTEM_BUTTON              = ConvertOriginFrameType(10)
+    constant originframetype        ORIGIN_FRAME_TOOLTIP                    = ConvertOriginFrameType(11)
+    constant originframetype        ORIGIN_FRAME_UBERTOOLTIP                = ConvertOriginFrameType(12)
+    constant originframetype        ORIGIN_FRAME_CHAT_MSG                   = ConvertOriginFrameType(13)
+    constant originframetype        ORIGIN_FRAME_UNIT_MSG                   = ConvertOriginFrameType(14)
+    constant originframetype        ORIGIN_FRAME_TOP_MSG                    = ConvertOriginFrameType(15)
+    constant originframetype        ORIGIN_FRAME_PORTRAIT                   = ConvertOriginFrameType(16)
+    constant originframetype        ORIGIN_FRAME_WORLD_FRAME                = ConvertOriginFrameType(17)
+    constant originframetype        ORIGIN_FRAME_SIMPLE_UI_PARENT           = ConvertOriginFrameType(18)
+    constant originframetype        ORIGIN_FRAME_PORTRAIT_HP_TEXT           = ConvertOriginFrameType(19)
+    constant originframetype        ORIGIN_FRAME_PORTRAIT_MANA_TEXT         = ConvertOriginFrameType(20)
+    constant originframetype        ORIGIN_FRAME_UNIT_PANEL_BUFF_BAR        = ConvertOriginFrameType(21)
+    constant originframetype        ORIGIN_FRAME_UNIT_PANEL_BUFF_BAR_LABEL  = ConvertOriginFrameType(22)
 
     constant framepointtype         FRAMEPOINT_TOPLEFT                   = ConvertFramePointType(0)
     constant framepointtype         FRAMEPOINT_TOP                       = ConvertFramePointType(1)
@@ -1220,7 +1233,7 @@ globals
 //===================================================
 // Instanced Object Operation API constants
 //===================================================
-
+    
     // Ability
     constant abilityintegerfield ABILITY_IF_BUTTON_POSITION_NORMAL_X        = ConvertAbilityIntegerField('abpx')
     constant abilityintegerfield ABILITY_IF_BUTTON_POSITION_NORMAL_Y        = ConvertAbilityIntegerField('abpy')
@@ -1234,7 +1247,7 @@ globals
     constant abilityintegerfield ABILITY_IF_PRIORITY                        = ConvertAbilityIntegerField('apri')
     constant abilityintegerfield ABILITY_IF_LEVELS                          = ConvertAbilityIntegerField('alev')
     constant abilityintegerfield ABILITY_IF_REQUIRED_LEVEL                  = ConvertAbilityIntegerField('arlv')
-    constant abilityintegerfield ABILITY_IF_LEVEL_SKIP_REQUIREMENT          = ConvertAbilityIntegerField('alsk')
+    constant abilityintegerfield ABILITY_IF_LEVEL_SKIP_REQUIREMENT          = ConvertAbilityIntegerField('alsk') 
 
     constant abilitybooleanfield ABILITY_BF_HERO_ABILITY                    = ConvertAbilityBooleanField('aher') // Get only
     constant abilitybooleanfield ABILITY_BF_ITEM_ABILITY                    = ConvertAbilityBooleanField('aite')
@@ -1607,7 +1620,7 @@ globals
     constant abilityreallevelfield ABILITY_RLF_EXTRA_DAMAGE_POA1                                 = ConvertAbilityRealLevelField('Poa1')
     constant abilityreallevelfield ABILITY_RLF_DAMAGE_PER_SECOND_POA2                            = ConvertAbilityRealLevelField('Poa2')
     constant abilityreallevelfield ABILITY_RLF_ATTACK_SPEED_FACTOR_POA3                          = ConvertAbilityRealLevelField('Poa3')
-    constant abilityreallevelfield ABILITY_RLF_MOVEMENT_SPEED_FACTOR_POA4                        = ConvertAbilityRealLevelField('Poa4')
+    constant abilityreallevelfield ABILITY_RLF_MOVEMENT_SPEED_FACTOR_POA4                        = ConvertAbilityRealLevelField('Poa4')   
     constant abilityreallevelfield ABILITY_RLF_DAMAGE_AMPLIFICATION                              = ConvertAbilityRealLevelField('Pos2')
     constant abilityreallevelfield ABILITY_RLF_CHANCE_TO_STOMP_PERCENT                           = ConvertAbilityRealLevelField('War1')
     constant abilityreallevelfield ABILITY_RLF_DAMAGE_DEALT_WAR2                                 = ConvertAbilityRealLevelField('War2')
@@ -2096,7 +2109,7 @@ globals
     constant unitweaponbooleanfield UNIT_WEAPON_BF_ATTACK_SHOW_UI                   = ConvertUnitWeaponBooleanField('uwu1')
     constant unitweaponbooleanfield UNIT_WEAPON_BF_ATTACKS_ENABLED                  = ConvertUnitWeaponBooleanField('uaen')
     constant unitweaponbooleanfield UNIT_WEAPON_BF_ATTACK_PROJECTILE_HOMING_ENABLED = ConvertUnitWeaponBooleanField('umh1')
-
+    
     constant unitweaponstringfield UNIT_WEAPON_SF_ATTACK_PROJECTILE_ART             = ConvertUnitWeaponStringField('ua1m')
 
     // Move Type
@@ -2108,7 +2121,7 @@ globals
     constant movetype       MOVE_TYPE_FLOAT                 = ConvertMoveType(16)
     constant movetype       MOVE_TYPE_AMPHIBIOUS            = ConvertMoveType(32)
     constant movetype       MOVE_TYPE_UNBUILDABLE           = ConvertMoveType(64)
-
+    
     // Target Flag
     constant targetflag     TARGET_FLAG_NONE                = ConvertTargetFlag(1)
     constant targetflag     TARGET_FLAG_GROUND              = ConvertTargetFlag(2)
@@ -2205,6 +2218,8 @@ native SquareRoot takes real x returns real
 //
 native Pow      takes real x, real power returns real
 
+constant native MathRound takes real r returns integer
+
 //============================================================================
 // String Utility API
 native I2R  takes integer i returns real
@@ -2238,12 +2253,14 @@ native SetMapDescription    takes string description returns nothing
 native SetTeams             takes integer teamcount returns nothing
 native SetPlayers           takes integer playercount returns nothing
 
-native DefineStartLocation      takes integer whichStartLoc, real x, real y returns nothing
-native DefineStartLocationLoc   takes integer whichStartLoc, location whichLocation returns nothing
-native SetStartLocPrioCount     takes integer whichStartLoc, integer prioSlotCount returns nothing
-native SetStartLocPrio          takes integer whichStartLoc, integer prioSlotIndex, integer otherStartLocIndex, startlocprio priority returns nothing
-native GetStartLocPrioSlot      takes integer whichStartLoc, integer prioSlotIndex returns integer
-native GetStartLocPrio          takes integer whichStartLoc, integer prioSlotIndex returns startlocprio
+native DefineStartLocation          takes integer whichStartLoc, real x, real y returns nothing
+native DefineStartLocationLoc       takes integer whichStartLoc, location whichLocation returns nothing
+native SetStartLocPrioCount         takes integer whichStartLoc, integer prioSlotCount returns nothing
+native SetStartLocPrio              takes integer whichStartLoc, integer prioSlotIndex, integer otherStartLocIndex, startlocprio priority returns nothing
+native GetStartLocPrioSlot          takes integer whichStartLoc, integer prioSlotIndex returns integer
+native GetStartLocPrio              takes integer whichStartLoc, integer prioSlotIndex returns startlocprio
+native SetEnemyStartLocPrioCount    takes integer whichStartLoc, integer prioSlotCount returns nothing
+native SetEnemyStartLocPrio         takes integer whichStartLoc, integer prioSlotIndex, integer otherStartLocIndex, startlocprio priority returns nothing
 
 native SetGameTypeSupported takes gametype whichGameType, boolean value returns nothing
 native SetMapFlag           takes mapflag whichMapFlag, boolean value returns nothing
@@ -2432,6 +2449,8 @@ constant native GetEnumDestructable     takes nothing returns destructable
 constant native GetFilterItem           takes nothing returns item
 constant native GetEnumItem             takes nothing returns item
 
+constant native ParseTags               takes string taggedString returns string
+
 constant native GetFilterPlayer     takes nothing returns player
 constant native GetEnumPlayer       takes nothing returns player
 
@@ -2496,6 +2515,10 @@ constant native GetLeavingUnit takes nothing returns unit
 
 native TriggerRegisterTrackableHitEvent takes trigger whichTrigger, trackable t returns event
 native TriggerRegisterTrackableTrackEvent takes trigger whichTrigger, trackable t returns event
+
+// EVENT_COMMAND_BUTTON_CLICK
+native TriggerRegisterCommandEvent takes trigger whichTrigger, integer whichAbility, string order returns event
+native TriggerRegisterUpgradeCommandEvent takes trigger whichTrigger, integer whichUpgrade returns event
 
 // EVENT_GAME_TRACKABLE_HIT
 // EVENT_GAME_TRACKABLE_TRACK
@@ -2613,6 +2636,17 @@ constant native GetChangingUnitPrevOwner    takes nothing returns player
 constant native GetManipulatingUnit takes nothing returns unit
 constant native GetManipulatedItem  takes nothing returns item
 
+// For EVENT_PLAYER_UNIT_PICKUP_ITEM, returns the item absorbing the picked up item in case it is stacking.
+// Returns null if the item was a powerup and not a stacking item.
+constant native BlzGetAbsorbingItem takes nothing returns item
+constant native BlzGetManipulatedItemWasAbsorbed takes nothing returns boolean
+
+// EVENT_PLAYER_UNIT_STACK_ITEM
+// Source is the item that is losing charges, Target is the item getting charges.
+constant native BlzGetStackingItemSource takes nothing returns item
+constant native BlzGetStackingItemTarget takes nothing returns item
+constant native BlzGetStackingItemTargetPreviousCharges takes nothing returns integer
+
 // EVENT_PLAYER_UNIT_ISSUED_ORDER
 constant native GetOrderedUnit takes nothing returns unit
 constant native GetIssuedOrderId takes nothing returns integer
@@ -2725,6 +2759,9 @@ constant native GetEventTargetUnit takes nothing returns unit
 // EVENT_UNIT_PICKUP_ITEM
 // EVENT_UNIT_USE_ITEM
 // See the Player Unit/Item manipulation Event API above for event info funcs
+
+// EVENT_UNIT_STACK_ITEM
+// See the Player Unit/Item stack Event API above for event info funcs
 
 // EVENT_UNIT_ISSUED_ORDER
 // EVENT_UNIT_ISSUED_POINT_ORDER
@@ -3092,8 +3129,12 @@ constant native GetPlayerAlliance       takes player sourcePlayer, player otherP
 
 constant native GetPlayerHandicap       takes player whichPlayer returns real
 constant native GetPlayerHandicapXP     takes player whichPlayer returns real
+constant native GetPlayerHandicapReviveTime takes player whichPlayer returns real
+constant native GetPlayerHandicapDamage takes player whichPlayer returns real
 constant native SetPlayerHandicap       takes player whichPlayer, real handicap returns nothing
 constant native SetPlayerHandicapXP     takes player whichPlayer, real handicap returns nothing
+constant native SetPlayerHandicapReviveTime takes player whichPlayer, real handicap returns nothing
+constant native SetPlayerHandicapDamage takes player whichPlayer, real handicap returns nothing
 
 constant native SetPlayerTechMaxAllowed takes player whichPlayer, integer techid, integer maximum returns nothing
 constant native GetPlayerTechMaxAllowed takes player whichPlayer, integer techid returns integer
@@ -3150,17 +3191,19 @@ native          SetCampaignMenuRace takes race r returns nothing
 native          SetCampaignMenuRaceEx takes integer campaignIndex returns nothing
 native          ForceCampaignSelectScreen takes nothing returns nothing
 
-native          LoadGame            takes string saveFileName, boolean doScoreScreen returns nothing
-native          SaveGame            takes string saveFileName returns nothing
-native          RenameSaveDirectory takes string sourceDirName, string destDirName returns boolean
-native          RemoveSaveDirectory takes string sourceDirName returns boolean
-native          CopySaveGame        takes string sourceSaveName, string destSaveName returns boolean
-native          SaveGameExists      takes string saveName returns boolean
-native          SyncSelections      takes nothing returns nothing
-native          SetFloatGameState   takes fgamestate whichFloatGameState, real value returns nothing
-constant native GetFloatGameState   takes fgamestate whichFloatGameState returns real
-native          SetIntegerGameState takes igamestate whichIntegerGameState, integer value returns nothing
-constant native GetIntegerGameState takes igamestate whichIntegerGameState returns integer
+native          LoadGame            	takes string saveFileName, boolean doScoreScreen returns nothing
+native          SaveGame            	takes string saveFileName returns nothing
+native          RenameSaveDirectory 	takes string sourceDirName, string destDirName returns boolean
+native          RemoveSaveDirectory 	takes string sourceDirName returns boolean
+native          CopySaveGame        	takes string sourceSaveName, string destSaveName returns boolean
+native          SaveGameExists      	takes string saveName returns boolean
+native          SetMaxCheckpointSaves  	takes integer maxCheckpointSaves returns nothing
+native          SaveGameCheckpoint  	takes string saveFileName, boolean showWindow returns nothing
+native          SyncSelections      	takes nothing returns nothing
+native          SetFloatGameState   	takes fgamestate whichFloatGameState, real value returns nothing
+constant native GetFloatGameState   	takes fgamestate whichFloatGameState returns real
+native          SetIntegerGameState 	takes igamestate whichIntegerGameState, integer value returns nothing
+constant native GetIntegerGameState		takes igamestate whichIntegerGameState returns integer
 
 
 //============================================================================
@@ -3372,6 +3415,7 @@ native DisplayTimedTextToPlayer     takes player toPlayer, real x, real y, real 
 native DisplayTimedTextFromPlayer   takes player toPlayer, real x, real y, real duration, string message returns nothing
 native ClearTextMessages            takes nothing returns nothing
 native SetDayNightModels            takes string terrainDNCFile, string unitDNCFile returns nothing
+native SetPortraitLight             takes string portraitDNCFile returns nothing
 native SetSkyModel                  takes string skyModelFile returns nothing
 native EnableUserControl            takes boolean b returns nothing
 native EnableUserUI                 takes boolean b returns nothing
@@ -3384,6 +3428,13 @@ native UnitAddIndicator             takes unit whichUnit, integer red, integer g
 native AddIndicator                 takes widget whichWidget, integer red, integer green, integer blue, integer alpha returns nothing
 native PingMinimap                  takes real x, real y, real duration returns nothing
 native PingMinimapEx                takes real x, real y, real duration, integer red, integer green, integer blue, boolean extraEffects returns nothing
+native CreateMinimapIconOnUnit      takes unit whichUnit, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+native CreateMinimapIconAtLoc       takes location where, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+native CreateMinimapIcon            takes real x, real y, integer red, integer green, integer blue, string pingPath, fogstate fogVisibility returns minimapicon
+native SkinManagerGetLocalPath      takes string key returns string
+native DestroyMinimapIcon           takes minimapicon pingId returns nothing
+native SetMinimapIconVisible        takes minimapicon whichMinimapIcon, boolean visible returns nothing
+native SetMinimapIconOrphanDestroy  takes minimapicon whichMinimapIcon, boolean doDestroy returns nothing
 native EnableOcclusion              takes boolean flag returns nothing
 native SetIntroShotText             takes string introText returns nothing
 native SetIntroShotModel            takes string introModelPath returns nothing
@@ -3586,6 +3637,8 @@ native CameraSetupApply                     takes camerasetup whichSetup, boolea
 native CameraSetupApplyWithZ                takes camerasetup whichSetup, real zDestOffset returns nothing
 native CameraSetupApplyForceDuration        takes camerasetup whichSetup, boolean doPan, real forceDuration returns nothing
 native CameraSetupApplyForceDurationWithZ   takes camerasetup whichSetup, real zDestOffset, real forceDuration returns nothing
+native BlzCameraSetupSetLabel               takes camerasetup whichSetup, string label returns nothing
+native BlzCameraSetupGetLabel               takes camerasetup whichSetup returns string
 
 native CameraSetTargetNoise             takes real mag, real velocity returns nothing
 native CameraSetSourceNoise             takes real mag, real velocity returns nothing
@@ -3594,6 +3647,9 @@ native CameraSetTargetNoiseEx           takes real mag, real velocity, boolean v
 native CameraSetSourceNoiseEx           takes real mag, real velocity, boolean vertOnly returns nothing
 
 native CameraSetSmoothingFactor         takes real factor returns nothing
+
+native CameraSetFocalDistance			takes real distance returns nothing
+native CameraSetDepthOfFieldScale       takes real scale returns nothing
 
 native SetCineFilterTexture             takes string filename returns nothing
 native SetCineFilterBlendMode           takes blendmode whichMode returns nothing
@@ -3609,6 +3665,7 @@ native IsCineFilterDisplayed            takes nothing returns boolean
 native SetCinematicScene                takes integer portraitUnitId, playercolor color, string speakerTitle, string text, real sceneDuration, real voiceoverDuration returns nothing
 native EndCinematicScene                takes nothing returns nothing
 native ForceCinematicSubtitles          takes boolean flag returns nothing
+native SetCinematicAudio                takes boolean cinematicAudio returns nothing
 
 native GetCameraMargin                  takes integer whichMargin returns real
 
@@ -3673,6 +3730,7 @@ native EndThematicMusic             takes nothing returns nothing
 
 native SetMusicVolume               takes integer volume returns nothing
 native SetMusicPlayPosition         takes integer millisecs returns nothing
+native SetThematicMusicVolume       takes integer volume returns nothing
 native SetThematicMusicPlayPosition takes integer millisecs returns nothing
 
 // other music and sound calls
@@ -3688,6 +3746,16 @@ native GetSoundIsLoading            takes sound soundHandle returns boolean
 
 native RegisterStackedSound         takes sound soundHandle, boolean byPosition, real rectwidth, real rectheight returns nothing
 native UnregisterStackedSound       takes sound soundHandle, boolean byPosition, real rectwidth, real rectheight returns nothing
+
+native SetSoundFacialAnimationLabel takes sound soundHandle, string animationLabel returns boolean
+native SetSoundFacialAnimationGroupLabel takes sound soundHandle, string groupLabel returns boolean
+native SetSoundFacialAnimationSetFilepath takes sound soundHandle, string animationSetFilepath returns boolean
+
+//Subtitle support that is attached to the soundHandle rather than as disperate data with the legacy UI
+native SetDialogueSpeakerNameKey    takes sound soundHandle, string speakerName returns boolean
+native GetDialogueSpeakerNameKey    takes sound soundHandle returns string
+native SetDialogueTextKey           takes sound soundHandle, string dialogueText returns boolean
+native GetDialogueTextKey           takes sound soundHandle returns string
 
 //============================================================================
 // Effects API
@@ -3814,6 +3882,13 @@ native PreloadGenStart  takes nothing returns nothing
 native PreloadGenEnd    takes string filename returns nothing
 native Preloader        takes string filename returns nothing
 
+
+//============================================================================
+//Machinima API
+//============================================================================
+native BlzHideCinematicPanels                     takes boolean enable returns nothing
+
+
 // Automation Test
 native AutomationSetTestType                    takes string testType returns nothing
 native AutomationTestStart                      takes string testName returns nothing
@@ -3912,6 +3987,7 @@ native BlzSetUnitAbilityCooldown                   takes unit whichUnit, integer
 native BlzGetUnitAbilityCooldown                   takes unit whichUnit, integer abilId, integer level returns real
 native BlzGetUnitAbilityCooldownRemaining          takes unit whichUnit, integer abilId returns real
 native BlzEndUnitAbilityCooldown                   takes unit whichUnit, integer abilCode returns nothing
+native BlzStartUnitAbilityCooldown                 takes unit whichUnit, integer abilCode, real cooldown returns nothing
 native BlzGetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level returns integer
 native BlzSetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level, integer manaCost returns nothing
 native BlzGetLocalUnitZ                            takes unit whichUnit returns real
@@ -3924,6 +4000,7 @@ native BlzGetEventWeaponType  	                   takes nothing returns weaponty
 native BlzSetEventAttackType                       takes attacktype attackType returns boolean
 native BlzSetEventDamageType                       takes damagetype damageType returns boolean
 native BlzSetEventWeaponType                       takes weapontype weaponType returns boolean
+native BlzGetEventIsAttack                         takes nothing returns boolean
 native RequestExtraIntegerData                     takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns integer
 native RequestExtraBooleanData                     takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns boolean
 native RequestExtraStringData                      takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns string
@@ -3936,6 +4013,11 @@ native BlzIsSelectionCircleEnabled                 takes nothing returns boolean
 native BlzCameraSetupApplyForceDurationSmooth      takes camerasetup whichSetup, boolean doPan, real forcedDuration, real easeInDuration, real easeOutDuration, real smoothFactor returns nothing
 native BlzEnableTargetIndicator                    takes boolean enable returns nothing
 native BlzIsTargetIndicatorEnabled                 takes nothing returns boolean
+native BlzShowTerrain                              takes boolean show returns nothing
+native BlzShowSkyBox                               takes boolean show returns nothing
+native BlzStartRecording                           takes integer fps returns nothing
+native BlzEndRecording                             takes nothing returns nothing
+native BlzShowUnitTeamGlow                         takes unit whichUnit, boolean show returns nothing
 
 native BlzGetOriginFrame                           takes originframetype frameType, integer index returns framehandle
 native BlzEnableUIAutoPosition                     takes boolean enable returns nothing
@@ -3957,6 +4039,7 @@ native BlzFrameGetName                             takes framehandle frame retur
 native BlzFrameClick                               takes framehandle frame returns nothing
 native BlzFrameSetText                             takes framehandle frame, string text returns nothing
 native BlzFrameGetText                             takes framehandle frame returns string
+native BlzFrameAddText                             takes framehandle frame, string text returns nothing
 native BlzFrameSetTextSizeLimit                    takes framehandle frame, integer size returns nothing
 native BlzFrameGetTextSizeLimit                    takes framehandle frame returns integer
 native BlzFrameSetTextColor                        takes framehandle frame, integer color returns nothing
@@ -3984,9 +4067,13 @@ native BlzFrameGetHeight                           takes framehandle frame retur
 native BlzFrameGetWidth                            takes framehandle frame returns real
 native BlzFrameSetFont                             takes framehandle frame, string fileName, real height, integer flags returns nothing
 native BlzFrameSetTextAlignment                    takes framehandle frame, textaligntype vert, textaligntype horz returns nothing
+native BlzFrameGetChildrenCount                    takes framehandle frame returns integer
+native BlzFrameGetChild                            takes framehandle frame, integer index returns framehandle
 native BlzTriggerRegisterFrameEvent                takes trigger whichTrigger, framehandle frame, frameeventtype eventId returns event
 native BlzGetTriggerFrame                          takes nothing returns framehandle
 native BlzGetTriggerFrameEvent                     takes nothing returns frameeventtype
+native BlzGetTriggerFrameValue                     takes nothing returns real
+native BlzGetTriggerFrameText                      takes nothing returns string
 native BlzTriggerRegisterPlayerSyncEvent           takes trigger whichTrigger, player whichPlayer, string prefix, boolean fromServer returns event
 native BlzSendSyncData                             takes string prefix, string data returns boolean
 native BlzGetTriggerSyncPrefix                     takes nothing returns string
@@ -4012,11 +4099,17 @@ native BlzDisplayChatMessage                       takes player whichPlayer, int
 native BlzPauseUnitEx                              takes unit whichUnit, boolean flag returns nothing
 // native BlzFourCC2S                                 takes integer value returns string
 // native BlzS2FourCC                                 takes string value returns integer
+native BlzSetUnitFacingEx                          takes unit whichUnit, real facingAngle returns nothing
+
+native CreateCommandButtonEffect                   takes integer abilityId, string order returns commandbuttoneffect
+native CreateUpgradeCommandButtonEffect            takes integer whichUprgade returns commandbuttoneffect
+native CreateLearnCommandButtonEffect              takes integer abilityId returns commandbuttoneffect
+native DestroyCommandButtonEffect                  takes commandbuttoneffect whichEffect returns nothing
 
 // Bit Operations
 native BlzBitOr                                    takes integer x, integer y returns integer
 native BlzBitAnd                                   takes integer x, integer y returns integer
-native BlzBitXor                                   takes integer x, integer y returns integer
+native BlzBitXor                                   takes integer x, integer y returns integer 
 
 // Intanced Object Operations
 // Ability
@@ -4053,7 +4146,7 @@ native BlzRemoveAbilityIntegerLevelArrayField      takes ability whichAbility, a
 native BlzRemoveAbilityRealLevelArrayField         takes ability whichAbility, abilityreallevelarrayfield whichField, integer level, real value returns boolean
 native BlzRemoveAbilityStringLevelArrayField       takes ability whichAbility, abilitystringlevelarrayfield whichField, integer level, string value returns boolean
 
-// Item
+// Item 
 native BlzGetItemAbilityByIndex                    takes item whichItem, integer index returns ability
 native BlzGetItemAbility                           takes item whichItem, integer abilCode returns ability
 native BlzItemAddAbility                           takes item whichItem, integer abilCode returns boolean
@@ -4067,7 +4160,7 @@ native BlzSetItemRealField                         takes item whichItem, itemrea
 native BlzSetItemStringField                       takes item whichItem, itemstringfield whichField, string value returns boolean
 native BlzItemRemoveAbility                        takes item whichItem, integer abilCode returns boolean
 
-// Unit
+// Unit 
 native BlzGetUnitBooleanField                      takes unit whichUnit, unitbooleanfield whichField returns boolean
 native BlzGetUnitIntegerField                      takes unit whichUnit, unitintegerfield whichField returns integer
 native BlzGetUnitRealField                         takes unit whichUnit, unitrealfield whichField returns real
@@ -4086,3 +4179,19 @@ native BlzSetUnitWeaponBooleanField                takes unit whichUnit, unitwea
 native BlzSetUnitWeaponIntegerField                takes unit whichUnit, unitweaponintegerfield whichField, integer index, integer value returns boolean
 native BlzSetUnitWeaponRealField                   takes unit whichUnit, unitweaponrealfield whichField, integer index, real value returns boolean
 native BlzSetUnitWeaponStringField                 takes unit whichUnit, unitweaponstringfield whichField, integer index, string value returns boolean
+
+// Skin
+native BlzGetUnitSkin                                 takes unit whichUnit returns integer
+native BlzGetItemSkin                                 takes item whichItem returns integer
+// native BlzGetDestructableSkin                         takes destructable whichDestructable returns integer
+native BlzSetUnitSkin                                 takes unit whichUnit, integer skinId returns nothing
+native BlzSetItemSkin                                 takes item whichItem, integer skinId returns nothing
+// native BlzSetDestructableSkin                         takes destructable whichDestructable, integer skinId returns nothing
+
+native BlzCreateItemWithSkin                       takes integer itemid, real x, real y, integer skinId returns item
+native BlzCreateUnitWithSkin                       takes player id, integer unitid, real x, real y, real face, integer skinId returns unit
+native BlzCreateDestructableWithSkin               takes integer objectid, real x, real y, real face, real scale, integer variation, integer skinId returns destructable
+native BlzCreateDestructableZWithSkin              takes integer objectid, real x, real y, real z, real face, real scale, integer variation, integer skinId returns destructable
+native BlzCreateDeadDestructableWithSkin           takes integer objectid, real x, real y, real face, real scale, integer variation, integer skinId returns destructable
+native BlzCreateDeadDestructableZWithSkin          takes integer objectid, real x, real y, real z, real face, real scale, integer variation, integer skinId returns destructable
+native BlzGetPlayerTownHallCount                   takes player whichPlayer returns integer

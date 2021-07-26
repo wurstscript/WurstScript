@@ -2,7 +2,6 @@ package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstAbstract;
-import de.peeeq.wurstscript.types.WurstType;
 
 public class VarargArray extends ILconstAbstract {
 

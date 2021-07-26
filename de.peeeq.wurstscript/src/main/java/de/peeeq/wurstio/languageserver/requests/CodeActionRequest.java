@@ -25,6 +25,7 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstio.languageserver.WurstCommands.WURST_PERFORM_CODE_ACTION;
@@ -61,32 +62,38 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             return Collections.emptyList();
         }
         // get element under cursor
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
+        Optional<Element> e = Utils.getAstElementAtPos(cu, line, column, false);
 
 
         WLogger.info("Code action on element " + Utils.printElementWithSource(e));
-        if (e instanceof ExprNewObject) {
-            ExprNewObject enew = (ExprNewObject) e;
+        if (!e.isPresent()) {
+            // TODO non simple TypeRef
+
+            return Collections.emptyList();
+        }
+
+        if (e.get() instanceof ExprNewObject) {
+            ExprNewObject enew = (ExprNewObject) e.get();
             ConstructorDef constructorDef = enew.attrConstructorDef();
             if (constructorDef == null) {
                 return handleMissingClass(modelManager, enew.getTypeName());
             }
-        } else if (e instanceof FuncRef) {
-            FuncRef fr = (FuncRef) e;
+        } else if (e.get() instanceof FuncRef) {
+            FuncRef fr = (FuncRef) e.get();
             FuncLink fd = fr.attrFuncLink();
             if (fd == null) {
                 return handleMissingFunction(modelManager, fr);
             }
 
-        } else if (e instanceof NameRef) {
-            NameRef nr = (NameRef) e;
+        } else if (e.get() instanceof NameRef) {
+            NameRef nr = (NameRef) e.get();
             NameLink nd = nr.attrNameLink();
             if (nd == null) {
                 return handleMissingName(modelManager, nr);
             }
 
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple nr = (TypeExprSimple) e;
+        } else if (e.get() instanceof TypeExprSimple) {
+            TypeExprSimple nr = (TypeExprSimple) e.get();
             TypeDef nd = nr.attrTypeDef();
             if (nd == null) {
                 return handleMissingType(modelManager, nr.getTypeName());

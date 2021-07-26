@@ -724,4 +724,18 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void no_warning_for_closures() {
+        testAssertOkLines(false,
+            "package Test",
+            "interface Test",
+            "    function call()",
+            "",
+            "init",
+            "    Test x = () ->",
+            "        skip",
+            "    x.call()"
+        );
+    }
+
 }
