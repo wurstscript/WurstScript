@@ -1,9 +1,9 @@
 # WurstScript
 
-Wurstscript is a delicious programming language which can compile to Jass code that is used to power WarCraft III.
+Wurstscript is a delicious programming language which compiles to Jass or Lua code that is used to power WarCraft III maps.
 
 [![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/)
-[![Travis](https://travis-ci.org/wurstscript/WurstScript.svg?branch=master)](https://travis-ci.org/wurstscript/WurstScript)
+[![CircleCI](https://circleci.com/gh/wurstscript/WurstScript/tree/master.svg?style=svg)](https://circleci.com/gh/wurstscript/WurstScript/tree/master)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 [![Coverage Status](https://coveralls.io/repos/github/wurstscript/WurstScript/badge.svg?branch=master)](https://coveralls.io/github/wurstscript/WurstScript?branch=master)
@@ -11,8 +11,8 @@ Wurstscript is a delicious programming language which can compile to Jass code t
 
 ## User Documentation
 
-Using WurstScript for your map is easy! Check out the [Setup Guide](https://wurstscript.github.io/start.html) on how to get started.
-For a formal description of all features, visit the [Manual](https://wurstscript.github.io/manual.html).
+Using WurstScript to build a map is easy! Check out the [Setup Guide](https://wurstscript.github.io/start.html) on how to get started.
+For a formal description of all language features, visit the [Manual](https://wurstscript.github.io/manual.html).
 
 
 ##  Reporting Bugs
