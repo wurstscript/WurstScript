@@ -142,7 +142,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     protected File compileMap(File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs, WurstModel model,
-                              WurstProjectConfigData projectConfigData) {
+                              WurstProjectConfigData projectConfigData, boolean isProd) {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             if (mpqEditor != null && !mpqEditor.canWrite()) {
                 WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
@@ -168,7 +168,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
 
 
-            compiler.runCompiletime(projectConfigData);
+            compiler.runCompiletime(projectConfigData, isProd);
 
             if (runArgs.isLua()) {
                 print("translating program to Lua ... ");
@@ -317,7 +317,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
 
     protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, Optional<File> mapCopy,
-                                 WurstProjectConfigData projectConfigData) throws Exception {
+                                 WurstProjectConfigData projectConfigData, boolean isProd) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
@@ -348,10 +348,10 @@ public abstract class MapRequest extends UserRequest<Object> {
             model = ModelManager.copy(model);
         }
 
-        return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData);
+        return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
     }
 
-    protected File compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap, WurstProjectConfigData projectConfigData) throws Exception {
+    protected File compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap, WurstProjectConfigData projectConfigData, boolean isProd) throws Exception {
         if (testMap.isPresent() && testMap.get().exists()) {
             boolean deleteOk = testMap.get().delete();
             if (!deleteOk) {
@@ -363,7 +363,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         // first compile the script:
-        File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData);
+        File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd);
 
         Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
         if (!model.isPresent()
