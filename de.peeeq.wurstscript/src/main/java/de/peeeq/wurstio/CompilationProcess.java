@@ -41,11 +41,11 @@ public class CompilationProcess {
         }
     }
 
-    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor) throws IOException {
-        return doCompilation(mpqEditor, null);
+    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor, boolean isProd) throws IOException {
+        return doCompilation(mpqEditor, null, isProd);
     }
 
-    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor, @Nullable File projectFolder) throws IOException {
+    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor, @Nullable File projectFolder, boolean isProd) throws IOException {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, projectFolder, gui, mpqEditor, runArgs);
         gui.sendProgress("Check input map");
         if (mpqEditor != null && !mpqEditor.canWrite()) {
@@ -85,7 +85,7 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData()));
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);

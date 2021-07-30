@@ -81,14 +81,14 @@ public class CompiletimeFunctionRunner {
 
     public CompiletimeFunctionRunner(
         ImTranslator tr, ImProg imProg, Optional<File> mapFile, MpqEditor mpqEditor, WurstGui gui,
-        FunctionFlagToRun flag, WurstProjectConfigData projectConfigData) {
+        FunctionFlagToRun flag, WurstProjectConfigData projectConfigData, boolean isProd) {
         Preconditions.checkNotNull(imProg);
         this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
-        interpreter.addNativeProvider(new CompiletimeNatives(globalState, projectConfigData));
+        interpreter.addNativeProvider(new CompiletimeNatives(globalState, projectConfigData, isProd));
         interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         this.gui = gui;
         this.functionFlag = flag;

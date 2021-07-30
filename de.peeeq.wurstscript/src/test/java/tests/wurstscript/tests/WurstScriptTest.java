@@ -393,7 +393,7 @@ public class WurstScriptTest {
 
             compiler.translateProgToIm(model);
 
-            compiler.runCompiletime(new WurstProjectConfigData());
+            compiler.runCompiletime(new WurstProjectConfigData(), false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
@@ -477,7 +477,7 @@ public class WurstScriptTest {
             }
         }
 
-        compiler.runCompiletime(new WurstProjectConfigData());
+        compiler.runCompiletime(new WurstProjectConfigData(), false);
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {

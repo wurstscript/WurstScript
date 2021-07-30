@@ -101,13 +101,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     @Override
-    public void runCompiletime(WurstProjectConfigData projectConfigData) {
+    public void runCompiletime(WurstProjectConfigData projectConfigData, boolean isProd) {
         if (runArgs.runCompiletimeFunctions()) {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
             CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
-                    CompiletimeFunctions, projectConfigData);
+                    CompiletimeFunctions, projectConfigData, isProd);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.setOutputStream(new PrintStream(System.err));
             ctr.run();

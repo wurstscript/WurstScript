@@ -84,7 +84,7 @@ public class RunMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
-            File compiledScript = compileScript(modelManager, gui, testMap, projectConfig);
+            File compiledScript = compileScript(modelManager, gui, testMap, projectConfig, false);
 
             if (runArgs.isHotReload()) {
                 // call jhcr update

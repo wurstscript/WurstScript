@@ -14,6 +14,8 @@ Wurstscript is a delicious programming language which compiles to Jass or Lua co
 Using WurstScript to build a map is easy! Check out the [Setup Guide](https://wurstscript.github.io/start.html) on how to get started.
 For a formal description of all language features, visit the [Manual](https://wurstscript.github.io/manual.html).
 
+Consider joining the WurstScript community on [Discord](https://discord.gg/mSHZpWcadz).
+
 
 ##  Reporting Bugs
 
@@ -34,8 +36,6 @@ This repository contains the following sub-projects:
 	- The core wurstscript compiler and directly related tools
 - Wurstpack
 	- (deprecated) Wurst integration for the Warcraft III World Editor
-- WurstWeb
-	- Attempt to provide Wurst capabilities in browsers
 
 IDE support is provided via a VSCode plugin: https://github.com/wurstscript/wurst4vscode
 
