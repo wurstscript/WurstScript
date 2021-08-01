@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
@@ -147,7 +148,7 @@ public class RunTests extends UserRequest<Object> {
         WurstGui gui = new TestGui();
 
         CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
-            CompiletimeFunctions, null, false);
+            CompiletimeFunctions, new WurstProjectConfigData(), false);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
