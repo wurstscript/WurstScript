@@ -70,7 +70,7 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
             return linkTo(def);
         } else if (e instanceof ModuleUse) {
             ModuleUse use = (ModuleUse) e;
-            ModuleDef def = use.attrModuleDef();
+            ModuleDef def = use.calculateModuleDef();
             return linkTo(def);
         } else if (e instanceof ExprBinary) {
             ExprBinary eb = (ExprBinary) e;

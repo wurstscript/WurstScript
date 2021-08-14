@@ -11,7 +11,7 @@ public class AttrUsedModules {
     public static ImmutableCollection<ModuleDef> calculate(ClassOrModule c) {
         ImmutableCollection.Builder<ModuleDef> result = ImmutableList.builder();
         for (ModuleUse moduleUse : c.getModuleUses()) {
-            ModuleDef usedModule = moduleUse.attrModuleDef();
+            ModuleDef usedModule = moduleUse.calculateModuleDef();
             if (usedModule != null) {
                 result.add(usedModule);
             }

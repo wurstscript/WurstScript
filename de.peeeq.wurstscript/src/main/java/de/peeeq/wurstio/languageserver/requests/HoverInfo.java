@@ -439,7 +439,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleUse(ModuleUse moduleUse) {
-            return description(moduleUse.attrModuleDef());
+            return description(moduleUse.calculateModuleDef());
         }
 
 

@@ -247,7 +247,7 @@ public class DescriptionHtml {
     }
 
     public static String description(ModuleUse m) {
-        return m.attrModuleDef().descriptionHtml();
+        return m.calculateModuleDef().descriptionHtml();
     }
 
     public static @Nullable String description(NoDefaultCase noDefaultCase) {

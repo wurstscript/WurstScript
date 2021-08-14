@@ -848,7 +848,7 @@ VarDef.attrOptTypeExpr()
     returns OptTypeExpr
     implemented by de.peeeq.wurstscript.attributes.names.VarLink.getTypeExpr
 
-ModuleUse.attrModuleDef
+ModuleUse.calculateModuleDef()
 	returns @Nullable ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate
 
