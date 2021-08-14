@@ -5,7 +5,7 @@ jar {
     version = null
     manifest {
         attributes(
-                'Class-Path': configurations.compileClasspath.collect { it.getName() }.join(' '),
+                'Class-Path': configurations.runtimeClasspath.collect { it.getName() }.join(' '),
                 'Main-Class': mainClassName
         )
     }
