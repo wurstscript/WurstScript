@@ -5,9 +5,10 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.utils.FileUtils;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.FunctionCall;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
+import de.peeeq.wurstscript.attributes.prettyPrint.Spacer;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -16,17 +17,18 @@ import org.hamcrest.core.IsNot;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
+import javax.xml.transform.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.*;
 
 public class ModelManagerTests {
 
@@ -267,5 +269,83 @@ public class ModelManagerTests {
     private String string(String... lines) {
         return Utils.join(lines, "\n");
     }
+
+
+    @Test
+    public void changeModule() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "init",
+            "    new B()",
+            "class B",
+            "    use A"
+        );
+
+
+        String packageT2 = string(
+            "package T2",
+            "int x = 5",
+            "public module A",
+            "    construct()",
+            "        x = 6"
+        );
+
+        String packageT2updated = string(
+            "package T2",
+            "int x = 5",
+            "public module A",
+            "    construct()",
+            "        x = 7"
+        );
+
+        WFile fileA = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileTest = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileA, packageT1);
+        writeFile(fileTest, packageT2);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        assertEquals(errors.get(fileA), "");
+
+
+        // no update the module in package T2
+        writeFile(fileTest, packageT2updated);
+        manager.syncCompilationUnit(fileTest);
+
+        assertEquals(errors.get(fileA), "");
+        assertEquals(errors.get(fileTest), "");
+
+        WurstModel model = manager.getModel();
+        assertNotNull(model);
+
+        // check that module instantiation contains updated constructor with "x = 7"
+        model.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ClassDef c) {
+                for (ModuleInstanciation mi : c.getModuleInstanciations()) {
+                    String s = Utils.prettyPrint(mi.getConstructors());
+                    System.out.println(s);
+                    assertThat(s, CoreMatchers.containsString("x = 7"));
+                }
+            }
+        });
+
+    }
+
 
 }

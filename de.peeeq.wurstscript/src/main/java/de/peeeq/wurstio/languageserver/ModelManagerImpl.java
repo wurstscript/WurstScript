@@ -238,18 +238,38 @@ public class ModelManagerImpl implements ModelManager {
         model2.clearAttributesLocal();
         Set<String> packageNames = Sets.newHashSet();
         for (CompilationUnit cu : toCheck) {
-            cu.clearAttributes();
+            clearCompilationUnit(cu);
             for (WPackage p : cu.getPackages()) {
                 packageNames.add(p.getName());
             }
         }
         for (CompilationUnit cu : model2) {
             if (imports(cu, packageNames)) {
-                cu.clearAttributes();
+                clearCompilationUnit(cu);
                 cleared.add(cu);
             }
         }
         return cleared;
+    }
+
+    private void clearCompilationUnit(CompilationUnit cu) {
+        cu.clearAttributes();
+        // clear module instantiations
+        for (WPackage p : cu.getPackages()) {
+            for (WEntity elem : p.getElements()) {
+                if (elem instanceof ClassOrModuleInstanciation) {
+                    clearModuleInstantiation(((ClassOrModuleInstanciation) elem));
+                }
+            }
+        }
+    }
+
+    private void clearModuleInstantiation(ClassOrModuleInstanciation elem) {
+        elem.getP_moduleInstanciations().clear();
+        elem.getModuleInstanciations().clear();
+        for (ClassDef innerClass : elem.getInnerClasses()) {
+            clearModuleInstantiation(innerClass);
+        }
     }
 
     /**
