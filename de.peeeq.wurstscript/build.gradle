@@ -60,11 +60,7 @@ String genDir = "$projectDir/src-gen"
 sourceSets {
     main {
         java {
-            srcDir 'src/main/java'
             srcDir genDir
-        }
-        resources {
-            srcDir 'src/main/resources'
         }
     }
 }
