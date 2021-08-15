@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.MapWithIndexes;
+import de.peeeq.wurstscript.utils.MapWithIndexes.Index;
+import de.peeeq.wurstscript.utils.MapWithIndexes.PredIndex;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -324,59 +327,28 @@ public class TempMerger implements OptimizerPass {
         }
 
 
-        private final HashMap<ImVar, VarKnowledge> currentValues = Maps.newLinkedHashMap();
+        private final MapWithIndexes<ImVar, VarKnowledge> currentValues = new MapWithIndexes<>();
         // map from a variable to the keys in currentValues that read it
-        private final Multimap<ImVar, ImVar> readBy = HashMultimap.create();
+        private final Index<ImVar, ImVar> readBy = currentValues.createMultiIndex((v) -> v.dependsOn);
         // set of keys in currentValues that depend on global state
-        private final Set<ImVar> globalState = Sets.newLinkedHashSet();
+        private final PredIndex<ImVar> globalState = currentValues.createPredicateIndex(v -> v.dependsOnGlobals);
         // set of keys in currentValues that can change global state
-        private final Set<ImVar> mutating = Sets.newLinkedHashSet();
-
-        List<ImVar> invalid = Lists.newArrayList();
+        private final PredIndex<ImVar> mutating = currentValues.createPredicateIndex(v -> v.isMutating);
 
         public void invalidateGlobals() {
             // invalidate all knowledge which might be based on global state
             // i.e. using a global var or calling a function
-            currentValueRemoveVars(globalState);
-            globalState.clear();
-            mutating.clear();
+            currentValues.removeAll(globalState.lookup());
         }
 
         public void invalidateMutatingExpressions() {
             // invalidate all knowledge which can change global state
             // i.e. calling a function
-            currentValueRemoveVars(mutating);
-            globalState.clear();
-            mutating.clear();
-        }
-
-        private void currentValueRemoveVars(Set<ImVar> mutating) {
-            for (ImVar v : mutating) {
-                currentValuesRemoveVar(v);
-            }
-        }
-
-        private void currentValuesRemoveVar(ImVar v) {
-            VarKnowledge k = currentValues.remove(v);
-            if (k == null) {
-                return;
-            }
-            for (ImVar d : k.dependsOn) {
-                readBy.remove(d, v);
-            }
-            if (k.isMutating) {
-                mutating.remove(v);
-            }
-            if (k.dependsOnGlobals) {
-                globalState.remove(v);
-            }
+            currentValues.removeAll(mutating.lookup());
         }
 
         public void clear() {
             currentValues.clear();
-            globalState.clear();
-            mutating.clear();
-            readBy.clear();
         }
 
         public @Nullable Replacement getReplacementIfPossible(ImVarAccess va) {
@@ -399,15 +371,6 @@ public class TempMerger implements OptimizerPass {
                 // only store local vars which are read exactly once
                 VarKnowledge k = new VarKnowledge(set);
                 currentValues.put(left, k);
-                for (ImVar d : k.dependsOn) {
-                    readBy.put(d, left);
-                }
-                if (k.dependsOnGlobals) {
-                    globalState.add(left);
-                }
-                if (k.isMutating) {
-                    mutating.add(left);
-                }
             }
         }
 
@@ -438,14 +401,7 @@ public class TempMerger implements OptimizerPass {
          * invalidates all expression depending on 'left'
          */
         private void invalidateVar(ImVar left) {
-            currentValuesRemoveVar(left);
-            if (left.isGlobal()) {
-                invalidateGlobals();
-            } else {
-                for (ImVar v : ImmutableList.copyOf(readBy.get(left))) {
-                    currentValuesRemoveVar(v);
-                }
-            }
+            currentValues.remove(left);
         }
 
 
