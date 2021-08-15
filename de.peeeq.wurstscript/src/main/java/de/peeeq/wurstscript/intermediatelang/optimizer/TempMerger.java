@@ -1,8 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
@@ -11,10 +10,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
 
 public class TempMerger implements OptimizerPass {
@@ -295,30 +291,98 @@ public class TempMerger implements OptimizerPass {
 
     class Knowledge {
 
-        private HashMap<ImVar, ImSet> currentValues = Maps.newLinkedHashMap();
+        class VarKnowledge {
+            private final ImSet imSet;
+            private final Set<ImVar> dependsOn;
+            private final boolean dependsOnGlobals;
+            private final boolean isMutating;
+
+            public VarKnowledge(ImSet imSet, Set<ImVar> dependsOn, boolean dependsOnGlobals, boolean isMutating) {
+                this.imSet = imSet;
+                this.dependsOn = dependsOn;
+                this.dependsOnGlobals = dependsOnGlobals;
+                this.isMutating = isMutating;
+            }
+
+            public VarKnowledge(ImSet set) {
+                this.imSet = set;
+                this.dependsOn = new LinkedHashSet<>();
+                collectReadVariables(this.dependsOn, set.getRight());
+                boolean containsFuncCall = containsFuncCall(set);
+                this.dependsOnGlobals = containsFuncCall || readsGlobal(set.getRight());
+                this.isMutating = containsFuncCall;
+            }
+
+            private void collectReadVariables(Collection<ImVar> result, Element e) {
+                if (e instanceof ImVarRead) {
+                    result.add(((ImVarRead) e).getVar());
+                }
+                for (int i = 0; i < e.size(); i++) {
+                    collectReadVariables(result, e.get(i));
+                }
+            }
+        }
+
+
+        private final HashMap<ImVar, VarKnowledge> currentValues = Maps.newLinkedHashMap();
+        // map from a variable to the keys in currentValues that read it
+        private final Multimap<ImVar, ImVar> readBy = HashMultimap.create();
+        // set of keys in currentValues that depend on global state
+        private final Set<ImVar> globalState = Sets.newLinkedHashSet();
+        // set of keys in currentValues that can change global state
+        private final Set<ImVar> mutating = Sets.newLinkedHashSet();
 
         List<ImVar> invalid = Lists.newArrayList();
 
         public void invalidateGlobals() {
             // invalidate all knowledge which might be based on global state
             // i.e. using a global var or calling a function
-            currentValues.entrySet().removeIf(e -> readsGlobal(e.getValue().getRight()) || containsFuncCall(e.getValue()));
+            currentValueRemoveVars(globalState);
+            globalState.clear();
+            mutating.clear();
         }
 
         public void invalidateMutatingExpressions() {
             // invalidate all knowledge which can change global state
             // i.e. calling a function
-            currentValues.entrySet().removeIf(e -> containsFuncCall(e.getValue()));
+            currentValueRemoveVars(mutating);
+            globalState.clear();
+            mutating.clear();
+        }
+
+        private void currentValueRemoveVars(Set<ImVar> mutating) {
+            for (ImVar v : mutating) {
+                currentValuesRemoveVar(v);
+            }
+        }
+
+        private void currentValuesRemoveVar(ImVar v) {
+            VarKnowledge k = currentValues.remove(v);
+            if (k == null) {
+                return;
+            }
+            for (ImVar d : k.dependsOn) {
+                readBy.remove(d, v);
+            }
+            if (k.isMutating) {
+                mutating.remove(v);
+            }
+            if (k.dependsOnGlobals) {
+                globalState.remove(v);
+            }
         }
 
         public void clear() {
             currentValues.clear();
+            globalState.clear();
+            mutating.clear();
+            readBy.clear();
         }
 
         public @Nullable Replacement getReplacementIfPossible(ImVarAccess va) {
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
+            for (Entry<ImVar, VarKnowledge> e : currentValues.entrySet()) {
                 if (e.getKey() == va.getVar()) {
-                    return new Replacement(e.getValue(), va);
+                    return new Replacement(e.getValue().imSet, va);
                 }
             }
             return null;
@@ -333,7 +397,17 @@ public class TempMerger implements OptimizerPass {
 
             if (isMergable(left, set.getRight())) {
                 // only store local vars which are read exactly once
-                currentValues.put(left, set);
+                VarKnowledge k = new VarKnowledge(set);
+                currentValues.put(left, k);
+                for (ImVar d : k.dependsOn) {
+                    readBy.put(d, left);
+                }
+                if (k.dependsOnGlobals) {
+                    globalState.add(left);
+                }
+                if (k.isMutating) {
+                    mutating.add(left);
+                }
             }
         }
 
@@ -364,13 +438,16 @@ public class TempMerger implements OptimizerPass {
          * invalidates all expression depending on 'left'
          */
         private void invalidateVar(ImVar left) {
-            currentValues.remove(left);
+            currentValuesRemoveVar(left);
             if (left.isGlobal()) {
                 invalidateGlobals();
             } else {
-                currentValues.entrySet().removeIf(e -> readsVar(e.getValue().getRight(), left));
+                for (ImVar v : ImmutableList.copyOf(readBy.get(left))) {
+                    currentValuesRemoveVar(v);
+                }
             }
         }
+
 
         @Override
         public String toString() {
@@ -378,7 +455,7 @@ public class TempMerger implements OptimizerPass {
             keys.sort(Utils.<ImVar>compareByNameIm());
             StringBuilder sb = new StringBuilder();
             for (ImVar v : keys) {
-                ImSet s = currentValues.get(v);
+                ImSet s = currentValues.get(v).imSet;
                 sb.append(v.getName()).append(" -> ").append(s).append(", ");
             }
             return sb.toString();
