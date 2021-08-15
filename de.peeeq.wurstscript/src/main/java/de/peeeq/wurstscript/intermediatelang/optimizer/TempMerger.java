@@ -402,8 +402,12 @@ public class TempMerger implements OptimizerPass {
          */
         private void invalidateVar(ImVar left) {
             currentValues.remove(left);
+            if (left.isGlobal()) {
+                invalidateGlobals();
+            } else {
+                currentValues.removeAll(readBy.lookup(left));
+            }
         }
-
 
         @Override
         public String toString() {
