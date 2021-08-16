@@ -75,7 +75,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.9.2"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:ef7fec791a'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:ad877f0eb4'
 
     // JUnit for testing
     testImplementation group: 'org.testng', name: 'testng', version: '6.14.3'
