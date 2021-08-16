@@ -31,20 +31,27 @@ public class Replacer {
     }
 
     public void replaceInParent(Element parent, Element oldElement, Element newElement) {
+        if (oldElement == newElement) {
+            return;
+        }
         int pos = -1;
         for (int j = 0; j < parent.size(); j++) {
             int i = (lastPos + j) % parent.size();
             Element element = parent.get(i);
             if (element == oldElement) {
                 pos = i;
-
                 break;
             }
         }
         if (pos < 0) {
             throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
         }
+        Element oldParent = oldElement.getParent();
         parent.set(pos, newElement);
+        if (oldParent != parent) {
+            // was already moved elsewhere, so restore parent
+            oldElement.setParent(oldParent);
+        }
         lastPos = pos;
     }
 }
