@@ -59,9 +59,11 @@ public class HoverInfo extends UserRequest<Hover> {
                 if (args.getParent() instanceof FunctionCall) {
                     FunctionCall fc = (FunctionCall) args.getParent();
                     FuncLink f = fc.attrFuncLink();
-                    WurstType parameterType = f.getParameterType(index);
-                    String parameterName = f.getParameterName(index);
-                    desription = Utils.append(desription, Either.forLeft("Parameter " + parameterType + " " + parameterName));
+                    if (f != null) {
+                        WurstType parameterType = f.getParameterType(index);
+                        String parameterName = f.getParameterName(index);
+                        desription = Utils.append(desription, Either.forLeft("Parameter " + parameterType + " " + parameterName));
+                    }
                 }
             }
         } catch (Exception ex) {
