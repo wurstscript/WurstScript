@@ -17,7 +17,7 @@ public class Convert {
         return new Location(file, posToRange(pos));
     }
 
-    private static Range posToRange(WPos pos) {
+    public static Range posToRange(WPos pos) {
         int line = pos.getLine() - 1;
         int column = pos.getStartColumn() - 1;
         int endLine = pos.getEndLine() - 1;
