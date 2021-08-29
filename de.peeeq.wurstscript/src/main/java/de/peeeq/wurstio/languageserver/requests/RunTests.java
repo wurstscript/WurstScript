@@ -101,7 +101,7 @@ public class RunTests extends UserRequest<Object> {
     @Override
     public Object execute(ModelManager modelManager) {
         if (modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running tests.");
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running tests.\n" + modelManager.getFirstErrorDescription());
         }
 
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);

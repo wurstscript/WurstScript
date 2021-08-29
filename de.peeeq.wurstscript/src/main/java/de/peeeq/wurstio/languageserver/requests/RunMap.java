@@ -62,7 +62,7 @@ public class RunMap extends MapRequest {
         );
 
         if (modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.");
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + modelManager.getFirstErrorDescription());
         }
 
         WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(workspaceRoot.getFile().toPath().resolve(FILE_NAME));

@@ -577,6 +577,14 @@ public class ModelManagerImpl implements ModelManager {
         return errorStream().findAny().isPresent();
     }
 
+
+    @Override
+    public String getFirstErrorDescription() {
+        Optional<CompileError> first = errorStream().findFirst();
+        return first.map(CompileError::toString).orElse("no errors");
+    }
+
+
     @Override
     public List<CompileError> getParseErrors() {
         return parseErrorStream().collect(Collectors.toList());

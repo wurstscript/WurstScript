@@ -34,7 +34,7 @@ public class BuildMap extends MapRequest {
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
         if (modelManager.hasErrors()) {
-            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.");
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.\n" + modelManager.getFirstErrorDescription());
         }
 
         WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(workspaceRoot.getFile().toPath().resolve(FILE_NAME));

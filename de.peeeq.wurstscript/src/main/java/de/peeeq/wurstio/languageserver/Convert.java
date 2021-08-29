@@ -18,9 +18,28 @@ public class Convert {
     }
 
     private static Range posToRange(WPos pos) {
+        int line = pos.getLine() - 1;
+        int column = pos.getStartColumn() - 1;
+        int endLine = pos.getEndLine() - 1;
+        int endColumn = pos.getEndColumn() - 1;
+        if (line < 0) {
+            line = 0;
+        }
+        if (endLine < line) {
+            endLine = line;
+        }
+        if (column < 0) {
+            column = 0;
+        }
+        if (endColumn < 0) {
+            endColumn = 0;
+        }
+        if (line == endLine && column <= endColumn) {
+            endColumn = column + 1;
+        }
         return new Range(
-                new Position(pos.getLine() - 1, pos.getStartColumn() - 1),
-                new Position(pos.getEndLine() - 1, pos.getEndColumn() - 1)
+                new Position(line, column),
+                new Position(endLine, endColumn)
         );
     }
 
