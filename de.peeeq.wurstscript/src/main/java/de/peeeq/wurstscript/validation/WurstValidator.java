@@ -247,6 +247,13 @@ public class WurstValidator {
                 used.add(def.attrNearestPackage());
             }
         }
+        if (e instanceof ModuleUse) {
+            ModuleUse mu = (ModuleUse) e;
+            @Nullable ModuleDef def = mu.attrModuleDef();
+            if (def != null) {
+                used.add(def.attrNearestPackage());
+            }
+        }
     }
 
     private void walkTree(Element e) {
