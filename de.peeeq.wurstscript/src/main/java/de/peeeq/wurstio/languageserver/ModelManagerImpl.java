@@ -166,21 +166,7 @@ public class ModelManagerImpl implements ModelManager {
             WLogger.info("no dependency file found.");
             return;
         }
-        try (BufferedReader reader = new BufferedReader(new FileReader(depFile))) {
-            LineOffsets lineOffsets = new LineOffsets();
-            int offset = 0;
-            int lineNr = 0;
-            while (true) {
-                String line = reader.readLine();
-                lineNr++;
-                lineOffsets.set(lineNr, offset);
-                if (line == null)
-                    break;
-                int endOffset = offset + line.length();
-                addDependency(gui, depFile, line, lineOffsets, offset, endOffset);
-                offset = endOffset;
-            }
-        }
+        dependencies.addAll(WurstCompilerJassImpl.checkDependencyFile(depFile, gui));
         WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 
@@ -192,21 +178,6 @@ public class ModelManagerImpl implements ModelManager {
             // fall back to absolute path
             return f.getAbsolutePath();
         }
-    }
-
-    private void addDependency(WurstGui gui, File depfile, String fileName, LineOffsets lineOffsets, int offset, int endOffset) {
-        WLogger.info("Adding dependency: " + fileName);
-        File f = new File(fileName);
-        WPos pos = new WPos(getCanonicalPath(depfile), lineOffsets, offset, endOffset);
-        if (!f.exists()) {
-            gui.sendError(new CompileError(pos, "Path '" + fileName + "' could not be found."));
-            return;
-        } else if (!f.isDirectory()) {
-            gui.sendError(new CompileError(pos, "Path '" + fileName + "' is not a folder."));
-            return;
-        }
-
-        dependencies.add(new File(fileName));
     }
 
     private List<CompilationUnit> getCompilationUnits(List<WFile> fileNames) {
@@ -349,10 +320,15 @@ public class ModelManagerImpl implements ModelManager {
         for (CompileError e : gui.getErrorsAndWarnings()) {
             typeErrors.put(WFile.create(e.getSource().getFile()), e);
         }
-
-        for (WFile file : parseErrors.keySet()) {
-            List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
-            errors.addAll(typeErrors.get(file));
+        Set<WFile> files = ImmutableSet.<WFile>builder()
+            .addAll(parseErrors.keySet())
+            .addAll(typeErrors.keySet())
+            .build();
+        for (WFile file : files) {
+            List<CompileError> errors = ImmutableList.<CompileError>builder()
+                .addAll(parseErrors.getOrDefault(file, Collections.emptyList()))
+                .addAll(typeErrors.get(file))
+                .build();
             reportErrors(extra, file, errors);
         }
     }
@@ -434,7 +410,7 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
+        WurstCompilerJassImpl comp = getCompiler(gui);
 
         try (InputStreamReader reader = new FileReader(sourceFile)) {
             CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);

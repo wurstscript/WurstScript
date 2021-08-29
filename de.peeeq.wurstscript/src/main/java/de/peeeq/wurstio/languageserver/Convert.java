@@ -34,7 +34,7 @@ public class Convert {
         if (endColumn < 0) {
             endColumn = 0;
         }
-        if (line == endLine && column <= endColumn) {
+        if (line == endLine && endColumn <= column) {
             endColumn = column + 1;
         }
         return new Range(
