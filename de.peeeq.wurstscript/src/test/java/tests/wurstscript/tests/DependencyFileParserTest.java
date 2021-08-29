@@ -53,7 +53,7 @@ public class DependencyFileParserTest {
         assertEquals(err.getSource().getLine(), 2);
         assertEquals(err.getSource().getStartColumn(), 1);
         assertEquals(err.getSource().getEndLine(), 2);
-        assertEquals(err.getSource().getEndColumn(), b.getAbsolutePath().length());
+        assertEquals(err.getSource().getEndColumn(), b.getAbsolutePath().length() + 1);
 
         PublishDiagnosticsParams diag = Convert.createDiagnostics("", WFile.create(dep), gui.getErrorList());
         assertEquals(diag.getDiagnostics().size(), 1);
@@ -61,7 +61,7 @@ public class DependencyFileParserTest {
         assertEquals(d.getRange().getStart().getLine(), 1);
         assertEquals(d.getRange().getStart().getCharacter(), 0);
         assertEquals(d.getRange().getEnd().getLine(), 1);
-        assertEquals(d.getRange().getEnd().getCharacter(), b.getAbsolutePath().length() - 1);
+        assertEquals(d.getRange().getEnd().getCharacter(), b.getAbsolutePath().length());
 
     }
 

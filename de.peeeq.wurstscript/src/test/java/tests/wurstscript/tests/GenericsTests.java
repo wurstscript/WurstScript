@@ -1176,4 +1176,17 @@ public class GenericsTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void nestedList() {
+        testAssertOkLinesWithStdLib(true,
+            "package Test",
+            "import LinkedList",
+            "init",
+            "    let x = asList(asList(42)).getFirst().getFirst()",
+            "    if x == 42",
+            "        testSuccess()"
+        );
+    }
+
+
 }
