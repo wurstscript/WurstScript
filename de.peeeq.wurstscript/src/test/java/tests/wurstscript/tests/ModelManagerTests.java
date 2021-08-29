@@ -347,5 +347,64 @@ public class ModelManagerTests {
 
     }
 
+    @Test
+    public void changeModuleAbstractMethod() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "class CustomHero",
+            "    use CustomHeroXpModule",
+            "    int xp",
+            "    override function getXp() returns int",
+            "        return this.xp"
+        );
+
+
+        String packageT2 = string(
+            "package T2",
+            "public module CustomHeroXpModule",
+            "    abstract function getXp() returns int"
+        );
+
+        String packageT2updated = string(
+            "package T2",
+            "public module CustomHeroXpModule",
+            "    abstract function getXpOld() returns int"
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileT2 = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileT2, packageT2);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        assertEquals(errors.get(fileT1), "");
+
+
+        // no update the module in package T2
+        writeFile(fileT2, packageT2updated);
+        manager.syncCompilationUnit(fileT2);
+
+        // now, there should be errors in class CustomHero in fileA
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Non-abstract class CustomHero must implement the following functions:\\n    function getXpOld() returns int"));
+        assertEquals(errors.get(fileT2), "");
+    }
+
+
 
 }
