@@ -512,30 +512,35 @@ public class ImTranslator {
         if (initialExpr instanceof Expr) {
             Expr expr = (Expr) initialExpr;
             ImExpr translated = expr.imTranslateExpr(this, f);
+            ImSet imSet = ImSet(trace, ImVarAccess(v), translated);
             if (!v.getIsBJ()) {
                 // add init statement for non-bj vars
                 // bj-vars are already initalized by blizzard
-                f.getBody().add(ImSet(trace, ImVarAccess(v), translated));
+                f.getBody().add(imSet);
             }
-            imProg.getGlobalInits().put(v, Collections.singletonList(translated));
+            imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
             List<ImExpr> translatedExprs = arInit.getValues().stream()
                     .map(expr -> expr.imTranslateExpr(this, f))
                     .collect(Collectors.toList());
+            List<ImSet> imSets = new ArrayList<>();
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
-                f.getBody().add(ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
+                ImSet imSet = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated);
+                imSets.add(imSet);
             }
+            f.getBody().addAll(imSets);
             // add list of init-values to translatedExprs
-            imProg.getGlobalInits().put(v, translatedExprs);
+            imProg.getGlobalInits().put(v, imSets);
         }
     }
 
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
-        getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
-        imProg.getGlobalInits().put(g, Collections.singletonList((ImExpr) initial.copy()));
+        ImSet imSet = ImSet(g.getTrace(), ImVarAccess(g), initial);
+        getGlobalInitFunc().getBody().add(imSet);
+        imProg.getGlobalInits().put(g, Collections.singletonList(imSet));
     }
 
 
@@ -1537,6 +1542,8 @@ public class ImTranslator {
             Element child = e.get(i);
             if (child.getParent() == null) {
                 throw new Error("Child " + i + " (" + child + ") of " + e + " not attached to tree");
+            } else if (child.getParent() != e) {
+                throw new Error("Child " + i + " (" + child + ") of " + e + " attached to wrong tree");
             }
             assertProperties(properties, child);
         }

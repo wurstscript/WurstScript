@@ -87,7 +87,8 @@ public class StackTraceInjector2 {
         prog.getGlobals().add(stackSize);
         stack = JassIm.ImVar(trace, TypesHelper.imStringArray(), "wurst_stack", false);
         prog.getGlobals().add(stack);
-        prog.getGlobalInits().put(stackSize, Collections.singletonList(JassIm.ImIntVal(0)));
+        prog.getGlobalInits().put(stackSize, Collections.singletonList(
+            JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0))));
 
 
         TransitiveClosure<ImFunction> callRelationTr = new TransitiveClosure<>(callRelation);

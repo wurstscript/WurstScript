@@ -16,14 +16,14 @@ public class ImPrinter {
         }
         append(sb, "\n\n");
         p.getGlobalInits().forEach((v,es) -> {
-            append(sb, v.getName());
+            v.print(sb, indent);
             append(sb, " = ");
             boolean first = true;
-            for (ImExpr e : es) {
+            for (ImSet e : es) {
                 if (!first) {
                     append(sb, ", ");
                 }
-                e.print(sb, indent);
+                e.getRight().print(sb, indent);
                 first = false;
             }
             append(sb, "\n");
