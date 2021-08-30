@@ -444,8 +444,7 @@ public class Utils {
 
     public static String printElementWithSource(Optional<Element> e) {
         Optional<WPos> src = e.map(Element::attrSource);
-        return printElement(e) + " (" + src.map(WPos::getFile) + ":"
-                + src.map(WPos::getLine) + ")";
+        return printElement(e) + " (" + src.map(WPos::printShort).orElse("unknown position") + ")";
     }
 
     public static int[] copyArray(int[] ar) {
