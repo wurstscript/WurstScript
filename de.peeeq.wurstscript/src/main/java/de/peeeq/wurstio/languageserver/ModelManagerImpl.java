@@ -237,7 +237,6 @@ public class ModelManagerImpl implements ModelManager {
 
     private void clearModuleInstantiation(ClassOrModuleInstanciation elem) {
         elem.getP_moduleInstanciations().clear();
-        elem.getModuleInstanciations().clear();
         for (ClassDef innerClass : elem.getInnerClasses()) {
             clearModuleInstantiation(innerClass);
         }

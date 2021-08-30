@@ -609,7 +609,7 @@ HasModifier.attrIsVararg()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isVararg
 
-ClassOrModuleOrModuleInstanciation.getModuleInstanciations
+ClassOrModuleOrModuleInstanciation.getModuleInstanciations()
 	returns ModuleInstanciations
 	implemented by de.peeeq.wurstscript.ModuleExpander.expandModules
 
