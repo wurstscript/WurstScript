@@ -18,6 +18,11 @@ public class W3InstallationData {
 
     private Optional<GameVersion> version = Optional.empty();
 
+    public W3InstallationData(Optional<File> gameExe, Optional<GameVersion> version) {
+        this.gameExe = gameExe;
+        this.version = version;
+    }
+
     /** Evaluates the game path and version by discovering the system environment. */
     public W3InstallationData() {
         discoverExePath();
