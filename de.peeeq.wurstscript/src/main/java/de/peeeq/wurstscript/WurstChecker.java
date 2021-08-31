@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
+import java.util.Collection;
 import java.util.List;
 
 public class WurstChecker {
@@ -20,7 +21,7 @@ public class WurstChecker {
         this.errorHandler = errorHandler;
     }
 
-    public void checkProg(WurstModel root, List<CompilationUnit> toCheck) {
+    public void checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
         if (root.isEmpty()) {

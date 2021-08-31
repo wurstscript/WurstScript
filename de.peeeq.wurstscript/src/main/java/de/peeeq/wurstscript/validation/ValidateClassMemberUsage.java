@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,7 +11,7 @@ import java.util.Set;
  *
  */
 public class ValidateClassMemberUsage {
-    public static void checkClassMembers(List<CompilationUnit> toCheck) {
+    public static void checkClassMembers(Collection<CompilationUnit> toCheck) {
         for (CompilationUnit cu : toCheck) {
             for (WPackage p : cu.getPackages()) {
                 checkVarUsage(p);

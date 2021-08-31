@@ -401,7 +401,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         checkProg(model, model);
     }
 
-    public void checkProg(WurstModel model, List<CompilationUnit> toCheck) {
+    public void checkProg(WurstModel model, Collection<CompilationUnit> toCheck) {
         for (CompilationUnit cu : toCheck) {
             Preconditions.checkNotNull(cu);
             if (!model.contains(cu)) {

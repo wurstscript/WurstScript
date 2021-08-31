@@ -9,8 +9,7 @@ import java.util.*;
  *
  */
 public class ValidateLocalUsage {
-    public static void checkLocalsUsage(List<CompilationUnit> toCheck) {
-        Map<NameDef, Element> usedGlobals = new HashMap<>();
+    public static void checkLocalsUsage(Collection<CompilationUnit> toCheck) {
         for (CompilationUnit cu : toCheck) {
             for (WPackage p : cu.getPackages()) {
                 checkLocalsUsage(p);

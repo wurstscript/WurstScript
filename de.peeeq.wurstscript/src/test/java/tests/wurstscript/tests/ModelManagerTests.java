@@ -466,5 +466,81 @@ public class ModelManagerTests {
         assertEquals(errors.get(fileT2), "");
     }
 
+    @Test
+    public void moduleTransitive() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "init",
+            "    new C.foo()"
+        );
+
+        String packageT2 = string(
+            "package T2",
+            "import T3",
+            "public class C extends D"
+        );
+
+        String packageT3 = string(
+            "package T3",
+            "import T4",
+            "public class D",
+            "    use M"
+        );
+
+        String packageT4 = string(
+            "package T4",
+            "public module M",
+            "    function foo() returns int",
+            "        return 1"
+        );
+
+        String packageT4updated = string(
+            "package T4",
+            "public module M",
+            "    function bar() returns int",
+            "        return 1"
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileT2 = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileT3 = WFile.create(new File(wurstFolder, "T3.wurst"));
+        WFile fileT4 = WFile.create(new File(wurstFolder, "T4.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileT2, packageT2);
+        writeFile(fileT3, packageT3);
+        writeFile(fileT4, packageT4);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        // no errors expected
+        assertEquals(errors.get(fileT1), "");
+        assertEquals(errors.get(fileT2), "");
+        assertEquals(errors.get(fileT3), "");
+        assertEquals(errors.get(fileT4), "");
+
+
+        // now, update the module in package T4
+        writeFile(fileT4, packageT4updated);
+        manager.syncCompilationUnit(fileT4);
+
+        // now, the function foo in package T1 can no longer be called
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Could not find function foo"));
+    }
+
 
 }
