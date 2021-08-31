@@ -87,8 +87,8 @@ public abstract class GraphInterpreter<T> {
         // It also uses a counter C of the number of vertices reached so far, which it uses to compute the preorder numbers of the vertices.
         AtomicInteger c = new AtomicInteger();
         AtomicInteger componentCount = new AtomicInteger();
-        Map<T, Integer> preorderNumber = new HashMap<>();
-        Map<T, Integer> component = new HashMap<>();
+        Map<T, Integer> preorderNumber = new LinkedHashMap<>();
+        Map<T, Integer> component = new LinkedHashMap<>();
 
         for (T v : nodes) {
             if (!preorderNumber.containsKey(v)) {
