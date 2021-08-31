@@ -36,11 +36,7 @@ public class WurstParser {
     }
 
     public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
-        try (java.util.Scanner s = new java.util.Scanner(reader)) {
-            s.useDelimiter("\\A");
-            String input = s.hasNext() ? s.next() : "";
-            return parseWithAntlr(new StringReader(input), source, hasCommonJ);
-        }
+        return parseWithAntlr(reader, source, hasCommonJ);
     }
 
 
