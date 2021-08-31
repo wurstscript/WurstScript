@@ -8,7 +8,7 @@ import java.util.*;
  *
  */
 public class ValidateGlobalsUsage {
-    public static void checkGlobalsUsage(List<CompilationUnit> toCheck) {
+    public static void checkGlobalsUsage(Collection<CompilationUnit> toCheck) {
         Map<NameDef, Element> usedGlobals = new HashMap<>();
         for (CompilationUnit cu : toCheck) {
             checkJassGlobals(cu.getJassDecls(), usedGlobals);

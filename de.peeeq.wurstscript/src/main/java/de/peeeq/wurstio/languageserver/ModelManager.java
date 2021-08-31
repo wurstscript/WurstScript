@@ -58,4 +58,6 @@ public interface ModelManager {
     }
 
     File getProjectPath();
+
+    String getFirstErrorDescription();
 }

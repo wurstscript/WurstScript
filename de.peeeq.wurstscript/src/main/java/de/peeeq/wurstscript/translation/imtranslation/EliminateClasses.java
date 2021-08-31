@@ -70,23 +70,6 @@ public class EliminateClasses {
             eliminateClassRelatedExprs(f.getBody());
         }
 
-        for (Map.Entry<ImVar, List<ImExpr>> entry : prog.getGlobalInits().entrySet()) {
-            ImExprs exprs = JassIm.ImExprs();
-            List<ImExpr> value = entry.getValue();
-            for (ImExpr e : value) {
-                List<ImExpr> newValues = new ArrayList<>();
-                if (e.getParent() == null) {
-                    exprs.add(e);
-                    eliminateClassRelatedExprs(exprs);
-                    newValues.add(exprs.remove(0));
-                } else {
-                    eliminateClassRelatedExprs(exprs);
-                    newValues.add(e);
-                }
-                entry.setValue(newValues);
-            }
-        }
-
         prog.getClasses().clear();
         prog.getMethods().clear();
 

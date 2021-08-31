@@ -10,12 +10,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class ImOptimizer {
     private int totalFunctionsRemoved = 0;
@@ -143,6 +138,7 @@ public class ImOptimizer {
                     }
 
                 });
+                Replacer replacer = new Replacer();
                 for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
                     ImExpr r;
@@ -156,7 +152,7 @@ public class ImOptimizer {
                         }
                         r = ImHelper.statementExprVoid(JassIm.ImStmts(exprs));
                     }
-                    pair.getA().replaceBy(r);
+                    replacer.replace(pair.getA(), r);
                 }
 
                 // keep only read local variables
@@ -164,5 +160,6 @@ public class ImOptimizer {
             }
         }
     }
+
 
 }

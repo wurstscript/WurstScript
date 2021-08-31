@@ -150,8 +150,7 @@ public class SyntacticSugar {
                     continue nextPackage;
                 }
             }
-            WPos source = p.getSource();
-            source = source.withRightPos(source.getLeftPos() - 1);
+            WPos source = p.getSource().artificial();
             p.getImports().add(Ast.WImport(source, false, false, Ast.Identifier(source, "Wurst")));
         }
     }

@@ -99,8 +99,13 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 return handleMissingType(modelManager, nr.getTypeName());
             }
 
+        } else if (e.get() instanceof ModuleUse) {
+            ModuleUse mu = (ModuleUse) e.get();
+            ModuleDef def = mu.attrModuleDef();
+            if (def == null) {
+                return handleMissingModule(modelManager, mu.getModuleNameId().getName());
+            }
         }
-        // TODO non simple TypeRef
 
         return Collections.emptyList();
     }
@@ -371,6 +376,27 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
         return makeImportCommands(possibleImports);
     }
+
+    private List<Either<Command, CodeAction>> handleMissingModule(ModelManager modelManager, String moduleName) {
+
+        WurstModel model = modelManager.getModel();
+        List<String> possibleImports = new ArrayList<>();
+        for (CompilationUnit cu : model) {
+            withNextPackage:
+            for (WPackage wPackage : cu.getPackages()) {
+                for (NameLink nameLink : wPackage.attrExportedTypeNameLinks().get(moduleName)) {
+                    if (nameLink.getDef() instanceof ModuleDef) {
+                        possibleImports.add(wPackage.getName());
+                        continue withNextPackage;
+                    }
+                }
+            }
+        }
+
+        return makeImportCommands(possibleImports);
+    }
+
+
 
     private List<Either<Command, CodeAction>> makeImportCommands(List<String> possibleImports) {
         return possibleImports.stream()

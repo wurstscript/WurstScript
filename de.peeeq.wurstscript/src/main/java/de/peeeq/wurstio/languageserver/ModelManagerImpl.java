@@ -12,8 +12,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -166,21 +164,7 @@ public class ModelManagerImpl implements ModelManager {
             WLogger.info("no dependency file found.");
             return;
         }
-        try (BufferedReader reader = new BufferedReader(new FileReader(depFile))) {
-            LineOffsets lineOffsets = new LineOffsets();
-            int offset = 0;
-            int lineNr = 0;
-            while (true) {
-                String line = reader.readLine();
-                lineNr++;
-                lineOffsets.set(lineNr, offset);
-                if (line == null)
-                    break;
-                int endOffset = offset + line.length();
-                addDependency(gui, depFile, line, lineOffsets, offset, endOffset);
-                offset = endOffset;
-            }
-        }
+        dependencies.addAll(WurstCompilerJassImpl.checkDependencyFile(depFile, gui));
         WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 
@@ -194,21 +178,6 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private void addDependency(WurstGui gui, File depfile, String fileName, LineOffsets lineOffsets, int offset, int endOffset) {
-        WLogger.info("Adding dependency: " + fileName);
-        File f = new File(fileName);
-        WPos pos = new WPos(getCanonicalPath(depfile), lineOffsets, offset, endOffset);
-        if (!f.exists()) {
-            gui.sendError(new CompileError(pos, "Path '" + fileName + "' could not be found."));
-            return;
-        } else if (!f.isDirectory()) {
-            gui.sendError(new CompileError(pos, "Path '" + fileName + "' is not a folder."));
-            return;
-        }
-
-        dependencies.add(new File(fileName));
-    }
-
     private List<CompilationUnit> getCompilationUnits(List<WFile> fileNames) {
         WurstModel model2 = model;
         if (model2 == null) {
@@ -217,39 +186,24 @@ public class ModelManagerImpl implements ModelManager {
         return model2.stream().filter(cu -> fileNames.contains(wFile(cu))).collect(Collectors.toList());
     }
 
-    private List<WFile> getfileNames(List<CompilationUnit> compilationUnits) {
+    private List<WFile> getfileNames(Collection<CompilationUnit> compilationUnits) {
         return compilationUnits.stream()
                 .map(this::wFile)
                 .collect(Collectors.toList());
     }
 
     /**
-     * clear the attributes for all compilation units that import something from
-     * 'toCheck' and for 'toCheck'
-     *
-     * @return a list of all the CUs which have been cleared
+     * clear the attributes and module instantiations for all compilation units in the given collection
      */
-    private List<CompilationUnit> clearAttributes(List<CompilationUnit> toCheck) {
+    private void clearCompilationUnits(Collection<CompilationUnit> toCheck) {
         WurstModel model2 = model;
         if (model2 == null) {
-            return Collections.emptyList();
+            return;
         }
-        List<CompilationUnit> cleared = new ArrayList<>(toCheck);
         model2.clearAttributesLocal();
-        Set<String> packageNames = Sets.newHashSet();
         for (CompilationUnit cu : toCheck) {
             clearCompilationUnit(cu);
-            for (WPackage p : cu.getPackages()) {
-                packageNames.add(p.getName());
-            }
         }
-        for (CompilationUnit cu : model2) {
-            if (imports(cu, packageNames)) {
-                clearCompilationUnit(cu);
-                cleared.add(cu);
-            }
-        }
-        return cleared;
     }
 
     private void clearCompilationUnit(CompilationUnit cu) {
@@ -266,7 +220,6 @@ public class ModelManagerImpl implements ModelManager {
 
     private void clearModuleInstantiation(ClassOrModuleInstanciation elem) {
         elem.getP_moduleInstanciations().clear();
-        elem.getModuleInstanciations().clear();
         for (ClassDef innerClass : elem.getInnerClasses()) {
             clearModuleInstantiation(innerClass);
         }
@@ -349,10 +302,15 @@ public class ModelManagerImpl implements ModelManager {
         for (CompileError e : gui.getErrorsAndWarnings()) {
             typeErrors.put(WFile.create(e.getSource().getFile()), e);
         }
-
-        for (WFile file : parseErrors.keySet()) {
-            List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
-            errors.addAll(typeErrors.get(file));
+        Set<WFile> files = ImmutableSet.<WFile>builder()
+            .addAll(parseErrors.keySet())
+            .addAll(typeErrors.keySet())
+            .build();
+        for (WFile file : files) {
+            List<CompileError> errors = ImmutableList.<CompileError>builder()
+                .addAll(parseErrors.getOrDefault(file, Collections.emptyList()))
+                .addAll(typeErrors.get(file))
+                .build();
             reportErrors(extra, file, errors);
         }
     }
@@ -399,7 +357,11 @@ public class ModelManagerImpl implements ModelManager {
             while (it.hasNext()) {
                 CompilationUnit c = it.next();
                 if (wFile(c).equals(wFile(cu))) {
-                    clearAttributes(Collections.singletonList(cu));
+                    // get old provided packages:
+                    Set<String> oldPackages = providedPackages(c);
+                    Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
+
+                    clearCompilationUnits(mustUpdate);
                     // replace old compilationunit with new one:
                     it.set(cu);
                     updated = true;
@@ -411,6 +373,13 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
         //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
+    }
+
+    private Set<String> providedPackages(CompilationUnit c) {
+        return c.getPackages()
+            .stream()
+            .map(WPackage::getName)
+            .collect(Collectors.toSet());
     }
 
     private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
@@ -434,7 +403,7 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
+        WurstCompilerJassImpl comp = getCompiler(gui);
 
         try (InputStreamReader reader = new FileReader(sourceFile)) {
             CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
@@ -577,6 +546,14 @@ public class ModelManagerImpl implements ModelManager {
         return errorStream().findAny().isPresent();
     }
 
+
+    @Override
+    public String getFirstErrorDescription() {
+        Optional<CompileError> first = errorStream().findFirst();
+        return first.map(CompileError::toString).orElse("no errors");
+    }
+
+
     @Override
     public List<CompileError> getParseErrors() {
         return parseErrorStream().collect(Collectors.toList());
@@ -614,49 +591,64 @@ public class ModelManagerImpl implements ModelManager {
             return;
         }
 
-        toCheck = new ArrayList<>(addPackageDependencies(toCheck, oldPackages, model2));
+        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck, oldPackages, model2);
 
-        List<CompilationUnit> clearedCUs = Collections.emptyList();
         try {
-            clearedCUs = clearAttributes(toCheck);
+            clearCompilationUnits(toCheckRec);
             comp.addImportedLibs(model2, this::addCompilationUnit);
-            comp.checkProg(model2, toCheck);
+            comp.checkProg(model2, toCheckRec);
         } catch (ModelChangedException e) {
             // model changed, early return
             return;
         } catch (CompileError e) {
             gui.sendError(e);
         }
-        List<WFile> fileNames = getfileNames(clearedCUs);
+        List<WFile> fileNames = getfileNames(toCheckRec);
         reportErrorsForFiles(fileNames, gui);
     }
 
-    private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, Set<String> oldPackages, WurstModel model) {
+    /**
+     * Calculates compilation
+     *
+     *
+     * @param changed the set of compilation units that were changed
+     * @param oldPackages packages that were provided before the update (which might have been removed now)
+     * @param model the complete AST
+     * @return the set of compilation units that might be affected by the changes, including the changed compilation units
+     */
+    private Set<CompilationUnit> calculateCUsToUpdate(List<CompilationUnit> changed, Set<String> oldPackages, WurstModel model) {
 
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
-        result.addAll(toCheck);
+        result.addAll(changed);
 
-        if (toCheck.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
+        if (changed.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
             // when plain Jass files are changed, everything must be checked again:
             result.addAll(model);
             return result;
         }
 
-        Stream<String> providedPackages = result.stream()
+        // get packages provided by the changed CUs
+        Stream<String> providedPackages = changed.stream()
                 .flatMap(cu -> cu.getPackages().stream())
                 .map(WPackage::getName);
 
+        // affected packages are new ones and old ones
         Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
                 .collect(Collectors.toSet());
 
-        addImportingPackages(affectedPackages, model, result);
+        addPossiblyAffectedPackages(affectedPackages, model, result);
 
         return result;
     }
 
-    private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {
+
+    /**
+     * Add all packages that directly or indirectly depend on the providedPackages
+     */
+    private void addPossiblyAffectedPackages(Collection<String> providedPackages, WurstModel model, Set<CompilationUnit> result) {
+
         nextCu:
-        for (CompilationUnit compilationUnit : model2) {
+        for (CompilationUnit compilationUnit : model) {
             if (result.contains(compilationUnit)) {
                 continue;
             }
@@ -665,15 +657,58 @@ public class ModelManagerImpl implements ModelManager {
                     String importedPackage = imp.getPackagenameId().getName();
                     if (providedPackages.contains(importedPackage)) {
                         result.add(compilationUnit);
-                        if (imp.getIsPublic()) {
-                            // recursive call terminates, because it is only called for packages not yet in result
-                            addImportingPackages(Collections.singletonList(p.getName()), model2, result);
-                        }
                         continue nextCu;
                     }
                 }
             }
         }
+
+        addTransitiveDeps(result, model);
+    }
+
+    /**
+     * Add all compilation units that transitively depend on the units in result
+     */
+    private void addTransitiveDeps(Set<CompilationUnit> result, WurstModel model) {
+        Multimap<CompilationUnit, CompilationUnit> dependencyMap = calculateDirectDependencies(model);
+        ArrayDeque<CompilationUnit> todo = new ArrayDeque<>(result);
+        while (!todo.isEmpty()) {
+            CompilationUnit cu = todo.remove();
+            Collection<CompilationUnit> directDeps = dependencyMap.get(cu);
+            for (CompilationUnit c : directDeps) {
+                if (result.add(c)) {
+                    todo.add(c);
+                }
+            }
+        }
+    }
+
+    /**
+     * Calculates a map from a compilation unit to the compilation units that directly depend on it.
+     * E.g. if package A imports C and package B imports C, then
+     * result.get(C) would return A and B
+     **/
+    private Multimap<CompilationUnit, CompilationUnit> calculateDirectDependencies(WurstModel model) {
+        Multimap<CompilationUnit, CompilationUnit> result = HashMultimap.create();
+        Map<String, CompilationUnit> cuForPackage = new HashMap<>();
+        for (CompilationUnit cu : model) {
+            for (WPackage p : cu.getPackages()) {
+                cuForPackage.put(p.getName(), cu);
+            }
+        }
+
+        for (CompilationUnit cu : model) {
+            for (WPackage p : cu.getPackages()) {
+                for (WImport i : p.getImports()) {
+                    CompilationUnit dep = cuForPackage.get(i.getPackagename());
+                    if (dep != null) {
+                        result.put(dep, cu);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     @Override

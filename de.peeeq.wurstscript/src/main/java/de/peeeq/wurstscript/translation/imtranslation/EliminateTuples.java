@@ -5,14 +5,12 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.Replacer;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator.VarsForTupleResult;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -52,11 +50,12 @@ public class EliminateTuples {
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
         tryStep(f, translator, EliminateTuples::removeTupleSelections);
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
-        tryStep(f, translator, EliminateTuples::removeTupleExprs);
+        tryStep(f, translator, (stmts, translator1, fn) -> removeTupleExprs(0, stmts, translator1, fn));
 
     }
 
     private static void removeTupleSelections(ImStmts stmts, ImTranslator tr, ImFunction f) {
+        Replacer replacer = new Replacer();
         stmts.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImTupleSelection ts) {
@@ -92,9 +91,9 @@ public class EliminateTuples {
                 ImStatementExpr replacement1 = JassIm.ImStatementExpr(stmts, result);
                 ImLExpr replacement2 = normalizeStatementExpr(replacement1, tr);
                 if (replacement2 == null) {
-                    ts.replaceBy(replacement1);
+                    replacer.replace(ts, replacement1);
                 } else {
-                    ts.replaceBy(replacement2);
+                    replacer.replace(ts, replacement2);
                 }
             }
         });
@@ -118,7 +117,7 @@ public class EliminateTuples {
 
 
     private static Runnable transformVars(ImVars vars, ImTranslator translator) {
-        List<ImVar> varsToRemove = new ArrayList<>();
+        Set<ImVar> varsToRemove = new LinkedHashSet<>();
         ListIterator<ImVar> it = vars.listIterator();
         while (it.hasNext()) {
             ImVar v = it.next();
@@ -156,6 +155,7 @@ public class EliminateTuples {
      * - ...
      */
     private static void toTupleExpressions(ImStmts body, ImTranslator translator, ImFunction f) {
+        Replacer replacer = new Replacer();
         body.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -167,7 +167,7 @@ public class EliminateTuples {
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                             JassIm::ImVarAccess
                     );
-                    va.replaceBy(expr);
+                    replacer.replace(va, expr);
                 }
             }
 
@@ -201,9 +201,9 @@ public class EliminateTuples {
                             var -> JassIm.ImVarArrayAccess(va.getTrace(), var, indexExprs.copy())
                     );
                     if (stmts.isEmpty()) {
-                        va.replaceBy(expr);
+                        replacer.replace(va, expr);
                     } else {
-                        va.replaceBy(
+                        replacer.replace(va,
                                 JassIm.ImStatementExpr(stmts,
                                         expr));
                     }
@@ -230,7 +230,7 @@ public class EliminateTuples {
                                     : JassIm.ImVarAccess(var)
                     );
 
-                    Utils.replace(parent, fc, newFc);
+                    replacer.replaceInParent(parent, fc, newFc);
                 }
             }
 
@@ -244,6 +244,7 @@ public class EliminateTuples {
      * becomes <{stmts >> e1}, e2, e3}
      */
     private static void normalizeTuplesInStatementExprs(ImStmts body, ImTranslator translator, ImFunction f) {
+        Replacer replacer = new Replacer();
         body.accept(new Element.DefaultVisitor() {
 
             @Override
@@ -251,7 +252,7 @@ public class EliminateTuples {
                 super.visit(se);
                 ImTupleExpr newExpr = normalizeStatementExpr(se, translator);
                 if (newExpr != null) {
-                    se.replaceBy(newExpr);
+                    replacer.replace(se, newExpr);
                     newExpr.getExprs().get(0).accept(this);
                 }
             }
@@ -280,14 +281,15 @@ public class EliminateTuples {
      * - Assignments: Become several assignments
      * - In Return: Use temp returns
      */
-    private static void removeTupleExprs(Element elem, ImTranslator translator, ImFunction f) {
+    private static void removeTupleExprs(int posHint, Element elem, ImTranslator translator, ImFunction f) {
         if (elem.getParent() == null) {
             throw new RuntimeException("elem not used: " + elem);
         }
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);
-            removeTupleExprs(child, translator, f);
+            removeTupleExprs(i, child, translator, f);
         }
+        Replacer replacer = new Replacer();
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);
 
@@ -306,7 +308,7 @@ public class EliminateTuples {
                     ImExprs exprs = (ImExprs) elem;
                     if (exprs.getParent() instanceof ImOperatorCall) {
                         ImOperatorCall opCall = (ImOperatorCall) exprs.getParent();
-                        handleTupleInOpCall(opCall);
+                        handleTupleInOpCall(replacer, opCall);
                         return;
                     } else {
                         // in function arguments, other tuples
@@ -327,7 +329,8 @@ public class EliminateTuples {
                 } else {
                     throw new CompileError(tupleExpr.attrTrace().attrSource(), "Unhandled tuple position: " + elem.getClass().getSimpleName() + " // " + elem);
                 }
-                elem.replaceBy(newElem);
+                replacer.hintPosition(posHint);
+                replacer.replace(elem, newElem);
                 // since we replaced elem we are done
                 // the new element should have no more tuple expressions
 
@@ -338,7 +341,7 @@ public class EliminateTuples {
 
     }
 
-    private static void handleTupleInOpCall(ImOperatorCall opCall) {
+    private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall) {
         if (opCall.getParent() == null) {
             throw new RuntimeException("opCall not used: " + opCall);
         }
@@ -370,7 +373,7 @@ public class EliminateTuples {
                     .reduce((l, r) -> JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(l, r)))
                     .get();
         }
-        opCall.replaceBy(newExpr);
+        replacer.replace(opCall, newExpr);
     }
 
     private static ImStatementExpr inSet(ImSet imSet, ImFunction f) {

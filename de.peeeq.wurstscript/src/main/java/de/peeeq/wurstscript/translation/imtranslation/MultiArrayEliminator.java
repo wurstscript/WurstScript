@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.Replacer;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -17,6 +18,7 @@ public class MultiArrayEliminator {
     private HashMap<ImVar, GetSetPair> getSetMap = Maps.newHashMap();
     private ImTranslator translator;
     private final boolean generateStacktraces;
+    private final Replacer replacer = new Replacer();
 
     private static class GetSetPair {
         ImFunction getter;
@@ -111,7 +113,7 @@ public class MultiArrayEliminator {
                 Element setParent = set.getParent();
                 set.setParent(null);
                 stmts.add(set);
-                Utils.replace(setParent, set, ImHelper.statementExprVoid(stmts));
+                replacer.replaceInParent(setParent, set, ImHelper.statementExprVoid(stmts));
             }
 
 
@@ -132,7 +134,8 @@ public class MultiArrayEliminator {
                             args.add(JassIm.ImStringVal("when writing array " + va.getVar().getName() + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
                         }
 
-                        set.replaceBy(JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
+                        replacer.replace(set,
+                            JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
                         return;
                     }
                 }
@@ -157,7 +160,8 @@ public class MultiArrayEliminator {
                     args.add(JassIm.ImStringVal("when reading array " + am.getVar().getName() + " in " + StackTraceInjector2.getCallPos(am.getTrace().attrSource())));
                 }
                 if (getSetMap.containsKey(am.getVar())) {
-                    am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
+                    replacer.replace(am,
+                        JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
                 }
             }
         }

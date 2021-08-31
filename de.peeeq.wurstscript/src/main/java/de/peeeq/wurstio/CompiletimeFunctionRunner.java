@@ -274,6 +274,7 @@ public class CompiletimeFunctionRunner {
             imProg.getGlobals().add(res);
             ImAlloc alloc = JassIm.ImAlloc(obj.getTrace(), obj.getType());
             addCompiletimeStateInitAlloc(alloc.getTrace(), res, alloc);
+            globalState.setVal(res, obj);
 
 
             Element trace = obj.getTrace();
@@ -322,6 +323,7 @@ public class CompiletimeFunctionRunner {
                 ImType type = TypesHelper.imHashTable();
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
+                globalState.setVal(res, a);
 
                 init = constantToExprHashtable(trace, res, a, map);
                 addCompiletimeStateInitAlloc(trace, res, init);
@@ -395,8 +397,9 @@ public class CompiletimeFunctionRunner {
 
     // insert at the beginning
     private void addCompiletimeStateInitAlloc(Element trace, ImVar v, ImExpr init) {
-        imProg.getGlobalInits().put(v, Collections.singletonList(init));
-        getCompiletimeStateInitFunction().getBody().add(0, JassIm.ImSet(trace, JassIm.ImVarAccess(v), init.copy()));
+        ImSet imSet = JassIm.ImSet(trace, JassIm.ImVarAccess(v), init.copy());
+        imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
+        getCompiletimeStateInitFunction().getBody().add(0, imSet);
     }
 
     // insert at the end
