@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
+import org.hamcrest.CoreMatchers;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
@@ -1083,4 +1085,33 @@ public class OptimizerTests extends WurstScriptTest {
 
 
     }
+
+
+    @Test
+    public void test_var_merge() throws IOException {
+        test().executeProg(true).lines(
+            "package test",
+            "native testSuccess()",
+            "native println(string s)",
+            "function foo(string p_msg, string p_pos) returns string",
+            "    var msg = p_msg",
+            "    var pos = p_pos",
+            "    pos = msg",
+            "    msg = \"\"",
+            "    for i = 1 to 3",
+            "        msg += \"x\"",
+            "    return pos + msg",
+            "init",
+            "    let s = foo(\"a\", \"b\")",
+            "    println(s)",
+            "    if s == \"axxx\"",
+            "        testSuccess()",
+            "");
+        String output = Files.toString(new File("./test-output/OptimizerTests_test_var_merge_opt.j"), Charsets.UTF_8);
+        // this is interesting: it seems to switch the order in the return line
+        // don't know how this works, but it seems to be correct
+        assertThat(output, CoreMatchers.containsString("return p_msg + p_pos"));
+        System.out.println(output);
+    }
+
 }
