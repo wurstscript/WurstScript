@@ -6,14 +6,11 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
@@ -130,7 +127,7 @@ public class LocalMerger implements OptimizerPass {
      * for each variable: the set of variables which share some lifetime-range
      */
     private Map<ImVar, Set<ImVar>> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
-        Map<ImVar, Set<ImVar>> inferenceGraph = new HashMap<>();
+        Map<ImVar, Set<ImVar>> inferenceGraph = new LinkedHashMap<>();
         java.util.Set<ImStmt> keys = livenessInfo.keySet();
         int i  = 0;
         for (ImStmt s : keys) {
@@ -172,12 +169,12 @@ public class LocalMerger implements OptimizerPass {
 
     public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Set<ImVar>> in = new HashMap<>();
-        Map<Node, Set<ImVar>> out = new HashMap<>();
+        Map<Node, Set<ImVar>> in = new LinkedHashMap<>();
+        Map<Node, Set<ImVar>> out = new LinkedHashMap<>();
 
         Worklist<Node> todo = new Worklist<>();
 
-        Map<Node, Integer> index = new HashMap<>();
+        Map<Node, Integer> index = new LinkedHashMap<>();
 
         // init in and out with empty sets
         for (Node node : cfg.getNodes()) {
@@ -217,7 +214,7 @@ public class LocalMerger implements OptimizerPass {
             }
         }
 
-        Map<ImStmt, Set<ImVar>> result = new HashMap<>();
+        Map<ImStmt, Set<ImVar>> result = new LinkedHashMap<>();
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
@@ -228,7 +225,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
     private Map<Node, Set<ImVar>> calculateUses(List<Node> nodes) {
-        Map<Node, Set<ImVar>> result = new HashMap<>();
+        Map<Node, Set<ImVar>> result = new LinkedHashMap<>();
         for (Node node : nodes) {
             List<ImVar> uses = new ArrayList<>();
             ImStmt stmt = node.getStmt();
@@ -289,7 +286,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
     private Map<Node, Set<ImVar>> calculateDefs(List<Node> nodes) {
-        Map<Node, Set<ImVar>>result = new HashMap<>();
+        Map<Node, Set<ImVar>>result = new LinkedHashMap<>();
         for (Node node : nodes) {
             result.put(node, HashSet.empty());
             ImStmt stmt = node.getStmt();

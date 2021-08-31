@@ -2,10 +2,13 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.testng.Assert.assertEquals;
 
@@ -80,4 +83,37 @@ public class DeterministicChecks extends WurstScriptTest {
             "        testSuccess()"
         );
     }
+
+    @Test
+    public void test_var_merge() throws IOException {
+        Map<String, Integer> counts = new HashMap<>();
+        for (int i = 0; i < 10; i++) {
+            test().executeProg(true).lines(
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "function foo(string p_msg, string p_pos) returns string",
+                "    var msg = p_msg",
+                "    var pos = p_pos",
+                "    pos = msg",
+                "    msg = \"\"",
+                "    for i = 1 to 3",
+                "        msg += \"x\"",
+                "    return pos + msg",
+                "init",
+                "    let s = foo(\"a\", \"b\")",
+                "    if s == \"axxx\"",
+                "        testSuccess()",
+                "");
+
+            String output = Files.toString(new File("./test-output/DeterministicChecks_test_var_merge_opt.j"), Charsets.UTF_8);
+            counts.put(output, counts.getOrDefault(output, 0) + 1);
+        }
+        //System.out.println("counts = " + counts.values());
+        AssertJUnit.assertEquals(1, counts.size());
+        //System.out.println(counts.keySet());
+        // Interesting note: LocalMerger seems to switch the order in the return line and sometimes rewrites the return to
+        // return p_msg + p_pos
+    }
+
 }
