@@ -39,26 +39,26 @@ public class ModelManagerTests {
         newCleanFolder(wurstFolder);
 
         String packageA_v1 = string(
-                "package A",
-                "import B",
-                "import C",
-                "public function a()",
-                "	b()",
-                "	c()"
+            "package A",
+            "import B",
+            "import C",
+            "public function a()",
+            "	b()",
+            "	c()"
         );
 
 
         String packageB_v1 = string(
-                "package B",
-                "import C",
-                "public function b_old()",
-                "	c()"
+            "package B",
+            "import C",
+            "public function b_old()",
+            "	c()"
         );
 
 
         String packageC_v1 = string(
-                "package C",
-                "public function c_old()"
+            "package C",
+            "public function c_old()"
         );
 
 
@@ -126,16 +126,16 @@ public class ModelManagerTests {
 
 
         String packageA = string(
-                "package A",
-                "import Test",
-                "init",
-                "    foo()"
+            "package A",
+            "import Test",
+            "init",
+            "    foo()"
         );
 
 
         String packageTest = string(
-                "package Test",
-                "public function foo()"
+            "package Test",
+            "public function foo()"
         );
 
         WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
@@ -192,21 +192,21 @@ public class ModelManagerTests {
 
 
         String packageA = string(
-                "package A",
-                "import Test",
-                "init",
-                "    foo()"
+            "package A",
+            "import Test",
+            "init",
+            "    foo()"
         );
 
 
         String packageTest = string(
-                "package Test",
-                "public function foo()"
+            "package Test",
+            "public function foo()"
         );
 
         String packageTest2 = string(
-                "package Testttt",
-                "public function foo()"
+            "package Testttt",
+            "public function foo()"
         );
 
         WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
@@ -244,8 +244,8 @@ public class ModelManagerTests {
         manager.onCompilationResult((PublishDiagnosticsParams res) -> {
 
             String errors = res.getDiagnostics().stream()
-                    .map(e -> e.toString())
-                    .collect(Collectors.joining("\n"));
+                .map(e -> e.toString())
+                .collect(Collectors.joining("\n"));
 
             results.put(WFile.create(res.getUri()), errors);
 
@@ -323,7 +323,7 @@ public class ModelManagerTests {
         assertEquals(errors.get(fileA), "");
 
 
-        // no update the module in package T2
+        // now, update the module in package T2
         writeFile(fileTest, packageT2updated);
         manager.syncCompilationUnit(fileTest);
 
@@ -345,6 +345,201 @@ public class ModelManagerTests {
             }
         });
 
+    }
+
+    @Test
+    public void changeModuleAbstractMethod() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "class CustomHero",
+            "    use CustomHeroXpModule",
+            "    int xp",
+            "    override function getXp() returns int",
+            "        return this.xp"
+        );
+
+
+        String packageT2 = string(
+            "package T2",
+            "public module CustomHeroXpModule",
+            "    abstract function getXp() returns int"
+        );
+
+        String packageT2updated = string(
+            "package T2",
+            "public module CustomHeroXpModule",
+            "    abstract function getXpOld() returns int"
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileT2 = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileT2, packageT2);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        assertEquals(errors.get(fileT1), "");
+
+
+        // now, update the module in package T2
+        writeFile(fileT2, packageT2updated);
+        manager.syncCompilationUnit(fileT2);
+
+        // now, there should be errors in class CustomHero in fileA
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Non-abstract class CustomHero must implement the following functions:\\n    function getXpOld() returns int"));
+        assertEquals(errors.get(fileT2), "");
+    }
+
+
+    @Test
+    public void moduleErrorAtInit() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "class C",
+            "    use M",
+            "init",
+            "    new C.foo()"
+        );
+
+
+        String packageT2 = string(
+            "package T2",
+            "public module Moo",
+            "    function foo() returns int",
+            "        return 1"
+        );
+
+        String packageT2updated = string(
+            "package T2",
+            "public module M",
+            "    function foo() returns int",
+            "        return 1"
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileT2 = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileT2, packageT2);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Could not find type M."));
+        assertEquals(errors.get(fileT2), "");
+
+
+        // now, update the module in package T2
+        writeFile(fileT2, packageT2updated);
+        manager.syncCompilationUnit(fileT2);
+
+        // now, the errors should be resolved
+        assertEquals(errors.get(fileT1), "");
+        assertEquals(errors.get(fileT2), "");
+    }
+
+    @Test
+    public void moduleTransitive() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "import T2",
+            "init",
+            "    new C.foo()"
+        );
+
+        String packageT2 = string(
+            "package T2",
+            "import T3",
+            "public class C extends D"
+        );
+
+        String packageT3 = string(
+            "package T3",
+            "import T4",
+            "public class D",
+            "    use M"
+        );
+
+        String packageT4 = string(
+            "package T4",
+            "public module M",
+            "    function foo() returns int",
+            "        return 1"
+        );
+
+        String packageT4updated = string(
+            "package T4",
+            "public module M",
+            "    function bar() returns int",
+            "        return 1"
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileT2 = WFile.create(new File(wurstFolder, "T2.wurst"));
+        WFile fileT3 = WFile.create(new File(wurstFolder, "T3.wurst"));
+        WFile fileT4 = WFile.create(new File(wurstFolder, "T4.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileT2, packageT2);
+        writeFile(fileT3, packageT3);
+        writeFile(fileT4, packageT4);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        // no errors expected
+        assertEquals(errors.get(fileT1), "");
+        assertEquals(errors.get(fileT2), "");
+        assertEquals(errors.get(fileT3), "");
+        assertEquals(errors.get(fileT4), "");
+
+
+        // now, update the module in package T4
+        writeFile(fileT4, packageT4updated);
+        manager.syncCompilationUnit(fileT4);
+
+        // now, the function foo in package T1 can no longer be called
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Could not find function foo"));
     }
 
 

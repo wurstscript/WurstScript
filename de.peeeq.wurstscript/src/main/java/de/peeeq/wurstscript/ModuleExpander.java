@@ -37,7 +37,11 @@ public class ModuleExpander {
         return expandModules(m, new ArrayList<>());
     }
 
-    public static ModuleInstanciations expandModules(ClassOrModule m, Collection<ClassOrModule> visited) {
+    private static ModuleInstanciations expandModules(ClassOrModule m, List<ClassOrModule> visited) {
+        if (m.getP_moduleInstanciations().size() > 0 || m.getModuleUses().isEmpty()) {
+            return m.getP_moduleInstanciations();
+        }
+
         Preconditions.checkNotNull(m);
         if (visited.contains(m)) {
             throw new CompileError(m.getSource(), "Cyclic module dependencies: " +
@@ -45,9 +49,6 @@ public class ModuleExpander {
         }
         visited.add(m);
 
-        if (m.getP_moduleInstanciations().size() > 0) {
-            return m.getP_moduleInstanciations();
-        }
 
 
         for (ModuleUse moduleUse : m.getModuleUses()) {
@@ -56,7 +57,7 @@ public class ModuleExpander {
                 moduleUse.addError("not found");
                 continue;
             }
-            expandModules(usedModule, visited);
+            ModuleInstanciations usedModuleInst = expandModules(usedModule, visited);
 
 
             int numTypeArgs = moduleUse.getTypeArgs().size();
@@ -81,7 +82,7 @@ public class ModuleExpander {
                     smartCopy(usedModule.getMethods(), typeReplacements),
                     smartCopy(usedModule.getVars(), typeReplacements),
                     smartCopy(usedModule.getConstructors(), typeReplacements),
-                    smartCopy(usedModule.getModuleInstanciations(), typeReplacements),
+                    smartCopy(usedModuleInst, typeReplacements),
                     smartCopy(usedModule.getModuleUses(), typeReplacements),
                     smartCopy(usedModule.getOnDestroy(), typeReplacements));
 

@@ -52,7 +52,7 @@ public class WurstValidator {
         this.prog = root;
     }
 
-    public void validate(List<CompilationUnit> toCheck) {
+    public void validate(Collection<CompilationUnit> toCheck) {
         try {
             functionCount = countFunctions();
             visitedFunctions = 0;
@@ -80,7 +80,7 @@ public class WurstValidator {
     /**
      * checks done after walking the tree
      */
-    private void postChecks(List<CompilationUnit> toCheck) {
+    private void postChecks(Collection<CompilationUnit> toCheck) {
         checkUnusedImports(toCheck);
         ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
         ValidateClassMemberUsage.checkClassMembers(toCheck);
@@ -101,7 +101,7 @@ public class WurstValidator {
         });
     }
 
-    private void checkUnusedImports(List<CompilationUnit> toCheck) {
+    private void checkUnusedImports(Collection<CompilationUnit> toCheck) {
         for (CompilationUnit cu : toCheck) {
             for (WPackage p : cu.getPackages()) {
                 checkUnusedImports(p);
@@ -244,6 +244,13 @@ public class WurstValidator {
                 }
             } else if (typ instanceof WurstTypeTuple) {
                 TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+                used.add(def.attrNearestPackage());
+            }
+        }
+        if (e instanceof ModuleUse) {
+            ModuleUse mu = (ModuleUse) e;
+            @Nullable ModuleDef def = mu.attrModuleDef();
+            if (def != null) {
                 used.add(def.attrNearestPackage());
             }
         }

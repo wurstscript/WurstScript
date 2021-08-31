@@ -260,11 +260,11 @@ public class ProgramState extends State {
             ImType vType = v.getType();
             r = createArrayConstantFromType(vType);
             arrayValues.put(v, r);
-            List<ImExpr> e = prog.getGlobalInits().get(v);
+            List<ImSet> e = prog.getGlobalInits().get(v);
             if (e != null) {
                 LocalState ls = new LocalState();
                 for (int i = 0; i < e.size(); i++) {
-                    ILconst val = e.get(i).evaluate(this, ls);
+                    ILconst val = e.get(i).getRight().evaluate(this, ls);
                     r.set(i, val);
                 }
             }

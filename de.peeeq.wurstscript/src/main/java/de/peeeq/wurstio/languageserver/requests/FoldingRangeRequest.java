@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.parser.WPos;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.*;
 import org.jetbrains.annotations.NotNull;
@@ -46,7 +47,11 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
             }
 
             private void addFoldingRange(Element element, int startOffset, int endOffset, String kind) {
-                Range range = Convert.range(element);
+                WPos pos = element.attrSource();
+                if (pos.isArtificial()) {
+                    return;
+                }
+                Range range = Convert.posToRange(pos);
                 range.getStart().setLine(range.getStart().getLine() + startOffset);
                 if (range.getEnd().getCharacter() == 0) {
                     range.getEnd().setLine(range.getEnd().getLine() - 1);

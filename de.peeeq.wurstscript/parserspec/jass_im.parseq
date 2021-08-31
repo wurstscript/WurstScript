@@ -10,7 +10,7 @@ ImProg(
 	ImMethods methods,
 	ImClasses classes,
 	ImTypeClassFuncs typeClassFunctions,
-	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
+	java.util.Map<ImVar, java.util.List<ImSet>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction

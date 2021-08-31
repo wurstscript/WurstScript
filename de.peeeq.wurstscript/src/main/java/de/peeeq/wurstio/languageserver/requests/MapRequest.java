@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.port.Orient;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -379,6 +380,10 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
+        if (Orient.isLinuxSystem()) {
+            // no Warcraft installation supported on Linux
+            return new W3InstallationData(Optional.empty(), Optional.empty());
+        }
         if (wc3Path.isPresent()) {
             W3InstallationData w3data = new W3InstallationData(new File(wc3Path.get()));
             if (!w3data.getWc3PatchVersion().isPresent()) {
