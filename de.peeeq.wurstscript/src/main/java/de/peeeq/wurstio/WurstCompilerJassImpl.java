@@ -34,6 +34,7 @@ import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
@@ -699,15 +700,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     // a cache for compilation units, only used for unit tests to avoid parsing standard library too many times
-    private static final Map<File, CompilationUnit> fileCompilationUnitCache = new HashMap<>();
+    private static final Map<File, WeakReference<CompilationUnit>> fileCompilationUnitCache = new HashMap<>();
 
     private CompilationUnit parseFile(File file) {
         if (errorHandler.isUnitTestMode()) {
             // in unit test mode, we use a cache
-            CompilationUnit res = fileCompilationUnitCache.get(file);
+            WeakReference<CompilationUnit> wr = fileCompilationUnitCache.get(file);
+            CompilationUnit res = wr == null ? null : wr.get();
             if (res == null) {
                 res = parseFile2(file);
-                fileCompilationUnitCache.put(file, res);
+                fileCompilationUnitCache.put(file, new WeakReference<>(res));
             } else {
                 res = res.copy();
             }
