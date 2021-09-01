@@ -28,10 +28,7 @@ import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.NotNullList;
-import de.peeeq.wurstscript.utils.TempDir;
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.utils.*;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -701,7 +698,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return false;
     }
 
+    // a cache for compilation units, only used for unit tests to avoid parsing standard library too many times
+    private static final Map<File, CompilationUnit> fileCompilationUnitCache = new HashMap<>();
+
     private CompilationUnit parseFile(File file) {
+        if (errorHandler.isUnitTestMode()) {
+            // in unit test mode, we use a cache
+            CompilationUnit res = fileCompilationUnitCache.get(file);
+            if (res == null) {
+                res = parseFile2(file);
+                fileCompilationUnitCache.put(file, res);
+            } else {
+                res = res.copy();
+            }
+            return res;
+        } else {
+            return parseFile2(file);
+        }
+    }
+
+    private CompilationUnit parseFile2(File file) {
         if (file.isDirectory()) {
             throw new Error("Is a directory: " + file);
         }
