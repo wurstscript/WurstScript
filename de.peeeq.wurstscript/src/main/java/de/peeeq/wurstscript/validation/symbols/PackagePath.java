@@ -11,6 +11,10 @@ public final class PackagePath {
         this.path = path;
     }
 
+    public PackagePath(String ... path) {
+        this(ImmutableList.copyOf(path));
+    }
+
     public ImmutableList<String> path() {
         return path;
     }

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation.symbols;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.Type;
 import java.util.Objects;
 
 public interface TypeSymbol {
@@ -97,6 +98,12 @@ public interface TypeSymbol {
     }
 
 
+
+    /** Return type for a function that returns nothing. */
+    TypeSymbol Nothing = new TypeSymbol() {};
+
+    /** Special type for errors */
+    TypeSymbol Any = new TypeSymbol() {};
 
 
 }
