@@ -85,15 +85,23 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public boolean removeCompilationUnit(WFile resource) {
+    public Changes removeCompilationUnit(WFile resource) {
         parseErrors.remove(resource);
         WurstModel model2 = model;
         if (model2 == null) {
-            return false;
+            return Changes.empty();
         }
 
         syncCompilationUnitContent(resource, "");
-        return model2.removeIf(cu -> wFile(cu).equals(resource));
+        List<CompilationUnit> toRemove = model2.stream()
+            .filter(cu -> wFile(cu).equals(resource))
+            .collect(Collectors.toList());
+        model2.removeAll(toRemove);
+        return new Changes(toRemove.stream()
+            .map(this::wFile),
+            toRemove.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName));
     }
 
     @Override
@@ -455,12 +463,11 @@ public class ModelManagerImpl implements ModelManager {
 
 
     @Override
-    public void syncCompilationUnitContent(WFile filename, String contents) {
+    public Changes syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
         Set<String> oldPackages = declaredPackages(filename);
         replaceCompilationUnit(filename, contents, true);
-        WurstGui gui = new WurstGuiLogger();
-        doTypeCheckPartial(gui, ImmutableList.of(filename), oldPackages);
+        return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
     }
 
     private Set<String> declaredPackages(WFile f) {
@@ -486,13 +493,14 @@ public class ModelManagerImpl implements ModelManager {
 
 
     @Override
-    public void syncCompilationUnit(WFile f) {
+    public Changes syncCompilationUnit(WFile f) {
         WLogger.info("syncCompilationUnit File " + f);
         Set<String> oldPackages = declaredPackages(f);
         replaceCompilationUnit(f);
         WLogger.info("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
+        return new Changes(io.vavr.collection.HashSet.of(f), oldPackages);
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
@@ -593,6 +601,25 @@ public class ModelManagerImpl implements ModelManager {
 
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck, oldPackages, model2);
 
+        partialTypecheck(model2, toCheckRec, gui, comp);
+    }
+
+    @Override
+    public void reconcile(Collection<WFile> toCheck, Set<String> oldPackageNames) {
+        WurstModel model2 = model;
+        if (model2 == null) {
+            return;
+        }
+        Collection<CompilationUnit> toCheck1 = model2.stream()
+            .filter(cu -> toCheck.contains(WFile.create(cu.getCuInfo().getFile())))
+            .collect(Collectors.toSet());
+        Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
+        WurstGui gui = new WurstGuiLogger();
+        WurstCompilerJassImpl comp = getCompiler(gui);
+        partialTypecheck(model2, toCheckRec, gui, comp);
+    }
+
+    private void partialTypecheck(WurstModel model2, Collection<CompilationUnit> toCheckRec, WurstGui gui, WurstCompilerJassImpl comp) {
         try {
             clearCompilationUnits(toCheckRec);
             comp.addImportedLibs(model2, this::addCompilationUnit);
@@ -607,6 +634,7 @@ public class ModelManagerImpl implements ModelManager {
         reportErrorsForFiles(fileNames, gui);
     }
 
+
     /**
      * Calculates compilation
      *
@@ -616,7 +644,7 @@ public class ModelManagerImpl implements ModelManager {
      * @param model the complete AST
      * @return the set of compilation units that might be affected by the changes, including the changed compilation units
      */
-    private Set<CompilationUnit> calculateCUsToUpdate(List<CompilationUnit> changed, Set<String> oldPackages, WurstModel model) {
+    private Set<CompilationUnit> calculateCUsToUpdate(Collection<CompilationUnit> changed, Set<String> oldPackages, WurstModel model) {
 
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(changed);

@@ -998,6 +998,17 @@ public class Utils {
         return list.stream().limit(list.size() - 1).collect(Collectors.toList());
     }
 
+    public static Optional<String> getEnvOrConfig(String varName) {
+        String res = System.getenv(varName);
+        if (res == null || res.isEmpty()) {
+            res = System.getProperty(varName);
+        }
+        if (res == null || res.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(res);
+    }
+
     public static class ExecResult {
         private final String stdOut;
         private final String stdErr;

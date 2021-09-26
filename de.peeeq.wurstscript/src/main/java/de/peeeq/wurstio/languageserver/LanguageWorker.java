@@ -3,9 +3,11 @@ package de.peeeq.wurstio.languageserver;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,6 +40,7 @@ public class LanguageWorker implements Runnable {
     private final AtomicLong currentTime = new AtomicLong();
     private final Queue<UserRequest<?>> userRequests = new LinkedList<>();
     private final Thread thread;
+    public final Duration reconcileWaitTime;
 
     private ModelManager modelManager;
 
@@ -48,10 +51,19 @@ public class LanguageWorker implements Runnable {
     private WFile rootPath;
 
     private final Object lock = new Object();
-    private BufferManager bufferManager = new BufferManager();
+    private ModelManager.Changes changesToReconcile = ModelManager.Changes.empty();
+    private final DebouncingTimer packagesToReconcileTimer = new DebouncingTimer(() -> {
+        synchronized (lock) {
+            lock.notify();
+        }
+    });
+    private final BufferManager bufferManager = new BufferManager();
     private LanguageClient languageClient;
 
     public LanguageWorker() {
+        Optional<String> waitTime = Utils.getEnvOrConfig("WURST_RECONCILE_WAIT_TIME");
+        reconcileWaitTime = waitTime.map(Duration::parse).orElse(Duration.ofSeconds(3));
+
         // start working
         thread = new Thread(this);
         thread.setName("Wurst LanguageWorker");
@@ -93,12 +105,22 @@ public class LanguageWorker implements Runnable {
         public FileUpdated(WFile filename) {
             super(filename);
         }
+
+        @Override
+        public String toString() {
+            return "FileUpdated(" + getFilename() + ")";
+        }
     }
 
     class FileDeleted extends PendingChange {
 
         public FileDeleted(WFile filename) {
             super(filename);
+        }
+
+        @Override
+        public String toString() {
+            return "FileDeleted(" + getFilename() + ")";
         }
     }
 
@@ -113,6 +135,11 @@ public class LanguageWorker implements Runnable {
 
         public String getContents() {
             return contents;
+        }
+
+        @Override
+        public String toString() {
+            return "FileReconcile(" + getFilename() + ")";
         }
     }
 
@@ -162,20 +189,34 @@ public class LanguageWorker implements Runnable {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
             return new Workitem(change.toString(), () -> {
+                ModelManager.Changes affected = null;
                 if (isWurstDependencyFile(change)) {
                     if (!(change instanceof FileReconcile)) {
                         modelManager.clean();
                     }
                 } else if (change instanceof FileDeleted) {
-                    modelManager.removeCompilationUnit(change.getFilename());
+                    affected = modelManager.removeCompilationUnit(change.getFilename());
                 } else if (change instanceof FileUpdated) {
-                    modelManager.syncCompilationUnit(change.getFilename());
+                    affected = modelManager.syncCompilationUnit(change.getFilename());
                 } else if (change instanceof FileReconcile) {
                     FileReconcile fr = (FileReconcile) change;
-                    modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
+                    affected = modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
                 } else {
                     WLogger.info("unhandled change request: " + change);
                 }
+
+                if (affected != null) {
+                    changesToReconcile = changesToReconcile.mergeWith(affected);
+                    packagesToReconcileTimer.start(reconcileWaitTime);
+                }
+            });
+        } else if (!changesToReconcile.isEmpty() && packagesToReconcileTimer.isReady()) {
+            packagesToReconcileTimer.stop();
+            ModelManager.Changes changes = changesToReconcile;
+            changesToReconcile = ModelManager.Changes.empty();
+
+            return new Workitem("reconcile files", () -> {
+                modelManager.reconcile(changes.getAffectedFiles().toJavaSet(), changes.getAffectedPackageNames().toJavaSet());
             });
         }
         return null;
@@ -264,7 +305,7 @@ public class LanguageWorker implements Runnable {
                     request.handleException(languageClient, err, resFut);
                 } else if (res == null) {
                     System.err.println("Request returned null: " + request);
-                    if(!(request instanceof HoverInfo)) {
+                    if (!(request instanceof HoverInfo)) {
                         languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
                     }
                     resFut.completeExceptionally(new RuntimeException("Request returned null: " + request));
