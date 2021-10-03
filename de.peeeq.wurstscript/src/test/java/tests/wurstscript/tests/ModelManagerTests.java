@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.collect.ImmutableSet;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -33,7 +34,7 @@ import static org.testng.Assert.*;
 public class ModelManagerTests {
 
     @Test
-    public void test() throws IOException {
+    public void test() throws IOException, InterruptedException {
         File projectFolder = new File("./temp/testProject/");
         File wurstFolder = new File(projectFolder, "wurst");
         newCleanFolder(wurstFolder);
@@ -90,7 +91,8 @@ public class ModelManagerTests {
         // no assume we fix package B
         String packageB_v2 = packageB_v1.replace("b_old", "b");
         results.clear();
-        manager.syncCompilationUnitContent(fileB, packageB_v2);
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileB, packageB_v2);
+        manager.reconcile(changes);
         // the change of B should trigger rechecks of A and B, but not of C
         assertEquals(ImmutableSet.of(fileA, fileB), results.keySet());
 
@@ -102,7 +104,8 @@ public class ModelManagerTests {
         // no we fix package C:
         String packageC_v2 = packageC_v1.replace("c_old", "c");
         results.clear();
-        manager.syncCompilationUnitContent(fileC, packageC_v2);
+        changes = manager.syncCompilationUnitContent(fileC, packageC_v2);
+        manager.reconcile(changes);
 
         // the change of B should trigger rechecks of A, B, and C
         assertEquals(ImmutableSet.of(fileA, fileB, fileC), results.keySet());
@@ -250,7 +253,7 @@ public class ModelManagerTests {
             results.put(WFile.create(res.getUri()), errors);
 
             for (Diagnostic err : res.getDiagnostics()) {
-                System.out.println("   err: " + err);
+                System.out.println("   " + err.getSeverity() + " in " + res.getUri() + ", line " + err.getRange().getStart().getLine()  + "\n     " + err.getMessage());
             }
         });
         return results;

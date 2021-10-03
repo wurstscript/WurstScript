@@ -216,7 +216,7 @@ public class LanguageWorker implements Runnable {
             changesToReconcile = ModelManager.Changes.empty();
 
             return new Workitem("reconcile files", () -> {
-                modelManager.reconcile(changes.getAffectedFiles().toJavaSet(), changes.getAffectedPackageNames().toJavaSet());
+                modelManager.reconcile(changes);
             });
         }
         return null;

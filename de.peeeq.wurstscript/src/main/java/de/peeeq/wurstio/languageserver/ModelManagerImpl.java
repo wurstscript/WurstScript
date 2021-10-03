@@ -605,14 +605,15 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public void reconcile(Collection<WFile> toCheck, Set<String> oldPackageNames) {
+    public void reconcile(Changes changes) {
         WurstModel model2 = model;
         if (model2 == null) {
             return;
         }
         Collection<CompilationUnit> toCheck1 = model2.stream()
-            .filter(cu -> toCheck.contains(WFile.create(cu.getCuInfo().getFile())))
+            .filter(cu -> changes.getAffectedFiles().contains(WFile.create(cu.getCuInfo().getFile())))
             .collect(Collectors.toSet());
+        Set<String> oldPackageNames = changes.getAffectedPackageNames().toJavaSet();
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);

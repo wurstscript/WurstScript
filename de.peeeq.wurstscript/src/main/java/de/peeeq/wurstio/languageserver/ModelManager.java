@@ -67,7 +67,7 @@ public interface ModelManager {
     String getFirstErrorDescription();
 
     /** clean and typecheck the given files */
-    void reconcile(Collection<WFile> toCheck, Set<String> oldPackageNames);
+    void reconcile(Changes changes);
 
     class Changes {
         private static final Changes EMPTY = new Changes(HashSet.empty(), HashSet.empty());
