@@ -529,7 +529,14 @@ public class ModelManagerImpl implements ModelManager {
             if (gui.getErrorCount() > 0) {
                 WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
             }
-            reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
+            ImmutableList.Builder<CompileError> errors = ImmutableList.<CompileError>builder()
+                .addAll(gui.getErrorsAndWarnings());
+
+            if (otherErrors.containsKey(filename)) {
+                errors.addAll(otherErrors.get(filename));
+            }
+
+            reportErrors("sync cu " + filename, filename, errors.build());
         }
         return cu;
     }

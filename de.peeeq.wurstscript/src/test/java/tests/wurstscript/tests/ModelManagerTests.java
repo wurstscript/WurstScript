@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -543,6 +544,52 @@ public class ModelManagerTests {
 
         // now, the function foo in package T1 can no longer be called
         assertThat(errors.get(fileT1), CoreMatchers.containsString("Could not find function foo"));
+    }
+
+    @Test
+    public void keepTypeErrorsWhileEditing() throws IOException {
+        File projectFolder = new File("./temp/testProject2/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+
+        String packageT1 = string(
+            "package T1",
+            "init",
+            "    foo()"
+        );
+
+        String packageT1updated = string(
+            "package T1",
+            "init",
+            "    foo()",
+            "    if ("
+        );
+
+        WFile fileT1 = WFile.create(new File(wurstFolder, "T1.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+
+        writeFile(fileT1, packageT1);
+        writeFile(fileWurst, "package Wurst\n");
+
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+
+
+        // first build the project
+        manager.buildProject();
+        // should show the type error
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Reference to function foo could not be resolved."));
+
+
+        // now, update package T1 and introduce a syntax error
+        manager.syncCompilationUnitContent(fileT1, packageT1updated);
+
+        // now the errors should contain the syntax error and the type error
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("Reference to function foo could not be resolved."));
+        assertThat(errors.get(fileT1), CoreMatchers.containsString("extraneous input '(' expecting NL"));
     }
 
 
