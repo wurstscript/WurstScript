@@ -617,4 +617,49 @@ public class SimpleStatementTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void empty_if_warning() {
+        testAssertErrorsLines(false, "This if-statement has an empty then-block.",
+            "package test",
+            "init",
+            "    if 3 < 4"
+        );
+    }
+
+    @Test
+    public void empty_else_warning() {
+        testAssertErrorsLines(false, "This if-statement has an empty else-block.",
+            "package test",
+            "init",
+            "    if 3 < 4",
+            "        skip",
+            "    else",
+            ""
+        );
+    }
+
+    @Test
+    public void no_else_no_warning() {
+        testAssertOkLines(false,
+            "package test",
+            "init",
+            "    if 3 < 4",
+            "        skip",
+            ""
+        );
+    }
+
+    @Test
+    public void empty_closure_warning() {
+        testAssertErrorsLines(false, "This function has an empty body. Write 'skip' if you intend to leave it empty.",
+            "package test",
+            "interface F",
+            "    function foo()",
+            "function x(F f)",
+            "    f.foo()",
+            "init",
+            "    x() ->",
+            "    skip"
+        );
+    }
 }

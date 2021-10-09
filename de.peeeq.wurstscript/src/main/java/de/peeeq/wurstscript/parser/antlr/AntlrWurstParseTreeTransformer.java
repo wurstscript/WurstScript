@@ -216,7 +216,11 @@ public class AntlrWurstParseTreeTransformer {
     private WStatement transformJassStatementIf(JassStatementIfContext s) {
         WStatements thenBlock = transformJassStatements(s.thenStatements);
         WStatements elseBlock = transformJassElseIfs(s.jassElseIfs());
-        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock);
+        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock, !isEndif(s.jassElseIfs()));
+    }
+
+    private boolean isEndif(JassElseIfsContext s) {
+        return s.JASS_ELSEIF() != null;
     }
 
     private WStatements transformJassElseIfs(JassElseIfsContext s) {
@@ -227,7 +231,9 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.WStatements(Ast.StmtIf(source(s),
                     transformExpr(s.cond),
                     transformJassStatements(s.thenStatements),
-                    transformJassElseIfs(s.jassElseIfs())));
+                    transformJassElseIfs(s.jassElseIfs()),
+                    !isEndif(s.jassElseIfs())
+                ));
         } else if (s.elseStmts != null) {
             return transformJassStatements(s.elseStmts);
         } else {
@@ -933,7 +939,7 @@ public class AntlrWurstParseTreeTransformer {
         } else {
             elseBlock = Ast.WStatements();
         }
-        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock);
+        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock, i.ELSE() != null);
     }
 
     private Expr transformExpr(ExprContext e) {

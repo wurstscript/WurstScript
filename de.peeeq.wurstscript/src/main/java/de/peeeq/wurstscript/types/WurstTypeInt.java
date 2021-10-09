@@ -25,7 +25,7 @@ public class WurstTypeInt extends WurstTypePrimitive {
             VariablePosition variablePosition) {
         return (other instanceof WurstTypeInt
                 // in jass code we can use an int where a real is expected
-                || other instanceof WurstTypeReal && Utils.isJassCode(Optional.ofNullable(location))) ? mapping : null;
+                || other instanceof WurstTypeReal && Utils.isJassCode(location)) ? mapping : null;
     }
 
 

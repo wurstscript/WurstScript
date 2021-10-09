@@ -135,16 +135,15 @@ public class Utils {
     /**
      * is a piece of code jass code?
      */
-    public static boolean isJassCode(Optional<Element> pos) {
-        while (pos.isPresent()) {
-            if (pos.get() instanceof WPackage) {
+    public static boolean isJassCode(@Nullable Element pos) {
+        while (pos != null) {
+            if (pos instanceof WPackage) {
                 return false; // code is inside package -> wurstscript code
             }
-            pos = Optional.ofNullable(pos.get().getParent());
+            pos = pos.getParent();
         }
         return true; // no package found -> jass code
     }
-
 
     public static <T> String join(Iterable<T> hints, String seperator) {
         StringBuilder builder = new StringBuilder();

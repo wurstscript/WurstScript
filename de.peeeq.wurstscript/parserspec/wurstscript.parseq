@@ -149,7 +149,7 @@ ControlflowStatement =
 	| StmtExitwhen(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr cond)
 
 CompoundStatement =
-	  StmtIf(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
+	  StmtIf(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock, boolean hasElse)
 	| SwitchStmt(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
 	| WBlock(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| LoopStatement

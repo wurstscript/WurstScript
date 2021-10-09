@@ -37,7 +37,7 @@ public class AttrTypeDef {
             return r;
         }
 
-        WurstType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(Optional.of(node)));
+        WurstType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
         if (nativeType != null) {
             return null; // native types have no definitionPos
         }

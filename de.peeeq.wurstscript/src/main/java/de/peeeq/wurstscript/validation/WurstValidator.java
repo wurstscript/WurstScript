@@ -385,8 +385,10 @@ public class WurstValidator {
                 checkReachability((WStatement) e);
             if (e instanceof WurstModel)
                 checkForDuplicatePackages((WurstModel) e);
-            if (e instanceof WStatements)
+            if (e instanceof WStatements) {
                 checkForInvalidStmts((WStatements) e);
+                checkForEmptyBlocks((WStatements) e);
+            }
             if (e instanceof StmtExitwhen)
                 visit((StmtExitwhen) e);
         } catch (CyclicDependencyError cde) {
@@ -481,6 +483,45 @@ public class WurstValidator {
                 s.addError("Use of variable " + ev.getVarName() + " is an incomplete statement.");
             }
         }
+    }
+
+    private void checkForEmptyBlocks(WStatements e) {
+        Element parent = e.getParent();
+        // some parent cases to ignore:
+        if (parent instanceof OnDestroyDef
+            || parent instanceof ConstructorDef
+            || parent instanceof FunctionDefinition
+            || parent instanceof SwitchDefaultCaseStatements
+            || parent instanceof SwitchCase) {
+            return;
+        }
+        if (parent instanceof ExprStatementsBlock) {
+            // for blocks in closures, we have StartFunction and EndFunction statements, so must be > 2 to be nonempty
+            if (e.size() > 2) {
+                return;
+            }
+            parent.getParent().addWarning("This function has an empty body. Write 'skip' if you intend to leave it empty.");
+            return;
+        }
+        if (!e.isEmpty()) {
+            return;
+        }
+        if (Utils.isJassCode(parent)) {
+            // no warnings in Jass code
+            return;
+        }
+
+        if (parent instanceof StmtIf) {
+            StmtIf stmtIf = (StmtIf) parent;
+            if (e == stmtIf.getElseBlock() && stmtIf.getHasElse()) {
+                parent.addWarning("This if-statement has an empty else-block.");
+            } else if (e == stmtIf.getThenBlock()) {
+                parent.addWarning("This if-statement has an empty then-block. Write 'skip' if you intend to leave it empty.");
+            }
+            return;
+        }
+
+        parent.addWarning("This statement (" + Utils.printElement(parent) + ") contains an empty block. Write 'skip' if you intend to leave it empty.");
     }
 
     private void checkName(AstElementWithNameId e) {
@@ -763,7 +804,7 @@ public class WurstValidator {
     }
 
     private void checkExprNull(ExprNull e) {
-        if (!Utils.isJassCode(Optional.of(e)) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
+        if (!Utils.isJassCode(e) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
             e.addError(
                     "Cannot use 'null' constant here because " + "the compiler cannot infer which kind of null it is.");
         }
@@ -815,7 +856,7 @@ public class WurstValidator {
         WurstType leftType = s.getUpdatedExpr().attrTyp();
         WurstType rightType = s.getRight().attrTyp();
 
-        checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
+        checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 
         checkIfAssigningToConstant(s.getUpdatedExpr());
 
@@ -987,7 +1028,7 @@ public class WurstValidator {
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
 
-            checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
+            checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
         } else if (s.getInitialExpr() instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) s.getInitialExpr();
             checkArrayInit(s, arInit);
@@ -1028,7 +1069,7 @@ public class WurstValidator {
             // (same convention as in Erlang)
             return;
         }
-        if (Utils.isJassCode(Optional.of(s))) {
+        if (Utils.isJassCode(s)) {
             return;
         }
         if (s.getParent() instanceof StmtForRange) {
@@ -1045,7 +1086,7 @@ public class WurstValidator {
         String varName = s.getName();
 
         if (!isValidVarnameStart(varName) // first letter not lower case
-                && !Utils.isJassCode(Optional.of(s)) // not in jass code
+                && !Utils.isJassCode(s) // not in jass code
                 && !varName.matches("[A-Z0-9_]+") // not a constant
         ) {
             s.addWarning("Variable names should start with a lower case character. (" + varName + ")");
@@ -1110,7 +1151,7 @@ public class WurstValidator {
             Expr initial = (Expr) s.getInitialExpr();
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
-            checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
+            checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
         } else if (s.getInitialExpr() instanceof ArrayInitializer) {
             checkArrayInit(s, (ArrayInitializer) s.getInitialExpr());
         }
@@ -1141,7 +1182,7 @@ public class WurstValidator {
     }
 
     private void checkFunctionName(FunctionDefinition f) {
-        if (!Utils.isJassCode(Optional.of(f))) {
+        if (!Utils.isJassCode(f)) {
             if (!isValidVarnameStart(f.getName())) {
                 f.addWarning("Function names should start with an lower case character.");
             }
@@ -1169,7 +1210,7 @@ public class WurstValidator {
             if (s.attrPreviousStatements().isEmpty()) {
                 if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
                         || stmts.getParent() instanceof ExprStatementsBlock)) {
-                    if (Utils.isJassCode(Optional.of(s))) {
+                    if (Utils.isJassCode(s)) {
                         // in jass this is just a warning, because
                         // the shitty code emitted by jasshelper sometimes
                         // contains unreachable code
@@ -1234,7 +1275,7 @@ public class WurstValidator {
             if (!f.getSource().getFile().endsWith("common.j")
                     && !f.getSource().getFile().endsWith("blizzard.j")
                     && !f.getSource().getFile().endsWith("war3map.j")) {
-                new DataflowAnomalyAnalysis(Utils.isJassCode(Optional.of(f))).execute(f);
+                new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
             }
         }
     }

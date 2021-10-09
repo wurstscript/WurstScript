@@ -24,7 +24,7 @@ public class WurstTypeNull extends WurstType {
         if (other.isNullable()) {
             return mapping;
         }
-        if (Utils.isJassCode(Optional.of(location))
+        if (Utils.isJassCode(location)
                 && (other instanceof WurstTypeInt || other instanceof WurstTypeIntLiteral)) {
             return mapping;
         }

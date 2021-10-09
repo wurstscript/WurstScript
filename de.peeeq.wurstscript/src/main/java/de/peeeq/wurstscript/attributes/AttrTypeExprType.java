@@ -74,7 +74,7 @@ public class AttrTypeExprType {
 
     private static WurstType getBaseType(TypeExprSimple node) {
         final String typename = node.getTypeName();
-        final boolean isJassCode = Utils.isJassCode(Optional.of(node));
+        final boolean isJassCode = Utils.isJassCode(node);
         TypeDef t = node.attrTypeDef();
         if (t == null) {
             WurstType nativeType = NativeTypes.nativeType(typename, isJassCode);
