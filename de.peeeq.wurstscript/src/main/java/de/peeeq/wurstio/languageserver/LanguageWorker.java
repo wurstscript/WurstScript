@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LanguageWorker implements Runnable {
 
-    private static class Workitem {
+    private final static class Workitem {
         private String description;
         private Runnable runnable;
 
@@ -159,7 +159,10 @@ public class LanguageWorker implements Runnable {
                     // actual work is not synchronized, so that requests can
                     // come in while the work is done
                     try {
+                        long startTime = System.currentTimeMillis();
                         work.run();
+                        long duration = System.currentTimeMillis() - startTime;
+                        WLogger.info("LanguageWorker: request " + work + " completed in " + duration + "ms");
                     } catch (Throwable e) {
                         languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e.toString()));
                         WLogger.severe(e);

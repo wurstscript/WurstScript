@@ -629,6 +629,10 @@ public class ModelManagerImpl implements ModelManager {
 
     private void partialTypecheck(WurstModel model2, Collection<CompilationUnit> toCheckRec, WurstGui gui, WurstCompilerJassImpl comp) {
         try {
+            WLogger.info("Running partial type check on files " + toCheckRec.stream()
+                .map(c -> c.getCuInfo().getFile().replaceAll("^.*[/\\\\]", ""))
+                .sorted()
+                .collect(Collectors.joining(", ")));
             clearCompilationUnits(toCheckRec);
             comp.addImportedLibs(model2, this::addCompilationUnit);
             comp.checkProg(model2, toCheckRec);

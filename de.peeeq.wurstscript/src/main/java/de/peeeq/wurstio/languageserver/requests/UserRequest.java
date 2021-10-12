@@ -40,5 +40,9 @@ public abstract class UserRequest<Res> {
         resFut.completeExceptionally(err);
     }
 
+    @Override
+    public final String toString() {
+        return getClass().getSimpleName();
+    }
 
 }
