@@ -585,7 +585,8 @@ public class ModelManagerTests {
 
 
         // now, update package T1 and introduce a syntax error
-        manager.syncCompilationUnitContent(fileT1, packageT1updated);
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileT1, packageT1updated);
+        manager.reconcile(changes);
 
         // now the errors should contain the syntax error and the type error
         assertThat(errors.get(fileT1), CoreMatchers.containsString("Reference to function foo could not be resolved."));

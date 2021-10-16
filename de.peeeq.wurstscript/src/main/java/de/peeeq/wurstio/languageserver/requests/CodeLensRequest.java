@@ -36,7 +36,7 @@ public class CodeLensRequest {
         public List<CodeLens> execute(ModelManager modelManager) {
             WFile wFile = WFile.create(params.getTextDocument());
             String buffer = bufferManager.getBuffer(wFile);
-            CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, buffer, true);
+            CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, buffer, false);
             if (cu == null) {
                 return Collections.emptyList();
             }

@@ -466,7 +466,7 @@ public class ModelManagerImpl implements ModelManager {
     public Changes syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
         Set<String> oldPackages = declaredPackages(filename);
-        replaceCompilationUnit(filename, contents, true);
+        replaceCompilationUnit(filename, contents, false);
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
     }
 
