@@ -6,13 +6,13 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
-import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Optional;
 
 public class ReflectionNativeProvider implements NativesProvider {
     private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
@@ -67,41 +67,12 @@ public class ReflectionNativeProvider implements NativesProvider {
     }
 
     @Override
-    public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
-        String msg = "Calling method " + funcname + "(" +
-            Utils.printSep(", ", args) + ")";
-        WLogger.trace(msg);
-
+    public Optional<NativeHandle> find(String funcname) {
         NativeJassFunction candidate = methodMap.get(funcname);
         if (candidate == null) {
-            throw new NoSuchNativeException("");
+            return Optional.empty();
         }
-
-        if (candidate.getMethod().getParameterCount() == args.length) {
-            String[] parameterTypes = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                parameterTypes[i] = "" + args[i];
-                if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
-                    if (args[i] instanceof ILconstNull) {
-                        // handle null as a special case and pass it to the native as a Java null
-                        args[i] = null;
-                        continue;
-                    }
-                    throw new Error("The native <" + funcname + "> expects different parameter " + i + "!" +
-                            "\n\tExpected: " + candidate.getMethod().getParameterTypes()[i].getSimpleName() + " Actual: " + parameterTypes[i]);
-                }
-            }
-        }
-        try {
-            return (ILconst) candidate.getMethod().invoke(candidate.getProvider(), (Object[]) args);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            if (e.getCause() instanceof Error) {
-                throw (Error) e.getCause();
-            } else if (e.getCause() instanceof InterpreterException) {
-                throw (InterpreterException) e.getCause();
-            }
-            throw new Error(e.getCause());
-        }
+        return Optional.of(new ReflectionBasedNativeHandle(candidate.getProvider(), candidate.getMethod()));
     }
 
     @Override

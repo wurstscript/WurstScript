@@ -109,9 +109,15 @@ public class CompiletimeFunctionRunner {
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
+            gui.sendProgress("Compiletime: Run delayed actions");
             runDelayedActions();
-
+            gui.sendProgress("Compiletime: Partition compiletime state init function");
             partitionCompiletimeStateInitFunction();
+
+            for (Map.Entry<String, Long> e : interpreter.counts.entrySet()) {
+                WLogger.info("NATIVE DUR: " + e.getKey() + "\t" + e.getValue() + "\t" + (interpreter.durations.get(e.getKey()) / e.getValue()) + "ns");
+
+            }
 
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
@@ -172,13 +178,19 @@ public class CompiletimeFunctionRunner {
 
     private void execute(List<Either<ImCompiletimeExpr, ImFunction>> es) {
         for (Either<ImCompiletimeExpr, ImFunction> e : es) {
+            long start = System.currentTimeMillis();
+            String name;
             if (e.isLeft()) {
                 ImCompiletimeExpr cte = e.getLeft();
+                name = Utils.printElementWithSource(Optional.ofNullable(cte.getTrace()));
                 executeCompiletimeExpr(cte);
             } else {
                 ImFunction f = e.getRight();
+                name = Utils.printElementWithSource(Optional.ofNullable(f.getTrace()));
                 executeCompiletimeFunction(f);
             }
+            long dur = System.currentTimeMillis() - start;
+            WLogger.info("Compiletime:\t" + dur + "ms\t" + name);
         }
         interpreter.completeTimers();
     }

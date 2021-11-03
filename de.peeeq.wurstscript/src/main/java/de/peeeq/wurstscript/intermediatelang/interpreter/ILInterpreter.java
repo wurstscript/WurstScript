@@ -19,6 +19,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -30,8 +32,6 @@ public class ILInterpreter implements AbstractInterpreter {
     public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
-        globalState.addNativeProvider(new BuiltinFuncs(globalState));
-//        globalState.addNativeProvider(new NativeFunctions());
     }
 
     public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
@@ -151,22 +151,37 @@ public class ILInterpreter implements AbstractInterpreter {
         return false;
     }
 
+    public static Map<String, Long> durations = new HashMap<>();
+    public static Map<String, Long> counts = new HashMap<>();
+
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        StringBuilder errors = new StringBuilder();
-        for (NativesProvider natives : globalState.getNativeProviders()) {
-            try {
-                return new LocalState(natives.invoke(f.getName(), args));
-            } catch (NoSuchNativeException e) {
-                errors.append("\n").append(e.getMessage());
-                // ignore
+        HashMap<ImFunction, NativesProvider.NativeHandle> nativeHandles = globalState.getNativeHandles();
+        NativesProvider.NativeHandle h = nativeHandles.get(f);
+        if (h == null) {
+            Optional<NativesProvider.NativeHandle> nh = globalState.getNativeProviders().stream()
+                .map(p -> p.find(f.getName()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+            if (nh.isPresent()) {
+                h = nh.get();
+                nativeHandles.put(f, h);
+            } else {
+                throw new InterpreterException("Could not find builtin function " + f.getName());
             }
         }
-        globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
-        if (f.getReturnType() instanceof ImVoid) {
-            return new LocalState();
-        }
-        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
-        return new LocalState(returnValue);
+        long start = System.nanoTime();
+        ILconst r = h.invoke(args);
+        long dur = System.nanoTime() - start;
+        durations.put(f.getName(), durations.getOrDefault(f.getName(), 0L) + dur);
+        counts.put(f.getName(), counts.getOrDefault(f.getName(), 0L) + 1);
+
+        return new LocalState(r);
+//        if (f.getReturnType() instanceof ImVoid) {
+//            return new LocalState();
+//        }
+//        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+//        return new LocalState(returnValue);
     }
 
     private static boolean isCompiletimeNative(ImFunction f) {

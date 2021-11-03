@@ -122,6 +122,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             Preconditions.checkNotNull(mapFileMpq);
             Preconditions.checkNotNull(projectFolder);
             // add the imports
+            gui.sendProgress("Adding imports from project folder to map");
             ImportFile.importFilesFromImportDirectory(projectFolder, mapFileMpq);
         }
     }

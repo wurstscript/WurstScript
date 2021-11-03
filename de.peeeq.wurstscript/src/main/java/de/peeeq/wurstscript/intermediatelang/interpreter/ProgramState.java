@@ -29,6 +29,7 @@ public class ProgramState extends State {
     private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
     private HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
+    private HashMap<ImFunction, NativesProvider.NativeHandle> nativeHandles = new HashMap<>();
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -70,7 +71,7 @@ public class ProgramState extends State {
         nativeProviders.add(np);
     }
 
-    public Iterable<NativesProvider> getNativeProviders() {
+    public List<NativesProvider> getNativeProviders() {
         return nativeProviders;
     }
 
@@ -278,5 +279,8 @@ public class ProgramState extends State {
         return indexToObject.values();
     }
 
+    public HashMap<ImFunction, NativesProvider.NativeHandle> getNativeHandles() {
+        return nativeHandles;
+    }
 }
 
