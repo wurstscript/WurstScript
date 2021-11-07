@@ -6,7 +6,11 @@ import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
+import java.util.LinkedHashMap;
+
 public class UnitProvider extends Provider {
+    private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
+
     public UnitProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
@@ -17,5 +21,13 @@ public class UnitProvider extends Provider {
 
     public ILconstInt GetUnitTypeId(IlConstHandle unit) {
         return ((UnitMock)unit.getObj()).unitid;
+    }
+
+    public ILconstInt GetUnitUserData(IlConstHandle unit) {
+        return userDataMap.get(unit);
+    }
+
+    public void SetUnitUserData(IlConstHandle unit, ILconstInt userData) {
+        userDataMap.put(unit, userData);
     }
 }
