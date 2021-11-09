@@ -14,8 +14,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
@@ -180,11 +182,18 @@ public class ImportFile {
         mpq.insertFile("war3map.imp", byteOut.toByteArray());
     }
 
-    public static void importFilesFromImportDirectory(File projectFolder, MpqEditor ed) {
+    public static void importFilesFromImports(File projectFolder, MpqEditor ed) {
         File importDirectory = getImportDirectory(projectFolder);
+        importFilesFromImportDirectory(importDirectory, ed);
+
+        for (File transientImport : getTransientImportDirectories(projectFolder)) {
+            importFilesFromImportDirectory(transientImport, ed);
+        }
+    }
+
+    public static void importFilesFromImportDirectory(File importDirectory, MpqEditor ed) {
         if (importDirectory.exists() && importDirectory.isDirectory()) {
             WLogger.info("importing from: " + importDirectory.getAbsolutePath());
-            WLogger.info("projectFolder: " + projectFolder.getAbsolutePath());
             try {
                 insertImportedFiles(ed, importDirectory);
             } catch (Exception e) {
@@ -203,6 +212,22 @@ public class ImportFile {
 
     private static File getImportDirectory(File projectFolder) {
         return new File(projectFolder, "imports");
+    }
+
+    private static File[] getTransientImportDirectories(File projectFolder) {
+        ArrayList<Path> paths = new ArrayList<>();
+        Path dependencies = projectFolder.toPath().resolve("_build").resolve("dependencies");
+        try {
+            java.nio.file.Files.list(dependencies).forEach(dependency -> {
+                if (java.nio.file.Files.exists(dependency.resolve("imports"))) {
+                    paths.add(dependency.resolve("imports"));
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        File[] arr = new File[paths.size()];
+        return paths.stream().map(Path::toFile).collect(Collectors.toList()).toArray(arr);
     }
 
 }

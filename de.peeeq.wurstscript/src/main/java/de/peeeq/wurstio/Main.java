@@ -150,7 +150,7 @@ public class Main {
                             byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
                             mpqEditor.insertFile("war3map.j", war3map);
                         }
-                        ImportFile.importFilesFromImportDirectory(projectFolder, mpqEditor);
+                        ImportFile.importFilesFromImports(projectFolder, mpqEditor);
                     }
                 } else {
                     compiledScript = compilationProcess.doCompilation(null, true);
