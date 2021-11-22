@@ -43,7 +43,7 @@ public class ProjectConfigBuilder {
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
-                W3I w3I = prepareW3I(projectConfig, targetMap);
+                W3I w3I = prepareW3I(projectConfig, mpq);
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
 
@@ -98,28 +98,26 @@ public class ProjectConfigBuilder {
         applyMapHeader(projectConfig, targetMap);
     }
 
-    private static W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
-            W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
-            WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
-            if (StringUtils.isNotBlank(buildMapData.getName())) {
-                w3I.setMapName(buildMapData.getName());
-            }
-            if (StringUtils.isNotBlank(buildMapData.getAuthor())) {
-                w3I.setMapAuthor(buildMapData.getAuthor());
-            }
-            applyScenarioData(w3I, buildMapData);
-
-            if (buildMapData.getPlayers().size() > 0) {
-                applyPlayers(projectConfig, w3I);
-            }
-            if (buildMapData.getForces().size() > 0) {
-                applyForces(projectConfig, w3I);
-            }
-            applyOptionFlags(projectConfig, w3I);
-
-            return w3I;
+    private static W3I prepareW3I(WurstProjectConfigData projectConfig, MpqEditor mpq) throws Exception {
+        W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
+        WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
+        if (StringUtils.isNotBlank(buildMapData.getName())) {
+            w3I.setMapName(buildMapData.getName());
         }
+        if (StringUtils.isNotBlank(buildMapData.getAuthor())) {
+            w3I.setMapAuthor(buildMapData.getAuthor());
+        }
+        applyScenarioData(w3I, buildMapData);
+
+        if (buildMapData.getPlayers().size() > 0) {
+            applyPlayers(projectConfig, w3I);
+        }
+        if (buildMapData.getForces().size() > 0) {
+            applyForces(projectConfig, w3I);
+        }
+        applyOptionFlags(projectConfig, w3I);
+
+        return w3I;
     }
 
     private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {
