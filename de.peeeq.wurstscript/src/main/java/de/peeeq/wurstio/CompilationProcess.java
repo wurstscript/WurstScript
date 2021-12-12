@@ -1,6 +1,8 @@
 package de.peeeq.wurstio;
 
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildMapData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfig;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -15,10 +17,12 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -85,7 +89,11 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd));
+        WurstProjectConfigData projectConfigData = loadProjectConfig(projectFolder);
+
+        timeTaker.measure("Run compiletime functions", () -> {
+            compiler.runCompiletime(projectConfigData, isProd);
+        });
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);
@@ -114,6 +122,21 @@ public class CompilationProcess {
         }
         timeTaker.printReport();
         return mapScript;
+    }
+
+    @NotNull
+    private WurstProjectConfigData loadProjectConfig(@org.jetbrains.annotations.Nullable File projectFolder) throws IOException {
+        WurstProjectConfigData projectConfigData = null;
+        if (projectFolder != null) {
+            projectConfigData = WurstProjectConfig.INSTANCE.loadProject(projectFolder.toPath().resolve("wurst.build"));
+        }
+        if (projectConfigData == null) {
+            projectConfigData = new WurstProjectConfigData(
+                "",
+                new ArrayList<>(),
+                new WurstProjectBuildMapData());
+        }
+        return projectConfigData;
     }
 
     private boolean runPjass(File outputMapscript) {

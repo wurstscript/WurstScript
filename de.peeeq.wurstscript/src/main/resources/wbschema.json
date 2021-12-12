@@ -1,0 +1,201 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/product.schema.json",
+    "title": "Wurst Build File",
+    "description": "Exposes dependency and map configuration",
+    "type": "object",
+    "properties": {
+        "projectName": {
+            "description": "The name of this wurst project",
+            "type": "string"
+        },
+        "dependencies": {
+            "description": "Git repository urls of this project's dependencies",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true
+        },
+        "buildMapData": {
+            "description": "Map configuration for the build map command",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "description": "The name that will be displayed ingame",
+                    "type": "string"
+                },
+                "fileName": {
+                    "description": "The name of the output file",
+                    "type": "string"
+                },
+                "author": {
+                    "description": "The name of the map's author",
+                    "type": "string"
+                },
+                "scenarioData": {
+                    "description": "The scenario options",
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "description": "The map's description",
+                            "type": "string"
+                        },
+                        "suggestedPlayers": {
+                            "description": "The map's suggested player amount",
+                            "type": "string"
+                        },
+                        "loadingScreen": {
+                            "description": "The loading screen options",
+                            "type": "object",
+                            "properties": {
+                                "model": {
+                                    "description": "The path to a custom loading screen model",
+                                    "type": "string"
+                                },
+                                "background": {
+                                    "description": "The name of an existing loading screen, e.g. Generic",
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "description": "The loading screen title",
+                                    "type": "string"
+                                },
+                                "subTitle": {
+                                    "description": "The loading screen subtitle",
+                                    "type": "string"
+                                },
+                                "text": {
+                                    "description": "The loading screen text",
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "optionsFlags": {
+                    "description": "The map option flags",
+                    "type": "object",
+                    "properties": {
+                        "hideMinimapPreview": {
+                            "description": "Whether or not to hide the minimap preview",
+                            "type": "boolean"
+                        },
+                        "forcesFixed": {
+                            "description": "Whether or not the force assignments are fixed",
+                            "type": "boolean"
+                        },
+                        "maskedAreasPartiallyVisible": {
+                            "description": "Whether or not to makes areas with black mask partially visible",
+                            "type": "boolean"
+                        },
+                        "showWavesOnCliffShores": {
+                            "description": "Whether or not to show water waves on cliff shores",
+                            "type": "boolean"
+                        },
+                        "showWavesOnRollingShores": {
+                            "description": "Whether or not to show water waves on rolling shores",
+                            "type": "boolean"
+                        },
+                        "useItemClassificationSystem": {
+                            "description": "Whether or not to use the item classification system",
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "players": {
+                    "description": "The available player slots",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/player"
+                    }
+                },
+                "forces": {
+                    "description": "The available player forces",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/force"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "player": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The ID of the player"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the player"
+                },
+                "race": {
+                    "type": "string",
+                    "description": "The race of this player",
+                    "enum": ["NIGHT_ELF", "HUMAN", "ORC", "SELECTABLE", "UNDEAD"]
+                },
+                "controller": {
+                    "type": "string",
+                    "description": "The controller of this player",
+                    "enum": ["USER", "RESCUABLE", "NEUTRAL", "COMPUTER"]
+                },
+                "fixedStartLoc": {
+                    "type": "boolean",
+                    "description": "Whether or not the startposition is fixed"
+                }
+            }
+        },
+        "force": {
+            "type": "object",
+            "required": [
+                "name",
+                "playerIds"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the player"
+                },
+                "playerIds": {
+                    "type": "array",
+                    "description": "The player ids in this force",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "flags": {
+                    "type": "object",
+                    "description": "The controller of this player",
+                    "properties": {
+                        "allied": {
+                            "type": "boolean",
+                            "description": "Whether or not players in this force are allied"
+                        },
+                        "alliedVictory": {
+                            "type": "boolean",
+                            "description": "Whether or not players in this force will win together"
+                        },
+                        "sharedVision": {
+                            "type": "boolean",
+                            "description": "Whether or not players in this force share map vision"
+                        },
+                        "sharedControl": {
+                            "type": "boolean",
+                            "description": "Whether or not players in this force share unit control"
+                        },
+                        "sharedControlAdvanced": {
+                            "type": "boolean",
+                            "description": "Whether or not players in this force share advanced unit control (building, hero skilling, etc.)"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

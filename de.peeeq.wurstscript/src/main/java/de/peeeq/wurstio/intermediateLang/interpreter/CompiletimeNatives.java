@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
@@ -10,10 +10,8 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {

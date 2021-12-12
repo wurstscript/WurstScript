@@ -1,7 +1,13 @@
 package de.peeeq.wurstio.languageserver;
 
 import com.google.common.io.Files;
-import config.*;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildForce;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildLoadingScreenData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildMapData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildOptionFlagsData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildPlayer;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildScenarioData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -32,7 +38,7 @@ public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
 
     public static void apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
-            RunArgs runArgs, W3InstallationData w3data) throws IOException {
+                             RunArgs runArgs, W3InstallationData w3data) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
@@ -174,7 +180,7 @@ public class ProjectConfigBuilder {
     private static void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
         List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
         w3I.getPlayers().clear();
-        ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
+        List<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
             Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
             W3I.Player player = new Player();

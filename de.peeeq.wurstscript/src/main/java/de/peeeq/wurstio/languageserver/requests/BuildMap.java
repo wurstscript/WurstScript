@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import config.WurstProjectConfig;
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfig;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;

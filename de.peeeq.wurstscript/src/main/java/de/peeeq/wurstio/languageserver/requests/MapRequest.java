@@ -2,7 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
