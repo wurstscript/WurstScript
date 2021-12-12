@@ -260,3 +260,26 @@ compileJava {
         classpath = files()
     }
 }
+
+jlink {
+
+    targetPlatform("linux_x64") {
+        jdkHome = jdkDownload("https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.tar.gz")
+    }
+
+    targetPlatform("linux_aarch64") {
+        jdkHome = jdkDownload("https://corretto.aws/downloads/latest/amazon-corretto-17-aarch64-linux-jdk.tar.gz")
+    }
+
+    targetPlatform("win") {
+        jdkHome = jdkDownload("https://corretto.aws/downloads/latest/amazon-corretto-17-x64-windows-jdk.zip")
+    }
+
+    targetPlatform("mac_x64") {
+        jdkHome = jdkDownload("https://corretto.aws/downloads/latest/amazon-corretto-17-x64-macos-jdk.tar.gz")
+    }
+
+    targetPlatform("mac_aarch64") {
+        jdkHome = jdkDownload("https://corretto.aws/downloads/latest/amazon-corretto-17-aarch64-macos-jdk.tar.gz")
+    }
+}
