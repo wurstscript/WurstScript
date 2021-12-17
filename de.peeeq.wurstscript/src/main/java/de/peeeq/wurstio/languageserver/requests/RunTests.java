@@ -2,7 +2,8 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildMapData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
@@ -27,6 +28,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -147,8 +149,9 @@ public class RunTests extends UserRequest<Object> {
     public TestResult runTests(ImTranslator translator, ImProg imProg, Optional<FuncDef> funcToTest, Optional<CompilationUnit> cu) {
         WurstGui gui = new TestGui();
 
+        WurstProjectConfigData projectConfigData = new WurstProjectConfigData("", new ArrayList<>(), new WurstProjectBuildMapData());
         CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
-            CompiletimeFunctions, new WurstProjectConfigData(), false);
+            CompiletimeFunctions, projectConfigData, false);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {

@@ -2,7 +2,8 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import de.peeeq.wurstscript.project.config.WurstProjectBuildMapData;
+import de.peeeq.wurstscript.project.config.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
@@ -26,6 +27,7 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.testng.Assert;
 
 import java.io.*;
@@ -393,7 +395,7 @@ public class WurstScriptTest {
 
             compiler.translateProgToIm(model);
 
-            compiler.runCompiletime(new WurstProjectConfigData(), false);
+            compiler.runCompiletime(defaultWurstProjectConfig(), false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
@@ -455,6 +457,15 @@ public class WurstScriptTest {
 
     }
 
+    @NotNull
+    private WurstProjectConfigData defaultWurstProjectConfig() {
+        WurstProjectConfigData projectConfigData = new WurstProjectConfigData(
+            "",
+            new ArrayList<>(),
+            new WurstProjectBuildMapData());
+        return projectConfigData;
+    }
+
     private void translateAndTest(String name, boolean executeProg,
                                   boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
                                   WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
@@ -477,7 +488,8 @@ public class WurstScriptTest {
             }
         }
 
-        compiler.runCompiletime(new WurstProjectConfigData(), false);
+
+        compiler.runCompiletime(defaultWurstProjectConfig(), false);
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {
