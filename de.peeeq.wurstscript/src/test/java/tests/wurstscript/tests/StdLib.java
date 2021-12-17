@@ -45,7 +45,11 @@ public class StdLib {
 
         try {
             if (!stdLibFolder.exists()) {
-                tempFolder.mkdirs();
+                System.out.println("Downloading standard library " + gitRepo + " to " + stdLibFolder);
+                boolean foldersCreated = tempFolder.mkdirs();
+                if (!foldersCreated) {
+                    throw new IOException("Could not create folder " + tempFolder);
+                }
                 try (Git git = Git
                         .cloneRepository()
                         .setDirectory(stdLibFolder)
@@ -53,6 +57,8 @@ public class StdLib {
                         .call()) {
                     git.checkout().setName(Constants.MASTER).call();
                 };
+            } else {
+                System.out.println("Standard library " + gitRepo + " already exists in " + stdLibFolder);
             }
 
             try (Git git = Git.open(stdLibFolder)) {
@@ -72,6 +78,8 @@ public class StdLib {
 
             isInitialized = true;
         } catch (IOException | GitAPIException e) {
+            System.out.println("Could not download standard library");
+            e.printStackTrace();
             WLogger.severe(e.getStackTrace().toString());
             return false;
         }
