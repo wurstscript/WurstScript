@@ -43,7 +43,13 @@ public final class WurstProjectBuildMapData {
     }
 
     public WurstProjectBuildMapData() {
-        this(null, null, null, null, null, null, null);
+        this.name = null;
+        this.fileName = null;
+        this.author = null;
+        this.scenarioData = null;
+        this.optionsFlags = null;
+        this.players = null;
+        this.forces = null;
     }
 
     @NotNull
