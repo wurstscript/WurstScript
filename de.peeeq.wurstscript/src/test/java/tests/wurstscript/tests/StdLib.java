@@ -78,8 +78,8 @@ public class StdLib {
 
             isInitialized = true;
         } catch (IOException | GitAPIException e) {
-            System.out.println("Could not download standard library");
-            e.printStackTrace();
+            System.out.println("Could not download standard library: " + e);
+            e.printStackTrace(System.out);
             WLogger.severe(e.getStackTrace().toString());
             return false;
         }
