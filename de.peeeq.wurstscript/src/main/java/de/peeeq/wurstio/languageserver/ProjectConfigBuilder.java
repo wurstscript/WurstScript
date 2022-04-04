@@ -47,18 +47,17 @@ public class ProjectConfigBuilder {
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
 
+                // TODO apply config for hot start before JHCR transformation
                 if (runArgs.isLua() || runArgs.isHotStartmap()) {
-                    // TODO apply config values in lua script
-                    // TODO apply config for hot start before JHCR transformation
-                    scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
+                    w3I.injectConfigsInLuaScript(inputStream, sw);
                 } else {
                     if (w3data.getWc3PatchVersion().isPresent()) {
                         w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
                     } else {
                         w3I.injectConfigsInJassScript(inputStream, sw, GameVersion.VERSION_1_32);
                     }
-                    scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
                 }
+                scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
 
                 File w3iFile = new File("w3iFile");
                 if (runArgs.isLua()) {
