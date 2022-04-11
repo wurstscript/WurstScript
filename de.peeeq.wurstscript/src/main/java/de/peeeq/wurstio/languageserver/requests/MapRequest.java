@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ConfigProvider;
@@ -21,10 +22,13 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.Orient;
@@ -54,6 +58,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final RunArgs runArgs;
     protected final Optional<String> wc3Path;
     protected final W3InstallationData w3data;
+    private final TimeTaker timeTaker;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -73,6 +78,11 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
         this.w3data = getBestW3InstallationData();
+        if (runArgs.isMeasureTimes()) {
+            this.timeTaker = new TimeTaker.Recording();
+        } else {
+            this.timeTaker = new TimeTaker.Default();
+        }
     }
 
     @Override
@@ -166,7 +176,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
             }
 
-            compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache());
+            timeTaker.measure("Runinng Compiletime Functions", () -> compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache()));
 
             if (runArgs.isLua()) {
                 print("translating program to Lua ... ");
@@ -184,6 +194,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, "compiled.lua");
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+                timeTaker.printReport();
                 return outFile;
 
             } else {
@@ -221,9 +232,9 @@ public abstract class MapRequest extends UserRequest<Object> {
                     gui.sendProgress("Running JHCR");
                     return runJassHotCodeReload(outFile);
                 }
+                timeTaker.printReport();
                 return outFile;
             }
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

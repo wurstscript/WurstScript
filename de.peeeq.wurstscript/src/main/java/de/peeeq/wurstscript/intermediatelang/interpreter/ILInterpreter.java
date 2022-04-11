@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionWithoutSideEffect;
 
 public class ILInterpreter implements AbstractInterpreter {
@@ -161,8 +163,8 @@ public class ILInterpreter implements AbstractInterpreter {
     public static LinkedHashMap<ImFunction, LinkedHashMap<Integer, LocalState>> localStateCache = new LinkedHashMap<>();
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        if (cache && isFunctionWithoutSideEffect(f.getName())) {
-            int combinedHash = Objects.hash(args);
+        if (cache && isFunctionPure(f.getName())) {
+            int combinedHash = Objects.hash((Object[]) args);
             if (localStateCache.containsKey(f) && localStateCache.get(f).containsKey(combinedHash)) {
                 return localStateCache.get(f).get(combinedHash);
             }
@@ -171,8 +173,8 @@ public class ILInterpreter implements AbstractInterpreter {
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
                 LocalState localState = new LocalState(natives.invoke(f.getName(), args));
-                if (cache && isFunctionWithoutSideEffect(f.getName())) {
-                    int combinedHash = Objects.hash(args);
+                if (cache && isFunctionPure(f.getName())) {
+                    int combinedHash = Objects.hash((Object[]) args);
                     LinkedHashMap<Integer, LocalState> cached = localStateCache.getOrDefault(f, new LinkedHashMap<>());
                     cached.put(combinedHash, localState);
                     localStateCache.put(f, cached);

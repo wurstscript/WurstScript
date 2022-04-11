@@ -7,9 +7,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.ListIterator;
 
 /**
@@ -120,6 +117,10 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
      */
     public static boolean isFunctionWithoutSideEffect(String funcName) {
         return functionsWithoutSideEffects.contains(funcName);
+    }
+
+    public static boolean isFunctionPure(String funcName) {
+        return pureFunctions.contains(funcName);
     }
 
     private static final Set<String> functionsWithoutSideEffects = HashSet.of(
@@ -250,4 +251,29 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
         "BlzGetUnitWeaponRealField", "BlzGetUnitWeaponStringField", "BlzGetUnitSkin", "BlzGetItemSkin",
         "BlzGetPlayerTownHallCount"
         );
+
+    private static final Set<String> pureFunctions = HashSet.of(
+        "AbilityId", "AbilityId2String", "Acos", "And", "Asin", "Atan",
+        "Atan2", "ConvertAIDifficulty", "ConvertAllianceType", "ConvertAttackType", "ConvertBlendMode",
+        "ConvertCameraField", "ConvertDamageType", "ConvertDialogEvent", "ConvertEffectType",
+        "ConvertFGameState", "ConvertFogState", "ConvertGameDifficulty", "ConvertGameEvent",
+        "ConvertGameSpeed", "ConvertGameType", "ConvertIGameState", "ConvertItemType", "ConvertLimitOp",
+        "ConvertMapControl", "ConvertMapDensity", "ConvertMapFlag", "ConvertMapSetting",
+        "ConvertMapVisibility", "ConvertPathingType", "ConvertPlacement", "ConvertPlayerColor",
+        "ConvertPlayerEvent", "ConvertPlayerGameResult", "ConvertPlayerScore", "ConvertPlayerSlotState",
+        "ConvertPlayerState", "ConvertPlayerUnitEvent", "ConvertRace", "ConvertRacePref",
+        "ConvertRarityControl", "ConvertSoundType", "ConvertStartLocPrio", "ConvertTexMapFlags",
+        "ConvertUnitEvent", "ConvertUnitState", "ConvertUnitType", "ConvertVersion", "ConvertVolumeGroup",
+        "ConvertWeaponType", "ConvertWidgetEvent", "Cos", "Deg2Rad", "GetAbilityEffect",
+        "GetAbilityEffectById", "GetAbilitySound", "GetAbilitySoundById", "GetAllyColorFilterState",
+        "GetPlayerColor", "GetPlayerController", "GetPlayerId", "GetPlayerRace", "GetPlayerSelectable",
+        "GetPlayerStartLocation", "GetPlayerTeam", "GetSoundDuration", "GetSoundFileDuration", "GetStartLocationLoc",
+        "GetStartLocationX", "GetStartLocationY", "GetStartLocPrio", "GetStartLocPrioSlot", "GetSummonedUnit",
+        "GetSummoningUnit", "GetTeams", "GetUnitDefaultAcquireRange",
+        "GetUnitDefaultFlyHeight", "GetUnitDefaultMoveSpeed", "GetUnitDefaultPropWindow",
+        "GetUnitDefaultTurnSpeed", "GetUnitName", "GetWinningPlayer", "GetWorldBounds", "I2R", "I2S",
+        "Not", "Or", "OrderId", "OrderId2String", "Player", "Pow", "R2I",
+        "R2S", "R2SW", "Rad2Deg", "S2I", "S2R", "Sin", "SquareRoot", "StringCase", "StringHash",
+        "StringLength", "SubString", "Tan", "VersionGet", "BlzBitOr", "BlzBitAnd", "BlzBitXor"
+    );
 }
