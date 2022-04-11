@@ -187,6 +187,8 @@ public class ImportFile {
         folders.add(getImportDirectory(projectFolder));
         folders.addAll(Arrays.asList(getTransientImportDirectories(projectFolder)));
 
+        folders.removeIf(folder -> !folder.exists());
+
         try {
             insertImportedFiles(ed, folders);
         } catch (Exception e) {
