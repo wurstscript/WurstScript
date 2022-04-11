@@ -393,7 +393,7 @@ public class WurstScriptTest {
 
             compiler.translateProgToIm(model);
 
-            compiler.runCompiletime(new WurstProjectConfigData(), false);
+            compiler.runCompiletime(new WurstProjectConfigData(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
@@ -477,7 +477,7 @@ public class WurstScriptTest {
             }
         }
 
-        compiler.runCompiletime(new WurstProjectConfigData(), false);
+        compiler.runCompiletime(new WurstProjectConfigData(), false, false);
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {
@@ -554,7 +554,7 @@ public class WurstScriptTest {
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
         try {
             // run the interpreter on the intermediate language
-            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false);
+            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false, false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {

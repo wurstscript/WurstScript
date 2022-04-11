@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
@@ -40,10 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -168,8 +166,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
             }
 
-
-            compiler.runCompiletime(projectConfigData, isProd);
+            compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache());
 
             if (runArgs.isLua()) {
                 print("translating program to Lua ... ");

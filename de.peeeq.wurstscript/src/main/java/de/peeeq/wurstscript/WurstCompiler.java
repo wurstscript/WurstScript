@@ -15,5 +15,5 @@ public interface WurstCompiler {
 
     void loadFiles(File... files);
 
-    void runCompiletime(WurstProjectConfigData projectConfigData, boolean isProd);
+    void runCompiletime(WurstProjectConfigData projectConfigData, boolean isProd, boolean cache);
 }

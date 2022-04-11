@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -19,23 +20,29 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionWithoutSideEffect;
+
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
+    private static boolean cache = false;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState, boolean cache) {
         this.prog = prog;
         this.globalState = globalState;
+        ILInterpreter.cache = cache;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
 //        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
-        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime, boolean cache) {
+        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime), cache);
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -59,7 +66,7 @@ public class ILInterpreter implements AbstractInterpreter {
 
             if (f.getParameters().size() != args.length) {
                 throw new Error("wrong number of parameters when calling func " + f.getName() + "(" +
-                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
+                    Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
             }
 
             for (int i = 0; i < f.getParameters().size(); i++) {
@@ -151,11 +158,26 @@ public class ILInterpreter implements AbstractInterpreter {
         return false;
     }
 
+    public static LinkedHashMap<ImFunction, LinkedHashMap<Integer, LocalState>> localStateCache = new LinkedHashMap<>();
+
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
+        if (cache && isFunctionWithoutSideEffect(f.getName())) {
+            int combinedHash = Objects.hash(args);
+            if (localStateCache.containsKey(f) && localStateCache.get(f).containsKey(combinedHash)) {
+                return localStateCache.get(f).get(combinedHash);
+            }
+        }
         StringBuilder errors = new StringBuilder();
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                return new LocalState(natives.invoke(f.getName(), args));
+                LocalState localState = new LocalState(natives.invoke(f.getName(), args));
+                if (cache && isFunctionWithoutSideEffect(f.getName())) {
+                    int combinedHash = Objects.hash(args);
+                    LinkedHashMap<Integer, LocalState> cached = localStateCache.getOrDefault(f, new LinkedHashMap<>());
+                    cached.put(combinedHash, localState);
+                    localStateCache.put(f, cached);
+                }
+                return localState;
             } catch (NoSuchNativeException e) {
                 errors.append("\n").append(e.getMessage());
                 // ignore

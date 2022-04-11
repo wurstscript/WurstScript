@@ -85,7 +85,7 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
         }
 
-        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd));
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd, false));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);

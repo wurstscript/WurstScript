@@ -15,6 +15,7 @@ public class RunArgs {
 
     private final String[] args;
     private final RunOption optionLua;
+    private final RunOption optionCompiletimeCache;
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
@@ -128,6 +129,7 @@ public class RunArgs {
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
+        optionCompiletimeCache = addOption("compiletimeCache", "(Experimental) Cache results of compiletime invocations without side effects");
 
         addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
             s -> functionSplitLimit = Integer.parseInt(s, 10));
@@ -352,6 +354,10 @@ public class RunArgs {
 
     public boolean isLua() {
         return optionLua.isSet;
+    }
+
+    public boolean isCompiletimeCache() {
+        return optionCompiletimeCache.isSet;
     }
 
 
