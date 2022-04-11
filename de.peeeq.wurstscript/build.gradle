@@ -103,10 +103,10 @@ dependencies {
     implementation group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // Crigges' jmpq
-    implementation 'com.github.inwc3:jmpq3:0aaca2373d'
+    implementation group: 'com.github.inwc3', name: 'jmpq3', version: 'b4ef7121a4'
 
     // Water's wc3 libs
-    implementation 'com.github.inwc3:wc3libs:e10d2a705b'
+    implementation 'com.github.inwc3:wc3libs:cb9921f97d'
 
     // The setup tool for wurst.build handling
     implementation 'com.github.wurstscript:wurstsetup:4c65824b40'

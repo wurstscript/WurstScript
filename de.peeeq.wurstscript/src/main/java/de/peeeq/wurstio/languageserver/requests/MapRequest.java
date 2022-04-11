@@ -112,7 +112,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
         WLogger.info("extracting mapscript");
         byte[] extractedScript = null;
-        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
+        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
             if (mpqEditor.hasFile("war3map.j")) {
                 extractedScript = mpqEditor.extractFile("war3map.j");
             }

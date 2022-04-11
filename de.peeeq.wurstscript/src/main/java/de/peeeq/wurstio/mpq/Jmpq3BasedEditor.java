@@ -18,12 +18,12 @@ class Jmpq3BasedEditor implements MpqEditor {
         return editor;
     }
 
-    public Jmpq3BasedEditor(File mpqArchive) throws Exception {
+    public Jmpq3BasedEditor(File mpqArchive, boolean readonly) throws Exception {
         Preconditions.checkNotNull(mpqArchive);
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.editor = new JMpqEditor(mpqArchive, MPQOpenOption.FORCE_V0);
+        this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
     }
 
     @Override
