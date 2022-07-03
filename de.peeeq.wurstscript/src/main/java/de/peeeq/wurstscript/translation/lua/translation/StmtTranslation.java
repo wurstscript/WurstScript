@@ -39,8 +39,10 @@ public class StmtTranslation {
         LuaExpr right = s.getRight().translateToLua(tr);
         if (s.getRight().attrTyp() instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) s.getRight().attrTyp();
-            // tuples must be copied
-            right = LuaAst.LuaExprFunctionCall(ExprTranslation.getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(right));
+            // tuples must be copied, unless they are literals
+            if(!(right instanceof LuaTableConstructor)) {
+                right = LuaAst.LuaExprFunctionCall(ExprTranslation.getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(right));
+            }
         }
         res.add(LuaAst.LuaAssignment(left, right));
     }

@@ -107,11 +107,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
-        if(isStringType(e.getType())) {
-            return LuaAst.LuaExprStringVal("");
-        } else {
-            return LuaAst.LuaExprNull();
-        }
+        return LuaAst.LuaExprNull();
     }
 
     public static LuaExpr translate(ImOperatorCall e, LuaTranslator tr) {
@@ -126,13 +122,7 @@ public class ExprTranslation {
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
             LuaOpBinary op;
-            if (e.getOp() == WurstOperator.PLUS
-                && isStringType(left.attrTyp())
-                && isStringType(right.attrTyp())) {
-                // special case for string concatenation
-                return LuaAst.LuaExprFunctionCall(tr.stringConcatFunction,
-                    LuaAst.LuaExprlist(leftExpr, rightExpr));
-            } else if (e.getOp() == WurstOperator.MOD_INT) {
+            if (e.getOp() == WurstOperator.MOD_INT) {
                 op = LuaAst.LuaOpMod();
 
                 return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
@@ -270,15 +260,6 @@ public class ExprTranslation {
             return LuaAst.LuaExprFunctionCall(ef, LuaAst.LuaExprlist(leftExpr, rightExpr));
         }
         return LuaAst.LuaExprBinary(leftExpr, LuaAst.LuaOpEquals(), rightExpr);
-    }
-
-
-    private static boolean isStringType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType st = (ImSimpleType) t;
-            return st.getTypename().equals("string");
-        }
-        return false;
     }
 
     public static LuaExpr translate(ImRealVal e, LuaTranslator tr) {

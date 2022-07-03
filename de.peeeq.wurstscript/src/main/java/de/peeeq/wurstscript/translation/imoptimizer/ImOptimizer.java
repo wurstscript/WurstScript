@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 
@@ -113,6 +114,11 @@ public class ImOptimizer {
                 int classFunctionsAfter = c.getFunctions().size();
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
+
+                int classFieldsBefore = c.getFields().size();
+                changes |= c.getFields().retainAll(trans.getReadVariables());
+                int classFieldsAfter = c.getFields().size();
+                totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
             for (ImFunction f : allFunctions) {
                 // remove set statements to unread variables
@@ -133,6 +139,16 @@ public class ImOptimizer {
                                 List<ImExpr> exprs = va.getIndexes().removeAll();
                                 exprs.add(e.getRight());
                                 replacements.add(Pair.create(e, exprs));
+                            }
+                        } else if (e.getLeft() instanceof ImTupleSelection) {
+                            ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
+                            if(!trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                            }
+                        } else if(e.getLeft() instanceof ImMemberAccess) {
+                            ImMemberAccess va = ((ImMemberAccess) e.getLeft());
+                            if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         }
                     }

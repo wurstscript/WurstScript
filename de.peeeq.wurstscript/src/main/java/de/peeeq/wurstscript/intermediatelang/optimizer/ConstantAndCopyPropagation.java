@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -38,15 +39,49 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         ImVar copyVar;
         final @Nullable
         ImConst constantValue;
+        ImTupleExpr constantTuple;
 
         public Value(ImVar copyVar) {
             this.copyVar = copyVar;
             this.constantValue = null;
+            this.constantTuple = null;
+            if(copyVar.isGlobal()) {
+                throw new IllegalArgumentException("copyVar must not be a Global.");
+            }
         }
 
         public Value(ImConst constantValue) {
             this.copyVar = null;
             this.constantValue = constantValue;
+            this.constantTuple = null;
+        }
+
+        public Value(ImTupleExpr tupleExpr) {
+            this.copyVar = null;
+            this.constantValue = null;
+            this.constantTuple = tupleExpr;
+            
+            for(ImExpr e :  tupleExpr.getExprs()) {
+                if(tryValue(e) == null) {
+                    throw new IllegalArgumentException("tupleExpr must only contain constant values.");
+                }
+            }
+        }
+        
+        public static Value tryValue(ImExpr e) {
+            try {
+                if (e instanceof ImVarAccess) {
+                    return new Value(((ImVarAccess) e).getVar());
+                }
+                if (e instanceof ImConst) {
+                    return new Value((ImConst) e);
+                }
+                if (e instanceof ImTupleExpr) {
+                    return new Value((ImTupleExpr) e);
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+            return null;
         }
 
         @Override
@@ -62,6 +97,20 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                 return copyVar == other.copyVar;
             } else if (constantValue != null && other.constantValue != null) {
                 return constantValue.equalValue(other.constantValue);
+            } else if (constantTuple != null && other.constantTuple != null) {
+                ImTupleExpr a = constantTuple;
+                ImTupleExpr b = other.constantTuple;
+                if(!a.attrTyp().equalsType(b.attrTyp())) {
+                    return false;
+                }
+                for(int i = 0; i < a.getExprs().size() ;++i) {
+                    Value aV = tryValue(a.getExprs().get(i));
+                    Value bV = tryValue(b.getExprs().get(i));
+                    if(!aV.equalValue(bV)) {
+                        return false;
+                    }
+                }
+                return true;
             }
             return false;
         }
@@ -70,8 +119,10 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         public String toString() {
             if (copyVar != null) {
                 return "copy of " + copyVar;
-            } else {
+            } else if (constantValue != null) {
                 return "constant " + constantValue;
+            } else {
+                return "tuple of " + constantTuple;
             }
         }
 
@@ -135,6 +186,9 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         va.setVar(val.copyVar);
                         // recursive call, because maybe it is possible to also replace the new var
                         visit(va);
+                    } else if (val.constantTuple != null) {
+                        va.replaceBy(val.constantTuple.copy());
+                        totalPropagated++;
                     }
                 }
             });
@@ -197,13 +251,11 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     if (!var.isGlobal()) {
                         Value newValue = null;
                         if (imSet.getRight() instanceof ImConst) {
-                            ImConst imConst = (ImConst) imSet.getRight();
-                            newValue = new Value(imConst);
+                            newValue = Value.tryValue(imSet.getRight());
                         } else if (imSet.getRight() instanceof ImVarAccess) {
-                            ImVarAccess imVarAccess = (ImVarAccess) imSet.getRight();
-                            if (!imVarAccess.getVar().isGlobal()) {
-                                newValue = new Value(imVarAccess.getVar());
-                            }
+                            newValue = Value.tryValue(imSet.getRight());
+                        } else if(imSet.getRight() instanceof ImTupleExpr) {
+                            newValue = Value.tryValue(imSet.getRight());
                         }
                         if (newValue == null) {
                             // invalidate old value
@@ -221,6 +273,15 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                             if (p._2().equalValue(varAsValue)) {
                                 newOut = newOut.remove(p._1());
                             }
+                        }
+                    }
+                } else if(imSet.getLeft() instanceof ImTupleSelection) {
+                    ImVar var = TypesHelper.getTupleVar((ImTupleSelection) imSet.getLeft());
+                    newOut = newOut.remove(var);
+                    Value varAsValue = new Value(var);
+                    for (Tuple2<ImVar, Value> p : newOut) {
+                        if (p._2().equalValue(varAsValue)) {
+                            newOut = newOut.remove(p._1());
                         }
                     }
                 }

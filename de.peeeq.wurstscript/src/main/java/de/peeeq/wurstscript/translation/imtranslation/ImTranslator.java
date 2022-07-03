@@ -95,6 +95,7 @@ public class ImTranslator {
     @Nullable public ImFunction ensureBoolFunc = null;
     @Nullable public ImFunction ensureRealFunc = null;
     @Nullable public ImFunction ensureStrFunc = null;
+    @Nullable public ImFunction stringConcatFunc = null;
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
 
@@ -134,10 +135,12 @@ public class ImTranslator {
                 ensureBoolFunc = JassIm.ImFunction(emptyTrace, "boolEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeBool.instance().imTranslateType(this), "x", false)), WurstTypeBool.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
                 ensureRealFunc = JassIm.ImFunction(emptyTrace, "realEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeReal.instance().imTranslateType(this), "x", false)), WurstTypeReal.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
                 ensureStrFunc = JassIm.ImFunction(emptyTrace, "stringEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+                stringConcatFunc =JassIm.ImFunction(emptyTrace, "stringConcat", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false),JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "y", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
                 addFunction(ensureIntFunc);
                 addFunction(ensureBoolFunc);
                 addFunction(ensureRealFunc);
                 addFunction(ensureStrFunc);
+                addFunction(stringConcatFunc);
             }
 
             calculateCompiletimeOrder();

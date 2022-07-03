@@ -857,6 +857,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
         }
 
+        // eliminate local types
+        beginPhase(6, "eliminate local type");
+        getImProg().flatten(imTranslator2);
+        EliminateLocalTypes.eliminateLocalTypesProg(getImProg(), imTranslator2);
+
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 

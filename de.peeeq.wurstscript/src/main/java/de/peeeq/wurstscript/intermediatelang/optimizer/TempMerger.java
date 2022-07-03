@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.MapWithIndexes;
 import de.peeeq.wurstscript.utils.MapWithIndexes.Index;
 import de.peeeq.wurstscript.utils.MapWithIndexes.PredIndex;
@@ -116,6 +117,11 @@ public class TempMerger implements OptimizerPass {
             } else if (imSet.getLeft() instanceof ImVarArrayAccess) {
                 ImVarArrayAccess va = (ImVarArrayAccess) imSet.getLeft();
                 kn.invalidateVar(va.getVar());
+            } else if (imSet.getLeft() instanceof ImMemberAccess) {
+                ImMemberAccess ma = (ImMemberAccess) imSet.getLeft();
+                kn.invalidateVar(ma.getVar());
+            } else if (imSet.getLeft() instanceof ImTupleSelection) {
+                kn.invalidateVar(TypesHelper.getTupleVar(((ImTupleSelection) imSet.getLeft())));
             }
         } else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop || s instanceof ImVarargLoop) {
             kn.clear();
@@ -319,6 +325,9 @@ public class TempMerger implements OptimizerPass {
             private void collectReadVariables(Collection<ImVar> result, Element e) {
                 if (e instanceof ImVarRead) {
                     result.add(((ImVarRead) e).getVar());
+                }
+                if (e instanceof ImMemberAccess) {
+                    result.add(((ImMemberAccess) e).getVar());
                 }
                 for (int i = 0; i < e.size(); i++) {
                     collectReadVariables(result, e.get(i));
