@@ -187,7 +187,38 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         // recursive call, because maybe it is possible to also replace the new var
                         visit(va);
                     } else if (val.constantTuple != null) {
-                        va.replaceBy(val.constantTuple.copy());
+                        // Tuple literals are not always propagated, because they are more expensive (multiple values).
+                        if(va.getParent() instanceof ImTupleSelection) {
+                            // Tuple selections of constant tuples are replaced by the selected constant value.
+                            ImTupleSelection ts = (ImTupleSelection) va.getParent();
+                            Element t = ts;
+                            ImExpr constT = val.constantTuple;
+                            while(t instanceof ImTupleSelection) {
+                                ts = (ImTupleSelection) t;
+                                // follow the constant tuple according to the tuple selection index
+                                constT = ((ImTupleExpr) constT).getExprs().get(ts.getTupleIndex());
+                                // follow the tuple selection to get to the full tuple
+                                t = ts.getParent();
+                            }
+                            // constT now holds the literal that is selected
+                            // Only perform replacement, if the literal is small enough.
+                            boolean replace = true;
+                            if(constT instanceof ImTupleExpr) {
+                                ImTupleExpr te = (ImTupleExpr) constT;
+                                if (te.getExprs().size() != 1 || te.getExprs().get(0) instanceof ImTupleSelection) {
+                                    replace = false;
+                                }
+                            }
+                            if(replace) {
+                                ts.replaceBy(constT.copy());
+                            }
+                            
+                        } else {
+                            // Only perform replacement, if the literal is small enough.
+                            if(val.constantTuple.getExprs().size() == 1 && !(val.constantTuple.getExprs().get(0) instanceof ImTupleSelection)) {
+                                va.replaceBy(val.constantTuple.copy());
+                            }
+                        }
                         totalPropagated++;
                     }
                 }
@@ -250,12 +281,22 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
                     if (!var.isGlobal()) {
                         Value newValue = null;
-                        if (imSet.getRight() instanceof ImConst) {
-                            newValue = Value.tryValue(imSet.getRight());
-                        } else if (imSet.getRight() instanceof ImVarAccess) {
-                            newValue = Value.tryValue(imSet.getRight());
-                        } else if(imSet.getRight() instanceof ImTupleExpr) {
-                            newValue = Value.tryValue(imSet.getRight());
+                        ImExpr right = imSet.getRight();
+                        if (right instanceof ImConst) {
+                            newValue = Value.tryValue(right);
+                        } else if (right instanceof ImVarAccess) {
+                            // If there already is a value, prefer it.
+                            // Tuples are not always propagated, because tuple literals are more expensive (multiple values).
+                            // However, by using the existing value, the knowledge of a tuple literal is preserved
+                            // and may be used later to access a specific value within the tuple literal.
+                            ImVar varRight = ((ImVarAccess) right).getVar();
+                            if(newOut.containsKey(varRight)) {
+                                newValue = newOut.get(varRight).getOrNull();
+                            } else {
+                                newValue = Value.tryValue(right);
+                            }
+                        } else if(right instanceof ImTupleExpr) {
+                            newValue = Value.tryValue(right);
                         }
                         if (newValue == null) {
                             // invalidate old value
@@ -276,12 +317,48 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         }
                     }
                 } else if(imSet.getLeft() instanceof ImTupleSelection) {
-                    ImVar var = TypesHelper.getTupleVar((ImTupleSelection) imSet.getLeft());
-                    newOut = newOut.remove(var);
-                    Value varAsValue = new Value(var);
-                    for (Tuple2<ImVar, Value> p : newOut) {
-                        if (p._2().equalValue(varAsValue)) {
-                            newOut = newOut.remove(p._1());
+                    ImVar var = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) imSet.getLeft());
+                    if(var != null) {
+                        Value rightVal = Value.tryValue(imSet.getRight());
+                        if (rightVal != null) {
+                            // right side is a simple and pure constant tuple
+                            Value existingValue = newOut.get(var).getOrNull();
+                            if (existingValue != null) {
+                                // update known tuple
+                                ImTupleExpr te = existingValue.constantTuple.copy();
+                                ImExpr knownTuple = te;
+                                Element left = imSet.getLeft();
+                                // go to innermost selection
+                                while (left instanceof ImTupleSelection) {
+                                    left = ((ImTupleSelection) left).getTupleExpr();
+                                }
+                                // go back to the initial selection and follow along in the known tuple
+                                while (left != imSet.getLeft()) {
+                                    left = left.getParent();
+                                    knownTuple = ((ImTupleExpr) knownTuple).getExprs().get(((ImTupleSelection) left).getTupleIndex());
+                                }
+                                knownTuple.replaceBy(imSet.getRight().copy());
+                                // update value
+                                newOut = newOut.put(var, new Value(te));
+                            }
+                            // invalidate copies of the lhs
+                            Value varAsValue = new Value(var);
+                            for (Tuple2<ImVar, Value> p : newOut) {
+                                if (p._2().equalValue(varAsValue)) {
+                                    newOut = newOut.remove(p._1());
+                                }
+                            }
+                        } else {
+                            // the right side is not constant
+                            // invalidate old value
+                            newOut = newOut.remove(var);
+                            // invalidate copies of the lhs
+                            Value varAsValue = new Value(var);
+                            for (Tuple2<ImVar, Value> p : newOut) {
+                                if (p._2().equalValue(varAsValue)) {
+                                    newOut = newOut.remove(p._1());
+                                }
+                            }
                         }
                     }
                 }

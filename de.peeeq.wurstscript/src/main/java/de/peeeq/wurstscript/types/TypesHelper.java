@@ -48,6 +48,21 @@ public class TypesHelper {
                 || vt instanceof ImArrayTypeMulti && typeContainsTuples(((ImArrayTypeMulti) vt).getEntryType());
     }
     
+    public static ImVar getSimpleAndPureTupleVar(ImTupleSelection ts) {
+        ImExpr te = ts;
+        while(te instanceof ImTupleSelection) {
+            te = ((ImTupleSelection) te).getTupleExpr();
+        }
+        if(te instanceof ImVarAccess) {
+            ImVar var = ((ImVarAccess) te).getVar();
+            if(var.isGlobal()) {
+                return null;
+            }
+            return var;
+        }
+        return null;
+    }
+    
     public static ImVar getTupleVar(ImTupleSelection ts) {
         ImExpr te = ts;
         while(te instanceof ImTupleSelection) {

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
@@ -146,12 +147,14 @@ public class LocalMerger implements OptimizerPass {
         for (ImStmt s : livenessInfo.keySet()) {
             if (s instanceof ImSet) {
                 ImSet imSet = (ImSet) s;
-                if (!(imSet.getLeft() instanceof ImVarAccess)) {
-                    continue;
+                ImVar v = null;
+                if(imSet.getLeft() instanceof ImVarAccess) {
+                    ImVarAccess va = (ImVarAccess) imSet.getLeft();
+                    v = va.getVar();
+                } else if(imSet.getLeft() instanceof ImTupleSelection) {
+                    v = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) imSet.getLeft());
                 }
-                ImVarAccess va = (ImVarAccess) imSet.getLeft();
-                ImVar v = va.getVar();
-                if (v.isGlobal()) {
+                if (v == null || v.isGlobal()) {
                     continue;
                 }
 
@@ -298,6 +301,7 @@ public class LocalMerger implements OptimizerPass {
                         result.put(node, HashSet.of(v));
                     }
                 }
+                // no special case for tuple selection, as they do not override all previous values
             }
         }
         return result;
