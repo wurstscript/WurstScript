@@ -176,13 +176,6 @@ public class ExprTranslation {
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
             return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
-        if(op == WurstOperator.PLUS) {
-            if(t.isLuaTarget()) {
-                if(TypesHelper.isStringType(left.attrTyp()) && TypesHelper.isStringType(right.attrTyp())) {
-                    return ImFunctionCall(e, t.stringConcatFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
-                }
-            }
-        }
         if (op == WurstOperator.DIV_REAL) {
             if (Utils.isJassCode(e)) {
                 if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
@@ -231,9 +224,6 @@ public class ExprTranslation {
         WurstType expectedTypeRaw = e.attrExpectedTypRaw();
         if (expectedTypeRaw instanceof WurstTypeUnknown) {
             e.addError("Cannot use 'null' in this context.");
-        }
-        if(t.isLuaTarget() && expectedTypeRaw instanceof WurstTypeString) {
-            return ImStringVal("");
         }
         return ImNull(expectedTypeRaw.imTranslateType(t));
     }
