@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -476,7 +477,7 @@ public class AntlrWurstParseTreeTransformer {
     private WStatements transformStatementList(List<StatementContext> stmts) {
         WStatements result = Ast.WStatements();
         for (StatementContext s : stmts) {
-            result.add(transformStatement(s));
+            transformStatement(result, s);
         }
         return result;
     }
@@ -593,14 +594,19 @@ public class AntlrWurstParseTreeTransformer {
         WStatements result = Ast.WStatements();
         if (b != null) {
             for (StatementContext s : b.statement()) {
-                result.add(transformStatement(s));
+                transformStatement(result, s);
             }
         }
         return result;
     }
 
-    private WStatement transformStatement(StatementContext s) {
-        WStatement ws = transformStatement2(s);
+    private void transformStatement(WStatements result, StatementContext s) {
+        if (s.stmtSet() != null) {
+            transformStmtSet(result, s.stmtSet());
+        } else {
+            result.add(transformStatement2(s));
+        }
+        WStatement ws = result.get(result.size() - 1);
         if (s.externalLambda() != null) {
             Expr lambda = transformExternalLambda(s.externalLambda());
 
@@ -614,12 +620,12 @@ public class AntlrWurstParseTreeTransformer {
                     // add as last arg in function call
                     AstElementWithArgs fc = (AstElementWithArgs) e;
                     fc.getArgs().add(lambda);
-                    return ws;
+                    return;
                 }
                 if (e instanceof ExprEmpty) {
                     // replace empty right-hand-side of assignment
                     e.replaceBy(lambda);
-                    return ws;
+                    return;
                 }
                 if (e.size() == 0) {
                     break;
@@ -630,7 +636,6 @@ public class AntlrWurstParseTreeTransformer {
             cuErrorHandler.sendError(new CompileError(source(s.externalLambda()),
                     "External Lambda-block can only be used after function calls."));
         }
-        return ws;
     }
 
     private Expr transformExternalLambda(ExternalLambdaContext el) {
@@ -651,8 +656,6 @@ public class AntlrWurstParseTreeTransformer {
             return transformWhile(s.stmtWhile());
         } else if (s.localVarDef() != null) {
             return transformLocalVarDef(s.localVarDef());
-        } else if (s.stmtSet() != null) {
-            return transformStmtSet(s.stmtSet());
         } else if (s.expr() != null) {
             Expr e = transformExpr(s.expr());
             if (e instanceof WStatement) {
@@ -717,26 +720,61 @@ public class AntlrWurstParseTreeTransformer {
         }
         return Ast.StmtReturn(source(s), r);
     }
+    private boolean useTemporaryIndex(Expr idx) {
+        // Integer literals and variables do not need to be replaced.
+        return !(idx instanceof ExprIntVal) && !(idx instanceof ExprVarAccess);
+    }
 
-    private WStatement transformStmtSet(StmtSetContext s) {
+    private NameRef addTemporaryIndexes(WStatements result, WPos src, NameRef expr) {
+        // For shorthand assignments (+=, ++, ...) the indexes are replaced by temporary variables.
+        if(expr instanceof AstElementWithIndexes) {
+            NameRef tempIndexExpr = expr.copy();
+            Indexes indexes = ((AstElementWithIndexes) tempIndexExpr).getIndexes();
+            for (int i = 0; i < indexes.size(); ++i) {
+                Expr idx = indexes.get(i).copy();
+                if (useTemporaryIndex(idx)) {
+                    OptTypeExpr optTyp = Ast.TypeExprResolved(src, WurstTypeInt.instance());
+                    String tempName = "index_temp_" + idx.getSource().getLine() + "_" + idx.getSource().getStartColumn();
+                    Identifier identifier = Ast.Identifier(src, tempName);
+                    Modifiers modifiers = Ast.Modifiers(Ast.ModConstant(src));
+                    LocalVarDef local = Ast.LocalVarDef(src, modifiers, optTyp, identifier, idx);
+                    result.add(local);
+                    indexes.set(i, Ast.ExprVarAccess(src, identifier.copy()));
+                }
+            }
+            return tempIndexExpr;
+        }
+        return expr;
+    }
+    private void transformStmtSet(WStatements result, StmtSetContext s) {
         NameRef updatedExpr = transformAssignable(s.left);
         WPos src = source(s);
         if (s.assignOp != null) {
             Expr right = transformExpr(s.right);
             WurstOperator op = getAssignOp(s.assignOp);
             if (op != null) {
-                right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(), op,
-                        right);
+                // assignment operator (+=, -=, ...)
+                updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+                right = Ast.ExprBinary(src, updatedExpr.copy(), op, right);
+                result.add(Ast.StmtSet(src, updatedExpr, right));
+            } else {
+                // normal assignment (=)
+                // only return set statement
+                result.add(Ast.StmtSet(src, updatedExpr, right));
             }
-            return Ast.StmtSet(src, updatedExpr, right);
+            return;
         } else if (s.incOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.PLUS, Ast.ExprIntVal(src, "1"));
-            return Ast.StmtSet(src, updatedExpr, right);
+            result.add(Ast.StmtSet(src, updatedExpr, right));
+            return;
         } else if (s.decOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.MINUS, Ast.ExprIntVal(src, "1"));
-            return Ast.StmtSet(src, updatedExpr, right);
+            result.add(Ast.StmtSet(src, updatedExpr, right));
+            return;
         }
         throw error(s, "not implemented");
     }

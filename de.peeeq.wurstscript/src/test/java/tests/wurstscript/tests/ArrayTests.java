@@ -222,5 +222,41 @@ public class ArrayTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    @Test
+    public void shorthandAssignmentNoWarning() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int array testArray",
+            "int numExecutions = 0",
+            "function getIndex() returns int",
+            "    numExecutions++",
+            "    return 2",
+            "init",
+            "    let tmp = 17",
+            "    testArray[getIndex() + tmp] += 1",
+            "    if numExecutions == 1",
+            "        testSuccess()"
+        );
+    }
 
+    @Test
+    public void shorthandAssignmentClassNoWarning() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int numExecutions = 0",
+            "class C",
+            "    int array[3] v = [7, 8, 9]",
+            "function getIndex() returns int",
+            "    numExecutions++",
+            "    return 1",
+            "init",
+            "    let tmp = 1",
+            "    let c = new C()",
+            "    c.v[getIndex() + tmp] += 1",
+            "    if numExecutions == 1",
+            "        testSuccess()"
+        );
+    }
 }
