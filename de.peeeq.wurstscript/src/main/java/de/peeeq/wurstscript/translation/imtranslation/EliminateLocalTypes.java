@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class EliminateLocalTypes {
-    private static ImType localVarType = JassIm.ImSimpleType("localVarType");
+    private static ImType localSimpleType = JassIm.ImSimpleType("localSimpleType");
 
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
         // While local types are still there, perform transformation specifically for strings:
@@ -21,16 +21,10 @@ public class EliminateLocalTypes {
     private static void eliminateLocalTypesFunc(ImFunction f, final ImTranslator translator) {
         for(ImVar local : f.getLocals()) {
             ImType t = local.getType();
-            if(t instanceof ImArrayLikeType) {
-                // Arrays are initialized with the default value of the type, so type information needs to be preserved.
-                continue;
+            if(t instanceof ImSimpleType) {
+                // Simple types can always be merged.
+                local.setType(localSimpleType);
             }
-            if(t instanceof ImTupleType) {
-                // Tuples use special access functions, so type information needs to be preserved.
-                continue;
-            }
-            // Types of single values can be erased, because they have to be initialized with a specific value before they can be used.
-            local.setType(localVarType);
         }
     }
     
