@@ -158,7 +158,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                     "Please supply a valid .w3x input map that can be opened in the world editor.");
                 throw new NonWritableChannelException();
             }
-            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(projectFolder, gui, mpqEditor, runArgs);
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, projectFolder, gui, mpqEditor, runArgs);
             compiler.setMapFile(mapCopy);
             purgeUnimportedFiles(model);
 
