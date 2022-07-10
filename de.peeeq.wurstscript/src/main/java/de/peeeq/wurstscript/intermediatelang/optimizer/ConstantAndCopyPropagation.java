@@ -320,44 +320,36 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     ImVar var = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) imSet.getLeft());
                     if(var != null) {
                         Value rightVal = Value.tryValue(imSet.getRight());
-                        if (rightVal != null) {
-                            // right side is a simple and pure constant tuple
-                            Value existingValue = newOut.get(var).getOrNull();
-                            if (existingValue != null) {
-                                // update known tuple
-                                ImTupleExpr te = existingValue.constantTuple.copy();
-                                ImExpr knownTuple = te;
-                                Element left = imSet.getLeft();
-                                // go to innermost selection
-                                while (left instanceof ImTupleSelection) {
-                                    left = ((ImTupleSelection) left).getTupleExpr();
-                                }
-                                // go back to the initial selection and follow along in the known tuple
-                                while (left != imSet.getLeft()) {
-                                    left = left.getParent();
-                                    knownTuple = ((ImTupleExpr) knownTuple).getExprs().get(((ImTupleSelection) left).getTupleIndex());
-                                }
-                                knownTuple.replaceBy(imSet.getRight().copy());
-                                // update value
-                                newOut = newOut.put(var, new Value(te));
+                        Value existingValue = newOut.get(var).getOrNull();
+                        if (rightVal != null && existingValue != null && existingValue.constantTuple != null) {
+                            // rightVal is constant or copy
+                            // existingValue is constant tuple (the existing knowledge is altered partially, which does not work on copies)
+                            // update known constant tuple
+                            ImTupleExpr te = existingValue.constantTuple.copy();
+                            ImExpr knownTuple = te;
+                            Element left = imSet.getLeft();
+                            // go to innermost selection
+                            while (left instanceof ImTupleSelection) {
+                                left = ((ImTupleSelection) left).getTupleExpr();
                             }
-                            // invalidate copies of the lhs
-                            Value varAsValue = new Value(var);
-                            for (Tuple2<ImVar, Value> p : newOut) {
-                                if (p._2().equalValue(varAsValue)) {
-                                    newOut = newOut.remove(p._1());
-                                }
+                            // go back to the initial selection and follow along in the known tuple
+                            while (left != imSet.getLeft()) {
+                                left = left.getParent();
+                                knownTuple = ((ImTupleExpr) knownTuple).getExprs().get(((ImTupleSelection) left).getTupleIndex());
                             }
+                            knownTuple.replaceBy(imSet.getRight().copy());
+                            // update value
+                            newOut = newOut.put(var, new Value(te));
                         } else {
-                            // the right side is not constant
-                            // invalidate old value
+                            // cannot update knowledge of lhs
+                            // value of lhs unknown
                             newOut = newOut.remove(var);
-                            // invalidate copies of the lhs
-                            Value varAsValue = new Value(var);
-                            for (Tuple2<ImVar, Value> p : newOut) {
-                                if (p._2().equalValue(varAsValue)) {
-                                    newOut = newOut.remove(p._1());
-                                }
+                        }
+                        // either way, lhs has now a new value and copies of it must be invalidated
+                        Value varAsValue = new Value(var);
+                        for (Tuple2<ImVar, Value> p : newOut) {
+                            if (p._2().equalValue(varAsValue)) {
+                                newOut = newOut.remove(p._1());
                             }
                         }
                     }
