@@ -113,7 +113,11 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImTupleSelection e) {
-        ImTupleType tt = (ImTupleType) e.getTupleExpr().attrTyp();
+        ImType t = e.getTupleExpr().attrTyp();
+        if(t instanceof ImArrayTypeMulti) {
+            t = ((ImArrayTypeMulti) t).getEntryType();
+        }
+        ImTupleType tt = (ImTupleType) t;
         return tt.getTypes().get(e.getTupleIndex());
     }
 

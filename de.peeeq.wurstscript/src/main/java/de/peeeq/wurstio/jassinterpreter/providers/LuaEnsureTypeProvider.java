@@ -23,4 +23,6 @@ public class LuaEnsureTypeProvider extends Provider {
     public ILconstReal realEnsure(ILconstReal x) {
         return x;
     }
+
+    public ILconstString stringConcat(ILconstString x, ILconstString y) { return new ILconstString(x.getVal() + y.getVal()); }
 }
