@@ -8,10 +8,11 @@ public class EliminateLocalTypes {
     private static ImType localSimpleType = JassIm.ImSimpleType("localSimpleType");
 
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
-        // While local types are still there, perform transformation specifically for strings:
-        // null string -> ""
-        // string1 + string2 -> stringConcat(string1, string2)
-        transformStrings(imProg, translator);
+        // While local types are still there, perform transformation, such that the lua translator does not need to know variable types
+        // null string -> "" (avoids type dependency in null translation)
+        // string1 + string2 -> stringConcat(string1, string2) (avoids type dependency in operator translation)
+        // int castTo int -> remove cast (avoids type dependency in cast translation)
+        transformProgram(imProg, translator);
         // Eliminates local types to be able to merge more locals in Lua.
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(imProg)) {
             eliminateLocalTypesFunc(f, translator);
@@ -28,7 +29,7 @@ public class EliminateLocalTypes {
         }
     }
     
-    private static void transformStrings(ImProg imProg, ImTranslator translator) {
+    private static void transformProgram(ImProg imProg, ImTranslator translator) {
         imProg.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImOperatorCall imOperatorCall) {
@@ -46,6 +47,14 @@ public class EliminateLocalTypes {
                 super.visit(imNull);
                 if(TypesHelper.isStringType(imNull.getType())) {
                     imNull.replaceBy(JassIm.ImStringVal(""));
+                }
+            }
+
+            @Override
+            public void visit(ImCast imCast) {
+                super.visit(imCast);
+                if(TypesHelper.isIntType(imCast.getExpr().attrTyp()) && TypesHelper.isIntType(imCast.getToType())) {
+                    imCast.replaceBy(imCast.getExpr().copy());
                 }
             }
         });
