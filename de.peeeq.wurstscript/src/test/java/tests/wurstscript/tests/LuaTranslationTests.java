@@ -40,6 +40,20 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function call to function " + functionName + " with arguments (" + arguments + ") was not found.", findAtLeastOne);
     }
 
+    private void assertFunctionBodyContains(String output, String functionName, String search, boolean mustContain) {
+        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
+        Matcher matcher = pattern.matcher(output);
+        while (matcher.find()) {
+            String body = matcher.group(1);
+            if(!body.contains(search) && mustContain) {
+                fail("Function " + functionName + " must contain " + search + ".");
+            }
+            if(body.contains(search) && !mustContain) {
+                fail("Function " + functionName + " must not contain " + search + ".");
+            }
+        }
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -156,6 +170,68 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nullUnit2.lua"), Charsets.UTF_8);
         assertFunctionCall(compiled, "takesUnit", "nil");
+    }
+
+    @Test
+    public void stringConcatenation() throws IOException {
+        // Use local variables to test if it works even when local types are eliminated.
+        test().testLua(true).lines(
+            "package Test",
+            "native takesString(string s)",
+            "function test()",
+            "    let s1 = \"1\"",
+            "    let s2 = \"2\"",
+            "    takesString(s1 + s2)",
+            "init",
+            "    test()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringConcatenation.lua"), Charsets.UTF_8);
+        // strings use the stringConcat function in lua instead of + operator
+        assertFunctionBodyContains(compiled, "test", "+", false);
+        assertFunctionBodyContains(compiled, "test", "stringConcat", true);
+    }
+
+    @Test
+    public void intCasting() throws IOException {
+        // Use local variables to test if it works even when local types are eliminated.
+        test().testLua(true).lines(
+            "package Test",
+            "native takesInt(int i)",
+            "enum MyEnum",
+            "    ZERO",
+            "    ONE",
+            "    TWO",
+            "function testEnum()",
+            "    let zeroEnum = MyEnum.ZERO",
+            "    let zeroInt = zeroEnum castTo int",
+            "    let zeroEnum2 = zeroInt castTo MyEnum",
+            "    takesInt(zeroEnum castTo int)",
+            "    takesInt(zeroInt)",
+            "    takesInt(zeroEnum2 castTo int)",
+            "class C",
+            "native takesC(C c)",
+            "function testClass()",
+            "    let cObj = new C()",
+            "    let cInt = cObj castTo int",
+            "    let cObj2 = cInt castTo C",
+            "    takesC(cObj)",
+            "    takesInt(cInt)",
+            "    takesC(cObj2)",
+            "init",
+            "    testEnum()",
+            "    testClass()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_intCasting.lua"), Charsets.UTF_8);
+        // enums are cast implicitly, because they are ints
+        assertFunctionBodyContains(compiled, "testEnum", "objectToIndex", false);
+        assertFunctionBodyContains(compiled, "testEnum", "zeroEnum = 0", true);
+        assertFunctionBodyContains(compiled, "testEnum", "zeroInt = zeroEnum", true);
+        assertFunctionBodyContains(compiled, "testEnum", "zeroEnum2 = zeroInt", true);
+        // classes are cast with objectToIndex and objectFromIndex in lua
+        assertFunctionBodyContains(compiled, "testClass", "objectToIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "cInt = cObj", false);
+        assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
 }
 
