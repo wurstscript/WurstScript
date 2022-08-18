@@ -537,6 +537,14 @@ globals
     constant volumegroup        SOUND_VOLUMEGROUP_MUSIC             = ConvertVolumeGroup(5)
     constant volumegroup        SOUND_VOLUMEGROUP_AMBIENTSOUNDS     = ConvertVolumeGroup(6)
     constant volumegroup        SOUND_VOLUMEGROUP_FIRE              = ConvertVolumeGroup(7)
+//Cinematic Sound Constants
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_GENERAL         = ConvertVolumeGroup(8)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_AMBIENT         = ConvertVolumeGroup(9)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_MUSIC           = ConvertVolumeGroup(10)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_DIALOGUE        = ConvertVolumeGroup(11)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_SOUND_EFFECTS_1 = ConvertVolumeGroup(12)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_SOUND_EFFECTS_2 = ConvertVolumeGroup(13)
+    constant volumegroup        SOUND_VOLUMEGROUP_CINEMATIC_SOUND_EFFECTS_3 = ConvertVolumeGroup(14)
 
 
 //===================================================
@@ -3712,6 +3720,7 @@ native SetSoundVelocity             takes sound soundHandle, real x, real y, rea
 native AttachSoundToUnit            takes sound soundHandle, unit whichUnit returns nothing
 
 native StartSound                   takes sound soundHandle returns nothing
+native StartSoundEx                 takes sound soundHandle, boolean fadeIn returns nothing
 native StopSound                    takes sound soundHandle, boolean killWhenDone, boolean fadeOut returns nothing
 native KillSoundWhenDone            takes sound soundHandle returns nothing
 
@@ -4095,6 +4104,7 @@ native BlzSetSpecialEffectMatrixScale              takes effect whichEffect, rea
 native BlzResetSpecialEffectMatrix                 takes effect whichEffect returns nothing
 native BlzGetUnitAbility                           takes unit whichUnit, integer abilId returns ability
 native BlzGetUnitAbilityByIndex                    takes unit whichUnit, integer index returns ability
+native BlzGetAbilityId                             takes ability whichAbility returns integer
 native BlzDisplayChatMessage                       takes player whichPlayer, integer recipient, string message returns nothing
 native BlzPauseUnitEx                              takes unit whichUnit, boolean flag returns nothing
 // native BlzFourCC2S                                 takes integer value returns string
@@ -4195,3 +4205,20 @@ native BlzCreateDestructableZWithSkin              takes integer objectid, real 
 native BlzCreateDeadDestructableWithSkin           takes integer objectid, real x, real y, real face, real scale, integer variation, integer skinId returns destructable
 native BlzCreateDeadDestructableZWithSkin          takes integer objectid, real x, real y, real z, real face, real scale, integer variation, integer skinId returns destructable
 native BlzGetPlayerTownHallCount                   takes player whichPlayer returns integer
+
+native BlzQueueImmediateOrderById      takes unit whichUnit, integer order returns boolean
+native BlzQueuePointOrderById          takes unit whichUnit, integer order, real x, real y returns boolean
+native BlzQueueTargetOrderById         takes unit whichUnit, integer order, widget targetWidget returns boolean
+native BlzQueueInstantPointOrderById   takes unit whichUnit, integer order, real x, real y, widget instantTargetWidget returns boolean
+native BlzQueueInstantTargetOrderById  takes unit whichUnit, integer order, widget targetWidget, widget instantTargetWidget returns boolean
+native BlzQueueBuildOrderById          takes unit whichPeon, integer unitId, real x, real y returns boolean
+native BlzQueueNeutralImmediateOrderById   takes player forWhichPlayer,unit neutralStructure, integer unitId returns boolean
+native BlzQueueNeutralPointOrderById       takes player forWhichPlayer,unit neutralStructure, integer unitId, real x, real y returns boolean
+native BlzQueueNeutralTargetOrderById      takes player forWhichPlayer,unit neutralStructure, integer unitId, widget target returns boolean
+
+// returns the number of orders the unit currently has queued up
+native BlzGetUnitOrderCount takes unit whichUnit returns integer
+// clears either all orders or only queued up orders
+native BlzUnitClearOrders takes unit whichUnit, boolean onlyQueued returns nothing
+// stops the current order and optionally clears the queue
+native BlzUnitForceStopOrder takes unit whichUnit, boolean clearQueue returns nothing
