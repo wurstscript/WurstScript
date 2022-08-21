@@ -95,6 +95,7 @@ public class ProgramStateIO extends ProgramState {
         if (mpqEditor == null) {
             // without a map: create empty object file
             dataStore = filetypeToObjmod(filetype);
+            dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
             dataStoreMap.put(filetype, dataStore);
             return dataStore;
         }
@@ -135,12 +136,14 @@ public class ProgramStateIO extends ProgramState {
 
                 } else {
                     dataStore = filetypeToObjmod(filetype);
+                    dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
                 }
             } catch (IOException | InterruptedException e) {
                 // TODO maybe tell the user, that something has gone wrong
                 WLogger.info("Could not extract file: " + fileName);
                 WLogger.info(e);
                 dataStore = filetypeToObjmod(filetype);
+                dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
             }
             dataStoreMap.put(filetype, dataStore);
 
