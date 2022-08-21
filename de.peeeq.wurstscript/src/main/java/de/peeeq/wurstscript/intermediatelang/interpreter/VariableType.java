@@ -14,4 +14,5 @@ public class VariableType<T> {
     }
 
 
+
 }
