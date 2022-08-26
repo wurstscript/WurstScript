@@ -337,10 +337,10 @@ public class ProgramStateIO extends ProgramState {
                         .append(")\n");
                 } else {
                     out.append("\t..set").append(valTypeToFuncPostfix(m.getValType())).append("(\"");
-                    out.append((m.getValType() == ObjMod.ValType.STRING) ?
+                    out.append(m.toString());
+                    out.append("\", ").append((m.getValType() == ObjMod.ValType.STRING) ?
                         Utils.escapeString(m.getVal().toString()) :
-                        m.getVal().toString());
-                    out.append("\", ").append(m.getVal().toString()).append(")\n");
+                        m.getVal().toString()).append(")\n");
                 }
             }
             out.append("\n\n");
