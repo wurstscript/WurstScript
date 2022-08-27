@@ -106,7 +106,7 @@ dependencies {
     implementation group: 'com.github.inwc3', name: 'jmpq3', version: 'b4ef7121a4'
 
     // Water's wc3 libs
-    implementation 'com.github.inwc3:wc3libs:a6bbe12d03'
+    implementation 'com.github.inwc3:wc3libs:aad9d96c49'
 
     // The setup tool for wurst.build handling
     implementation 'com.github.wurstscript:wurstsetup:4c65824b40'

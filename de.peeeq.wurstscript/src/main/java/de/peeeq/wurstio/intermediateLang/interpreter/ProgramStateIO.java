@@ -253,7 +253,7 @@ public class ProgramStateIO extends ProgramState {
                 ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
                 if (!dataStore.getObjs().isEmpty()) {
                     objFileStream.writeInt32(1); // exists
-                    dataStore.write(objFileStream, ObjMod.EncodingFormat.OBJ_0x2);
+                    dataStore.write(objFileStream, ObjMod.EncodingFormat.AS_DEFINED);
                 } else {
                     objFileStream.writeInt32(0); // does not exist
                 }
@@ -268,7 +268,7 @@ public class ProgramStateIO extends ProgramState {
         try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
             Optional<File> folder = getObjectEditingOutputFolder();
 
-            dataStore.write(out, ObjMod.EncodingFormat.OBJ_0x2);
+            dataStore.write(out, ObjMod.EncodingFormat.AS_DEFINED);
 
             out.close();
 
