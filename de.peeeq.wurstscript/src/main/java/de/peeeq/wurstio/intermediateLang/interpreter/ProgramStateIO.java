@@ -95,7 +95,7 @@ public class ProgramStateIO extends ProgramState {
         if (mpqEditor == null) {
             // without a map: create empty object file
             dataStore = filetypeToObjmod(filetype);
-            dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
+            dataStore.setFormat(ObjMod.EncodingFormat.OBJ_0x2);
             dataStoreMap.put(filetype, dataStore);
             return dataStore;
         }
@@ -106,44 +106,44 @@ public class ProgramStateIO extends ProgramState {
             try {
                 if (mpqEditor.hasFile(fileName)) {
                     byte[] w3_ = mpqEditor.extractFile(fileName);
-                    try (Wc3BinInputStream in = new Wc3BinInputStream(new ByteArrayInputStream(w3_))) {
-                        switch (filetype) {
-                            case UNITS:
-                                dataStore = new W3U(in);
-                                break;
-                            case ITEMS:
-                                dataStore = new W3T(in);
-                                break;
-                            case DESTRUCTABLES:
-                                dataStore = new W3B(in);
-                                break;
-                            case DOODADS:
-                                dataStore = new W3D(in);
-                                break;
-                            case ABILITIES:
-                                dataStore = new W3A(in);
-                                break;
-                            case BUFFS:
-                                dataStore = new W3H(in);
-                                break;
-                            case UPGRADES:
-                                dataStore = new W3Q(in);
-                                break;
-                        }
-
-                        replaceTrigStrings(dataStore);
+                    Wc3BinInputStream in = new Wc3BinInputStream(new ByteArrayInputStream(w3_));
+                    switch (filetype) {
+                        case UNITS:
+                            dataStore = new W3U(in);
+                            break;
+                        case ITEMS:
+                            dataStore = new W3T(in);
+                            break;
+                        case DESTRUCTABLES:
+                            dataStore = new W3B(in);
+                            break;
+                        case DOODADS:
+                            dataStore = new W3D(in);
+                            break;
+                        case ABILITIES:
+                            dataStore = new W3A(in);
+                            break;
+                        case BUFFS:
+                            dataStore = new W3H(in);
+                            break;
+                        case UPGRADES:
+                            dataStore = new W3Q(in);
+                            break;
                     }
+
+                    in.close();
+                    replaceTrigStrings(dataStore);
 
                 } else {
                     dataStore = filetypeToObjmod(filetype);
-                    dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
+                    dataStore.setFormat(ObjMod.EncodingFormat.OBJ_0x2);
                 }
             } catch (IOException | InterruptedException e) {
                 // TODO maybe tell the user, that something has gone wrong
                 WLogger.info("Could not extract file: " + fileName);
                 WLogger.info(e);
                 dataStore = filetypeToObjmod(filetype);
-                dataStore.setFormat(ObjMod.EncodingFormat.AUTO);
+                dataStore.setFormat(ObjMod.EncodingFormat.OBJ_0x2);
             }
             dataStoreMap.put(filetype, dataStore);
 
@@ -253,7 +253,7 @@ public class ProgramStateIO extends ProgramState {
                 ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
                 if (!dataStore.getObjs().isEmpty()) {
                     objFileStream.writeInt32(1); // exists
-                    dataStore.write(objFileStream, ObjMod.EncodingFormat.AS_DEFINED);
+                    dataStore.write(objFileStream, ObjMod.EncodingFormat.OBJ_0x2);
                 } else {
                     objFileStream.writeInt32(0); // does not exist
                 }
@@ -264,14 +264,15 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private void writebackObjectFile(ObjMod<? extends ObjMod.Obj> dataStore, ObjectFileType fileType, boolean inject) throws Error {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Wc3BinOutputStream out = new Wc3BinOutputStream(baos);
             Optional<File> folder = getObjectEditingOutputFolder();
 
-            dataStore.write(out, ObjMod.EncodingFormat.AS_DEFINED);
+            dataStore.write(out, ObjMod.EncodingFormat.OBJ_0x2);
 
             out.close();
-
             byte[] w3_ = baos.toByteArray();
 
             // TODO  wurst exported objects
