@@ -434,6 +434,12 @@ public class AntlrJassParseTreeTransformer {
                     case 't':
                         res.append('\t');
                         break;
+                    case 'b':
+                        res.append('\b');
+                        break;
+                    case 'f':
+                        res.append('\f');
+                        break;
                     case '"':
                         res.append('"');
                         break;
