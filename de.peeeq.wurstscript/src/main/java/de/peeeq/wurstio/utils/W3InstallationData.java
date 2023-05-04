@@ -80,7 +80,7 @@ public class W3InstallationData {
             version = Optional.ofNullable(new StdGameVersionFinder().get());
             WLogger.info("Parsed game version: " + version);
         } catch (NotFoundException e) {
-            e.printStackTrace();
+            WLogger.warning("Wurst compiler failed to determine game version", e);
         }
     }
 
