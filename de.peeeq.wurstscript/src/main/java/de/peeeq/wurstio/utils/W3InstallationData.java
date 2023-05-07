@@ -7,6 +7,7 @@ import net.moonlightflower.wc3libs.port.NotFoundException;
 import net.moonlightflower.wc3libs.port.Orient;
 import net.moonlightflower.wc3libs.port.StdGameExeFinder;
 import net.moonlightflower.wc3libs.port.StdGameVersionFinder;
+import net.moonlightflower.wc3libs.port.UnsupportedPlatformException;
 import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
@@ -81,6 +82,8 @@ public class W3InstallationData {
             WLogger.info("Parsed game version: " + version);
         } catch (NotFoundException e) {
             WLogger.warning("Wurst compiler failed to determine game version", e);
+        } catch (UnsupportedPlatformException e) {
+            WLogger.warning("Wurst compiler cannot determine game version: " + e.getMessage());
         }
     }
 

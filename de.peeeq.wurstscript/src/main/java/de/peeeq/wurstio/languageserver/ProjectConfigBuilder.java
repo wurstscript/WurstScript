@@ -54,7 +54,11 @@ public class ProjectConfigBuilder {
                     if (w3data.getWc3PatchVersion().isPresent()) {
                         w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
                     } else {
-                        w3I.injectConfigsInJassScript(inputStream, sw, GameVersion.VERSION_1_32);
+                        GameVersion version = GameVersion.VERSION_1_32;
+                        System.out.println(
+                            "Failed to determine installed game version. Falling back to " + version.toString()
+                        );
+                        w3I.injectConfigsInJassScript(inputStream, sw, version);
                     }
                 }
                 scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
