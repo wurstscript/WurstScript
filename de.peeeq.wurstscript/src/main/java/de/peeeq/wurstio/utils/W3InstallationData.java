@@ -73,6 +73,8 @@ public class W3InstallationData {
             WLogger.info("Parsed game path: " + gameExe);
         } catch (NotFoundException e) {
             e.printStackTrace();
+        } catch (UnsupportedPlatformException e) {
+            WLogger.warning("Wurst compiler cannot determine game path: " + e.getMessage());
         }
     }
 
