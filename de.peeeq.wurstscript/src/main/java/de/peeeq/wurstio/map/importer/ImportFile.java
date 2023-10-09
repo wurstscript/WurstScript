@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
@@ -212,8 +213,8 @@ public class ImportFile {
     private static File[] getTransientImportDirectories(File projectFolder) {
         ArrayList<Path> paths = new ArrayList<>();
         Path dependencies = projectFolder.toPath().resolve("_build").resolve("dependencies");
-        try {
-            java.nio.file.Files.list(dependencies).forEach(dependency -> {
+        try (Stream<Path> spaths = java.nio.file.Files.list(dependencies)) {
+            spaths.forEach(dependency -> {
                 if (java.nio.file.Files.exists(dependency.resolve("imports"))) {
                     paths.add(dependency.resolve("imports"));
                 }

@@ -1393,4 +1393,17 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void minusRewrite() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    let i = 0 - 100",
+            "    if i == -100",
+            "        testSuccess()"
+        );
+    }
+
+
 }

@@ -27,10 +27,10 @@ public class StringProvider extends Provider {
         return new ILconstString("" + i.getVal());
     }
 
+    private static final Pattern s2ipattern = Pattern.compile("([+\\-]?[0-9]+).*");
     public ILconstInt S2I(ILconstString s) {
         String str = s.getVal();
-        Pattern pattern = Pattern.compile("([+\\-]?[0-9]+).*");
-        Matcher matcher = pattern.matcher(str);
+        Matcher matcher = s2ipattern.matcher(str);
         if (matcher.matches()) {
             str = matcher.group(1);
             return new ILconstInt(Integer.parseInt(str));
@@ -39,10 +39,11 @@ public class StringProvider extends Provider {
         }
     }
 
+    private static final Pattern s2rpattern = Pattern.compile("([+\\-]?[0-9]+(\\.[0-9]*)?).*");
     public ILconstReal S2R(ILconstString s) {
         String str = s.getVal();
-        Pattern pattern = Pattern.compile("([+\\-]?[0-9]+(\\.[0-9]*)?).*");
-        Matcher matcher = pattern.matcher(str);
+
+        Matcher matcher = s2rpattern.matcher(str);
         if (matcher.matches()) {
             str = matcher.group(1);
             return new ILconstReal(Float.parseFloat(str));

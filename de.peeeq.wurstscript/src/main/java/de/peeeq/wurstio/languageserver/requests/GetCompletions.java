@@ -23,6 +23,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -356,6 +357,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    private static final Pattern realPattern = Pattern.compile("[0-9]\\.");
+
     /**
      * checks if we are currently entering a real number
      * (autocomplete might have triggered because of the dot)
@@ -364,7 +367,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         try {
             String currentLine = currentLine();
             String before = currentLine.substring(column - 2, 2);
-            return before.matches("[0-9]\\.");
+            return realPattern.matcher(before).matches();
         } catch (IndexOutOfBoundsException e) {
             return false;
         }

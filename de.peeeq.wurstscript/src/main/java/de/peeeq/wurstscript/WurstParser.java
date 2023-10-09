@@ -24,6 +24,8 @@ import org.antlr.v4.runtime.misc.Interval;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WurstParser {
     private static final int MAX_SYNTAX_ERRORS = 15;
@@ -39,6 +41,7 @@ public class WurstParser {
         return parseWithAntlr(reader, source, hasCommonJ);
     }
 
+    private static final Pattern pattern = Pattern.compile("\\s*");
 
     private CompilationUnit parseWithAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
@@ -52,6 +55,8 @@ public class WurstParser {
             ANTLRErrorListener l = new BaseErrorListener() {
 
                 int errorCount = 0;
+
+
 
                 @Override
                 public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
@@ -85,7 +90,8 @@ public class WurstParser {
                         posStop = input.size() - 1;
                     }
 
-                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")){
+                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
+                    while (pos > 0 && matcher.matches()){
                         pos--;
                     }
                     CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
@@ -161,7 +167,8 @@ public class WurstParser {
 
                     msg = "line " + line + ": " + msg;
 
-                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
+                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
+                    while (pos > 0 && matcher.matches()) {
                         pos--;
                     }
                     CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
@@ -229,7 +236,8 @@ public class WurstParser {
 
                     msg = "line " + line + ": " + msg;
 
-                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
+                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
+                    while (pos > 0 && matcher.matches()) {
                         pos--;
                     }
                     CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);

@@ -209,7 +209,7 @@ public class HotdocGenerator {
                 if (!first) {
                     descr.append(", ");
                 }
-                descr.append(p.attrTyp() + " " + p.getName());
+                descr.append(p.attrTyp()).append(" ").append(p.getName());
                 first = false;
             }
             descr.append(")");

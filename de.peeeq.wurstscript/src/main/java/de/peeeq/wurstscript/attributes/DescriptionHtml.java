@@ -52,7 +52,7 @@ public class DescriptionHtml {
             if (!first) {
                 descrhtml.append(", ");
             }
-            descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
+            descrhtml.append(htmlType(p.attrTyp())).append(" ").append(p.getName());
             first = false;
         }
         String params = descrhtml.toString();

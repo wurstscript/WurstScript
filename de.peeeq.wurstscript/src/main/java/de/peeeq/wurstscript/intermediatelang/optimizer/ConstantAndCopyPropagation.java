@@ -232,6 +232,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         Map<Node, Knowledge> knowledge = new java.util.HashMap<>();
 
         // initialize with empty knowledge:
+
         for (Node n : cfg.getNodes()) {
             knowledge.put(n, new Knowledge());
         }
@@ -270,7 +271,6 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     }
                 }
             }
-
             // at the output get all from the input knowledge
             HashMap<ImVar, Value> newOut = newKnowledge;
 
@@ -279,7 +279,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                 ImSet imSet = (ImSet) stmt;
                 if (imSet.getLeft() instanceof ImVarAccess) {
                     ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
-                    if (!var.isGlobal()) {
+                    if (var != null && !var.isGlobal()) {
                         Value newValue = null;
                         ImExpr right = imSet.getRight();
                         if (right instanceof ImConst) {
@@ -360,7 +360,6 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             if (!kn.varKnowledgeOut.equals(newOut)) {
                 todo.addAll(n.getSuccessors());
             }
-
             // update knowledge
             kn.varKnowledge = newKnowledge;
             kn.varKnowledgeOut = newOut;
