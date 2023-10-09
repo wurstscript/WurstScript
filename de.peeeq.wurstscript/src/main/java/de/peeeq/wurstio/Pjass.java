@@ -45,6 +45,8 @@ public class Pjass {
             return message;
         }
 
+        private static final Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
+
         public List<CompileError> getErrors() {
             if (isOk()) {
                 return Collections.emptyList();
@@ -67,7 +69,6 @@ public class Pjass {
 
             List<CompileError> result = Lists.newArrayList();
             for (String error : getMessage().split("([\n\r])+")) {
-                Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
                 Matcher match = pat.matcher(error);
                 if (!match.matches()) {
                     WLogger.warning("no match: " + error);

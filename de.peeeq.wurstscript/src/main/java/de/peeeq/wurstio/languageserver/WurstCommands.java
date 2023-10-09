@@ -39,7 +39,7 @@ public class WurstCommands {
 
     static List<String> providedCommands() {
         return Arrays.asList(
-                WURST_CLEAN
+            WURST_CLEAN
         );
     }
 
@@ -123,11 +123,12 @@ public class WurstCommands {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {
-                return Stream.concat(
-                        Files.lines(configFile)
-                                .filter(s -> s.startsWith("-")),
+                try (Stream<String> lines = Files.lines(configFile)) {
+                    return Stream.concat(
+                        lines.filter(s -> s.startsWith("-")),
                         Stream.of(additionalArgs)
-                ).collect(Collectors.toList());
+                    ).collect(Collectors.toList());
+                }
             } else {
 
                 String cfg = String.join("\n", defaultArgs) + "\n";
