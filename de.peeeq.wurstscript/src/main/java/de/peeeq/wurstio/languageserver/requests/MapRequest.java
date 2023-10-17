@@ -58,15 +58,20 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final RunArgs runArgs;
     protected final Optional<String> wc3Path;
     protected final W3InstallationData w3data;
-    private final TimeTaker timeTaker;
+    protected final TimeTaker timeTaker;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
     protected SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
 
+    public TimeTaker getTimeTaker() {
+        return timeTaker;
+    }
+
+
     enum SafetyLevel {
-        QuickAndDirty, KindOfSafe
+        QuickAndDirty, KindOfSafe;
     }
 
     public MapRequest(ConfigProvider configProvider, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
@@ -194,7 +199,6 @@ public abstract class MapRequest extends UserRequest<Object> {
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, "compiled.lua");
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
-                timeTaker.printReport();
                 return outFile;
 
             } else {
@@ -232,7 +236,6 @@ public abstract class MapRequest extends UserRequest<Object> {
                     gui.sendProgress("Running JHCR");
                     return runJassHotCodeReload(outFile);
                 }
-                timeTaker.printReport();
                 return outFile;
             }
         } catch (Exception e) {
@@ -328,6 +331,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, Optional<File> mapCopy,
                                  WurstProjectConfigData projectConfigData, boolean isProd) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
+        gui.sendProgress("Compiling Script");
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
             WLogger.info("dep: " + dep.getPath());

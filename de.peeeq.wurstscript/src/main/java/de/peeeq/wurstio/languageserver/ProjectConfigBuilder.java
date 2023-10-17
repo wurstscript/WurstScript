@@ -48,7 +48,7 @@ public class ProjectConfigBuilder {
                 StringWriter sw = new StringWriter();
 
                 // TODO apply config for hot start before JHCR transformation
-                if (runArgs.isLua() || runArgs.isHotStartmap()) {
+                if (runArgs.isLua()) {
                     w3I.injectConfigsInLuaScript(inputStream, sw);
                 } else {
                     if (w3data.getWc3PatchVersion().isPresent()) {

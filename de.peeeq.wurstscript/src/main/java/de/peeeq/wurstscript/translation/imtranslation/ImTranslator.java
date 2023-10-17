@@ -5,7 +5,6 @@ import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.datastructures.TransitiveClosure;
-import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
@@ -27,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
+import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -1060,23 +1060,36 @@ public class ImTranslator {
         });
     }
 
-    private void calculateCallRelations(ImFunction f) {
-        if (getUsedFunctions().contains(f)) {
+    private void calculateCallRelations(ImFunction rootFunction) {
+        // Early return if rootFunction is already processed
+        if (getUsedFunctions().contains(rootFunction)) {
             return;
         }
-        getUsedFunctions().add(f);
 
-        getUsedVariables().addAll(f.calcUsedVariables());
-        getReadVariables().addAll(f.calcReadVariables());
+        Stack<ImFunction> functionStack = new Stack<>();
+        functionStack.push(rootFunction);
 
-        Set<ImFunction> calledFuncs = f.calcUsedFunctions();
-        for (ImFunction called : calledFuncs) {
-            if (f != called) { // ignore reflexive call relations
-                getCallRelations().put(f, called);
+        while (!functionStack.isEmpty()) {
+            ImFunction f = functionStack.pop();
+
+            // If the function is already processed, skip the remaining logic
+            // in this iteration
+            if (getUsedFunctions().contains(f)) {
+                continue;
             }
-            calculateCallRelations(called);
-        }
 
+            getUsedFunctions().add(f);
+            getUsedVariables().addAll(f.calcUsedVariables());
+            getReadVariables().addAll(f.calcReadVariables());
+
+            Set<ImFunction> calledFuncs = f.calcUsedFunctions();
+            for (ImFunction called : calledFuncs) {
+                if (f != called) { // ignore reflexive call relations
+                    getCallRelations().put(f, called);
+                }
+                functionStack.push(called);
+            }
+        }
     }
 
     private Multimap<ImFunction, ImFunction> getCallRelations() {

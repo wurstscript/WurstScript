@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -98,26 +99,18 @@ public class RunMap extends MapRequest {
 
 
             if (testMap.isPresent()) {
-                // then inject the script into the map
-                gui.sendProgress("Injecting mapscript");
-                try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
-                    String mapScriptName;
-                    if (runArgs.isLua()) {
-                        mapScriptName = "war3map.lua";
-                    } else {
-                        mapScriptName = "war3map.j";
-                    }
-                    // delete both original mapscripts, just to be sure:
-                    mpqEditor.deleteFile("war3map.j");
-                    mpqEditor.deleteFile("war3map.lua");
-                    mpqEditor.insertFile(mapScriptName, compiledScript);
-                }
-
                 gui.sendProgress("Applying Map Config...");
-                ProjectConfigBuilder.apply(projectConfig, testMap.get(), compiledScript, buildDir, runArgs, w3data);
+                timeTaker.measure("Applying Map Config", () -> {
+                    try {
+                        ProjectConfigBuilder.apply(projectConfig, testMap.get(), compiledScript, buildDir, runArgs, w3data);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
                 File mapCopy = copyToWarcraftMapDir(testMap.get());
 
+                gui.sendProgress("Starting Warcraft 3...");
                 WLogger.info("Starting wc3 ... ");
                 String path = "";
                 if (customTarget != null) {
@@ -158,6 +151,7 @@ public class RunMap extends MapRequest {
 
                     gui.sendProgress("running " + cmd);
                     Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+                    timeTaker.printReport();
                 }
             }
         } catch (CompileError e) {
@@ -172,6 +166,24 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    private void injectMapScript(WurstGui gui, Optional<File> testMap, File compiledScript) {
+        gui.sendProgress("Injecting mapscript");
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+            String mapScriptName;
+            if (runArgs.isLua()) {
+                mapScriptName = "war3map.lua";
+            } else {
+                mapScriptName = "war3map.j";
+            }
+            // delete both original mapscripts, just to be sure:
+            mpqEditor.deleteFile("war3map.j");
+            mpqEditor.deleteFile("war3map.lua");
+            mpqEditor.insertFile(mapScriptName, compiledScript);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
