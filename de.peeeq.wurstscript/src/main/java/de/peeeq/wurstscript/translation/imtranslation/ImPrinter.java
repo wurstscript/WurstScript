@@ -519,7 +519,7 @@ public class ImPrinter {
 
     public static void print(ImClassType ct, Appendable sb, int indent) {
         append(sb, ct.getClassDef().getName());
-        append(sb, smallHash(ct.getClassDef()));
+        //append(sb, smallHash(ct.getClassDef()));
         ImTypeArguments typeArguments = ct.getTypeArguments();
         printTypeArguments(typeArguments, indent, sb);
     }

@@ -49,7 +49,7 @@ public class CyclicFunctionRemover {
 
     private void removeCycle(List<ImFunction> funcs, Set<ImFunction> funcSet) {
         List<ImVar> newParameters = Lists.newArrayList();
-        Map<ImVar, ImVar> oldToNewVar = Maps.newHashMap();
+        Map<ImVar, ImVar> oldToNewVar = Maps.newLinkedHashMap();
 
         calculateNewParameters(funcs, newParameters, oldToNewVar);
 
@@ -215,7 +215,7 @@ public class CyclicFunctionRemover {
 
     }
 
-    private Map<String, ImVar> tempReturnVars = Maps.newHashMap();
+    private Map<String, ImVar> tempReturnVars = Maps.newLinkedHashMap();
 
     private ImVar getTempReturnVar(ImType t) {
         String typeName = t.translateType();

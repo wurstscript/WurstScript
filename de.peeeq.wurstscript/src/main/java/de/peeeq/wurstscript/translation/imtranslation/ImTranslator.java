@@ -1042,7 +1042,7 @@ public class ImTranslator {
     }
 
     public void calculateCallRelationsAndUsedVariables() {
-        callRelations = HashMultimap.create();
+        callRelations = LinkedHashMultimap.create();
         usedVariables = Sets.newLinkedHashSet();
         readVariables = Sets.newLinkedHashSet();
         usedFunctions = Sets.newLinkedHashSet();
