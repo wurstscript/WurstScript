@@ -255,7 +255,7 @@ public class RunArgs {
     }
 
     public boolean isNullsetting() {
-        return true;
+        return isOptimize();
     }
 
     public boolean isLocalOptimizations() {

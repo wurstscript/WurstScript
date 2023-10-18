@@ -60,10 +60,9 @@ public class BuildMap extends MapRequest {
             String fileName = projectConfig.getBuildMapData().getFileName();
             Optional<File> targetMap = Optional.of(
                 new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x"));
-            File compiledScript = compileScript(modelManager, gui, targetMap, projectConfig, true);
+            CompilationResult result = compileScript(modelManager, gui, targetMap, projectConfig, buildDir, true);
 
-            gui.sendProgress("Applying Map Config...");
-            ProjectConfigBuilder.apply(projectConfig, targetMap.get(), compiledScript, buildDir, runArgs, w3data);
+            injectMapData(gui, targetMap, result);
 
             JMpqEditor finalizer = new JMpqEditor(targetMap.get(), MPQOpenOption.FORCE_V0);
             finalizer.close();

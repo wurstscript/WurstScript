@@ -4,11 +4,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Removes cyclic functions from a program
@@ -18,29 +20,36 @@ public class CyclicFunctionRemover {
 
 
     private ImProg prog;
+    private TimeTaker timeTaker;
     private ImTranslator tr;
     private ImFuncGraph graph;
 
-    public CyclicFunctionRemover(ImTranslator tr, ImProg prog) {
+    public CyclicFunctionRemover(ImTranslator tr, ImProg prog, TimeTaker timeTaker) {
         this.tr = tr;
         this.prog = prog;
+        this.timeTaker = timeTaker;
         this.graph = new ImFuncGraph();
     }
 
     public void work() {
         tr.calculateCallRelationsAndUsedVariables();
-        Set<Set<ImFunction>> components = graph.findStronglyConnectedComponents(prog.getFunctions());
+        AtomicReference<Set<Set<ImFunction>>> components = new AtomicReference<>();
+        timeTaker.measure("finding cycles", () -> components.set(graph.findStronglyConnectedComponents(prog.getFunctions())));
 
-        for (Set<ImFunction> component : components) {
+        timeTaker.measure("removing cycles", () -> removeCycles(components));
+    }
+
+    private void removeCycles(AtomicReference<Set<Set<ImFunction>>> components) {
+        for (Set<ImFunction> component : components.get()) {
             if (component.size() > 1) {
-                removeCycle(ImmutableList.copyOf(component));
+                removeCycle(ImmutableList.copyOf(component), component);
             }
         }
     }
 
-    private void removeCycle(List<ImFunction> funcs) {
+    private void removeCycle(List<ImFunction> funcs, Set<ImFunction> funcSet) {
         List<ImVar> newParameters = Lists.newArrayList();
-        Map<ImVar, ImVar> oldToNewVar = Maps.newHashMap();
+        Map<ImVar, ImVar> oldToNewVar = Maps.newLinkedHashMap();
 
         calculateNewParameters(funcs, newParameters, oldToNewVar);
 
@@ -81,7 +90,7 @@ public class CyclicFunctionRemover {
             stmts = elseBlock;
         }
 
-        replaceCalls(funcs, newFunc, oldToNewVar, prog);
+        replaceCalls(funcs, funcSet, newFunc, oldToNewVar, prog);
 
         for (ImFunction e : Lists.newArrayList(tr.getCalledFunctions().keys())) {
             Collection<ImFunction> called = tr.getCalledFunctions().get(e);
@@ -111,17 +120,17 @@ public class CyclicFunctionRemover {
     }
 
 
-    private void replaceCalls(List<ImFunction> funcs, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
+    private void replaceCalls(List<ImFunction> funcs, Set<ImFunction> funcSet, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
         // process children
         for (int i = 0; i < e.size(); i++) {
-            replaceCalls(funcs, newFunc, oldToNewVar, e.get(i));
+            replaceCalls(funcs, funcSet, newFunc, oldToNewVar, e.get(i));
         }
 
 
         if (e instanceof ImFuncRef) {
             ImFuncRef fr = (ImFuncRef) e;
             ImFunction f = fr.getFunc();
-            if (funcs.contains(f)) {
+            if (funcSet.contains(f)) {
 
                 ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
                 prog.getFunctions().add(proxyFunc);
@@ -139,14 +148,14 @@ public class CyclicFunctionRemover {
                     proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
                 }
                 // rewrite the proxy call:
-                replaceCalls(funcs, newFunc, oldToNewVar, call);
+                replaceCalls(funcs, funcSet, newFunc, oldToNewVar, call);
                 // change the funcref to use the proxy
                 fr.setFunc(proxyFunc);
             }
         } else if (e instanceof ImFunctionCall) {
             ImFunctionCall fc = (ImFunctionCall) e;
             ImFunction oldFunc = fc.getFunc();
-            if (funcs.contains(oldFunc)) {
+            if (funcSet.contains(oldFunc)) {
 
                 ImExprs arguments = JassIm.ImExprs();
 
@@ -206,7 +215,7 @@ public class CyclicFunctionRemover {
 
     }
 
-    private Map<String, ImVar> tempReturnVars = Maps.newHashMap();
+    private Map<String, ImVar> tempReturnVars = Maps.newLinkedHashMap();
 
     private ImVar getTempReturnVar(ImType t) {
         String typeName = t.translateType();

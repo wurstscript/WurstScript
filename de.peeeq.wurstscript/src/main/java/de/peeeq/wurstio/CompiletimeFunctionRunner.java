@@ -1,7 +1,7 @@
 package de.peeeq.wurstio;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import config.WurstProjectConfigData;
@@ -317,9 +317,9 @@ public class CompiletimeFunctionRunner {
             ImExpr init;
 
             Object obj = a.getObj();
-            if (obj instanceof ArrayListMultimap) {
+            if (obj instanceof LinkedListMultimap) {
                 @SuppressWarnings("unchecked")
-                ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
+                LinkedListMultimap<HashtableProvider.KeyPair, Object> map = (LinkedListMultimap<HashtableProvider.KeyPair, Object>) obj;
                 ImType type = TypesHelper.imHashTable();
                 ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
                 imProg.getGlobals().add(res);
@@ -411,7 +411,7 @@ public class CompiletimeFunctionRunner {
      * Stores a hashtable value in a compiletime expression
      * by generating the respective native calls
      */
-    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, ArrayListMultimap<HashtableProvider.KeyPair, Object> map) {
+    private ImExpr constantToExprHashtable(Element trace, ImVar htVar, IlConstHandle handle, LinkedListMultimap<HashtableProvider.KeyPair, Object> map) {
         WPos errorPos = trace.attrErrorPos();
         // we have to collect all values after all compiletime functions have run, so use delayedActions
         delayedActions.add(() -> {
