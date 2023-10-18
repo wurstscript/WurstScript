@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.RandomStringUtils;
@@ -85,12 +86,12 @@ public class RunMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
-            File compiledScript = compileScript(modelManager, gui, testMap, projectConfig, false);
+            CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
 
             if (runArgs.isHotReload()) {
                 // call jhcr update
                 gui.sendProgress("Calling JHCR update");
-                callJhcrUpdate(compiledScript);
+                callJhcrUpdate(result.script);
 
                 // if we are just reloading the mapscript with JHCR, we are done here
                 gui.sendProgress("update complete");
@@ -99,14 +100,8 @@ public class RunMap extends MapRequest {
 
 
             if (testMap.isPresent()) {
-                gui.sendProgress("Applying Map Config...");
-                timeTaker.measure("Applying Map Config", () -> {
-                    try {
-                        ProjectConfigBuilder.apply(projectConfig, testMap.get(), compiledScript, buildDir, runArgs, w3data);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+
+                injectMapData(gui, testMap, result);
 
                 File mapCopy = copyToWarcraftMapDir(testMap.get());
 
@@ -166,24 +161,6 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
-    }
-
-    private void injectMapScript(WurstGui gui, Optional<File> testMap, File compiledScript) {
-        gui.sendProgress("Injecting mapscript");
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
-            String mapScriptName;
-            if (runArgs.isLua()) {
-                mapScriptName = "war3map.lua";
-            } else {
-                mapScriptName = "war3map.j";
-            }
-            // delete both original mapscripts, just to be sure:
-            mpqEditor.deleteFile("war3map.j");
-            mpqEditor.deleteFile("war3map.lua");
-            mpqEditor.insertFile(mapScriptName, compiledScript);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
 

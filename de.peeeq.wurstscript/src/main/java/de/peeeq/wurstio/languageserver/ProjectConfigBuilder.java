@@ -2,7 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.io.Files;
 import config.*;
-import de.peeeq.wurstio.Pjass;
+import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -31,15 +31,16 @@ import java.util.Optional;
 public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
 
-    public static void apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
-            RunArgs runArgs, W3InstallationData w3data) throws IOException {
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
+                                                     RunArgs runArgs, W3InstallationData w3data) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
 
+        MapRequest.CompilationResult result = new MapRequest.CompilationResult();
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
-            File file = new File(buildDir, "wc3libs_injected.j");
+            result.script = new File(buildDir, "wa3mapj_with_config.j.txt");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
@@ -47,7 +48,6 @@ public class ProjectConfigBuilder {
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
 
-                // TODO apply config for hot start before JHCR transformation
                 if (runArgs.isLua()) {
                     w3I.injectConfigsInLuaScript(inputStream, sw);
                 } else {
@@ -63,42 +63,38 @@ public class ProjectConfigBuilder {
                 }
                 scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
 
-                File w3iFile = new File("w3iFile");
+                result.w3i = new File("w3iFile");
                 if (runArgs.isLua()) {
                     w3I.setScriptLang(W3I.ScriptLang.LUA);
                     w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
                 }
-                w3I.write(w3iFile);
-
-                mpq.deleteFile("war3map.w3i");
-                mpq.insertFile("war3map.w3i", java.nio.file.Files.readAllBytes(w3iFile.toPath()));
-
-                w3iFile.delete();
+                w3I.write(result.w3i);
             } else {
                 scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
             }
 
-            Files.write(scriptBytes, file);
-            if (!runArgs.isDisablePjass()) {
-                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
-                    new File(buildDir, "blizzard.j").getAbsolutePath());
-            }
-            String mapScriptName;
-            if (runArgs.isLua()) {
-                mapScriptName = "war3map.lua";
-            } else {
-                mapScriptName = "war3map.j";
-            }
-            mpq.deleteFile("war3map.lua");
-            mpq.deleteFile("war3map.j");
-            mpq.insertFile(mapScriptName, scriptBytes);
+            Files.write(scriptBytes, result.script);
+//            if (!runArgs.isDisablePjass()) {
+//                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
+//                    new File(buildDir, "blizzard.j").getAbsolutePath());
+//            }
+//            String mapScriptName;
+//            if (runArgs.isLua()) {
+//                mapScriptName = "war3map.lua";
+//            } else {
+//                mapScriptName = "war3map.j";
+//            }
+//            mpq.deleteFile("war3map.lua");
+//            mpq.deleteFile("war3map.j");
+//            mpq.insertFile(mapScriptName, scriptBytes);
 
-            file.delete();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
         applyMapHeader(projectConfig, targetMap);
+
+        return result;
     }
 
     private static W3I prepareW3I(WurstProjectConfigData projectConfig, MpqEditor mpq) throws Exception {
