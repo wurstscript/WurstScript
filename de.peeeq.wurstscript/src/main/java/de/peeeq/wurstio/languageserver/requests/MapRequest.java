@@ -325,9 +325,21 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.copy(map.get(), testMap.get());
         }
 
-        File scriptFile = loadMapScript(testMap, modelManager, gui);
+        CompilationResult result;
 
-        CompilationResult result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile);
+        if (runArgs.isHotReload()) {
+            // For hot reload use cached war3map
+            result = new CompilationResult();
+            result.script = new File(buildDir, "wa3mapj_with_config.j.txt");
+            if (!result.script.exists()) {
+                throw new RequestFailedException(MessageType.Error, "Could not find cached wa3mapj_with_config.j.txt file");
+            }
+        } else {
+            File scriptFile = loadMapScript(testMap, modelManager, gui);
+            result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile);
+        }
+
+
 
         // first compile the script:
         result.script = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd, result.script);

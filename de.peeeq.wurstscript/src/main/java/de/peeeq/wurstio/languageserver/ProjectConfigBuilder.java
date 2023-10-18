@@ -63,7 +63,7 @@ public class ProjectConfigBuilder {
                 }
                 scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
 
-                result.w3i = new File("w3iFile");
+                result.w3i = new File(buildDir, "war3map.w3i");
                 if (runArgs.isLua()) {
                     w3I.setScriptLang(W3I.ScriptLang.LUA);
                     w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
