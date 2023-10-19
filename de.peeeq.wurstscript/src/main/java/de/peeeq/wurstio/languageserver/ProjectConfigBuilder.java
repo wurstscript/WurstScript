@@ -38,11 +38,11 @@ public class ProjectConfigBuilder {
         }
 
         MapRequest.CompilationResult result = new MapRequest.CompilationResult();
-
+        result.script = compiledScript;
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
-            result.script = new File(buildDir, "wa3mapj_with_config.j.txt");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
+                result.script = new File(buildDir, "war3mapj_with_config.j.txt");
                 // Apply w3i config values
                 W3I w3I = prepareW3I(projectConfig, mpq);
                 FileInputStream inputStream = new FileInputStream(compiledScript);
@@ -69,11 +69,9 @@ public class ProjectConfigBuilder {
                     w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
                 }
                 w3I.write(result.w3i);
-            } else {
-                scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
+                Files.write(scriptBytes, result.script);
             }
 
-            Files.write(scriptBytes, result.script);
 //            if (!runArgs.isDisablePjass()) {
 //                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
 //                    new File(buildDir, "blizzard.j").getAbsolutePath());

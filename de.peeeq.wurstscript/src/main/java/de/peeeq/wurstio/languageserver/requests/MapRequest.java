@@ -328,11 +328,14 @@ public abstract class MapRequest extends UserRequest<Object> {
         CompilationResult result;
 
         if (runArgs.isHotReload()) {
-            // For hot reload use cached war3map
+            // For hot reload use cached war3map if it exists
             result = new CompilationResult();
-            result.script = new File(buildDir, "wa3mapj_with_config.j.txt");
+            result.script = new File(buildDir, "war3mapj_with_config.j.txt");
             if (!result.script.exists()) {
-                throw new RequestFailedException(MessageType.Error, "Could not find cached wa3mapj_with_config.j.txt file");
+                result.script = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
+            }
+            if (!result.script.exists()) {
+                throw new RequestFailedException(MessageType.Error, "Could not find war3map.j file");
             }
         } else {
             File scriptFile = loadMapScript(testMap, modelManager, gui);
