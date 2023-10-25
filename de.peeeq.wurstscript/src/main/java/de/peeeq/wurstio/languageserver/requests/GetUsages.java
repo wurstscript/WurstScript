@@ -10,10 +10,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 
 public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
@@ -37,14 +34,18 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
     @Override
     public List<UsagesData> execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, buffer, false);
-        Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
-        NameDef nameDef = astElem.tryGetNameDef();
+        if (cu == null) {
+            return Collections.emptyList();
+        }
+        Optional<Element> astElem = Utils.getAstElementAtPos(cu, line, column, false);
+        Optional<NameDef> nameDef = astElem.flatMap(elem -> Optional.ofNullable(elem.tryGetNameDef()));
         List<UsagesData> usages = new ArrayList<>();
-        if (nameDef != null) {
+        if (nameDef.isPresent()) {
 
-            if (global || nameDef.getSource().getFile().equals(wFile.toString())) {
+            if (global || nameDef.get().getSource().getFile().equals(wFile.toString())) {
                 // add declaration
-                usages.add(new UsagesData(Convert.posToLocation(nameDef.attrErrorPos()), DocumentHighlightKind.Write));
+                usages.add(
+                    new UsagesData(Convert.posToLocation(nameDef.get().attrErrorPos()), DocumentHighlightKind.Write));
             }
             Deque<Element> todo = new ArrayDeque<>();
             if (global) {
@@ -59,7 +60,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
                     todo.push(e.get(i));
                 }
                 NameDef e_def = e.tryGetNameDef();
-                if (e_def == nameDef) {
+                if (e_def == nameDef.get()) {
                     UsagesData usagesData = new UsagesData(Convert.posToLocation(e.attrErrorPos()), DocumentHighlightKind.Read);
                     usages.add(usagesData);
                 }
@@ -69,14 +70,8 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
         return usages;
     }
 
-//    static enum DocumentHighlightKind {
-//        Text, Read, Write
-//    }
-
     public static class UsagesData {
         private Location location;
-//        private String wFile;
-//        private Range range;
         private DocumentHighlightKind kind;
 
 

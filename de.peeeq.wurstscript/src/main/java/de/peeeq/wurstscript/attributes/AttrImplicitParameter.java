@@ -1,6 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrImplicitParameter {
@@ -33,14 +36,21 @@ public class AttrImplicitParameter {
 
 
     public static OptExpr getImplicitParameter(ExprFunctionCall e) {
-        return getImplicitParamterCaseNormalFunctionCall(e);
+        return getImplicitParameterCaseNormalFunctionCall(e);
     }
 
     public static OptExpr getImplicitParameter(ExprMemberMethod e) {
         Expr result = getImplicitParameterUsingLeft(e);
         if (result == null) {
-            return getImplicitParamterCaseNormalFunctionCall(e);
+            return getImplicitParameterCaseNormalFunctionCall(e);
         } else {
+            FuncLink calledFunc = e.attrFuncLink();
+            if (calledFunc != null
+                    && !calledFunc.getDef().attrIsDynamicClassMember()
+                    && !(calledFunc.getDef() instanceof ExtensionFuncDef)) {
+                e.addError("Cannot call static method " + e.getFuncName() + " on an object.");
+            }
+
             return result;
         }
     }
@@ -55,37 +65,51 @@ public class AttrImplicitParameter {
         return e.getLeft();
     }
 
-    private static OptExpr getImplicitParamterCaseNormalFunctionCall(FunctionCall e) {
-        FunctionDefinition calledFunc = e.attrFuncDef();
+    private static OptExpr getImplicitParameterCaseNormalFunctionCall(FunctionCall e) {
+        FuncLink calledFunc = e.attrFuncLink();
+        return getFunctionCallImplicitParameter(e, calledFunc, true);
+    }
+
+    static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
+        if (e instanceof HasReceiver) {
+            HasReceiver hasReceiver = (HasReceiver) e;
+            Expr res = getImplicitParameterUsingLeft(hasReceiver);
+            if (res != null) {
+                return res;
+            }
+        }
         if (calledFunc == null) {
             return Ast.NoExpr();
         }
-        if (calledFunc.attrIsDynamicClassMember()) {
+        if (calledFunc.getDef().attrIsDynamicClassMember()) {
             // dynamic function call
             if (e.attrIsDynamicContext()) {
                 // dynamic context means we have a 'this':
                 ExprThis t = Ast.ExprThis(e.getSource());
                 t.setParent(e);
                 // check if 'this' has correct type
-                if (!t.attrTyp().isSubtypeOf(calledFunc.attrNearestStructureDef().attrTyp(), e)) {
+                if (showError && !t.attrTyp().isSubtypeOf(calledFunc.getReceiverType(), e)) {
                     e.addError("Cannot access dynamic function " + e.getFuncName() + " from context of type " +
                             t.attrTyp() + ".");
                 }
                 return t;
             } else {
-                e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
+                if (showError) {
+                    e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
+                }
                 return Ast.NoExpr();
             }
         } else {
+
             // static function:
             return Ast.NoExpr();
         }
     }
 
     private static OptExpr getImplicitParamterCaseNormalVar(NameRef e) {
-        NameDef def = e.attrNameDef();
-        if (def instanceof VarDef) {
-            VarDef varDef = (VarDef) def;
+        NameLink def = e.attrNameLink();
+        if (def != null && def.getDef() instanceof VarDef) {
+            VarDef varDef = (VarDef) def.getDef();
             if (varDef.attrIsDynamicClassMember()) {
                 // dynamic var access
                 if (e.attrIsDynamicContext()) {
@@ -93,9 +117,10 @@ public class AttrImplicitParameter {
                     ExprThis t = Ast.ExprThis(e.getSource());
                     t.setParent(e);
                     // check if 'this' has correct type
-                    if (!t.attrTyp().isSubtypeOf(varDef.attrNearestStructureDef().attrTyp(), e)) {
+                    WurstType thisType = t.attrTyp();
+                    if (!def.receiverCompatibleWith(thisType, e)) {
                         e.addError("Cannot access dynamic variable " + varDef.getName() + " from context of type " +
-                                t.attrTyp() + ".");
+                                thisType + ".");
                     }
                     return t;
                 } else {

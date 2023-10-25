@@ -5,9 +5,11 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.StringReader;
+import java.util.Collections;
 
 import static org.testng.Assert.assertEquals;
 
@@ -106,6 +108,90 @@ public class ParserTests extends WurstScriptTest {
     }
 
     @Test
+    public void twoSpaces() {
+        testAssertOkLines(false,
+                "package test",
+                "init",
+                "  int x = 1",
+                "  if x > 5",
+                "    x = x + 1",
+                "    if x > 10",
+                "      x = x * 2"
+        );
+    }
+
+    @Test
+    public void twoSpacesMixed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function foo()",
+                "  int x = 1",
+                "  if x > 5",
+                "    x = x + 1",
+                "    if x > 10",
+                "      x = x * 2",
+                "function bar()",
+                "    int x = 1",
+                "    if x > 5",
+                "        x = x + 1",
+                "        if x > 10",
+                "            x = x * 2");
+        Assert.assertTrue(
+                res.getGui()
+                        .getWarningList()
+                        .stream()
+                        .anyMatch(w -> w.getMessage().contains("Inconsistent indentation: Earlier in this file 2 spaces were used for indentation and here it is 4 spaces."))
+        );
+    }
+
+    @Test
+    public void inconsistentIndentationWithin() {
+        CompilationResult res = test().executeProg(false).lines(
+            "package test",
+            "interface F",
+            "    function f()",
+            "int x = 0",
+            "function blub(F f)",
+            "    f.f()",
+            "function bar()",
+            "    blub(() -> begin",
+            "            x = x * 2",
+            "        end)");
+        Assert.assertEquals(
+            Collections.emptyList(),
+            res.getGui().getWarningList()
+        );
+    }
+
+
+    @Test
+    public void alignWithSpacesAllowed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function int.foo() returns int",
+                "    return this + 1",
+                "function bar(int xyz) returns int",
+                "    return xyz..foo()",
+                "              ..foo()",
+                "               .foo()");
+        Assert.assertEquals(res.getGui().getWarningList().toString(), "[]");
+    }
+
+    @Test
+    public void alignWithTabsAllowed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function int.foo() returns int",
+                "	return this + 1",
+                "function bar(int xyz) returns int",
+                "	return xyz..foo()",
+                "			  ..foo()",
+                "			   .foo()");
+        Assert.assertEquals(res.getGui().getWarningList().toString(), "[]");
+    }
+
+
+    @Test
     public void positionsNormalLineBreaks() {
         CompilationUnit cu = parse(
                 "package Test\n" +
@@ -171,7 +257,7 @@ public class ParserTests extends WurstScriptTest {
 
     private CompilationUnit parse(String input) {
         WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs());
         compiler.getErrorHandler().enableUnitTestMode();
         return compiler.parse("test", new StringReader(input));
     }

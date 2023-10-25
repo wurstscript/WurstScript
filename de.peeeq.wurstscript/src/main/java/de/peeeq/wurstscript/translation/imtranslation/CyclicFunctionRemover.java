@@ -1,17 +1,16 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
-import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Removes cyclic functions from a program
@@ -21,42 +20,46 @@ public class CyclicFunctionRemover {
 
 
     private ImProg prog;
+    private TimeTaker timeTaker;
     private ImTranslator tr;
     private ImFuncGraph graph;
 
-    public CyclicFunctionRemover(ImTranslator tr, ImProg prog) {
+    public CyclicFunctionRemover(ImTranslator tr, ImProg prog, TimeTaker timeTaker) {
         this.tr = tr;
         this.prog = prog;
+        this.timeTaker = timeTaker;
         this.graph = new ImFuncGraph();
     }
 
     public void work() {
-        for (; ; ) {
-            // TODO optimize, it is not really necessary to completely recalculate the call relations every time
-            //      instead, we could just keep track of the changes
-            tr.calculateCallRelationsAndUsedVariables();
-            TopsortResult<ImFunction> r = graph.topSort(prog.getFunctions());
-            if (r.isCycle()) {
-                removeCycle(r.getResult());
-            } else {
-                // finished
-                return;
+        tr.calculateCallRelationsAndUsedVariables();
+        AtomicReference<Set<Set<ImFunction>>> components = new AtomicReference<>();
+        timeTaker.measure("finding cycles", () -> components.set(graph.findStronglyConnectedComponents(prog.getFunctions())));
+
+        timeTaker.measure("removing cycles", () -> removeCycles(components));
+    }
+
+    private void removeCycles(AtomicReference<Set<Set<ImFunction>>> components) {
+        for (Set<ImFunction> component : components.get()) {
+            if (component.size() > 1) {
+                removeCycle(ImmutableList.copyOf(component), component);
             }
         }
     }
 
-    private void removeCycle(List<ImFunction> funcs) {
+    private void removeCycle(List<ImFunction> funcs, Set<ImFunction> funcSet) {
         List<ImVar> newParameters = Lists.newArrayList();
-        Map<ImVar, ImVar> oldToNewVar = Maps.newHashMap();
+        Map<ImVar, ImVar> oldToNewVar = Maps.newLinkedHashMap();
 
         calculateNewParameters(funcs, newParameters, oldToNewVar);
 
         de.peeeq.wurstscript.ast.Element trace = funcs.get(0).getTrace();
 
-        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(), "funcChoice", false);
+        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(tr), "funcChoice", false);
 
         List<FunctionFlag> flags = Lists.newArrayList();
-        ImFunction newFunc = JassIm.ImFunction(trace, makeName(funcs), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), flags);
+
+        ImFunction newFunc = JassIm.ImFunction(trace, makeName(funcs), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), flags);
         prog.getFunctions().add(newFunc);
         newFunc.getParameters().add(choiceVar);
         newFunc.getParameters().addAll(newParameters);
@@ -87,7 +90,7 @@ public class CyclicFunctionRemover {
             stmts = elseBlock;
         }
 
-        replaceCalls(funcs, newFunc, oldToNewVar, prog);
+        replaceCalls(funcs, funcSet, newFunc, oldToNewVar, prog);
 
         for (ImFunction e : Lists.newArrayList(tr.getCalledFunctions().keys())) {
             Collection<ImFunction> called = tr.getCalledFunctions().get(e);
@@ -117,24 +120,19 @@ public class CyclicFunctionRemover {
     }
 
 
-    private void replaceCalls(List<ImFunction> funcs, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
+    private void replaceCalls(List<ImFunction> funcs, Set<ImFunction> funcSet, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
         // process children
         for (int i = 0; i < e.size(); i++) {
-            replaceCalls(funcs, newFunc, oldToNewVar, e.get(i));
+            replaceCalls(funcs, funcSet, newFunc, oldToNewVar, e.get(i));
         }
 
 
         if (e instanceof ImFuncRef) {
             ImFuncRef fr = (ImFuncRef) e;
             ImFunction f = fr.getFunc();
-            if (funcs.contains(f)) {
-                ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(),
-                        f.getName() + "_proxy",
-                        f.getParameters().copy(),
-                        (ImType) f.getReturnType().copy(),
-                        JassIm.ImVars(),
-                        JassIm.ImStmts(),
-                        Collections.<FunctionFlag>emptyList());
+            if (funcSet.contains(f)) {
+
+                ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
                 prog.getFunctions().add(proxyFunc);
 
                 ImExprs arguments = JassIm.ImExprs();
@@ -142,11 +140,7 @@ public class CyclicFunctionRemover {
                     arguments.add(JassIm.ImVarAccess(p));
                 }
 
-                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(),
-                        f,
-                        arguments,
-                        true,
-                        CallType.NORMAL);
+                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
 
                 if (f.getReturnType() instanceof ImVoid) {
                     proxyFunc.getBody().add(call);
@@ -154,14 +148,14 @@ public class CyclicFunctionRemover {
                     proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
                 }
                 // rewrite the proxy call:
-                replaceCalls(funcs, newFunc, oldToNewVar, call);
+                replaceCalls(funcs, funcSet, newFunc, oldToNewVar, call);
                 // change the funcref to use the proxy
                 fr.setFunc(proxyFunc);
             }
         } else if (e instanceof ImFunctionCall) {
             ImFunctionCall fc = (ImFunctionCall) e;
             ImFunction oldFunc = fc.getFunc();
-            if (funcs.contains(oldFunc)) {
+            if (funcSet.contains(oldFunc)) {
 
                 ImExprs arguments = JassIm.ImExprs();
 
@@ -183,7 +177,7 @@ public class CyclicFunctionRemover {
                 }
 
 
-                ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, arguments, true, CallType.NORMAL);
+                ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
 
                 Element ret;
                 if (oldFunc.getReturnType() instanceof ImVoid) {
@@ -213,15 +207,15 @@ public class CyclicFunctionRemover {
             ImExprOpt returnValue = r.getReturnValue();
             returnValue.setParent(null);
             ImStmts stmts = JassIm.ImStmts(
-                    JassIm.ImSet(r.getTrace(), getTempReturnVar(returnType), (ImExpr) returnValue),
+                    JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(getTempReturnVar(returnType)), (ImExpr) returnValue),
                     JassIm.ImReturn(r.getTrace(), JassIm.ImNoExpr())
             );
-            r.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
+            r.replaceBy(ImHelper.statementExprVoid(stmts));
         }
 
     }
 
-    private Map<String, ImVar> tempReturnVars = Maps.newHashMap();
+    private Map<String, ImVar> tempReturnVars = Maps.newLinkedHashMap();
 
     private ImVar getTempReturnVar(ImType t) {
         String typeName = t.translateType();

@@ -4,7 +4,6 @@ import de.peeeq.wurstio.jassinterpreter.mocks.LocationMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class LocationProvider extends Provider {
     private static IlConstHandle lastExpiredMock = null;

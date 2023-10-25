@@ -13,6 +13,11 @@ public class RequestFailedException extends RuntimeException {
         this.messageType = messageType;
     }
 
+    public RequestFailedException(MessageType messageType, String s, Throwable ex) {
+        super(s + "\n" + ex, ex);
+        this.messageType = messageType;
+    }
+
     public MessageType getMessageType() {
         return messageType;
     }

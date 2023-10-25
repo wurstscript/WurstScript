@@ -72,6 +72,24 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchShort() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "init",
+                "	Blub b = B",
+                "	switch b",
+                "		case A",
+                "			skip",
+                "		case B",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
     public void testSwitchDefault() {
         testAssertOkLines(true,
                 "package Test",
@@ -200,6 +218,130 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchEnumAll2() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll3() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll4() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "		default",
+                "			return 3",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll5() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "	return 3",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumDuplicate() {
+        testAssertErrorsLines(false, "The case B is already handled in line 9",
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case B",
+                "			return 2",
+                "		case C",
+                "			return 3"
+        );
+    }
+
+    @Test
+    public void testSwitchMulti() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "	var s = \"toll\"",
+                "	var i = 0",
+                "	switch s",
+                "		case \"bla\"",
+                "			i = 1",
+                "		case \"blub\" | \"toll\"",
+                "			i= 2",
+                "		default",
+                "			i = 3",
+                "	if i == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void testTypeId1() {
         testAssertOkLines(true,
                 "package Test",
@@ -300,6 +442,115 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void typeName() {
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+            "package Test",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "class A",
+            "class B",
+            "init",
+            "	if typeIdToTypeName(B.typeId) == \"Test.B\"",
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void typeName2() {
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+            "package Test",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "class A",
+            "class B",
+            "class C",
+            "class D",
+            "class E",
+            "class F",
+            "class G",
+            "class H",
+            "class I",
+            "class J",
+            "class K",
+            "init",
+            "	if typeIdToTypeName(J.typeId) == \"Test.J\"",
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void maxTypeId() {
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+            "package Test",
+            "native testSuccess()",
+            "native maxTypeId() returns int",
+            "class A",
+            "class B",
+            "class C",
+            "class D",
+            "class E",
+            "init",
+            "	if maxTypeId() == 5", // since there are 5 classes [1..5]
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void instanceCount() {
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+                "package Test",
+                "native testSuccess()",
+                "native instanceCount(int typeId) returns int",
+                "class A",
+                "init",
+                "	let a = new A",
+                "	let b = new A",
+                "	let c = new A",
+                "	let d = new A",
+                "	let e = new A",
+                "	let count1 = instanceCount(A.typeId)",
+                "	destroy a",
+                "	destroy e",
+                "	let count2 = instanceCount(A.typeId)",
+                "	if count1 == 5 and count2 == 3",
+                "		testSuccess()"
+            );
+    }
+
+    @Test
+    public void instanceMaxCount() {
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+            "package Test",
+            "native testSuccess()",
+            "native maxInstanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "	let a = new A",
+            "	let b = new A",
+            "	let c = new A",
+            "	let d = new A",
+            "	let e = new A",
+            "	let count1 = maxInstanceCount(A.typeId)",
+            "	destroy a",
+            "	destroy e",
+            "	let count2 = maxInstanceCount(A.typeId)",
+            "	if count1 == 5 and count2 == 5",
+            "		testSuccess()"
+        );
+    }
+
+
+    @Test
     public void cyclicFunc2() {
         testAssertOkLines(true,
                 "package Test",
@@ -394,6 +645,96 @@ public class NewFeatureTests extends WurstScriptTest {
                 "    return 0",
                 "init",
                 "    do()"
+        );
+    }
+
+    @Test
+    public void testIteratorStatic() { // see #866
+        testAssertErrorsLines(false, "Cannot use static iterator method from A on dynamic value.",
+            "package Test",
+            "class A",
+            "    static B itr",
+            "    static function iterator() returns B",
+            "        return itr",
+            "    construct()",
+            "        itr = new B()",
+            "",
+            "public class B",
+            "    construct()",
+            "    function hasNext() returns boolean",
+            "        return true",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "",
+            "init",
+            "    let list = new A()",
+            "    for i in list"
+        );
+    }
+
+    @Test
+    public void testIfNotDefinedAnnotation1() {
+        testAssertOkLines(true,
+                "function foo takes integer x returns integer",
+                "    return x + 1",
+                "endfunction",
+                "package Test",
+                "native testSuccess()",
+                "@ifNotDefined function foo(int x) returns int",
+                "    return x + 2",
+                "init",
+                "    if foo(3) == 4",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void testIfNotDefinedAnnotation2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@ifNotDefined function foo(int x) returns int",
+                "    return x + 2",
+                "init",
+                "    if foo(3) == 5",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void testIfNotDefinedAnnotationNative() {
+        testAssertOkLines(true,
+                "native testSuccess takes nothing returns nothing",
+                "package Test",
+                "@ifNotDefined native testSuccess()",
+                "init",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void constant_local_var_warning() {
+        testAssertErrorsLines(false, "Constant local variables should be defined using 'let'.",
+            "package Test",
+            "native print(int i)",
+            "function foo()",
+            "    var i = 1337",
+            "    print(i)"
+        );
+    }
+
+    @Test
+    public void no_warning_for_closures() {
+        testAssertOkLines(false,
+            "package Test",
+            "interface Test",
+            "    function call()",
+            "",
+            "init",
+            "    Test x = () ->",
+            "        skip",
+            "    x.call()"
         );
     }
 

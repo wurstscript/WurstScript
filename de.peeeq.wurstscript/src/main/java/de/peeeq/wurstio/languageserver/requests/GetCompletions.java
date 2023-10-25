@@ -11,12 +11,8 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.*;
@@ -27,6 +23,8 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Created by peter on 24.04.16.
@@ -47,6 +45,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private WurstType expectedType;
     private ModelManager modelManager;
     private boolean isIncomplete = false;
+    private CompilationUnit cu;
 
 
     public GetCompletions(CompletionParams position, BufferManager bufferManager) {
@@ -70,13 +69,18 @@ public class GetCompletions extends UserRequest<CompletionList> {
     @Override
     public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        if (cu == null) {
+            return new CompletionList(Collections.emptyList());
+        }
         List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {
             result.sort(completionItemComparator());
+            return new CompletionList(isIncomplete, result);
+        } else {
+            return new CompletionList(isIncomplete, Collections.emptyList());
         }
-        return new CompletionList(isIncomplete, result);
     }
 
     private Comparator<CompletionItem> completionItemComparator() {
@@ -106,7 +110,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             searchMode = mode;
             List<CompletionItem> completions = Lists.newArrayList();
 
-            elem = Utils.getAstElementAtPos(cu, line, column + 1, false);
+            elem = Utils.getAstElementAtPos(cu, line, column + 1, false).get();
             WLogger.info("get completions at " + Utils.printElement(elem));
             expectedType = null;
             if (elem instanceof Expr) {
@@ -119,8 +123,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             dropBadCompletions(completions);
             removeDuplicates(completions);
-
-            //		Collections.sort(completions, c)
 
             if (completions.size() > 0) {
                 return completions;
@@ -145,12 +147,17 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             WurstType leftType = e.getLeft().attrTyp();
 
-            leftType.getMemberMethods(elem).forEach(nameLink -> {
-                if (isSuitableCompletion(nameLink.getName())) {
-                    CompletionItem completion = makeNameDefCompletion(nameLink.getDef());
-                    completions.add(completion);
+            if (leftType instanceof WurstTypeNamedScope) {
+                WurstTypeNamedScope ct = (WurstTypeNamedScope) leftType;
+                for (DefLink nameLink : ct.nameLinks().values()) {
+                    if (isSuitableCompletion(nameLink.getName())
+                            && (nameLink.getReceiverType() != null || nameLink instanceof TypeDefLink)
+                            && nameLink.getVisibility() == Visibility.PUBLIC) {
+                        CompletionItem completion = makeNameDefCompletion(nameLink);
+                        completions.add(completion);
+                    }
                 }
-            });
+            }
 
             isMemberAccess = true;
             WScope scope = elem.attrNearestScope();
@@ -158,7 +165,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             while (scope != null) {
                 ImmutableMultimap<String, DefLink> visibleNames = scope.attrNameLinks();
                 completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-                completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
+                completionsAddVisibleExtensionFunctions(completions, visibleNames, leftType);
                 scope = scope.attrNextScope();
             }
         } else if (elem instanceof ExprRealVal) {
@@ -221,6 +228,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (!isMemberAccess) {
             addKeywordCompletions(completions);
         }
+
     }
 
     private void addKeywordCompletions(List<CompletionItem> completions) {
@@ -242,7 +250,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         Set<String> usedPackages = Sets.newHashSet();
         for (WPackage p : model.attrPackages().values()) {
             if (!usedPackages.contains(p.getName()) && isSuitableCompletion(p.getName())) {
-                completions.add(makeNameDefCompletion(p));
+                completions.add(makeNameDefCompletion(PackageLink.create(p, p.attrNearestScope())));
                 usedPackages.add(p.getName());
             }
         }
@@ -306,7 +314,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingMemberCall(List<CompletionItem> completions, ExprMemberMethod c) {
-        FunctionDefinition funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
@@ -315,7 +323,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
-        FunctionDefinition funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             alreadyEntered = c.getFuncName();
             CompletionItem ci = makeFunctionCompletion(funcDef);
@@ -336,7 +344,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 	*/
 
     private boolean isSuitableCompletion(String name) {
-        if(name.endsWith("Tests")) {
+        if (name.endsWith("Tests")) {
             return false;
         }
         switch (searchMode) {
@@ -349,6 +357,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    private static final Pattern realPattern = Pattern.compile("[0-9]\\.");
+
     /**
      * checks if we are currently entering a real number
      * (autocomplete might have triggered because of the dot)
@@ -357,7 +367,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         try {
             String currentLine = currentLine();
             String before = currentLine.substring(column - 2, 2);
-            return before.matches("[0-9]\\.");
+            return realPattern.matcher(before).matches();
         } catch (IndexOutOfBoundsException e) {
             return false;
         }
@@ -375,6 +385,16 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    private boolean isAtEndOfLine() {
+        String line = currentLine();
+        for (int i = column + 1; i < line.length(); i++) {
+            if (!Character.isWhitespace(line.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void removeDuplicates(List<CompletionItem> completions) {
         for (int i = 0; i < completions.size() - 1; i++) {
             for (int j = completions.size() - 1; j > i; j--) {
@@ -384,14 +404,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
         }
 
-    }
-
-    private String firstPartOfDisplayString(String s) {
-        int p = s.indexOf("-");
-        if (p < 0) {
-            return s;
-        }
-        return s.substring(0, p);
     }
 
     /**
@@ -422,13 +434,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
+            DefLink defLink = e.getValue();
 
             // remove invisible functions
-            if (e.getValue().getVisibility() == Visibility.PRIVATE_OTHER || e.getValue().getVisibility() == Visibility.PROTECTED_OTHER) {
+            if (defLink.getVisibility() == Visibility.PRIVATE_OTHER || defLink.getVisibility() == Visibility.PROTECTED_OTHER) {
                 continue;
             }
 
-            WurstType receiverType = e.getValue().getReceiverType();
+            WurstType receiverType = defLink.getReceiverType();
             if (leftType == null) {
                 if (receiverType != null && !receiverType.isStaticRef()) {
                     // skip extension functions, when not needed
@@ -448,13 +461,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 }
             }
 
-            if (e.getValue().getDef() instanceof FunctionDefinition) {
-                FunctionDefinition f = (FunctionDefinition) e.getValue().getDef();
-
-                CompletionItem completion = makeFunctionCompletion(f);
+            if (defLink instanceof FuncLink) {
+                FuncLink funcLink = (FuncLink) defLink;
+                CompletionItem completion = makeFunctionCompletion(funcLink);
                 completions.add(completion);
             } else {
-                completions.add(makeNameDefCompletion(e.getValue().getDef()));
+                completions.add(makeNameDefCompletion(defLink));
             }
             if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
                 // got enough completions
@@ -480,15 +492,15 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private CompletionItem makeNameDefCompletion(NameDef n) {
-        if (n instanceof FunctionDefinition) {
-            return makeFunctionCompletion((FunctionDefinition) n);
+    private CompletionItem makeNameDefCompletion(NameLink n) {
+        if (n instanceof FuncLink) {
+            return makeFunctionCompletion((FuncLink) n);
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(HoverInfo.descriptionString(n));
-        completion.setDocumentation(n.attrComment());
-        double rating = calculateRating(n.getName(), n.attrTyp());
+        completion.setDetail(HoverInfo.descriptionString(n.getDef()));
+        completion.setDocumentation(n.getDef().attrComment());
+        double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
         String newText = n.getName();
         completion.setInsertText(newText);
@@ -500,10 +512,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         rating = Math.min(10, rating);
         DecimalFormat format = new DecimalFormat("####.000");
         return format.format(10. - rating); // TODO add label?
-    }
-
-    private Range range(int line, int startCol, int endCol) {
-        return new Range(new Position(line, startCol), new Position(line, endCol));
     }
 
     private CompletionItem makeSimpleNameCompletion(String name) {
@@ -560,40 +568,86 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private CompletionItem makeFunctionCompletion(FunctionDefinition f) {
+    private CompletionItem makeFunctionCompletion(FuncLink f) {
         String replacementString = f.getName();
-        WParameters params = f.getParameters();
-        if (!isBeforeParenthesis()) {
-            if (params.isEmpty()) {
-                replacementString += "()";
-            }
-        }
+        List<WurstType> params = f.getParameterTypes();
+
 
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
-        completion.setDetail(getFunctionDescriptionShort(f));
-        completion.setDocumentation(HoverInfo.descriptionString(f));
+        completion.setDetail(getFunctionDescriptionShort(f.getDef()));
+        completion.setDocumentation(HoverInfo.descriptionString(f.getDef()));
         completion.setInsertText(replacementString);
-        completion.setSortText(ratingToString(calculateRating(f.getName(), f.attrReturnTyp())));
+		double rating = calculateRating(f.getName(), f.getReturnType());
+		if (f.getDef().attrHasAnnotation("deprecated")) {
+			rating -= 0.05;
+		}
+		completion.setSortText(ratingToString(rating));
         // TODO use call signature instead for generics
 //        completion.set
 
-        addParamSnippet(replacementString, params, completion);
+        if (!isBeforeParenthesis()) {
+            addParamSnippet(replacementString, f, completion);
+        }
+
 
         return completion;
     }
 
-    private void addParamSnippet(String replacementString, WParameters params, CompletionItem completion) {
-        if (!params.isEmpty()) {
+    private void addParamSnippet(String replacementString, FuncLink f, CompletionItem completion) {
+        List<String> paramNames = f.getParameterNames();
+        StringBuilder lambdaReplacement = null;
+        List<WurstType> parameterTypes = f.getParameterTypes();
+        if (isAtEndOfLine() && !parameterTypes.isEmpty()) {
+            WurstType lastParamType = Utils.getLast(parameterTypes);
+            if (lastParamType instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface it = (WurstTypeClassOrInterface) lastParamType;
+                FuncLink singleAbstractMethod = it.findSingleAbstractMethod(elem);
+                if (singleAbstractMethod != null) {
+                    paramNames = Utils.init(paramNames);
+
+                    if (singleAbstractMethod.getParameterTypes().size() == 0) {
+                        lambdaReplacement = new StringBuilder(" -> \n");
+                        cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
+                    } else {
+                        lambdaReplacement = new StringBuilder(" (");
+                        for (int i = 0; i < singleAbstractMethod.getParameterTypes().size(); i++) {
+                            if (i > 0) {
+                                lambdaReplacement.append(", ");
+                            }
+                            lambdaReplacement.append(singleAbstractMethod.getParameterType(i));
+                            lambdaReplacement.append(" ");
+                            lambdaReplacement.append(singleAbstractMethod.getParameterName(i));
+                        }
+                        lambdaReplacement.append(") ->\n");
+                        // only need to add one indent here, because \n already indents to the same line as before
+                        cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
+                    }
+                }
+            }
+        }
+
+
+        addParamSnippet(replacementString, paramNames, completion, lambdaReplacement);
+    }
+
+    private void addParamSnippet(String replacementString, List<String> paramNames, CompletionItem completion, StringBuilder lambdaReplacement) {
+        if (paramNames.isEmpty()) {
+            replacementString += "()";
+        } else {
             List<String> paramSnippets = new ArrayList<>();
-            for (int i = 0; i < params.size(); i++) {
-                WParameter param = params.get(i);
-                paramSnippets.add("${" + (i + 1) + ":" + param.getName() + "}");
+            for (int i = 0; i < paramNames.size(); i++) {
+                String paramName = paramNames.get(i);
+                paramSnippets.add("${" + (i + 1) + ":" + paramName + "}");
             }
             replacementString += "(" + String.join(", ", paramSnippets) + ")";
-            completion.setInsertText(replacementString);
             completion.setInsertTextFormat(InsertTextFormat.Snippet);
         }
+        if (lambdaReplacement != null) {
+            replacementString += lambdaReplacement;
+            completion.setInsertTextFormat(InsertTextFormat.Snippet);
+        }
+        completion.setInsertText(replacementString);
     }
 
     private String getFunctionDescriptionShort(FunctionDefinition f) {
@@ -622,130 +676,27 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setSortText(ratingToString(calculateRating(c.getName(), c.attrTyp().dynamic())));
 
 
-        addParamSnippet(replacementString, constr.getParameters(), completion);
+        List<String> parameterNames = constr.getParameters().stream().map(WParameter::getName).collect(Collectors.toList());
+        addParamSnippet(replacementString, parameterNames, completion, null);
 
         return completion;
     }
 
-    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
+    private void completionsAddVisibleExtensionFunctions(List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
                                                          WurstType leftType) {
         for (Entry<String, DefLink> e : visibleNames.entries()) {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
-            if (e.getValue().getDef() instanceof ExtensionFuncDef) {
-                ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getDef();
-                if (ef.getExtendedType().attrTyp().dynamic().isSupertypeOf(leftType, ef)) {
-                    completions.add(makeFunctionCompletion(ef));
+            if (e.getValue() instanceof FuncLink && e.getValue().getVisibility().isPublic()) {
+                FuncLink ef = (FuncLink) e.getValue();
+                FuncLink ef2 = ef.adaptToReceiverType(leftType);
+                if (ef2 != null) {
+                    completions.add(makeFunctionCompletion(ef2));
                 }
             }
         }
 
     }
 
-//    public static class CompletionItem implements Comparable<CompletionItem> {
-//        String label;
-//        CompletionItemKind kind;
-//        String detail;
-//        String documentation;
-//        TextEdit textEdit;
-//        double rating;
-//        List<ParamInfo> parameters;
-//
-//
-//        CompletionItem(String label) {
-//            this.label = label;
-//        }
-//
-//        public boolean equalsCompletion(CompletionItem other) {
-//            return Objects.equals(other.label, label)
-//                    && Objects.equals(other.parameters, parameters);
-//        }
-//
-//        @Override
-//        public int compareTo(CompletionItem o) {
-//            return Double.compare(rating, o.rating);
-//        }
-//
-//        public CompletionItem withDisableAction() {
-//            // TODO remove
-//            textEdit = null;
-//            return this;
-//        }
-//
-//        public String getDisplayString() {
-//            return label;
-//        }
-//
-//        public double getRating() {
-//            return rating;
-//        }
-//    }
-//
-//    public static class ParamInfo {
-//        String type;
-//        String name;
-//
-//        public ParamInfo(String type, String name) {
-//            this.type = type;
-//            this.name = name;
-//        }
-//
-//        @Override
-//        public int hashCode() {
-//            return Objects.hash(type, name);
-//        }
-//
-//        @Override
-//        public boolean equals(Object obj) {
-//            if (obj instanceof ParamInfo) {
-//                ParamInfo other = (ParamInfo) obj;
-//                return name.equals(other.name) && type.equals(other.type);
-//            }
-//            return false;
-//        }
-//    }
-//
-//    private static class TextEdit {
-//        Range range;
-//        String newText;
-//
-//        public TextEdit(Range range, String newText) {
-//            this.range = range;
-//            this.newText = newText;
-//        }
-//
-//        static TextEdit replace(Range range, String newText) {
-//            return new TextEdit(range, newText);
-//        }
-//
-//        static TextEdit insert(TextPos position, String newText) {
-//            return new TextEdit(new Range(position, position), newText);
-//        }
-//
-//        static TextEdit delete(Range range) {
-//            return new TextEdit(range, "");
-//        }
-//    }
-//
-//    private enum CompletionItemKind {
-//        Text,
-//        Method,
-//        Function,
-//        Constructor,
-//        Field,
-//        Variable,
-//        Class,
-//        Interface,
-//        Module,
-//        Property,
-//        Unit,
-//        Value,
-//        Enum,
-//        Keyword,
-//        Snippet,
-//        Color,
-//        File,
-//        Reference;
-//    }
 }

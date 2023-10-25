@@ -42,21 +42,22 @@ public class RealWorldExamples extends WurstScriptTest {
         boolean executeProg = false;
         boolean withStdLib = true;
         boolean executeTests = true;
-        //
-        //testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-        testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, true);
-        //super.testAssertOkFileWithStdLib(new File(BUG_DIR + "LinkedHashMap.wurst"), true);
+
+        new TestConfig(name)
+                .withStdLib(withStdLib)
+                .executeTests(executeTests)
+                .executeProgOnlyAfterTransforms(true)
+                .executeProg(executeProg)
+                .withInputFiles(inputFiles)
+                .withInputs(inputs)
+                .run()
+                .getModel();
     }
 
     @Test
     public void module() throws IOException {
         super.testAssertOkFileWithStdLib(new File(BUG_DIR + "module.wurst"), false);
     }
-
-//	@Test
-//	public void testCyclic() throws IOException {
-//		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
-//	}
 
     @Test
     public void testLists() throws IOException {
@@ -101,11 +102,6 @@ public class RealWorldExamples extends WurstScriptTest {
         super.testAssertOkFileWithStdLib(new File(TEST_DIR + "tupleBug.wurst"), false);
     }
 
-//	@Test
-//	public void optimizer() throws IOException {
-//		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
-//	}
-
     @Test
     public void optimizerNew() throws IOException {
         super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizerNewTests.wurst"), false);
@@ -133,20 +129,41 @@ public class RealWorldExamples extends WurstScriptTest {
         super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder2.wurst"), "used before it is initialized", false);
     }
 
+    @Test
+    public void blubber() throws IOException {
+        super.testAssertOkFileWithStdLib(new File(TEST_DIR + "HashListSetBug.wurst"), false);
+    }
+
 
     @Test
-    public void test_stdlib() throws IOException {
+    public void test_stdlib() {
         List<File> inputs = Lists.newLinkedList();
         // TODO set config
         RunArgs runArgs = RunArgs.defaults();
         runArgs.addLibs(Sets.newHashSet(StdLib.getLib()));
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiCliImpl(), null, runArgs);
         for (File f : comp.getLibs().values()) {
             WLogger.info("Adding file: " + f);
             inputs.add(f);
         }
-        testScript(inputs, null, "stdlib", false, true, true, false);
 
+        new TestConfig("stdlib")
+                .withStdLib(true)
+                .executeTests(true)
+                .executeProgOnlyAfterTransforms(false)
+                .executeProg(false)
+                .withInputFiles(inputs)
+                .run()
+                .getModel();
+
+    }
+
+    @Test
+    public void nullClosureBug() throws IOException { // See 852
+        test().withStdLib()
+            .executeProg(false)
+            .runCompiletimeFunctions(true)
+            .file(new File(BUG_DIR + "nullclosurebug.wurst"));
     }
 
 }

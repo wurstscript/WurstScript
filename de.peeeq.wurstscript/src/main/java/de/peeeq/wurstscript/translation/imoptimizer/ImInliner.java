@@ -4,17 +4,21 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 
 import java.util.*;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
 public class ImInliner {
+    private static final String FORCEINLINE = "@inline";
+    private static final String NOINLINE = "@noinline";
 
+    private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
+
+    private static final Set<String> dontInline = Sets.newLinkedHashSet();
     private ImTranslator translator;
     private ImProg prog;
     private Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
@@ -22,6 +26,12 @@ public class ImInliner {
     private Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     private Set<ImFunction> done = Sets.newLinkedHashSet();
     private double inlineTreshold = 50;
+
+    static {
+        dontInline.add("SetPlayerAllianceStateAllyBJ");
+        dontInline.add("InitBlizzard");
+        dontInline.add("error");
+    }
 
     public ImInliner(ImTranslator translator) {
         this.translator = translator;
@@ -31,13 +41,13 @@ public class ImInliner {
     public void doInlining() {
         prog.flatten(translator);
         collectInlinableFunctions();
-        rateInitalizableFunctions();
+        rateInlinableFunctions();
         inlineFunctions();
     }
 
     private void inlineFunctions() {
 
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             inlineFunctions(f);
         }
     }
@@ -60,7 +70,7 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            if (f != called && shouldInline(called)) {
+            if (f != called && shouldInline(call, called)) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
                     inlineCall(f, parent, parentI, call);
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
@@ -105,7 +115,7 @@ public class ImInliner {
             f.getLocals().add(tempVar);
             varSubtitutions.put(param, tempVar);
             // set temp var
-            stmts.add(JassIm.ImSet(arg.attrTrace(), tempVar, arg));
+            stmts.add(JassIm.ImSet(arg.attrTrace(), JassIm.ImVarAccess(tempVar), arg));
         }
         // add locals
         for (ImVar l : called.getLocals()) {
@@ -146,15 +156,15 @@ public class ImInliner {
             }
         }
         if (newExpr == null) {
-            newExpr = JassIm.ImStatementExpr(ImStmts(stmts), JassIm.ImNull());
+            newExpr = ImHelper.statementExprVoid(ImStmts(stmts));
         }
         parent.set(parentI, newExpr);
 
     }
 
-    private void rateInitalizableFunctions() {
-        for (ImFunction f : translator.getCalledFunctions().values()) {
-            incCallCount(f);
+    private void rateInlinableFunctions() {
+        for (Map.Entry<ImFunction, ImFunction> f : translator.getCalledFunctions().entries()) {
+            incCallCount(f.getKey());
         }
         for (ImFunction f : inlinableFunctions) {
             int size = estimateSize(f);
@@ -163,8 +173,18 @@ public class ImInliner {
     }
 
     private double getRating(ImFunction f) {
-        if (f.isNative() || !inlinableFunctions.contains(f)) {
+        if (f.isNative() || !inlinableFunctions.contains(f) || dontInline.contains(f.getName())) {
             return Double.MAX_VALUE;
+        }
+
+        for (FunctionFlag flag : f.getFlags()) {
+            if (flag instanceof FunctionFlagAnnotation) {
+                if (((FunctionFlagAnnotation) flag).getAnnotation().equals(FORCEINLINE)) {
+                    return 1;
+                } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals(NOINLINE)) {
+                    return Double.MAX_VALUE;
+                }
+            }
         }
 
         double size = getFuncSize(f);
@@ -187,15 +207,23 @@ public class ImInliner {
         }
     }
 
-    private boolean shouldInline(ImFunction f) {
-        if (f.isNative()) {
+    private boolean shouldInline(ImFunctionCall call, ImFunction f) {
+        if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
             return false;
+        }
+
+        double threshold = inlineTreshold;
+        for (ImExpr arg : call.getArguments()) {
+            if (arg instanceof ImConst) {
+                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
+                break;
+            }
         }
 //		WLogger.info("Should I inline function " + f.getName() + "?");
 //		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
 //		WLogger.info("	rating: " + getRating(f));
         return inlinableFunctions.contains(f)
-                && getRating(f) < inlineTreshold
+                && getRating(f) < threshold
                 && !isRecursive(f);
     }
 
@@ -247,12 +275,17 @@ public class ImInliner {
     }
 
     private void collectInlinableFunctions() {
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
                 // do not inline natives
                 continue;
             }
             if (f == translator.getGlobalInitFunc()) {
+                continue;
+            }
+            if (f.hasFlag(IS_VARARG)) {
+                // do not inline vararg functions
+                // this is only relevant for lua, because in JASS they are eliminated before inlining
                 continue;
             }
             if (maxOneReturn(f)) {

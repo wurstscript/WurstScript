@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstNativeType extends WurstType {
 
@@ -14,12 +16,14 @@ public class WurstNativeType extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstNativeType) {
-            return ((WurstNativeType) other).name.equals(name)
-                    || superType.isSubtypeOfIntern(other, location);
+            WurstNativeType nt = (WurstNativeType) other;
+            if (nt.name.equals(name)) {
+                return mapping;
+            }
         }
-        return superType.isSubtypeOfIntern(other, location);
+        return superType.matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
     }
 
     @Override
@@ -40,13 +44,22 @@ public class WurstNativeType extends WurstType {
     }
 
     @Override
+    public ImType imTranslateType(ImTranslator tr) {
+        return JassIm.ImSimpleType(name);
+    }
+
     public ImType imTranslateType() {
         return JassIm.ImSimpleType(name);
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(imTranslateType());
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return true;
     }
 
 }

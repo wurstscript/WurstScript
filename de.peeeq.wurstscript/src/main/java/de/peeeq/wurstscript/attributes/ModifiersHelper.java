@@ -49,9 +49,11 @@ public class ModifiersHelper {
     }
 
     static boolean containsType(de.peeeq.wurstscript.ast.Modifiers modifiers, Class<? extends Modifier> class1) {
-        for (Modifier m : modifiers) {
-            if (m.getClass().getName().startsWith(class1.getName())) {
-                return true;
+        if (modifiers.size() > 0) {
+            for (Modifier m : modifiers) {
+                if (m.getClass().getName().startsWith(class1.getName())) {
+                    return true;
+                }
             }
         }
         return false;

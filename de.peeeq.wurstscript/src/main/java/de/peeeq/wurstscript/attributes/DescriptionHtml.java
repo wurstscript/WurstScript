@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -50,7 +52,7 @@ public class DescriptionHtml {
             if (!first) {
                 descrhtml.append(", ");
             }
-            descrhtml.append(htmlType(p.attrTyp()) + " " + p.getName());
+            descrhtml.append(htmlType(p.attrTyp())).append(" ").append(p.getName());
             first = false;
         }
         String params = descrhtml.toString();
@@ -125,10 +127,10 @@ public class DescriptionHtml {
     }
 
     public static @Nullable String description(ExprBinary e) {
-        FunctionDefinition f = e.attrFuncDef();
+        FuncLink f = e.attrFuncLink();
         if (f != null) {
             return "This is an overloaded operator:<br/>" +
-                    f.descriptionHtml();
+                    f.getDef().descriptionHtml();
         }
         return null;
     }
@@ -142,23 +144,23 @@ public class DescriptionHtml {
     }
 
     public static String description(ExprClosure e) {
-        return "This is a closure of type " + htmlType(e.attrExpectedTyp());
+        return "This is a closure of type " + htmlType(e.attrExpectedTypAfterOverloading());
     }
 
     public static String description(FuncRef fr) {
-        @Nullable FunctionDefinition def = fr.attrFuncDef();
+        FuncLink def = fr.attrFuncLink();
         if (def != null) {
-            return def.descriptionHtml();
+            return def.getDef().descriptionHtml();
         }
         return "";
     }
 
     public static String description(NameRef nr) {
-        NameDef nameDef = nr.attrNameDef();
+        NameLink nameDef = nr.attrNameLink();
         if (nameDef == null) {
             return nr.getVarName() + " is not defined yet.";
         }
-        return nameDef.descriptionHtml();
+        return nameDef.getDef().descriptionHtml();
     }
 
     public static @Nullable String description(ExprIncomplete exprIncomplete) {
@@ -406,5 +408,17 @@ public class DescriptionHtml {
 
     public static String description(ModVararg modVararg) {
         return "A varargs modifier";
+    }
+
+    public static String description(NoSuperConstructorCall noSuperConstructorCall) {
+        return "No super constructor called";
+    }
+
+    public static String description(SomeSuperConstructorCall s) {
+        return "Calling the super constructor";
+    }
+
+    public static String description(NoTypeParamConstraints noTypeParamConstraints) {
+        return "no type parameter constraints";
     }
 }

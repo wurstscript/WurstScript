@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -19,52 +21,56 @@ public class WurstTypeClosure extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeClosure) {
             WurstTypeClosure o = (WurstTypeClosure) other;
             if (paramTypes.size() != o.paramTypes.size()) {
-                return false;
+                return null;
             }
             // contravariant parameter types
             for (int i = 0; i < paramTypes.size(); i++) {
-                if (!o.paramTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                    return false;
+                mapping =  o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
+                if (mapping == null) {
+                    return null;
                 }
             }
             // covariant return types
-            return returnType.isSubtypeOf(o.returnType, location);
+            return returnType.matchAgainstSupertype(o.returnType, location, mapping, variablePosition);
         } else if (other instanceof WurstTypeCode) {
-            return paramTypes.size() == 0;
+            if (paramTypes.size() == 0) {
+                return mapping;
+            }
         } else {
             FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
             if (abstractMethod != null) {
-                return closureImplementsAbstractMethod(abstractMethod, location);
+                return closureImplementsAbstractMethod(abstractMethod, location, mapping, variablePosition);
             }
         }
-        return false;
+        return null;
     }
 
 
-    private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-                                                    Element location) {
+    private VariableBinding closureImplementsAbstractMethod(FunctionSignature abstractMethod,
+                                                            Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
-            return false;
+            return null;
         }
 
         // contravariant parameter types
         for (int i = 0; i < paramTypes.size(); i++) {
-            if (!abstractMethod.getParamTypes().get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                return false;
+            mapping = abstractMethod.getParamTypes().get(i).normalize().matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
+            if (mapping == null) {
+                return null;
             }
         }
+        if (abstractMethod.getReturnType() instanceof WurstTypeVoid) {
+            // closures returning void may return anything
+            // this is to allow expressions
+            return mapping;
+        }
+
         // covariant return types
-        if (!returnType.isSubtypeOf(abstractMethod.getReturnType(), location)) {
-            // void return type accepts every other returntype
-            if (!(abstractMethod.getReturnType() instanceof WurstTypeVoid)) {
-                return false;
-            }
-        }
-        return true;
+        return returnType.matchAgainstSupertype(abstractMethod.getReturnType().normalize(), location, mapping, variablePosition);
     }
 
 
@@ -87,17 +93,34 @@ public class WurstTypeClosure extends WurstType {
 
     @Override
     public String getFullName() {
-        return getName();
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        boolean first = true;
+        for (WurstType t : paramTypes) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append(t.getFullName());
+            first = false;
+        }
+        sb.append(") -> ");
+        sb.append(returnType.getFullName());
+        return sb.toString();
     }
 
     @Override
-    public ImType imTranslateType() {
-        return WurstTypeInt.instance().imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return WurstTypeInt.instance().imTranslateType(tr);
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImIntVal(0);
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
     public List<WurstType> getParamTypes() {

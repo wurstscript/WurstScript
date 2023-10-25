@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 
 public class WurstTypeUnknown extends WurstType {
@@ -16,10 +18,11 @@ public class WurstTypeUnknown extends WurstType {
         this.name = name;
     }
 
+
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         // unknown is a subtype of everything, so that we don't propagate errors
-        return true;
+        return mapping;
     }
 
 
@@ -45,13 +48,18 @@ public class WurstTypeUnknown extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         throw new Error("not implemented");
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNoExpr();
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
 }

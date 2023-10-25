@@ -251,7 +251,7 @@ public class ModuleTests extends WurstScriptTest {
 
     @Test
     public void staticmeth_external() {
-        testAssertErrorsLines(false, "method b is undefined",
+        testAssertErrorsLines(false, "Could not find function b",
                 "package test",
                 "    module A",
                 "        static function b(int b)",
@@ -291,6 +291,25 @@ public class ModuleTests extends WurstScriptTest {
                 "    use Test",
                 "    override function foo()",
                 "        skip"
+        );
+    }
+
+    @Test
+    public void overrideStaticAndActuallyDoStuff() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "module Test",
+            "    abstract static function foo() returns int",
+            "    static function bar() returns int",
+            "        return foo() * foo()",
+            "class A",
+            "    use Test",
+            "    override static function foo() returns int",
+            "        return 3",
+            "init",
+            "    if A.bar() == 9",
+            "        testSuccess()"
         );
     }
 
@@ -514,7 +533,6 @@ public class ModuleTests extends WurstScriptTest {
                 "endpackage",
                 "package Test2",
                 "import Test",
-                "native testSuccess()",
                 "init",
                 "    print(\"size test2:\" + TestClass.size.toString())",
                 "    if TestClass.size == 1",
@@ -530,7 +548,6 @@ public class ModuleTests extends WurstScriptTest {
     public void stupidTest() { // see #656
         testAssertOkLinesWithStdLib(true,
                 "package Test",
-                "native testSuccess()",
                 "init",
                 "    testSuccess()",
                 "endpackage"
@@ -542,7 +559,6 @@ public class ModuleTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(true,
                 "package Test",
                 "import LinkedListModule",
-                "native testSuccess()",
                 "public class TestClass",
                 "    use LinkedListModule",
                 "    static TestClass a = new TestClass",
@@ -554,5 +570,35 @@ public class ModuleTests extends WurstScriptTest {
                 "        testSuccess()",
                 "endpackage"
         );
+    }
+
+    @Test
+    public void useModuleAsType() { // see #720
+        testAssertErrorsLines(false, "Cannot use module type A in this context.",
+                "package Test",
+                "module A",
+                "    function foo()",
+                "class List<T>",
+                "init",
+                "    let l = new List<A>",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void subclassModuleOnDestroy() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "module OnDestroy",
+            "    ondestroy",
+            "        testSuccess()",
+            "public abstract class A",
+            "public class B extends A",
+            "    use OnDestroy",
+            "init",
+            "    A b = new B()",
+            "    destroy b"
+            );
     }
 }

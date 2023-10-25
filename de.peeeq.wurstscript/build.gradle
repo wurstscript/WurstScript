@@ -1,16 +1,16 @@
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
     }
     dependencies {
-        classpath 'de.undercouch:gradle-download-task:3.2.0'
-        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:1.0.2'
+        classpath 'de.undercouch:gradle-download-task:4.1.2'
+        classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
     }
 }
 
 plugins {
     id "jacoco"
-    id 'com.github.kt3k.coveralls' version '2.8.2'
+    id 'com.github.kt3k.coveralls' version '2.12.0'
     id 'java'
     id 'antlr'
     id 'eclipse'
@@ -19,13 +19,26 @@ plugins {
 }
 
 import de.undercouch.gradle.tasks.download.Download
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 
 mainClassName = "de.peeeq.wurstio.Main"
-version = "1.8.0.0"
+version = "1.8.1.0"
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.5"
+}
 
 jacocoTestReport {
     reports {
@@ -33,10 +46,10 @@ jacocoTestReport {
     }
 
     afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
+        classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/build/**'])
-        })
+                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'])
+        }))
     }
 }
 
@@ -45,68 +58,69 @@ String genDir = "$projectDir/src-gen"
 sourceSets {
     main {
         java {
-            srcDir 'src/main/java'
             srcDir genDir
-        }
-        resources {
-            srcDir 'src/main/resources'
         }
     }
 }
 
-// In this section you declare where to find the dependencies of your project
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    //jcenter()
     mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
-    jcenter()
 }
 
-// In this section you declare the dependencies for your production and test code
 dependencies {
+    implementation 'org.jetbrains:annotations:23.0.0'
+
 
     // Antlr parsing library
-    antlr "org.antlr:antlr4:4.7"
+    antlr "org.antlr:antlr4:4.13.1"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.3.0'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:062a7ff178'
 
     // JUnit for testing
-    testCompile group: 'org.testng', name: 'testng', version: '6.13.1'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
+    testImplementation group: 'org.testng', name: 'testng', version: '7.8.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
 
     // Google guava
-    compile 'com.google.guava:guava:21.0'
+    implementation 'com.google.guava:guava:32.1.3-jre'
+
+    // Better functional data structures:
+    implementation 'io.vavr:vavr:0.10.4'
 
     // Support for the vscode language server protocol
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.4.0'
+    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.12.0'
 
     // @Nullable annotations
-    compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
+    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
 
     // Gson for json parsing
-    compile group: 'com.google.code.gson', name: 'gson', version: '2.8.2'
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.10.1'
 
     // Velocity template engine for generating Html documents from Hotdoc documentation
-    compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
+    implementation group: 'org.apache.velocity', name: 'velocity', version: '1.7'
 
     // Chardet for guessing the file-encoding of a source-file
-    compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
+    implementation group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
-    // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:jmpq3:1.5.9'
+    // Crigges' jmpq
+    implementation group: 'com.github.inwc3', name: 'jmpq3', version: '264c54cfc8'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:d0a470d9e3'
+    implementation 'com.github.inwc3:wc3libs:ad25440d15'
 
     // The setup tool for wurst.build handling
-    compile 'com.github.wurstscript:WurstSetup:7b96dfbc6c'
+    implementation 'com.github.wurstscript:wurstsetup:475cc7fae8'
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.11'
+
+    implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
+    implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.apache', version: '6.7.0.202309050840-r'
+
+    // Smallcheck testing library:
+    testImplementation group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
 }
 
 configurations.all {
@@ -117,14 +131,13 @@ configurations.all {
 task genAst {
     description = 'Compile ast specifications'
     fileTree(dir: 'parserspec', include: '**/*.parseq').each { file ->
-
-        Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
+        Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;")
         String fileContents = file.text
 
-        Matcher matcher = PACKAGE_PATTERN.matcher(fileContents);
-        String packageName = "";
+        Matcher matcher = PACKAGE_PATTERN.matcher(fileContents)
+        String packageName = ""
         if (matcher.find()) {
-            packageName = matcher.group(1);
+            packageName = matcher.group(1)
         }
 
         String targetDir = "$genDir/" + packageName.replace(".", "/")
@@ -134,7 +147,7 @@ task genAst {
 
         doLast {
             javaexec {
-                classpath configurations.compileOnly
+                classpath configurations.compileClasspath
                 main = "asg.Main"
                 args = [file, targetDir]
             }
@@ -146,34 +159,26 @@ task genAst {
 task versionInfoFile {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
+    String gitRevision = "unknown-version"
+    String gitRevisionlong = "unknown-version"
+
+    Git git = Git.open(new File(rootProject.projectDir, '..'))
+    ObjectId head = git.getRepository().resolve(Constants.HEAD)
+
+    gitRevision = head.abbreviate(8).name()
+    gitRevisionlong = head.getName()
+
+    String tag = git.describe().setTarget(head).setAlways(true).setTags(true).call()
+
+    String wurstVersion = "${version}-${tag}"
+    inputs.property("wurstVersion", wurstVersion)
+
+    def dir = new File('./src-gen/de/peeeq/wurstscript/')
+    def f = new File(dir, 'CompileTimeInfo.java')
+    outputs.file(f)
+
     doLast {
-        def dir = new File('./src-gen/de/peeeq/wurstscript/')
         dir.mkdirs()
-        def f = new File(dir, 'CompileTimeInfo.java')
-
-        String gitRevision = "unknown-version"
-        String gitRevisionlong = "unknown-version"
-
-        new ByteArrayOutputStream().withStream { os ->
-            def result = exec {
-                executable = 'git'
-                args = ['describe', '--tags', '--always']
-                standardOutput = os
-            }
-            gitRevision = os.toString().trim()
-        }
-
-        new ByteArrayOutputStream().withStream { os ->
-            def result = exec {
-                executable = 'git'
-                args = ['describe', '--tags', '--always', '--abbrev=0']
-                standardOutput = os
-            }
-            gitRevisionlong = os.toString().trim()
-        }
-
-        String wurstVersion = "${version}-${gitRevision}"
-
 
         String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
 
@@ -203,6 +208,9 @@ compileJava.dependsOn gen
 
 
 test {
+    // set minimal heap size required to run tests:
+    jvmArgs = ['-Xms256m']
+
     useTestNG() {
         suites 'src/test/resources/AllTestsSuite.xml'
     }
@@ -212,11 +220,6 @@ test {
 clean.doFirst {
     delete genDir
 }
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.12'
-}
-
 
 
 apply plugin: 'de.undercouch.download'
@@ -232,7 +235,3 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
-
-
-
-

@@ -2,13 +2,25 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 public class ImHelper {
+
+    public static Set<ImFunction> calculateFunctionsOfProg(ImProg prog) {
+        Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
+        for(ImClass c : prog.getClasses()) {
+            allFunctions.addAll(c.getFunctions());
+        }
+        return allFunctions;
+    }
 
     static void translateParameters(WParameters params, ImVars result, ImTranslator t) {
         for (WParameter p : params) {
@@ -16,30 +28,18 @@ public class ImHelper {
         }
     }
 
-//	static ImVar translateParam(WParameter p) {
-//		return tra
-//		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
-//	}
-
     public static ImType toArray(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) t;
-            return JassIm.ImArrayType(imSimpleType.getTypename());
-
-        } else if (t instanceof ImTupleType) {
-            ImTupleType imTupleType = (ImTupleType) t;
-            ImType result = JassIm.ImTupleArrayType(imTupleType.getTypes(), imTupleType.getNames());
-            return result;
-        }
         if (t instanceof ImArrayType) {
-            return JassIm.ImArrayType(((ImArrayType) t).getTypename());
-        } else if (t instanceof ImArrayTypeMulti) {
+            // already an array (should never happen?)
+            return t;
+        } if (t instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
-            nsize.add(8192);
-            return JassIm.ImArrayTypeMulti(mat.getTypename(), nsize);
+            nsize.add(Constants.MAX_ARRAY_SIZE);
+            return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
+        } else {
+            return JassIm.ImArrayType(t);
         }
-        throw new Error("Can't make array type from " + t);
     }
 
     public static void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
@@ -70,44 +70,22 @@ public class ImHelper {
         });
     }
 
+    public static ImNull nullExpr() {
+        return JassIm.ImNull(JassIm.ImVoid());
+    }
+
+    public static ImStatementExpr statementExprVoid(ImStmts stmts) {
+        return JassIm.ImStatementExpr(stmts, nullExpr());
+    }
+
+    public static ImStatementExpr statementExprVoid(ImStmt... stmts) {
+        return ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
+    }
+
+
+
     abstract static class VarReplaceVisitor extends ImStmt.DefaultVisitor {
-
         abstract ImVar getReplaceVar(ImVar v);
-
-        @Override
-        public void visit(ImSetTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArray e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArrayTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImVars imVars) {
-            super.visit(imVars);
-            // TODO ?
-        }
-
 
         @Override
         public void visit(ImVarArrayAccess e) {
@@ -128,33 +106,6 @@ public class ImHelper {
                 e.setVar(newVar);
             }
         }
-
-
-        @Override
-        public void visit(ImSet e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImStringVal imStringVal) {
-            super.visit(imStringVal);
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void visit(ImNoExpr imNoExpr) {
-            super.visit(imNoExpr);
-            // TODO Auto-generated method stub
-
-        }
-
-
     }
 
     public static void replaceElem(Element oldElem, Element newElement) {
@@ -179,8 +130,56 @@ public class ImHelper {
             case "real":
                 return JassIm.ImRealVal("0.");
             default:
-                return JassIm.ImNull();
+                return JassIm.ImNull(t);
         }
+    }
+
+    public static ImExpr defaultValueForComplexType(ImType t) {
+        return t.match(new ImType.Matcher<ImExpr>() {
+            @Override
+            public ImExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImAnyType(ImAnyType at) {
+                return JassIm.ImNull(at);
+            }
+
+            @Override
+            public ImExpr case_ImTupleType(ImTupleType tt) {
+                ImExprs res = JassIm.ImExprs();
+                for (ImType it : tt.getTypes()) {
+                    res.add(defaultValueForComplexType(it));
+                }
+                return JassIm.ImTupleExpr(res);
+            }
+
+            @Override
+            public ImExpr case_ImArrayType(ImArrayType imArrayType) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImVoid(ImVoid imVoid) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImClassType(ImClassType imClassType) {
+                return JassIm.ImIntVal(0);
+            }
+
+            @Override
+            public ImExpr case_ImSimpleType(ImSimpleType st) {
+                return defaultValueForType(st);
+            }
+        });
     }
 
 

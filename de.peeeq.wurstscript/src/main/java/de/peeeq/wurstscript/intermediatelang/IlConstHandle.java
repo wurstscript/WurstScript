@@ -31,8 +31,4 @@ public class IlConstHandle implements ILconst {
         return obj;
     }
 
-    @Override
-    public int hashCode() {
-        return super.hashCode() + name.hashCode() + obj.hashCode();
-    }
 }

@@ -4,9 +4,10 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
+import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
@@ -24,6 +25,7 @@ public class JassInterpreter implements AbstractInterpreter {
     private Map<String, ILconst> globalVarMap;
     private boolean trace = false;
     private Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
+    private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
     public void loadProgram(JassProg prog) {
         this.prog = prog;
@@ -85,7 +87,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
 
         if (func.getParams().size() != arguments.length) {
-            throw new Error("Wrong number of parameters: " + func.getParams().size() + " != " + arguments.length);
+            throw new InterpreterException("Wrong number of parameters: " + func.getParams().size() + " != " + arguments.length);
         }
         int i = 0;
         for (JassSimpleVar v : func.getParams()) {
@@ -214,10 +216,10 @@ public class JassInterpreter implements AbstractInterpreter {
 //		} else if (s instanceof ILsetVarArray) {
 //			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
 //		} else if (s instanceof ILerror) {
-//			throw new Error("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
+//			throw new InterpreterException("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
 //		} else {
 //
-//			throw new Error("not implemented " + s);
+//			throw new InterpreterException("not implemented " + s);
 //		}
     }
 
@@ -416,7 +418,7 @@ public class JassInterpreter implements AbstractInterpreter {
         } else if (isGlobal(varName)) {
             globalVarMap.put(varName, s);
         } else {
-            throw new Error("var " + varName + " is neither local nor global?");
+            throw new InterpreterException("var " + varName + " is neither local nor global?");
         }
     }
 
@@ -436,7 +438,7 @@ public class JassInterpreter implements AbstractInterpreter {
         if (value == null) {
             value = globalVarMap.get(name);
             if (value == null) {
-                throw new Error("Variable " + name + " not found.");
+                throw new InterpreterException("Variable " + name + " not found.");
             }
         }
         return value;
@@ -456,9 +458,20 @@ public class JassInterpreter implements AbstractInterpreter {
     }
 
     private ExecutableJassFunction searchNativeJassFunction(String name) {
+        if (name.equals("ExecuteFunc")) {
+            return executeFuncNative();
+        }
         ReflectionNativeProvider nf = new ReflectionNativeProvider(this);
         ExecutableJassFunction functionPair = nf.getFunctionPair(name);
         return functionPair != null ? functionPair : new UnknownJassFunction(name);
+    }
+
+    private ExecutableJassFunction executeFuncNative() {
+        return (jassInterpreter, arguments) -> {
+            ILconstString funcName = (ILconstString) arguments[0];
+            jassInterpreter.executeFunction(funcName.getVal());
+            return ILconstBool.TRUE;
+        };
     }
 
     public void trace(boolean b) {
@@ -474,6 +487,11 @@ public class JassInterpreter implements AbstractInterpreter {
         func.execute(this);
     }
 
+    @Override
+    public TimerMockHandler getTimerMockHandler() {
+        return timerMockHandler;
+    }
+
     public void runProgram() {
         for (JassVar var : prog.getGlobals()) {
             if (var instanceof JassInitializedVar) {
@@ -482,5 +500,27 @@ public class JassInterpreter implements AbstractInterpreter {
             }
         }
         executeFunction("main");
+        timerMockHandler.completeTimers();
+    }
+
+
+    @Override
+    public void completeTimers() {
+        timerMockHandler.completeTimers();
+    }
+
+    @Override
+    public ImProg getImProg() {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
+    }
+
+    @Override
+    public int getInstanceCount(int val) {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
+    }
+
+    @Override
+    public int getMaxInstanceCount(int val) {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
     }
 }

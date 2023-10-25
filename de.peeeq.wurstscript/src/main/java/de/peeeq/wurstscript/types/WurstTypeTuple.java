@@ -3,17 +3,20 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public class WurstTypeTuple extends WurstType {
 
-    TupleDef tupleDef;
+    private TupleDef tupleDef;
 
 
     public WurstTypeTuple(TupleDef tupleDef) {
@@ -22,12 +25,14 @@ public class WurstTypeTuple extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, @Nullable Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeTuple) {
             WurstTypeTuple otherTuple = (WurstTypeTuple) other;
-            return tupleDef == otherTuple.tupleDef;
+            if (tupleDef == otherTuple.tupleDef) {
+                return mapping;
+            }
         }
-        return false;
+        return null;
     }
 
 
@@ -47,32 +52,41 @@ public class WurstTypeTuple extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         List<ImType> types = Lists.newArrayList();
         List<String> names = Lists.newArrayList();
         for (WParameter p : tupleDef.getParameters()) {
-            ImType pt = p.attrTyp().imTranslateType();
-            if (pt instanceof ImTupleType) {
-                ImTupleType ptt = (ImTupleType) pt;
-                // add flattened
-                for (int i = 0; i < ptt.getTypes().size(); i++) {
-                    types.add(ptt.getTypes().get(i));
-                    names.add(p.getName() + "_" + ptt.getNames().get(i));
-                }
-            } else {
-                types.add(pt);
-                names.add(p.getName());
-            }
+            ImType pt = p.attrTyp().imTranslateType(tr);
+            types.add(pt);
+            names.add(p.getName());
         }
         return JassIm.ImTupleType(types, names);
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         ImExprs exprs = JassIm.ImExprs();
         for (WParameter p : tupleDef.getParameters()) {
-            exprs.add((ImExpr) p.attrTyp().getDefaultValue());
+            exprs.add((ImExpr) p.attrTyp().getDefaultValue(tr));
         }
         return JassIm.ImTupleExpr(exprs);
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
+    public int getTupleIndex(VarDef varDef) {
+        WParameter v = (WParameter) varDef;
+        int index = tupleDef.getParameters().indexOf(v);
+        if (index < 0) {
+            throw new CompileError(varDef.getSource(),
+                "Could not determine tuple index of "
+                + Utils.printElementWithSource(Optional.of(varDef))
+                + " in tuple "
+                + this);
+        }
+        return index;
     }
 }

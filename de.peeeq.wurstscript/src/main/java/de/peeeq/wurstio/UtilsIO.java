@@ -1,5 +1,7 @@
 package de.peeeq.wurstio;
 
+import java.io.File;
+
 public class UtilsIO {
 
     public static void sleep(int i) {
@@ -31,7 +33,7 @@ public class UtilsIO {
     public static String getMethodName(String currentClass) {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
         for (int i = 2; i < ste.length; i++) {
-            if (!ste[i].getClassName().equals(currentClass)) {
+            if (!ste[i].getClassName().startsWith(currentClass)) {
                 return ste[i].getMethodName();
             }
         }
@@ -39,4 +41,10 @@ public class UtilsIO {
     }
 
 
+    public static void mkdirs(File dir) {
+        boolean res = dir.mkdirs();
+        if (!res) {
+            throw new RuntimeException("Directory " + dir + " could not be created.");
+        }
+    }
 }

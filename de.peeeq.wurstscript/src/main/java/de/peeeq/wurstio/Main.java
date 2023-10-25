@@ -1,44 +1,42 @@
 package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.Pjass.Result;
+import config.WurstProjectConfig;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
-import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.*;
-import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyUtils;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
-import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileSystemView;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
-import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
-import static javax.swing.SwingConstants.CENTER;
+import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
+import static de.peeeq.wurstio.languageserver.WurstCommands.getCompileArgs;
+import static java.util.Arrays.asList;
 
 public class Main {
 
@@ -55,7 +53,7 @@ public class Main {
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
-            if(runArgs.isLanguageServer()) {
+            if (runArgs.isLanguageServer()) {
                 WLogger.setLogger("languageServer");
             }
             logStartup(args);
@@ -74,23 +72,12 @@ public class Main {
                 return;
             }
 
-            if (runArgs.isFixInstall()) {
-                fixInstallation();
-                return;
-            }
-
-            if (runArgs.isCopyMap()) {
-                copyMap();
-                return;
-            }
-
             if (runArgs.isStartServer()) {
                 WurstServer.startServer();
                 return;
             }
 
             if (runArgs.isLanguageServer()) {
-//                new LanguageServer().start();
                 LanguageServerStarter.start();
                 return;
             }
@@ -101,9 +88,8 @@ public class Main {
             }
 
             WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
-            String mapFilePath = runArgs.getMapFile();
             if (runArgs.isExtractImports()) {
-                File mapFile = new File(mapFilePath);
+                File mapFile = new File(runArgs.getMapFile());
                 ImportFile.extractImportsFromMap(mapFile, runArgs);
                 return;
             }
@@ -128,26 +114,65 @@ public class Main {
             }
 
             try {
-                if (mapFilePath != null) {
-                    // tempfolder
-                    File tempFolder = new File("./temp/");
-                    tempFolder.mkdirs();
-                    BackupController bc = new BackupController();
-                    bc.makeBackup(mapFilePath);
+                WurstProjectConfigData projectConfig = null;
+                Path buildDir = null;
+                Optional<Path> target = Optional.empty();
+                String workspaceroot = runArgs.getWorkspaceroot();
+                if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
+                    Path root = Paths.get(workspaceroot);
+                    Path inputMap = root.resolve(runArgs.getInputmap());
+                    projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
+
+                    if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
+                        buildDir = root.resolve("_build");
+                        java.nio.file.Files.createDirectories(buildDir);
+                        target = Optional.of(buildDir.resolve(projectConfig.getBuildMapData().getFileName() + ".w3x"));
+                        java.nio.file.Files.copy(inputMap, target.get(), StandardCopyOption.REPLACE_EXISTING);
+                        runArgs.setMapFile(target.get().toAbsolutePath().toString());
+                    }
                 }
 
-                if (mapFilePath != null) {
-                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
-                        CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
-                        if (mapScript != null) {
+                String mapFilePath = runArgs.getMapFile();
+
+                RunArgs compileArgs = runArgs;
+                if (workspaceroot != null) {
+                    WLogger.info("workspaceroot: " + workspaceroot);
+                    List<String> argList = new LinkedList<>(asList(args));
+                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot));
+                    WLogger.info("workspaceroot: " + (argsList == null));
+                    argList.addAll(argsList);
+                    compileArgs = new RunArgs(argList);
+                }
+                CompilationProcess compilationProcess = new CompilationProcess(gui, compileArgs);
+                @Nullable CharSequence compiledScript;
+
+                if (mapFilePath != null && workspaceroot != null) {
+                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(new File(mapFilePath)))) {
+                        File projectFolder = Paths.get(workspaceroot).toFile();
+                        compiledScript = compilationProcess.doCompilation(mpqEditor, projectFolder, true);
+                        if (compiledScript != null) {
                             gui.sendProgress("Writing to map");
                             mpqEditor.deleteFile("war3map.j");
-                            byte[] war3map = mapScript.toString().getBytes(Charsets.UTF_8);
+                            byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
                             mpqEditor.insertFile("war3map.j", war3map);
                         }
+                        ImportFile.importFilesFromImports(projectFolder, mpqEditor);
                     }
                 } else {
-                    doCompilation(gui, null, runArgs);
+                    compiledScript = compilationProcess.doCompilation(null, true);
+                }
+
+                if (compiledScript != null) {
+                    File scriptFile = new File("compiled.j.txt");
+                    Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
+
+                    if (projectConfig != null && target.isPresent()) {
+                        ProjectConfigBuilder.apply(projectConfig, target.get().toFile(), scriptFile, buildDir.toFile(),
+                            runArgs, new W3InstallationData());
+
+                        WLogger.info("map build success");
+                        System.out.println("Build succeeded. Output file: <" + target.get().toAbsolutePath() + ">");
+                    }
                 }
 
                 gui.sendProgress("Finished!");
@@ -198,252 +223,6 @@ public class Main {
         } catch (Throwable ignored) {
         }
         WLogger.info("### ============================================");
-    }
-
-    private static final String COMPAT_FOLDER = "compat\\";
-
-    /** Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP. */
-    private static void fixInstallation() throws Exception {
-        String wc3Path = W3Utils.getGamePath();
-        String compatPath = wc3Path + COMPAT_FOLDER;
-        WLogger.info("Wc3 Path: " + wc3Path);
-
-        double patchVersion = W3Utils.getWc3PatchVersion();
-        if (patchVersion > 1.27 && !new File(compatPath).exists()) {
-            JLabel notice = new JLabel("Patch 1.28 or higher has been detected on your system.\n" +
-                    "Selecting yes will create a compatibility copy of your installation.\n" +
-                    "Selecting no will leave everything as is and the editor won't start.", CENTER);
-
-            int result = JOptionPane.showConfirmDialog(null, notice, "Wurst Note", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(null, "Wurst is now working. This may take a few minutes.\n " +
-                        "You will be notified about further progress.");
-                checkLoadFiles();
-                copyBinaries(wc3Path, compatPath);
-                insertKeys(compatPath);
-                WLogger.info("Compatibility installation created.");
-                JOptionPane.showMessageDialog(null, "Done. The editor should start momentarily");
-            }
-        }
-    }
-
-    private static void copyMap() throws Exception {
-        String wc3Path = W3Utils.getGamePath();
-        WLogger.info("Wc3 Path: " + wc3Path);
-
-        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
-        if (new File(documentPath).exists()) {
-            File compatMap = new File(wc3Path + COMPAT_FOLDER + "Maps\\Test\\WorldEditTestMap.w3x");
-            if (compatMap.exists()) {
-                Files.copy(compatMap, new File(documentPath + "\\Maps\\Test\\WorldEditTestMap.w3x"));
-                WLogger.info("Map copied");
-            }
-        }
-
-    }
-
-    private static void copyBinaries(String wc3Path, String compatPath) throws IOException {
-        File compatDir = new File(compatPath);
-        compatDir.mkdirs();
-        File compatExe = new File(compatPath + "war3.exe");
-        if (!compatExe.exists()) {
-            // Create copy war3.exe
-            File newExe = new File(wc3Path + "Warcraft III.exe");
-            if (newExe.exists()) {
-                Files.copy(newExe, compatExe);
-                WLogger.info("Copied war3.exe");
-            } else {
-                WLogger.severe("Could not find valid wc3 executable");
-            }
-        }
-
-        File compatEditor = new File(compatPath + "worldedit.exe");
-        if (!compatEditor.exists()) {
-            // Create copy war3.exe
-            File newEditor = new File(wc3Path + "World Editor.exe");
-            if (newEditor.exists()) {
-                Files.copy(newEditor, compatEditor);
-                WLogger.info("Created worldedit.exe");
-            } else {
-                WLogger.severe("Could not find valid editor executable");
-            }
-        }
-
-        File[] files = new File(wc3Path).listFiles((File pathname) -> pathname.getName().endsWith(".mpq") || pathname.getName().endsWith(".dll"));
-        for (File file : files) {
-            Files.copy(file, new File(compatPath, file.getName()));
-        }
-
-        File storm = new File(compatPath + "Storm.dll");
-        if (!storm.exists() || storm.delete()) {
-            Files.write(java.nio.file.Files.readAllBytes(stormDll), storm);
-            if (storm.exists()) {
-                WLogger.info("Storm.dll written");
-            }
-        }
-
-    }
-
-    private static void insertKeys(String compatPath) throws Exception {
-        File rocMpq = new File(compatPath + "War3.mpq");
-        File tftMpq = new File(compatPath + "War3x.mpq");
-        MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq);
-        boolean rocHasKeys = roceditor.hasFile("font\\font.ccd") && roceditor.hasFile("font\\font.gid") && roceditor.hasFile("font\\font.clh");
-        if (!rocHasKeys) {
-            JOptionPane.showMessageDialog(null, "Now inserting ROC mpq.\n"
-                    + "This might take a few minutes. Please be patient.");
-            roceditor.insertFile("font\\font.gid", fontGID.toFile());
-            roceditor.insertFile("font\\font.clh", fontCLH.toFile());
-            roceditor.insertFile("font\\font.ccd", fontROC.toFile());
-            roceditor.close();
-            WLogger.info("inserted roc keys");
-        } else {
-            WLogger.info("Already has roc keys");
-        }
-        MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq);
-        boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
-        if (!tftHasKeys) {
-            JOptionPane.showMessageDialog(null, "Now inserting TFT mpq.\n"
-                    + "This might take a few minutes. Please be patient.");
-            tfteditor.insertFile("font\\font.exp", fontEXP.toFile());
-            tfteditor.insertFile("font\\font.ccd", fontTFT.toFile());
-            tfteditor.close();
-            WLogger.info("inserted tft keys");
-        } else {
-            WLogger.info("Already has tft keys");
-        }
-    }
-
-    private static Path fontGID;
-    private static Path fontCLH;
-    private static Path fontROC;
-    private static Path fontEXP;
-    private static Path fontTFT;
-    private static Path stormDll;
-
-
-    private static void checkLoadFiles() {
-        String folder = "font/";
-        fontGID = Paths.get(Utils.getResourceFile(folder + "font.gid"));
-        fontCLH = Paths.get(Utils.getResourceFile(folder + "font.clh"));
-        fontROC = Paths.get(Utils.getResourceFile(folder + "font_roc.ccd"));
-        fontEXP = Paths.get(Utils.getResourceFile(folder + "font.exp"));
-        fontTFT = Paths.get(Utils.getResourceFile(folder + "font_tft.ccd"));
-        stormDll = Paths.get(Utils.getResourceFile(folder + "Storm.dll"));
-    }
-
-    private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
-        gui.sendProgress("Check input map");
-        if(mpqEditor != null && !mpqEditor.canWrite()) {
-            WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
-                    "Please supply a valid .w3x input map that can be opened in the world editor.");
-        }
-
-        for (String file : runArgs.getFiles()) {
-            compiler.loadFiles(file);
-        }
-        WurstModel model = compiler.parseFiles();
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-        if (model == null) {
-            return null;
-        }
-
-        compiler.checkProg(model);
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        compiler.translateProgToIm(model);
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        File mapFile = compiler.getMapFile();
-
-        if (runArgs.isRunTests()) {
-            PrintStream out = System.out;
-            // tests
-            gui.sendProgress("Running tests");
-            System.out.println("Running tests");
-            RunTests runTests = new RunTests(null,0,0) {
-                @Override
-                protected void print(String message) {
-                    out.print(message);
-                }
-            };
-            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null);
-
-
-            for (RunTests.TestFailure e : runTests.getFailTests()) {
-                gui.sendError(new CompileError(e.getFunction().attrTrace().attrErrorPos(), e.getMessage()));
-                if (runArgs.isGui()) {
-                    // when using graphical user interface, send stack trace to GUI
-                    for (ILStackFrame sf : Utils.iterateReverse(e.getStackTrace().getStackFrames())) {
-                        gui.sendError(sf.makeCompileError());
-                    }
-                }
-            }
-
-            System.out.println("Finished running tests");
-        }
-
-        if (runArgs.runCompiletimeFunctions()) {
-
-            // compiletime functions
-            gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, CompiletimeFunctions);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.run();
-        }
-
-        if (runArgs.isInjectObjects()) {
-            Preconditions.checkNotNull(mpqEditor);
-            // add the imports
-            ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()), mpqEditor);
-        }
-
-        JassProg jassProg = compiler.transformProgToJass();
-
-        if (jassProg == null || gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        boolean withSpace;
-        withSpace = !runArgs.isOptimize();
-
-        gui.sendProgress("Printing Jass");
-        JassPrinter printer = new JassPrinter(withSpace, jassProg);
-        CharSequence mapScript = printer.printProg();
-
-        // output to file
-        gui.sendProgress("Writing output file");
-        File outputMapscript;
-        if (runArgs.getOutFile() != null) {
-            outputMapscript = new File(runArgs.getOutFile());
-        } else {
-            //outputMapscript = File.createTempFile("outputMapscript", ".j");
-            outputMapscript = new File("./temp/output.j");
-        }
-        outputMapscript.getParentFile().mkdirs();
-        Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
-
-        if (!runArgs.isDisablePjass()) {
-            Result pJassResult = Pjass.runPjass(outputMapscript);
-            WLogger.info(pJassResult.getMessage());
-            if (!pJassResult.isOk()) {
-                for (CompileError err : pJassResult.getErrors()) {
-                    gui.sendError(err);
-                }
-                return null;
-            }
-        }
-        return mapScript;
     }
 
 }

@@ -1,10 +1,9 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.LinkedListMultimap;
 import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.Objects;
 
@@ -13,9 +12,9 @@ public class HashtableProvider extends Provider {
         super(interpreter);
     }
 
-    static class KeyPair {
-        int parentkey;
-        int childkey;
+    public static class KeyPair {
+        private final int parentkey;
+        private final int childkey;
 
         KeyPair(int parentkey, int childkey) {
             this.parentkey = parentkey;
@@ -35,10 +34,18 @@ public class HashtableProvider extends Provider {
         public int hashCode() {
             return Objects.hash(parentkey, childkey);
         }
+
+        public int getParentkey() {
+            return parentkey;
+        }
+
+        public int getChildkey() {
+            return childkey;
+        }
     }
 
     public IlConstHandle InitHashtable() {
-        return new IlConstHandle(NameProvider.getRandomName("ht"), ArrayListMultimap.create());
+        return new IlConstHandle(NameProvider.getRandomName("ht"), LinkedListMultimap.create());
     }
 
     @Implements(funcNames = {"SaveInteger", "SaveStr", "SaveReal", "SaveBoolean", "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle",
@@ -52,7 +59,7 @@ public class HashtableProvider extends Provider {
     })
     public void Save(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconst value) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
         deleteIfPresent(map, keyPair, value.getClass());
         map.put(keyPair, value);
@@ -87,13 +94,13 @@ public class HashtableProvider extends Provider {
 
     public void FlushParentHashtable(IlConstHandle ht) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         map.clear();
     }
 
     public void FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         map.entries().removeIf(entry -> entry.getKey().parentkey == parentKey.getVal());
     }
 
@@ -118,7 +125,7 @@ public class HashtableProvider extends Provider {
     }
 
     public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstInt.class));
+        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class));
     }
 
     public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
@@ -139,7 +146,7 @@ public class HashtableProvider extends Provider {
 
     private <T> T load(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
         if (hasValueOfType(map, keyPair, clazz)) {
             return getValueOfType(map, keyPair, clazz);
@@ -149,19 +156,19 @@ public class HashtableProvider extends Provider {
 
     private <T> void removeSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, T type) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
         deleteIfPresent(map, keyPair, type);
     }
 
     private <T> boolean haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2, Class<T> clazz) {
         @SuppressWarnings("unchecked")
-        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        LinkedListMultimap<KeyPair, Object> map = (LinkedListMultimap<KeyPair, Object>) ht.getObj();
         KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
         return hasValueOfType(map, keyPair, clazz);
     }
 
-    private static <T> T getValueOfType(ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> clazz) {
+    private static <T> T getValueOfType(LinkedListMultimap<KeyPair, Object> map, KeyPair key, Class<T> clazz) {
         for (Object o : map.get(key)) {
             if (o.getClass() == clazz) {
                 return (T) o;
@@ -170,7 +177,7 @@ public class HashtableProvider extends Provider {
         return null;
     }
 
-    private static <T> boolean hasValueOfType(ArrayListMultimap<KeyPair, Object> map, KeyPair key, Class<T> type) {
+    private static <T> boolean hasValueOfType(LinkedListMultimap<KeyPair, Object> map, KeyPair key, Class<T> type) {
         for (Object o : map.get(key)) {
             if (o.getClass() == type) {
                 return true;
@@ -179,7 +186,7 @@ public class HashtableProvider extends Provider {
         return false;
     }
 
-    private static <T> void deleteIfPresent(ArrayListMultimap<KeyPair, Object> map, KeyPair key, T type) {
+    private static <T> void deleteIfPresent(LinkedListMultimap<KeyPair, Object> map, KeyPair key, T type) {
         Object toRemove = null;
         for (Object o : map.get(key)) {
             if (o.getClass() == type) {

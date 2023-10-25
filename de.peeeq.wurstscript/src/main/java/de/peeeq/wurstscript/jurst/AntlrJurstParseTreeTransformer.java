@@ -2,8 +2,10 @@ package de.peeeq.wurstscript.jurst;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -53,7 +55,7 @@ public class AntlrJurstParseTreeTransformer {
         }
 
         return Ast
-                .CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+                .CompilationUnit(new CompilationUnitInfo(this.cuErrorHandler), jassDecls, packages);
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(
@@ -178,7 +180,11 @@ public class AntlrJurstParseTreeTransformer {
     private WStatement transformJassStatementIf(JassStatementIfContext s) {
         WStatements thenBlock = transformJassStatements(s.thenStatements);
         WStatements elseBlock = transformJassElseIfs(s.jassElseIfs());
-        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock);
+        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock, !isEndif(s.jassElseIfs()));
+    }
+
+    private boolean isEndif(JassElseIfsContext s) {
+        return s.ENDIF() != null;
     }
 
     private WStatements transformJassElseIfs(@Nullable JassElseIfsContext s) {
@@ -189,7 +195,9 @@ public class AntlrJurstParseTreeTransformer {
             return Ast.WStatements(Ast.StmtIf(source(s),
                     transformExpr(s.cond),
                     transformJassStatements(s.thenStatements),
-                    transformJassElseIfs(s.jassElseIfs())));
+                    transformJassElseIfs(s.jassElseIfs()),
+                    !isEndif(s.jassElseIfs())
+                ));
         } else if (s.elseStmts != null) {
             return transformJassStatements(s.elseStmts);
         } else {
@@ -316,7 +324,10 @@ public class AntlrJurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message.getText());
+            AnnotationContext a = m.annotation();
+            return Ast.Annotation(src,
+                    Ast.Identifier(source(a.name), a.name.getText().substring(1)),
+                    Ast.Arguments(Ast.ExprStringVal(source(a.message), a.message.getText())));
         }
         switch (m.modType.getType()) {
             case JurstParser.PUBLIC:
@@ -337,11 +348,15 @@ public class AntlrJurstParseTreeTransformer {
             case JurstParser.CONSTANT:
                 return Ast.ModConstant(src);
             case JurstParser.DELEGATE:
-                return Ast.Annotation(src, "delegate", "internal");
+                return annotation(src, "delegate", "internal");
             case JurstParser.STUB:
-                return Ast.Annotation(src, "stub", "internal");
+                return annotation(src, "stub", "internal");
         }
         throw error(m, "modifier not implemented");
+    }
+
+    private Modifier annotation(WPos src, String name, String message) {
+        return Ast.Annotation(src, Ast.Identifier(src, name), Ast.Arguments(Ast.ExprStringVal(src, message)));
     }
 
     private WEntity transformTupleDef(TupleDefContext t) {
@@ -447,8 +462,13 @@ public class AntlrJurstParseTreeTransformer {
         WStatements body = transformStatementList(c.stmts);
         boolean isExplicit = c.superArgs != null;
         Arguments superArgs = transformExprs(c.superArgs);
-        return Ast.ConstructorDef(source, modifiers, parameters, isExplicit,
-                superArgs, body);
+        SuperConstructorCall superCall;
+        if (isExplicit) {
+            superCall = Ast.SomeSuperConstructorCall(source(c.superArgs), source(c.superArgs), superArgs);
+        } else {
+            superCall = Ast.NoSuperConstructorCall();
+        }
+        return Ast.ConstructorDef(source, modifiers, parameters, superCall, body);
     }
 
     private WStatements transformStatementList(List<StatementContext> stmts) {
@@ -607,7 +627,7 @@ public class AntlrJurstParseTreeTransformer {
         for (SwitchCaseContext c : s.switchCase()) {
             Expr e = transformExpr(c.expr());
             WStatements stmts = transformStatements(c.statementsBlock());
-            cases.add(Ast.SwitchCase(source(c), e, stmts));
+            cases.add(Ast.SwitchCase(source(c), Ast.ExprList(e), stmts));
         }
         SwitchDefaultCase switchDefault;
         if (s.switchDefaultCase() != null) {
@@ -881,7 +901,11 @@ public class AntlrJurstParseTreeTransformer {
         Expr cond = transformExpr(i.cond);
         WStatements thenBlock = transformStatements(i.thenStatements);
         WStatements elseBlock = transformElseBlock(i.elseStatements());
-        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock);
+        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock, !isEndif(i.elseStatements()));
+    }
+
+    private boolean isEndif(ElseStatementsContext s) {
+        return s.ENDIF() != null;
     }
 
     private WStatements transformElseBlock(@Nullable ElseStatementsContext es) {
@@ -892,7 +916,7 @@ public class AntlrJurstParseTreeTransformer {
             // elseif block
             WStatements thenBlock = transformStatements(es.thenStatements);
             WStatements elseBlock = transformElseBlock(es.elseStatements());
-            return Ast.WStatements(Ast.StmtIf(source(es), transformExpr(es.cond), thenBlock, elseBlock));
+            return Ast.WStatements(Ast.StmtIf(source(es), transformExpr(es.cond), thenBlock, elseBlock, !isEndif(es.elseStatements())));
         } else if (es.statementsBlock() != null) {
             // 'else' block
             return transformStatements(es.statementsBlock());
@@ -1131,37 +1155,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private String getStringVal(WPos source, String text) {
         StringBuilder res = new StringBuilder();
-        for (int i = 1; i < text.length() - 1; i++) {
-            char c = text.charAt(i);
-            if (c == '\\') {
-                i++;
-                switch (text.charAt(i)) {
-                    case '\\':
-                        res.append('\\');
-                        break;
-                    case 'n':
-                        res.append('\n');
-                        break;
-                    case 'r':
-                        res.append('\r');
-                        break;
-                    case 't':
-                        res.append('\t');
-                        break;
-                    case '"':
-                        res.append('"');
-                        break;
-                    case '\'':
-                        res.append('\'');
-                        break;
-                    default:
-                        throw new CompileError(source, "Invalid escape sequence: "
-                                + text.charAt(i));
-                }
-            } else {
-                res.append(c);
-            }
-        }
+        AntlrJassParseTreeTransformer.buildStringVal(source, text, res);
         return res.toString();
     }
 
@@ -1278,7 +1272,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private TypeParamDef transformTypeParam(TypeParamContext p) {
         Modifiers modifiers = Ast.Modifiers();
-        return Ast.TypeParamDef(source(p), modifiers, text(p.name));
+        return Ast.TypeParamDef(source(p), modifiers, text(p.name), Ast.NoTypeParamConstraints());
     }
 
     private WImport transformImport(WImportContext i) {
@@ -1296,7 +1290,7 @@ public class AntlrJurstParseTreeTransformer {
         return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
-    class FuncSig {
+    static class FuncSig {
         Identifier name;
         TypeParamDefs typeParams;
         WParameters formalParameters;
@@ -1312,7 +1306,7 @@ public class AntlrJurstParseTreeTransformer {
 
     }
 
-    class ClassSlotResult {
+    static class ClassSlotResult {
 
         public ClassDefs innerClasses = Ast.ClassDefs();
         public ConstructorDefs constructors = Ast.ConstructorDefs();

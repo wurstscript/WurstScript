@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediatelang;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeString;
 
+import java.util.Objects;
+
 public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
     private String val; // including the quotes
@@ -26,6 +28,9 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
     @Override
     public ILconstAddable add(ILconstAddable other) {
+        if (other instanceof ILconstNull) {
+            return this;
+        }
         return new ILconstString(val + ((ILconstString) other).val);
     }
 
@@ -37,4 +42,8 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
         return false;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(val);
+    }
 }

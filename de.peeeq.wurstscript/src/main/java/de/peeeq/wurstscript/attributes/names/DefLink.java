@@ -1,29 +1,21 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.VariablePosition;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeVararg;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 public abstract class DefLink extends NameLink {
-    private final List<TypeParamDef> typeParams;
     private final @Nullable WurstType receiverType;
 
 
     public DefLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType) {
-        super(visibility, definedIn);
-        this.typeParams = typeParams;
+        super(visibility, definedIn, typeParams);
         this.receiverType = receiverType;
     }
 
@@ -68,14 +60,6 @@ public abstract class DefLink extends NameLink {
     }
 
 
-    @Override
-    public abstract DefLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding);
-
-
-    public List<TypeParamDef> getTypeParams() {
-        return typeParams;
-    }
-
     public DefLink hidingPrivate() {
         return (DefLink) super.hidingPrivate();
     }
@@ -88,9 +72,35 @@ public abstract class DefLink extends NameLink {
     public boolean receiverCompatibleWith(WurstType receiverType, Element location) {
         if (this.receiverType == null) {
             return receiverType == null;
+        } else if (receiverType == null) {
+            return false;
         }
-        return this.receiverType.isSubtypeOf(receiverType, location);
+        return receiverType.isSubtypeOf(this.receiverType, location);
+    }
+
+    /**
+     * Tries to adapt this function to the given receiver
+     * Setting type arguments appropriately
+     */
+    public @Nullable DefLink adaptToReceiverType(WurstType receiverType) {
+        if (this.receiverType == null) {
+            if (receiverType == null) {
+                return this;
+            } else {
+                return null;
+            }
+        }
+        NameDef def = getDef();
+        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(typeParams), VariablePosition.LEFT);
+        if (match == null) {
+            return null;
+        }
+        return withTypeArgBinding(def, match);
     }
 
 
+    @Override
+    public abstract DefLink withTypeArgBinding(Element context, VariableBinding binding);
+
+    public abstract DefLink withGenericTypeParams(List<TypeParamDef> typeParams);
 }

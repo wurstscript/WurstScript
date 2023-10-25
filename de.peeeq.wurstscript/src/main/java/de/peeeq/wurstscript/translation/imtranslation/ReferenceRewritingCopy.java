@@ -48,50 +48,6 @@ public class ReferenceRewritingCopy {
                 }
             }
 
-            @Override
-            public void visit(ImSet e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getLeft());
-                if (newChild != null) {
-                    e.setLeft((ImVar) newChild);
-                }
-            }
-
-            @Override
-            public void visit(ImSetTuple e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getLeft());
-                if (newChild != null) {
-                    e.setLeft((ImVar) newChild);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArray e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getLeft());
-                if (newChild != null) {
-                    e.setLeft((ImVar) newChild);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArrayMulti e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getLeft());
-                if (newChild != null) {
-                    e.setLeft((ImVar) newChild);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getLeft());
-                if (newChild != null) {
-                    e.setLeft((ImVar) newChild);
-                }
-            }
 
             @Override
             public void visit(ImVarargLoop e) {
@@ -121,15 +77,6 @@ public class ReferenceRewritingCopy {
             }
 
             @Override
-            public void visit(ImVarArrayMultiAccess e) {
-                super.visit(e);
-                Element newChild = oldToNew.get(e.getVar());
-                if (newChild != null) {
-                    e.setVar((ImVar) newChild);
-                }
-            }
-
-            @Override
             public void visit(ImMethodCall e) {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getMethod());
@@ -143,7 +90,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -152,7 +99,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -170,7 +117,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -179,7 +126,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -188,7 +135,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 

@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -77,8 +74,8 @@ public class AssetsGenerator {
 
             if (category != entry.category) return false;
             if (type != entry.type) return false;
-            if (path != null ? !path.equals(entry.path) : entry.path != null) return false;
-            return name != null ? name.equals(entry.name) : entry.name == null;
+            if (!Objects.equals(path, entry.path)) return false;
+            return Objects.equals(name, entry.name);
         }
 
         @Override
@@ -94,7 +91,7 @@ public class AssetsGenerator {
     enum Type {
         MODEL((String s) -> s.endsWith(".mdx") | s.endsWith(".mdl")),
         ICON((String s) -> s.endsWith(".blp") && s.contains("BTN")),
-        TEXTURE((String s) -> s.endsWith(".blp")),
+        TEXTURE((String s) -> s.endsWith(".blp") | s.endsWith(".dds")),
         SOUND((String s) -> s.endsWith(".mp3") | s.endsWith(".wav"));
 
         Checker checker;
@@ -172,17 +169,17 @@ public class AssetsGenerator {
             }
 
         }
-        String output = "package Assets\nimport NoWurst\n\n";
+        StringBuilder output = new StringBuilder("package Assets\nimport NoWurst\n\n");
         for (Category category : Category.values()) {
-            output += "public class " + category.toName() + "\n";
+            output.append("public class ").append(category.toName()).append("\n");
             TreeSet<Entry> entries = AssetsGenerator.entries[category.ordinal()];
             for (Entry e : entries) {
-                output += "\t" + e.print();
+                output.append("\t").append(e.print());
             }
-            output += "\n\n";
+            output.append("\n\n");
         }
 
-        Files.write(file.toPath(), output.getBytes(), StandardOpenOption.CREATE);
+        Files.write(file.toPath(), output.toString().getBytes(), StandardOpenOption.CREATE);
     }
 
     private static Type getType(String filename) {

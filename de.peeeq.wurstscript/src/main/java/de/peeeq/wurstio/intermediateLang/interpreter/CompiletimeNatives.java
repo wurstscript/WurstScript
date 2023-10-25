@@ -1,24 +1,38 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
+import config.WurstProjectConfigData;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.intermediatelang.ILconstInt;
-import de.peeeq.wurstscript.intermediatelang.ILconstReal;
-import de.peeeq.wurstscript.intermediatelang.ILconstString;
-import de.peeeq.wurstscript.intermediatelang.ILconstTuple;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
+import net.moonlightflower.wc3libs.bin.ObjMod;
+import net.moonlightflower.wc3libs.bin.app.objMod.*;
+import net.moonlightflower.wc3libs.dataTypes.DataType;
+import net.moonlightflower.wc3libs.dataTypes.app.War3Int;
+import net.moonlightflower.wc3libs.dataTypes.app.War3Real;
+import net.moonlightflower.wc3libs.dataTypes.app.War3String;
+import net.moonlightflower.wc3libs.misc.MetaFieldId;
+import net.moonlightflower.wc3libs.misc.ObjId;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
+import static de.peeeq.wurstscript.intermediatelang.interpreter.VariableType.*;
 
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
+    private final boolean isProd;
     private ProgramStateIO globalState;
+    private WurstProjectConfigData projectConfigData;
 
-    public CompiletimeNatives(ProgramStateIO globalState) {
+    public CompiletimeNatives(ProgramStateIO globalState, WurstProjectConfigData projectConfigData, boolean isProd) {
         this.globalState = globalState;
+        this.projectConfigData = projectConfigData;
+        this.isProd = isProd;
     }
 
 
@@ -27,104 +41,120 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
-        ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
-        ObjectTable modifiedTable = unitStore.getModifiedTable();
-        for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
-            if (od.getNewObjectId() == newUnitId.getVal()) {
-                globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
-            }
+        ObjMod<? extends ObjMod.Obj> dataStore = globalState.getDataStore(fileType.getVal());
+        String objIdString = ObjectHelper.objectIdIntToString(newUnitId.getVal());
+
+        if (dataStore.getObjs().containsKey(ObjId.valueOf(objIdString))) {
+            globalState.compilationError("Object definition with id " + objIdString + " already exists.");
         }
-        ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
+        ObjMod.Obj objDef = newDefFromFiletype(dataStore, deriveFrom.getVal(), newUnitId.getVal());
         // mark object with special field
-        objDef.add(new ObjectModificationInt(objDef, "wurs", 0, 0, ProgramState.GENERATED_BY_WURST));
+        ObjMod.Obj.Mod mod = new ObjMod.Obj.Mod(MetaFieldId.valueOf("wurs"), ObjMod.ValType.INT, War3Int.valueOf(ProgramState.GENERATED_BY_WURST));
+        objDef.addMod(mod);
         String key = globalState.addObjectDefinition(objDef);
-        modifiedTable.add(objDef);
+
         return makeKey(key);
+    }
+
+    private W3U.Obj newDefFromFiletype(ObjMod<? extends ObjMod.Obj> dataStore, int base, int newId) {
+        ObjId baseIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(base));
+        ObjId newIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(newId));
+        return dataStore.addObj(newIdS, baseIdS);
     }
 
 
     public void ObjectDefinition_setInt(ILconstTuple unitType, ILconstString modification, ILconstInt value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.INTEGER, value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.INT, War3Int.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setString(ILconstTuple unitType, ILconstString modification, ILconstString value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.STRING, value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.STRING, War3String.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setReal(ILconstTuple unitType, ILconstString modification, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.REAL, value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.REAL, War3Real.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setUnreal(ILconstTuple unitType, ILconstString modification, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.UNREAL, value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.UNREAL, War3Real.valueOf(value.getVal()));
     }
 
 
     public void ObjectDefinition_setLvlInt(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.INTEGER, level.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.INT, level.getVal(), War3Int.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlString(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstString value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.STRING, level.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), War3String.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlReal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.REAL, level.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.REAL, level.getVal(), War3Real.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlUnreal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.UNREAL, level.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.UNREAL, level.getVal(), War3Real.valueOf(value.getVal()));
     }
 
 
     public void ObjectDefinition_setLvlDataInt(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstInt value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.INTEGER, level.getVal(), dataPointer.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.INT, level.getVal(), dataPointer.getVal(), War3Int.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlDataString(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstString value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.STRING, level.getVal(), dataPointer.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), dataPointer.getVal(), War3String.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlDataReal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.REAL, level.getVal(), dataPointer.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.REAL, level.getVal(), dataPointer.getVal(), War3Real.valueOf(value.getVal()));
     }
 
     public void ObjectDefinition_setLvlDataUnreal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstReal value) {
-        ObjectDefinition od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, VariableType.UNREAL, level.getVal(), dataPointer.getVal(), value.getVal());
+        ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
+        modifyObject(od, modification, ObjMod.ValType.UNREAL, level.getVal(), dataPointer.getVal(), War3Real.valueOf(value.getVal()));
     }
 
 
-    private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, T value) {
+    private <T> void modifyObject(ObjMod.Obj od, ILconstString modification, ObjMod.ValType variableType, DataType value) {
         modifyObject(od, modification, variableType, 1, 0, value);
     }
 
-    private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, int level, T value) {
+    private <T> void modifyObject(ObjMod.Obj od, ILconstString modification, ObjMod.ValType variableType, int level, DataType value) {
         modifyObject(od, modification, variableType, level, 0, value);
     }
 
-    private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, int level, int datapointer, T value) {
+    private void modifyObject(ObjMod.Obj od, ILconstString modification, ObjMod.ValType variableType, int level, int datapointer, DataType value) {
         String modificationId = modification.getVal();
-        for (ObjectModification<?> m : od.getModifications()) {
-            if (m.getModificationId().equals(modificationId) && m.getLevelCount() == level) {
-                ObjectModification<T> m2 = m.castTo(value);
-                m2.setData(value);
-                return;
+        ObjMod.Obj.Mod foundMod = null;
+        for (ObjMod.Obj.Mod m : od.getMods()) {
+            if (m instanceof ObjMod.Obj.ExtendedMod) {
+                ObjMod.Obj.ExtendedMod extMod = (ObjMod.Obj.ExtendedMod) m;
+                if (extMod.getId().getVal().equals(modificationId) && extMod.getLevel() == level) {
+                    // How to set data???
+                    foundMod = extMod;
+                    break;
+                }
             }
+
         }
+
         // create new modification:
-        od.add(ObjectModification.create(od, modificationId, variableType, level, datapointer, value));
+        if (foundMod != null) {
+            od.remove(foundMod);
+        }
+        od.addMod(new ObjMod.Obj.ExtendedMod(MetaFieldId.valueOf(modificationId), variableType, value, level, datapointer));
+
     }
 
     private String getKey(ILconstTuple unitType) {
@@ -132,7 +162,18 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public void compileError(ILconstString msg) {
-        globalState.compilationError(msg.getVal());
+        throw new InterpreterException(msg.getVal());
     }
 
+    public ILconstString getMapName() {
+        return new ILconstString(projectConfigData.getBuildMapData().getName());
+    }
+
+    public ILconstString getBuildDate() {
+        return new ILconstString(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString());
+    }
+
+    public ILconstBool isProductionBuild() {
+        return isProd ? ILconstBool.TRUE : ILconstBool.FALSE;
+    }
 }

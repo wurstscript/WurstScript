@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.intermediatelang;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInfer;
 
-public class ILconstNull extends ILconstAbstract {
+public class ILconstNull extends ILconstAbstract implements ILconstAddable {
 
 
     private static ILconstNull instance = new ILconstNull();
@@ -27,6 +27,22 @@ public class ILconstNull extends ILconstAbstract {
 
     public static ILconstNull instance() {
         return instance;
+    }
+
+    @Override
+    public ILconstAddable add(ILconstAddable other) {
+        if (other instanceof ILconstNull) {
+            return this;
+        } else if (other instanceof ILconstString) {
+            return other;
+        } else {
+            throw new Error("unsupported: " + other + " // " + other.getClass());
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(this);
     }
 
 }

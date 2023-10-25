@@ -3,15 +3,16 @@ package de.peeeq.wurstio.jassinterpreter;
 import de.peeeq.wurstio.jassinterpreter.providers.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 public class ReflectionNativeProvider implements NativesProvider {
     private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
@@ -24,6 +25,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new HashtableProvider(interpreter));
         addProvider(new MathProvider(interpreter));
         addProvider(new OutputProvider(interpreter));
+        addProvider(new WurstflectionProvider(interpreter));
         addProvider(new StringProvider(interpreter));
         addProvider(new UnitProvider(interpreter));
         addProvider(new PlayerProvider(interpreter));
@@ -37,6 +39,12 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new DialogProvider(interpreter));
         addProvider(new EffectProvider(interpreter));
         addProvider(new RegionProvider(interpreter));
+        addProvider(new ImageProvider(interpreter));
+        addProvider(new IntegerProvider(interpreter));
+        addProvider(new FrameProvider(interpreter));
+        addProvider(new LuaEnsureTypeProvider(interpreter));
+        addProvider(new QuestProvider(interpreter));
+        addProvider(new QuestItemProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {
@@ -61,14 +69,14 @@ public class ReflectionNativeProvider implements NativesProvider {
     }
 
     @Override
-    public ILconst invoke(String funcname, ILconst[] args) {
+    public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
         String msg = "Calling method " + funcname + "(" +
-                Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
+            Utils.printSep(", ", args) + ")";
         WLogger.trace(msg);
 
         NativeJassFunction candidate = methodMap.get(funcname);
         if (candidate == null) {
-            throw new Error("The native <" + funcname + "> has not been implemented for compiletime!");
+            throw new NoSuchNativeException("");
         }
 
         if (candidate.getMethod().getParameterCount() == args.length) {
@@ -76,7 +84,12 @@ public class ReflectionNativeProvider implements NativesProvider {
             for (int i = 0; i < args.length; i++) {
                 parameterTypes[i] = "" + args[i];
                 if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
-                    throw new Error("The native <" + funcname + "> expects different parameters!" +
+                    if (args[i] instanceof ILconstNull) {
+                        // handle null as a special case and pass it to the native as a Java null
+                        args[i] = null;
+                        continue;
+                    }
+                    throw new Error("The native <" + funcname + "> expects different parameter " + i + "!" +
                             "\n\tExpected: " + candidate.getMethod().getParameterTypes()[i].getSimpleName() + " Actual: " + parameterTypes[i]);
                 }
             }
@@ -86,6 +99,8 @@ public class ReflectionNativeProvider implements NativesProvider {
         } catch (IllegalAccessException | InvocationTargetException e) {
             if (e.getCause() instanceof Error) {
                 throw (Error) e.getCause();
+            } else if (e.getCause() instanceof InterpreterException) {
+                throw (InterpreterException) e.getCause();
             }
             throw new Error(e.getCause());
         }

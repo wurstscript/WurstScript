@@ -7,49 +7,41 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 //w(11)->{r(17), r(19)} & w(19)->{r(17), r(19)} & w(22)
 class VarStates {
     final ImmutableMap<LocalVarDef, VState> states;
+    final boolean thisDestroyed;
 
-    public VarStates(ImmutableMap<LocalVarDef, VState> states) {
+    public VarStates(ImmutableMap<LocalVarDef, VState> states, boolean thisDestroyed) {
         this.states = states;
+        this.thisDestroyed = thisDestroyed;
     }
 
     VarStates merge(VarStates other) {
         ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, VState::merge);
-        return new VarStates(merged);
+        return new VarStates(merged, thisDestroyed || other.thisDestroyed);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VarStates varStates = (VarStates) o;
+        return thisDestroyed == varStates.thisDestroyed &&
+                Objects.equals(states, varStates.states);
     }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + states.hashCode();
-        return result;
-    }
-
-    @Override
-    public boolean equals(@Nullable Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        VarStates other = (VarStates) obj;
-        if (!states.equals(other.states))
-            return false;
-        return true;
+        return Objects.hash(states, thisDestroyed);
     }
 
     public static VarStates initial(Set<LocalVarDef> r) {
@@ -57,7 +49,12 @@ class VarStates {
         for (LocalVarDef v : r) {
             s.put(v, VState.initial);
         }
-        return new VarStates(s.build());
+        return new VarStates(s.build(), false);
+    }
+
+    public boolean destroyed(NameDef v) {
+        VState s = states.get(v);
+        return s != null && s.mightBeDestroyed;
     }
 
     public boolean uninitialized(NameDef v) {
@@ -71,7 +68,7 @@ class VarStates {
             s = VState.initialDefined;
         }
         s = s.addRead(r);
-        Builder<LocalVarDef, VState> builder = ImmutableMap.<LocalVarDef, VState>builder();
+        Builder<LocalVarDef, VState> builder = ImmutableMap.builder();
         for (Entry<LocalVarDef, VState> e : states.entrySet()) {
             if (e.getKey() != v) {
                 builder.put(e);
@@ -80,7 +77,7 @@ class VarStates {
         ImmutableMap<LocalVarDef, VState> rs = builder
                 .put(v, s)
                 .build();
-        return new VarStates(rs);
+        return new VarStates(rs, thisDestroyed);
     }
 
     public ImmutableSet<WStatement> getUnreadWrites(NameDef var) {
@@ -109,8 +106,21 @@ class VarStates {
         }
         vState = vState.addWrite(s);
         res.put(var, vState);
-        return new VarStates(res.build());
+        return new VarStates(res.build(), thisDestroyed);
     }
+
+    public VarStates addDestroy(LocalVarDef var) {
+        ImmutableMap.Builder<LocalVarDef, VState> res = ImmutableMap.builder();
+        for (Entry<LocalVarDef, VState> e : states.entrySet()) {
+            if (e.getKey() != var) {
+                res.put(e);
+            }
+        }
+        res.put(var, VState.destroyed);
+        return new VarStates(res.build(), thisDestroyed);
+    }
+
+
 
     private @Nullable VState getVarState(LocalVarDef var) {
         return states.get(var);
@@ -128,21 +138,35 @@ class VarStates {
         return sb.toString();
     }
 
+    public boolean isThisDestroyed() {
+        return thisDestroyed;
+    }
+
+    public VarStates withThisDestroyed(boolean thisDestroyed) {
+        return new VarStates(states, thisDestroyed);
+    }
+
 
 }
 
 class VState {
-    public static final VState initialDefined = new VState(false, ImmutableSetMultimap.<WStatement, Element>of()
-            , ImmutableSet.<WStatement>of(), ImmutableSet.<WStatement>of());
-    public static final VState initial = new VState(true, ImmutableSetMultimap.<WStatement, Element>of()
-            , ImmutableSet.<WStatement>of(), ImmutableSet.<WStatement>of());
+
+    public static final VState initialDefined = new VState(false, false, ImmutableSetMultimap.of()
+            , ImmutableSet.of(), ImmutableSet.of());
+    public static final VState initial = new VState(true, false, ImmutableSetMultimap.of()
+            , ImmutableSet.of(), ImmutableSet.of());
+    public static final VState destroyed = new VState(false, true, ImmutableSetMultimap.of()
+            , ImmutableSet.of(), ImmutableSet.of());
+
     final boolean mightBeUninitialized;
+    final boolean mightBeDestroyed;
     final ImmutableSetMultimap<WStatement, Element> writesAndReads;
     final ImmutableSet<WStatement> activeWrites;
     final ImmutableSet<WStatement> allWrites;
 
-    public VState(boolean mightBeUninitialized, ImmutableSetMultimap<WStatement, Element> writesAndReads, ImmutableSet<WStatement> activeWrites, ImmutableSet<WStatement> allWrites) {
+    public VState(boolean mightBeUninitialized, boolean mightBeDestroyed, ImmutableSetMultimap<WStatement, Element> writesAndReads, ImmutableSet<WStatement> activeWrites, ImmutableSet<WStatement> allWrites) {
         this.mightBeUninitialized = mightBeUninitialized;
+        this.mightBeDestroyed = mightBeDestroyed;
         this.writesAndReads = writesAndReads;
         this.activeWrites = activeWrites;
         this.allWrites = allWrites;
@@ -152,7 +176,7 @@ class VState {
         ImmutableSet.Builder<WStatement> wr = ImmutableSet.builder();
         wr.addAll(allWrites);
         wr.add(s);
-        return new VState(false, writesAndReads, ImmutableSet.of(s), wr.build());
+        return new VState(false, false, writesAndReads, ImmutableSet.of(s), wr.build());
     }
 
     public VState addRead(Element r) {
@@ -161,11 +185,12 @@ class VState {
         for (WStatement s : this.activeWrites) {
             builder.put(s, r);
         }
-        return new VState(mightBeUninitialized, builder.build(), activeWrites, allWrites);
+        return new VState(mightBeUninitialized, mightBeDestroyed, builder.build(), activeWrites, allWrites);
     }
 
     public VState merge(VState other) {
         return new VState(mightBeUninitialized || other.mightBeUninitialized,
+                mightBeDestroyed || other.mightBeDestroyed,
                 Utils.mergeMultiMaps(writesAndReads, other.writesAndReads),
                 Utils.mergeSets(activeWrites, other.activeWrites),
                 Utils.mergeSets(allWrites, other.allWrites));
@@ -178,6 +203,7 @@ class VState {
         result = prime * result + activeWrites.hashCode();
         result = prime * result + allWrites.hashCode();
         result = prime * result + (mightBeUninitialized ? 1231 : 1237);
+        result = prime * result + (mightBeDestroyed ? 1231 : 1237);
         result = prime * result + writesAndReads.hashCode();
         return result;
     }
@@ -197,6 +223,8 @@ class VState {
             return false;
         if (mightBeUninitialized != other.mightBeUninitialized)
             return false;
+        if (mightBeDestroyed != other.mightBeDestroyed)
+            return false;
         if (!writesAndReads.equals(other.writesAndReads))
             return false;
         return true;
@@ -204,7 +232,7 @@ class VState {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("VState [ " + this.mightBeUninitialized + ", ");
+        StringBuilder sb = new StringBuilder("VState [ " + this.mightBeUninitialized + ", " + this.mightBeDestroyed + ", ");
         for (Entry<WStatement, Element> e : this.writesAndReads.entries()) {
             sb.append("\n\t\t");
             sb.append(e.getKey().attrSource().getLine()).append(" -> ").append(e.getValue().attrSource().getLine());
@@ -218,6 +246,13 @@ class VState {
 
 
 public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElementWithBody> {
+
+
+    private final boolean jassCode;
+
+    public DataflowAnomalyAnalysis(boolean jassCode) {
+        this.jassCode = jassCode;
+    }
 
     @Override
     VarStates calculate(WStatement s, VarStates incoming) {
@@ -241,29 +276,46 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 SwitchStmt swi = (SwitchStmt) s;
                 // switch statement must be handled separately, because expressions are not direct children:
                 for (SwitchCase switchCase : swi.getCases()) {
-                    incoming = handleExprInCompound(incoming, switchCase.getExpr());
+                    for (Expr switchCaseExpr : switchCase.getExpressions()) {
+                        incoming = handleExprInCompound(incoming, switchCaseExpr);
+                    }
                 }
             }
         } else {
             checkIfVarsInitialized(s, incoming);
             for (NameDef v : s.attrReadVariables()) {
-                if (v instanceof LocalVarDef) {
+                if (isLocalVarDef(v)) {
                     incoming = incoming.addRead((LocalVarDef) v, s);
                 }
             }
+            if (incoming.thisDestroyed) {
+                checkNoAccessToThis(s);
+            }
         }
 
+        if (s instanceof ExprDestroy) {
+            ExprDestroy destr = (ExprDestroy) s;
+            if (destr.getDestroyedObj() instanceof ExprVarAccess) {
+                ExprVarAccess destroyed = (ExprVarAccess) destr.getDestroyedObj();
+                NameDef destroyedVar = destroyed.attrNameDef();
+                if (isLocalVarDef(destroyedVar)) {
+                    return incoming.addDestroy((LocalVarDef) destroyedVar);
+                }
+            } else if (destr.getDestroyedObj() instanceof ExprThis) {
+                return incoming.withThisDestroyed(true);
+            }
+        }
 
         NameDef n = getInitializedVar(s);
         if (n != null) {
 //			ImmutableSet<WStatement> unreadWrites = incoming.getUnreadWrites(n);
 //			for (WStatement wr : unreadWrites) {
 //				Element parent = s.getParent();
-//				if (isNested(wr, parent)) {				
+//				if (isNested(wr, parent)) {
 ////					s.addError("Assigning to " + Utils.printElement(n) + " overrides previous assignment in line " + wr.attrSource().getLine());
 //				}
-//			} 
-            if (n instanceof LocalVarDef) {
+//			}
+            if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
             }
@@ -271,10 +323,34 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         return incoming;
     }
 
+    /** checks that no expression in s uses 'this'; adds an error and returns true if it finds someting*/
+    private boolean checkNoAccessToThis(Element s) {
+        for (int i = 0; i < s.size(); i++) {
+            if (checkNoAccessToThis(s.get(i))) {
+                return true;
+            }
+        }
+        if (s instanceof ExprThis) {
+            reportError(s, "Cannot access 'this' because it might already have been destroyed.");
+            return true;
+        } if (s instanceof FunctionCall) {
+            if (((FunctionCall) s).attrImplicitParameter() instanceof ExprThis) {
+                reportError(s, "Cannot access 'this' because it might already have been destroyed.");
+                return true;
+            }
+        } else if (s instanceof NameRef) {
+            if (((NameRef) s).attrImplicitParameter() instanceof ExprThis) {
+                reportError(s, "Cannot access 'this' because it might already have been destroyed.");
+                return true;
+            }
+        }
+        return false;
+    }
+
     private VarStates handleExprInCompound(VarStates incoming, Expr expr) {
         checkIfVarsInitialized(expr, incoming);
         for (NameDef v : expr.attrReadVariables()) {
-            if (v instanceof LocalVarDef) {
+            if (isLocalVarDef(v)) {
                 incoming = incoming.addRead((LocalVarDef) v, expr);
             }
         }
@@ -285,9 +361,12 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         NameDef n = null;
         if (s instanceof StmtSet) {
             StmtSet s2 = (StmtSet) s;
-            n = s2.getUpdatedExpr().attrNameDef();
+            NameLink link = s2.getUpdatedExpr().attrNameLink();
+            if (link != null) {
+                n = link.getDef();
+            }
 
-        } else if (s instanceof LocalVarDef) {
+        } else if (isLocalVarDef(s)) {
             LocalVarDef l = (LocalVarDef) s;
             if (l.getInitialExpr() instanceof Expr) {
                 n = l;
@@ -300,7 +379,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
     }
 
     private void collectLocalVars(Set<LocalVarDef> r, Element e) {
-        if (e instanceof LocalVarDef) {
+        if (isLocalVarDef(e)) {
             r.add((LocalVarDef) e);
         }
 
@@ -312,19 +391,45 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         }
     }
 
+    /**
+     * checks if this is a local variable and not an array
+     */
+    private boolean isLocalVarDef(Element e) {
+        if (e instanceof LocalVarDef) {
+            LocalVarDef l = (LocalVarDef) e;
+            return !l.attrTyp().isArray();
+        }
+        return false;
+    }
+
     private void checkIfVarsInitialized(HasReadVariables s, VarStates incoming) {
         ImmutableList<NameDef> readVars = s.attrReadVariables();
         for (NameDef v : readVars) {
             if (v.attrTyp() instanceof WurstTypeArray) {
                 continue;
             }
-            if (incoming.uninitialized(v)) {
+
+            if (incoming.uninitialized(v) || incoming.destroyed(v)) {
                 Element readingExpr = findRead(s, v);
                 if (readingExpr == null) {
                     readingExpr = s;
                 }
-                readingExpr.addError("Variable " + v.getName() + " may not have been initialized");
+                String error = "Variable " + v.getName();
+                if (incoming.destroyed(v)) {
+                    error += " may have been destroyed already";
+                } else {
+                    error += " may not have been initialized";
+                }
+                reportError(readingExpr, error);
             }
+        }
+    }
+
+    private void reportError(Element location, String error) {
+        if (jassCode) {
+            location.addWarning(error);
+        } else {
+            location.addError(error);
         }
     }
 
@@ -403,7 +508,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
     @Override
     public VarStates startValue() {
-        return VarStates.initial(Collections.<LocalVarDef>emptySet());
+        return VarStates.initial(Collections.emptySet());
     }
 
 

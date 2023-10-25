@@ -1,12 +1,8 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.TriggerMock;
-import de.peeeq.wurstscript.intermediatelang.ILconstBool;
-import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
-import de.peeeq.wurstscript.intermediatelang.ILconstString;
-import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class TriggerProvider extends Provider {
 
@@ -31,6 +27,11 @@ public class TriggerProvider extends Provider {
         triggerMock.addCondition(boolexpr);
     }
 
+    public void TriggerClearConditions(IlConstHandle trigger) {
+        TriggerMock triggerMock = (TriggerMock) trigger.getObj();
+        triggerMock.clearConditions();
+    }
+
     public void TriggerAddAction(IlConstHandle trigger, ILconstFuncRef code) {
         TriggerMock triggerMock = (TriggerMock) trigger.getObj();
         triggerMock.addAction(code);
@@ -43,7 +44,17 @@ public class TriggerProvider extends Provider {
 //        triggerMock.registerEvent();
     }
 
+    public void TriggerRegisterVariableEvent(IlConstHandle trigger, ILconstString varName, IlConstHandle opcode, ILconstReal limitval) {
+        TriggerMock triggerMock = (TriggerMock) trigger.getObj();
+        // TODO
+//        triggerMock.registerEvent();
+    }
+
     public IlConstHandle Condition(ILconstFuncRef code) {
         return new IlConstHandle(NameProvider.getRandomName("conditionfunc"), code);
+    }
+
+    public IlConstHandle Filter(ILconstFuncRef code) {
+        return new IlConstHandle(NameProvider.getRandomName("filterfunc"), code);
     }
 }

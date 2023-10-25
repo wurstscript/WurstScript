@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class NullSetter {
 
     public void optimize() {
         prog.flatten(translator);
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             optimizeFunc(f);
         }
 
@@ -50,7 +51,7 @@ public class NullSetter {
         final List<ImStmt> nullSetStmts = Lists.newArrayList();
         final de.peeeq.wurstscript.ast.Element trace = f.getTrace();
         for (ImVar local : handleVars) {
-            nullSetStmts.add(JassIm.ImSet(trace, local, JassIm.ImNull()));
+            nullSetStmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(local), JassIm.ImNull(local.getType())));
         }
         boolean returns = optimizeChildren(f, handleVars, nullSetStmts, trace, f.getBody());
 
@@ -114,7 +115,7 @@ public class NullSetter {
             if (exprContainsVar(returnExpr, handleVars)) {
                 // if the returnExpr contains some handleVar, we have to add a temporary var
 
-                ImVar tempReturn = JassIm.ImVar(trace, returnExpr.attrTyp(), f.getName() + "tempReturn", false);
+                ImVar tempReturn = JassIm.ImVar(imReturn.attrTrace(), returnExpr.attrTyp(), f.getName() + "tempReturn", false);
                 if (isHandleType(returnExpr.attrTyp())) {
                     // use global variables for handle types
                     prog.getGlobals().add(tempReturn);
@@ -124,7 +125,7 @@ public class NullSetter {
                 }
 
                 imReturn.setReturnValue(JassIm.ImVarAccess(tempReturn));
-                parent2.add(parentIndex, JassIm.ImSet(trace, tempReturn, returnExpr));
+                parent2.add(parentIndex, JassIm.ImSet(trace, JassIm.ImVarAccess(tempReturn), returnExpr));
             }
 
         } else { // normal return

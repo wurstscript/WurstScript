@@ -12,25 +12,22 @@ import java.io.IOException;
 
 class Jmpq3BasedEditor implements MpqEditor {
 
-    private JMpqEditor editor;
+    private final JMpqEditor editor;
 
     private JMpqEditor getEditor() {
-        if (editor == null) {
-            throw new RuntimeException("editor already closed");
-        }
         return editor;
     }
 
-    public Jmpq3BasedEditor(File mpqArchive) throws Exception {
+    public Jmpq3BasedEditor(File mpqArchive, boolean readonly) throws Exception {
         Preconditions.checkNotNull(mpqArchive);
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.editor = new JMpqEditor(mpqArchive, MPQOpenOption.FORCE_V0);
+        this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
     }
 
     @Override
-    public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
+    public void insertFile(String filenameInMpq, byte[] contents) {
         getEditor().insertByteArray(filenameInMpq, contents);
     }
 
@@ -50,24 +47,21 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
-    public void deleteFile(String filenameInMpq) throws Exception {
+    public void deleteFile(String filenameInMpq) {
         getEditor().deleteFile(filenameInMpq);
     }
 
     @Override
     public void close() throws IOException {
-        if (editor != null) {
-            try {
-                editor.close();
-            } catch (JMpqException e) {
-                throw new IOException(e);
-            }
-            editor = null;
+        try {
+            editor.close();
+        } catch (JMpqException e) {
+            throw new IOException(e);
         }
     }
 
     @Override
-    public boolean hasFile(String fileName) throws Exception {
+    public boolean hasFile(String fileName) {
         return getEditor().hasFile(fileName);
     }
 
@@ -78,9 +72,7 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     protected void finalize() throws Throwable {
-        if (editor != null) {
-            WLogger.severe("JMPQ editor not closed normally");
-            editor.close();
-        }
+        WLogger.severe("JMPQ editor not closed normally");
+        editor.close();
     }
 }

@@ -5,9 +5,12 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.antlr.WurstParser.*;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -53,7 +56,7 @@ public class AntlrWurstParseTreeTransformer {
         }
 
         return Ast
-                .CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+                .CompilationUnit(new CompilationUnitInfo(this.cuErrorHandler), jassDecls, packages);
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(
@@ -214,7 +217,11 @@ public class AntlrWurstParseTreeTransformer {
     private WStatement transformJassStatementIf(JassStatementIfContext s) {
         WStatements thenBlock = transformJassStatements(s.thenStatements);
         WStatements elseBlock = transformJassElseIfs(s.jassElseIfs());
-        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock);
+        return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock, !isEndif(s.jassElseIfs()));
+    }
+
+    private boolean isEndif(JassElseIfsContext s) {
+        return s.JASS_ELSEIF() != null;
     }
 
     private WStatements transformJassElseIfs(JassElseIfsContext s) {
@@ -225,7 +232,9 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.WStatements(Ast.StmtIf(source(s),
                     transformExpr(s.cond),
                     transformJassStatements(s.thenStatements),
-                    transformJassElseIfs(s.jassElseIfs())));
+                    transformJassElseIfs(s.jassElseIfs()),
+                    !isEndif(s.jassElseIfs())
+                ));
         } else if (s.elseStmts != null) {
             return transformJassStatements(s.elseStmts);
         } else {
@@ -324,7 +333,9 @@ public class AntlrWurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message != null ? m.annotation().message.getText() : "");
+            return Ast.Annotation(src,
+                    Ast.Identifier(source(m.annotation().name), m.annotation().name.getText().substring(1).toLowerCase()),
+                    transformArgumentList(m.annotation().argumentList()));
         }
         switch (m.modType.getType()) {
             case WurstParser.PUBLIC:
@@ -451,16 +462,22 @@ public class AntlrWurstParseTreeTransformer {
         WParameters parameters = transformFormalParameters(
                 c.formalParameters(), true);
         WStatements body = transformStatementList(c.stmts);
-        boolean isExplicit = c.superArgs != null;
-        Arguments superArgs = transformExprs(c.superArgs);
-        return Ast.ConstructorDef(source, modifiers, parameters, isExplicit,
-                superArgs, body);
+        SuperConstructorCall superCall = transformSuperCall(c.superCall());
+        return Ast.ConstructorDef(source, modifiers, parameters,
+                superCall, body);
+    }
+
+    private SuperConstructorCall transformSuperCall(SuperCallContext sc) {
+        if (sc == null) {
+            return Ast.NoSuperConstructorCall();
+        }
+        return Ast.SomeSuperConstructorCall(source(sc), source(sc.superKeyword), transformExprs(sc.superArgs));
     }
 
     private WStatements transformStatementList(List<StatementContext> stmts) {
         WStatements result = Ast.WStatements();
         for (StatementContext s : stmts) {
-            result.add(transformStatement(s));
+            transformStatement(result, s);
         }
         return result;
     }
@@ -552,9 +569,13 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private ExprList transformExprlist(ExprListContext es) {
+        return transformExprlist(es.exprs);
+    }
+
+    private ExprList transformExprlist(List<ExprContext> es) {
         ExprList result = Ast.ExprList();
         if (es != null) {
-            for (ExprContext e : es.exprs) {
+            for (ExprContext e : es) {
                 result.add(transformExpr(e));
             }
         }
@@ -573,14 +594,19 @@ public class AntlrWurstParseTreeTransformer {
         WStatements result = Ast.WStatements();
         if (b != null) {
             for (StatementContext s : b.statement()) {
-                result.add(transformStatement(s));
+                transformStatement(result, s);
             }
         }
         return result;
     }
 
-    private WStatement transformStatement(StatementContext s) {
-        WStatement ws = transformStatement2(s);
+    private void transformStatement(WStatements result, StatementContext s) {
+        if (s.stmtSet() != null) {
+            transformStmtSet(result, s.stmtSet());
+        } else {
+            result.add(transformStatement2(s));
+        }
+        WStatement ws = result.get(result.size() - 1);
         if (s.externalLambda() != null) {
             Expr lambda = transformExternalLambda(s.externalLambda());
 
@@ -594,12 +620,12 @@ public class AntlrWurstParseTreeTransformer {
                     // add as last arg in function call
                     AstElementWithArgs fc = (AstElementWithArgs) e;
                     fc.getArgs().add(lambda);
-                    return ws;
+                    return;
                 }
                 if (e instanceof ExprEmpty) {
                     // replace empty right-hand-side of assignment
                     e.replaceBy(lambda);
-                    return ws;
+                    return;
                 }
                 if (e.size() == 0) {
                     break;
@@ -609,20 +635,6 @@ public class AntlrWurstParseTreeTransformer {
             }
             cuErrorHandler.sendError(new CompileError(source(s.externalLambda()),
                     "External Lambda-block can only be used after function calls."));
-        }
-        return ws;
-    }
-
-    private AstElementWithArgs findRightmostFunctionCall(Element e) {
-        while (true) {
-            if (e instanceof AstElementWithArgs) {
-                return ((AstElementWithArgs) e);
-            }
-            if (e.size() == 0) {
-                return null;
-            }
-            // continue with rightmost expression
-            e = e.get(e.size() - 1);
         }
     }
 
@@ -644,8 +656,6 @@ public class AntlrWurstParseTreeTransformer {
             return transformWhile(s.stmtWhile());
         } else if (s.localVarDef() != null) {
             return transformLocalVarDef(s.localVarDef());
-        } else if (s.stmtSet() != null) {
-            return transformStmtSet(s.stmtSet());
         } else if (s.expr() != null) {
             Expr e = transformExpr(s.expr());
             if (e instanceof WStatement) {
@@ -680,7 +690,7 @@ public class AntlrWurstParseTreeTransformer {
         Expr expr = transformExpr(s.expr());
         SwitchCases cases = Ast.SwitchCases();
         for (SwitchCaseContext c : s.switchCase()) {
-            Expr e = transformExpr(c.expr());
+            ExprList e = transformExprlist(c.expr());
             WStatements stmts = transformStatements(c.statementsBlock());
             cases.add(Ast.SwitchCase(source(c), e, stmts));
         }
@@ -710,26 +720,61 @@ public class AntlrWurstParseTreeTransformer {
         }
         return Ast.StmtReturn(source(s), r);
     }
+    private boolean useTemporaryIndex(Expr idx) {
+        // Integer literals and variables do not need to be replaced.
+        return !(idx instanceof ExprIntVal) && !(idx instanceof ExprVarAccess);
+    }
 
-    private WStatement transformStmtSet(StmtSetContext s) {
+    private NameRef addTemporaryIndexes(WStatements result, WPos src, NameRef expr) {
+        // For shorthand assignments (+=, ++, ...) the indexes are replaced by temporary variables.
+        if(expr instanceof AstElementWithIndexes) {
+            NameRef tempIndexExpr = expr.copy();
+            Indexes indexes = ((AstElementWithIndexes) tempIndexExpr).getIndexes();
+            for (int i = 0; i < indexes.size(); ++i) {
+                Expr idx = indexes.get(i).copy();
+                if (useTemporaryIndex(idx)) {
+                    OptTypeExpr optTyp = Ast.TypeExprResolved(src, WurstTypeInt.instance());
+                    String tempName = "index_temp_" + idx.getSource().getLine() + "_" + idx.getSource().getStartColumn();
+                    Identifier identifier = Ast.Identifier(src, tempName);
+                    Modifiers modifiers = Ast.Modifiers(Ast.ModConstant(src));
+                    LocalVarDef local = Ast.LocalVarDef(src, modifiers, optTyp, identifier, idx);
+                    result.add(local);
+                    indexes.set(i, Ast.ExprVarAccess(src, identifier.copy()));
+                }
+            }
+            return tempIndexExpr;
+        }
+        return expr;
+    }
+    private void transformStmtSet(WStatements result, StmtSetContext s) {
         NameRef updatedExpr = transformAssignable(s.left);
         WPos src = source(s);
         if (s.assignOp != null) {
             Expr right = transformExpr(s.right);
             WurstOperator op = getAssignOp(s.assignOp);
             if (op != null) {
-                right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(), op,
-                        right);
+                // assignment operator (+=, -=, ...)
+                updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+                right = Ast.ExprBinary(src, updatedExpr.copy(), op, right);
+                result.add(Ast.StmtSet(src, updatedExpr, right));
+            } else {
+                // normal assignment (=)
+                // only return set statement
+                result.add(Ast.StmtSet(src, updatedExpr, right));
             }
-            return Ast.StmtSet(src, updatedExpr, right);
+            return;
         } else if (s.incOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.PLUS, Ast.ExprIntVal(src, "1"));
-            return Ast.StmtSet(src, updatedExpr, right);
+            result.add(Ast.StmtSet(src, updatedExpr, right));
+            return;
         } else if (s.decOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            updatedExpr = addTemporaryIndexes(result, src, updatedExpr);
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.MINUS, Ast.ExprIntVal(src, "1"));
-            return Ast.StmtSet(src, updatedExpr, right);
+            result.add(Ast.StmtSet(src, updatedExpr, right));
+            return;
         }
         throw error(s, "not implemented");
     }
@@ -932,7 +977,7 @@ public class AntlrWurstParseTreeTransformer {
         } else {
             elseBlock = Ast.WStatements();
         }
-        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock);
+        return Ast.StmtIf(source(i), cond, thenBlock, elseBlock, i.ELSE() != null);
     }
 
     private Expr transformExpr(ExprContext e) {
@@ -1164,37 +1209,7 @@ public class AntlrWurstParseTreeTransformer {
 
     private String getStringVal(WPos source, String text) {
         StringBuilder res = new StringBuilder();
-        for (int i = 1; i < text.length() - 1; i++) {
-            char c = text.charAt(i);
-            if (c == '\\') {
-                i++;
-                switch (text.charAt(i)) {
-                    case '\\':
-                        res.append('\\');
-                        break;
-                    case 'n':
-                        res.append('\n');
-                        break;
-                    case 'r':
-                        res.append('\r');
-                        break;
-                    case 't':
-                        res.append('\t');
-                        break;
-                    case '"':
-                        res.append('"');
-                        break;
-                    case '\'':
-                        res.append('\'');
-                        break;
-                    default:
-                        throw new CompileError(source, "Invalid escape sequence: "
-                                + text.charAt(i));
-                }
-            } else {
-                res.append(c);
-            }
-        }
+        AntlrJassParseTreeTransformer.buildStringVal(source, text, res);
         return res.toString();
     }
 
@@ -1327,7 +1342,19 @@ public class AntlrWurstParseTreeTransformer {
 
     private TypeParamDef transformTypeParam(TypeParamContext p) {
         Modifiers modifiers = Ast.Modifiers();
-        return Ast.TypeParamDef(source(p), modifiers, text(p.name));
+        TypeParamConstraints typeParamClasses = tranformTypeParamConstraints(p.typeParamConstraints());
+        return Ast.TypeParamDef(source(p), modifiers, text(p.name), typeParamClasses);
+    }
+
+    private TypeParamConstraints tranformTypeParamConstraints(TypeParamConstraintsContext tc) {
+        if (tc == null) {
+            return Ast.NoTypeParamConstraints();
+        }
+        TypeExprList res = Ast.TypeExprList();
+        for (TypeExprContext t : tc.constraints) {
+            res.add(transformTypeExpr(t));
+        }
+        return res;
     }
 
     private WImport transformImport(WImportContext i) {
@@ -1353,7 +1380,7 @@ public class AntlrWurstParseTreeTransformer {
         return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
-    class FuncSig {
+    static class FuncSig {
         Identifier name;
         TypeParamDefs typeParams;
         WParameters formalParameters;
@@ -1369,7 +1396,7 @@ public class AntlrWurstParseTreeTransformer {
 
     }
 
-    class ClassSlotResult {
+    static class ClassSlotResult {
 
         public ClassDefs innerClasses = Ast.ClassDefs();
         public ConstructorDefs constructors = Ast.ConstructorDefs();

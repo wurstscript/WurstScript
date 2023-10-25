@@ -1,9 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Optional;
+
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.AttrConstantValue.ConstantValueCalculationException;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 

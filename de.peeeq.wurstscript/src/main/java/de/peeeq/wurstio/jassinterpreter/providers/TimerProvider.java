@@ -5,22 +5,32 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class TimerProvider extends Provider {
-    private static IlConstHandle lastExpiredMock = null;
+    private IlConstHandle lastExpiredMock = null;
 
     public TimerProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
     public IlConstHandle CreateTimer() {
-        TimerMock mock = new TimerMock(interpreter);
+        TimerMock mock = new TimerMock(interpreter, this);
         IlConstHandle timer = new IlConstHandle(NameProvider.getRandomName("timer"), mock);
         mock.setHandle(timer);
         return timer;
     }
 
+    public ILconstReal TimerGetElapsed(IlConstHandle timer) {
+        TimerMock timerMock = (TimerMock) timer.getObj();
+        return new ILconstReal(timerMock.getElapsed());
+    }
+
     public void DestroyTimer(IlConstHandle timer) {
         TimerMock timerMock = (TimerMock) timer.getObj();
         timerMock.destroy();
+    }
+
+    public void PauseTimer(IlConstHandle timer) {
+        TimerMock timerMock = (TimerMock) timer.getObj();
+        timerMock.pause();
     }
 
     public IlConstHandle GetExpiredTimer() {
@@ -34,7 +44,7 @@ public class TimerProvider extends Provider {
         }
     }
 
-    public static void setLastExpiredMock(IlConstHandle lastExpiredMock) {
-        TimerProvider.lastExpiredMock = lastExpiredMock;
+    public void setLastExpiredMock(IlConstHandle lastExpiredMock) {
+        this.lastExpiredMock = lastExpiredMock;
     }
 }

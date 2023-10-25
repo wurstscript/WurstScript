@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -42,29 +41,48 @@ public class AttrVarDefType {
 //        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
 //        return WurstTypeInfer.instance();
         WurstType expectedTyp = parentClosure.attrExpectedTyp();
+        return getParameterTypeFromClosureType(p, paramIndex, expectedTyp, true);
+    }
+
+    public static WurstType getParameterTypeFromClosureType(WShortParameter p, int paramIndex, WurstType expectedTyp, boolean addError) {
+        if (expectedTyp instanceof WurstTypeUnion) {
+            WurstTypeUnion union = (WurstTypeUnion) expectedTyp;
+            WurstType t1 = getParameterTypeFromClosureType(p, paramIndex, union.getTypeA(), addError);
+            if (t1 instanceof WurstTypeInfer) {
+                return t1;
+            }
+            WurstType t2 = getParameterTypeFromClosureType(p, paramIndex, union.getTypeB(), addError);
+            return WurstTypeUnion.create(t1, t2, p);
+        }
+
         FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
         if (sig == null) {
-            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+            if (addError) {
+                p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "The target type could not be uniquely determined for expected type " + expectedTyp + ".");
+            }
             return WurstTypeInfer.instance();
         }
 
         if (sig.getParamTypes().size() <= paramIndex) {
-            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+            if (addError) {
+                p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "Closure type " + expectedTyp + " does not take so many parameters.");
+            }
             return WurstTypeInfer.instance();
         }
-        return sig.getParamTypes().get(paramIndex);
+        // we call normalize here, because we do not want to get implicit conversions
+        // for closures these are handled by creating wrapper functions
+        return sig.getParamTypes().get(paramIndex).normalize();
     }
 
-    public static WurstType calculate(ClassDef c) {
+    public static WurstTypeClass calculate(ClassDef c) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : c.getTypeParameters()) {
             WurstTypeTypeParam typParam = new WurstTypeTypeParam(tp);
             typeArgs.add(new WurstTypeBoundTypeParam(tp, typParam, tp));
         }
-        WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
-        return t;
+        return new WurstTypeClass(c, typeArgs, true);
     }
 
     private static WurstType defaultCase(GlobalOrLocalVarDef v) {
@@ -98,7 +116,7 @@ public class AttrVarDefType {
                     v.addError("Array parameters are not permitted. Remember that initialized arrays do not have an identity nor length.");
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
-                return new WurstTypeArray(valueType);
+                return new WurstTypeArray(valueType, ai.getValues().size());
             } else if (v.getParent() instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) v.getParent();
                 @Nullable NameDef nameDef = forEach.getIn().tryGetNameDef();
@@ -139,7 +157,7 @@ public class AttrVarDefType {
         return new WurstTypeTypeParam(t);
     }
 
-    public static WurstType calculate(InterfaceDef i) {
+    public static WurstTypeInterface calculate(InterfaceDef i) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : i.getTypeParameters()) {
             WurstTypeTypeParam tpType = new WurstTypeTypeParam(tp);

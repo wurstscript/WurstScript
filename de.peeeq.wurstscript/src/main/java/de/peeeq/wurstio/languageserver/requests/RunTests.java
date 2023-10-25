@@ -2,14 +2,17 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import config.WurstProjectBuildMapData;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
@@ -22,9 +25,12 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
@@ -34,9 +40,11 @@ import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Compi
  */
 public class RunTests extends UserRequest<Object> {
 
-    private final WFile filename;
+    private final Optional<WFile> filename;
     private final int line;
     private final int column;
+    private final Optional<String> testName;
+    private final int timeoutSeconds;
 
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
@@ -79,31 +87,42 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public RunTests(String filename, int line, int column) {
-        this.filename = filename == null ? null : WFile.create(filename);
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName) {
+        this(filename, line, column, testName, 20);
+    }
+
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds) {
+        this.filename = filename.map(WFile::create);
         this.line = line;
         this.column = column;
+        this.testName = testName;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
 
     @Override
     public Object execute(ModelManager modelManager) {
+        if (modelManager.hasErrors()) {
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running tests.\n" + modelManager.getFirstErrorDescription());
+        }
+
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);
         println("Running unit tests..\n");
 
-        CompilationUnit cu = filename == null ? null : modelManager.getCompilationUnit(filename);
+        Optional<CompilationUnit> cu = filename.map(modelManager::getCompilationUnit);
         WLogger.info("test.cu = " + Utils.printElement(cu));
-        FuncDef funcToTest = getFunctionToTest(cu);
+        Optional<FuncDef> funcToTest = getFunctionToTest(cu);
         WLogger.info("test.funcToTest = " + Utils.printElement(funcToTest));
 
 
-        ImProg imProg = translateProg(modelManager);
+        ImTranslator translator = translateProg(modelManager);
+        ImProg imProg = translator.getImProg();
         if (imProg == null) {
             println("Could not run tests, because program did not compile.\n");
             return "Could not translate program";
         }
 
-        runTests(imProg, funcToTest, cu);
+        runTests(translator, imProg, funcToTest, cu);
         return "ok";
     }
 
@@ -127,17 +146,18 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
+    public TestResult runTests(ImTranslator translator, ImProg imProg, Optional<FuncDef> funcToTest, Optional<CompilationUnit> cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
+            CompiletimeFunctions, new WurstProjectConfigData(), false, false);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
             globalState = new ProgramState(gui, imProg, true);
         }
         if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, null, globalState);
+            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState, false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         }
 
@@ -145,6 +165,15 @@ public class RunTests extends UserRequest<Object> {
 
         // first run compiletime functions
         cfr.run();
+
+        if (gui.getErrorCount() > 0) {
+            for (CompileError compileError : gui.getErrorList()) {
+                println(compileError.toString());
+            }
+            println("There were some problem while running compiletime expressions and functions.");
+            return new TestResult(0, 1);
+        }
+
         WLogger.info("Ran compiletime functions");
 
 
@@ -152,10 +181,10 @@ public class RunTests extends UserRequest<Object> {
             if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
                 Element trace = f.attrTrace();
 
-                if (cu != null && !Utils.elementContained(trace, cu)) {
+                if (cu.isPresent() && !Utils.elementContained(Optional.of(trace), cu.get())) {
                     continue;
                 }
-                if (funcToTest != null && trace != funcToTest) {
+                if (funcToTest.isPresent() && trace != funcToTest.get()) {
                     continue;
                 }
 
@@ -168,6 +197,8 @@ public class RunTests extends UserRequest<Object> {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
                         finalInterpreter.runVoidFunc(f, null);
+                        // each test must finish it's own timers (otherwise, we would get strange results)
+                        finalInterpreter.completeTimers();
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
@@ -177,7 +208,7 @@ public class RunTests extends UserRequest<Object> {
                     service = Executors.newSingleThreadScheduledExecutor();
                     service.execute(future);
                     try {
-                        future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
+                        future.get(timeoutSeconds, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
                     } catch (TimeoutException ex) {
                         future.cancel(true);
                         throw new TestTimeOutException();
@@ -187,8 +218,19 @@ public class RunTests extends UserRequest<Object> {
                     service.shutdown();
                     service.awaitTermination(10, TimeUnit.SECONDS);
                     service = Executors.newSingleThreadScheduledExecutor();
-                    successTests.add(f);
-                    println("\tOK!");
+                    if (gui.getErrorCount() > 0) {
+                        StringBuilder sb = new StringBuilder();
+                        for (CompileError error : gui.getErrorList()) {
+                            sb.append(error.toString()).append("\n");
+                            println(error.getMessage());
+                        }
+                        gui.clearErrors();
+                        TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), sb.toString());
+                        failTests.add(failure);
+                    } else {
+                        successTests.add(f);
+                        println("\tOK!");
+                    }
                 } catch (TestSuccessException e) {
                     successTests.add(f);
                     println("\tOK!");
@@ -199,11 +241,15 @@ public class RunTests extends UserRequest<Object> {
                     println("\t" + failure.getMessageWithStackFrame());
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
+                    println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
                     println(interpreter.getStackFrames().toString());
+                } catch (InterpreterException e) {
+                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                    failTests.add(failure);
+                    println("\t" + failure.getMessageWithStackFrame());
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("\tFAILED with exception: " + e.getLocalizedMessage());
+                    println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
                     println(interpreter.getStackFrames().toString());
                     println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
                     StringWriter sw = new StringWriter();
@@ -221,6 +267,13 @@ public class RunTests extends UserRequest<Object> {
         } else {
             println(">> " + failTests.size() + " Tests have failed!");
         }
+        if (gui.getErrorCount() > 0) {
+            println("There were some errors reported while running the tests.");
+            for (CompileError error : gui.getErrorList()) {
+                println(error.toString());
+            }
+        }
+
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
     }
@@ -255,24 +308,47 @@ public class RunTests extends UserRequest<Object> {
         System.err.print(message);
     }
 
-    private ImProg translateProg(ModelManager modelManager) {
-        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false);
+    private ImTranslator translateProg(ModelManager modelManager) {
+        // need to run compiletime functions for running unit tests
+        RunArgs runArgs = new RunArgs("-runcompiletimefunctions");
+        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false, runArgs);
         // will ignore udg_ variables which are not found
         imTranslator.setEclipseMode(true);
-        return imTranslator.translateProg();
+        imTranslator.translateProg();
+        return imTranslator;
     }
 
 
-    private FuncDef getFunctionToTest(CompilationUnit cu) {
-        if (filename == null || cu == null || line < 0) {
-            return null;
-        }
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
-        while (e != null) {
-            if (e instanceof FuncDef) {
-                return (FuncDef) e;
+    private Optional<FuncDef> getFunctionToTest(Optional<CompilationUnit> maybeCu) {
+        if (testName.isPresent()) {
+            int dotPos = testName.get().indexOf(".");
+            String packageName = testName.get().substring(0, dotPos);
+            String funcName = testName.get().substring(dotPos+1);
+            Optional<FuncDef> testFunc = maybeCu.flatMap(cu ->
+                cu.getPackages()
+                .stream()
+                .filter(p -> p.getName().equals(packageName))
+                .flatMap(p -> p.getElements().stream())
+                .filter(e -> e instanceof FuncDef)
+                .map(e -> (FuncDef) e)
+                .filter(f -> f.hasAnnotation("@test"))
+                .filter(f -> f.getName().equals(funcName))
+                .findFirst()
+            );
+
+            if (testFunc.isPresent()) {
+                return testFunc;
             }
-            e = e.getParent();
+        }
+        if (!filename.isPresent() || !maybeCu.isPresent() || line < 0) {
+            return Optional.empty();
+        }
+        Optional<Element> e = Utils.getAstElementAtPos(maybeCu.get(), line, column, false);
+        while (e.isPresent()) {
+            if (e.get() instanceof FuncDef) {
+                return e.map(el -> (FuncDef) el);
+            }
+            e = e.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return null;
     }
@@ -301,8 +377,7 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    private class TestTimeOutException extends Throwable {
-
+    private static class TestTimeOutException extends Throwable {
 
         @Override
         public String getMessage() {
@@ -313,7 +388,6 @@ public class RunTests extends UserRequest<Object> {
         public String toString() {
             return super.toString();
         }
-
     }
 
 

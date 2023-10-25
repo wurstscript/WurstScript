@@ -4,6 +4,8 @@ package de.peeeq.wurstscript.intermediatelang;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 
+import java.util.Objects;
+
 
 public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
@@ -139,5 +141,8 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
         }
     }
 
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(val);
+    }
 }

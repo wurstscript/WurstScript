@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 
 public class WurstTypeVoid extends WurstType {
@@ -15,8 +17,11 @@ public class WurstTypeVoid extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return other instanceof WurstTypeVoid;
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        if (other instanceof WurstTypeVoid) {
+            return mapping;
+        }
+        return null;
     }
 
     @Override
@@ -34,18 +39,27 @@ public class WurstTypeVoid extends WurstType {
     }
 
     @Override
+    public ImType imTranslateType(ImTranslator tr) {
+        return JassIm.ImVoid();
+    }
+
     public ImType imTranslateType() {
         return JassIm.ImVoid();
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNoExpr();
     }
 
     @Override
     public boolean isVoid() {
         return true;
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
 }

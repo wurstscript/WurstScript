@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediatelang;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
+import java.util.Objects;
+
 public class ILconstBool extends ILconstAbstract {
 
     private boolean val;
@@ -41,5 +43,8 @@ public class ILconstBool extends ILconstAbstract {
         return other == this;
     }
 
-
+    @Override
+    public int hashCode() {
+        return Objects.hash(val);
+    }
 }

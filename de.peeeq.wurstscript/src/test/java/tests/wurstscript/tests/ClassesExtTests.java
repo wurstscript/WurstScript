@@ -123,7 +123,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void privateVar() {
-        testAssertErrorsLines(false, "not visible",
+        testAssertErrorsLines(false, "Could not find variable i",
                 "package test",
                 "    native testSuccess()",
                 "    class C",
@@ -172,7 +172,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void constr1() {
-        testAssertErrorsLines(false, "Incorrect call to super constructor",
+        testAssertErrorsLines(false, "The extended class <Pair> does not expose",
                 "package test",
                 "    native testSuccess()",
                 "    class Pair",
@@ -234,7 +234,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void constr_super_wrong1() {
-        testAssertErrorsLines(true, "Expected integer",
+        testAssertErrorsLines(true, "Expected int",
                 "package test",
                 "    native testSuccess()",
                 "    class Pair",
@@ -391,12 +391,12 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    class A extends T",
                 "    class B extends T",
                 "        ondestroy",
                 "            s += \"B\"",
                 "    abstract class T",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -411,6 +411,7 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    class A implements T",
                 "    class B implements T",
                 "        ondestroy",
@@ -418,7 +419,6 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    interface T",
                 "        function f()",
                 "            skip",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -433,6 +433,7 @@ public class ClassesExtTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "    native testSuccess()",
+                "    string s=\"\"",
                 "    abstract class C",
                 "        ondestroy",
                 "            s+=\"C\"",
@@ -443,7 +444,6 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    interface T",
                 "        function f()",
                 "            skip",
-                "    string s=\"\"",
                 "    init",
                 "        T t = new A()",
                 "        destroy t",
@@ -573,7 +573,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void teststaticoverride() {
-        testAssertErrorsLines(false, "Cannot override static func",
+        testAssertErrorsLines(false, "Function foo does not override anything.",
                 "package test",
                 "    native testSuccess()",
                 "    class A",
@@ -591,6 +591,32 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    native testSuccess()",
                 "    abstract class A",
                 "        abstract static function foo()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void teststaticoverride3() {
+        testAssertErrorsLines(false, "Function foo does not override anything.",
+                "package test",
+                "    native testSuccess()",
+                "    class A",
+                "        static function foo()",
+                "    class B extends A",
+                "        override function foo()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void teststaticoverride4() {
+        testAssertErrorsLines(false, "Function foo does not override anything.",
+                "package test",
+                "    native testSuccess()",
+                "    class A",
+                "        function foo()",
+                "    class B extends A",
+                "        override static function foo()",
                 "endpackage"
         );
     }
@@ -707,7 +733,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void subTypeGenericInterface2() {
-        testAssertOkLines(false, "Cannot assign B<C> to A<C, integer>",
+        testAssertErrorsLines(false, "Cannot assign B<C> to A<C, integer>",
                 "package test",
                 "    class C",
                 "    interface A<X, Y>",
@@ -811,5 +837,102 @@ public class ClassesExtTests extends WurstScriptTest {
                 "        testSuccess()"
         );
     }
+
+    @Test
+    public void castToIntPointerArithmetic() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    init",
+            "        let a = new A(42)",
+            "        let b = new A(43)",
+            "        let i = a castTo int",
+            "        let j = b castTo int",
+            // don't do this please, we just allow this for backwards-compatibility
+            "        if (((2*i + j) - j - i) castTo A).x == 42",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void castToIntGenerics() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    function blub<T>(T x) returns int",
+            "        return x castTo int",
+            "    init",
+            "        let a = new A(42)",
+            "        let i = blub(a)",
+            // don't do this please, we just allow this for backwards-compatibility
+            "        if ((2*i - i) castTo A).x == 42",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void castToIntGenerics2() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    class Cell<T>",
+            "        int x",
+            "        function set(T x)",
+            "            this.x = x castTo int",
+            "        function get() returns T",
+            "            return x castTo T",
+            "    init",
+            "        let a = new A(42)",
+            "        let c = new Cell<A>",
+            "        c.set(a)",
+            "        if c.get().x == 42",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+
+    @Test
+    public void testRecursiveMemberDispatch() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "public class Base",
+            "    Base next",
+            "    function clear()",
+            "        if next != null",
+            "            next.clear()",
+            "",
+            "public class SubClassA extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "public class SubClassB extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "        testSuccess()",
+            "init",
+            "    let suba = new SubClassA()",
+            "    let subb = new SubClassB()",
+            "    suba.next = subb",
+            "    suba.clear()",
+            "endpackage"
+        );
+    }
+
+
 
 }

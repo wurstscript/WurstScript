@@ -1,42 +1,50 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.JassArray;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
-import de.peeeq.wurstscript.intermediatelang.ILconstInt;
-import de.peeeq.wurstscript.intermediatelang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
+import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionWithoutSideEffect;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
+    private static boolean cache = false;
     private final ProgramState globalState;
+    private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState, boolean cache) {
         this.prog = prog;
         this.globalState = globalState;
+        ILInterpreter.cache = cache;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
-        globalState.addNativeProvider(new NativeFunctions());
+//        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, boolean isCompiletime) {
-        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime, boolean cache) {
+        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime), cache);
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -48,9 +56,7 @@ public class ILInterpreter implements AbstractInterpreter {
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
                 // for vararg functions, rewrite args and put last argument
                 ILconst[] newArgs = new ILconst[f.getParameters().size()];
-                for (int i = 0; i < newArgs.length - 1; i++) {
-                    newArgs[i] = args[i];
-                }
+                if (newArgs.length - 1 >= 0) System.arraycopy(args, 0, newArgs, 0, newArgs.length - 1);
 
                 ILconst[] varargArray = new ILconst[1 + args.length - newArgs.length];
                 for (int i = newArgs.length - 1, j = 0; i < args.length; i++, j++) {
@@ -62,7 +68,7 @@ public class ILInterpreter implements AbstractInterpreter {
 
             if (f.getParameters().size() != args.length) {
                 throw new Error("wrong number of parameters when calling func " + f.getName() + "(" +
-                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
+                    Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
             }
 
             for (int i = 0; i < f.getParameters().size(); i++) {
@@ -85,6 +91,12 @@ public class ILInterpreter implements AbstractInterpreter {
                 i++;
             }
 
+            if (f.getBody().isEmpty()) {
+                return localState.setReturnVal(ILconstNull.instance());
+            } else {
+                globalState.setLastStatement(f.getBody().get(0));
+            }
+
             globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
 
             try {
@@ -102,14 +114,24 @@ public class ILInterpreter implements AbstractInterpreter {
             throw new InterpreterException("function " + f.getName() + " did not return any value...");
         } catch (InterpreterException e) {
             String msg = buildStacktrace(globalState, e);
-            throw e.withStacktrace(msg);
-        } catch (Exception e) {
+            e.setStacktrace(msg);
+            e.setTrace(getTrace(globalState, f));
+            throw e;
+        } catch (TestSuccessException | TestFailException | DebugPrintError e) {
+            throw e;
+        } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
-            throw new InterpreterException(globalState.getLastStatement().attrTrace(), "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
+            de.peeeq.wurstscript.ast.Element trace = getTrace(globalState, f);
+            throw new InterpreterException(trace, "You encountered a bug in the interpreter: " + e, e).setStacktrace(msg);
         }
     }
 
-    private static String buildStacktrace(ProgramState globalState, Exception e) {
+    public static de.peeeq.wurstscript.ast.Element getTrace(ProgramState globalState, ImFunction f) {
+        Element lastStatement = globalState.getLastStatement();
+        return lastStatement == null ? f.attrTrace() : lastStatement.attrTrace();
+    }
+
+    public static String buildStacktrace(ProgramState globalState, Throwable e) {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
@@ -138,18 +160,37 @@ public class ILInterpreter implements AbstractInterpreter {
         return false;
     }
 
+    public static LinkedHashMap<ImFunction, LinkedHashMap<Integer, LocalState>> localStateCache = new LinkedHashMap<>();
+
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
+        if (cache && isFunctionPure(f.getName())) {
+            int combinedHash = Objects.hash((Object[]) args);
+            if (localStateCache.containsKey(f) && localStateCache.get(f).containsKey(combinedHash)) {
+                return localStateCache.get(f).get(combinedHash);
+            }
+        }
         StringBuilder errors = new StringBuilder();
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                return new LocalState(natives.invoke(f.getName(), args));
+                LocalState localState = new LocalState(natives.invoke(f.getName(), args));
+                if (cache && isFunctionPure(f.getName())) {
+                    int combinedHash = Objects.hash((Object[]) args);
+                    LinkedHashMap<Integer, LocalState> cached = localStateCache.getOrDefault(f, new LinkedHashMap<>());
+                    cached.put(combinedHash, localState);
+                    localStateCache.put(f, cached);
+                }
+                return localState;
             } catch (NoSuchNativeException e) {
                 errors.append("\n").append(e.getMessage());
                 // ignore
             }
         }
         globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
-        return new LocalState();
+        if (f.getReturnType() instanceof ImVoid) {
+            return new LocalState();
+        }
+        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+        return new LocalState(returnValue);
     }
 
     private static boolean isCompiletimeNative(ImFunction f) {
@@ -180,10 +221,15 @@ public class ILInterpreter implements AbstractInterpreter {
 
     public void runVoidFunc(ImFunction f, @Nullable Element trace) {
         globalState.resetStackframes();
-        runFunc(globalState, f, trace);
+        ILconst[] args = {};
+        if (!f.getParameters().isEmpty()) {
+            // this should only happen because of added stacktrace parameter
+            args = new ILconstString[]{new ILconstString("initial call")};
+        }
+        runFunc(globalState, f, trace, args);
     }
 
-    public @Nullable ImStmt getLastStatement() {
+    public Element getLastStatement() {
         return globalState.getLastStatement();
     }
 
@@ -214,5 +260,37 @@ public class ILInterpreter implements AbstractInterpreter {
     @Override
     public void runFuncRef(ILconstFuncRef obj, @Nullable Element trace) {
         runVoidFunc(obj.getFunc(), trace);
+    }
+
+    @Override
+    public TimerMockHandler getTimerMockHandler() {
+        return timerMockHandler;
+    }
+
+    @Override
+    public void completeTimers() {
+        timerMockHandler.completeTimers();
+    }
+
+    @Override
+    public ImProg getImProg() {
+        return prog;
+    }
+
+    @Override
+    public int getInstanceCount(int val) {
+        return (int) globalState.getAllObjects()
+            .stream()
+            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
+            .filter(o -> !o.isDestroyed())
+            .count();
+    }
+
+    @Override
+    public int getMaxInstanceCount(int val) {
+        return (int) globalState.getAllObjects()
+            .stream()
+            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
+            .count();
     }
 }

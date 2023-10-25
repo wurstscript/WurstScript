@@ -3,7 +3,12 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
+
+import java.util.Optional;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 
 public class WurstTypeInt extends WurstTypePrimitive {
@@ -16,10 +21,11 @@ public class WurstTypeInt extends WurstTypePrimitive {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return other instanceof WurstTypeInt
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping,
+            VariablePosition variablePosition) {
+        return (other instanceof WurstTypeInt
                 // in jass code we can use an int where a real is expected
-                || other instanceof WurstTypeReal && Utils.isJassCode(location);
+                || other instanceof WurstTypeReal && Utils.isJassCode(location)) ? mapping : null;
     }
 
 
@@ -28,9 +34,12 @@ public class WurstTypeInt extends WurstTypePrimitive {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImIntVal(0);
     }
 
-
+    @Override
+    public String toString() {
+        return "int";
+    }
 }

@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -10,8 +11,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class BugTests extends WurstScriptTest {
-
-
     private static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
@@ -115,6 +114,50 @@ public class BugTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void test_init_order_jass_warning() {
+        testAssertErrorsLines(false, "Variable b may not have been initialized",
+                "function foo takes nothing returns integer",
+                "	local integer a = b",
+                "	local integer b = 3",
+                "	return a + b",
+                "endfunction",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo() == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void test_init_order_globals_warning() {
+        testAssertErrorsLines(false, "Global variable <b> must be declared before it is used.",
+                "package test",
+                "	integer a = b",
+                "	integer b = 3",
+                "	native testSuccess()",
+                "	init",
+                "		if a + b == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void test_init_order_globals_warning_jass() {
+        testAssertErrorsLines(false, "Global variable b used before it is declared.",
+                "globals",
+                "	integer a = b",
+                "	integer b = 3",
+                "endglobals",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if a + b == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
 
     @Test
     public void test_for_from() {
@@ -212,7 +255,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void cyclicDependency2() {
-        testAssertErrorsLines(false, "must not extend themselves",
+        testAssertErrorsLines(false, "Interface I has a cyclic class hierarchy",
                 "package test",
                 "	interface I extends I",
                 "		function foo()",
@@ -221,7 +264,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void nonAbstractClass() {
-        testAssertErrorsLines(false, "class A is not abstract",
+        testAssertErrorsLines(false, "Non-abstract class A cannot have abstract functions like blub",
                 "package test",
                 "	class A",
                 "		abstract function blub()",
@@ -313,13 +356,13 @@ public class BugTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "native testSuccess()",
-                "var x = 0",
+                "var x = 1",
                 "function sideEffect(int r) returns int",
                 "	x = 4",
                 "	return r",
                 "init",
                 "	let y = x + sideEffect(2)",
-                "	if y == 2",
+                "	if y == 3",
                 "		testSuccess()",
                 "endpackage");
     }
@@ -772,6 +815,8 @@ public class BugTests extends WurstScriptTest {
     public void unreadVarWarning2() { // #380
         testAssertErrorsLines(true, "i is never read",
                 "package test",
+                "@annotation public function annotation()",
+                "@annotation public function extern()",
                 "@extern native I2S(int x) returns string",
                 "native testSuccess()",
                 "init",
@@ -780,6 +825,26 @@ public class BugTests extends WurstScriptTest {
                 "	i = i + 1",
                 "	testSuccess()"
         );
+    }
+
+
+    @Test
+    public void unreadVarWarningArrays() { // #813
+        testAssertOkLines(false,
+                "package test",
+                "@annotation public function annotation()",
+                "@annotation public function extern()",
+                "@extern native I2S(int x) returns string",
+                "init",
+                "    integer array b",
+                "    b[0] = 0 // Warning.",
+                "    b[1] = 0 // Warning.",
+                "    b[2] = 0 // No warning.",
+                "    I2S(b[0])",
+                "    I2S(b[1])",
+                "    for i = 0 to 2",
+                "        I2S(b[i])"
+                );
     }
 
 
@@ -839,7 +904,7 @@ public class BugTests extends WurstScriptTest {
                         "abstract class Hey\n" +
                         "	function foo()";
 
-        WurstModel model = testScript("testLine", input, "testLine", false, false);
+        WurstModel model = test().executeProg(false).withStdLib(false).withCu(compilationUnit("testLine", input)).run().getModel();
 
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
@@ -928,13 +993,14 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void testCyclicDependencyError() {
-        testAssertErrorsLines(true, "type may not depend on each other",
+        testAssertErrorsLines(true, "For loop target int doesn't provide a iterator() function",
                 "package Test",
                 "native testSuccess()",
                 "function foo() returns bool",
                 "    var x = 0",
+                "    var sum = 0",
                 "    for x in x",
-                "        sum += i",
+                "        sum += x",
                 "    return true",
                 "init",
                 "    if foo()",
@@ -942,6 +1008,402 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void testStacktrace() {
+        testAssertOkLines(true,
+                "package MagicFunctions",
+                "public function getStackTraceString() returns string",
+                "    return \"\"",
+                "endpackage",
+                "package Test",
+                "import MagicFunctions",
+                "native testSuccess()",
+                "native println(string s)",
+                "function foo(int x, int y) returns bool",
+                "    println(getStackTraceString())",
+                "    return x < y",
+                "function bar(int x) returns int",
+                "    if x == 2",
+                "        println(getStackTraceString())",
+                "    return x",
+                "init",
+                "    if foo(bar(1), bar(2))",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void testClassImplementsClass() {
+        testAssertErrorsLines(false, "not an interface",
+                "package Test",
+                "abstract class A",
+                "    construct(int i)",
+                "class B implements A"
+        );
+    }
+
+    @Test
+    public void testClassExtendsClassWithoutNoArgConstructor() {
+        testAssertErrorsLines(false, "The extended class <A> does not expose a no-arg constructor",
+                "package Test",
+                "class A",
+                "    construct(int i)",
+                "class B extends A"
+        );
+    }
+
+    @Test
+    public void ticket706() {
+        testAssertErrorsLines(false, "Classes may only extend other classes",
+                "package Test",
+                "interface I",
+                "class A extends I",
+                "class B extends A",
+                "init",
+                "    new B()"
+        );
+    }
+
+    @Test
+    public void ticket709() {
+        testAssertOkLinesWithStdLib(false,
+                "package Test",
+                "init",
+                "    var s = \".\"",
+                "    for i = 1 to 10",
+                "        s += s",
+                "    print(s)"
+        );
+    }
+
+
+    @Test
+    public void stringPlusNull1() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = \"a\" + nullString()",
+                "    if s == \"a\"",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void stringPlusNull2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = nullString() + nullString()",
+                "    if s == null",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void stringPlusNull3() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = nullString() + \"a\"",
+                "    if s == \"a\"",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void cyclicForLoop() { // #717
+        testAssertErrorsLines(true, "Could not find variable a",
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    for a in a"
+        );
+    }
+
+    @Test
+    public void implementNothing() { // #719
+        testAssertErrorsLines(false, "mismatched input '\\n' expecting {'thistype', ID}",
+                "package Test",
+                "class A implements",
+                "init",
+                "    new A()"
+        );
+    }
+
+    @Test(expectedExceptions = {InterpreterException.class})
+    public void subStringError() { // #728
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@extern native SubString(string s, int s, int e) returns string",
+                "init",
+                "    if SubString(\"blubber\", 1000, 1002) == null",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void underlineArray() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "    int array _ar",
+                "    _ar[1] = 2",
+                "    if _ar[1] == 2",
+                "        testSuccess()",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void test_null_in_jass() {
+        testAssertOkLines(false,
+                "function blub takes integer a returns integer",
+                "	if a == null then",
+                "		return 1",
+                "	else",
+                "		return 2",
+                "	endif",
+                "endfunction",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if blub(0) == 1 and blub(42) == 2",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void testNestedTimerClosure() { // see #765
+        testAssertOkLines(false,
+                "package Hello",
+                "native blub(code c)",
+                "public function doPeriodically(real time, CallbackPeriodic cb) returns CallbackPeriodic",
+                "    cb.start(time)",
+                "    return cb",
+                "",
+                "public tuple dialog_update_fn_res(string name, bool display)",
+                "",
+                "public abstract class PeriodicDialogUpdateFn",
+                "    protected abstract function call(CallbackPeriodic cb) returns dialog_update_fn_res",
+                "",
+                "public abstract class CallbackPeriodic",
+                "    private PeriodicDialogUpdateFn update_fn = null",
+                "",
+                "    protected abstract function call(thistype cb)",
+                "",
+                "    function start(real time)",
+                "        blub(function staticCallback)",
+                "",
+                "    private static function staticCallback()",
+                "        CallbackPeriodic cb = null",
+                "        if cb.update_fn != null",
+                "            cb.update_fn.call(cb)",
+                "",
+                "class X",
+                "",
+                "class LinkedList<X>",
+                "    function forEach(LLItrClosure<X> f)",
+                "",
+                "public interface LLItrClosure<T>",
+                "    function run(T t)",
+                "",
+                "init",
+                "    doPeriodically(1.0) cb ->",
+                "        let clean_queue = new LinkedList<X>()",
+                "        clean_queue.forEach() itr ->",
+                ""
+        );
+    }
+
+
+    @Test
+    public void negativeNumberLiterals() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "init",
+                "    if 0117 != 79",
+                "        testFail(\"a\")",
+                "    if -0117 != -79",
+                "        testFail(\"b\")",
+                "    if 0x4f != 79",
+                "        testFail(\"c\")",
+                "    if -0x4f != -79",
+                "        testFail(\"d\")",
+                "    if $4f != 79",
+                "        testFail(\"e\")",
+                "    if -$4f != -79",
+                "        testFail(\"f\")",
+                "    testSuccess()"
+        );
+    }
+
+	@Test
+	public void testSelfAssignmentWarning() {
+		testAssertErrorsLines(false, "The assignment to local variable i probably has no effect",
+			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"init",
+			"	var i = 5",
+			"	I2S(i)",
+			"	i = i",
+			"	I2S(i)",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentWarningDot() {
+		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
+			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct()",
+			"		this.i = i",
+			"init",
+			"	new A()",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentNoWarning() {
+		testAssertOkLines(true,
+			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct(int i)",
+			"		this.i = i",
+			"init",
+			"	new A(1)",
+			"	testSuccess()"
+		);
+	}
+
+    @Test
+    public void bitset_add() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "public tuple bitset(int val)",
+            "public function int.pow(int x) returns int",
+            "    int result = 1",
+            "    for int i=1 to x",
+            "        result *= this",
+            "    return result",
+            "public function bitset.add(int v) returns bitset",
+            "    let pow = 2 .pow(v)",
+            "    return not this.containsPow(pow) ? bitset(this.val + pow) : this",
+            "function bitset.containsPow(int pow) returns boolean",
+            "    return (this.val mod (pow * 2)) >= pow",
+            "init",
+            "    let a = bitset(5)", // {0,2}
+            "    let res = a.add(1)",
+            "    if res.val == 7",
+            "        testSuccess()",
+            "    else",
+            "        testFail(I2S(res.val))"
+        );
+    }
+
+    @Test
+    public void middlewareOverload() throws IOException {
+        testAssertOkFile(new File(TEST_DIR + "MiddlewareOverload.wurst"), true);
+    }
+
+    @Test
+    public void cycle_with_generics() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "public abstract class VoidFunction<T>",
+            "    abstract function call(T t)",
+            "int x = 0",
+            "function foo(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> bar(j - 1)",
+            "    f.call(i)",
+            "function bar(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> foo(j - 1)",
+            "    if i > 0",
+            "        f.call(i)",
+            "init",
+            "    bar(10)",
+            "    if x == 11",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void executeFuncWithStackTrace() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "function getStackTraceString() returns string",
+            "    return \"foo\"",
+            "class A",
+            "    function bar()",
+            "        testSuccess()",
+            "A a = new A",
+            "function foo()",
+            "    a.bar()", // calling a function to ensure stacktraces are needed
+            "init",
+            "    ExecuteFunc(\"foo\")"
+        );
+    }
+
+    @Test
+    public void agentTypeComparisonsWurst() {
+        testAssertErrorsLinesWithStdLib(true, "Cannot compare types sound with rect",
+            "package Test",
+            "function compare(sound s, rect r) returns boolean",
+            "    return s == r",
+            "init",
+            "    compare(null, null)"
+        );
+    }
+
+    @Test
+    public void minusRewrite() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    let i = 0 - 100",
+            "    if i == -100",
+            "        testSuccess()"
+        );
+    }
 
 
 }

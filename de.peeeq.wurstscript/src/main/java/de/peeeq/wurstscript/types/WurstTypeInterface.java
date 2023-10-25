@@ -1,10 +1,10 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
 
@@ -37,6 +37,11 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
         return interfaceDef;
     }
 
+    @Override
+    public ImmutableList<WurstTypeInterface> directSupertypes() {
+        return extendedInterfaces();
+    }
+
     public InterfaceDef getInterfaceDef() {
         return interfaceDef;
     }
@@ -59,38 +64,18 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
         return new WurstTypeInterface(getInterfaceDef(), newTypes);
     }
 
-    @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        if (super.isSubtypeOfIntern(other, location)) {
-            return true;
-        }
 
-        if (other instanceof WurstTypeInterface) {
-            WurstTypeInterface other2 = (WurstTypeInterface) other;
-            if (interfaceDef == other2.interfaceDef) {
-                // same interface -> check if type params are equal
-                return checkTypeParametersEqual(getTypeParameters(), other2.getTypeParameters(), location);
-            } else {
-                // test super interfaces:
-                for (WurstTypeInterface extended : interfaceDef.attrExtendedInterfaces()) {
-                    if (extended.isSubtypeOf(other, location)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+    public ImmutableList<WurstTypeInterface> extendedInterfaces() {
+        return interfaceDef.getExtendsList().stream()
+                .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+                .filter(i -> i.level() < level())
+                .collect(ImmutableList.toImmutableList());
     }
 
 
     @Override
-    public ImType imTranslateType() {
-        return TypesHelper.imInt();
-    }
-
-    @Override
-    public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(TypesHelper.imInt());
     }
 
 

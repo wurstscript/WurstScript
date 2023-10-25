@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediatelang;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
+import java.util.Objects;
+
 public class ILconstInt extends ILconstAbstract implements ILconstNum {
 
     private int val;
@@ -140,5 +142,17 @@ public class ILconstInt extends ILconstAbstract implements ILconstNum {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ILconstInt that = (ILconstInt) o;
+        return val == that.val;
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(val);
+    }
 }

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 
+import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.*;
@@ -9,6 +10,8 @@ import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
+
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ExprTranslation {
@@ -48,6 +51,10 @@ public class ExprTranslation {
     }
 
     public static JassExpr translate(ImNull e, ImToJassTranslator translator) {
+        if (e.getType() instanceof ImAnyType
+            || TypesHelper.isIntType(e.getType())) {
+            return JassExprIntVal("0");
+        }
         return JassExprNull();
     }
 
@@ -56,6 +63,17 @@ public class ExprTranslation {
         if (op.isBinaryOp() && e.getArguments().size() == 2) {
             JassExpr left = e.getArguments().get(0).translate(translator);
             JassExpr right = e.getArguments().get(1).translate(translator);
+
+            if (op == WurstOperator.PLUS) {
+                // special cases for using 'null' as a string constant:
+                // "a" + null gets translated to just "a"
+                if (left instanceof JassExprNull) {
+                    return right;
+                }
+                if (right instanceof JassExprNull) {
+                    return left;
+                }
+            }
 
             if (op == WurstOperator.MOD_REAL) {
                 return JassExprFunctionCall("ModuloReal", JassExprlist(left, right));
@@ -77,7 +95,7 @@ public class ExprTranslation {
     }
 
     public static JassExpr translate(ImStatementExpr e, ImToJassTranslator translator) {
-        throw new Error("this expr should have been flattened: " + e);
+        throw new Error("this expr should have been flattened: " + e + "\n\n" + e.getNearestFunc());
     }
 
     public static JassExpr translate(ImStringVal e, ImToJassTranslator translator) {
@@ -99,19 +117,17 @@ public class ExprTranslation {
 
     public static JassExprVarArrayAccess translate(ImVarArrayAccess e, ImToJassTranslator translator) {
         JassVar v = translator.getJassVarFor(e.getVar());
-        return JassExprVarArrayAccess(v.getName(), e.getIndex().translate(translator));
+        if (e.getIndexes().size() != 1) {
+            throw new CompileError(e.attrTrace().attrSource(), "Only one array index allowed.");
+        }
+        return JassExprVarArrayAccess(v.getName(), e.getIndexes().get(0).translate(translator));
     }
 
     public static JassExpr translate(ImClassRelatedExpr e,
                                      ImToJassTranslator translator) {
-        throw new RuntimeException("Eliminate method calls before translating to jass");
+        throw new RuntimeException("Eliminate method calls before translating to jass:\n" + e);
     }
 
-    public static JassExpr translate(
-            ImVarArrayMultiAccess imVarArrayMultiAccess,
-            ImToJassTranslator translator) {
-        throw new Error("not implemented");
-    }
 
     public static JassExpr translate(ImGetStackTrace imGetStackTrace, ImToJassTranslator translator) {
         return JassAst.JassExprStringVal("");
@@ -122,5 +138,13 @@ public class ExprTranslation {
         throw new CompileError(e.attrTrace().attrSource(),
                 "Compiletime expression must be evaluated before translation. " +
                 "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
+    }
+
+    public static JassExpr translate(ImTypeVarDispatch e, ImToJassTranslator translator) {
+        throw new CompileError(e, "Typevar dispatch not eliminated.");
+    }
+
+    public static JassExpr translate(ImCast imCast, ImToJassTranslator translator) {
+        return imCast.getExpr().translate(translator);
     }
 }

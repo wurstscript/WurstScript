@@ -75,11 +75,12 @@ public class WPos {
     }
 
     public String print() {
-        return "[" + file + ", line " + getLine() + "]";
+        return "[" + file + " line " + getLine() + "]";
     }
 
+    private static final Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^.]*$");
+
     public String printShort() {
-        Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^.]*$");
         String shortFile = file;
         Matcher m = p.matcher(file);
         if (m.find()) {

@@ -4,7 +4,7 @@ grammar Wurst;
     package de.peeeq.wurstscript.antlr;
 }
 
-compilationUnit : NL* decls+=topLevelDeclaration*;
+compilationUnit : NL* decls+=topLevelDeclaration* EOF;
 
 topLevelDeclaration:
 					 wpackage
@@ -132,6 +132,15 @@ classDef:
             ENDBLOCK)?
         ;
 
+typeclassDef:
+    modifiersWithDoc 'typeclass' name=ID typeParams
+    ('extends' implemented+=typeExpr (',' implemented+=typeExpr)*)?
+    NL (STARTBLOCK
+       classSlots
+    ENDBLOCK)?
+    ;
+
+
 enumDef: modifiersWithDoc 'enum' name=ID NL (STARTBLOCK 
       (enumMembers+=ID NL)*
 ENDBLOCK)?;
@@ -155,12 +164,18 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
-					('super' '(' superArgs=exprList ')' NL)?
-					stmts+=statement*
-                  ENDBLOCK)?
-              ;
-       
+                 modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK
+                superCall?
+                stmts+=statement*
+                 ENDBLOCK)?
+             ;
+
+superCall:
+   superKeyword='super' '(' superArgs=exprList ')' NL
+   ;
+
+
+
 moduleUse: 
          modifiersWithDoc 'use' moduleName=ID typeArgs NL
          ;
@@ -198,7 +213,7 @@ modifier:
 		| annotation
 		;
 
-annotation: name=ANNOTATION (PAREN_LEFT message=STRING PAREN_RIGHT)?;
+annotation: name=ANNOTATION argumentList?;
 
 hotdocComment: HOTDOC_COMMENT;
 
@@ -282,7 +297,7 @@ stmtSwitch:
 		  ;
 			
 switchCase:
-			  'case' expr NL statementsBlock
+			  'case' (caseExpressions+=expr ('|' caseExpressions+=expr)*) NL statementsBlock
 		  ;
 
 switchDefaultCase:
@@ -400,7 +415,10 @@ shortFormalParameter: typeExpr? name=ID;
 
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
-typeParam: name=ID;
+typeParam: name=ID typeParamConstraints?;
+
+typeParamConstraints: ':' (constraints+=typeExpr ('and' constraints+=typeExpr)*)?;
+
 
 stmtForLoop:
 			   forRangeLoop
@@ -582,9 +600,9 @@ INT: [0-9]+ | HexInt | CharInt;
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
 
-TAB: [\t];
-SPACETAB:'    ';
-WS : (' '|'  '|'   ') -> skip ;
+TAB: [\t]+;
+SPACETAB:' ' ' '+;
+SPACES: ' ' -> skip;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

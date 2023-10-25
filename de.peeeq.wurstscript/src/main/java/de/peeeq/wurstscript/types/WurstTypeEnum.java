@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
 
@@ -41,12 +42,12 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         return TypesHelper.imInt();
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImIntVal(0);
     }
 

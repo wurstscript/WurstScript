@@ -1,14 +1,13 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypePackage;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
+import java.util.Objects;
 
 
 public class PackageLink extends DefLink {
@@ -49,9 +48,24 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public PackageLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
-        // packages do not have type paramaters
+    public PackageLink withTypeArgBinding(Element context, VariableBinding binding) {
+        // packages do not have type parameters
         return this;
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
+        return this;
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return new WurstTypePackage(def);
+    }
+
+    @Override
+    public PackageLink withDef(NameDef def) {
+        return new PackageLink(getVisibility(), getDefinedIn(), (WPackage) def);
     }
 
 
@@ -63,4 +77,16 @@ public class PackageLink extends DefLink {
         return (PackageLink) super.hidingPrivateAndProtected();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PackageLink that = (PackageLink) o;
+        return Objects.equals(def, that.def);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(def);
+    }
 }

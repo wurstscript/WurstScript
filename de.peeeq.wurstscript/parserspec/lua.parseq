@@ -5,86 +5,91 @@ abstract syntax:
 
 LuaModel * LuaCompilationUnit
 
-LuaCompilationUnit * LuaDefinition
+LuaCompilationUnit * LuaStatement
 
 LuaDefinition =
-	  LuaFunction(String name, LuaParams params, LuaStatements body)
-	| LuaVariable(String name, LuaExprOpt initialValue)
+      LuaFunction(String name, LuaParams params, LuaStatements body)
+    | LuaMethod(LuaExpr receiver, String name, LuaParams params, LuaStatements body)
+    | LuaVariable(String name, LuaExprOpt initialValue)
 
 LuaParams * LuaVariable
 
 LuaStatements * LuaStatement
 
-LuaStatement = 
-	  LuaLocal(LuaVariable definedVar, LuaExprOpt initialValue)
-	| LuaAssignment(LuaExpr left, LuaExpr right)
-	| LuaWhile(LuaExpr cond, LuaStatements body)
-	| LuaIf(LuaExpr cond, LuaStatements thenStmts, LuaStatements elseStmts)
-	| LuaBreak()
-	| LuaReturn(LuaExprOpt retVal)
-	| LuaExpr
-	
+LuaStatement =
+      LuaDefinition
+    | LuaAssignment(LuaExpr left, LuaExpr right)
+    | LuaWhile(LuaExpr cond, LuaStatements body)
+    | LuaIf(LuaExpr cond, LuaStatements thenStmts, LuaStatements elseStmts)
+    | LuaBreak()
+    | LuaReturn(LuaExprOpt retVal)
+    | LuaExpr
+
 LuaExprOpt = LuaExpr | LuaNoExpr()
 
 LuaExprlist * LuaExpr
 
 LuaExpr = 
-	  LuaExprBinary(LuaExpr leftExpr, LuaOpBinary op, LuaExpr right) // left = a, op = "and" right="b" --> a and b k?
-	| LuaExprUnary(LuaOpUnary opU, LuaExpr right)
-	| LuaExprFunctionCall(ref LuaFunction func, LuaExprlist arguments)
-	| LuaExprMethodCall(LuaExpr receiver, ref LuaFunction func, LuaExprlist arguments)
-	| LuaExprFunctionCallByName(String funcName, LuaExprlist arguments)
-	| LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
-	| LuaExprFunctionCallE(LuaExpr funcExpr, LuaExprlist arguments)
-	| LuaTableConstructor(LuaTableFields tableFields)
-	| LuaExprFieldAccess(LuaExpr receiver, String fieldName)
-	| LuaExprArrayAccess(LuaExpr left, LuaExprlist indexes)
-	| LuaExprAtomic
-	
+      LuaExprBinary(LuaExpr leftExpr, LuaOpBinary op, LuaExpr right) // left = a, op = "and" right="b" --> a and b k?
+    | LuaExprUnary(LuaOpUnary opU, LuaExpr right)
+    | LuaCallExpr
+    | LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
+    | LuaTableConstructor(LuaTableFields tableFields)
+    | LuaExprFieldAccess(LuaExpr receiver, String fieldName)
+    | LuaExprArrayAccess(LuaExpr left, LuaExprlist indexes)
+    | LuaExprAtomic
+
+LuaCallExpr =
+      LuaExprFunctionCall(ref LuaFunction func, LuaExprlist arguments)
+    | LuaExprMethodCall(LuaExpr receiver, ref LuaMethod method, LuaExprlist arguments)
+    | LuaExprFunctionCallByName(String funcName, LuaExprlist arguments)
+    | LuaExprFunctionCallE(LuaExpr funcExpr, LuaExprlist arguments)
+
+
 LuaTableFields * LuaTableField
 
 LuaTableField = 
-	  LuaTableNamedField(String fieldName, LuaExpr val)
-	| LuaTableExprField(LuaExpr fieldKey, LuaExpr val)
-	| LuaTableSingleField(LuaExpr val)
-	
+      LuaTableNamedField(String fieldName, LuaExpr val)
+    | LuaTableExprField(LuaExpr fieldKey, LuaExpr val)
+    | LuaTableSingleField(LuaExpr val)
+
 LuaExprAtomic = 
-	  LuaExprIntVal(String valI)
-	| LuaExprRealVal(String valR)
-	| LuaExprStringVal(String valS)
-	| LuaExprBoolVal(boolean valB)
-	| LuaExprFuncRef(ref LuaFunction func)
-	| LuaExprVarRef 
-	| LuaExprNull()
-	| LuaLiteral(String luaCode)
-	
+      LuaExprIntVal(String valI)
+    | LuaExprRealVal(String valR)
+    | LuaExprStringVal(String valS)
+    | LuaExprBoolVal(boolean valB)
+    | LuaExprFuncRef(ref LuaFunction func)
+    | LuaExprVarRef
+    | LuaExprNull()
+    | LuaLiteral(String luaCode)
+
 LuaExprVarRef = 
-	  LuaExprVarAccess(ref LuaVariable var)
-	
+      LuaExprVarAccess(ref LuaVariable var)
+
 LuaOpBinary = 
-	  LuaOpOr() 
-	| LuaOpAnd()
-	| LuaOpEquals()
-	| LuaOpUnequals()
-	| LuaOpLessEq()
-	| LuaOpLess()
-	| LuaOpGreaterEq()
-	| LuaOpGreater()
-	| LuaOpPlus()
-	| LuaOpConcatString()
-	| LuaOpMinus()
-	| LuaOpMult()
-	| LuaOpDiv()
-	| LuaOpMod()
-	
+      LuaOpOr()
+    | LuaOpAnd()
+    | LuaOpEquals()
+    | LuaOpUnequals()
+    | LuaOpLessEq()
+    | LuaOpLess()
+    | LuaOpGreaterEq()
+    | LuaOpGreater()
+    | LuaOpPlus()
+    | LuaOpConcatString()
+    | LuaOpMinus()
+    | LuaOpMult()
+    | LuaOpDiv()
+    | LuaOpMod()
+
 LuaOpUnary = 
-	  LuaOpNot()
-	| LuaOpMinus
-	
+      LuaOpNot()
+    | LuaOpMinus
+
 
 attributes:
 
 
 Element.print(StringBuilder sb, int indent)
-	returns void
-	implemented by de.peeeq.wurstscript.lua.printing.LuaPrinter.print
+    returns void
+    implemented by de.peeeq.wurstscript.translation.lua.printing.LuaPrinter.print

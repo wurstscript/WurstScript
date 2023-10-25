@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
@@ -14,6 +13,7 @@ import org.eclipse.lsp4j.TextDocumentPositionParams;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 
@@ -22,7 +22,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 	private final int column;
 
 
-	public SignatureInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
+	public SignatureInfo(TextDocumentPositionParams position) {
 		this.filename = WFile.create(position.getTextDocument().getUri());
 		this.line = position.getPosition().getLine() + 1;
 		this.column = position.getPosition().getCharacter() + 1;
@@ -32,27 +32,27 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
     @Override
 	public SignatureHelp execute(ModelManager modelManager) {
 		CompilationUnit cu = modelManager.getCompilationUnit(filename);
-		Element e = Utils.getAstElementAtPos(cu, line, column, false);
-		if (e instanceof StmtCall) {
-			StmtCall call = (StmtCall) e;
+		Optional<Element> e = Utils.getAstElementAtPos(cu, line, column, false);
+		if (e.get() instanceof StmtCall) {
+			StmtCall call = (StmtCall) e.get();
 			// TODO only when we are in parentheses
 			return forCall(call);
 		}
 
 
-		while (e != null) {
-			Element parent = e.getParent();
-			if (parent instanceof Arguments) {
-				Arguments args = (Arguments) parent;
-				if (parent.getParent() instanceof StmtCall) {
-					StmtCall call = (StmtCall) parent.getParent();
+		while (e.isPresent()) {
+			Optional<Element> parent = e.flatMap(el -> Optional.ofNullable(el.getParent()));
+			if (parent.isPresent() && parent.get() instanceof Arguments) {
+				Arguments args = (Arguments) parent.get();
+				if (parent.get().getParent() instanceof StmtCall) {
+					StmtCall call = (StmtCall) parent.get().getParent();
 					SignatureHelp info = forCall(call);
 					info.setActiveParameter(args.indexOf(e));
 					return info;
 				}
 				break;
-			} else if (parent instanceof StmtCall) {
-				StmtCall call = (StmtCall) parent;
+			} else if (parent.isPresent() && parent.get() instanceof StmtCall) {
+				StmtCall call = (StmtCall) parent.get();
 				return forCall(call);
 			}
 			e = parent;
@@ -84,27 +84,5 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 		help.getSignatures().add(info);
 		return help;
 	}
-
-//	private static class SignatureHelp {
-//		List<SignatureInformation> signatures = new ArrayList<>();
-//		int activeSignature = 0;
-//		int activeParameter = 0;
-//	}
-
-//	private static class SignatureInformation {
-//		String label;
-//		String documentation = "";
-//		List<ParameterInformation> parameters = new ArrayList<>();
-//	}
-//
-//	private static class ParameterInformation {
-//		String label;
-//		String documentation = "";
-//
-//		public ParameterInformation(String label, String documentation) {
-//			this.label = label;
-//			this.documentation = documentation;
-//		}
-//	}
 
 }

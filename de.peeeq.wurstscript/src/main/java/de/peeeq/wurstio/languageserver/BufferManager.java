@@ -4,6 +4,8 @@ import com.google.common.io.Files;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -21,7 +23,7 @@ public class BufferManager {
         return getBuffer(uri);
     }
 
-    private String getBuffer(WFile uri) {
+    public String getBuffer(WFile uri) {
         StringBuilder sb = currentBuffer.get(uri);
         if (sb == null) {
             return readFileFromDisk(uri);
@@ -47,7 +49,14 @@ public class BufferManager {
 
     private String readFileFromDisk(WFile uri) {
         try {
-            String str = Files.toString(uri.getFile(), StandardCharsets.UTF_8);
+            File file;
+            try {
+                file = uri.getFile();
+            } catch (FileNotFoundException e) {
+                WLogger.info("URI " + uri + " cannot be opened by Wurst: " + e);
+                return "";
+            }
+            String str = Files.toString(file, StandardCharsets.UTF_8);
             StringBuilder sb = buffer(uri);
             sb.replace(0, sb.length(), str);
             return sb.toString();

@@ -1,9 +1,13 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.WLogger;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Constants;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * Helper class to download the standard library, which is required by some test
@@ -14,12 +18,12 @@ public class StdLib {
     /**
      * the repo to download
      */
-    private final static String gitRepo = "https://github.com/peq/wurstStdlib.git";
+    private final static String gitRepo = "https://github.com/wurstscript/WurstStdlib2";
 
     /**
      * version to use for the tests
      */
-    private final static String version = "7ea2806aa56320bf00d6a9fa3615adfca851d66c";
+    private final static String version = "6107c40e64fa646a016e8c446026f2f5cf3f2a1e";
 
     /**
      * flag so that initialization in only done once
@@ -27,48 +31,56 @@ public class StdLib {
     private static boolean isInitialized = false;
 
     private static File tempFolder = new File("./temp");
-    private static File stdLibFolder = new File(tempFolder, "wurstStdlib");
+    private static File stdLibFolder = new File(tempFolder, "WurstStdlib2");
 
     @Test
     public void download() {
-        downloadStandardlib();
+        assert(downloadStandardlib());
     }
 
-    public synchronized static void downloadStandardlib() {
+    public synchronized static boolean downloadStandardlib() {
         if (isInitialized) {
-            return;
+            return true;
         }
+
         try {
-
-
             if (!stdLibFolder.exists()) {
                 tempFolder.mkdirs();
-                Utils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
+                try (Git git = Git
+                        .cloneRepository()
+                        .setDirectory(stdLibFolder)
+                        .setURI(gitRepo)
+                        .call()) {
+                    git.checkout().setName(Constants.MASTER).call();
+                };
             }
 
-            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD");
-            System.out.println("revision = " + revision);
-            if (!revision.equals(version)) {
-                Utils.exec(stdLibFolder, "git", "checkout", "master");
-                Utils.exec(stdLibFolder, "git", "pull");
-                Utils.exec(stdLibFolder, "git", "checkout", version);
+            try (Git git = Git.open(stdLibFolder)) {
+                String head = git.getRepository().resolve(Constants.HEAD).getName();
+                if (!head.equals(version)) {
+                    System.out.println("Wrong version '" + head + "', executing git pull to get '" + version + "'");
+
+                    git.checkout().setName(Constants.MASTER).call();
+                    git.pull().call();
+                    git.checkout().setName(version).setForceRefUpdate(true).call();
+                }
             }
 
             // reset all possible changes
-            Utils.exec(stdLibFolder, "git", "clean", "-fdx");
-            Utils.exec(stdLibFolder, "git", "checkout", ".");
-            Utils.exec(stdLibFolder, "git", "checkout", version);
+            Git.open(stdLibFolder).clean().setForce(true).setCleanDirectories(true).setIgnore(false).call();
+            Git.open(stdLibFolder).checkout().setName(version).call();
 
             isInitialized = true;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (IOException | GitAPIException e) {
+            WLogger.severe(e.getStackTrace().toString());
+            return false;
         }
+
+        return true;
     }
 
     public static String getLib() {
         downloadStandardlib();
         return stdLibFolder.getPath();
     }
-
-
 }

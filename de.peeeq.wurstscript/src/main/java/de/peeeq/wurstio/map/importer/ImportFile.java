@@ -12,8 +12,11 @@ import javax.swing.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.LinkedList;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
@@ -30,7 +33,8 @@ public class ImportFile {
         }
 
         try {
-            File importDirectory = getImportDirectory(mapFile);
+            File projectFolder = mapFile.getParentFile();
+            File importDirectory = getImportDirectory(projectFolder);
             File tempMap = getCopyOfMap(mapFile);
 
             extractImportsFrom(importDirectory, tempMap, runArgs);
@@ -41,7 +45,7 @@ public class ImportFile {
     }
 
     private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws Exception {
-        try (MpqEditor editor = MpqEditorFactory.getEditor(tempMap)) {
+        try (MpqEditor editor = MpqEditorFactory.getEditor(Optional.of(tempMap))) {
             LinkedList<String> failed = extractImportedFiles(editor, importDirectory);
 
             if (failed.isEmpty()) {
@@ -154,40 +158,45 @@ public class ImportFile {
 
     }
 
-    private static void insertImportedFiles(MpqEditor mpq, File directory) throws Exception {
-        LinkedList<File> files = new LinkedList<>();
-        getFilesOfDirectory(directory, files);
+    private static void insertImportedFiles(MpqEditor mpq, List<File> directories) throws Exception {
+        for (File directory : directories) {
+            LinkedList<File> files = new LinkedList<>();
+            getFilesOfDirectory(directory, files);
 
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        DataOutputStream dataOut = new DataOutputStream(byteOut);
-        dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(FILE_VERSION).array());
-        dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(files.size()).array());
-        for (File f : files) {
-            Path p = f.toPath();
-            p = directory.toPath().relativize(p);
-            String normalizedWc3Path = p.toString().replaceAll("/", "\\\\");
-            dataOut.writeByte((byte) 13);
-            dataOut.write(normalizedWc3Path.getBytes("UTF-8"));
-            dataOut.write((byte) 0);
-            WLogger.info("importing file: " + normalizedWc3Path);
-            mpq.insertFile(normalizedWc3Path, f);
+            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+            DataOutputStream dataOut = new DataOutputStream(byteOut);
+            dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(FILE_VERSION).array());
+            dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(files.size()).array());
+            for (File f : files) {
+                Path p = f.toPath();
+                p = directory.toPath().relativize(p);
+                String normalizedWc3Path = p.toString().replaceAll("/", "\\\\");
+                dataOut.writeByte((byte) 13);
+                dataOut.write(normalizedWc3Path.getBytes(StandardCharsets.UTF_8));
+                dataOut.write((byte) 0);
+                mpq.deleteFile(normalizedWc3Path);
+                mpq.insertFile(normalizedWc3Path, f);
+            }
+            dataOut.flush();
+            mpq.deleteFile("war3map.imp");
+            mpq.insertFile("war3map.imp", byteOut.toByteArray());
         }
-        dataOut.flush();
-        mpq.insertFile("war3map.imp", byteOut.toByteArray());
     }
 
-    public static void importFilesFromImportDirectory(File mapFile, MpqEditor ed) {
-        File importDirectory = getImportDirectory(mapFile);
-        if (importDirectory.exists() && importDirectory.isDirectory()) {
-            WLogger.info("importing from: " + importDirectory.getAbsolutePath());
-            WLogger.info("mapfile: " + mapFile.getAbsolutePath());
-            try {
-                insertImportedFiles(ed, importDirectory);
-            } catch (Exception e) {
-                WLogger.severe(e);
-                JOptionPane.showMessageDialog(null, "Couldn't import resources from " + importDirectory + ": " + e.getMessage());
-            }
+    public static void importFilesFromImports(File projectFolder, MpqEditor ed) {
+        LinkedList<File> folders = new LinkedList<>();
+        folders.add(getImportDirectory(projectFolder));
+        folders.addAll(Arrays.asList(getTransientImportDirectories(projectFolder)));
+
+        folders.removeIf(folder -> !folder.exists());
+
+        try {
+            insertImportedFiles(ed, folders);
+        } catch (Exception e) {
+            WLogger.severe(e);
+            JOptionPane.showMessageDialog(null, "Couldn't import resources. " + e.getMessage());
         }
+
     }
 
     private static File getCopyOfMap(File mapFile) throws IOException {
@@ -197,8 +206,24 @@ public class ImportFile {
         return mapTemp;
     }
 
-    private static File getImportDirectory(File mapFile) {
-        return new File(mapFile.getParentFile(), "imports");
+    private static File getImportDirectory(File projectFolder) {
+        return new File(projectFolder, "imports");
+    }
+
+    private static File[] getTransientImportDirectories(File projectFolder) {
+        ArrayList<Path> paths = new ArrayList<>();
+        Path dependencies = projectFolder.toPath().resolve("_build").resolve("dependencies");
+        try (Stream<Path> spaths = java.nio.file.Files.list(dependencies)) {
+            spaths.forEach(dependency -> {
+                if (java.nio.file.Files.exists(dependency.resolve("imports"))) {
+                    paths.add(dependency.resolve("imports"));
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        File[] arr = new File[paths.size()];
+        return paths.stream().map(Path::toFile).collect(Collectors.toList()).toArray(arr);
     }
 
 }

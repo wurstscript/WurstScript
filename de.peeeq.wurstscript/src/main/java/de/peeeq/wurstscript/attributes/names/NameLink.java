@@ -1,40 +1,23 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
-import java.util.Map;
+import java.util.List;
 import java.util.stream.Stream;
 
 
 public abstract class NameLink {
+    protected final List<TypeParamDef> typeParams;
     private final Visibility visibility;
     private final WScope definedIn;
 
-    public NameLink(Visibility visibility, WScope definedIn) {
+    public NameLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams) {
         this.visibility = visibility;
         this.definedIn = definedIn;
+        this.typeParams = typeParams;
     }
-
-
-    //    @Deprecated
-//    public static NameLink create(NameDef nameDef, WScope definedIn) {
-//        Visibility visibiliy = calcVisibility(definedIn, nameDef);
-//        NameLinkType type = calcNameLinkType(nameDef);
-//        List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(nameDef)).collect(Collectors.toList());
-//        WurstType lreturnType  = null;
-//        List<WurstType> lparameterTypes = null;
-//        if (nameDef instanceof FunctionDefinition) {
-//            FunctionDefinition func = (FunctionDefinition) nameDef;
-//            lparameterTypes = func.getParameters().stream()
-//                    .map(WParameter::attrTyp)
-//                    .collect(Collectors.toList());
-//            lreturnType = func.attrTyp();
-//        }
-//        WurstType lreceiverType = calcReceiverType(definedIn, nameDef, type);
-//        return new NameLink(visibiliy, type, definedIn, nameDef, typeParams, lreceiverType, lparameterTypes, lreturnType);
-//    }
 
     protected static Stream<TypeParamDef> typeParams(Element scope) {
         if (scope instanceof AstElementWithTypeParameters) {
@@ -94,6 +77,10 @@ public abstract class NameLink {
     }
 
 
+    public List<TypeParamDef> getTypeParams() {
+        return typeParams;
+    }
+
     public NameLink hidingPrivate() {
         if (visibility == Visibility.PRIVATE_HERE) {
             return withVisibility(Visibility.PRIVATE_OTHER);
@@ -122,5 +109,10 @@ public abstract class NameLink {
 
     public abstract boolean receiverCompatibleWith(WurstType receiverType, Element location);
 
-    public abstract NameLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding);
+    public abstract NameLink withTypeArgBinding(Element context, VariableBinding binding);
+
+    // TODO should it be possible to get the type without providing a mapping for the type-arguments?
+    public abstract WurstType getTyp();
+
+    public abstract NameLink withDef(NameDef actual);
 }

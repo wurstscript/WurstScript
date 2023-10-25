@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 
 public class WurstTypeHandle extends WurstTypePrimitive {
@@ -15,8 +17,8 @@ public class WurstTypeHandle extends WurstTypePrimitive {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return other instanceof WurstTypeHandle;
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        return other instanceof WurstTypeHandle ? mapping : null;
     }
 
 
@@ -25,9 +27,12 @@ public class WurstTypeHandle extends WurstTypePrimitive {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(imTranslateType());
     }
 
-
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
 }

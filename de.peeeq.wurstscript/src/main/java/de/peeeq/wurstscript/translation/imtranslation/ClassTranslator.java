@@ -1,20 +1,15 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSetArray;
-import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
-import de.peeeq.wurstscript.jassIm.ImSetTuple;
-import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
@@ -24,8 +19,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 public class ClassTranslator {
 
     private ClassDef classDef;
@@ -34,6 +32,7 @@ public class ClassTranslator {
     final private List<Pair<ImVar, VarInitialization>> dynamicInits;
     private ImClass imClass;
     private ImProg prog;
+    private ImFunction classInitFunc;
 
     public ClassTranslator(ClassDef classDef, ImTranslator translator) {
         this.classDef = classDef;
@@ -68,16 +67,18 @@ public class ClassTranslator {
 
         addSuperClasses();
 
-        List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
+        List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
         translateMethods(classDef, subClasses);
         translateVars(classDef);
+        translateClassInitFunc();
         translateConstructors();
         createOnDestroyMethod();
         createDestroyMethod(subClasses);
 
     }
+
 
 
     private void addSuperClasses() {
@@ -92,10 +93,7 @@ public class ClassTranslator {
     }
 
     private void addSuperClass(TypeExpr extended) {
-        if (extended.attrTypeDef() instanceof StructureDef) {
-            StructureDef sc = (StructureDef) extended.attrTypeDef();
-            imClass.getSuperClasses().add(translator.getClassFor(sc));
-        }
+        imClass.getSuperClasses().add((ImClassType) extended.attrTyp().imTranslateType(translator));
     }
 
     private void createDestroyMethod(List<ClassDef> subClasses) {
@@ -118,12 +116,17 @@ public class ClassTranslator {
         // call ondestroy methods
         ClassDef c = classDef;
         ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
-        f.getBody().add(ImFunctionCall(trace,
-                scOnDestroy,
-                ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+        f.getBody().add(ImFunctionCall(trace, scOnDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 
         // deallocate
-        f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(c.getOnDestroy(), imClassType(), JassIm.ImVarAccess(thisVar)));
+    }
+
+    private ImClassType imClassType() {
+        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        return JassIm.ImClassType(imClass, typeArgs);
     }
 
     /**
@@ -135,10 +138,30 @@ public class ClassTranslator {
         }
         if (sc.getOnDestroy().attrHasEmptyBody()) {
             WurstTypeClass superClass = (WurstTypeClass) sc.getExtendedClass().attrTyp();
-            return hasOwnDestroy(superClass.getClassDef(), classDef2);
+            if (hasOwnDestroy(superClass.getClassDef(), classDef2)) {
+                return true;
+            }
+            for (ModuleInstanciation mi : sc.getModuleInstanciations()) {
+                if (hasOwnDestroy(mi)) {
+                    return true;
+                }
+            }
+            return false;
         } else {
             return true;
         }
+    }
+
+    private boolean hasOwnDestroy(ModuleInstanciation mi) {
+        if (!mi.getOnDestroy().attrHasEmptyBody()) {
+            return true;
+        }
+        for (ModuleInstanciation subMod : mi.getModuleInstanciations()) {
+            if (hasOwnDestroy(subMod)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void createOnDestroyMethod() {
@@ -160,12 +183,18 @@ public class ClassTranslator {
 
         if (c instanceof ClassDef) {
             ClassDef cd = (ClassDef) c;
-            if (cd.attrExtendedClass() != null) {
+            WurstTypeClass ct = cd.attrTypC();
+            WurstTypeClass extended = ct.extendedClass();
+            if (extended != null) {
                 // call onDestroy of super class
-                ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
-                addTo.add(ImFunctionCall(c,
-                        onDestroy,
-                        ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+                ImFunction onDestroy = translator.getFuncFor(extended.getClassDef().getOnDestroy());
+                ImTypeArguments typeArgs = ImTypeArguments();
+                for (WurstTypeBoundTypeParam tp : extended.getTypeParameters()) {
+                    if (tp.isTemplateTypeParameter()) {
+                        typeArgs.add(tp.imTranslateToTypeArgument(translator));
+                    }
+                }
+                addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
     }
@@ -183,37 +212,6 @@ public class ClassTranslator {
                 }
             }
 
-            @Override
-            public void visit(ImSet v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArray v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetTuple v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
         };
         for (ImStmt s : stmts) {
             s.accept(replacer);
@@ -257,14 +255,13 @@ public class ClassTranslator {
     private void translateVar(GlobalVarDef s) {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
-            // for dynamic class members create an array
-            ImType t = s.attrTyp().imTranslateType();
-            v.setType(ImHelper.toArray(t));
+            // add dynamic class members to the class
+            imClass.getFields().add(v);
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
             translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
+            translator.addGlobal(v);
         }
-        translator.addGlobal(v);
     }
 
     private void translateMethods(ClassOrModuleInstanciation c, List<ClassDef> subClasses) {
@@ -293,9 +290,9 @@ public class ClassTranslator {
                 ClassDef subC = subE.getKey();
 
                 WurstTypeClass ct = getExtendedClassType(subC);
-                Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding;
+                VariableBinding typeBinding;
                 if (ct == null) {
-                    typeBinding = Collections.emptyMap();
+                    typeBinding = VariableBinding.emptyMapping();
                 } else {
                     typeBinding = ct.getTypeArgBinding();
                 }
@@ -336,7 +333,7 @@ public class ClassTranslator {
         f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
         // TODO add return for abstract function
         if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
-            f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue()));
+            f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue(translator)));
         }
         return f;
     }
@@ -351,21 +348,18 @@ public class ClassTranslator {
     private void createNewFunc(ConstructorDef constr) {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructNewFunc(constr);
-        Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
-            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(), p.getName(), false);
-            varReplacements.put(translator.getVarFor(p), imP);
+            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), false);
             f.getParameters().add(imP);
         }
 
 
-        ImVar thisVar = JassIm.ImVar(constr, TypesHelper.imInt(), "this", false);
-        varReplacements.put(translator.getThisVar(constr), thisVar);
+        ImVar thisVar = JassIm.ImVar(constr, imClassType(), "this", false);
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, thisVar, JassIm.ImAlloc(imClass)));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(constr, imClassType())));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);
@@ -373,7 +367,11 @@ public class ClassTranslator {
         for (ImVar a : f.getParameters()) {
             arguments.add(ImVarAccess(a));
         }
-        f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false, CallType.NORMAL));
+        ImTypeArguments typeArgs = ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        f.getBody().add(ImFunctionCall(trace, constrFunc, typeArgs, arguments, false, CallType.NORMAL));
 
 
         // return this
@@ -391,23 +389,53 @@ public class ClassTranslator {
             // call super constructor
             ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
             ImExprs arguments = ImExprs(ImVarAccess(thisVar));
-            for (Expr a : constr.getSuperArgs()) {
+            for (Expr a : superArgs(constr)) {
                 arguments.add(a.imTranslateExpr(translator, f));
             }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
+            ImTypeArguments typeArgs = ImTypeArguments();
+            ClassDef classDef = constr.attrNearestClassDef();
+            assert classDef != null;
+            WurstType extendedType = classDef.getExtendedClass().attrTyp();
+            if (extendedType instanceof WurstTypeClass) {
+                WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
+                for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
+                    if (bt.isTemplateTypeParameter()) {
+                        typeArgs.add(bt.imTranslateToTypeArgument(translator));
+                    }
+                }
+            }
+            f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
+        // call classInitFunc:
+        ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        f.getBody().add(ImFunctionCall(trace, classInitFunc, typeArguments, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+        // constructor user code
+        f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
+    }
+
+    private void translateClassInitFunc() {
+        ClassDef trace = classDef;
+        ImVar thisVar = JassIm.ImVar(trace, imClassType(), "this", false);
+        classInitFunc = JassIm.ImFunction(classDef, translator.getNameFor(classDef) + "_init", ImTypeVars(), ImVars(thisVar), ImVoid(), ImVars(), ImStmts(), Collections.emptyList());
+        imClass.getFunctions().add(classInitFunc);
+
+        ImFunction f = classInitFunc;
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
             ImVar v = i.getA();
             if (i.getB() instanceof Expr) {
                 Expr e = (Expr) i.getB();
-                ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
+                ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs()), e.imTranslateExpr(translator, f));
+
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
                 ArrayInitializer ai = (ArrayInitializer) i.getB();
                 int index = 0;
                 for (Expr e : ai.getValues()) {
-                    ImStmt s = ImSetArrayMulti(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index)), e.imTranslateExpr(translator, f));
+                    ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs(JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
                     f.getBody().add(s);
                     index++;
                 }
@@ -417,15 +445,13 @@ public class ClassTranslator {
         for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
             addModuleInits(f, mi, thisVar);
         }
-        // constructor user code
-        f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
     }
 
     private void addModuleInits(ImFunction f, ModuleInstanciation mi, ImVar thisVar) {
         // call constructors of used modules:
         for (ConstructorDef c : mi.getConstructors()) {
             ImFunction moduleConstr = translator.getConstructFunc(c);
-            f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+            f.getBody().add(ImFunctionCall(c, moduleConstr, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
         }
     }
 

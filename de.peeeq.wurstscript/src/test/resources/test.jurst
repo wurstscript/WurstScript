@@ -1,0 +1,21 @@
+library Blub
+
+struct A
+
+    method b takes integer i, integer i2 returns nothing
+    endmethod
+
+endstruct
+
+init
+    var a = new A()
+    a.b(1,
+    2)
+    let b = new A()
+endinit
+
+endlibrary
+
+scope Fuark
+
+endscope

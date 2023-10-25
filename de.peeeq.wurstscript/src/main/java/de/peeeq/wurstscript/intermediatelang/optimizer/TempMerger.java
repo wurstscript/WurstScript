@@ -1,37 +1,49 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.MapWithIndexes;
+import de.peeeq.wurstscript.utils.MapWithIndexes.Index;
+import de.peeeq.wurstscript.utils.MapWithIndexes.PredIndex;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
 
-public class TempMerger {
-    public int totalMerged = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
+public class TempMerger implements OptimizerPass {
+    private int totalMerged = 0;
 
-    public TempMerger(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
+
+    @Override
+    public String getName() {
+        return "Temp variables merged";
     }
 
-    public void optimize() {
+    /**
+     * @return The amount of merged temp variables
+     */
+    @Override
+    public int optimize(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
+        totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
         prog.clearAttributes();
-        for (ImFunction f : prog.getFunctions()) {
+        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             optimizeFunc(f);
         }
         // flatten the program because we introduced null-statements
         prog.flatten(trans);
+        return totalMerged;
     }
 
-    private void optimizeFunc(ImFunction f) {
+    void optimizeFunc(ImFunction f) {
         optimizeStatements(f.getBody());
     }
 
@@ -46,12 +58,14 @@ public class TempMerger {
             for (ImStmt s : stmts) {
                 if (s instanceof ImSet) {
                     ImSet imSet = (ImSet) s;
-                    if (imSet.getRight() instanceof ImVarAccess) {
+                    if (imSet.getRight() instanceof ImVarAccess
+                            && imSet.getLeft() instanceof ImVarAccess) {
                         ImVarAccess right = (ImVarAccess) imSet.getRight();
-                        if (imSet.getLeft() == right.getVar()) {
+                        ImVarAccess left = (ImVarAccess) imSet.getLeft();
+                        if (left.getVar() == right.getVar()) {
                             // statement has the form 'x = x' so remove it
                             totalMerged++;
-                            imSet.replaceBy(JassIm.ImNull());
+                            imSet.replaceBy(ImHelper.nullExpr());
                             continue;
                         }
                     }
@@ -76,6 +90,9 @@ public class TempMerger {
             } else if (s instanceof ImLoop) {
                 ImLoop imLoop = (ImLoop) s;
                 optimizeStatements(imLoop.getBody());
+            } else if (s instanceof ImVarargLoop) {
+                ImVarargLoop imVarargLoop = (ImVarargLoop) s;
+                optimizeStatements(imVarargLoop.getBody());
             }
         }
     }
@@ -93,11 +110,20 @@ public class TempMerger {
         }
         if (s instanceof ImSet) {
             ImSet imSet = (ImSet) s;
-            // update the knowledge with the new set statement
-            kn.update(imSet.getLeft(), imSet);
-        } else if (s instanceof ImSetArray) {
-            kn.invalidateVar(((ImSetArray) s).getLeft());
-        } else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop) {
+            if (imSet.getLeft() instanceof ImVarAccess) {
+                ImVarAccess va = (ImVarAccess) imSet.getLeft();
+                // update the knowledge with the new set statement
+                kn.update(va.getVar(), imSet);
+            } else if (imSet.getLeft() instanceof ImVarArrayAccess) {
+                ImVarArrayAccess va = (ImVarArrayAccess) imSet.getLeft();
+                kn.invalidateVar(va.getVar());
+            } else if (imSet.getLeft() instanceof ImMemberAccess) {
+                ImMemberAccess ma = (ImMemberAccess) imSet.getLeft();
+                kn.invalidateVar(ma.getVar());
+            } else if (imSet.getLeft() instanceof ImTupleSelection) {
+                kn.invalidateVar(TypesHelper.getTupleVar(((ImTupleSelection) imSet.getLeft())));
+            }
+        } else if (s instanceof ImExitwhen || s instanceof ImIf || s instanceof ImLoop || s instanceof ImVarargLoop) {
             kn.clear();
             // TODO this could be more precise for local variables,
             // but for now we just forget everything if we see a loop or if statement
@@ -111,8 +137,12 @@ public class TempMerger {
         }
         if (elem instanceof ImVarAccess) {
             ImVarAccess va = (ImVarAccess) elem;
-            return kn.getReplacementIfPossible(va);
+            if (!va.isUsedAsLValue()) {
+                return kn.getReplacementIfPossible(va);
+            }
         } else if (elem instanceof ImLoop) {
+            return null;
+        } else if (elem instanceof ImVarargLoop) {
             return null;
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
@@ -134,7 +164,10 @@ public class TempMerger {
         if (elem instanceof ImFunctionCall) {
             // function call invalidates globals
             kn.invalidateGlobals();
-        } else if (elem instanceof ImVarRead) {
+        } else if (elem instanceof ImMethodCall) {
+            // method call invalidates globals
+            kn.invalidateGlobals();
+        } else if (elem instanceof ImVarRead) { // this already covers member access as well
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar().isGlobal()) {
                 // in case we read a global variable
@@ -144,13 +177,15 @@ public class TempMerger {
         return null;
     }
 
+
     private boolean containsFuncCall(Element elem) {
-        if (elem instanceof ImFunctionCall) {
+        if (elem instanceof ImFunctionCall || elem instanceof ImMethodCall) {
             return true;
         }
         // process children
+        boolean r = false;
         for (int i = 0; i < elem.size(); i++) {
-            boolean r = containsFuncCall(elem.get(i));
+            r = containsFuncCall(elem.get(i));
             if (r) {
                 return true;
             }
@@ -158,37 +193,46 @@ public class TempMerger {
         return false;
     }
 
-    public boolean readsVar(Element elem, ImVar left) {
+
+    private boolean readsVar(Element elem, ImVar left) {
         if (elem instanceof ImVarRead) {
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar() == left) {
                 return true;
             }
         }
+        if (elem instanceof ImMemberAccess) {
+            if(((ImMemberAccess) elem).getVar() == left) {
+                return true;
+            }
+        }
         // process children
         for (int i = 0; i < elem.size(); i++) {
-            boolean r = readsVar(elem.get(i), left);
-            if (r) {
+            if (readsVar(elem.get(i), left)) {
                 return true;
             }
         }
         return false;
     }
 
-    public boolean readsGlobal(Element elem) {
+
+    private boolean readsGlobal(Element elem) {
         if (elem instanceof ImVarRead) {
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar().isGlobal()) {
                 return true;
             }
         }
+        if (elem instanceof ImMemberAccess) {
+            return true;
+        }
         // process children
         for (int i = 0; i < elem.size(); i++) {
-            boolean r = readsGlobal(elem.get(i));
-            if (r) {
+            if (readsGlobal(elem.get(i))) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -197,6 +241,7 @@ public class TempMerger {
         public final ImVarAccess read;
 
         public Replacement(ImSet set, ImVarAccess read) {
+            Preconditions.checkArgument(set.getLeft() instanceof ImVarAccess);
             this.set = set;
             this.read = read;
         }
@@ -208,10 +253,10 @@ public class TempMerger {
 
         public void apply() {
             ImExpr e = set.getRight();
-            if (set.getLeft().attrReads().size() <= 1) {
+            if (getAssignedVar().attrReads().size() <= 1) {
                 // make sure that an impure expression is only evaluated once
                 // by removing the assignment
-                set.replaceBy(JassIm.ImNull());
+                set.replaceBy(ImHelper.nullExpr());
 
                 // remove variables which are no longer read
                 for (ImVarRead r : readVariables(set)) {
@@ -222,13 +267,17 @@ public class TempMerger {
             ImExpr newE = (ImExpr) e.copy();
             read.replaceBy(newE);
             // update attrReads:
-            set.getLeft().attrReads().remove(read);
+            getAssignedVar().attrReads().remove(read);
 
             // for all the variables in e: add to read
             for (ImVarRead r : readVariables(newE)) {
                 r.getVar().attrReads().add(r);
             }
 
+        }
+
+        private ImVar getAssignedVar() {
+            return ((ImVarAccess) set.getLeft()).getVar();
         }
 
     }
@@ -251,32 +300,60 @@ public class TempMerger {
 
     class Knowledge {
 
-        private Map<ImVar, ImSet> currentValues = Maps.newLinkedHashMap();
+        class VarKnowledge {
+            private final ImSet imSet;
+            private final Set<ImVar> dependsOn;
+            private final boolean dependsOnGlobals;
+            private final boolean isMutating;
+
+            public VarKnowledge(ImSet imSet, Set<ImVar> dependsOn, boolean dependsOnGlobals, boolean isMutating) {
+                this.imSet = imSet;
+                this.dependsOn = dependsOn;
+                this.dependsOnGlobals = dependsOnGlobals;
+                this.isMutating = isMutating;
+            }
+
+            public VarKnowledge(ImSet set) {
+                this.imSet = set;
+                this.dependsOn = new LinkedHashSet<>();
+                collectReadVariables(this.dependsOn, set.getRight());
+                boolean containsFuncCall = containsFuncCall(set);
+                this.dependsOnGlobals = containsFuncCall || readsGlobal(set.getRight());
+                this.isMutating = containsFuncCall;
+            }
+
+            private void collectReadVariables(Collection<ImVar> result, Element e) {
+                if (e instanceof ImVarRead) {
+                    result.add(((ImVarRead) e).getVar());
+                }
+                if (e instanceof ImMemberAccess) {
+                    result.add(((ImMemberAccess) e).getVar());
+                }
+                for (int i = 0; i < e.size(); i++) {
+                    collectReadVariables(result, e.get(i));
+                }
+            }
+        }
+
+
+        private final MapWithIndexes<ImVar, VarKnowledge> currentValues = new MapWithIndexes<>();
+        // map from a variable to the keys in currentValues that read it
+        private final Index<ImVar, ImVar> readBy = currentValues.createMultiIndex((v) -> v.dependsOn);
+        // set of keys in currentValues that depend on global state
+        private final PredIndex<ImVar> globalState = currentValues.createPredicateIndex(v -> v.dependsOnGlobals);
+        // set of keys in currentValues that can change global state
+        private final PredIndex<ImVar> mutating = currentValues.createPredicateIndex(v -> v.isMutating);
 
         public void invalidateGlobals() {
             // invalidate all knowledge which might be based on global state
             // i.e. using a global var or calling a function
-            List<ImVar> invalid = Lists.newArrayList();
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                if (readsGlobal(e.getValue().getRight()) || containsFuncCall(e.getValue())) {
-                    invalid.add(e.getKey());
-                }
-            }
-            removeKnowledge(invalid);
-
+            currentValues.removeAll(globalState.lookup());
         }
 
         public void invalidateMutatingExpressions() {
             // invalidate all knowledge which can change global state
             // i.e. calling a function
-            List<ImVar> invalid = Lists.newArrayList();
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                if (containsFuncCall(e.getValue())) {
-                    invalid.add(e.getKey());
-                }
-            }
-            removeKnowledge(invalid);
-
+            currentValues.removeAll(mutating.lookup());
         }
 
         public void clear() {
@@ -284,9 +361,9 @@ public class TempMerger {
         }
 
         public @Nullable Replacement getReplacementIfPossible(ImVarAccess va) {
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
+            for (Entry<ImVar, VarKnowledge> e : currentValues.entrySet()) {
                 if (e.getKey() == va.getVar()) {
-                    return new Replacement(e.getValue(), va);
+                    return new Replacement(e.getValue().imSet, va);
                 }
             }
             return null;
@@ -301,7 +378,8 @@ public class TempMerger {
 
             if (isMergable(left, set.getRight())) {
                 // only store local vars which are read exactly once
-                currentValues.put(left, set);
+                VarKnowledge k = new VarKnowledge(set);
+                currentValues.put(left, k);
             }
         }
 
@@ -336,19 +414,7 @@ public class TempMerger {
             if (left.isGlobal()) {
                 invalidateGlobals();
             } else {
-                List<ImVar> invalid = Lists.newArrayList();
-                for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                    if (readsVar(e.getValue().getRight(), left)) {
-                        invalid.add(e.getKey());
-                    }
-                }
-                removeKnowledge(invalid);
-            }
-        }
-
-        public void removeKnowledge(List<ImVar> invalid) {
-            for (ImVar i : invalid) {
-                currentValues.remove(i);
+                currentValues.removeAll(readBy.lookup(left));
             }
         }
 
@@ -358,7 +424,7 @@ public class TempMerger {
             keys.sort(Utils.<ImVar>compareByNameIm());
             StringBuilder sb = new StringBuilder();
             for (ImVar v : keys) {
-                ImSet s = currentValues.get(v);
+                ImSet s = currentValues.get(v).imSet;
                 sb.append(v.getName()).append(" -> ").append(s).append(", ");
             }
             return sb.toString();

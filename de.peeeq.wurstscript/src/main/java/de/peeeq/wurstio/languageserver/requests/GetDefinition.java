@@ -9,12 +9,14 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.Collections;
 import java.util.List;
 
-public class GetDefinition extends UserRequest<List<? extends Location>> {
+public class GetDefinition extends UserRequest<Either<List<? extends Location>, List<? extends LocationLink>>> {
 
     private final WFile filename;
     private final String buffer;
@@ -31,9 +33,17 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
 
 
     @Override
-    public List<? extends Location> execute(ModelManager modelManager) {
+    public Either<List<? extends Location>, List<? extends LocationLink>> execute(ModelManager modelManager) {
+        return Either.forLeft(execute2(modelManager));
+    }
+
+
+    private List<? extends Location> execute2(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
+        if (cu == null) {
+            return Collections.emptyList();
+        }
+        Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
@@ -65,9 +75,12 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
         } else if (e instanceof ExprBinary) {
             ExprBinary eb = (ExprBinary) e;
             FunctionDefinition def = eb.attrFuncDef();
-            if (def != null) {
-                return linkTo(def);
-            }
+            return linkTo(def);
+        } else if (e instanceof SomeSuperConstructorCall) {
+            SomeSuperConstructorCall sc = (SomeSuperConstructorCall) e;
+            ConstructorDef constructor = (ConstructorDef) sc.getParent();
+            ConstructorDef superConstructor = constructor.attrSuperConstructor();
+            return linkTo(superConstructor);
         }
         return Collections.emptyList();
     }

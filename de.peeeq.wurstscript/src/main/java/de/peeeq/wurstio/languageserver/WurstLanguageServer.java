@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -26,12 +27,16 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        System.err.println("initializing workspace");
+        System.err.println("Loading Wurst version " + CompileTimeInfo.version);
         setupLogger();
         try {
             System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             System.err.println("Your JVM doesn't support UTF-8 encoding. Output defaults to system encoding.");
+        }
+        if (params.getRootUri() == null) {
+            System.err.println("Workspace null. Make sure to open a valid project root using File->Open Folder, before opening code files.");
+            return CompletableFuture.completedFuture(null);
         }
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
@@ -53,6 +58,10 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setDocumentSymbolProvider(true);
         capabilities.setWorkspaceSymbolProvider(true);
         capabilities.setDocumentFormattingProvider(true);
+        capabilities.setColorProvider(true);
+        capabilities.setCodeLensProvider(new CodeLensOptions(true));
+        capabilities.setFoldingRangeProvider(true);
+
 
         InitializeResult res = new InitializeResult(capabilities);
         WLogger.info("initialization done: " + params.getRootUri());
@@ -104,5 +113,9 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     public LanguageClient getLanguageClient() {
         return languageClient;
+    }
+
+    public ConfigProvider getConfigProvider() {
+        return new ConfigProvider(languageClient);
     }
 }

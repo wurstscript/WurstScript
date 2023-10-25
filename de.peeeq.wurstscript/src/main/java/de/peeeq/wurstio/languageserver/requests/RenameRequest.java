@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,7 @@ public class RenameRequest extends UserRequest<WorkspaceEdit> {
         List<GetUsages.UsagesData> usages = getUsages.execute(modelManager);
 
 
-        List<TextDocumentEdit> edits = new ArrayList<>();
+        List<Either<TextDocumentEdit, ResourceOperation>> edits = new ArrayList<>();
         Map<String, List<GetUsages.UsagesData>> usageMap = usages.stream().collect(Collectors.groupingBy(u -> u.getLocation().getUri()));
 
         for (Map.Entry<String, List<GetUsages.UsagesData>> e : usageMap.entrySet()) {
@@ -41,7 +42,7 @@ public class RenameRequest extends UserRequest<WorkspaceEdit> {
                     fileEdits.add(new TextEdit(usage.getRange(), params.getNewName()));
                 }
             }
-            edits.add(new TextDocumentEdit(textDocument, fileEdits));
+            edits.add(Either.forLeft(new TextDocumentEdit(textDocument, fileEdits)));
         }
 
         return new WorkspaceEdit(edits);

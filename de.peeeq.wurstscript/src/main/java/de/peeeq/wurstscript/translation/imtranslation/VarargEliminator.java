@@ -142,13 +142,12 @@ public class VarargEliminator {
 
     private void redirectCall(ImFunctionCall call, ImFunction newFunc) {
         // Redirect call to new function
-        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(),
-                call.getCallType());
+        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(), call.getCallType());
         call.replaceBy(newCall);
     }
 
     private void unrollVarargLoop(ImVarargLoop imLoop, List<ImVar> newParams) {
-        ImStatementExpr stmtExpr = JassIm.ImStatementExpr(JassIm.ImStmts(), JassIm.ImNull());
+        ImStatementExpr stmtExpr = ImHelper.statementExprVoid(JassIm.ImStmts());
 
         for (int i = 0; i < newParams.size(); i++) {
             ImStmts bodyCopy = imLoop.getBody().copy();

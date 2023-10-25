@@ -6,21 +6,24 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
-import de.peeeq.wurstscript.translation.imtranslation.purity.ReadsGlobals;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.control.Either;
+import io.vavr.control.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -96,6 +99,34 @@ public class ExprTranslation {
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }
 
+    static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {
+        // use ensureType functions for lua
+        // these functions convert nil to the default value for primitive types (int, string, bool, real)
+        if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
+            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
+
+            @Nullable ImFunction ensureType = null;
+            switch (wtb.getName()) {
+                case "integer":
+                    ensureType = t.ensureIntFunc;
+                    break;
+                case "string":
+                    ensureType = t.ensureStrFunc;
+                    break;
+                case "boolean":
+                    ensureType = t.ensureBoolFunc;
+                    break;
+                case "real":
+                    ensureType = t.ensureRealFunc;
+                    break;
+            }
+            if(ensureType != null) {
+                return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
+        }
+        return translated;
+    }
+
     static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
@@ -114,25 +145,36 @@ public class ExprTranslation {
             }
         }
 
+//        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
+//        System.out.println("  actualType = " + actualType.getFullName());
+//        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
+
         if (toIndex != null && fromIndex != null) {
+//            System.out.println("  --> cancel");
             // the two conversions cancel each other out
-            return translated;
+            return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
-            return JassIm.ImFunctionCall(trace, fromIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+//            System.out.println("  --> fromIndex");
+            if(t.isLuaTarget()) {
+                translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
+            }
+            // no ensure type necessary here, because the fromIndex function is already type safe
+            return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
-            return JassIm.ImFunctionCall(trace, toIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+//            System.out.println("  --> toIndex");
+            return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        return translated;
+        return wrapLua(trace, t, translated, actualType);
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
         ImExpr left = e.getLeft().imTranslateExpr(t, f);
         ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
-        if (e.attrFuncDef() != null) {
+        if (e.attrFuncLink() != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-            return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false, CallType.NORMAL);
+            return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
             if (Utils.isJassCode(e)) {
@@ -166,7 +208,7 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprFuncRef e, ImTranslator t, ImFunction f) {
         ImFunction func = t.getFuncFor(e.attrFuncDef());
-        return ImFuncRef(func);
+        return ImFuncRef(e, func);
     }
 
     public static ImExpr translateIntern(ExprIntVal e, ImTranslator t, ImFunction f) {
@@ -180,10 +222,10 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
         WurstType expectedTypeRaw = e.attrExpectedTypRaw();
-        if (expectedTypeRaw.isTranslatedToInt()) {
-            return ImIntVal(0);
+        if (expectedTypeRaw instanceof WurstTypeUnknown) {
+            e.addError("Cannot use 'null' in this context.");
         }
-        return ImNull();
+        return ImNull(expectedTypeRaw.imTranslateType(t));
     }
 
     public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -209,13 +251,14 @@ public class ExprTranslation {
     }
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
-        NameDef decl = e.attrNameDef();
+        NameLink link = e.attrNameLink();
+        NameDef decl = link == null ? null : link.getDef();
         if (decl == null) {
             // should only happen with gg_ variables
             if (!t.isEclipseMode()) {
                 e.addError("Translation Error: Could not find definition of " + e.getVarName() + ".");
             }
-            return ImNull();
+            return ImHelper.nullExpr();
         }
         if (decl instanceof VarDef) {
             VarDef varDef = (VarDef) decl;
@@ -240,11 +283,10 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImVarArrayMultiAccess(v, index1, index2);
-
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, index);
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                 }
             } else {
                 // direct var access
@@ -255,7 +297,7 @@ public class ExprTranslation {
                         throw new CompileError(e.getSource(), "More than one index is not supported.");
                     }
                     ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, index);
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
                 } else {
                     // not an array var
                     return ImVarAccess(v);
@@ -266,11 +308,36 @@ public class ExprTranslation {
             EnumMember enumMember = (EnumMember) decl;
             int id = t.getEnumMemberId(enumMember);
             return ImIntVal(id);
+        } else if (link instanceof OtherLink) {
+            OtherLink otherLink = (OtherLink) link;
+            return otherLink.translate(e, t, f);
         } else {
             throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
         }
     }
 
+    private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
+        ImExpr left = mv.getLeft().imTranslateExpr(t, f);
+        WParameter tupleParam = (WParameter) mv.attrNameDef();
+        WParameters tupleParams = (WParameters) tupleParam.getParent();
+        int tupleIndex = tupleParams.indexOf(tupleParam);
+        if (left instanceof ImLExpr) {
+            return ImTupleSelection((ImLExpr) left, tupleIndex);
+        } else {
+            // if tupleExpr is not an l-value (e.g. foo().x)
+            // store result in intermediate variable first:
+            ImVar v = ImVar(left.attrTrace(), left.attrTyp(), "temp_tuple", false);
+            f.getLocals().add(v);
+            return JassIm.ImStatementExpr(
+                    JassIm.ImStmts(
+                            ImSet(left.attrTrace(), ImVarAccess(v), left)
+                    ),
+                    ImTupleSelection(ImVarAccess(v), tupleIndex)
+            );
+        }
+    }
+
+    /*
     private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
         List<WParameter> indexes = new ArrayList<>();
 
@@ -309,10 +376,11 @@ public class ExprTranslation {
             // if the result is a tuple, create it:
             int tupleSize = tupleSize(resultTupleType);
 
-            if (exprTr.attrPurity() instanceof Pure || exprTr.attrPurity() instanceof ReadsGlobals) {
+            if (exprTr instanceof ImLExpr
+                    && (exprTr.attrPurity() instanceof Pure || exprTr.attrPurity() instanceof ReadsGlobals)) {
                 ImExprs exprs = JassIm.ImExprs();
                 for (int i = 0; i < tupleSize; i++) {
-                    exprs.add(ImTupleSelection((ImExpr) exprTr.copy(), tupleIndex + i));
+                    exprs.add(ImTupleSelection((ImLExpr) exprTr.copy(), tupleIndex + i));
                 }
                 return ImTupleExpr(exprs);
             } else {
@@ -325,13 +393,26 @@ public class ExprTranslation {
                     // TODO use temporary var
                     exprs.add(ImTupleSelection(JassIm.ImVarAccess(temp), tupleIndex + i));
                 }
-                return JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImSet(expr, temp, exprTr)), ImTupleExpr(exprs));
+                return JassIm.ImStatementExpr(JassIm.ImStmts(ImSet(expr, ImVarAccess(temp), exprTr)), ImTupleExpr(exprs));
             }
         } else {
-            return ImTupleSelection(exprTr, tupleIndex);
+            if (exprTr instanceof ImLExpr) {
+                return ImTupleSelection((ImLExpr) exprTr, tupleIndex);
+            } else {
+                // if tupleExpr is not an l-value (e.g. foo().x)
+                // store result in intermediate variable first:
+                ImVar v = ImVar(exprTr.attrTrace(), exprTr.attrTyp(), "temp_tuple", false);
+                f.getLocals().add(v);
+                return JassIm.ImStatementExpr(
+                        JassIm.ImStmts(
+                                ImSet(exprTr.attrTrace(), ImVarAccess(v), exprTr)
+                        ),
+                        ImTupleSelection(ImVarAccess(v), tupleIndex)
+                );
+            }
         }
-
     }
+    */
 
     /**
      * counts the components of a tuple (including nested)
@@ -350,7 +431,9 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
-        return e.getExpr().imTranslateExpr(t, f);
+        ImExpr et = e.getExpr().imTranslateExpr(t, f);
+        ImType toType = e.getTyp().attrTyp().imTranslateType(t);
+        return JassIm.ImCast(et, toType);
     }
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
@@ -374,7 +457,7 @@ public class ExprTranslation {
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
             ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
-            return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
+            return ImFunctionCall(e, executedFunc, ImTypeArguments(), JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
         if (e.getFuncName().equals("compiletime")
@@ -414,14 +497,14 @@ public class ExprTranslation {
 
         if (calledFunc == null) {
             // this must be an ignored function
-            return ImNull();
+            return ImHelper.nullExpr();
         }
 
         if (useRealFuncDef) {
             calledFunc = calledFunc.attrRealFuncDef();
         }
 
-        if (calledFunc == e.attrNearestFuncDef()) {
+        if (leftExpr instanceof ExprThis && calledFunc == e.attrNearestFuncDef()) {
             // recursive self calls are bound statically
             // this is different to other objectoriented languages but it is
             // necessary
@@ -437,9 +520,7 @@ public class ExprTranslation {
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
-            ImExprs tupleArgs = JassIm.ImExprs();
-            flattenTupleArgs(tupleArgs, imArgs);
-            return ImTupleExpr(tupleArgs);
+            return ImTupleExpr(imArgs);
         }
 
         ImStmts stmts = null;
@@ -447,22 +528,26 @@ public class ExprTranslation {
         if (returnReveiver) {
             if (leftExpr == null)
                 throw new Error("impossible");
-            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(), "receiver", false);
+            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
             f.getLocals().add(tempVar);
-            stmts = JassIm.ImStmts(JassIm.ImSet(e, tempVar, receiver));
+            stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
         }
+
+
 
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-            call = JassIm.ImMethodCall(e, method, receiver, imArgs, false);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            call = ImFunctionCall(e, calledImFunc, imArgs, false, CallType.NORMAL);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
         if (returnReveiver) {
@@ -475,16 +560,25 @@ public class ExprTranslation {
         }
     }
 
-    private static void flattenTupleArgs(ImExprs tupleArgs, ImExprs imArgs) {
-        for (ImExpr e : imArgs.removeAll()) {
-            if (e instanceof ImTupleExpr) {
-                ImTupleExpr te = (ImTupleExpr) e;
-                flattenTupleArgs(tupleArgs, te.getExprs());
-            } else {
-                tupleArgs.add(e);
+    private static ImTypeArguments getFunctionCallTypeArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables) {
+        ImTypeArguments res = ImTypeArguments();
+        VariableBinding mapping = sig.getMapping();
+        for (ImTypeVar tv : typeVariables) {
+            TypeParamDef tp = tr.getTypeParamDef(tv);
+            Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
+            if (to.isEmpty()) {
+                throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
             }
+            WurstTypeBoundTypeParam t = to.get();
+            if (!t.isTemplateTypeParameter()) {
+                continue;
+            }
+            ImType type = t.imTranslateType(tr);
+            // TODO handle constraints
+            Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+            res.add(ImTypeArgument(type, typeClassBinding));
         }
-
+        return res;
     }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
@@ -512,7 +606,11 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
         ConstructorDef constructorFunc = e.attrConstructorDef();
         ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-        return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        FunctionSignature sig = e.attrFunctionSignature();
+        WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
+        ImClass imClass = t.getClassFor(wurstType.getClassDef());
+        ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
+        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
@@ -521,27 +619,31 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
         WurstType targetType = e.getTyp().attrTyp();
-        if (targetType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope t = (WurstTypeNamedScope) targetType;
-            ImClass clazz = translator.getClassFor((StructureDef) t.getDef());
-            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), clazz);
+        ImType imTargetType = targetType.imTranslateType(translator);
+        if (imTargetType instanceof ImClassType) {
+            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), (ImClassType) imTargetType);
         }
         throw new Error("Cannot compile instanceof " + targetType);
     }
 
     public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
         WurstType leftType = e.getLeft().attrTyp();
-        if (leftType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
+        ImType imLeftType = leftType.imTranslateType(translator);
+        if (imLeftType instanceof ImClassType) {
+            ImClassType imLeftTypeC = (ImClassType) imLeftType;
+            if (leftType instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
 
-            ImClass c = translator.getClassFor(wtc.getDef());
-            if (wtc.isStaticRef()) {
-                return JassIm.ImTypeIdOfClass(c);
+                if (wtc.isStaticRef()) {
+                    return JassIm.ImTypeIdOfClass(imLeftTypeC);
+                } else {
+                    return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), imLeftTypeC);
+                }
             } else {
-                return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), c);
+                throw new CompileError(e, "not implemented for " + leftType);
             }
         } else {
-            throw new Error("not implemented for " + leftType);
+            throw new CompileError(e, "not implemented for " + leftType);
         }
     }
 
@@ -560,15 +662,12 @@ public class ExprTranslation {
             statements.add(translated);
         }
 
-        ImExprOpt expr = null;
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
-            expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
-        }
-        if (expr instanceof ImExpr) {
-            return JassIm.ImStatementExpr(statements, (ImExpr) expr);
+            ImExpr expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
+            return JassIm.ImStatementExpr(statements, expr);
         } else {
-            return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+            return ImHelper.statementExprVoid(statements);
         }
     }
 
@@ -591,7 +690,8 @@ public class ExprTranslation {
 
     public static ImExpr destroyClass(ExprDestroy s, ImTranslator t, ImFunction f, StructureDef classDef) {
         ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
-        return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+        return ImMethodCall(s, destroyFunc, ImTypeArguments(), s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+
     }
 
     public static ImExpr translate(ExprEmpty s, ImTranslator translator, ImFunction f) {
@@ -608,13 +708,102 @@ public class ExprTranslation {
                 ImStmts(
                         ImIf(e, e.getCond().imTranslateExpr(t, f),
                                 ImStmts(
-                                        ImSet(e.getIfTrue(), res, ifTrue)
+                                        ImSet(e.getIfTrue(), ImVarAccess(res), ifTrue)
                                 ),
                                 ImStmts(
-                                        ImSet(e.getIfFalse(), res, ifFalse)
+                                        ImSet(e.getIfFalse(), ImVarAccess(res), ifFalse)
                                 ))
                 ),
                 JassIm.ImVarAccess(res)
         );
     }
+
+    public static ImLExpr translateLvalue(LExpr e, ImTranslator t, ImFunction f) {
+        NameDef decl = e.attrNameDef();
+        if (decl == null) {
+            // should only happen with gg_ variables
+            throw new CompileError(e.getSource(), "Translation Error: Could not find definition of " + e.getVarName() + ".");
+        }
+        if (decl instanceof VarDef) {
+            VarDef varDef = (VarDef) decl;
+
+            ImVar v = t.getVarFor(varDef);
+
+            if (e.attrImplicitParameter() instanceof Expr) {
+                // we have implicit parameter
+                // e.g. "someObject.someField"
+                Expr implicitParam = (Expr) e.attrImplicitParameter();
+
+                if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
+                    WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
+                    if (e instanceof ExprMemberVar && ((ExprMemberVar) e).getLeft() instanceof LExpr) {
+                        ExprMemberVar emv = (ExprMemberVar) e;
+                        LExpr left = (LExpr) emv.getLeft();
+                        ImLExpr lt = left.imTranslateExprLvalue(t, f);
+                        return JassIm.ImTupleSelection(lt, tupleType.getTupleIndex(varDef));
+                    } else {
+                        throw new CompileError(e.getSource(), "Cannot create tuple access");
+                    }
+                }
+
+                if (e instanceof AstElementWithIndexes) {
+                    ImExpr index1 = implicitParam.imTranslateExpr(t, f);
+                    ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
+
+                } else {
+                    ImExpr index = implicitParam.imTranslateExpr(t, f);
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
+                }
+            } else {
+                // direct var access
+                if (e instanceof AstElementWithIndexes) {
+                    // direct access array var
+                    AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
+                    if (withIndexes.getIndexes().size() > 1) {
+                        throw new CompileError(e.getSource(), "More than one index is not supported.");
+                    }
+                    ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
+                } else {
+                    // not an array var
+                    return ImVarAccess(v);
+
+                }
+            }
+        } else {
+            throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
+        }
+    }
+
+//    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {
+//        NameDef nameDef = e.tryGetNameDef();
+//        if (nameDef instanceof VarDef) {
+//            VarDef varDef = (VarDef) nameDef;
+//            ImVar v = translator.getVarFor(varDef);
+//            ImExprs indexes = e.getIndexes().stream()
+//                    .map(ie -> ie.imTranslateExpr(translator, f))
+//                    .collect(Collectors.toCollection(JassIm::ImExprs));
+//            return JassIm.ImVarArrayAccess(v, indexes);
+//        }
+//        throw new RuntimeException("TODO");
+//
+//    }
+//
+//    public static ImLExpr translateLvalue(ExprMemberVar e, ImTranslator translator, ImFunction f) {
+//        ImExpr receiver = e.getLeft().imTranslateExpr(translator, f);
+//        NameDef nameDef = e.tryGetNameDef();
+//        if (nameDef instanceof VarDef) {
+//            VarDef v = (VarDef) nameDef;
+//            ImVar imVar = translator.getVarFor(v);
+//            return JassIm.ImMemberAccess(receiver, imVar);
+//        }
+//        throw new RuntimeException("TODO");
+//    }
+//
+//    public static ImLExpr translateLvalue(ExprMemberArrayVar e, ImTranslator translator, ImFunction f) {
+//        throw new RuntimeException("TODO");
+//    }
+
+
 }

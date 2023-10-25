@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.port.Orient;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,13 +45,15 @@ public class Pjass {
             return message;
         }
 
+        private static final Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
+
         public List<CompileError> getErrors() {
             if (isOk()) {
                 return Collections.emptyList();
             }
             LineOffsets lineOffsets = new LineOffsets();
             try {
-                String cont = Files.toString(jassFile, Charsets.UTF_8);
+                String cont = Files.asCharSource(jassFile, Charsets.UTF_8).read();
                 int line = 0;
                 lineOffsets.set(1, 0);
                 for (int i = 0; i < cont.length(); i++) {
@@ -66,7 +69,6 @@ public class Pjass {
 
             List<CompileError> result = Lists.newArrayList();
             for (String error : getMessage().split("([\n\r])+")) {
-                Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
                 Matcher match = pat.matcher(error);
                 if (!match.matches()) {
                     WLogger.warning("no match: " + error);
@@ -86,34 +88,56 @@ public class Pjass {
 
     }
 
-
     public static Result runPjass(File outputFile) {
+        return runPjass(outputFile, Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"));
+    }
+
+    public static Result runPjass(File outputFile, String commonJPath, String blizzardJPath) {
         try {
             Process p;
             WLogger.info("Starting pjass");
             List<String> args = new ArrayList<>();
             args.add(Utils.getResourceFile("pjass.exe"));
-            args.add(Utils.getResourceFile("common.j"));
-            args.add(Utils.getResourceFile("blizzard.j"));
+            args.add(commonJPath);
+            args.add(blizzardJPath);
             args.add(outputFile.getPath());
-            if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
-                WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
+            if (Orient.isLinuxSystem()) {
+                File fileName = Utils.getResourceFileF("pjass");
+                boolean success = fileName.setExecutable(true);
+                if (!success) {
+                    throw new RuntimeException("Could not make pjass executable.");
+                }
+                args.set(0, fileName.getAbsolutePath());
+            } else if (Orient.isMacSystem()) {
+                File fileName = Utils.getResourceFileF("pjass_osx");
+                boolean success = fileName.setExecutable(true);
+                if (!success) {
+                    throw new RuntimeException("Could not make pjass_osx executable.");
+                }
+                args.set(0, fileName.getAbsolutePath());
+            } else if (!Orient.isWindowsSystem()) {
+                WLogger.info("Unknown operating system detected.");
                 WLogger.info("Trying to run with wine ...");
                 // try to run with wine
                 args.add(0, "wine");
             }
-            p = Runtime.getRuntime().exec(args.toArray(new String[0]));
-            BufferedReader input =
-                    new BufferedReader
-                            (new InputStreamReader(p.getInputStream()));
+
+            try {
+                p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+            } catch (IOException e) {
+               return new Result(outputFile, false, "Pjass execution error: \n" + e.toString());
+            }
 
             StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = input.readLine()) != null) {
-                WLogger.info(line);
-                output.append(line).append("\n");
+
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = input.readLine()) != null) {
+                    WLogger.info(line);
+                    output.append(line).append("\n");
+                }
             }
-            input.close();
+
 
             int exitValue = p.waitFor();
             if (exitValue != 0) {

@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -27,15 +29,18 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType obj, Element location) {
-        if (super.isSubtypeOfIntern(obj, location)) {
-            return true;
+    VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
+        if (superMapping != null) {
+            return superMapping;
         }
         if (obj instanceof WurstTypeModuleInstanciation) {
             WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
-            return n.isParent(this);
+            if (n.isParent(this)) {
+                return mapping;
+            }
         }
-        return false;
+        return null;
     }
 
     /**
@@ -62,7 +67,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
     @Override
     public String getName() {
-        return getDef().getName() + printTypeParams() + " (module instanciation)";
+        return getDef().getName() + printTypeParams() + " (module instanciation in " + moduleInst.getParent().attrNearestNamedScope().attrTyp() + ")";
     }
 
     @Override
@@ -79,13 +84,13 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         return TypesHelper.imInt();
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(TypesHelper.imInt());
     }
 
 }

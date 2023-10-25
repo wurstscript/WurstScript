@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Constants;
 
 /**
  * Manages object ids in a queue. This way the time each object is
@@ -19,12 +19,12 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ImStmts body = f.getBody();
         Element tr = c.getTrace();
 
-        ImVar thisVar = JassIm.ImVar(tr, TypesHelper.imInt(), "this", false);
+        ImVar thisVar = JassIm.ImVar(tr, translator.selfType(c), "this", false); // TODO change type
         locals.add(thisVar);
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
 
-        int maxSize = 32768;
+        int maxSize = Constants.MAX_ARRAY_SIZE;
         // if freeCount == 0 then
         ImStmts elseBlock = JassIm.ImStmts();
         ImStmts thenBlock = JassIm.ImStmts();
@@ -38,25 +38,24 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                 JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxSize))),
                 ifEnoughMemory, ifNotEnoughMemory));
         //         maxIndex = maxIndex + 1
-        ifEnoughMemory.add(JassIm.ImSet(tr, mVars.maxIndex,
-                JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
+        ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
         // 		   this = maxIndex
-        ifEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.maxIndex)));
+        ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImVarAccess(mVars.maxIndex)));
         //	       typeId[this] = ...
-        ifEnoughMemory.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
+        ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarArrayAccess(tr, mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar))), JassIm.ImIntVal(c.attrTypeId())));
         //     else:
         //         error("out of memory")
-        ifNotEnoughMemory.add(translator.imError(JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
+        ifNotEnoughMemory.add(translator.imError(c.getTrace(), JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
         //         this = 0
-        ifNotEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImIntVal(0)));
+        ifNotEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)));
         // else:
         //     freeCount = freeCount - 1
-        elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm
+        elseBlock.add(JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm
                 .ImIntVal(1)))));
         //     this = free[freeCount]
-        elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
+        elseBlock.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImVarArrayAccess(tr, mVars.free, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(mVars.freeCount)))));
         //     typeId[this] = ...
-        elseBlock.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
+        elseBlock.add(JassIm.ImSet(tr, JassIm.ImVarArrayAccess(tr, mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar))), JassIm.ImIntVal(c.attrTypeId())));
         // endif
 
 
@@ -78,19 +77,19 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         // if typeId[this] == 0 then error
         body.add(JassIm.ImIf(tr,
                 JassIm.ImOperatorCall(WurstOperator.EQ,
-                        JassIm.ImExprs(JassIm.ImVarArrayAccess(mVars.typeId, JassIm.ImVarAccess(thisVar)), JassIm.ImIntVal(0))),
+                        JassIm.ImExprs(JassIm.ImVarArrayAccess(tr, mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar))), JassIm.ImIntVal(0))),
                 // then
                 // error
-                JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Double free: object of type " + c.getName()))),
+                JassIm.ImStmts(translator.imError(c.getTrace(), JassIm.ImStringVal("Double free: object of type " + c.getName()))),
                 // else
                 JassIm.ImStmts(
                         // free[freeCount] = this
-                        JassIm.ImSetArray(tr, mVars.free, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImVarAccess(thisVar)),
+                        JassIm.ImSet(tr, JassIm.ImVarArrayAccess(tr, mVars.free, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(mVars.freeCount))), JassIm.ImVarAccess(thisVar)),
                         // freeCount++
-                        JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount),
+                        JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount),
                                 JassIm.ImIntVal(1)))),
                         // typeId[this] = 0
-                        JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
+                        JassIm.ImSet(tr, JassIm.ImVarArrayAccess(tr, mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar))), JassIm.ImIntVal(0))
                 )));
 
     }

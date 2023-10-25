@@ -4,14 +4,17 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 public class NameResolution {
 
@@ -82,21 +85,22 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
-        Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
+        addMemberMethods(node, receiverType, name, result);
+
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
-                WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof FuncLink
-                        && n_receiverType != null
-                        && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    FuncLink f = (FuncLink) n;
-                    result.add(f.withTypeArgBinding(node, typeArgBinding));
+                if (!(n instanceof FuncLink)) {
+                    continue;
+                }
+                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, false);
+                if (n2 != null) {
+                    FuncLink f = (FuncLink) n2;
+                    result.add(f);
                 }
             }
             scope = nextScope(scope);
         }
-        addMemberMethods(node, receiverType, name, result);
         return removeDuplicates(result);
     }
 
@@ -105,45 +109,34 @@ public class NameResolution {
         receiverType.addMemberMethods(node, name, result);
     }
 
-    public static @Nullable NameDef lookupVarNoConfig(Element node, String name, boolean showErrors) {
-        WurstType receiverType;
-        @Nullable
-        StructureDef nearestStructureDef = node.attrNearestStructureDef();
-        if (nearestStructureDef != null) {
-            // inside a class one can write bar instead of this.bar
-            // so the receiver type is implicitly given by the enclosing class
-            receiverType = nearestStructureDef.attrTyp();
-        } else {
-            receiverType = null;
-        }
-
+    public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
         NameLink privateCandidate = null;
         List<NameLink> candidates = Lists.newArrayList();
 
+        for (WScope scope = node.attrNearestScope(); scope != null; scope = nextScope(scope)) {
 
-        WScope scope = node.attrNearestScope();
-        while (scope != null) {
-//			WLogger.info("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
-//			WLogger.info("		" + scope.attrNameLinks());
+            if (scope instanceof LoopStatementWithVarDef) {
+                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) scope;
+                // only consider this scope if node is in the body:
+                if (!Utils.elementContained(Optional.of(node), loop.getBody())) {
+                    continue;
+                }
+            }
 
+            if (scope instanceof StructureDef) {
+                StructureDef nearestStructureDef = (StructureDef) scope;
+                // inside a class one can write foo instead of this.foo()
+                // so the receiver type is implicitly given by the enclosing class
+                WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
+                for (DefLink link : receiverType.nameLinks(name)) {
+                    if (!(link instanceof FuncLink)) {
+                        return link;
+                    }
+                }
+            }
             for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof VarLink) {
-
-                    if (n_receiverType != null) {
-                        // when we have a receiver type we have to check that it matches with the receiver type of the variable
-                        // for example vec2.x could be in scope so we have to check that the current receiver is a vec2
-                        if (receiverType == null) {
-                            continue;
-                        }
-                        if (!receiverType.isSubtypeOf(n_receiverType, node)
-                                && !receiverType.isNestedInside(n_receiverType)) {
-                            continue;
-                        }
-                    }
-//						&& (n_receiverType == null
-//						|| (receiverType != null && receiverType.isSubtypeOf(n_receiverType, node))
-//						)) {
+                if (n instanceof VarLink && n_receiverType == null) {
 
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
@@ -152,54 +145,90 @@ public class NameResolution {
                         privateCandidate = n;
                     }
 
+                } else if (n instanceof TypeDefLink) {
+                    candidates.add(n);
                 }
+
             }
             if (candidates.size() > 0) {
                 if (showErrors && candidates.size() > 1) {
                     node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n"
                             + Utils.printAlternatives(candidates));
                 }
-                return (NameDef) candidates.get(0).getDef();
+                return candidates.get(0);
             }
-            scope = nextScope(scope);
         }
         if (showErrors) {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
-                        " If you want to access it, declare it public.");
-                return privateCandidate.getDef();
+                node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
+                        + " is not visible inside this package. If you want to access it, declare it public.");
+                return privateCandidate;
             }
         }
         return null;
     }
 
-    public static @Nullable NameDef lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
-//		WLogger.info("lookupMemberVar " + receiverType+"."+name);
+    public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
-//				WLogger.info("	- " + n);
-                WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof VarLink
-                        && n_receiverType != null
-                        && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    if (showErrors) {
-                        if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
-                            node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-                        }
-                        if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
-                            node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
-                        }
-                    }
-
-                    return n.getDef();
+                if (!(n instanceof VarLink)) {
+                    continue;
+                }
+                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
+                if (n2 != null) {
+                    return n2;
                 }
             }
             scope = nextScope(scope);
         }
+
+        if (receiverType instanceof WurstTypeClassOrInterface) {
+            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
+            for (DefLink n : ct.nameLinks().get(name)) {
+                if (n instanceof VarLink || n instanceof TypeDefLink) {
+                    if (n.getVisibility().isPublic()) {
+                        return n;
+                    }
+                }
+            }
+        } else if (receiverType instanceof WurstTypeArray && name.equals("length")) {
+            // special lookup for length
+            WurstTypeArray wta = (WurstTypeArray) receiverType;
+            if (wta.getDimensions() > 0) {
+                int size = wta.getSize(0);
+                return new OtherLink(Visibility.PUBLIC, name, WurstTypeInt.instance()) {
+                    @Override
+                    public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
+                        return JassIm.ImIntVal(size);
+                    }
+                };
+            }
+        }
+
         return null;
+    }
+
+    public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
+        WurstType n_receiverType = n.getReceiverType();
+        if (n_receiverType == null) {
+            return null;
+        }
+        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(n.getTypeParams()), VariablePosition.RIGHT);
+        if (mapping == null) {
+            return null;
+        }
+        if (showErrors) {
+            if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
+                node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
+            }
+            if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
+                node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
+            }
+        }
+        return n.withTypeArgBinding(node, mapping);
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
@@ -214,7 +243,7 @@ public class NameResolution {
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
-                    } else if (privateCandidate != null) {
+                    } else if (privateCandidate == null) {
                         privateCandidate = n;
                     }
                 }
@@ -232,20 +261,20 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find type " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
-                        " If you want to access it, declare it public.");
+                node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
+                        + " is not visible inside this package. If you want to access it, declare it public.");
                 return (TypeDef) privateCandidate.getDef();
             }
         }
         return null;
     }
 
-    public static @Nullable WPackage lookupPackage(Element node, String name, boolean showErrors) {
+    public static PackageLink lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getDef() instanceof WPackage) {
-                    return (WPackage) n.getDef();
+            for (NameLink n : scope.attrNameLinks().get(name)) {
+                if (n instanceof PackageLink) {
+                    return (PackageLink) n;
                 }
             }
             scope = nextScope(scope);
@@ -261,11 +290,11 @@ public class NameResolution {
         return lookupMemberFuncs(elem, receiverType, name, true);
     }
 
-    public static @Nullable NameDef lookupVarShort(Element node, String name) {
+    public static NameLink lookupVarShort(Element node, String name) {
         return lookupVar(node, name, true);
     }
 
-    public static @Nullable NameDef lookupMemberVarShort(Element node, WurstType receiverType, String name) {
+    public static NameLink lookupMemberVarShort(Element node, WurstType receiverType, String name) {
         return lookupMemberVar(node, receiverType, name, true);
     }
 
@@ -273,14 +302,15 @@ public class NameResolution {
         return lookupType(node, name, true);
     }
 
-    public static @Nullable WPackage lookupPackageShort(Element node, String name) {
+    public static PackageLink lookupPackageShort(Element node, String name) {
         return lookupPackage(node, name, true);
     }
 
-    public static @Nullable NameDef lookupVar(Element e, String name, boolean showErrors) {
-        NameDef v = e.lookupVarNoConfig(name, showErrors);
+    public static NameLink lookupVar(Element e, String name, boolean showErrors) {
+        NameLink v = e.lookupVarNoConfig(name, showErrors);
         if (v != null) {
-            return (NameDef) v.attrConfigActualNameDef();
+            NameDef actual = v.getDef().attrConfigActualNameDef();
+            return v.withDef(actual);
         }
         return null;
     }

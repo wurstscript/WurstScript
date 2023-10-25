@@ -3,8 +3,11 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * This attribute calculates the expected type for an expression
@@ -18,7 +21,7 @@ import java.util.Collection;
  */
 public class AttrExprExpectedType {
 
-    public static WurstType calculate(Expr expr) {
+    public static @NonNull WurstType calculate(Expr expr) {
         try {
             Element parent = expr.getParent();
             if (parent instanceof Arguments) {
@@ -27,22 +30,20 @@ public class AttrExprExpectedType {
                 if (parent2 instanceof StmtCall) {
                     StmtCall stmtCall = (StmtCall) parent2;
                     return expectedType(expr, args, stmtCall);
-                } else if (parent2 instanceof ConstructorDef) {
-                    ConstructorDef constructorDef = (ConstructorDef) parent2;
+                } else if (parent2 instanceof SuperConstructorCall) {
+                    SuperConstructorCall constructorDef = (SuperConstructorCall) parent2;
                     return expectedTypeSuperCall(constructorDef, expr);
                 }
             } else if (parent instanceof StmtSet) {
                 StmtSet stmtSet = (StmtSet) parent;
                 if (stmtSet.getRight() == expr) {
-                    WurstType leftType = stmtSet.getUpdatedExpr().attrTyp();
-                    return leftType;
+                    return stmtSet.getUpdatedExpr().attrTyp();
                 } else if (stmtSet.getUpdatedExpr() == expr) {
                     return WurstTypeUnknown.instance();
                 }
             } else if (parent instanceof VarDef) {
                 VarDef varDef = (VarDef) parent;
-                WurstType leftType = varDef.attrTyp();
-                return leftType;
+                return varDef.attrTyp();
             } else if (parent instanceof ExprBinary) {
                 ExprBinary exprBinary = (ExprBinary) parent;
                 WurstType leftType = exprBinary.getLeft().attrTyp();
@@ -86,38 +87,48 @@ public class AttrExprExpectedType {
                 } else {
                     return ie.attrExpectedTypRaw();
                 }
+            } else if (parent instanceof ExprMemberMethod) {
+                ExprMemberMethod m = (ExprMemberMethod) parent;
+                if (m.getLeft() == expr) {
+                    WurstType receiverType = m.attrFunctionSignature().getReceiverType();
+                    if (receiverType == null) {
+                        return WurstTypeUnknown.instance();
+                    }
+                    return receiverType;
+                }
             }
-//			} else if (parent instanceof ExprMemberMethod) {
-//				ExprMemberMethod m = (ExprMemberMethod) parent;
-//				if (m.getLeft() == expr) {
-//					return m.attrFunctionSignature().getReceiverType();
-//				}
-//            }
-        } catch (CompileError t) {
+        } catch (CyclicDependencyError | CompileError t) {
+            WLogger.info("Something went wrong while computing the expected type for "
+                    + Utils.printElementWithSource(Optional.of(expr))
+                    + "\nThis is probably not a bug, but we are logging it anyway since it might help to improve error "
+                    + "messages.");
             WLogger.info(t);
         }
+
         return WurstTypeUnknown.instance();
     }
 
-    private static WurstType expectedTypeSuperCall(ConstructorDef constr, Expr expr) {
+    private static WurstType expectedTypeSuperCall(SuperConstructorCall sc, Expr expr) {
+        ConstructorDef constr = (ConstructorDef) sc.getParent();
         ClassDef c = constr.attrNearestClassDef();
         if (c == null) {
-            return null;
+            return WurstTypeUnknown.instance();
         }
-        ClassDef superClass = c.attrExtendedClass();
+        WurstTypeClass superClass = c.attrTypC().extendedClass();
         if (superClass == null) {
-            return null;
+            return WurstTypeUnknown.instance();
         }
         // call super constructor
-        ConstructorDefs constructors = superClass.getConstructors();
+        ClassDef superClassDef = superClass.getDef();
+        ConstructorDefs constructors = superClassDef.getConstructors();
 
 
         WurstType res = WurstTypeUnknown.instance();
 
-        int paramIndex = constr.getSuperArgs().indexOf(expr);
+        int paramIndex = SmallHelpers.superArgs(constr).indexOf(expr);
 
         for (ConstructorDef superConstr : constructors) {
-            if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
+            if (superConstr.getParameters().size() == SmallHelpers.superArgs(constr).size()) {
                 res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
             }
         }
@@ -133,17 +144,37 @@ public class AttrExprExpectedType {
         WurstType res = WurstTypeUnknown.instance();
 
         for (FunctionSignature sig : sigs) {
-            if (index >= sig.getParamTypes().size() - 1 &&  sig.isVararg()) {
-                res = res.typeUnion(sig.getVarargType(), expr);
-            } else if (index < sig.getParamTypes().size()) {
-                res = res.typeUnion(sig.getParamTypes().get(index), expr);
+            if (index < sig.getMaxNumParams()) {
+                res = res.typeUnion(sig.getParamType(index), expr);
             }
         }
         return res;
+    }
+
+    private static WurstType expectedTypeAfterOverloading(Expr expr, Arguments args, StmtCall stmtCall) {
+        FunctionSignature sig = stmtCall.attrFunctionSignature();
+        int index = args.indexOf(expr);
+
+        if (index < sig.getMaxNumParams()) {
+            return sig.getParamType(index);
+        }
+        return WurstTypeUnknown.instance();
     }
 
     public static WurstType normalizedType(Expr e) {
         return e.attrExpectedTypRaw().normalize();
     }
 
+    public static WurstType afterOverloading(Expr e) {
+        Element parent = e.getParent();
+        if (parent instanceof Arguments) {
+            Arguments args = (Arguments) parent;
+            Element parent2 = args.getParent();
+            if (parent2 instanceof StmtCall) {
+                StmtCall stmtCall = (StmtCall) parent2;
+                return expectedTypeAfterOverloading(e, args, stmtCall).normalize();
+            }
+        }
+        return e.attrExpectedTyp();
+    }
 }

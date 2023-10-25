@@ -36,6 +36,7 @@ package Entity
 		function setVelocity(vec3 v)
 			real r = 0.   
 
-		
+	function vec3.addReals(real x, real y, real z) returns vec3
+		return vec3(this.x + x, this.y + y, this.z + z)
 
 endpackage

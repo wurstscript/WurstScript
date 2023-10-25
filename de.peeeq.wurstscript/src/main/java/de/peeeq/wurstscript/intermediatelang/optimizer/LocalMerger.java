@@ -1,43 +1,58 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import de.peeeq.datastructures.Worklist;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import org.eclipse.jdt.annotation.NonNull;
+import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.collection.HashSet;
+import io.vavr.collection.Set;
 
 import java.util.*;
+
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
 /**
  * merges local variable, if they have disjoint live-spans
  * <p>
  * the input must be a flattened program
  */
-public class LocalMerger {
-    public int totalLocalsMerged = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
+public class LocalMerger implements OptimizerPass {
+    private int totalLocalsMerged = 0;
 
-    public LocalMerger(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
-    }
-
-    public void optimize() {
-        for (ImFunction func : prog.getFunctions()) {
-            optimizeFunc(func);
+    @Override
+    public int optimize(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
+        totalLocalsMerged = 0;
+        for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
+            if (!func.isNative() && !func.isBj()) {
+                optimizeFunc(func);
+            }
         }
+        return totalLocalsMerged;
     }
 
-    private void optimizeFunc(ImFunction func) {
-        Multimap<ImStmt, ImVar> livenessInfo = calculateLiveness(func);
+
+    @Override
+    public String getName() {
+        return "Local variables merged";
+    }
+
+    void optimizeFunc(ImFunction func) {
+        Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, func);
     }
 
-    private void mergeLocals(Multimap<ImStmt, ImVar> livenessInfo, ImFunction func) {
-        Multimap<ImVar, ImVar> inferenceGraph = calculateInferenceGraph(livenessInfo);
+    private boolean canMerge(ImType a, ImType b) {
+        return a.equalsType(b);
+    }
+
+    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        Map<ImVar, Set<ImVar>> inferenceGraph = calculateInferenceGraph(livenessInfo);
 
         // priority queue, sorted by number of inferring vars
         PriorityQueue<ImVar> vars = new PriorityQueue<>((ImVar a, ImVar b) ->
@@ -48,18 +63,19 @@ public class LocalMerger {
 
         // variables which represent their own 'color', initially these are the parameters
         List<ImVar> assigned = new ArrayList<>(func.getParameters());
-
+        if(func.hasFlag(IS_VARARG)) {
+            assigned.remove(assigned.size() - 1);
+        }
         Map<ImVar, ImVar> merges = new HashMap<>();
 
         nextVar:
         while (!vars.isEmpty()) {
             ImVar v = vars.poll();
-//			System.out.println("v = " + v + " // " + inferenceGraph.get(v));
 
             // check if there is some other variable which is already assigned, has the same type and does not interfere
             nextAssigned:
             for (ImVar other : assigned) {
-                if (other.getType().equalsType(v.getType())) {
+                if (canMerge(other.getType(), v.getType()) ) {
                     for (ImVar inferingVar : inferenceGraph.get(v)) {
                         if (merges.getOrDefault(inferingVar, inferingVar) == other) {
                             // variable already used by infering var, try next color
@@ -76,7 +92,6 @@ public class LocalMerger {
 
         totalLocalsMerged += merges.size();
 
-//		System.out.println("merges = " + merges);
         func.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -90,37 +105,60 @@ public class LocalMerger {
             @Override
             public void visit(ImSet set) {
                 super.visit(set);
-                ImVar v = set.getLeft();
+                if (set.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) set.getLeft()).getVar();
+                    if (merges.containsKey(v)) {
+                        set.setLeft(JassIm.ImVarAccess(merges.get(v)));
+                    }
+                }
+            }
+
+            @Override
+            public void visit(ImVarargLoop varargLoop) {
+                super.visit(varargLoop);
+                ImVar v = varargLoop.getLoopVar();
                 if (merges.containsKey(v)) {
-                    set.setLeft(merges.get(v));
+                    varargLoop.setLoopVar(merges.get(v));
                 }
             }
         });
     }
 
-    private Multimap<ImVar, ImVar> calculateInferenceGraph(Multimap<ImStmt, ImVar> livenessInfo) {
-        Multimap<ImVar, ImVar> inferenceGraph = HashMultimap.create();
-        for (ImStmt s : livenessInfo.keySet()) {
-            Collection<ImVar> live = livenessInfo.get(s);
+    /**
+     * for each variable: the set of variables which share some lifetime-range
+     */
+    private Map<ImVar, Set<ImVar>> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
+        Map<ImVar, Set<ImVar>> inferenceGraph = new LinkedHashMap<>();
+        java.util.Set<ImStmt> keys = livenessInfo.keySet();
+        int i  = 0;
+        for (ImStmt s : keys) {
+            i++;
+            Set<ImVar> live = livenessInfo.get(s);
             for (ImVar v1 : live) {
-                for (ImVar v2 : live) {
-                    if (v1.getType().equalsType(v2.getType())) {
-                        inferenceGraph.put(v1, v2);
-                    }
-                }
+                Set<ImVar> inferenceSet = inferenceGraph.getOrDefault(v1, HashSet.empty());
+                inferenceSet = inferenceSet.addAll(live.filter(v2 -> canMerge(v1.getType(), v2.getType()) ));
+                inferenceGraph.put(v1, inferenceSet);
             }
         }
         return inferenceGraph;
     }
 
-    private void eliminateDeadCode(Multimap<@NonNull ImStmt, @NonNull ImVar> livenessInfo) {
+    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
         for (ImStmt s : livenessInfo.keySet()) {
             if (s instanceof ImSet) {
                 ImSet imSet = (ImSet) s;
-                if (imSet.getLeft().isGlobal()) {
+                ImVar v = null;
+                if(imSet.getLeft() instanceof ImVarAccess) {
+                    ImVarAccess va = (ImVarAccess) imSet.getLeft();
+                    v = va.getVar();
+                } else if(imSet.getLeft() instanceof ImTupleSelection) {
+                    v = TypesHelper.getSimpleAndPureTupleVar((ImTupleSelection) imSet.getLeft());
+                }
+                if (v == null || v.isGlobal()) {
                     continue;
                 }
-                if (!livenessInfo.get(s).contains(imSet.getLeft())) {
+
+                if (!livenessInfo.get(s).contains(v)) {
                     // write to a variable which is not live
                     // --> only keep side effects
                     ImExpr right = imSet.getRight();
@@ -132,100 +170,40 @@ public class LocalMerger {
     }
 
 
-    private Multimap<ImStmt, ImVar> calculateLiveness_old(ImFunction func) {
+    public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Set<ImVar>> in = new HashMap<>();
-        Map<Node, Set<ImVar>> out = new HashMap<>();
-        // init in and out with empty sets
-        List<Node> nodes = new ArrayList<>(cfg.getNodes());
-        // go through list in reverse order, because liveness flows backwards
-        Collections.reverse(nodes);
+        Map<Node, Set<ImVar>> in = new LinkedHashMap<>();
+        Map<Node, Set<ImVar>> out = new LinkedHashMap<>();
 
+        Worklist<Node> todo = new Worklist<>();
 
-        for (Node node : nodes) {
-            in.put(node, Collections.emptySet());
-            out.put(node, Collections.emptySet());
-        }
-        // calculate def- and use- sets for each node
-        Multimap<Node, ImVar> def = calculateDefs(nodes);
-        Multimap<Node, ImVar> use = calculateUses(nodes);
-        boolean changes = true;
-        int iterations = 0;
-        while (changes) {
-            iterations++;
-            changes = false;
-            for (Node node : nodes) {
-                // in[n] = use[n] + (out[n] - def[n])
-                Set<ImVar> newIn = new HashSet<>(out.get(node));
-                newIn.removeAll(def.get(node));
-                newIn.addAll(use.get(node));
-
-                // out[n] = union s in succ[n]: in[s]
-                Set<ImVar> newOut = new HashSet<>();
-                for (Node s : node.getSuccessors()) {
-                    newOut.addAll(in.get(s));
-                }
-
-                if (!newIn.equals(in.get(node))) {
-                    changes = true;
-                    in.put(node, newIn);
-                }
-                if (!newOut.equals(out.get(node))) {
-                    changes = true;
-                    out.put(node, newOut);
-                }
-            }
-        }
-//		System.out.println("result after " + iterations + " iterations with " + nodes.size() + " nodes in func " + func.getName());
-
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
-//		System.out.println("//#########################################");
-//		System.out.println("// liveness for " + func.getName());
-//		for (Node node : nodes) {
-//			System.out.println(" // " + in.get(node));
-//			System.out.println(node);
-//			System.out.println(" // " + out.get(node));
-//		}
-        for (Node node : nodes) {
-            ImStmt stmt = node.getStmt();
-            if (stmt != null) {
-                result.putAll(stmt, out.get(node));
-            }
-        }
-        return result;
-    }
-
-    private Multimap<ImStmt, ImVar> calculateLiveness(ImFunction func) {
-        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Set<ImVar>> in = new HashMap<>();
-        Map<Node, Set<ImVar>> out = new HashMap<>();
-
-        Deque<Node> todo = new ArrayDeque<>();
+        Map<Node, Integer> index = new LinkedHashMap<>();
 
         // init in and out with empty sets
         for (Node node : cfg.getNodes()) {
-            in.put(node, Collections.emptySet());
-            out.put(node, Collections.emptySet());
+            in.put(node, HashSet.empty());
+            out.put(node, HashSet.empty());
             todo.addFirst(node);
+            index.put(node, 1+ index.size());
         }
+
         // calculate def- and use- sets for each node
-        Multimap<Node, ImVar> def = calculateDefs(cfg.getNodes());
-        Multimap<Node, ImVar> use = calculateUses(cfg.getNodes());
-        boolean changes = true;
-        int iterations = 0;
+        Map<Node, Set<ImVar>> def = calculateDefs(cfg.getNodes());
+        Map<Node, Set<ImVar>> use = calculateUses(cfg.getNodes());
         while (!todo.isEmpty()) {
             Node node = todo.poll();
-            iterations++;
-            // in[n] = use[n] + (out[n] - def[n])
-            Set<ImVar> newIn = new HashSet<>(out.get(node));
-            newIn.removeAll(def.get(node));
-            newIn.addAll(use.get(node));
 
             // out[n] = union s in succ[n]: in[s]
-            Set<ImVar> newOut = new HashSet<>();
-            for (Node s : node.getSuccessors()) {
-                newOut.addAll(in.get(s));
-            }
+            Set<ImVar> newOut = node.getSuccessors()
+                .stream()
+                .map(in::get)
+                .reduce(HashSet.empty(), Set::union);
+
+            // in[n] = use[n] + (out[n] - def[n])
+            Set<ImVar> newIn = newOut;
+            newIn = newIn.diff(def.get(node));
+            newIn = newIn.union(use.get(node));
+
 
             if (!newIn.equals(in.get(node))) {
                 in.put(node, newIn);
@@ -236,32 +214,23 @@ public class LocalMerger {
             }
             if (!newOut.equals(out.get(node))) {
                 out.put(node, newOut);
-                // if out changes, then this node has to be recalculated
-                todo.addLast(node);
             }
         }
-//		System.out.println("result after " + iterations + " iterations in func " + func.getName());
 
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
-//		System.out.println("//#########################################");
-//		System.out.println("// liveness for " + func.getName());
-//		for (Node node : nodes) {
-//			System.out.println(" // " + in.get(node));
-//			System.out.println(node);
-//			System.out.println(" // " + out.get(node));
-//		}
+        Map<ImStmt, Set<ImVar>> result = new LinkedHashMap<>();
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
-                result.putAll(stmt, out.get(node));
+                result.put(stmt, out.get(node));
             }
         }
         return result;
     }
 
-    private Multimap<Node, ImVar> calculateUses(List<Node> nodes) {
-        Multimap<Node, ImVar> result = HashMultimap.create();
+    private Map<Node, Set<ImVar>> calculateUses(List<Node> nodes) {
+        Map<Node, Set<ImVar>> result = new LinkedHashMap<>();
         for (Node node : nodes) {
+            List<ImVar> uses = new ArrayList<>();
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
                 stmt.accept(new ImStmt.DefaultVisitor() {
@@ -269,26 +238,74 @@ public class LocalMerger {
                     public void visit(ImVarAccess va) {
                         super.visit(va);
                         if (!va.getVar().isGlobal()) {
-                            result.put(node, va.getVar());
+                            uses.add(va.getVar());
                         }
                     }
+
+                    @Override
+                    public void visit(ImSet set) {
+                        set.getRight().accept(this);
+                        Element.DefaultVisitor outerThis = this;
+                        set.getLeft().match(new ImLExpr.MatcherVoid() {
+                            @Override
+                            public void case_ImTupleSelection(ImTupleSelection e) {
+                                ((ImLExpr) (e.getTupleExpr())).match(this);
+                            }
+
+                            @Override
+                            public void case_ImVarAccess(ImVarAccess e) {
+                            }
+
+                            @Override
+                            public void case_ImVarArrayAccess(ImVarArrayAccess e) {
+                                e.getIndexes().accept(outerThis);
+                            }
+
+                            @Override
+                            public void case_ImMemberAccess(ImMemberAccess e) {
+                                e.getReceiver().accept(outerThis);
+                                e.getIndexes().accept(outerThis);
+                            }
+
+                            @Override
+                            public void case_ImStatementExpr(ImStatementExpr e) {
+                                e.getStatements().accept(outerThis);
+                                ((ImLExpr) e.getExpr()).match(this);
+                            }
+
+                            @Override
+                            public void case_ImTupleExpr(ImTupleExpr e) {
+                                for (ImExpr expr : e.getExprs()) {
+                                    ((ImLExpr) expr).match(this);
+                                }
+                            }
+                        });
+                    }
                 });
+            }
+            result.put(node, HashSet.ofAll(uses));
+        }
+        return result;
+    }
+
+    private Map<Node, Set<ImVar>> calculateDefs(List<Node> nodes) {
+        Map<Node, Set<ImVar>>result = new LinkedHashMap<>();
+        for (Node node : nodes) {
+            result.put(node, HashSet.empty());
+            ImStmt stmt = node.getStmt();
+            if (stmt instanceof ImSet) {
+                ImSet imSet = (ImSet) stmt;
+                if (imSet.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) imSet.getLeft()).getVar();
+                    if (!v.isGlobal()) {
+                        result.put(node, HashSet.of(v));
+                    }
+                }
+                // no special case for tuple selection, as they do not override all previous values
             }
         }
         return result;
     }
 
-    private Multimap<Node, ImVar> calculateDefs(List<Node> nodes) {
-        Multimap<Node, ImVar> result = HashMultimap.create();
-        for (Node node : nodes) {
-            ImStmt stmt = node.getStmt();
-            if (stmt instanceof ImSet) {
-                ImSet imSet = (ImSet) stmt;
-                if (!imSet.getLeft().isGlobal()) {
-                    result.put(node, imSet.getLeft());
-                }
-            }
-        }
-        return result;
-    }
+
 }

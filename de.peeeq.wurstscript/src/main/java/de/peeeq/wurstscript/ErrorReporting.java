@@ -7,6 +7,7 @@ public class ErrorReporting {
 
 
     public void handleSevere(Throwable t, String sourcecode) {
+        System.err.println(t.toString());
         WLogger.severe(t);
     }
 

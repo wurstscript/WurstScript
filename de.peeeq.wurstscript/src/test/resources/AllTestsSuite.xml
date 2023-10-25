@@ -13,4 +13,9 @@
             <class name="tests.wurstscript.tests.ModelManagerTests"/>
         </classes>
     </test>
+    <test name="JurstTests">
+        <classes>
+            <class name="tests.wurstscript.tests.JurstTests"/>
+        </classes>
+    </test>
 </suite>

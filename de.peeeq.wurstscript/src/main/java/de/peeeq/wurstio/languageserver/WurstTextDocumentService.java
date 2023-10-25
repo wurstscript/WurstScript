@@ -38,21 +38,21 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<Hover> hover(TextDocumentPositionParams position) {
+    public CompletableFuture<Hover> hover(HoverParams hoverParams) {
         WLogger.info("hover");
-        return worker.handle(new HoverInfo(position, worker.getBufferManager()));
+        return worker.handle(new HoverInfo(hoverParams, worker.getBufferManager()));
     }
 
     @Override
-    public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams position) {
+    public CompletableFuture<SignatureHelp> signatureHelp(SignatureHelpParams helpParams) {
         WLogger.info("signatureHelp");
-        return worker.handle(new SignatureInfo(position, worker.getBufferManager()));
+        return worker.handle(new SignatureInfo(helpParams));
     }
 
     @Override
-    public CompletableFuture<List<? extends Location>> definition(TextDocumentPositionParams position) {
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams definitionParams) {
         WLogger.info("definition");
-        return worker.handle(new GetDefinition(position, worker.getBufferManager()));
+        return worker.handle(new GetDefinition(definitionParams, worker.getBufferManager()));
     }
 
     @Override
@@ -66,9 +66,9 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams position) {
+    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(DocumentHighlightParams highlightParams) {
         WLogger.info("documentHighlight");
-        return worker.handle(new GetUsages(position, worker.getBufferManager(), false))
+        return worker.handle(new GetUsages(highlightParams, worker.getBufferManager(), false))
                 .thenApply((List<GetUsages.UsagesData> udList) ->
                         udList.stream()
                                 .map(GetUsages.UsagesData::toDocumentHighlight)
@@ -76,26 +76,24 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
-        return worker.handle(new SymbolInformationRequest(params));
+    public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
+        return worker.handle(new DocumentSymbolRequest(params));
     }
 
     @Override
-    public CompletableFuture<List<? extends Command>> codeAction(CodeActionParams params) {
+    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
         WLogger.info("codeAction");
         return worker.handle(new CodeActionRequest(params, worker.getBufferManager()));
     }
 
     @Override
     public CompletableFuture<List<? extends CodeLens>> codeLens(CodeLensParams params) {
-        WLogger.info("codeLens");
-        return null;
+        return worker.handle(new CodeLensRequest.GetCodeLens(params, worker. getBufferManager()));
     }
 
     @Override
     public CompletableFuture<CodeLens> resolveCodeLens(CodeLens unresolved) {
-        WLogger.info("resolveCodeLens");
-        return null;
+        return worker.handle(new CodeLensRequest.Resolve(unresolved));
     }
 
     @Override
@@ -156,5 +154,20 @@ public class WurstTextDocumentService implements TextDocumentService {
     public void didSave(DidSaveTextDocumentParams params) {
         WLogger.info("didSave");
 
+    }
+
+    @Override
+    public CompletableFuture<List<ColorInformation>> documentColor(DocumentColorParams params) {
+        return worker.handle(new Colors.DocumentColorRequest(params));
+    }
+
+    @Override
+    public CompletableFuture<List<ColorPresentation>> colorPresentation(ColorPresentationParams params) {
+        return worker.handle(new Colors.ColorPresentationRequest(params));
+    }
+
+    @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        return worker.handle(new FoldingRangeRequest(params));
     }
 }

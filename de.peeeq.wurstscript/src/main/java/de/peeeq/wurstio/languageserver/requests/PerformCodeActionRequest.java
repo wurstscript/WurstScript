@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.util.Collections;
@@ -18,7 +19,8 @@ import java.util.List;
  *
  */
 public class PerformCodeActionRequest extends UserRequest<Object> {
-    public static final String IMPORT_PACKAGE = "IMPORT_PACKAGE";
+    private static final String IMPORT_PACKAGE = "IMPORT_PACKAGE";
+    private static final String INSERT_CODE = "INSERT_CODE";
     private final WurstLanguageServer server;
     private final ExecuteCommandParams params;
     private final List<Object> args;
@@ -39,9 +41,18 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
         switch (action.get("type").getAsString()) {
             case IMPORT_PACKAGE:
                 return addImport(modelManager, action.get("uriString").getAsString(), action.get("import").getAsString());
-
+            case INSERT_CODE:
+                return insertCodeAction(modelManager, action.get("uriString").getAsString(), action.get("line").getAsInt(), action.get("insertedFunction").getAsString());
         }
         throw new RuntimeException("Unhandled action: " + action);
+    }
+
+    private Object insertCodeAction(ModelManager modelManager, String fileUri, int line, String insertedFunction) {
+        WFile file = WFile.create(fileUri);
+        Range range = new Range(new Position(line, 0), new Position(line, 0));
+        TextEdit textEdit = new TextEdit(range, insertedFunction);
+        List<TextEdit> textEdits = Collections.singletonList(textEdit);
+        return applyTextEdits(file, textEdits);
     }
 
     private Object addImport(ModelManager modelManager, String fileUri, String importName) {
@@ -52,7 +63,7 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
 
         if (!cu.getPackages().isEmpty()) {
             WPackage p = cu.getPackages().get(0);
-            int line = p.getNameId().getSource().getLine() + 1;
+            int line = p.getNameId().getSource().getLine();
             for (WImport imp : p.getImports()) {
                 line = Math.max(line, imp.getPackagenameId().getSource().getLine());
             }
@@ -68,11 +79,10 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
     private Object applyTextEdits(WFile file, List<TextEdit> textEdits) {
         LanguageClient languageClient = server.getLanguageClient();
         int version = server.worker().getBufferManager().getTextDocumentVersion(file);
-        VersionedTextDocumentIdentifier textDocument = new VersionedTextDocumentIdentifier(version);
-        textDocument.setUri(file.getUriString());
+        VersionedTextDocumentIdentifier textDocument = new VersionedTextDocumentIdentifier(file.getUriString(), version);
 
         TextDocumentEdit change = new TextDocumentEdit(textDocument, textEdits);
-        List<TextDocumentEdit> documentChanges = Collections.singletonList(change);
+        List<Either<TextDocumentEdit, ResourceOperation>> documentChanges = Collections.singletonList(Either.forLeft(change));
         languageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(documentChanges)));
         return "ok";
     }
@@ -82,6 +92,15 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
         jsonObject.addProperty("type", IMPORT_PACKAGE);
         jsonObject.addProperty("uriString", uriString);
         jsonObject.addProperty("import", imp);
+        return jsonObject;
+    }
+
+    public static JsonObject insertCodeAction(String uriString, int line, String insertedFunction) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("type", INSERT_CODE);
+        jsonObject.addProperty("uriString", uriString);
+        jsonObject.addProperty("line", line);
+        jsonObject.addProperty("insertedFunction", insertedFunction);
         return jsonObject;
     }
 }

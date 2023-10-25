@@ -1,6 +1,12 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstscript.attributes.CompileError;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.testng.annotations.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class InterfaceTests extends WurstScriptTest {
 
@@ -477,7 +483,7 @@ public class InterfaceTests extends WurstScriptTest {
 
     @Test
     public void testOverrideFail() {
-        testAssertErrorsLines(false, "Cannot implement interface I because of function foo: The type of parameter x is string but it should be integer",
+        testAssertErrorsLines(false, "Non-abstract class C must implement the following functions:",
                 "package test",
                 "	native testSuccess()",
                 "	interface I",
@@ -504,5 +510,52 @@ public class InterfaceTests extends WurstScriptTest {
                 "			testSuccess()",
                 "endpackage"
         );
+    }
+
+    @Test
+    public void implGap() { // #676
+        testAssertOkLines(true,
+                "package test1",
+                "	interface I",
+                "		function foo() returns int",
+                "	public abstract class B implements I",
+                "		override function foo() returns int",
+                "			return 2",
+                "endpackage",
+                "package test2",
+                "	import test1",
+                "	public class C extends B",
+                "endpackage",
+                "package test",
+                "	import test2",
+                "	native testSuccess()",
+                "	class D extends C",
+                "	init",
+                "		C c1 = new C()",
+                "		C c2 = new D()",
+                "		if c1.foo() == 2 and c2.foo() == 2",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testEmptyImplements() {
+        CompilationResult res = test().executeProg(false)
+                .setStopOnFirstError(false)
+                .lines(
+                        "package test",
+                        "native testSuccess()",
+                        "class A implements",
+                        "init"
+                );
+        for (CompileError compileError : res.getGui().getErrorList()) {
+            System.err.println("" + compileError);
+        }
+        assertThat(res.getGui().getErrorList(), CoreMatchers.hasItem(
+                ExtraMatchers.get("getMessage",
+                        CoreMatchers.containsString("Expecting interface name after `implements`"))));
+
+
     }
 }

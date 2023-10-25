@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class WurstServer {
+    private static final int portNumber = 27425;
 
-    private int portNumber = 27425;
     private volatile boolean stopped;
     private Consumer<String> printer = System.out::println;
     private @Nullable ServerSocket serverSocket;
@@ -96,7 +96,6 @@ public class WurstServer {
 
     private void wurstMain(final List<String> args) {
         String[] array = args.toArray(new String[0]);
-        assert array != null;
         Main.main(array);
     }
 

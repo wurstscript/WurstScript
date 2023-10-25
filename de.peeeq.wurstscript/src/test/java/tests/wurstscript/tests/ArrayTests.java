@@ -9,7 +9,6 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void testArray1() {
-        System.out.println("");
         assertOk(true,
                 "int array blub",
                 "init",
@@ -86,7 +85,7 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void array_init_global_fail1() {
-        testAssertErrorsLines(false, "Expected expression of type integer in array initialization, but found string",
+        testAssertErrorsLines(false, "Expected expression of type int in array initialization, but found string",
                 "package test",
                 "int array blub = [1,\"2\",3,4]"
         );
@@ -94,7 +93,7 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void array_init_local_fail1() {
-        testAssertErrorsLines(false, "Expected expression of type integer in array initialization, but found string",
+        testAssertErrorsLines(false, "Expected expression of type int in array initialization, but found string",
                 "package test",
                 "function foo()",
                 "   int array blub = [1,\"2\",3,4]"
@@ -120,6 +119,75 @@ public class ArrayTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void array_init_length1() {
+        assertOk(true,
+                "init",
+                "	var blub = [1,2,3,4]",
+                "	if blub.length == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void array_init_length2() {
+        assertOk(true,
+                "init",
+                "	int array[7] blub",
+                "	if blub.length == 7",
+                "		testSuccess()"
+        );
+    }
+
+
+    @Test
+    public void multiArrayDefaultValue() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[5] v",
+                "init",
+                "    let c = new C",
+                "    c.v[2] = c.v[3] + 1",
+                "    if c.v[2] == 1",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiArrayInit() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[3] v = [7, 8, 9]",
+                "init",
+                "    let c = new C",
+                "    if c.v[0] == 7 and c.v[1] == 8 and c.v[2] == 9",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiArrayWrongSize() {
+        testAssertErrorsLines(true, "Array variable v is an array of size 3, but is initialized with 4 values here.",
+                "package test",
+                "class C",
+                "    int array[3] v = [7, 8, 9, 10]"
+        );
+    }
+
+    @Test
+    public void conditionalWithArray() { // see #631
+        testAssertOkLines(false,
+                "package test",
+                "bool cond = true",
+                "int array[3] zzzz",
+                "function ffff() returns int",
+                "    return cond ? zzzz[1] : 0");
+    }
+
 
     public void assertOk(boolean executeProg, String... input) {
         String prog = "package test\n" +
@@ -130,4 +198,65 @@ public class ArrayTests extends WurstScriptTest {
         testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
     }
 
+    @Test
+    public void classArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "Test array ar",
+            "class Test",
+            "    int x",
+            "init",
+            "    if ar[5] == null",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void intArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int array ar",
+            "init",
+            "    if ar[5] == 0",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void shorthandAssignmentNoWarning() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int array testArray",
+            "int numExecutions = 0",
+            "function getIndex() returns int",
+            "    numExecutions++",
+            "    return 2",
+            "init",
+            "    let tmp = 17",
+            "    testArray[getIndex() + tmp] += 1",
+            "    if numExecutions == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void shorthandAssignmentClassNoWarning() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int numExecutions = 0",
+            "class C",
+            "    int array[3] v = [7, 8, 9]",
+            "function getIndex() returns int",
+            "    numExecutions++",
+            "    return 1",
+            "init",
+            "    let tmp = 1",
+            "    let c = new C()",
+            "    c.v[getIndex() + tmp] += 1",
+            "    if numExecutions == 1",
+            "        testSuccess()"
+        );
+    }
 }

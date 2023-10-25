@@ -1,9 +1,8 @@
 package de.peeeq.wurstio;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.GuiUtils;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
@@ -26,7 +25,7 @@ public class ErrorReportingIO extends ErrorReporting {
             // ignore
         }
 
-        String title = "Sorry!";
+        String title = "Sor!";
         String message = "You have encountered a bug in the Wurst Compiler.\n" +
                 "Your version is: " + AboutDialog.version + "\n" +
                 "The Error message is: " + t.getMessage() + "\n" + Utils.printExceptionWithStackTrace(t) + "\n\n" +
@@ -85,7 +84,7 @@ public class ErrorReportingIO extends ErrorReporting {
 
 
             try {
-                Files.write(sourcecode, new File("errorreport_source.wurst"), Charsets.UTF_8);
+                FileUtils.write(sourcecode, new File("errorreport_source.wurst"));
             } catch (IOException e) {
                 WLogger.severe(e);
             }

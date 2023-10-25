@@ -63,7 +63,7 @@ public class FlowAnalysisTests extends WurstScriptTest {
 
     @Test
     public void testUnreachable1() {
-        assertError(false, "unreachable code",
+        assertError(false, "Unreachable code",
                 "function foo(int i) returns int",
                 "	if i < 5",
                 "		return 4",
@@ -104,6 +104,33 @@ public class FlowAnalysisTests extends WurstScriptTest {
                 "native testSuccess()\n" +
                 "" + Utils.join(body, "\n") + "\n";
         return prog;
+    }
+
+
+
+    @Test
+    public void destroyDataflowTest() {
+        testAssertErrorsLines(false, "Variable a may have been destroyed already",
+                "package test",
+                "class A",
+                "    function foo()",
+                "init ",
+                "    let a = new A()",
+                "    destroy a",
+                "    a.foo()"
+        );
+    }
+
+    @Test
+    public void destroyThisDataflowTest() {
+        testAssertErrorsLines(false, "Cannot access 'this' because it might already have been destroyed.",
+                "package test",
+                "class A",
+                "    function foo()",
+                "    function bar()",
+                "        destroy this",
+                "        foo()"
+        );
     }
 
 }

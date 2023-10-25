@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class OverriddenFunctions {
@@ -25,6 +23,9 @@ public class OverriddenFunctions {
             // private functions cannot be overridden
             return f;
         }
+        if (!isInModuleInstantiation(f)) {
+            return f;
+        }
         if (f.attrNearestNamedScope() == null) {
             return f;
         }
@@ -33,6 +34,16 @@ public class OverriddenFunctions {
         }
         WScope scope = f.attrNearestNamedScope().getParent().attrNearestScope();
         return getRealFuncDef(f, scope);
+    }
+
+    private static boolean isInModuleInstantiation(Element e) {
+        while (e != null) {
+            if (e instanceof ModuleInstanciation) {
+                return true;
+            }
+            e = e.getParent();
+        }
+        return false;
     }
 
     private static FunctionDefinition getRealFuncDef(FuncDef f, WScope scope) {
@@ -46,7 +57,7 @@ public class OverriddenFunctions {
                     if (nl.getLevel() == c.attrLevel()
                             && nl.getDef() instanceof FunctionDefinition
                             && nl instanceof FuncLink
-                            && WurstValidator.canOverride((FuncLink) nl, fNameLink)
+                            && WurstValidator.canOverride((FuncLink) nl, fNameLink, true)
                             ) {
                         return ((FuncLink) nl).getDef().attrRealFuncDef();
                     }

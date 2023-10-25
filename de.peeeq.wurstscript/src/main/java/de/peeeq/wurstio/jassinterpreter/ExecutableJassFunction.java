@@ -4,9 +4,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 public interface ExecutableJassFunction {
 
     ILconst execute(JassInterpreter jassInterpreter, ILconst... arguments);

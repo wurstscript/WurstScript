@@ -1,11 +1,10 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
-
-import java.util.Map;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 
 public class WurstTypeVararg extends WurstType {
@@ -21,12 +20,12 @@ public class WurstTypeVararg extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeVararg) {
             WurstTypeVararg otherArray = (WurstTypeVararg) other;
-            return baseType.equalsType(otherArray.baseType, location);
+            return baseType.matchTypes(otherArray.baseType, location, mapping, variablePosition);
         }
-        return false;
+        return null;
     }
 
     @Override
@@ -41,19 +40,24 @@ public class WurstTypeVararg extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
-        return baseType.imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return baseType.imTranslateType(tr);
     }
 
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         throw new Error();
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 
     @Override
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> t) {
+    public WurstType setTypeArgs(VariableBinding t) {
         WurstType b = this.baseType.setTypeArgs(t);
         if (b == baseType) {
             return this;

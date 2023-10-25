@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstTypeStaticTypeRef extends WurstType {
 
@@ -13,16 +15,16 @@ public class WurstTypeStaticTypeRef extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeStaticTypeRef) {
-            return base.isSubtypeOf(((WurstTypeStaticTypeRef) other).base, location);
+            return base.matchAgainstSupertype(((WurstTypeStaticTypeRef) other).base, location, mapping, variablePosition);
         }
-        return false;
+        return null;
     }
 
     @Override
     public String getName() {
-        return base.getName();
+        return "static " + base.getName();
     }
 
     @Override
@@ -31,13 +33,18 @@ public class WurstTypeStaticTypeRef extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
-        return base.imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return base.imTranslateType(tr);
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return base.getDefaultValue();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return base.getDefaultValue(tr);
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
     @Override

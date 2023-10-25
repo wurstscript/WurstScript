@@ -2,18 +2,41 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
  */
 public class ValidateGlobalsUsage {
-    public static void checkGlobalsUsage(List<CompilationUnit> toCheck) {
+    public static void checkGlobalsUsage(Collection<CompilationUnit> toCheck) {
+        Map<NameDef, Element> usedGlobals = new HashMap<>();
         for (CompilationUnit cu : toCheck) {
+            checkJassGlobals(cu.getJassDecls(), usedGlobals);
             for (WPackage p : cu.getPackages()) {
                 checkGlobalsUsage(p);
+            }
+        }
+    }
+
+    private static void checkJassGlobals(JassToplevelDeclarations jassDecls, Map<NameDef, Element> usedGlobals) {
+        for (JassToplevelDeclaration jassDecl : jassDecls) {
+            if (jassDecl instanceof JassGlobalBlock) {
+                JassGlobalBlock globals = (JassGlobalBlock) jassDecl;
+                for (GlobalVarDef glob : globals) {
+                    if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")
+                      && !glob.getSource().getFile().endsWith("war3map.j")) {
+                        glob.getInitialExpr().accept(new Element.DefaultVisitor() {
+                          @Override
+                          public void visit(ExprVarAccess e) {
+                            usedGlobals.put(e.attrNameDef(), e);
+                          }
+                        });
+                        Element use = usedGlobals.get(glob);
+                        if (use != null) {
+                            use.addWarning("Global variable " + glob.getName() + " used before it is declared.");
+                        }
+                    }
+                }
             }
         }
     }
@@ -38,8 +61,7 @@ public class ValidateGlobalsUsage {
                     if (!definedVars.contains(g)
                             && !g.attrIsDynamicClassMember()
                             && g.attrNearestNamedScope() == p) {
-                        e.addWarning("Global variable " + e.getVarName() + " must be declared before it is used. " +
-                                "This will be an error in future Wurst versions.");
+                        e.addError("Global variable <" + e.getVarName() + "> must be declared before it is used.");
                         // add variable to defined vars to silence further warnings:
                         definedVars.add(g);
                     }

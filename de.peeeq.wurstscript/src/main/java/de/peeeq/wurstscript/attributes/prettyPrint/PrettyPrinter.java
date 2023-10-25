@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.utils.Utils.escapeString;
@@ -67,9 +68,9 @@ public class PrettyPrinter {
     }
 
     private static void printIndent(StringBuilder sb, int indent) {
-        if (sb.toString().substring(sb.length() - 1).equals("\n")) {
+        if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             for (int i = 0; i < indent; i++) {
-                sb.append("\t");
+                sb.append("    ");
             }
         }
     }
@@ -137,21 +138,16 @@ public class PrettyPrinter {
         sb.append("construct");
         e.getParameters().prettyPrint(spacer, sb, indent);
         sb.append("\n");
-        if (!e.getSuperArgs().isEmpty()) {
-            printIndent(sb, indent + 1);
-            sb.append("super(");
-            e.getSuperArgs().prettyPrint(spacer, sb, indent);
-            sb.append(")");
-            sb.append("\n");
-        }
+        e.getSuperConstructorCall().prettyPrint(spacer, sb, indent);
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (ConstructorDef constructorDef : e) {
-            // Remove empty constructors.
-            if (constructorDef.getBody().size() < 1 && constructorDef.getSuperArgs().size() <= 0) {
-                continue;
+            if (!constructorDef.getParameters().isEmpty()
+                    || constructorDef.getSuperConstructorCall() instanceof SomeSuperConstructorCall
+                    || constructorDef.getBody().size() > 2) {
+                constructorDef.prettyPrint(spacer, sb, indent);
             }
             constructorDef.prettyPrint(spacer, sb, indent);
         }
@@ -355,7 +351,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprStringVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append(escapeString(e.getValS()));
+        sb.append(Utils.escapeString(e.getValS()));
     }
 
     public static void prettyPrint(ExprSuper e, Spacer spacer, StringBuilder sb, int indent) {
@@ -1037,5 +1033,21 @@ public class PrettyPrinter {
         sb.append("[");
         arrayInitializer.getValues().prettyPrint(spacer, sb, indent);
         sb.append("]");
+    }
+
+    public static void prettyPrint(NoSuperConstructorCall noSuperConstructorCall, Spacer spacer, StringBuilder sb, int indent) {
+        // nothing
+    }
+
+    public static void prettyPrint(SomeSuperConstructorCall c, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent + 1);
+        sb.append("super(");
+        c.getSuperArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")\n");
+
+    }
+
+    public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
+        // nothing
     }
 }
