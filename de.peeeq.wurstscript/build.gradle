@@ -119,6 +119,8 @@ dependencies {
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.apache', version: '6.7.0.202309050840-r'
 
+    implementation 'net.openhft:zero-allocation-hashing:0.16'
+
     // Smallcheck testing library:
     testImplementation group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
 }

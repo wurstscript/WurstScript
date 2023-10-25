@@ -59,6 +59,8 @@ public class WurstValidator {
 
             prog.getErrorHandler().setProgress("Checking wurst types",
                     ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
+
+
             for (CompilationUnit cu : toCheck) {
                 walkTree(cu);
             }
@@ -281,10 +283,10 @@ public class WurstValidator {
                 checkConstructorsUnique((ClassOrModule) e);
             if (e instanceof CompilationUnit)
                 checkPackageName((CompilationUnit) e);
-            if (e instanceof ConstructorDef)
+            if (e instanceof ConstructorDef) {
                 checkConstructor((ConstructorDef) e);
-            if (e instanceof ConstructorDef)
                 checkConstructorSuperCall((ConstructorDef) e);
+            }
             if (e instanceof ExprBinary)
                 visit((ExprBinary) e);
             if (e instanceof ExprClosure)
@@ -295,20 +297,20 @@ public class WurstValidator {
                 checkIntVal((ExprIntVal) e);
             if (e instanceof ExprFuncRef)
                 checkFuncRef((ExprFuncRef) e);
-            if (e instanceof ExprFunctionCall)
+            if (e instanceof ExprFunctionCall) {
                 checkBannedFunctions((ExprFunctionCall) e);
-            if (e instanceof ExprFunctionCall)
                 visit((ExprFunctionCall) e);
+            }
             if (e instanceof ExprMemberMethod)
                 visit((ExprMemberMethod) e);
             if (e instanceof ExprMemberVar)
                 checkMemberVar((ExprMemberVar) e);
             if (e instanceof ExprMemberArrayVar)
                 checkMemberArrayVar((ExprMemberArrayVar) e);
-            if (e instanceof ExprNewObject)
+            if (e instanceof ExprNewObject) {
                 checkNewObj((ExprNewObject) e);
-            if (e instanceof ExprNewObject)
                 visit((ExprNewObject) e);
+            }
             if (e instanceof ExprNull)
                 checkExprNull((ExprNull) e);
             if (e instanceof ExprVarAccess)
@@ -331,22 +333,22 @@ public class WurstValidator {
                 checkTypeBinding((HasTypeArgs) e);
             if (e instanceof InterfaceDef)
                 checkInterfaceDef((InterfaceDef) e);
-            if (e instanceof LocalVarDef)
+            if (e instanceof LocalVarDef) {
                 checkLocalShadowing((LocalVarDef) e);
-            if (e instanceof LocalVarDef)
                 visit((LocalVarDef) e);
+            }
             if (e instanceof Modifiers)
                 visit((Modifiers) e);
             if (e instanceof ModuleDef)
                 visit((ModuleDef) e);
-            if (e instanceof NameDef)
+            if (e instanceof NameDef) {
                 nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
-            if (e instanceof NameDef)
                 checkConfigOverride((NameDef) e);
-            if (e instanceof NameRef)
+            }
+            if (e instanceof NameRef) {
                 checkImplicitParameter((NameRef) e);
-            if (e instanceof NameRef)
                 checkNameRef((NameRef) e);
+            }
             if (e instanceof StmtCall)
                 checkCall((StmtCall) e);
             if (e instanceof ExprDestroy)
@@ -375,10 +377,10 @@ public class WurstValidator {
                 visit((WImport) e);
             if (e instanceof WPackage)
                 checkPackage((WPackage) e);
-            if (e instanceof WParameter)
+            if (e instanceof WParameter) {
                 checkParameter((WParameter) e);
-            if (e instanceof WParameter)
                 visit((WParameter) e);
+            }
             if (e instanceof WScope)
                 checkForDuplicateNames((WScope) e);
             if (e instanceof WStatement)

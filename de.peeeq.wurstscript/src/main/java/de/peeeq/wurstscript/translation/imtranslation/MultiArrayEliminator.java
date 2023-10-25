@@ -82,8 +82,8 @@ public class MultiArrayEliminator {
         }
 
         replaceVars(prog, getSetMap);
-        prog.getGlobals().addAll(newVars);
         prog.getGlobals().removeAll(oldVars);
+        prog.getGlobals().addAll(newVars);
 
     }
 

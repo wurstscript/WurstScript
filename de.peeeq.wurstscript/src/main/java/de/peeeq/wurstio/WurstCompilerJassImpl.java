@@ -421,17 +421,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(2, "Eliminate generics");
         new EliminateGenerics(imTranslator2, imProg2).transform();
         printDebugImProg("./test-output/im " + stage++ + "_genericsEliminated.im");
-
+        timeTaker.endPhase();
         // eliminate classes
         beginPhase(2, "translate classes");
 
         new EliminateClasses(imTranslator2, imProg2, !runArgs.isUncheckedDispatch()).eliminateClasses();
         imTranslator2.assertProperties();
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
+        timeTaker.endPhase();
 
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         imTranslator2.assertProperties();
+
+        timeTaker.endPhase();
+
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg2);
@@ -440,6 +444,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             if (runArgs.isIncludeStacktraces()) {
                 beginPhase(4, "add stack traces");
                 new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
+                timeTaker.endPhase();
             }
         }
         imTranslator2.assertProperties();
@@ -453,49 +458,60 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             imTranslator2.assertProperties();
 
             printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
+            timeTaker.endPhase();
         }
 
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
-        getImProg().flatten(imTranslator2);
-        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
+        timeTaker.measure("flatten", () -> getImProg().flatten(imTranslator2));
+        timeTaker.measure("kill tuples", () -> EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2));
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
 
+        timeTaker.endPhase();
+
+        beginPhase(7, "eliminate multi arrays");
         new MultiArrayEliminator(imProg2, imTranslator2, runArgs.isIncludeStacktraces() && !runArgs.isNoDebugMessages()).run();
         printDebugImProg("./test-output/im " + stage++ + "_withoutmultiarrays.im");
         imTranslator2.assertProperties();
+        timeTaker.endPhase();
 
-        beginPhase(7, "remove func refs");
+        beginPhase(8, "remove func refs");
         new FuncRefRemover(imProg2, imTranslator2).run();
+        timeTaker.endPhase();
 
         // remove cycles:
-        beginPhase(8, "remove cyclic functions");
+        beginPhase(9, "remove cyclic functions");
         new CyclicFunctionRemover(imTranslator2, imProg2, timeTaker).work();
 
         printDebugImProg("./test-output/im " + stage++ + "_nocyc.im");
+        timeTaker.endPhase();
 
         // flatten
-        beginPhase(9, "flatten");
+        beginPhase(10, "flatten");
         getImProg().flatten(imTranslator2);
         getImTranslator().assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
 
         printDebugImProg("./test-output/im " + stage++ + "_flat.im");
+        timeTaker.endPhase();
 
         if (runArgs.isLocalOptimizations()) {
-            beginPhase(10, "local optimizations");
+            beginPhase(11, "local optimizations");
             optimizer.localOptimizations();
+            timeTaker.endPhase();
         }
 
         printDebugImProg("./test-output/im " + stage++ + "_afterlocalopts.im");
 
         if (runArgs.isNullsetting()) {
-            beginPhase(11, "null setting");
+            beginPhase(12, "null setting");
             optimizer.doNullsetting();
             printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
+            timeTaker.endPhase();
         }
 
+        beginPhase(13, "flatten");
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
@@ -504,12 +520,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imProg.flatten(imTranslator);
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
+        timeTaker.endPhase();
 
         if (runArgs.isHotStartmap() || runArgs.isHotReload()) {
             addJassHotCodeReloadCode();
         }
         if (runArgs.isOptimize()) {
-            beginPhase(12, "froptimize");
+            beginPhase(13, "froptimize");
             optimizer.optimize();
 
             optimizer.removeGarbage();
@@ -521,7 +538,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         // translate flattened intermediate lang to jass:
 
-        beginPhase(13, "translate to jass");
+        beginPhase(14, "translate to jass");
         getImTranslator().calculateCallRelationsAndUsedVariables();
         ImToJassTranslator translator =
                 new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
@@ -843,6 +860,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             if (runArgs.isIncludeStacktraces()) {
                 beginPhase(4, "add stack traces");
                 new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
+                timeTaker.endPhase();
             }
         }
         ImTranslator imTranslator2 = getImTranslator();
