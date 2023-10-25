@@ -85,7 +85,7 @@ public class PrettyPrinter {
 
     public static void prettyPrint(Annotation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getAnnotationType());
-        if (e.getAnnotationMessage().length() >= 1) {
+        if (e.getAnnotationMessage() != null && e.getAnnotationMessage().length() >= 1) {
             sb.append("(");
             sb.append(e.getAnnotationMessage());
             sb.append(")");
@@ -792,7 +792,7 @@ public class PrettyPrinter {
         printIndent(sb, indent);
         sb.append("case");
         spacer.addSpace(sb);
-        e.getExpr().prettyPrint(spacer, sb, indent);
+        e.getExpressions().prettyPrint(spacer, sb, indent);
         sb.append("\n");
         e.getStmts().prettyPrint(spacer, sb, indent + 1);
     }

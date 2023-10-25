@@ -119,7 +119,7 @@ public class PrettyUtils {
 
     private static CompilationUnit parse(String input) {
         WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs("-prettyPrint"));
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs("-prettyPrint"));
         return compiler.parse("test", new StringReader(input));
     }
 }
