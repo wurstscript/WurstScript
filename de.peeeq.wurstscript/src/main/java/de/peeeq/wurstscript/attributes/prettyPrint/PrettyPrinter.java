@@ -2,6 +2,9 @@ package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.parser.WPosWithComments;
+import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
 import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.utils.Utils.escapeString;
@@ -32,7 +35,7 @@ public class PrettyPrinter {
         if (e.getParent().get(0).equals(e)) {
             return;
         }
-        if (sb.charAt(sb.length()-1) == '\n' && sb.charAt(sb.length()-2) == '\n') {
+        if (sb.charAt(sb.length() - 1) == '\n' && sb.charAt(sb.length() - 2) == '\n') {
             return;
         }
         sb.append("\n");
@@ -48,7 +51,7 @@ public class PrettyPrinter {
     }
 
     private static void printStuff(Documentable e, Spacer spacer, StringBuilder sb, int indent) {
-        printComment(sb, e, indent);
+        printCommentsBefore(sb, e, indent);
         printComment(e.getModifiers(), spacer, sb, indent);
         printIndent(sb, indent);
         e.getModifiers().prettyPrint(spacer, sb, indent);
@@ -63,9 +66,40 @@ public class PrettyPrinter {
         }
     }
 
-    private static void printComment(StringBuilder sb, Documentable d, int indent) {
-        // Comments doesn't exist in the wurst parser atm.
+    private static void printCommentsBefore(StringBuilder sb, Element d, int indent) {
+        if (!(d instanceof AstElementWithSource)) {
+            return;
+        }
+        WPos source1 = ((AstElementWithSource) d).getSource();
+        if (source1 instanceof WPosWithComments) {
+            WPosWithComments source = (WPosWithComments) source1;
+            for (Comment comment : source.getCommentsBefore()) {
+                sb.append(comment.getContent());
+                if (comment.isSingleLine()) {
+                    sb.append("\n");
+                    printIndent(sb, indent);
+                }
+            }
+        }
     }
+
+    private static void printCommentsAfter(StringBuilder sb, Element d, int indent) {
+        if (!(d instanceof AstElementWithSource)) {
+            return;
+        }
+        WPos source1 = ((AstElementWithSource) d).getSource();
+        if (source1 instanceof WPosWithComments) {
+            WPosWithComments source = (WPosWithComments) source1;
+            for (Comment comment : source.getCommentsAfter()) {
+                sb.append(comment.getContent());
+                if (comment.isSingleLine()) {
+                    sb.append("\n");
+                    printIndent(sb, indent);
+                }
+            }
+        }
+    }
+
 
     private static void printIndent(StringBuilder sb, int indent) {
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
@@ -126,6 +160,7 @@ public class PrettyPrinter {
         }
         sb.append("\n");
         printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(CompilationUnit e, Spacer spacer, StringBuilder sb, int indent) {
@@ -140,6 +175,7 @@ public class PrettyPrinter {
         sb.append("\n");
         e.getSuperConstructorCall().prettyPrint(spacer, sb, indent);
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
@@ -164,12 +200,14 @@ public class PrettyPrinter {
         sb.append(e.getName());
         sb.append("\n");
         e.getMembers().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(EnumMember e, Spacer spacer, StringBuilder sb, int indent) {
         printStuff(e, spacer, sb, indent);
         sb.append(e.getName());
         sb.append("\n");
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(EnumMembers e, Spacer spacer, StringBuilder sb, int indent) {
@@ -298,7 +336,7 @@ public class PrettyPrinter {
             e.getLeft().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
-        printIndent(sb, indent+1);
+        printIndent(sb, indent + 1);
         sb.append("..");
         sb.append(e.getFuncName());
         sb.append("(");
@@ -401,6 +439,7 @@ public class PrettyPrinter {
         printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
 
@@ -424,6 +463,7 @@ public class PrettyPrinter {
         printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(FuncDefs e, Spacer spacer, StringBuilder sb, int indent) {
@@ -451,6 +491,7 @@ public class PrettyPrinter {
             e.getInitialExpr().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(GlobalVarDefs e, Spacer spacer, StringBuilder sb, int indent) {
@@ -501,6 +542,7 @@ public class PrettyPrinter {
         e.getConstructors().prettyPrint(spacer, sb, indent + 1);
         e.getMethods().prettyPrint(spacer, sb, indent + 1);
         e.getOnDestroy().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
@@ -510,7 +552,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(LocalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printComment(sb, e, indent);
+        printCommentsBefore(sb, e, indent);
         printIndent(sb, indent);
         if ((e.getOptTyp() instanceof NoTypeExpr)) {
             if (e.attrIsConstant()) {
@@ -530,6 +572,7 @@ public class PrettyPrinter {
             e.getInitialExpr().prettyPrint(spacer, sb, indent);
         }
         printNewline(e, sb, indent);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(ModAbstract e, Spacer spacer, StringBuilder sb, int indent) {
@@ -570,10 +613,11 @@ public class PrettyPrinter {
         e.getNameId().prettyPrint(spacer, sb, indent);
         sb.append("\n");
         printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(ModuleInstanciation e, Spacer spacer, StringBuilder sb, int indent) {
-        printComment(sb, e, indent);
+        printCommentsBefore(sb, e, indent);
     }
 
     public static void prettyPrint(ModuleInstanciations e, Spacer spacer, StringBuilder sb, int indent) {
@@ -606,6 +650,7 @@ public class PrettyPrinter {
             e.getReturnTyp().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(NativeType e, Spacer spacer, StringBuilder sb, int indent) {
@@ -614,6 +659,7 @@ public class PrettyPrinter {
         spacer.addSpace(sb);
         e.getNameId().prettyPrint(spacer, sb, indent);
         sb.append("\n");
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(NoDefaultCase e, Spacer spacer, StringBuilder sb, int indent) {
@@ -831,6 +877,7 @@ public class PrettyPrinter {
         e.getNameId().prettyPrint(spacer, sb, indent);
         e.getParameters().prettyPrint(spacer, sb, indent);
         sb.append("\n");
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(TypeExprArray e, Spacer spacer, StringBuilder sb, int indent) {
@@ -865,8 +912,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeParamDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printComment(sb, e, indent);
+        printCommentsBefore(sb, e, indent);
         e.getNameId().prettyPrint(spacer, sb, indent);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(TypeParamDefs e, Spacer spacer, StringBuilder sb, int indent) {
@@ -925,7 +973,7 @@ public class PrettyPrinter {
     }
 
     private static String spaces(int indentation) {
-        return " "+"{"+indentation+"}";
+        return " " + "{" + indentation + "}";
     }
 
     public static void prettyPrint(WurstDoc wurstDoc, Spacer spacer, StringBuilder sb, int indent) {
@@ -986,13 +1034,14 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(WPackage wPackage, Spacer spacer, StringBuilder sb, int indent) {
-        printComment(sb, wPackage, indent);
+        printCommentsBefore(sb, wPackage, indent);
         sb.append("package");
         spacer.addSpace(sb);
         sb.append(wPackage.getName());
         sb.append("\n\n");
         wPackage.getImports().prettyPrint(spacer, sb, indent);
         wPackage.getElements().prettyPrint(spacer, sb, indent);
+        printCommentsAfter(sb, wPackage, indent);
     }
 
     public static void prettyPrint(WImports wImports, Spacer spacer, StringBuilder sb, int indent) {

@@ -4,17 +4,22 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.prettyPrint.MaxOneSpacer;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.parser.WPosWithComments;
+import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
 import org.testng.annotations.Test;
 import tests.wurstscript.tests.WurstScriptTest;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Collections;
+import java.util.List;
 
 import static org.testng.AssertJUnit.assertEquals;
 
@@ -29,9 +34,57 @@ public class PrettyPrintTest extends WurstScriptTest {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs("-prettyPrint"));
 
         CompilationUnit cu = compiler.parse("test", new StringReader(content));
+
+        debugPrint(cu);
+
         PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
 
         return sb.toString();
+    }
+
+    private void debugPrint(CompilationUnit cu) {
+        StringBuilder dsb = new StringBuilder();
+        debugPrint(cu, dsb, 0);
+        System.out.println(dsb);
+    }
+
+    private void debugPrint(Element e, StringBuilder sb, int i) {
+        List<Comment> commentsBefore = Collections.emptyList();
+        List<Comment> commentsAfter = Collections.emptyList();
+        if (e instanceof AstElementWithSource) {
+            AstElementWithSource s = (AstElementWithSource) e;
+            WPos source = s.getSource();
+            if (source instanceof WPosWithComments) {
+                WPosWithComments source2 = (WPosWithComments) source;
+                commentsBefore = source2.getCommentsBefore();
+                commentsAfter = source2.getCommentsAfter();
+            }
+        }
+        sb.append("(");
+        for (Comment comment : commentsBefore) {
+            sb.append(comment.getContent());
+            newLine(sb, i + 1);
+        }
+        sb.append(e.getClass().getSimpleName().replaceAll("Impl", ""));
+        if (e instanceof Identifier) {
+            sb.append(" ").append(((Identifier) e).getName());
+        }
+        for (int j = 0; j < e.size(); j++) {
+            newLine(sb, i + 1);
+            debugPrint(e.get(j), sb, i + 2);
+        }
+        for (Comment comment : commentsAfter) {
+            newLine(sb, i + 1);
+            sb.append(comment.getContent());
+        }
+        sb.append(")");
+    }
+
+    private void newLine(StringBuilder sb, int i) {
+        sb.append("\n");
+        for (int j = 0; j < i; j++) {
+            sb.append(" ");
+        }
     }
 
     private String expectedFile(String filename) throws IOException {
@@ -47,7 +100,7 @@ public class PrettyPrintTest extends WurstScriptTest {
 
         int i = filename.lastIndexOf('.');
         if (i > 0) {
-            extension = filename.substring(i+1);
+            extension = filename.substring(i + 1);
         }
         return extension;
     }
@@ -128,5 +181,10 @@ public class PrettyPrintTest extends WurstScriptTest {
     @Test
     public void testReal3() throws IOException {
         test("Real3.wurst");
+    }
+
+    @Test
+    public void testComments() throws IOException {
+        test("Comments.wurst");
     }
 }
