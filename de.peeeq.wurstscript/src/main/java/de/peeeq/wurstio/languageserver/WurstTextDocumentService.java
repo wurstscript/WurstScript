@@ -102,7 +102,8 @@ public class WurstTextDocumentService implements TextDocumentService {
         TextDocumentIdentifier doc = params.getTextDocument();
         String buffer = worker.getBufferManager().getBuffer(doc);
 
-        String clean = PrettyUtils.pretty(buffer);
+        String ending = doc.getUri().substring(doc.getUri().lastIndexOf("."));
+        String clean = PrettyUtils.pretty(buffer, ending);
 
         String[] lines = buffer.split("\n");
         Range range = new Range(new Position(0, 0), new Position(lines.length, lines[lines.length-1].length()));

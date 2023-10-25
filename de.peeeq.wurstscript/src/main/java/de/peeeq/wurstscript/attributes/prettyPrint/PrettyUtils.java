@@ -39,8 +39,8 @@ public class PrettyUtils {
         System.out.println(clean);
     }
 
-    public static String pretty(String source) {
-        CompilationUnit cu = parse(source);
+    public static String pretty(String source, String ending) {
+        CompilationUnit cu = parse(source, ending);
 
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
@@ -50,7 +50,7 @@ public class PrettyUtils {
     }
 
     private static void prettyPrint(String filename) {
-        String clean = pretty(filename);
+        String clean = pretty(filename, filename.substring(filename.lastIndexOf(".")));
         System.out.println(clean);
     }
 
@@ -64,7 +64,7 @@ public class PrettyUtils {
 
     private static void debug(String filename) {
         String contents = readFile(filename);
-        CompilationUnit cu = parse(contents);
+        CompilationUnit cu = parse(contents, filename.substring(filename.lastIndexOf(".")));
 
         walkTree(cu, 0);
     }
@@ -91,7 +91,7 @@ public class PrettyUtils {
 
     private static String pretty(File f) {
         String contents = readFile(f.toString());
-        CompilationUnit cu = parse(contents);
+        CompilationUnit cu = parse(contents, f.getName().substring(f.getName().lastIndexOf(".")));
 
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
@@ -117,9 +117,9 @@ public class PrettyUtils {
         return everything;
     }
 
-    private static CompilationUnit parse(String input) {
+    private static CompilationUnit parse(String input, String ending) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs("-prettyPrint"));
-        return compiler.parse("test", new StringReader(input));
+        return compiler.parse("format" + ending, new StringReader(input));
     }
 }

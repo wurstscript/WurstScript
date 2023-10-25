@@ -123,8 +123,8 @@ public class ExtendedWurstLexer implements TokenSource {
                 continue;
             }
 
-            if (token.getChannel() == 2) {
-                commentTokens.addLast(token);
+            if (token1.getChannel() == 2) {
+                commentTokens.addLast(token1);
                 continue;
             }
 
