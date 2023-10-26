@@ -15,7 +15,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 
 public class ReflectionNativeProvider implements NativesProvider {
-    private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
+    private final HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
 
     public ReflectionNativeProvider(AbstractInterpreter interpreter) {
         addProvider(new GamecacheProvider(interpreter));
@@ -70,10 +70,6 @@ public class ReflectionNativeProvider implements NativesProvider {
 
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
-        String msg = "Calling method " + funcname + "(" +
-            Utils.printSep(", ", args) + ")";
-        WLogger.trace(msg);
-
         NativeJassFunction candidate = methodMap.get(funcname);
         if (candidate == null) {
             throw new NoSuchNativeException("");
