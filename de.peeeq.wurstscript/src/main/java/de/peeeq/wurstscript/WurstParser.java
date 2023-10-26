@@ -31,10 +31,15 @@ public class WurstParser {
     private static final int MAX_SYNTAX_ERRORS = 15;
     private final ErrorHandler errorHandler;
     private final WurstGui gui;
+    private boolean removeSugar = true;
 
     public WurstParser(ErrorHandler errorHandler, WurstGui gui) {
         this.errorHandler = errorHandler;
         this.gui = gui;
+    }
+
+    public void setRemoveSugar(boolean removeSugar) {
+        this.removeSugar = removeSugar;
     }
 
     public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
@@ -116,8 +121,10 @@ public class WurstParser {
                 gui.sendError(warning);
             }
 
-            CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
-            removeSyntacticSugar(root, hasCommonJ);
+            CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets(), lexer.getCommentTokens(), true).transform(cu);
+            if (this.removeSugar) {
+                removeSyntacticSugar(root, hasCommonJ);
+            }
             root.getCuInfo().setIndentationMode(lexer.getIndentationMode());
             return root;
 
@@ -188,7 +195,9 @@ public class WurstParser {
 
             de.peeeq.wurstscript.jurst.antlr.JurstParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
             CompilationUnit root = new AntlrJurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
-            removeSyntacticSugar(root, hasCommonJ);
+            if (this.removeSugar) {
+                removeSyntacticSugar(root, hasCommonJ);
+            }
             return root;
 
         } catch (IOException e) {

@@ -226,7 +226,7 @@ public class JassPrinter {
     }
 
 
-    protected static int precedence(JassOp op) {
+    public static int precedence(JassOp op) {
         // 5 not
         // 4 * /
         // 3 + -

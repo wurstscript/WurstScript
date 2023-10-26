@@ -750,6 +750,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (fileName.endsWith(".jurst")) {
             return parser.parseJurst(reader, fileName, hasCommonJ);
         }
+        if (runArgs.isPrettyPrint()) {
+            parser.setRemoveSugar(false);
+        }
         return parser.parse(reader, fileName, hasCommonJ);
     }
 
