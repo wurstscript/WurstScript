@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassAst.*;
@@ -55,13 +54,13 @@ public class PrettyPrinter {
 
     private static void printStuff(Documentable e, Spacer spacer, StringBuilder sb, int indent) {
         printCommentsBefore(sb, e, indent);
-        printComment(e.getModifiers(), spacer, sb, indent);
+        printHotDoc(e.getModifiers(), spacer, sb, indent);
         printIndent(sb, indent);
         e.getModifiers().prettyPrint(spacer, sb, indent);
     }
 
     // For some reason comments are a kind of modifier.
-    private static void printComment(Modifiers e, Spacer spacer, StringBuilder sb, int indent) {
+    private static void printHotDoc(Modifiers e, Spacer spacer, StringBuilder sb, int indent) {
         for (Modifier modifier : e) {
             if (modifier instanceof WurstDoc) {
                 modifier.prettyPrint(spacer, sb, indent);
@@ -77,10 +76,10 @@ public class PrettyPrinter {
         if (source1 instanceof WPosWithComments) {
             WPosWithComments source = (WPosWithComments) source1;
             for (Comment comment : source.getCommentsBefore()) {
+                printIndent(sb, indent);
                 sb.append(comment.getContent());
                 if (comment.isSingleLine()) {
                     sb.append("\n");
-                    printIndent(sb, indent);
                 }
             }
         }
@@ -94,10 +93,10 @@ public class PrettyPrinter {
         if (source1 instanceof WPosWithComments) {
             WPosWithComments source = (WPosWithComments) source1;
             for (Comment comment : source.getCommentsAfter()) {
+                printIndent(sb, indent);
                 sb.append(comment.getContent());
                 if (comment.isSingleLine()) {
                     sb.append("\n");
-                    printIndent(sb, indent);
                 }
             }
         }
@@ -122,6 +121,7 @@ public class PrettyPrinter {
 
     public static void prettyPrint(JassToplevelDeclarations e, Spacer spacer, StringBuilder sb, int indent) {
     }
+
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
     }
 
@@ -189,11 +189,6 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (ConstructorDef constructorDef : e) {
-            if (!constructorDef.getParameters().isEmpty()
-                || constructorDef.getSuperConstructorCall() instanceof SomeSuperConstructorCall
-                || constructorDef.getBody().size() > 2) {
-                constructorDef.prettyPrint(spacer, sb, indent);
-            }
             constructorDef.prettyPrint(spacer, sb, indent);
         }
     }
@@ -224,7 +219,6 @@ public class PrettyPrinter {
             enumMember.prettyPrint(spacer, sb, indent);
         }
     }
-
 
 
     public static void prettyPrint(ExprBinary e, Spacer spacer, StringBuilder sb, int indent) {
@@ -290,9 +284,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprClosure e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("(");
         e.getShortParameters().prettyPrint(spacer, sb, indent);
-        sb.append(")");
         spacer.addSpace(sb);
         sb.append("->");
         spacer.addSpace(sb);
@@ -618,7 +610,7 @@ public class PrettyPrinter {
         if (e instanceof NoTypeExpr) {
             sb.append("nothing");
         } else if (e instanceof TypeExpr) {
-            jassPrettyPrint((TypeExpr)e, spacer, sb, indent);
+            jassPrettyPrint((TypeExpr) e, spacer, sb, indent);
         }
     }
 
@@ -626,9 +618,9 @@ public class PrettyPrinter {
         if (e instanceof NoTypeExpr) {
             sb.append("nothing");
         } else if (e instanceof TypeExprSimple) {
-            sb.append(((TypeExprSimple)e).getTypeName());
+            sb.append(((TypeExprSimple) e).getTypeName());
         } else if (e instanceof TypeExprArray) {
-            jassPrettyPrint(((TypeExprArray)e).getBase(), spacer, sb, indent);
+            jassPrettyPrint(((TypeExprArray) e).getBase(), spacer, sb, indent);
             spacer.addSpace(sb);
             sb.append("array");
         }
@@ -642,11 +634,11 @@ public class PrettyPrinter {
 
     private static void jassPrettyPrint(JassToplevelDeclaration e, Spacer spacer, StringBuilder sb, int indent) {
         if (e instanceof JassGlobalBlock) {
-            jassPrettyPrint((JassGlobalBlock)e, spacer, sb, indent);
+            jassPrettyPrint((JassGlobalBlock) e, spacer, sb, indent);
         } else if (e instanceof NativeFunc) {
-            jassPrettyPrint((NativeFunc)e, spacer, sb, indent);
+            jassPrettyPrint((NativeFunc) e, spacer, sb, indent);
         } else if (e instanceof FuncDef) {
-            jassPrettyPrint((FuncDef)e, spacer, sb, indent);
+            jassPrettyPrint((FuncDef) e, spacer, sb, indent);
         }
     }
 
@@ -683,19 +675,19 @@ public class PrettyPrinter {
 
     public static void jassPrettyPrint(WStatement e, Spacer spacer, StringBuilder sb, int indent) {
         if (e instanceof LocalVarDef) {
-            jassPrettyPrint((LocalVarDef)e, spacer, sb, indent);
+            jassPrettyPrint((LocalVarDef) e, spacer, sb, indent);
         } else if (e instanceof StmtSet) {
-            jassPrettyPrint((StmtSet)e, spacer, sb, indent);
+            jassPrettyPrint((StmtSet) e, spacer, sb, indent);
         } else if (e instanceof StmtCall) {
-            jassPrettyPrint((StmtCall)e, spacer, sb, indent);
+            jassPrettyPrint((StmtCall) e, spacer, sb, indent);
         } else if (e instanceof StmtIf) {
-            jassPrettyPrint((StmtIf)e, spacer, sb, indent);
+            jassPrettyPrint((StmtIf) e, spacer, sb, indent);
         } else if (e instanceof StmtReturn) {
-            jassPrettyPrint((StmtReturn)e, spacer, sb, indent);
+            jassPrettyPrint((StmtReturn) e, spacer, sb, indent);
         } else if (e instanceof StmtLoop) {
-            jassPrettyPrint((StmtLoop)e, spacer, sb, indent);
+            jassPrettyPrint((StmtLoop) e, spacer, sb, indent);
         } else if (e instanceof StmtExitwhen) {
-            jassPrettyPrint((StmtExitwhen)e, spacer, sb, indent);
+            jassPrettyPrint((StmtExitwhen) e, spacer, sb, indent);
         }
     }
 
@@ -751,7 +743,7 @@ public class PrettyPrinter {
 
     public static void jassPrettyPrint(StmtCall e, Spacer spacer, StringBuilder sb, int indent) {
         if (e instanceof FunctionCall) {
-            jassPrettyPrint((FunctionCall)e, spacer, sb, indent);
+            jassPrettyPrint((FunctionCall) e, spacer, sb, indent);
         }
     }
 
@@ -1356,15 +1348,22 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprIfElse e, Spacer spacer, StringBuilder sb, int indent) {
-        e.getCond().prettyPrint(spacer, sb, indent + 1);
+        boolean shouldBracket = e.getParent() instanceof ExprBinary;
+        if (shouldBracket) {
+            sb.append("(");
+        }
+        e.getCond().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
         sb.append("?");
         spacer.addSpace(sb);
-        e.getIfTrue().prettyPrint(spacer, sb, indent + 1);
+        e.getIfTrue().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
         sb.append(":");
         spacer.addSpace(sb);
-        e.getIfFalse().prettyPrint(spacer, sb, indent + 1);
+        e.getIfFalse().prettyPrint(spacer, sb, indent);
+        if (shouldBracket) {
+            sb.append(")");
+        }
     }
 
     public static void prettyPrint(ArrayInitializer arrayInitializer, Spacer spacer, StringBuilder sb, int indent) {
