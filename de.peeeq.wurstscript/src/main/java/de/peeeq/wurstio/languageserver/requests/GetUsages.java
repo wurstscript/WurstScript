@@ -4,9 +4,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
@@ -61,7 +59,11 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
                 }
                 NameDef e_def = e.tryGetNameDef();
                 if (e_def == nameDef.get()) {
-                    UsagesData usagesData = new UsagesData(Convert.posToLocation(e.attrErrorPos()), DocumentHighlightKind.Read);
+                    if (e instanceof ExprVarArrayAccess) {
+                        e = ((ExprVarArrayAccess) e).getVarNameId();
+                    }
+                    Location location = Convert.posToLocation(e.attrErrorPos());
+                    UsagesData usagesData = new UsagesData(location, DocumentHighlightKind.Read);
                     usages.add(usagesData);
                 }
             }
@@ -111,5 +113,6 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
         public DocumentHighlight toDocumentHighlight() {
             return new DocumentHighlight(location.getRange(), kind);
         }
+
     }
 }

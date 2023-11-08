@@ -55,7 +55,7 @@ public interface TimeTaker {
         private long currentPhaseStart;
         private Map<String, Long> accumulatedTimes = new LinkedHashMap<>();
 
-        private Long totalTime = 0L;
+        private Long startTime = 0L;
 
         public <T> T measure(String name, Supplier<T> f) {
             name = withNesting(name);
@@ -65,9 +65,6 @@ public interface TimeTaker {
             T result = f.get();
             long duration = System.currentTimeMillis() - time;
             reportDuration(name, duration);
-            if (nesting == 1) {
-                totalTime += duration;
-            }
             nesting--;
             return result;
         }
@@ -83,9 +80,12 @@ public interface TimeTaker {
 
         @Override
         public void beginPhase(String description) {
-//            if (currentPhaseDescription != null) {
-//                endPhase();
-//            }
+            if (accumulatedTimes.isEmpty()) {
+                this.startTime = System.currentTimeMillis();
+            }
+            if (currentPhaseDescription != null) {
+                endPhase();
+            }
             description = withNesting(description);
             nesting++;
             accumulatedTimes.putIfAbsent(description, 0L);
@@ -100,9 +100,6 @@ public interface TimeTaker {
             }
             long duration = System.currentTimeMillis() - currentPhaseStart;
             reportDuration(currentPhaseDescription, duration);
-            if (nesting == 1) {
-                totalTime += duration;
-            }
             nesting--;
             currentPhaseDescription = null;
         }
@@ -116,7 +113,7 @@ public interface TimeTaker {
                 System.out.println(e.getKey() + ": " + e.getValue() + "ms");
             }
 
-            System.out.println("Total runtime: " + totalTime + "ms");
+            System.out.println("Total runtime: " + (System.currentTimeMillis() - startTime) + "ms");
             System.out.println("GC time: " + getGarbageCollectionTime() + "ms");
         }
 

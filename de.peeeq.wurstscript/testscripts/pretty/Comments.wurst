@@ -1,0 +1,15 @@
+package Test
+
+// a variable
+int x /*x*/ = /*y*/ 6
+
+
+function bla() returns int
+    return 1 // returns 1
+
+// some function
+function foo()
+    int x = 4
+    /* int */ let y = x + 1
+    // some comment at the end
+

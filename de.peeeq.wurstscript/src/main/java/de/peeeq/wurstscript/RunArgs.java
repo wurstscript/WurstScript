@@ -46,6 +46,7 @@ public class RunArgs {
     private RunOption optionCopyMap;
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
+    private RunOption optionPrettyPrint;
     private RunOption optionMeasureTimes;
     private RunOption optionHotStartmap;
     private RunOption optionHotReload;
@@ -133,6 +134,8 @@ public class RunArgs {
 
         addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
             s -> functionSplitLimit = Integer.parseInt(s, 10));
+
+        optionPrettyPrint = addOption("prettyPrint", "Pretty print the input file, or all sub-directory if the given path is: '...'");
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -322,6 +325,10 @@ public class RunArgs {
 
     public boolean isRunTests() {
         return optionRuntests.isSet;
+    }
+
+    public boolean isPrettyPrint() {
+        return optionPrettyPrint.isSet;
     }
 
     public int getTestTimeout() {

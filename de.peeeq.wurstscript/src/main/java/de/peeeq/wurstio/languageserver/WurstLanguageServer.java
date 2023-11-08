@@ -57,6 +57,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setCodeActionProvider(true);
         capabilities.setDocumentSymbolProvider(true);
         capabilities.setWorkspaceSymbolProvider(true);
+        capabilities.setDocumentFormattingProvider(true);
         capabilities.setColorProvider(true);
         capabilities.setCodeLensProvider(new CodeLensOptions(true));
         capabilities.setFoldingRangeProvider(true);
@@ -67,7 +68,6 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         System.err.println("initialization done!");
         return CompletableFuture.completedFuture(res);
     }
-
     private void setupLogger() {
         WLogger.setLogger("languageServer");
     }
@@ -78,7 +78,6 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         languageWorker.stop();
         return CompletableFuture.completedFuture("ok");
     }
-
 
     @Override
     public void exit() {
@@ -96,7 +95,6 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         WLogger.info("getWorkspaceService");
         return new WurstWorkspaceService(this);
     }
-
 
     @Override
     public void connect(LanguageClient client) {

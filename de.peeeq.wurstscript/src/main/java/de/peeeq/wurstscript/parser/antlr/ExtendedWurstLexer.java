@@ -11,9 +11,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 
 public class ExtendedWurstLexer implements TokenSource {
 
@@ -36,6 +34,12 @@ public class ExtendedWurstLexer implements TokenSource {
     private CompileError tabWarning = null;
     // counts the number of open parentheses
     private int parenthesesLevel = 0;
+    private Deque<Token> commentTokens = new ArrayDeque<>();
+
+    public Deque<Token> getCommentTokens() {
+        return commentTokens;
+    }
+
 
     enum State {
         INIT, NEWLINES, BEGIN_LINE
@@ -119,6 +123,10 @@ public class ExtendedWurstLexer implements TokenSource {
                 continue;
             }
 
+            if (token1.getChannel() == 2) {
+                commentTokens.addLast(token1);
+                continue;
+            }
 
             if (isWurst) {
                 if (isJassOnlyKeyword(token1)) {
@@ -355,16 +363,27 @@ public class ExtendedWurstLexer implements TokenSource {
                         int line = lineOffsets.getLine(start);
                         el.syntaxError(orig, "", line, start - lineOffsets.get(line), msg, null);
                     }
+                    // TODO ?
+                    // int line = lineOffsets.getLine(start);
+                    // int charPositionInLine = start - lineOffsets.get(line);
+                    // String msg = "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".";
+                    // reportError(line, charPositionInLine, msg);
                 }
             }
         }
 
     }
 
+    private void reportError(int line, int charPositionInLine, String msg) {
+        for (ANTLRErrorListener el : orig.getErrorListeners()) {
+            el.syntaxError(orig, "", line, charPositionInLine, msg, null);
+        }
+    }
+
 
     private boolean isWrapChar(int type) {
         switch (type) {
-//		case WurstParser.PAREN_LEFT: 
+//		case WurstParser.PAREN_LEFT:
 //		case WurstParser.BRACKET_LEFT:
             case WurstParser.COMMA:
             case WurstParser.PLUS:

@@ -439,6 +439,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg2);
+            timeTaker.endPhase();
         } else {
             // debug: add stacktraces
             if (runArgs.isIncludeStacktraces()) {
@@ -767,6 +768,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (fileName.endsWith(".jurst")) {
             return parser.parseJurst(reader, fileName, hasCommonJ);
         }
+        if (runArgs.isPrettyPrint()) {
+            parser.setRemoveSugar(false);
+        }
         return parser.parse(reader, fileName, hasCommonJ);
     }
 
@@ -855,6 +859,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg);
+            timeTaker.endPhase();
         } else {
             // debug: add stacktraces
             if (runArgs.isIncludeStacktraces()) {
@@ -873,6 +878,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             imTranslator2.assertProperties();
 
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
+            timeTaker.endPhase();
         }
 
         // eliminate local types
@@ -882,11 +888,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
-
+        timeTaker.endPhase();
         stage = 10;
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
             optimizer.localOptimizations();
+            timeTaker.endPhase();
         }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
@@ -908,11 +915,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             optimizer.removeGarbage();
             imProg.flatten(imTranslator);
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
+            timeTaker.endPhase();
         }
         beginPhase(13, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         ImAttrType.setWurstClassType(TypesHelper.imInt());
+        timeTaker.endPhase();
         return luaCode;
     }
 }

@@ -33,7 +33,6 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
         Method method = methodMap.get(Pair.create(funcname, args.length));
-        Object r;
         if (method == null) {
             String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";

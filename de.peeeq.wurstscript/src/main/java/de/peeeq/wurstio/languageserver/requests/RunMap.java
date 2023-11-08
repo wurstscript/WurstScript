@@ -56,7 +56,6 @@ public class RunMap extends MapRequest {
 
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
-        timeTaker.beginPhase("Running Map");
         WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
             + ",\n map = " + map
             + ",\n compileArgs = " + compileArgs
