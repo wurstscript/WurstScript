@@ -2,7 +2,7 @@
 
 Wurstscript is a delicious programming language which compiles to Jass or Lua code that is used to power WarCraft III maps.
 
-[![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/)
+[![Build Status](https://grill.wurstlang.org/hudson/job/Wurst/badge/icon)](http://grill.wurstlang.org/hudson/job/Wurst/)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/wurstscript/WurstScript/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/wurstscript/WurstScript/tree/master)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
@@ -36,32 +36,39 @@ This repository contains the following sub-projects:
 	- The core wurstscript compiler and directly related tools
 - Wurstpack
 	- (deprecated) Wurst integration for the Warcraft III World Editor
+ - HelperScripts
+   	- Some external scripts used for generating data e.g. for StdLib
 
 IDE support is provided via a VSCode plugin: https://github.com/wurstscript/wurst4vscode
 
 The source for the wurstscript website can be found here: https://github.com/wurstscript/wurstscript.github.io
 
-## Build Process
+## Compiler Build Process
+
+Java 11+ is required to build the project. Clone the repository and open the `de.peeeq.wurstscript` folder which contains the compiler project.
 
 ### Using Gradle
 
-Simply run the appropriate gradle task using the provided gradle wrapper.
+Use the gradle wrapper to run required tasks, it will download gradle automatically. Replace `[task_name]` with the desired task.
 
 ```bash
-./gradlew compileJava
+.\gradlew [task_name]
+```
+
+#### Examples 
+
+To update the local compiler installation used by vscode run
+
+```bash
+.\gradlew make_for_userdir
 ```
 
 For deploying .jars and .zips see tasks in **deploy.gradle**
 
 ```bash
-./gradlew create_zip_wurstpack_compiler
+.\gradlew create_zip_wurstpack_compiler
 ```
 
-To update your compiler installation use
-
-```bash
-./gradlew make_for_userdir
-```
 
 ### Import into IDE
 
