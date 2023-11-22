@@ -146,6 +146,7 @@ public class RunMap extends MapRequest {
 
                     gui.sendProgress("running " + cmd);
                     Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+                    timeTaker.endPhase();
                     timeTaker.printReport();
                 }
             }

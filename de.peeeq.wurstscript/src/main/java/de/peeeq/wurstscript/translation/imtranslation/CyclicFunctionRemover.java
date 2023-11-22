@@ -90,7 +90,11 @@ public class CyclicFunctionRemover {
             stmts = elseBlock;
         }
 
-        replaceCalls(funcs, funcSet, newFunc, oldToNewVar, prog);
+        Map<ImFunction, Integer> funcToIndex = new HashMap<>();
+        for (int i = 0; i < funcs.size(); i++) {
+            funcToIndex.put(funcs.get(i), i);
+        }
+        replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, prog);
 
         for (ImFunction e : Lists.newArrayList(tr.getCalledFunctions().keys())) {
             Collection<ImFunction> called = tr.getCalledFunctions().get(e);
@@ -120,78 +124,94 @@ public class CyclicFunctionRemover {
     }
 
 
-    private void replaceCalls(List<ImFunction> funcs, Set<ImFunction> funcSet, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
-        // process children
-        for (int i = 0; i < e.size(); i++) {
-            replaceCalls(funcs, funcSet, newFunc, oldToNewVar, e.get(i));
-        }
-
-
-        if (e instanceof ImFuncRef) {
-            ImFuncRef fr = (ImFuncRef) e;
-            ImFunction f = fr.getFunc();
-            if (funcSet.contains(f)) {
-
-                ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
-                prog.getFunctions().add(proxyFunc);
-
-                ImExprs arguments = JassIm.ImExprs();
-                for (ImVar p : proxyFunc.getParameters()) {
-                    arguments.add(JassIm.ImVarAccess(p));
-                }
-
-                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
-
-                if (f.getReturnType() instanceof ImVoid) {
-                    proxyFunc.getBody().add(call);
-                } else {
-                    proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
-                }
-                // rewrite the proxy call:
-                replaceCalls(funcs, funcSet, newFunc, oldToNewVar, call);
-                // change the funcref to use the proxy
-                fr.setFunc(proxyFunc);
+    private void replaceCalls(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
+        List<Element> relevant = new ArrayList<>();
+        e.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFuncRef imFuncRef) {
+                super.visit(imFuncRef);
+                relevant.add(imFuncRef);
             }
-        } else if (e instanceof ImFunctionCall) {
-            ImFunctionCall fc = (ImFunctionCall) e;
-            ImFunction oldFunc = fc.getFunc();
-            if (funcSet.contains(oldFunc)) {
 
-                ImExprs arguments = JassIm.ImExprs();
-
-                // first argument is the choice index
-                arguments.add(JassIm.ImIntVal(funcs.indexOf(oldFunc)));
-
-                // now for the actual arguments
-                List<ImExpr> oldArgs = fc.getArguments().removeAll();
-                int pos = 0;
-                for (int i = 1; i < newFunc.getParameters().size(); i++) {
-                    ImVar p = newFunc.getParameters().get(i);
-                    if (pos < oldArgs.size() && oldToNewVar.get(oldFunc.getParameters().get(pos)) == p) {
-                        arguments.add(oldArgs.get(pos));
-                        pos++;
-                    } else {
-                        // use default value
-                        arguments.add(tr.getDefaultValueForJassType(p.getType()));
-                    }
-                }
-
-
-                ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
-
-                Element ret;
-                if (oldFunc.getReturnType() instanceof ImVoid) {
-                    ret = newCall;
-                } else {
-                    // if there is a return value, use the temporary return value
-                    ret = JassIm.ImStatementExpr(JassIm.ImStmts(newCall), JassIm.ImVarAccess(getTempReturnVar(oldFunc.getReturnType())));
-                }
-                fc.replaceBy(ret);
-
+            @Override
+            public void visit(ImFunctionCall imFunctionCall) {
+                super.visit(imFunctionCall);
+                relevant.add(imFunctionCall);
             }
+        });
+        relevant.parallelStream().forEach(relevantElem -> {
+            if (relevantElem instanceof ImFuncRef) {
+                replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFuncRef) relevantElem);
+            } else if (relevantElem instanceof ImFunctionCall) {
+                replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) relevantElem);
+            }
+        });
+    }
+
+    private void replaceImFuncRef(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, ImFuncRef e) {
+        ImFuncRef fr = e;
+        ImFunction f = fr.getFunc();
+        if (funcSet.contains(f)) {
+
+            ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            prog.getFunctions().add(proxyFunc);
+
+            ImExprs arguments = JassIm.ImExprs();
+            for (ImVar p : proxyFunc.getParameters()) {
+                arguments.add(JassIm.ImVarAccess(p));
+            }
+
+            ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
+
+            if (f.getReturnType() instanceof ImVoid) {
+                proxyFunc.getBody().add(call);
+            } else {
+                proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
+            }
+            // rewrite the proxy call:
+            replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, call);
+            // change the funcref to use the proxy
+            fr.setFunc(proxyFunc);
         }
+    }
+
+    private void replaceImFunctionCall(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, ImFunctionCall e) {
+        ImFunctionCall fc = e;
+        ImFunction oldFunc = fc.getFunc();
+        if (funcSet.contains(oldFunc)) {
+
+            ImExprs arguments = JassIm.ImExprs();
+
+            // first argument is the choice index
+            arguments.add(JassIm.ImIntVal(funcToIndex.get(oldFunc)));
+
+            // now for the actual arguments
+            List<ImExpr> oldArgs = fc.getArguments().removeAll();
+            int pos = 0;
+            for (int i = 1; i < newFunc.getParameters().size(); i++) {
+                ImVar p = newFunc.getParameters().get(i);
+                if (pos < oldArgs.size() && oldToNewVar.get(oldFunc.getParameters().get(pos)) == p) {
+                    arguments.add(oldArgs.get(pos));
+                    pos++;
+                } else {
+                    // use default value
+                    arguments.add(tr.getDefaultValueForJassType(p.getType()));
+                }
+            }
 
 
+            ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
+
+            Element ret;
+            if (oldFunc.getReturnType() instanceof ImVoid) {
+                ret = newCall;
+            } else {
+                // if there is a return value, use the temporary return value
+                ret = JassIm.ImStatementExpr(JassIm.ImStmts(newCall), JassIm.ImVarAccess(getTempReturnVar(oldFunc.getReturnType())));
+            }
+            fc.replaceBy(ret);
+
+        }
     }
 
     private void replaceReturn(Element e, ImType returnType) {

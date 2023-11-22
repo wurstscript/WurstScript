@@ -32,7 +32,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 /**
  * flattening expressions and statements
  * after flattening there will be no more StatementExprs
@@ -204,8 +206,8 @@ public class Flatten {
             flattenStatementsInto(result, e2.getStatements(), t, f);
             exprToStatements(result, e2, t, f);
         } else if (e instanceof ImOperatorCall &&
-                (((ImOperatorCall) e).getOp() == WurstOperator.AND
-                        || ((ImOperatorCall) e).getOp() == WurstOperator.OR)) {
+            (((ImOperatorCall) e).getOp() == WurstOperator.AND
+                || ((ImOperatorCall) e).getOp() == WurstOperator.OR)) {
             // short circuiting operators have to be handled in a special way:
             // we translate them to if statements when necessary
             ImOperatorCall oc = (ImOperatorCall) e;
@@ -257,16 +259,16 @@ public class Flatten {
         Result cond = s.getCondition().flatten(t, f);
         List<ImStmt> stmts = Lists.newArrayList(cond.stmts);
         stmts.add(
-                JassIm.ImIf(s.getTrace(), cond.expr,
-                        flattenStatements(s.getThenBlock(), t, f),
-                        flattenStatements(s.getElseBlock(), t, f)));
+            JassIm.ImIf(s.getTrace(), cond.expr,
+                flattenStatements(s.getThenBlock(), t, f),
+                flattenStatements(s.getElseBlock(), t, f)));
         return new Result(stmts);
     }
 
 
     public static Result flatten(ImLoop s, ImTranslator t, ImFunction f) {
         return new Result(Collections.singletonList(
-                JassIm.ImLoop(s.getTrace(), flattenStatements(s.getBody(), t, f))));
+            JassIm.ImLoop(s.getTrace(), flattenStatements(s.getBody(), t, f))));
     }
 
     public static Result flatten(ImReturn s, ImTranslator t, ImFunction f) {
@@ -440,14 +442,9 @@ public class Flatten {
     }
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {
-        for (ImFunction f : imProg.getFunctions()) {
-            f.flatten(translator);
-        }
-        for (ImClass c : imProg.getClasses()) {
-            for (ImFunction f : c.getFunctions()) {
-                f.flatten(translator);
-            }
-        }
+        imProg.getFunctions().parallelStream().forEach(f -> f.flatten(translator));
+        imProg.getClasses().parallelStream().forEach(c ->
+            c.getFunctions().parallelStream().forEach(f -> f.flatten(translator)));
 
         translator.assertProperties(AssertProperty.FLAT);
     }
@@ -481,7 +478,7 @@ public class Flatten {
 
             stmts.addAll(r.stmts);
             if (r.expr.attrPurity() instanceof Pure
-                    || i >= withStmts) {
+                || i >= withStmts) {
                 newExprs.add(r.expr);
             } else {
                 ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
@@ -512,7 +509,7 @@ public class Flatten {
 
             stmts.addAll(r.stmts);
             if (r.expr.attrPurity() instanceof Pure
-                    || i >= withStmts) {
+                || i >= withStmts) {
                 newExprs.add(r.getExpr());
             } else {
                 ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
@@ -553,9 +550,8 @@ public class Flatten {
 
     public static Result flatten(ImVarargLoop s, ImTranslator translator, ImFunction f) {
         return new Result(Collections.singletonList(
-                JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
+            JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
     }
-
 
 
 }

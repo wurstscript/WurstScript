@@ -2,6 +2,8 @@ package de.peeeq.wurstio;
 
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -53,6 +55,8 @@ public interface TimeTaker {
         private long currentPhaseStart;
         private Map<String, Long> accumulatedTimes = new LinkedHashMap<>();
 
+        private Long startTime = 0L;
+
         public <T> T measure(String name, Supplier<T> f) {
             name = withNesting(name);
             nesting++;
@@ -76,6 +80,9 @@ public interface TimeTaker {
 
         @Override
         public void beginPhase(String description) {
+            if (accumulatedTimes.isEmpty()) {
+                this.startTime = System.currentTimeMillis();
+            }
             if (currentPhaseDescription != null) {
                 endPhase();
             }
@@ -101,9 +108,21 @@ public interface TimeTaker {
         public void printReport() {
             System.out.println("#############################");
             System.out.println("Run times:");
+
             for (Map.Entry<String, Long> e : accumulatedTimes.entrySet()) {
                 System.out.println(e.getKey() + ": " + e.getValue() + "ms");
             }
+
+            System.out.println("Total runtime: " + (System.currentTimeMillis() - startTime) + "ms");
+            System.out.println("GC time: " + getGarbageCollectionTime() + "ms");
+        }
+
+        private static long getGarbageCollectionTime() {
+            long collectionTime = 0;
+            for (GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+                collectionTime += garbageCollectorMXBean.getCollectionTime();
+            }
+            return collectionTime;
         }
 
     }

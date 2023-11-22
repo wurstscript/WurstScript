@@ -1547,12 +1547,12 @@ public class ImTranslator {
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
-        properties.forEach(p -> p.check(e));
+        properties.parallelStream().forEach(p -> p.check(e));
         if (properties.contains(AssertProperty.NOTUPLES)) {
-
+            // TODO ?
         }
         if (properties.contains(AssertProperty.FLAT)) {
-
+            // TODO ?
         }
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
