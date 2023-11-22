@@ -23,8 +23,7 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
         for (Method method : this.getClass().getMethods()) {
             Pair<String, Integer> keyPair = Pair.create(method.getName(), method.getParameterTypes().length);
             if (methodMap.containsKey(keyPair)) {
-                System.err.println(">>>>>>>>>>>>>> ALRDY EXISTS");
-                throw new RuntimeException("alrdy exists");
+                throw new RuntimeException("native entry already exists");
             }
             methodMap.put(keyPair, method);
         }
