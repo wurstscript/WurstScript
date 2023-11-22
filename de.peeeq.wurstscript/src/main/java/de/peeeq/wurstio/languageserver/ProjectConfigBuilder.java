@@ -56,7 +56,7 @@ public class ProjectConfigBuilder {
                     } else {
                         GameVersion version = GameVersion.VERSION_1_32;
                         System.out.println(
-                            "Failed to determine installed game version. Falling back to " + version.toString()
+                            "Failed to determine installed game version. Falling back to " + version
                         );
                         w3I.injectConfigsInJassScript(inputStream, sw, version);
                     }
@@ -66,7 +66,7 @@ public class ProjectConfigBuilder {
                 result.w3i = new File(buildDir, "war3map.w3i");
                 if (runArgs.isLua()) {
                     w3I.setScriptLang(W3I.ScriptLang.LUA);
-                    w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
+                    w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
                 }
                 w3I.write(result.w3i);
                 Files.write(scriptBytes, result.script);
@@ -106,10 +106,10 @@ public class ProjectConfigBuilder {
         }
         applyScenarioData(w3I, buildMapData);
 
-        if (buildMapData.getPlayers().size() > 0) {
+        if (!buildMapData.getPlayers().isEmpty()) {
             applyPlayers(projectConfig, w3I);
         }
-        if (buildMapData.getForces().size() > 0) {
+        if (!buildMapData.getForces().isEmpty()) {
             applyForces(projectConfig, w3I);
         }
         applyOptionFlags(projectConfig, w3I);
@@ -139,16 +139,16 @@ public class ProjectConfigBuilder {
         }
     }
 
-    private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
-        if (StringUtils.isNotBlank(loadingScreen.getModel())) {
-            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreen.getModel())));
-        } else {
-            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreen.getBackground()));
+    private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreenData) {
+        if (StringUtils.isNotBlank(loadingScreenData.getModel())) {
+            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreenData.getModel())));
+        } else if (StringUtils.isNotBlank(loadingScreenData.getBackground())) {
+            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreenData.getBackground()));
         }
 
-        w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
-        w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
-        w3I.getLoadingScreen().setText(loadingScreen.getText());
+        w3I.getLoadingScreen().setTitle(loadingScreenData.getTitle());
+        w3I.getLoadingScreen().setSubtitle(loadingScreenData.getSubTitle());
+        w3I.getLoadingScreen().setText(loadingScreenData.getText());
     }
 
     private static void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
