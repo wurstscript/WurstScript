@@ -30,7 +30,6 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.Orient;
-import net.openhft.hashing.LongHashFunction;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
