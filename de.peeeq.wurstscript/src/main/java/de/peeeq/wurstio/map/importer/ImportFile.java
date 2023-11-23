@@ -7,6 +7,8 @@ import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.TempDir;
+import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
+import net.moonlightflower.wc3libs.bin.app.IMP;
 
 import javax.swing.*;
 import java.io.*;
@@ -159,28 +161,31 @@ public class ImportFile {
     }
 
     private static void insertImportedFiles(MpqEditor mpq, List<File> directories) throws Exception {
+        IMP importFile = new IMP();
         for (File directory : directories) {
             LinkedList<File> files = new LinkedList<>();
             getFilesOfDirectory(directory, files);
 
-            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-            DataOutputStream dataOut = new DataOutputStream(byteOut);
-            dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(FILE_VERSION).array());
-            dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(files.size()).array());
             for (File f : files) {
                 Path p = f.toPath();
                 p = directory.toPath().relativize(p);
                 String normalizedWc3Path = p.toString().replaceAll("/", "\\\\");
-                dataOut.writeByte((byte) 13);
-                dataOut.write(normalizedWc3Path.getBytes(StandardCharsets.UTF_8));
-                dataOut.write((byte) 0);
+                IMP.Obj importObj = new IMP.Obj();
+                importObj.setPath(normalizedWc3Path);
+                importObj.setStdFlag(IMP.StdFlag.CUSTOM);
+                importFile.addObj(importObj);
                 mpq.deleteFile(normalizedWc3Path);
                 mpq.insertFile(normalizedWc3Path, f);
             }
-            dataOut.flush();
-            mpq.deleteFile("war3map.imp");
-            mpq.insertFile("war3map.imp", byteOut.toByteArray());
         }
+        mpq.deleteFile(IMP.GAME_PATH);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        try (Wc3BinOutputStream wc3BinOutputStream = new Wc3BinOutputStream(byteArrayOutputStream)) {
+            importFile.write(wc3BinOutputStream);
+        }
+        byteArrayOutputStream.flush();
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        mpq.insertFile(IMP.GAME_PATH, byteArray);
     }
 
     public static void importFilesFromImports(File projectFolder, MpqEditor ed) {
