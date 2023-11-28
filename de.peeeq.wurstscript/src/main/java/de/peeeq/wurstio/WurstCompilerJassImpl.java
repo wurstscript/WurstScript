@@ -41,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
+import static de.peeeq.wurstscript.WurstOperator.PLUS;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
@@ -563,11 +564,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // add call to JHCR_Init_init in main
         stmts.add(callExtern(trace, CallType.EXECUTE, "JHCR_Init_init"));
 
+        ImFunction statusFunc = findFunction("JHCR_API_GetLastStatus", trace.attrErrorPos());
+        ImFunctionCall jhcrStatusCall = JassIm.ImFunctionCall(trace, statusFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL);
+        ImFunction I2S = findNative("I2S", trace.attrErrorPos());
+        ImFunctionCall statusCall = JassIm.ImFunctionCall(trace, I2S, JassIm.ImTypeArguments(), JassIm.ImExprs(jhcrStatusCall), false, CallType.NORMAL);
+
 
         // add reload trigger for pressing escape
         ImStmts reloadBody = JassIm.ImStmts(
-                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse"),
-                callExtern(trace, CallType.NORMAL, "BJDebugMsg", JassIm.ImStringVal("Code reloaded!"))
+                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse")
+//            callExtern(trace, CallType.NORMAL, "BJDebugMsg", JassIm.ImOperatorCall(PLUS, JassIm.ImExprs(JassIm.ImStringVal("Code reloaded, status: "), statusCall))
         );
         ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
 
@@ -582,6 +588,29 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 JassIm.ImFuncRef(trace, jhcr_reload)));
 
         mainFunc.getBody().addAll(0, stmts);
+    }
+
+    @NotNull
+    private ImFunction findNative(String funcName, WPos trace) {
+        return imProg.getFunctions()
+            .stream()
+            .filter(ImFunction::isNative)
+            .filter(func -> func.getName().equals(funcName))
+            .findFirst()
+            .orElseGet(() -> {
+                throw new CompileError(trace, "Could not find native " + funcName);
+            });
+    }
+
+    @NotNull
+    private ImFunction findFunction(String funcName, WPos trace) {
+        return imProg.getFunctions()
+            .stream()
+            .filter(func -> func.getName().equals(funcName))
+            .findFirst()
+            .orElseGet(() -> {
+                throw new CompileError(trace, "Could not find native " + funcName);
+            });
     }
 
     @NotNull

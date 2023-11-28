@@ -94,7 +94,7 @@ public class StackTraceInjector2 {
         TransitiveClosure<ImFunction> callRelationTr = new TransitiveClosure<>(callRelation);
 
         // find affected functions
-        Set<ImFunction> affectedFuncs = Sets.newHashSet(stackTraceGets.keySet());
+        Set<ImFunction> affectedFuncs = Sets.newLinkedHashSet(stackTraceGets.keySet());
 
         if (tr.isLuaTarget()) {
             // in Lua all functions are potentially affected, because we don't know where Lua might crash
@@ -173,7 +173,7 @@ public class StackTraceInjector2 {
             if (isMainOrConfig(f)) {
                 continue;
             }
-            Set<ImReturn> returns = new HashSet<>();
+            Set<ImReturn> returns = new LinkedHashSet<>();
             f.getBody().accept(new ImStmts.DefaultVisitor() {
                 @Override
                 public void visit(ImReturn imReturn) {

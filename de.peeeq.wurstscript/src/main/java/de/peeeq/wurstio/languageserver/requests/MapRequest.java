@@ -7,10 +7,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstio.languageserver.ConfigProvider;
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
-import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.*;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
@@ -30,6 +27,7 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -49,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public abstract class MapRequest extends UserRequest<Object> {
-    protected final ConfigProvider configProvider;
+    protected final WurstLanguageServer langServer;
     protected final @Nullable
     Optional<File> map;
     protected final List<String> compileArgs;
@@ -78,15 +76,19 @@ public abstract class MapRequest extends UserRequest<Object> {
         public File w3i;
     }
 
-    public MapRequest(ConfigProvider configProvider, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
-            Optional<String> wc3Path) {
-        this.configProvider = configProvider;
+    public MapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
+                      Optional<String> wc3Path) {
+        this.langServer = langServer;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
-        this.w3data = getBestW3InstallationData();
+        try {
+            this.w3data = getBestW3InstallationData(workspaceRoot.getFile());
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         if (runArgs.isMeasureTimes()) {
             this.timeTaker = new TimeTaker.Recording();
         } else {
@@ -206,7 +208,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
         }
 
-        ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
+        ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(buildDir);
         Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
         return new File(buildDir, "jhcr_war3map.j");
@@ -434,20 +436,20 @@ public abstract class MapRequest extends UserRequest<Object> {
         return result.get();
     }
 
-    private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
+    private W3InstallationData getBestW3InstallationData(File workspaceRoot) throws RequestFailedException, FileNotFoundException {
         if (Orient.isLinuxSystem()) {
             // no Warcraft installation supported on Linux
             return new W3InstallationData(Optional.empty(), Optional.empty());
         }
-        if (wc3Path.isPresent()) {
-            W3InstallationData w3data = new W3InstallationData(new File(wc3Path.get()));
+        if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
+            W3InstallationData w3data = new W3InstallationData(langServer, workspaceRoot, new File(wc3Path.get()));
             if (!w3data.getWc3PatchVersion().isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 
             return w3data;
         } else {
-            return new W3InstallationData();
+            return new W3InstallationData(langServer, workspaceRoot);
         }
     }
 

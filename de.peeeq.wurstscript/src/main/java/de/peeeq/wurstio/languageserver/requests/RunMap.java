@@ -4,19 +4,12 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
-import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.ConfigProvider;
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
-import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstio.mpq.MpqEditor;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.languageserver.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
-import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.RandomStringUtils;
@@ -48,9 +41,9 @@ public class RunMap extends MapRequest {
     private @Nullable File customTarget = null;
 
 
-    public RunMap(ConfigProvider configProvider, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
-            List<String> compileArgs) {
-        super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
+    public RunMap(WurstLanguageServer langServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
+                  List<String> compileArgs) {
+        super(langServer, map, compileArgs, workspaceRoot, wc3Path);
         safeCompilation = SafetyLevel.QuickAndDirty;
     }
 
@@ -122,7 +115,7 @@ public class RunMap extends MapRequest {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
-                    Optional<String> wc3RunArgs = configProvider.getWc3RunArgs();
+                    Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
                     if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
                         if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_32) >= 0) {
                             cmd.add("-launch");
@@ -179,7 +172,7 @@ public class RunMap extends MapRequest {
 
         Path customMapDataPath = getCustomMapDataPath();
 
-        ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "update", mapScript.getName(), "--asm",
+        ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "update", mapScript.getName(), "--asm",
             "--preload-path", customMapDataPath.toAbsolutePath().toString());
         pb.directory(mapScriptFolder);
         Utils.ExecResult $ = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
@@ -191,7 +184,7 @@ public class RunMap extends MapRequest {
      * C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData
      */
     private Path getCustomMapDataPath() {
-        String customMapDataPath = configProvider.getConfig("customMapDataPath", "");
+        String customMapDataPath = langServer.getConfigProvider().getConfig("customMapDataPath", "");
         if (!customMapDataPath.isEmpty()) {
             return Paths.get(customMapDataPath);
         }
@@ -274,7 +267,7 @@ public class RunMap extends MapRequest {
 
     private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder) {
         Optional<String> documentPath = Optional.of(
-            configProvider.getMapDocumentPath().orElseGet(
+            langServer.getConfigProvider().getMapDocumentPath().orElseGet(
                 () -> myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III"));
 
         if (!new File(documentPath.get()).exists()) {

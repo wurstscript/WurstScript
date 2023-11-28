@@ -168,7 +168,7 @@ public class Main {
 
                     if (projectConfig != null && target.isPresent()) {
                         ProjectConfigBuilder.apply(projectConfig, target.get().toFile(), scriptFile, buildDir.toFile(),
-                            runArgs, new W3InstallationData());
+                            runArgs, new W3InstallationData(null, Paths.get(workspaceroot).toFile()));
 
                         WLogger.info("map build success");
                         System.out.println("Build succeeded. Output file: <" + target.get().toAbsolutePath() + ">");

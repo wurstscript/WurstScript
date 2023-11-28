@@ -90,7 +90,7 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot);
-        return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
@@ -99,13 +99,12 @@ public class WurstCommands {
             throw new RuntimeException("Missing arguments");
         }
         JsonObject options = (JsonObject) params.getArguments().get(0);
-        String key = "mappath";
-        Optional<String> mapPath = getString(options, key);
+        Optional<String> mapPath = getString(options,  "mappath");
         Optional<String> wc3Path = getString(options, "wc3path");
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {

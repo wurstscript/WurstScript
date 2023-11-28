@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.RemoteEndpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -24,6 +25,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     private WFile rootUri;
     private de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
     private LanguageClient languageClient;
+    private RemoteEndpoint remoteEndpoint;
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
@@ -117,5 +119,13 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     public ConfigProvider getConfigProvider() {
         return new ConfigProvider(languageClient);
+    }
+
+    public void setRemoteEndpoint(RemoteEndpoint remoteEndpoint) {
+        this.remoteEndpoint = remoteEndpoint;
+    }
+
+    public RemoteEndpoint getRemoteEndpoint() {
+        return remoteEndpoint;
     }
 }
