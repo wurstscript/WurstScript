@@ -15,11 +15,11 @@ import java.util.Set;
 public class NullSetter {
 
 
-    private ImProg prog;
-    private ImTranslator translator;
+    private final ImProg prog;
+    private final ImTranslator translator;
 
     // the types which are not set to null
-    private Set<String> primitiveTypes = Sets.newHashSet("boolean", "integer", "string", "code", "real");
+    private final Set<String> primitiveTypes = Sets.newHashSet("boolean", "integer", "string", "code", "real");
 
     public NullSetter(ImTranslator translator) {
         this.translator = translator;
@@ -153,7 +153,7 @@ public class NullSetter {
                                  List<ImStmt> nullSetStmts) {
         List<ImStmt> nullSetStmtsCopy = Lists.newArrayListWithCapacity(nullSetStmts.size());
         for (ImStmt s : nullSetStmts) {
-            nullSetStmtsCopy.add((ImStmt) s.copy());
+            nullSetStmtsCopy.add(s.copy());
         }
         parent.addAll(parentIndex, nullSetStmtsCopy);
     }

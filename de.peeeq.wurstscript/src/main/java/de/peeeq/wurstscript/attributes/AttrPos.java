@@ -73,7 +73,7 @@ public class AttrPos {
     private static @Nullable LineOffsets getLineOffsets(WPos p) {
         LineOffsets lineOffsets;
         if (p.getLineOffsets() instanceof LineOffsets) {
-            lineOffsets = (LineOffsets) p.getLineOffsets();
+            lineOffsets = p.getLineOffsets();
         } else {
             lineOffsets = new LineOffsets();
         }

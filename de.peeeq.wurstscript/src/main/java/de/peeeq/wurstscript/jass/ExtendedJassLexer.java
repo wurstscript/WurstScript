@@ -14,13 +14,13 @@ import java.util.Queue;
 public class ExtendedJassLexer implements TokenSource {
 
     private final JassLexer orig;
-    private Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new LinkedList<>();
     private State state = State.INIT;
     private @Nullable Token eof = null;
     private @Nullable Token firstNewline;
-    private LineOffsets lineOffsets = new LineOffsets();
+    private final LineOffsets lineOffsets = new LineOffsets();
     private final boolean debug = false;
-    private Pair<TokenSource, CharStream> sourcePair;
+    private final Pair<TokenSource, CharStream> sourcePair;
 
     enum State {
         INIT, NEWLINES, BEGIN_LINE

@@ -45,7 +45,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
      * @return an empty list
      */
     public static <T> ImmutableList<T> emptyList() {
-        return ImmutableListEmpty.<T>instance();
+        return ImmutableListEmpty.instance();
     }
 
     @SafeVarargs

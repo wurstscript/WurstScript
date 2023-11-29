@@ -7,10 +7,10 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -43,13 +44,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public abstract class MapRequest extends UserRequest<Object> {
-    protected final ConfigProvider configProvider;
+    protected final WurstLanguageServer langServer;
     protected final @Nullable
     Optional<File> map;
     protected final List<String> compileArgs;
@@ -70,7 +74,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
 
     enum SafetyLevel {
-        QuickAndDirty, KindOfSafe;
+        QuickAndDirty, KindOfSafe
     }
 
     public static class CompilationResult {
@@ -78,9 +82,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         public File w3i;
     }
 
-    public MapRequest(ConfigProvider configProvider, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
-            Optional<String> wc3Path) {
-        this.configProvider = configProvider;
+    public MapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
+                      Optional<String> wc3Path) {
+        this.langServer = langServer;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
@@ -206,7 +210,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
         }
 
-        ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
+        ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(buildDir);
         Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
         return new File(buildDir, "jhcr_war3map.j");
@@ -344,16 +348,15 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
 
-
         // first compile the script:
         result.script = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd, result.script);
 
         Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
         if (!model.isPresent()
-                || model
-                    .get()
-                    .stream()
-                    .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
+            || model
+            .get()
+            .stream()
+            .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
             println("We will try to start the map now, but it will probably fail. ");
@@ -439,15 +442,15 @@ public abstract class MapRequest extends UserRequest<Object> {
             // no Warcraft installation supported on Linux
             return new W3InstallationData(Optional.empty(), Optional.empty());
         }
-        if (wc3Path.isPresent()) {
-            W3InstallationData w3data = new W3InstallationData(new File(wc3Path.get()));
-            if (!w3data.getWc3PatchVersion().isPresent()) {
+        if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
+            W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()));
+            if (w3data.getWc3PatchVersion().isEmpty()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 
             return w3data;
         } else {
-            return new W3InstallationData();
+            return new W3InstallationData(langServer);
         }
     }
 

@@ -344,7 +344,7 @@ public class DescriptionHtml {
     }
 
     public static String description(TypeExpr t) {
-        return "" + htmlType(t.attrTyp());
+        return htmlType(t.attrTyp());
     }
 
     public static String description(TypeExprThis t) {

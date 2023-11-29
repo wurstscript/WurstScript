@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class LocationProvider extends Provider {
-    private static IlConstHandle lastExpiredMock = null;
+    private static final IlConstHandle lastExpiredMock = null;
 
     public LocationProvider(AbstractInterpreter interpreter) {
         super(interpreter);

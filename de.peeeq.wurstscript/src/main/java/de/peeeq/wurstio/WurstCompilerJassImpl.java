@@ -2,7 +2,10 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
@@ -11,8 +14,8 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -28,7 +31,10 @@ import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.*;
+import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TempDir;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -44,24 +50,24 @@ import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Compi
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
-    private List<File> files = Lists.newArrayList();
-    private Map<String, Reader> otherInputs = Maps.newLinkedHashMap();
+    private final List<File> files = Lists.newArrayList();
+    private final Map<String, Reader> otherInputs = Maps.newLinkedHashMap();
     private @Nullable JassProg prog;
-    private WurstGui gui;
+    private final WurstGui gui;
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private Optional<File> mapFile = Optional.empty();
     private @Nullable File projectFolder;
-    private ErrorHandler errorHandler;
+    private final ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
     private @Nullable ImProg imProg;
-    private List<File> parsedFiles = Lists.newArrayList();
+    private final List<File> parsedFiles = Lists.newArrayList();
     private final WurstParser parser;
     private final WurstChecker checker;
     private @Nullable ImTranslator imTranslator;
-    private List<File> dependencies = Lists.newArrayList();
+    private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
-    private TimeTaker timeTaker;
+    private final TimeTaker timeTaker;
 
     public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
         this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
@@ -174,7 +180,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             if (!folder.exists()) {
                 gui.sendError(new CompileError(pos, "Folder " + line + " not found."));
             } else if (!folder.isDirectory()) {
-                gui.sendError(new CompileError(pos, "" + line + " is not a folder."));
+                gui.sendError(new CompileError(pos, line + " is not a folder."));
             } else {
                 dependencies.add(folder);
             }
@@ -563,11 +569,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // add call to JHCR_Init_init in main
         stmts.add(callExtern(trace, CallType.EXECUTE, "JHCR_Init_init"));
 
+        ImFunction statusFunc = findFunction("JHCR_API_GetLastStatus", trace.attrErrorPos());
+        ImFunctionCall jhcrStatusCall = JassIm.ImFunctionCall(trace, statusFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL);
+        ImFunction I2S = findNative("I2S", trace.attrErrorPos());
+        ImFunctionCall statusCall = JassIm.ImFunctionCall(trace, I2S, JassIm.ImTypeArguments(), JassIm.ImExprs(jhcrStatusCall), false, CallType.NORMAL);
+
 
         // add reload trigger for pressing escape
         ImStmts reloadBody = JassIm.ImStmts(
-                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse"),
-                callExtern(trace, CallType.NORMAL, "BJDebugMsg", JassIm.ImStringVal("Code reloaded!"))
+                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse")
+//            callExtern(trace, CallType.NORMAL, "BJDebugMsg", JassIm.ImOperatorCall(PLUS, JassIm.ImExprs(JassIm.ImStringVal("Code reloaded, status: "), statusCall))
         );
         ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
 
@@ -582,6 +593,29 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 JassIm.ImFuncRef(trace, jhcr_reload)));
 
         mainFunc.getBody().addAll(0, stmts);
+    }
+
+    @NotNull
+    private ImFunction findNative(String funcName, WPos trace) {
+        return imProg.getFunctions()
+            .stream()
+            .filter(ImFunction::isNative)
+            .filter(func -> func.getName().equals(funcName))
+            .findFirst()
+            .orElseGet(() -> {
+                throw new CompileError(trace, "Could not find native " + funcName);
+            });
+    }
+
+    @NotNull
+    private ImFunction findFunction(String funcName, WPos trace) {
+        return imProg.getFunctions()
+            .stream()
+            .filter(func -> func.getName().equals(funcName))
+            .findFirst()
+            .orElseGet(() -> {
+                throw new CompileError(trace, "Could not find native " + funcName);
+            });
     }
 
     @NotNull

@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Map;
 
@@ -49,7 +48,7 @@ public class WurstLanguageServerTest extends WurstScriptTest {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         compiler.getErrorHandler().enableUnitTestMode();
         Map<String, String> inputMap = ImmutableMap.of("test", input);
-        return parseFiles(Collections.<File>emptyList(), inputMap, false, compiler);
+        return parseFiles(Collections.emptyList(), inputMap, false, compiler);
     }
 
     static class CompletionTestData {

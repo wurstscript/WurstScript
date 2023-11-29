@@ -3,16 +3,15 @@ package de.peeeq.wurstio.languageserver.requests;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageType;
-import systems.crigges.jmpq3.JMpqEditor;
-import systems.crigges.jmpq3.MPQOpenOption;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,9 +25,9 @@ import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
  */
 public class BuildMap extends MapRequest {
 
-    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
-            List<String> compileArgs) {
-        super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
+    public BuildMap(WurstLanguageServer languageServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
+                    List<String> compileArgs) {
+        super(languageServer, map, compileArgs, workspaceRoot, wc3Path);
     }
 
     @Override
@@ -64,8 +63,10 @@ public class BuildMap extends MapRequest {
 
             injectMapData(gui, targetMap, result);
 
-            JMpqEditor finalizer = new JMpqEditor(targetMap.get(), MPQOpenOption.FORCE_V0);
-            finalizer.close();
+            //noinspection EmptyTryBlock
+            try(MpqEditor ignored = MpqEditorFactory.getEditor(targetMap)) {
+                // Just finalization
+            }
 
             gui.sendProgress("Done.");
         } catch (CompileError e) {

@@ -23,7 +23,6 @@ import org.antlr.v4.runtime.misc.Interval;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

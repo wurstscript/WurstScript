@@ -6,7 +6,9 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.attributes.AttrConstantValue;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -16,7 +18,7 @@ import java.util.List;
 public class WurstTypeArray extends WurstType {
 
     private Expr arSize;
-    private WurstType baseType;
+    private final WurstType baseType;
     private int[] sizes;
 
 

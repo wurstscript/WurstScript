@@ -17,7 +17,7 @@ import java.util.Locale;
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
-    private boolean showRewrites = false;
+    private final boolean showRewrites = false;
 
     @Override
     public int optimize(ImTranslator trans) {
@@ -267,7 +267,7 @@ public class SimpleRewrites implements OptimizerPass {
         if (wasViable) {
             totalRewrites++;
             if (showRewrites) {
-                WLogger.info("opcall rewrite: " + opc.toString());
+                WLogger.info("opcall rewrite: " + opc);
             }
         }
 

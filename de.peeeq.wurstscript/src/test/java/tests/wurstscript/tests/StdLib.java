@@ -30,8 +30,8 @@ public class StdLib {
      */
     private static boolean isInitialized = false;
 
-    private static File tempFolder = new File("./temp");
-    private static File stdLibFolder = new File(tempFolder, "WurstStdlib2");
+    private static final File tempFolder = new File("./temp");
+    private static final File stdLibFolder = new File(tempFolder, "WurstStdlib2");
 
     @Test
     public void download() {
@@ -52,7 +52,7 @@ public class StdLib {
                         .setURI(gitRepo)
                         .call()) {
                     git.checkout().setName(Constants.MASTER).call();
-                };
+                }
             }
 
             try (Git git = Git.open(stdLibFolder)) {

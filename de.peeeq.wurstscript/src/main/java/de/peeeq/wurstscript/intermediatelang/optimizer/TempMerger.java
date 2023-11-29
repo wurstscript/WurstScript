@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
@@ -14,8 +14,11 @@ import de.peeeq.wurstscript.utils.MapWithIndexes.PredIndex;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class TempMerger implements OptimizerPass {
     private int totalMerged = 0;
@@ -264,7 +267,7 @@ public class TempMerger implements OptimizerPass {
                 }
             }
 
-            ImExpr newE = (ImExpr) e.copy();
+            ImExpr newE = e.copy();
             read.replaceBy(newE);
             // update attrReads:
             getAssignedVar().attrReads().remove(read);
@@ -399,11 +402,8 @@ public class TempMerger implements OptimizerPass {
                 // variable read exactly once can be replaced
                 return true;
             }
-            if (isSimplePureExpr(e)) {
-                // simple and pure expressions can always be merged
-                return true;
-            }
-            return false;
+            // simple and pure expressions can always be merged
+            return isSimplePureExpr(e);
         }
 
         /**
@@ -421,7 +421,7 @@ public class TempMerger implements OptimizerPass {
         @Override
         public String toString() {
             ArrayList<ImVar> keys = Lists.newArrayList(currentValues.keySet());
-            keys.sort(Utils.<ImVar>compareByNameIm());
+            keys.sort(Utils.compareByNameIm());
             StringBuilder sb = new StringBuilder();
             for (ImVar v : keys) {
                 ImSet s = currentValues.get(v).imSet;

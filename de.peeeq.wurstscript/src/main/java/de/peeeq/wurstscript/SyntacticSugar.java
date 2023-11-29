@@ -33,7 +33,7 @@ public class SyntacticSugar {
             public void visit(ExprMemberVarDot e) {
                 super.visit(e);
                 if (e.getVarName().equals("typeId")) {
-                    replacements.put(e, Ast.ExprTypeId(e.getSource(), (Expr) e.getLeft().copy()));
+                    replacements.put(e, Ast.ExprTypeId(e.getSource(), e.getLeft().copy()));
                 }
             }
         });

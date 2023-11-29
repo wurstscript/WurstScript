@@ -15,8 +15,8 @@ public class JassPrinter {
 
     public static final String WURST_COMMENT_RAW = "// this script was compiled with wurst ";
     public static final String WURST_COMMENT = WURST_COMMENT_RAW + AboutDialog.version;
-    private boolean withSpace;
-    private JassProg prog;
+    private final boolean withSpace;
+    private final JassProg prog;
 
 
     public JassPrinter(boolean withSpace, JassProg prog) {

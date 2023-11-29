@@ -437,7 +437,7 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         BufferManager bufferManager = new BufferManager();
         File projectPath = new File("./test-output").getAbsoluteFile();
         ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
-        String uri = projectPath.toURI().toString() + "/wurst/test.wurst";
+        String uri = projectPath.toURI() + "/wurst/test.wurst";
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);

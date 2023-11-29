@@ -15,7 +15,10 @@ import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
-import de.peeeq.wurstscript.*;
+import de.peeeq.wurstscript.CompileTimeInfo;
+import de.peeeq.wurstscript.ErrorReporting;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyUtils;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -168,7 +171,7 @@ public class Main {
 
                     if (projectConfig != null && target.isPresent()) {
                         ProjectConfigBuilder.apply(projectConfig, target.get().toFile(), scriptFile, buildDir.toFile(),
-                            runArgs, new W3InstallationData());
+                            runArgs, new W3InstallationData(null, Paths.get(workspaceroot).toFile()));
 
                         WLogger.info("map build success");
                         System.out.println("Build succeeded. Output file: <" + target.get().toAbsolutePath() + ">");

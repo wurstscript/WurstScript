@@ -49,14 +49,14 @@ public class WurstScriptTest {
     }
 
     class TestConfig {
-        private String name;
+        private final String name;
         private boolean withStdLib;
         private boolean executeProg;
         private boolean executeTests;
         private boolean executeProgOnlyAfterTransforms;
         private String expectedError;
-        private List<File> inputFiles = new ArrayList<>();
-        private List<CU> additionalCompilationUnits = new ArrayList<>();
+        private final List<File> inputFiles = new ArrayList<>();
+        private final List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
         private boolean testLua = false;

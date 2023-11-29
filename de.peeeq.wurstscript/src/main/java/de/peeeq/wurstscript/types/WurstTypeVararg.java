@@ -9,7 +9,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstTypeVararg extends WurstType {
 
-    private WurstType baseType;
+    private final WurstType baseType;
 
     public WurstTypeVararg(WurstType baseType) {
         this.baseType = baseType;

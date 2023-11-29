@@ -9,12 +9,11 @@ import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 import java.util.Collection;
-import java.util.List;
 
 public class WurstChecker {
 
     private final WurstGui gui;
-    private ErrorHandler errorHandler;
+    private final ErrorHandler errorHandler;
 
     public WurstChecker(WurstGui gui, ErrorHandler errorHandler) {
         this.gui = gui;

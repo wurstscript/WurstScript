@@ -19,10 +19,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CyclicFunctionRemover {
 
 
-    private ImProg prog;
-    private TimeTaker timeTaker;
-    private ImTranslator tr;
-    private ImFuncGraph graph;
+    private final ImProg prog;
+    private final TimeTaker timeTaker;
+    private final ImTranslator tr;
+    private final ImFuncGraph graph;
 
     public CyclicFunctionRemover(ImTranslator tr, ImProg prog, TimeTaker timeTaker) {
         this.tr = tr;
@@ -153,7 +153,7 @@ public class CyclicFunctionRemover {
         ImFunction f = fr.getFunc();
         if (funcSet.contains(f)) {
 
-            ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
             prog.getFunctions().add(proxyFunc);
 
             ImExprs arguments = JassIm.ImExprs();
@@ -235,7 +235,7 @@ public class CyclicFunctionRemover {
 
     }
 
-    private Map<String, ImVar> tempReturnVars = Maps.newLinkedHashMap();
+    private final Map<String, ImVar> tempReturnVars = Maps.newLinkedHashMap();
 
     private ImVar getTempReturnVar(ImType t) {
         String typeName = t.translateType();
@@ -268,7 +268,7 @@ public class CyclicFunctionRemover {
                     }
                 }
                 // otherwise, we have to create a new var:
-                ImVar newVar = JassIm.ImVar(v.getTrace(), (ImType) v.getType().copy(), v.getName(), false);
+                ImVar newVar = JassIm.ImVar(v.getTrace(), v.getType().copy(), v.getName(), false);
                 oldToNewVar.put(v, newVar);
                 newParameters.add(newVar);
                 pos = newParameters.size() + 1;

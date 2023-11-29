@@ -18,9 +18,9 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
  */
 public class VarargEliminator {
 
-    private ImProg prog;
+    private final ImProg prog;
     // original + number of args --> new function
-    private Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
+    private final Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
 
     public VarargEliminator(ImProg prog) {
         this.prog = prog;

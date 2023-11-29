@@ -12,9 +12,6 @@ import net.moonlightflower.wc3libs.bin.app.IMP;
 
 import javax.swing.*;
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,7 +44,7 @@ public class ImportFile {
     }
 
     private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws Exception {
-        try (MpqEditor editor = MpqEditorFactory.getEditor(Optional.of(tempMap))) {
+        try (MpqEditor editor = MpqEditorFactory.getEditor(Optional.of(tempMap), true)) {
             LinkedList<String> failed = extractImportedFiles(editor, importDirectory);
 
             if (failed.isEmpty()) {

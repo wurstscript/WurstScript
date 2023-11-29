@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import java.util.Random;
 
 public class MathProvider extends Provider {
-    private Random r = new Random();
+    private final Random r = new Random();
 
     public MathProvider(AbstractInterpreter interpreter) {
         super(interpreter);

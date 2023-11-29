@@ -82,9 +82,7 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
                 ImExpr dividend = oc.getArguments().get(1);
                 if (dividend instanceof ImIntVal) {
                     ImIntVal v = (ImIntVal) dividend;
-                    if (v.getValI() == 0) {
-                        return true;
-                    }
+                    return v.getValI() == 0;
                 }
             }
         }

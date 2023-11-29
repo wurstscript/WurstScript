@@ -15,8 +15,8 @@ import java.util.Map;
  */
 public class FuncRefRemover {
 
-    private ImProg prog;
-    private ImTranslator tr;
+    private final ImProg prog;
+    private final ImTranslator tr;
 
     public FuncRefRemover(ImProg imProg, ImTranslator tr) {
         this.prog = imProg;

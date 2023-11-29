@@ -5,7 +5,10 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImVar;
 
 /**
  *

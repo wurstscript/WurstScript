@@ -181,7 +181,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             private List<String> parameterNames = Collections.emptyList();
             private int line;
             private int indent;
-            private WFile targetFile = filename;
+            private final WFile targetFile = filename;
             private String receiverType = "";
             private WurstType returnType = WurstTypeVoid.instance();
             private boolean isAnnotation = false;

@@ -17,7 +17,7 @@ public class Exports {
      */
     public static ImmutableMultimap<String, DefLink> exportedNameLinks(WPackage p) {
         Builder<String, DefLink> result = ImmutableMultimap.builder();
-        addExportedNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
+        addExportedNameLinks(result, p, Sets.newLinkedHashSet());
         return result.build();
     }
 
@@ -49,7 +49,7 @@ public class Exports {
 
     public static ImmutableMultimap<String, TypeLink> exportedTypeNameLinks(WPackage p) {
         Builder<String, TypeLink> result = ImmutableMultimap.builder();
-        addExportedTypeNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
+        addExportedTypeNameLinks(result, p, Sets.newLinkedHashSet());
         return result.build();
     }
 

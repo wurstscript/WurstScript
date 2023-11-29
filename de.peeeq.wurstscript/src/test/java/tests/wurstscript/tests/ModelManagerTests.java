@@ -7,9 +7,6 @@ import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
-import de.peeeq.wurstscript.attributes.prettyPrint.Spacer;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -18,19 +15,17 @@ import org.hamcrest.core.IsNot;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
-import javax.xml.transform.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 public class ModelManagerTests {
 

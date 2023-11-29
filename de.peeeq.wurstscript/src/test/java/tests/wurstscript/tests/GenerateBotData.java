@@ -14,7 +14,9 @@ import de.peeeq.wurstscript.utils.Pair;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,8 +31,8 @@ public class GenerateBotData {
 
     static class Sig {
         private String name;
-        private List<WurstType> paramTypes;
-        private WurstType returnType;
+        private final List<WurstType> paramTypes;
+        private final WurstType returnType;
 
         public Sig(String name, List<WurstType> paramTypes, WurstType returnType) {
             super();
@@ -140,7 +142,7 @@ public class GenerateBotData {
         types.sort(Comparator.comparing(Object::toString));
 
 //		for (WurstType wurstType : types) {
-//			System.out.println("type " + wurstType);			
+//			System.out.println("type " + wurstType);
 //		}
 
         List<Pair<String, String>> superTypes = new ArrayList<>();

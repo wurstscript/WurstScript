@@ -1,10 +1,11 @@
 package tests.wurstscript.tests;
 
-import org.hamcrest.*;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.function.Function;
 
 /**
  *

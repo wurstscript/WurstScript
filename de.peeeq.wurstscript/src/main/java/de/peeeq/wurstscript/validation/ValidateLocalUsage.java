@@ -3,7 +3,8 @@ package de.peeeq.wurstscript.validation;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
 
 /**
  *

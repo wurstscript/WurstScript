@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
-    private String val; // including the quotes
+    private final String val; // including the quotes
 
     public ILconstString(String strVal) {
         this.val = strVal;

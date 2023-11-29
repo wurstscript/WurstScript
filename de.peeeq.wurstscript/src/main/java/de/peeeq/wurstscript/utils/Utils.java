@@ -7,12 +7,10 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imoptimizer.Replacer;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import org.eclipse.jdt.annotation.Nullable;
@@ -334,7 +332,7 @@ public class Utils {
             if (t == null) {
                 break;
             }
-            builder.append("Caused by: ").append(t.toString()).append("\n");
+            builder.append("Caused by: ").append(t).append("\n");
         }
         return builder.toString();
     }
@@ -631,7 +629,7 @@ public class Utils {
     public static <T> Iterable<T> iterateReverse(final List<T> elements) {
         return () -> new Iterator<T>() {
 
-            ListIterator<T> it = elements.listIterator(elements.size());
+            final ListIterator<T> it = elements.listIterator(elements.size());
 
             @Override
             public boolean hasNext() {
@@ -744,7 +742,7 @@ public class Utils {
     }
 
     public static <T> ImmutableSet<T> mergeSets(ImmutableSet<T> a, ImmutableSet<T> b) {
-        ImmutableSet.Builder<T> builder = ImmutableSet.<T>builder();
+        ImmutableSet.Builder<T> builder = ImmutableSet.builder();
         builder.addAll(a).addAll(b);
         return builder.build();
     }
@@ -933,7 +931,7 @@ public class Utils {
         return new String[] { name, "" };
     }
 
-    private static Map<String, File> resourceMap = new HashMap<>();
+    private static final Map<String, File> resourceMap = new HashMap<>();
 
     public static String elementNameWithPath(AstElementWithNameId n) {
         StringBuilder result = new StringBuilder(n.getNameId().getName());

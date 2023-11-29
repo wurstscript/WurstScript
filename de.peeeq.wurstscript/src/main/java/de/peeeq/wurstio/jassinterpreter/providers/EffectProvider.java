@@ -1,7 +1,9 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.EffectMock;
-import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class EffectProvider extends Provider {

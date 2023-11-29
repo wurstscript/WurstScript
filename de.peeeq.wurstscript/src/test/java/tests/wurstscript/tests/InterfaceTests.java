@@ -2,8 +2,6 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.testng.annotations.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

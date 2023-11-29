@@ -2,12 +2,6 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImStmt;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 
 // optimization for replaceBy
 // remembers last position of elements with the assumption that the next element

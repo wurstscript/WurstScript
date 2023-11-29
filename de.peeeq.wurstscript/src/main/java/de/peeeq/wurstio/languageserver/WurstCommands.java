@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -38,8 +37,8 @@ public class WurstCommands {
     public static final String WURST_PERFORM_CODE_ACTION = "wurst.perform_code_action";
 
     static List<String> providedCommands() {
-        return Arrays.asList(
-            WURST_CLEAN
+        return List.of(
+                WURST_CLEAN
         );
     }
 
@@ -48,17 +47,17 @@ public class WurstCommands {
             case WURST_CLEAN:
                 return server.worker().handle(new CleanProject()).thenApply(x -> x);
             case WURST_STARTMAP:
-                return startmap(server, params);
+                return startMap(server, params);
             case WURST_HOTSTARTMAP:
-                return startmap(server, params, "-hotstart");
+                return startMap(server, params, "-hotstart");
             case WURST_HOTRELOAD:
-                return startmap(server, params, "-hotreload");
+                return startMap(server, params, "-hotreload");
             case WURST_TESTS:
                 return testMap(server, params);
             case WURST_PERFORM_CODE_ACTION:
                 return server.worker().handle(new PerformCodeActionRequest(server, params));
             case WURST_BUILDMAP:
-                return buildmap(server, params);
+                return buildMap(server, params);
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
@@ -76,7 +75,7 @@ public class WurstCommands {
         return server.worker().handle(new RunTests(filename, line, column, testName, testTimeout));
     }
 
-    private static CompletableFuture<Object> buildmap(WurstLanguageServer server, ExecuteCommandParams params) {
+    private static CompletableFuture<Object> buildMap(WurstLanguageServer server, ExecuteCommandParams params) {
         WFile workspaceRoot = server.getRootUri();
         if (params.getArguments().isEmpty()) {
             throw new RuntimeException("Missing arguments");
@@ -90,22 +89,21 @@ public class WurstCommands {
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot);
-        return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
-    private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
+    private static CompletableFuture<Object> startMap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
         WFile workspaceRoot = server.getRootUri();
         if (params.getArguments().isEmpty()) {
             throw new RuntimeException("Missing arguments");
         }
         JsonObject options = (JsonObject) params.getArguments().get(0);
-        String key = "mappath";
-        Optional<String> mapPath = getString(options, key);
+        Optional<String> mapPath = getString(options,  "mappath");
         Optional<String> wc3Path = getString(options, "wc3path");
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {
@@ -136,7 +134,7 @@ public class WurstCommands {
                 return defaultArgs;
             }
         } catch (IOException e) {
-            throw new RuntimeException("Could not access wurst run config file", e);
+            throw new RuntimeException("Could not access wurst_run.args config file", e);
         }
     }
 

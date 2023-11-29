@@ -2,13 +2,14 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
+import de.peeeq.wurstscript.jassAst.JassInitializedVar;
 import de.peeeq.wurstscript.jassAst.JassNative;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
 import de.peeeq.wurstscript.jassAst.JassVars;
+import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -26,15 +27,15 @@ import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ImToJassTranslator {
 
-    private ImProg imProg;
-    private Multimap<ImFunction, ImFunction> calledFunctions;
-    private ImFunction mainFunc;
-    private ImFunction confFunction;
+    private final ImProg imProg;
+    private final Multimap<ImFunction, ImFunction> calledFunctions;
+    private final ImFunction mainFunc;
+    private final ImFunction confFunction;
     private @Nullable JassProg prog;
-    private Stack<ImFunction> translatingFunctions = new Stack<>();
-    private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
-    private Set<String> usedNames = Sets.newLinkedHashSet();
-    private Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
+    private final Stack<ImFunction> translatingFunctions = new Stack<>();
+    private final Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
+    private final Set<String> usedNames = Sets.newLinkedHashSet();
+    private final Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
     public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions,
                               ImFunction mainFunc, ImFunction confFunction) {
@@ -189,8 +190,8 @@ public class ImToJassTranslator {
     }
 
 
-    private Map<ImVar, JassVar> jassVars = Maps.newLinkedHashMap();
-    private Set<ImVar> globalImVars = Sets.newLinkedHashSet();
+    private final Map<ImVar, JassVar> jassVars = Maps.newLinkedHashMap();
+    private final Set<ImVar> globalImVars = Sets.newLinkedHashSet();
 
     JassVar getJassVarFor(ImVar v) {
         JassVar result = jassVars.get(v);
@@ -263,7 +264,7 @@ public class ImToJassTranslator {
     }
 
 
-    private Map<ImFunction, JassFunctionOrNative> jassFuncs = Maps.newLinkedHashMap();
+    private final Map<ImFunction, JassFunctionOrNative> jassFuncs = Maps.newLinkedHashMap();
 
     public JassFunctionOrNative getJassFuncFor(ImFunction func) {
         JassFunctionOrNative f = jassFuncs.get(func);

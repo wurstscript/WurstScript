@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class WLoggerDefault implements WLoggerI {
 
-    private org.slf4j.Logger logger;
+    private final org.slf4j.Logger logger;
 
     public WLoggerDefault(String loggerName) {
         logger = LoggerFactory.getLogger(loggerName);
@@ -39,6 +39,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void warning(String msg) {
+        System.out.println("Warning: " + msg);
         logger.warn(msg);
     }
 
@@ -49,6 +50,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void warning(String msg, Throwable e) {
+        System.out.println("Warning: " + msg);
         logger.warn(msg, e);
     }
 
@@ -59,6 +61,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void severe(String msg) {
+        System.err.println("Error: " + msg);
         logger.error(msg);
     }
 
@@ -69,7 +72,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void severe(Throwable t) {
-        t.printStackTrace();
+        System.err.println("Error: " + t.getMessage());
         logger.error("Error", t);
     }
 

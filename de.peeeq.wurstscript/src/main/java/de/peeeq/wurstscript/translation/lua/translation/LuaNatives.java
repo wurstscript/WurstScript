@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 public class LuaNatives {
 
-    private static Map<String, Consumer<LuaFunction>> nativeCodes = new HashMap<>();
+    private static final Map<String, Consumer<LuaFunction>> nativeCodes = new HashMap<>();
 
     static {
         addNative("testSuccess", f -> {

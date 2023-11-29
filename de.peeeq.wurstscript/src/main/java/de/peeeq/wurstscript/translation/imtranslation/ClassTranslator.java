@@ -1,17 +1,19 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.Maps;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
+import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -26,12 +28,12 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ClassTranslator {
 
-    private ClassDef classDef;
-    private ImTranslator translator;
+    private final ClassDef classDef;
+    private final ImTranslator translator;
     //	/** list of statements to initialize a new object **/
     final private List<Pair<ImVar, VarInitialization>> dynamicInits;
     private ImClass imClass;
-    private ImProg prog;
+    private final ImProg prog;
     private ImFunction classInitFunc;
 
     public ClassTranslator(ClassDef classDef, ImTranslator translator) {

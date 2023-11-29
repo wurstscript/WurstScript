@@ -15,18 +15,14 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
-import org.hamcrest.CoreMatchers;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
@@ -464,7 +460,7 @@ public class OptimizerTests extends WurstScriptTest {
                 "endpackage");
         String output1 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_inlopt.j"), Charsets.UTF_8);
         String output2 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_opt.j"), Charsets.UTF_8);
-        assertTrue(!output1.contains("foo()"));
+        assertFalse(output1.contains("foo()"));
         assertTrue(output2.contains("foo() + foo()"));
     }
 

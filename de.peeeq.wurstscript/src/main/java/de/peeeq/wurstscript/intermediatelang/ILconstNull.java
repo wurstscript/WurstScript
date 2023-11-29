@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.types.WurstTypeInfer;
 public class ILconstNull extends ILconstAbstract implements ILconstAddable {
 
 
-    private static ILconstNull instance = new ILconstNull();
+    private static final ILconstNull instance = new ILconstNull();
 
     private ILconstNull() {
     }

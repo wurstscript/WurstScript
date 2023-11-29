@@ -4,8 +4,8 @@ import de.peeeq.wurstscript.WLogger;
 
 public class ExecutiontimeMeasure implements AutoCloseable {
 
-    private String message;
-    private long startTime;
+    private final String message;
+    private final long startTime;
 
     public ExecutiontimeMeasure(String message) {
         this.message = message;

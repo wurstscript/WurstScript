@@ -10,8 +10,8 @@ import java.util.HashSet;
  * No element is added to the queue more than once.
  */
 public class Worklist<T> {
-    private ArrayDeque<T> queue = new ArrayDeque<>();
-    private HashSet<T> set = new HashSet<>();
+    private final ArrayDeque<T> queue = new ArrayDeque<>();
+    private final HashSet<T> set = new HashSet<>();
 
     public Worklist() {
     }

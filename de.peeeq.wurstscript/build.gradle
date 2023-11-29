@@ -90,7 +90,7 @@ dependencies {
     implementation 'io.vavr:vavr:0.10.4'
 
     // Support for the vscode language server protocol
-    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.12.0'
+    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.21.1'
 
     // @Nullable annotations
     implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'

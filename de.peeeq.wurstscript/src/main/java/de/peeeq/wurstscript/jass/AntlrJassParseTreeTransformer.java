@@ -18,9 +18,9 @@ import java.util.List;
 
 
 public class AntlrJassParseTreeTransformer {
-    private String file;
-    private ErrorHandler cuErrorHandler;
-    private LineOffsets lineOffsets;
+    private final String file;
+    private final ErrorHandler cuErrorHandler;
+    private final LineOffsets lineOffsets;
 
     public AntlrJassParseTreeTransformer(String file,
                                          ErrorHandler cuErrorHandler, LineOffsets lineOffsets) {

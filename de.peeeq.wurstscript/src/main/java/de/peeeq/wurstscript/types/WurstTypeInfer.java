@@ -12,7 +12,7 @@ import org.eclipse.jdt.annotation.Nullable;
  */
 public class WurstTypeInfer extends WurstType {
 
-    private static WurstType instance = new WurstTypeInfer();
+    private static final WurstType instance = new WurstTypeInfer();
 
     private WurstTypeInfer() {
     }

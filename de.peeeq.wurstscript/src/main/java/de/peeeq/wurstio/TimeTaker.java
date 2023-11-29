@@ -53,7 +53,7 @@ public interface TimeTaker {
         private int nesting = 0;
         private String currentPhaseDescription;
         private long currentPhaseStart;
-        private Map<String, Long> accumulatedTimes = new LinkedHashMap<>();
+        private final Map<String, Long> accumulatedTimes = new LinkedHashMap<>();
 
         private Long startTime = 0L;
 

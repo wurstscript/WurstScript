@@ -29,11 +29,11 @@ public class StackTraceInjector2 {
 
     private static final int MAX_STACKTRACE_SIZE = 20;
     public static final String STACK_POS_PARAM = "__wurst_stackPos";
-    private ImProg prog;
-    private ImTranslator tr;
+    private final ImProg prog;
+    private final ImTranslator tr;
     private ImVar stackSize;
     private ImVar stack;
-    private ImGetStackTrace dummyGetStackTrace = JassIm.ImGetStackTrace();
+    private final ImGetStackTrace dummyGetStackTrace = JassIm.ImGetStackTrace();
 
     public StackTraceInjector2(ImProg prog, ImTranslator tr) {
         this.prog = prog;
@@ -94,7 +94,7 @@ public class StackTraceInjector2 {
         TransitiveClosure<ImFunction> callRelationTr = new TransitiveClosure<>(callRelation);
 
         // find affected functions
-        Set<ImFunction> affectedFuncs = Sets.newHashSet(stackTraceGets.keySet());
+        Set<ImFunction> affectedFuncs = Sets.newLinkedHashSet(stackTraceGets.keySet());
 
         if (tr.isLuaTarget()) {
             // in Lua all functions are potentially affected, because we don't know where Lua might crash
@@ -134,7 +134,7 @@ public class StackTraceInjector2 {
                 super.visit(call);
                 if (affectedFuncs.contains(call.getMethod().getImplementation())) {
                     String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                    call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(call.getMethod()) + "" + callPos));
+                    call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(call.getMethod()) + callPos));
                 }
             }
         });
@@ -152,7 +152,7 @@ public class StackTraceInjector2 {
             ImStmts stmts = f.getBody();
             de.peeeq.wurstscript.ast.Element trace = f.getTrace();
             stmts.add(0, increment(trace, stackSize));
-            stmts.add(0, JassIm.ImSet(trace, JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(stackSize))), getStackPosVar(f)));
+            stmts.add(0, JassIm.ImSet(trace, JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs(JassIm.ImVarAccess(stackSize))), getStackPosVar(f)));
         }
     }
 
@@ -173,7 +173,7 @@ public class StackTraceInjector2 {
             if (isMainOrConfig(f)) {
                 continue;
             }
-            Set<ImReturn> returns = new HashSet<>();
+            Set<ImReturn> returns = new LinkedHashSet<>();
             f.getBody().accept(new ImStmts.DefaultVisitor() {
                 @Override
                 public void visit(ImReturn imReturn) {
@@ -274,7 +274,7 @@ public class StackTraceInjector2 {
             // pass the stacktrace parameter at all calls
             for (ImFunctionCall call : callsForF) {
                 String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(f) + "" + callPos));
+                call.getArguments().add(getStacktraceIndex(call), str("when calling " + name(f) + callPos));
             }
         }
     }
@@ -444,7 +444,7 @@ public class StackTraceInjector2 {
             loopBody.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImOperatorCall(WurstOperator.PLUS,
                 JassIm.ImExprs(JassIm.ImVarAccess(traceStr),
                     JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("\n   "),
-                        JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(traceI)))))))));
+                        JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs(JassIm.ImVarAccess(traceI)))))))));
 
             s.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
         }

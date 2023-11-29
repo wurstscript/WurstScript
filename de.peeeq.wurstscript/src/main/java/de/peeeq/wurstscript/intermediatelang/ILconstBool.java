@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class ILconstBool extends ILconstAbstract {
 
-    private boolean val;
+    private final boolean val;
 
     public final static ILconstBool FALSE = new ILconstBool(false);
     public final static ILconstBool TRUE = new ILconstBool(true);

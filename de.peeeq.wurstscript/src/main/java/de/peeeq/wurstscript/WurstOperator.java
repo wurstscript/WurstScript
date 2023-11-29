@@ -30,8 +30,8 @@ public enum WurstOperator {
     NOT("not", 1),
     UNARY_MINUS("-", 1);
 
-    private String rep;
-    private int numArgs;
+    private final String rep;
+    private final int numArgs;
 
     WurstOperator(String rep, int numArgs) {
         this.rep = rep;

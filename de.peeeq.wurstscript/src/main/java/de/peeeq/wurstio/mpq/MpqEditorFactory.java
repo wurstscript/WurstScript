@@ -1,9 +1,8 @@
 package de.peeeq.wurstio.mpq;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.Optional;
-
-import javax.annotation.Nullable;
 
 
 public class MpqEditorFactory {

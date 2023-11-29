@@ -8,9 +8,9 @@ import java.util.List;
 
 public class ErrorHandler {
 
-    private List<CompileError> errors = new NotNullList<>();
-    private List<CompileError> warnings = new NotNullList<>();
-    private WurstGui gui;
+    private final List<CompileError> errors = new NotNullList<>();
+    private final List<CompileError> warnings = new NotNullList<>();
+    private final WurstGui gui;
     private boolean unitTestMode = false;
 
     public ErrorHandler(WurstGui gui) {

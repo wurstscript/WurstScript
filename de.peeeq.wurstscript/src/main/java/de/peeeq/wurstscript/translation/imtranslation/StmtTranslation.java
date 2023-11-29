@@ -2,11 +2,10 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
@@ -15,6 +14,7 @@ import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
@@ -42,7 +42,7 @@ public class StmtTranslation {
             for (int i = 0; i < ai.getValues().size(); i++) {
                 Expr expr = ai.getValues().get(i);
                 ImExpr translatedExpr = expr.imTranslateExpr(t, f);
-                stmts.add(ImSet(s, ImVarArrayAccess(s, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translatedExpr));
+                stmts.add(ImSet(s, ImVarArrayAccess(s, v, ImExprs(JassIm.ImIntVal(i))), translatedExpr));
             }
             return ImHelper.statementExprVoid(stmts);
         } else {

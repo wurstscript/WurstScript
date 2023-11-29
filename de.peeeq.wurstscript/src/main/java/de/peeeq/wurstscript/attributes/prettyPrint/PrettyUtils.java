@@ -59,7 +59,7 @@ public class PrettyUtils {
         StringBuilder sb = new StringBuilder();
         cu.prettyPrint(spacer, sb, 0);
 
-        System.out.println(sb.toString());
+        System.out.println(sb);
     }
 
     private static void debug(String filename) {

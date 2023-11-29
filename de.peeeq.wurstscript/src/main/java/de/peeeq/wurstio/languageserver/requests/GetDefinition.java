@@ -1,8 +1,8 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.Convert;
+import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -94,9 +94,9 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
     }
 
     static class DefinitionInfo {
-        private String filename;
-        private int line;
-        private int column;
+        private final String filename;
+        private final int line;
+        private final int column;
 
         public DefinitionInfo(String filename, int line, int column) {
             this.filename = filename;

@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.BufferedWriter;

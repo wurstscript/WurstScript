@@ -143,9 +143,7 @@ public class EvaluateExpr {
                 PackageOrGlobal nearestPackage = varDef.attrNearestPackage();
                 if (nearestPackage instanceof WPackage) {
                     WPackage p = (WPackage) nearestPackage;
-                    if (p.getName().equals("MagicFunctions")) {
-                        return true;
-                    }
+                    return p.getName().equals("MagicFunctions");
                 }
             }
         }

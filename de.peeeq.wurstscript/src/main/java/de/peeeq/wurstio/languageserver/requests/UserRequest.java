@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 
 public abstract class UserRequest<Res> {
 
-    private CompletableFuture<Res> fut = new CompletableFuture<>();
+    private final CompletableFuture<Res> fut = new CompletableFuture<>();
 
     public abstract Res execute(ModelManager modelManager) throws IOException;
 

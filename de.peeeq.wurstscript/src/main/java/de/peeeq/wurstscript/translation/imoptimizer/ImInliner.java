@@ -19,13 +19,13 @@ public class ImInliner {
     private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
-    private ImTranslator translator;
-    private ImProg prog;
-    private Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
-    private Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
-    private Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
-    private Set<ImFunction> done = Sets.newLinkedHashSet();
-    private double inlineTreshold = 50;
+    private final ImTranslator translator;
+    private final ImProg prog;
+    private final Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
+    private final Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
+    private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
+    private final Set<ImFunction> done = Sets.newLinkedHashSet();
+    private final double inlineTreshold = 50;
 
     static {
         dontInline.add("SetPlayerAllianceStateAllyBJ");
@@ -125,7 +125,7 @@ public class ImInliner {
         }
         // add body and replace params with tempvars
         for (int i = 0; i < called.getBody().size(); i++) {
-            ImStmt s = (ImStmt) called.getBody().get(i).copy();
+            ImStmt s = called.getBody().get(i).copy();
             ImHelper.replaceVar(s, varSubtitutions);
 
             s.accept(new ImStmt.DefaultVisitor() {
@@ -309,11 +309,7 @@ public class ImInliner {
         }
         if (body.get(body.size() - 1) instanceof ImReturn) {
             return true;
-        } else if (hasReturn(body.get(body.size() - 1))) {
-            return false;
-        } else {
-            return true;
-        }
+        } else return !hasReturn(body.get(body.size() - 1));
     }
 
     private boolean hasReturn(final ImStmt s) {

@@ -13,7 +13,7 @@ public interface ExecutableJassFunction {
 
 class UserDefinedJassFunction implements ExecutableJassFunction {
 
-    private JassFunction jassFunction;
+    private final JassFunction jassFunction;
 
     public UserDefinedJassFunction(JassFunction f) {
         this.jassFunction = f;
@@ -31,7 +31,7 @@ class UserDefinedJassFunction implements ExecutableJassFunction {
 
 class UnknownJassFunction implements ExecutableJassFunction {
 
-    private String name;
+    private final String name;
 
     public UnknownJassFunction(String name) {
         this.name = name;

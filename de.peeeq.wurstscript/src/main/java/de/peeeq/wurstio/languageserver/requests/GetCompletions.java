@@ -55,9 +55,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         this.column = position.getPosition().getCharacter();
         this.lines = buffer.split("\\n|\\r\\n");
         if (line <= lines.length) {
-            WLogger.info("Get completions in line " + line + ": \n" +
-                    "" + currentLine().replace('\t', ' ') + "\n" +
-                    "" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
+            WLogger.info("Get completions in line " + line + ": \n" + currentLine().replace('\t', ' ') + "\n" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
                     " at column " + column);
         }
     }

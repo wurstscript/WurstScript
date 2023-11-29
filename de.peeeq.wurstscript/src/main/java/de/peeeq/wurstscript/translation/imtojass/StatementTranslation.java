@@ -1,12 +1,13 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassStatements;
+import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.List;
+
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 public class StatementTranslation {
 

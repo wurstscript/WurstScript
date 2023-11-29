@@ -4,13 +4,12 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
-import de.peeeq.wurstio.objectreader.*;
+import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
-import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
 import net.moonlightflower.wc3libs.bin.ObjMod;
-import net.moonlightflower.wc3libs.bin.app.objMod.*;
+import net.moonlightflower.wc3libs.bin.app.objMod.W3U;
 import net.moonlightflower.wc3libs.dataTypes.DataType;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Int;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Real;
@@ -21,13 +20,11 @@ import net.moonlightflower.wc3libs.misc.ObjId;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-import static de.peeeq.wurstscript.intermediatelang.interpreter.VariableType.*;
-
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
     private final boolean isProd;
-    private ProgramStateIO globalState;
-    private WurstProjectConfigData projectConfigData;
+    private final ProgramStateIO globalState;
+    private final WurstProjectConfigData projectConfigData;
 
     public CompiletimeNatives(ProgramStateIO globalState, WurstProjectConfigData projectConfigData, boolean isProd) {
         this.globalState = globalState;

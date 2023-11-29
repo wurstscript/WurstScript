@@ -4,11 +4,16 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public abstract class WurstTypeNamedScope extends WurstType {

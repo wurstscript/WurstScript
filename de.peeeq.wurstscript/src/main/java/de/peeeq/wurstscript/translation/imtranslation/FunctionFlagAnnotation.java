@@ -30,11 +30,8 @@ public class FunctionFlagAnnotation implements FunctionFlag {
             return false;
         FunctionFlagAnnotation other = (FunctionFlagAnnotation) obj;
         if (annotation == null) {
-            if (other.annotation != null)
-                return false;
-        } else if (!annotation.equals(other.annotation))
-            return false;
-        return true;
+            return other.annotation == null;
+        } else return annotation.equals(other.annotation);
     }
 
     @Override

@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.Replacer;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator.VarsForTupleResult;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -222,7 +221,7 @@ public class EliminateTuples {
 
                     ImVar firstVar = returnVars.allValuesStream().findFirst().get();
 
-                    ImExpr newFc = returnVars.<ImExpr>map(
+                    ImExpr newFc = returnVars.map(
                             parts -> JassIm.ImTupleExpr(
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                             var -> var == firstVar

@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ConstructorDefs;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import org.eclipse.jdt.annotation.Nullable;
 

@@ -155,10 +155,10 @@ public abstract class GraphInterpreter<T> {
             if (!visited.add(node)) {
                 continue;
             }
-            sb.append("  \"").append(node.toString()).append("\";\n");
+            sb.append("  \"").append(node).append("\";\n");
             for (T n : getIncidentNodes(node)) {
                 sb.append("  ");
-                sb.append("\"").append(node.toString()).append("\" -> ");
+                sb.append("\"").append(node).append("\" -> ");
                 sb.append("\"").append(n.toString()).append("\";\n\n");
                 todo.addFirst(n);
             }

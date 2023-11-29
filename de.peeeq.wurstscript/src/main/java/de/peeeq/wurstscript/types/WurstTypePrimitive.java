@@ -6,8 +6,8 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public abstract class WurstTypePrimitive extends WurstType {
 
-    private String name;
-    private ImSimpleType imType;
+    private final String name;
+    private final ImSimpleType imType;
 
     protected WurstTypePrimitive(String name) {
         this.name = name;

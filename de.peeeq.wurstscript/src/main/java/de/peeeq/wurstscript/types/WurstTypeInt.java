@@ -5,9 +5,6 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
-
-import java.util.Optional;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 

@@ -27,7 +27,7 @@ public class AssetsGenerator {
         boolean run(String filename);
     }
 
-    private static Pattern namePattern = Pattern.compile("\\d\\w+");
+    private static final Pattern namePattern = Pattern.compile("\\d\\w+");
     static HashSet<String> forbidden = new HashSet<>(Arrays.asList("step", "switch", "nothing", "lightning"));
     static HashSet<String> names = new HashSet<>();
 
@@ -113,7 +113,7 @@ public class AssetsGenerator {
         ICONS((String l) -> l.startsWith("ReplaceableTextures"), "Icons");
 
         Checker checker;
-        private String name;
+        private final String name;
 
         Category(Checker checker, String name) {
             this.checker = checker;
@@ -125,7 +125,7 @@ public class AssetsGenerator {
         }
     }
 
-    private static TreeSet<Entry>[] entries = new TreeSet[Category.values().length];
+    private static final TreeSet<Entry>[] entries = new TreeSet[Category.values().length];
 
     static {
         for (Category category : Category.values()) {
@@ -164,7 +164,7 @@ public class AssetsGenerator {
                     category = getCategory(line);
             }
             Entry entry = new Entry(category, type, line, filename.substring(0, filename.indexOf(".")));
-            if (category != null && !entries[category.ordinal()].contains(entry)) {
+            if (category != null) {
                 entries[category.ordinal()].add(entry);
             }
 

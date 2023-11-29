@@ -4,7 +4,9 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import org.testng.Assert;
-import org.testng.annotations.*;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;

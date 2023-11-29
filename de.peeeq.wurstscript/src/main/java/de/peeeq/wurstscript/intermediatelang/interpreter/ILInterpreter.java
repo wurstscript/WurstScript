@@ -3,13 +3,11 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
-import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
@@ -27,7 +25,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
-import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionWithoutSideEffect;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;

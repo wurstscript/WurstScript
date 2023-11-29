@@ -20,9 +20,9 @@ import java.util.List;
 
 public class AntlrJurstParseTreeTransformer {
 
-    private String file;
-    private ErrorHandler cuErrorHandler;
-    private LineOffsets lineOffsets;
+    private final String file;
+    private final ErrorHandler cuErrorHandler;
+    private final LineOffsets lineOffsets;
     private boolean isJassCode = true;
 
     public AntlrJurstParseTreeTransformer(String file,
@@ -663,16 +663,16 @@ public class AntlrJurstParseTreeTransformer {
             Expr right = transformExpr(s.right);
             WurstOperator op = getAssignOp(s.assignOp);
             if (op != null) {
-                right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(), op,
+                right = Ast.ExprBinary(src, updatedExpr.copy(), op,
                         right);
             }
             return Ast.StmtSet(src, updatedExpr, right);
         } else if (s.incOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.PLUS, Ast.ExprIntVal(src, "1"));
             return Ast.StmtSet(src, updatedExpr, right);
         } else if (s.decOp != null) {
-            Expr right = Ast.ExprBinary(src, (Expr) updatedExpr.copy(),
+            Expr right = Ast.ExprBinary(src, updatedExpr.copy(),
                     WurstOperator.MINUS, Ast.ExprIntVal(src, "1"));
             return Ast.StmtSet(src, updatedExpr, right);
         }

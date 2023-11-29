@@ -3,9 +3,8 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-
+import de.peeeq.wurstscript.validation.TRVEHelper;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -19,12 +18,12 @@ import java.util.Set;
 public class RemoveGarbage {
 
     private static class Used {
-        private Set<ImFunction> functions = new HashSet<>();
-        private Set<ImMethod> methods = new HashSet<>();
+        private final Set<ImFunction> functions = new HashSet<>();
+        private final Set<ImMethod> methods = new HashSet<>();
         // methods that will be added once the class is used:
-        private Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
-        private Set<ImClass> classes = new HashSet<>();
-        private Set<ImVar> vars = new HashSet<>();
+        private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
+        private final Set<ImClass> classes = new HashSet<>();
+        private final Set<ImVar> vars = new HashSet<>();
 
         public void addMethod(ImMethod m) {
             methods.add(m);

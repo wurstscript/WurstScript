@@ -5,7 +5,9 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstscript.ast.*;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.SymbolKind;
+import org.eclipse.lsp4j.WorkspaceSymbol;
 import org.eclipse.lsp4j.WorkspaceSymbolParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,17 +17,17 @@ import java.util.stream.Collectors;
 /**
  *
  */
-public class SymbolInformationRequest extends UserRequest<List<? extends SymbolInformation>> {
+public class SymbolInformationRequest extends UserRequest<Either<List<? extends SymbolInformation>, List<? extends WorkspaceSymbol>>> {
 
-    private String query;
+    private final String query;
 
     public SymbolInformationRequest(WorkspaceSymbolParams params) {
         query = params.getQuery().toLowerCase();
     }
 
     @Override
-    public List<SymbolInformation> execute(ModelManager modelManager) {
-        return symbolsFromModel(modelManager.getModel());
+    public Either<List<? extends SymbolInformation>, List<? extends WorkspaceSymbol>> execute(ModelManager modelManager) {
+        return Either.forLeft(symbolsFromModel(modelManager.getModel()));
     }
 
     private List<SymbolInformation> symbolsFromModel(WurstModel model) {

@@ -21,10 +21,10 @@ import java.util.Map;
 public class JassInterpreter implements AbstractInterpreter {
 
     private JassProg prog;
-    private static ReturnException staticReturnException = new ReturnException(null);
+    private static final ReturnException staticReturnException = new ReturnException(null);
     private Map<String, ILconst> globalVarMap;
     private boolean trace = false;
-    private Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
+    private final Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
     public void loadProgram(JassProg prog) {

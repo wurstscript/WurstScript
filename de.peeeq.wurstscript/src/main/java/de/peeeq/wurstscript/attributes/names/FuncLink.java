@@ -87,7 +87,7 @@ public class FuncLink extends DefLink {
             if (i > 0) {
                 sb.append(", ");
             }
-            sb.append(getParameterType(i).toString());
+            sb.append(getParameterType(i));
             if (i < getParameterNames().size()) {
                 sb.append(" ");
                 sb.append(getParameterName(i));

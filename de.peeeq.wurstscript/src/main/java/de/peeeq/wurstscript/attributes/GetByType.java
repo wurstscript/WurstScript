@@ -1,6 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WPackage;
 
 public class GetByType {
 

@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 
 public class InterfaceTranslator {
 
-    private InterfaceDef interfaceDef;
-    private ImTranslator translator;
-    private ImClass imClass;
+    private final InterfaceDef interfaceDef;
+    private final ImTranslator translator;
+    private final ImClass imClass;
 
     public InterfaceTranslator(InterfaceDef interfaceDef, ImTranslator translator) {
         this.interfaceDef = interfaceDef;

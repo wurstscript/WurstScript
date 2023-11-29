@@ -19,6 +19,7 @@ public class LanguageServerStarter {
         System.setOut(System.err);
         server.connect(launcher.getRemoteProxy());
         launcher.startListening();
+        server.setRemoteEndpoint(launcher.getRemoteEndpoint());
     }
 
 

@@ -9,8 +9,8 @@ import java.util.Set;
  * Implementation of https://en.wikipedia.org/wiki/Disjoint-set_data_structure
  */
 public class UnionFind<T> {
-    private Map<T, T> parent = new LinkedHashMap<>();
-    private Map<T, Integer> rank = new LinkedHashMap<>();
+    private final Map<T, T> parent = new LinkedHashMap<>();
+    private final Map<T, Integer> rank = new LinkedHashMap<>();
 
     public T find(T x) {
         if (!parent.containsKey(x)) {
