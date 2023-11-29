@@ -90,11 +90,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
-        try {
-            this.w3data = getBestW3InstallationData(workspaceRoot.getFile());
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        this.w3data = getBestW3InstallationData();
         if (runArgs.isMeasureTimes()) {
             this.timeTaker = new TimeTaker.Recording();
         } else {
@@ -352,16 +348,15 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
 
-
         // first compile the script:
         result.script = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd, result.script);
 
         Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
         if (!model.isPresent()
-                || model
-                    .get()
-                    .stream()
-                    .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
+            || model
+            .get()
+            .stream()
+            .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
             println("We will try to start the map now, but it will probably fail. ");
@@ -442,20 +437,20 @@ public abstract class MapRequest extends UserRequest<Object> {
         return result.get();
     }
 
-    private W3InstallationData getBestW3InstallationData(File workspaceRoot) throws RequestFailedException, FileNotFoundException {
+    private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
         if (Orient.isLinuxSystem()) {
             // no Warcraft installation supported on Linux
             return new W3InstallationData(Optional.empty(), Optional.empty());
         }
         if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
-            W3InstallationData w3data = new W3InstallationData(langServer, workspaceRoot, new File(wc3Path.get()));
-            if (!w3data.getWc3PatchVersion().isPresent()) {
+            W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()));
+            if (w3data.getWc3PatchVersion().isEmpty()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 
             return w3data;
         } else {
-            return new W3InstallationData(langServer, workspaceRoot);
+            return new W3InstallationData(langServer);
         }
     }
 
