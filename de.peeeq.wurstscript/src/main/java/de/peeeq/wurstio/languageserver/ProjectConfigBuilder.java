@@ -39,7 +39,7 @@ public class ProjectConfigBuilder {
 
         MapRequest.CompilationResult result = new MapRequest.CompilationResult();
         result.script = compiledScript;
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap))) {
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), true)) {
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 result.script = new File(buildDir, "war3mapj_with_config.j.txt");
@@ -71,21 +71,6 @@ public class ProjectConfigBuilder {
                 w3I.write(result.w3i);
                 Files.write(scriptBytes, result.script);
             }
-
-//            if (!runArgs.isDisablePjass()) {
-//                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
-//                    new File(buildDir, "blizzard.j").getAbsolutePath());
-//            }
-//            String mapScriptName;
-//            if (runArgs.isLua()) {
-//                mapScriptName = "war3map.lua";
-//            } else {
-//                mapScriptName = "war3map.j";
-//            }
-//            mpq.deleteFile("war3map.lua");
-//            mpq.deleteFile("war3map.j");
-//            mpq.insertFile(mapScriptName, scriptBytes);
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

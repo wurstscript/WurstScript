@@ -5,10 +5,7 @@ import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.RemoteEndpoint;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.services.LanguageClientAware;
-import org.eclipse.lsp4j.services.TextDocumentService;
-import org.eclipse.lsp4j.services.WorkspaceService;
+import org.eclipse.lsp4j.services.*;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -21,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  *
  */
-public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageServer, LanguageClientAware {
+public class WurstLanguageServer implements LanguageServer, LanguageClientAware {
     private WFile rootUri;
     private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
     private LanguageClient languageClient;
@@ -63,7 +60,6 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
         InitializeResult res = new InitializeResult(capabilities);
         WLogger.info("initialization done: " + params.getRootUri());
-        System.err.println("initialization done!");
         return CompletableFuture.completedFuture(res);
     }
     private void setupLogger() {

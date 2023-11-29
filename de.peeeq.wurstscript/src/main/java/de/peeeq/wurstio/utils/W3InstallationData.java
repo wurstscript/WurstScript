@@ -19,14 +19,14 @@ public class W3InstallationData {
 
     private Optional<GameVersion> version = Optional.empty();
 
+    private File selectedFolder;
+
     static {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException _e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ignored) {
         }
     }
-
-    private File selectedFolder;
 
     public W3InstallationData(Optional<File> gameExe, Optional<GameVersion> version) {
         this.languageServer = null;

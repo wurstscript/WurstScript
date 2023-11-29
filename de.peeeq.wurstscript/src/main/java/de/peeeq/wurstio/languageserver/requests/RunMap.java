@@ -111,7 +111,7 @@ public class RunMap extends MapRequest {
                 }
 
 
-                if (path.length() > 0) {
+                if (!path.isEmpty()) {
                     // now start the map
                     File gameExe = w3data.getGameExe().get();
                     if (!w3data.getWc3PatchVersion().isPresent()) {

@@ -6,12 +6,12 @@ import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageType;
-import systems.crigges.jmpq3.JMpqEditor;
-import systems.crigges.jmpq3.MPQOpenOption;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,8 +63,10 @@ public class BuildMap extends MapRequest {
 
             injectMapData(gui, targetMap, result);
 
-            JMpqEditor finalizer = new JMpqEditor(targetMap.get(), MPQOpenOption.FORCE_V0);
-            finalizer.close();
+            //noinspection EmptyTryBlock
+            try(MpqEditor ignored = MpqEditorFactory.getEditor(targetMap)) {
+                // Just finalization
+            }
 
             gui.sendProgress("Done.");
         } catch (CompileError e) {
