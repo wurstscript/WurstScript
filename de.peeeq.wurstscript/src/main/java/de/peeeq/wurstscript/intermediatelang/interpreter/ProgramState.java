@@ -21,14 +21,14 @@ public class ProgramState extends State {
     private de.peeeq.wurstscript.jassIm.Element lastStatement;
     protected WurstGui gui;
     private PrintStream outStream = System.err;
-    private List<NativesProvider> nativeProviders = Lists.newArrayList();
+    private final List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;
-    private HashMap<Integer, ILconstObject> indexToObject = new HashMap<>();
-    private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
-    private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
-    private boolean isCompiletime;
-    private HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
+    private final HashMap<Integer, ILconstObject> indexToObject = new HashMap<>();
+    private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
+    private final Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
+    private final boolean isCompiletime;
+    private final HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {

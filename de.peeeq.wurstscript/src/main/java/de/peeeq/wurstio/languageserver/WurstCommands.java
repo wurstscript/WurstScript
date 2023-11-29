@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -38,8 +37,8 @@ public class WurstCommands {
     public static final String WURST_PERFORM_CODE_ACTION = "wurst.perform_code_action";
 
     static List<String> providedCommands() {
-        return Arrays.asList(
-            WURST_CLEAN
+        return List.of(
+                WURST_CLEAN
         );
     }
 

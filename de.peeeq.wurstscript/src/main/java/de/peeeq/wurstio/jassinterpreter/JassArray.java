@@ -9,8 +9,8 @@ import java.util.Map;
 
 public class JassArray extends ILconstAbstract {
 
-    private String type;
-    private Map<Integer, ILconst> values = Maps.newLinkedHashMap();
+    private final String type;
+    private final Map<Integer, ILconst> values = Maps.newLinkedHashMap();
 
     public JassArray(String type) {
         this.type = type;

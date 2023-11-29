@@ -6,7 +6,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 public class FunctionFlagCompiletime implements FunctionFlag {
     /** index, which specifies order in which functions are executed
      * Compiletime functions with smaller index are executed first */
-    private int index;
+    private final int index;
 
     public FunctionFlagCompiletime(int index) {
         this.index = index;

@@ -47,11 +47,11 @@ public class ControlFlowGraph {
 
     }
 
-    private Map<ImStmt, Node> nodes = new HashMap<>();
-    private Map<ImIf, Node> ifEnd = new HashMap<>();
-    private Map<ImLoop, Node> loopEnd = new HashMap<>();
-    private Map<ImVarargLoop, Node> varargLoopEnd = new HashMap<>();
-    private List<Node> nodeList = new ArrayList<>();
+    private final Map<ImStmt, Node> nodes = new HashMap<>();
+    private final Map<ImIf, Node> ifEnd = new HashMap<>();
+    private final Map<ImLoop, Node> loopEnd = new HashMap<>();
+    private final Map<ImVarargLoop, Node> varargLoopEnd = new HashMap<>();
+    private final List<Node> nodeList = new ArrayList<>();
 
     public ControlFlowGraph(ImStmts stmts) {
         buildCfg(stmts);

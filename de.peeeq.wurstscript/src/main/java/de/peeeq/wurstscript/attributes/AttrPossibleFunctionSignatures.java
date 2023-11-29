@@ -5,8 +5,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
+import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.VariablePosition;
+import de.peeeq.wurstscript.types.WurstType;
 
 import java.util.Collections;
 import java.util.Comparator;

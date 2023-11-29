@@ -27,9 +27,9 @@ public class Pjass {
 
     public static class Result {
 
-        private boolean ok;
-        private String message;
-        private File jassFile;
+        private final boolean ok;
+        private final String message;
+        private final File jassFile;
 
         public Result(File jassFile, boolean ok, String message) {
             this.jassFile = jassFile;
@@ -125,7 +125,7 @@ public class Pjass {
             try {
                 p = Runtime.getRuntime().exec(args.toArray(new String[0]));
             } catch (IOException e) {
-               return new Result(outputFile, false, "Pjass execution error: \n" + e.toString());
+               return new Result(outputFile, false, "Pjass execution error: \n" + e);
             }
 
             StringBuilder output = new StringBuilder();
@@ -141,7 +141,7 @@ public class Pjass {
 
             int exitValue = p.waitFor();
             if (exitValue != 0) {
-                return new Result(outputFile, false, "pjass errors: \n" + output.toString());
+                return new Result(outputFile, false, "pjass errors: \n" + output);
             } else {
                 return new Result(outputFile, true, output.toString());
             }

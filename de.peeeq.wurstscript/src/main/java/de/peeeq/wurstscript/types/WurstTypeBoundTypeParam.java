@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
@@ -26,7 +26,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private FuncDef toIndex;
     private final @Nullable Map<FuncDef, FuncLink> typeConstraintFunctions;
     private boolean indexInitialized = false;
-    private Element context;
+    private final Element context;
 
     public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
         if (baseType instanceof WurstTypeIntLiteral) {

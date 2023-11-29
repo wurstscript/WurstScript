@@ -12,7 +12,7 @@ import java.util.List;
 public class WurstTypePackage extends WurstTypeNamedScope {
 
 
-    private WPackage pack;
+    private final WPackage pack;
 
     public WurstTypePackage(WPackage pack) {
         super(true);

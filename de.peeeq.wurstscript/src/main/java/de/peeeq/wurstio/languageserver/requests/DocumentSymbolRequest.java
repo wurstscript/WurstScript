@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInformation, DocumentSymbol>>> {
 
-    private TextDocumentIdentifier textDocument;
+    private final TextDocumentIdentifier textDocument;
 
     public DocumentSymbolRequest(DocumentSymbolParams params) {
         textDocument = params.getTextDocument();

@@ -14,14 +14,14 @@ import java.util.Queue;
 public class ExtendedJurstLexer implements TokenSource {
 
     private final JurstLexer orig;
-    private Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new LinkedList<>();
     private State state = State.INIT;
     private @Nullable Token eof = null;
     private @Nullable Token firstNewline;
-    private LineOffsets lineOffsets = new LineOffsets();
+    private final LineOffsets lineOffsets = new LineOffsets();
     public StringBuilder debugSb = new StringBuilder();
     private final boolean debug = false;
-    private Pair<TokenSource, CharStream> sourcePair;
+    private final Pair<TokenSource, CharStream> sourcePair;
     private boolean isWurst = false;
 
 
@@ -205,7 +205,7 @@ public class ExtendedJurstLexer implements TokenSource {
 
     private boolean isWrapChar(int type) {
         switch (type) {
-//		case JurstParser.PAREN_LEFT: 
+//		case JurstParser.PAREN_LEFT:
 //		case JurstParser.BRACKET_LEFT:
             case JurstParser.COMMA:
             case JurstParser.PLUS:

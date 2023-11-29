@@ -8,7 +8,7 @@ public class ILconstFuncRef extends ILconstAbstract {
 
     private ImFunction func = null;
 
-    private String funcName;
+    private final String funcName;
     public ILconstFuncRef(String funcName) {
         this.funcName = funcName;
     }

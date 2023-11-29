@@ -22,11 +22,11 @@ public class EliminateGenerics {
     private final ImTranslator translator;
     private final ImProg prog;
     // TODO only use one queue here with the different cases (add: generic class type, member access)
-    private Deque<GenericUse> genericsUses = new ArrayDeque<>();
-    private Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
-    private Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
-    private Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
-    private Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
+    private final Deque<GenericUse> genericsUses = new ArrayDeque<>();
+    private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
+    private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
+    private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
+    private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
     public EliminateGenerics(ImTranslator tr, ImProg prog) {
         translator = tr;

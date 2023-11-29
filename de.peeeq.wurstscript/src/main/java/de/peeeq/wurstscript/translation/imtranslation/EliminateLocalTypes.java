@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class EliminateLocalTypes {
-    private static ImType localSimpleType = JassIm.ImSimpleType("localSimpleType");
+    private static final ImType localSimpleType = JassIm.ImSimpleType("localSimpleType");
 
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
         // While local types are still there, perform transformation, such that the lua translator does not need to know variable types
@@ -28,7 +28,7 @@ public class EliminateLocalTypes {
             }
         }
     }
-    
+
     private static void transformProgram(ImProg imProg, ImTranslator translator) {
         imProg.accept(new Element.DefaultVisitor() {
             @Override

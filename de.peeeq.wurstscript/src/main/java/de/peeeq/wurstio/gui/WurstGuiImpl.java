@@ -16,16 +16,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class WurstGuiImpl extends WurstGui {
 
 
-    private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<>();
     private volatile double progress = 0.0;
     private volatile boolean finished = false;
     private volatile @Nullable String currentlyWorkingOn = "";
-    private GuiUpdater guiUpdater;
+    private final GuiUpdater guiUpdater;
     private final Object progressLock = new Object();
     private String workspaceRoot;
 
-    private static ConcurrentHashMap<String, Long> staticLastTimes = new ConcurrentHashMap<>();
-    private Map<String, Long> lastTimes = new HashMap<>(staticLastTimes);
+    private static final ConcurrentHashMap<String, Long> staticLastTimes = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastTimes = new HashMap<>(staticLastTimes);
 
 
     public WurstGuiImpl() {
@@ -121,8 +121,8 @@ public class WurstGuiImpl extends WurstGui {
     }
 
     boolean show = true;
-    private long startTime = System.currentTimeMillis();
-    private Set<String> done = new HashSet<>();
+    private final long startTime = System.currentTimeMillis();
+    private final Set<String> done = new HashSet<>();
     private long taskStartTime = startTime;
 
     @Override

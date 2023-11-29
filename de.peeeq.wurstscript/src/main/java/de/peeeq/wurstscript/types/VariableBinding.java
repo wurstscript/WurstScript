@@ -3,9 +3,9 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import io.vavr.Tuple2;
+import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Set;
-import io.vavr.collection.HashMap;
 import io.vavr.control.Option;
 import org.jetbrains.annotations.NotNull;
 

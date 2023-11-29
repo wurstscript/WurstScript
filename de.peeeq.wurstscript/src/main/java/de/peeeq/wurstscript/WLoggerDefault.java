@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class WLoggerDefault implements WLoggerI {
 
-    private org.slf4j.Logger logger;
+    private final org.slf4j.Logger logger;
 
     public WLoggerDefault(String loggerName) {
         logger = LoggerFactory.getLogger(loggerName);

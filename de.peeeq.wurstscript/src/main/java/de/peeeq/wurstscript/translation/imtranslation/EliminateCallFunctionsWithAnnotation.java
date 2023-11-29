@@ -39,7 +39,7 @@ public class EliminateCallFunctionsWithAnnotation {
 
     private static Multimap<String, ImFunction> collectAnnotatedFunctions(
             ImProg prog, Set<String> calledAnnotations) {
-        Multimap<String, ImFunction> res = LinkedHashMultimap.<String, ImFunction>create();
+        Multimap<String, ImFunction> res = LinkedHashMultimap.create();
         for (ImFunction f : prog.getFunctions()) {
             for (String a : calledAnnotations) {
                 if (f.hasFlag(new FunctionFlagAnnotation(a))) {

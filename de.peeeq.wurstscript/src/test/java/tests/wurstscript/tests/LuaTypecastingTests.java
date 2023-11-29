@@ -3,8 +3,7 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
-
-import static org.testng.AssertJUnit.*;
+import static org.testng.AssertJUnit.assertTrue;
 
 
 public class LuaTypecastingTests extends WurstScriptTest {

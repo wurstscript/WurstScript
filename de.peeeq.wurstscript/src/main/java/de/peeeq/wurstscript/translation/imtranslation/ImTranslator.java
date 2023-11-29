@@ -99,16 +99,16 @@ public class ImTranslator {
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
 
-    private boolean isUnitTestMode;
+    private final boolean isUnitTestMode;
 
-    private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
+    private final ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
 
     private int compiletimeOrderCounter = 1;
     private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
     private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
-    private boolean debug = false;
+    private final boolean debug = false;
     private final RunArgs runArgs;
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
@@ -391,7 +391,7 @@ public class ImTranslator {
         if (wurstFunc.isEmpty()) {
             return null;
         }
-        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef());
+        return getFuncFor(Utils.getFirst(wurstFunc).getDef());
     }
 
     private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
@@ -530,7 +530,7 @@ public class ImTranslator {
             List<ImSet> imSets = new ArrayList<>();
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
-                ImSet imSet = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated);
+                ImSet imSet = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs(JassIm.ImIntVal(i))), translated);
                 imSets.add(imSet);
             }
             f.getBody().addAll(imSets);
@@ -579,7 +579,7 @@ public class ImTranslator {
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
             ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
-                    impl, Lists.<ImMethod>newArrayList(), false);
+                    impl, Lists.newArrayList(), false);
             return m;
         }
     };
@@ -650,7 +650,7 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(ImClass c) {
 
-            return ImFunction(c.getTrace(), "alloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            return ImFunction(c.getTrace(), "alloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
         }
 
     };
@@ -660,7 +660,7 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(ImClass c) {
 
-            return ImFunction(c.getTrace(), "dealloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            return ImFunction(c.getTrace(), "dealloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
         }
 
     };
@@ -1147,15 +1147,15 @@ public class ImTranslator {
     }
 
 
-    private Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
-    private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
+    private final Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
+    private final Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
     public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
         return classDynamicInitMap.computeIfAbsent(c, k -> Lists.newArrayList());
     }
 
 
-    private Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
+    private final Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
 
     public ImFunction getConstructFunc(ConstructorDef constr) {
         ImFunction f = constructorFuncs.get(constr);
@@ -1510,7 +1510,7 @@ public class ImTranslator {
 
     }
 
-    private Map<ImFunction, VarsForTupleResult> tempReturnVars = Maps.newLinkedHashMap();
+    private final Map<ImFunction, VarsForTupleResult> tempReturnVars = Maps.newLinkedHashMap();
 
     public VarsForTupleResult getTupleTempReturnVarsFor(ImFunction f) {
         VarsForTupleResult result = tempReturnVars.get(f);
@@ -1524,7 +1524,7 @@ public class ImTranslator {
         return result;
     }
 
-    private Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();
+    private final Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();
 
 
     public void setOriginalReturnValue(ImFunction f, ImType t) {
@@ -1601,7 +1601,7 @@ public class ImTranslator {
         return isUnitTestMode;
     }
 
-    private Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
+    private final Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
 
     public ImClass getClassForClosure(ExprClosure s) {
         Preconditions.checkNotNull(s);
@@ -1609,7 +1609,7 @@ public class ImTranslator {
     }
 
 
-    private Map<ClassOrInterface, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
+    private final Map<ClassOrInterface, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
@@ -1635,7 +1635,7 @@ public class ImTranslator {
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
+            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;

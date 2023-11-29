@@ -8,7 +8,7 @@ public class Partitions<T> {
 
     private class Partition {
         private Partition rep;
-        private T item;
+        private final T item;
 
         public Partition(T item) {
             rep = this;
@@ -29,7 +29,7 @@ public class Partitions<T> {
         }
     }
 
-    private Map<T, Partition> partitions = Maps.newLinkedHashMap();
+    private final Map<T, Partition> partitions = Maps.newLinkedHashMap();
 
     public Partitions() {
     }

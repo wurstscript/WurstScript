@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
-import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
@@ -40,13 +39,13 @@ import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
  */
 public class WurstValidator {
 
-    private WurstModel prog;
+    private final WurstModel prog;
     private int functionCount;
     private int visitedFunctions;
-    private Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
+    private final Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
     private @Nullable Element lastElement = null;
-    private HashSet<String> trveWrapperFuncs = new HashSet<>();
-    private HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
+    private final HashSet<String> trveWrapperFuncs = new HashSet<>();
+    private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
 
     public WurstValidator(WurstModel root) {
         this.prog = root;
@@ -830,7 +829,7 @@ public class WurstValidator {
     }
 
     private int countFunctions() {
-        final int functionCount[] = new int[1];
+        final int[] functionCount = new int[1];
         prog.accept(new WurstModel.DefaultVisitor() {
 
             @Override

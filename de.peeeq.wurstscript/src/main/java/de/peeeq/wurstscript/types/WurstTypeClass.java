@@ -2,8 +2,8 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
@@ -13,7 +13,7 @@ import java.util.List;
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {
 
-    private ClassDef classDef;
+    private final ClassDef classDef;
 
 
     public WurstTypeClass(ClassDef classDef, List<WurstTypeBoundTypeParam> typeParameters, boolean staticRef) {

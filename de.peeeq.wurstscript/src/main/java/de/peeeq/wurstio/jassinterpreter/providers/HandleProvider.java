@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 
 public class HandleProvider extends Provider {
     private int handleCounter = 0;
-    private LinkedHashMap<IlConstHandle, ILconstInt> handleMap = new LinkedHashMap<>();
+    private final LinkedHashMap<IlConstHandle, ILconstInt> handleMap = new LinkedHashMap<>();
 
     public HandleProvider(AbstractInterpreter interpreter) {
         super(interpreter);

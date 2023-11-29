@@ -6,7 +6,7 @@ import org.eclipse.lsp4j.MessageType;
  *
  */
 public class RequestFailedException extends RuntimeException {
-    private MessageType messageType;
+    private final MessageType messageType;
 
     public RequestFailedException(MessageType messageType, String s) {
         super(s);

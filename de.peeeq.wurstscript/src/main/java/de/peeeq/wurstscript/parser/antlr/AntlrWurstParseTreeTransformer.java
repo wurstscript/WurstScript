@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser.antlr;
 
-import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstLexer;
@@ -12,9 +11,9 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.parser.WPosWithComments;
 import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -24,7 +23,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")

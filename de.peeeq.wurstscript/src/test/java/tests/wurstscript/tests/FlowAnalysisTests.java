@@ -101,8 +101,7 @@ public class FlowAnalysisTests extends WurstScriptTest {
     private String makeProg(String... body) {
         String prog = "package test\n" +
                 "native testFail(string msg)\n" +
-                "native testSuccess()\n" +
-                "" + Utils.join(body, "\n") + "\n";
+                "native testSuccess()\n" + Utils.join(body, "\n") + "\n";
         return prog;
     }
 

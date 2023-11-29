@@ -14,7 +14,7 @@ import java.util.List;
 
 public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
-    private ModuleInstanciation moduleInst;
+    private final ModuleInstanciation moduleInst;
 
     public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst, boolean isStaticRef) {
         super(isStaticRef);

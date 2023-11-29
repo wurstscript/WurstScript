@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LanguageWorker implements Runnable {
 
     private static class Workitem {
-        private String description;
-        private Runnable runnable;
+        private final String description;
+        private final Runnable runnable;
 
         public Workitem(String description, Runnable runnable) {
             this.description = description;
@@ -83,8 +83,8 @@ public class LanguageWorker implements Runnable {
     }
 
     abstract class PendingChange {
-        private long time;
-        private WFile filename;
+        private final long time;
+        private final WFile filename;
 
         public PendingChange(WFile filename) {
             time = currentTime.incrementAndGet();
@@ -126,7 +126,7 @@ public class LanguageWorker implements Runnable {
 
     class FileReconcile extends PendingChange {
 
-        private String contents;
+        private final String contents;
 
         public FileReconcile(WFile filename, String contents) {
             super(filename);
@@ -161,7 +161,7 @@ public class LanguageWorker implements Runnable {
                     try {
                         work.run();
                     } catch (Throwable e) {
-                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e.toString()));
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e));
                         WLogger.severe(e);
                         System.err.println("Error in request '" + work + "' (see log for details): " + e.getMessage());
                     }

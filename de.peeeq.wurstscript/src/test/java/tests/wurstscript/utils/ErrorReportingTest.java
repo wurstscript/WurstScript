@@ -10,7 +10,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 public class ErrorReportingTest {
     ErrorReporting instance = new ErrorReportingIO();
@@ -19,7 +19,7 @@ public class ErrorReportingTest {
     @Test
     public void testSendErrorReport() {
         boolean result = instance.sendErrorReport(new Error("bla"), "source");
-        assertEquals(true, result);
+        assertTrue(result);
     }
 
     @Ignore // would have side effects on server
@@ -28,7 +28,7 @@ public class ErrorReportingTest {
         String source = Files.toString(new File("/home/peter/kram/errorreport_source.wurst"), Charsets.UTF_8);
 
         boolean result = instance.sendErrorReport(new Error("bla"), source);
-        assertEquals(true, result);
+        assertTrue(result);
     }
 
 

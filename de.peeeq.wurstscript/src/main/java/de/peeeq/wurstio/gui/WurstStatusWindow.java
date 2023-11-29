@@ -24,9 +24,9 @@ import java.io.IOException;
  */
 public class WurstStatusWindow extends javax.swing.JFrame {
 
-    private javax.swing.JLabel currentStatus;
-    private javax.swing.JProgressBar progressBar;
-    private javax.swing.JLabel title;
+    private final javax.swing.JLabel currentStatus;
+    private final javax.swing.JProgressBar progressBar;
+    private final javax.swing.JLabel title;
 
     /**
      * Creates new form WurstStatusWindow

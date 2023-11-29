@@ -160,7 +160,7 @@ public class Colors {
         s = Utils.escapeStringWithoutQuotes(s);
         Matcher matcher = colorPattern.matcher(s);
 
-        for ( ; matcher.find(); ) {
+        while (matcher.find()) {
             double red = Integer.parseInt(matcher.group(2), 16) / 255.;
             double green = Integer.parseInt(matcher.group(3), 16) / 255.;
             double blue = Integer.parseInt(matcher.group(4), 16) / 255.;

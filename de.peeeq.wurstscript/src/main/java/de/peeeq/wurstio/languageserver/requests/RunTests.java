@@ -2,7 +2,6 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import config.WurstProjectBuildMapData;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
@@ -11,7 +10,9 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
@@ -28,7 +29,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -46,14 +46,14 @@ public class RunTests extends UserRequest<Object> {
     private final Optional<String> testName;
     private final int timeoutSeconds;
 
-    private List<ImFunction> successTests = Lists.newArrayList();
-    private List<TestFailure> failTests = Lists.newArrayList();
+    private final List<ImFunction> successTests = Lists.newArrayList();
+    private final List<TestFailure> failTests = Lists.newArrayList();
 
     private static ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 
     static public class TestFailure {
 
-        private ImFunction function;
+        private final ImFunction function;
         private final StackTrace stackTrace;
         private final String message;
 
@@ -221,7 +221,7 @@ public class RunTests extends UserRequest<Object> {
                     if (gui.getErrorCount() > 0) {
                         StringBuilder sb = new StringBuilder();
                         for (CompileError error : gui.getErrorList()) {
-                            sb.append(error.toString()).append("\n");
+                            sb.append(error).append("\n");
                             println(error.getMessage());
                         }
                         gui.clearErrors();
@@ -290,7 +290,7 @@ public class RunTests extends UserRequest<Object> {
             }
 
             @Override
-            public void write(byte b[], int off, int len) throws IOException {
+            public void write(byte[] b, int off, int len) throws IOException {
                 println(new String(b, off, len));
             }
 

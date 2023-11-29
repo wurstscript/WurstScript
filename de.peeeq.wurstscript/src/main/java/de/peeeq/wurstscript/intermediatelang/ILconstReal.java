@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public class ILconstReal extends ILconstAbstract implements ILconstNum {
 
-    private float val;
+    private final float val;
 
     public ILconstReal(String numVal) {
         this.val = Float.parseFloat(numVal);

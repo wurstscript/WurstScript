@@ -122,7 +122,7 @@ public class FunctionSignature {
             if (i > 0) {
                 sb.append(", ");
             }
-            sb.append(paramTypes.get(i).toString());
+            sb.append(paramTypes.get(i));
             if (i < paramNames.size()) {
                 sb.append(" ");
                 sb.append(paramNames.get(i));

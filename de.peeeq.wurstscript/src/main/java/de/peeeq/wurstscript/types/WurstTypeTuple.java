@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -16,7 +18,7 @@ import java.util.Optional;
 
 public class WurstTypeTuple extends WurstType {
 
-    private TupleDef tupleDef;
+    private final TupleDef tupleDef;
 
 
     public WurstTypeTuple(TupleDef tupleDef) {

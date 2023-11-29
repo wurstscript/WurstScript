@@ -12,7 +12,7 @@ public class WurstTypeUnknown extends WurstType {
 
     private static final WurstTypeUnknown instance = new WurstTypeUnknown("unknown");
 
-    private String name;
+    private final String name;
 
     public WurstTypeUnknown(String name) {
         this.name = name;

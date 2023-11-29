@@ -265,7 +265,7 @@ public class CompiletimeFunctionRunner {
     }
 
 
-    private GetAForB<ILconstObject, ImVar> globalForObject = new GetAForB<ILconstObject, ImVar>() {
+    private final GetAForB<ILconstObject, ImVar> globalForObject = new GetAForB<ILconstObject, ImVar>() {
         @Override
         public ImVar initFor(ILconstObject obj) {
 
@@ -308,7 +308,7 @@ public class CompiletimeFunctionRunner {
         }
     };
 
-    private GetAForB<IlConstHandle, ImVar> globalForHandle = new GetAForB<IlConstHandle, ImVar>() {
+    private final GetAForB<IlConstHandle, ImVar> globalForHandle = new GetAForB<IlConstHandle, ImVar>() {
         @Override
         public ImVar initFor(IlConstHandle a) {
 

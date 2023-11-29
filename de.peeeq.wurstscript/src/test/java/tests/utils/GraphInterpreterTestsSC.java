@@ -37,13 +37,13 @@ public class GraphInterpreterTestsSC {
     public void simpleGraph() {
         boolean[][] adj = {{true,true},{true, false}};
         Graph g = new Graph(adj);
-        System.out.println(g.toString());
+        System.out.println(g);
         Set<Set<Node>> components = g.findStronglyConnectedComponents(g.nodes);
         boolean componentCycle = (components.stream().anyMatch(c -> c.size() > 1));
         assertEquals(componentCycle, isCyclic(g));
     }
 
-    private boolean isCyclicUtil(Graph g, Node v, boolean visited[], boolean[] recStack) {
+    private boolean isCyclicUtil(Graph g, Node v, boolean[] visited, boolean[] recStack) {
         if (!visited[v.val]) {
             // Mark the current node as visited and part of recursion stack
             visited[v.val] = true;

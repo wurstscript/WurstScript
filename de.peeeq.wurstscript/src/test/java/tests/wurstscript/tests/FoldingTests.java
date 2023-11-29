@@ -1,17 +1,12 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstio.languageserver.requests.Colors;
 import de.peeeq.wurstio.languageserver.requests.FoldingRangeRequest;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import org.eclipse.lsp4j.ColorInformation;
 import org.eclipse.lsp4j.FoldingRange;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import static org.testng.Assert.assertEquals;
 
 /**
  *

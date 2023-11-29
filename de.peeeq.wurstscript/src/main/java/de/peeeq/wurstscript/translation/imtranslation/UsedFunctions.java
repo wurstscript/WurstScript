@@ -1,11 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Sets;
-import de.peeeq.wurstscript.jassIm.ImFuncRef;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImMethodCall;
+import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.Set;
 

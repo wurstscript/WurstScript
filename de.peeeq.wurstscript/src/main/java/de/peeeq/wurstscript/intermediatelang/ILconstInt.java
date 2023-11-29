@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class ILconstInt extends ILconstAbstract implements ILconstNum {
 
-    private int val;
+    private final int val;
 
     public ILconstInt(int intVal) {
         this.val = intVal;

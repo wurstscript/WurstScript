@@ -9,11 +9,11 @@ import java.util.*;
 
 public class ForwardExecution<T, Target extends AstElementWithBody> {
 
-    private ForwardMethod<T, Target> method;
-    private Map<WStatement, T> currentValues = Maps.newLinkedHashMap();
-    private AstElementWithBody f;
+    private final ForwardMethod<T, Target> method;
+    private final Map<WStatement, T> currentValues = Maps.newLinkedHashMap();
+    private final AstElementWithBody f;
 
-    private PriorityQueue<WStatement> todo = new PriorityQueue<>(11, (o1, o2) -> o2.getSource().getLeftPos() - o1.getSource().getLeftPos());
+    private final PriorityQueue<WStatement> todo = new PriorityQueue<>(11, (o1, o2) -> o2.getSource().getLeftPos() - o1.getSource().getLeftPos());
 
     ForwardExecution(Target f, ForwardMethod<T, Target> method) {
         this.f = f;
@@ -67,7 +67,7 @@ public class ForwardExecution<T, Target extends AstElementWithBody> {
         }
         Collection<T> result = Lists.newArrayList();
         for (WStatement s : previousStatements) {
-//			debug("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine() 
+//			debug("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine()
 //					+ " " + method.print(currentValues.get(s)));
             result.add(get(s));
         }

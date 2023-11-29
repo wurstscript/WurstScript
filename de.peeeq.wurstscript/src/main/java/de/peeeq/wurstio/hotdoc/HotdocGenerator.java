@@ -25,14 +25,14 @@ import java.util.Properties;
 
 public class HotdocGenerator {
 
-    private List<String> files;
-    private File outputfolder;
+    private final List<String> files;
+    private final File outputfolder;
     //	private WurstModel model;
 //	private ArrayList<WPackage> packages;
-    private VelocityEngine ve;
-    private Template variableTemplate;
-    private Template navbarTemplate;
-    private Template structureTemplate;
+    private final VelocityEngine ve;
+    private final Template variableTemplate;
+    private final Template navbarTemplate;
+    private final Template structureTemplate;
 
     public HotdocGenerator(List<String> files) {
         this.files = Lists.newArrayList(files);

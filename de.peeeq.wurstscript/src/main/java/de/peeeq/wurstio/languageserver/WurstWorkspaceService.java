@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class WurstWorkspaceService implements WorkspaceService {
 
-    private WurstLanguageServer server;
+    private final WurstLanguageServer server;
 
     public WurstWorkspaceService(WurstLanguageServer server) {
         this.server = server;

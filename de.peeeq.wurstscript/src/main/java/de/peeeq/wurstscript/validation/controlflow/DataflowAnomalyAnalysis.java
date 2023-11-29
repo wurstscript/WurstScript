@@ -225,9 +225,7 @@ class VState {
             return false;
         if (mightBeDestroyed != other.mightBeDestroyed)
             return false;
-        if (!writesAndReads.equals(other.writesAndReads))
-            return false;
-        return true;
+        return writesAndReads.equals(other.writesAndReads);
     }
 
     @Override
@@ -459,9 +457,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         Element parent = r.getParent();
         if (parent instanceof StmtSet) {
             StmtSet stmtSet = (StmtSet) parent;
-            if (stmtSet.getUpdatedExpr() == r) {
-                return true;
-            }
+            return stmtSet.getUpdatedExpr() == r;
         }
         return false;
     }

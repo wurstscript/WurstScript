@@ -1,24 +1,17 @@
 package de.peeeq.wurstio.utils;
 
-import com.google.gson.*;
-import com.google.gson.internal.bind.JsonTreeWriter;
-import com.google.gson.stream.JsonWriter;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstscript.WLogger;
 import net.moonlightflower.wc3libs.bin.GameExe;
-import net.moonlightflower.wc3libs.port.GameVersion;
-import net.moonlightflower.wc3libs.port.NotFoundException;
-import net.moonlightflower.wc3libs.port.Orient;
-import net.moonlightflower.wc3libs.port.StdGameExeFinder;
-import net.moonlightflower.wc3libs.port.StdGameVersionFinder;
-import net.moonlightflower.wc3libs.port.UnsupportedPlatformException;
+import net.moonlightflower.wc3libs.port.*;
 import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
 import java.util.Optional;
 
 public class W3InstallationData {

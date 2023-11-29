@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.jassinterpreter;
 
 public class TestFailException extends Error {
 
-    private String test;
+    private final String test;
 
     public TestFailException(String name) {
         test = name;

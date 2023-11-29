@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 public class TriggerMock {
 
-    private ArrayList<IlConstHandle> conditions = Lists.newArrayList();
-    private ArrayList<ILconstFuncRef> actions = Lists.newArrayList();
+    private final ArrayList<IlConstHandle> conditions = Lists.newArrayList();
+    private final ArrayList<ILconstFuncRef> actions = Lists.newArrayList();
 
     public TriggerMock() {
     }

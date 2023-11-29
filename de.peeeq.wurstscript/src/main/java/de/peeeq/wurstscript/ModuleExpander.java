@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,7 +20,7 @@ public class ModuleExpander {
 
     public static void expandModules(CompilationUnit cu) {
         for (WPackage t : cu.getPackages()) {
-            expandModules((WPackage) t);
+            expandModules(t);
         }
     }
 
@@ -111,7 +110,7 @@ public class ModuleExpander {
 
     public static <T extends Element> T smartCopy(T e, List<Pair<WurstType, WurstType>> typeReplacements) {
         List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
-        calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
+        calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.emptyList());
 
 
         Element copy = e.copy();
@@ -140,7 +139,7 @@ public class ModuleExpander {
             for (Pair<WurstType, WurstType> rep : typeReplacements) {
                 if (typeExpr.attrTyp().equalsType(rep.getA(), e)) {
                     WPos source = typeExpr.getSource();
-                    replacementsByPath.add(Pair.create(pos, (TypeExpr) Ast.TypeExprResolved(source, rep.getB())));
+                    replacementsByPath.add(Pair.create(pos, Ast.TypeExprResolved(source, rep.getB())));
                 }
             }
         }

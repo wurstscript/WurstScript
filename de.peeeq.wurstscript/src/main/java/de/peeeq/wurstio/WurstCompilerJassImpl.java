@@ -2,7 +2,10 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
@@ -11,8 +14,8 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -28,7 +31,10 @@ import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.*;
+import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.NotNullList;
+import de.peeeq.wurstscript.utils.TempDir;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -41,28 +47,27 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
-import static de.peeeq.wurstscript.WurstOperator.PLUS;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
-    private List<File> files = Lists.newArrayList();
-    private Map<String, Reader> otherInputs = Maps.newLinkedHashMap();
+    private final List<File> files = Lists.newArrayList();
+    private final Map<String, Reader> otherInputs = Maps.newLinkedHashMap();
     private @Nullable JassProg prog;
-    private WurstGui gui;
+    private final WurstGui gui;
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private Optional<File> mapFile = Optional.empty();
     private @Nullable File projectFolder;
-    private ErrorHandler errorHandler;
+    private final ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
     private @Nullable ImProg imProg;
-    private List<File> parsedFiles = Lists.newArrayList();
+    private final List<File> parsedFiles = Lists.newArrayList();
     private final WurstParser parser;
     private final WurstChecker checker;
     private @Nullable ImTranslator imTranslator;
-    private List<File> dependencies = Lists.newArrayList();
+    private final List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
-    private TimeTaker timeTaker;
+    private final TimeTaker timeTaker;
 
     public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
         this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
@@ -175,7 +180,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             if (!folder.exists()) {
                 gui.sendError(new CompileError(pos, "Folder " + line + " not found."));
             } else if (!folder.isDirectory()) {
-                gui.sendError(new CompileError(pos, "" + line + " is not a folder."));
+                gui.sendError(new CompileError(pos, line + " is not a folder."));
             } else {
                 dependencies.add(folder);
             }

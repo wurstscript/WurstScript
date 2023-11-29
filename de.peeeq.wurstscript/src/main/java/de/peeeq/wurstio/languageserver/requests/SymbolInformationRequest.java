@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  */
 public class SymbolInformationRequest extends UserRequest<Either<List<? extends SymbolInformation>, List<? extends WorkspaceSymbol>>> {
 
-    private String query;
+    private final String query;
 
     public SymbolInformationRequest(WorkspaceSymbolParams params) {
         query = params.getQuery().toLowerCase();

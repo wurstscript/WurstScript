@@ -16,7 +16,7 @@ import java.util.Map.Entry;
 
 public abstract class State {
 
-    private Map<ImVar, ILconst> values = Maps.newLinkedHashMap();
+    private final Map<ImVar, ILconst> values = Maps.newLinkedHashMap();
     protected Map<ImVar, ILconstArray> arrayValues = Maps.newLinkedHashMap();
 
 

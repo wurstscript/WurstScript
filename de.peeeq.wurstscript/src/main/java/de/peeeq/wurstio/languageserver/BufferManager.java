@@ -15,8 +15,8 @@ import java.util.Map;
  *
  */
 public class BufferManager {
-    private Map<WFile, StringBuilder> currentBuffer = new HashMap<>();
-    private Map<WFile, Integer> latestVersion = new HashMap<>();
+    private final Map<WFile, StringBuilder> currentBuffer = new HashMap<>();
+    private final Map<WFile, Integer> latestVersion = new HashMap<>();
 
     public synchronized String getBuffer(TextDocumentIdentifier textDocument) {
         WFile uri = WFile.create(textDocument.getUri());

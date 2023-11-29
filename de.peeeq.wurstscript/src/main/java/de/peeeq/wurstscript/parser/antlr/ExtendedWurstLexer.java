@@ -16,16 +16,16 @@ import java.util.*;
 public class ExtendedWurstLexer implements TokenSource {
 
     private final WurstLexer orig;
-    private Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new LinkedList<>();
     private State state = State.INIT;
-    private Stack<Integer> indentationLevels = new Stack<>();
+    private final Stack<Integer> indentationLevels = new Stack<>();
     private int spacesPerIndent = -1;
     private @Nullable Token eof = null;
     private Token firstNewline;
     private int numberOfTabs;
-    private LineOffsets lineOffsets = new LineOffsets();
+    private final LineOffsets lineOffsets = new LineOffsets();
     private final boolean debug = false;
-    private Pair<TokenSource, CharStream> sourcePair;
+    private final Pair<TokenSource, CharStream> sourcePair;
     private boolean isWurst = false;
     private boolean lastCharWasWrap = false;
     private @Nullable Token lastToken = null;
@@ -34,7 +34,7 @@ public class ExtendedWurstLexer implements TokenSource {
     private CompileError tabWarning = null;
     // counts the number of open parentheses
     private int parenthesesLevel = 0;
-    private Deque<Token> commentTokens = new ArrayDeque<>();
+    private final Deque<Token> commentTokens = new ArrayDeque<>();
 
     public Deque<Token> getCommentTokens() {
         return commentTokens;

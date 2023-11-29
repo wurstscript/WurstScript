@@ -7,7 +7,7 @@ public class AttrWurstDoc {
 
     public static String getComment(NameDef nameDef) {
         if (nameDef instanceof HasModifier) {
-            HasModifier HasModifier = (HasModifier) nameDef;
+            HasModifier HasModifier = nameDef;
             return getCommmentHelper(HasModifier);
         }
         return "";

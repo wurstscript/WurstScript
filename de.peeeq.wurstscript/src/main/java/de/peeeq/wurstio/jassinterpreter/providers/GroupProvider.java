@@ -5,12 +5,12 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 import java.util.ArrayDeque;
-import java.util.LinkedHashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 
 public class GroupProvider extends Provider {
 
-    private ArrayDeque<IlConstHandle> enumUnitStack = new ArrayDeque<>();
+    private final ArrayDeque<IlConstHandle> enumUnitStack = new ArrayDeque<>();
 
     public GroupProvider(AbstractInterpreter interpreter) {
         super(interpreter);

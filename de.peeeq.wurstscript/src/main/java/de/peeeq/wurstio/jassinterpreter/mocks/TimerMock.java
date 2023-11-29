@@ -20,9 +20,9 @@ public class TimerMock {
 
     public class TimerMockRunnable implements Runnable {
 
-        private ILconstFuncRef handlerFunc;
-        private boolean periodic;
-        private float timeout;
+        private final ILconstFuncRef handlerFunc;
+        private final boolean periodic;
+        private final float timeout;
         private boolean cancelled;
 
         public TimerMockRunnable(ILconstFuncRef handlerFunc, boolean periodic, float timeout) {

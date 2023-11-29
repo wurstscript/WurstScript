@@ -12,7 +12,7 @@ import java.util.List;
 public class WurstTypeEnum extends WurstTypeNamedScope {
 
 
-    private EnumDef edef;
+    private final EnumDef edef;
 
     public WurstTypeEnum(boolean isStaticRef, EnumDef edef) {
         super(isStaticRef);

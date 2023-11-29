@@ -1,10 +1,13 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.Convert;
+import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
@@ -73,7 +76,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
     }
 
     public static class UsagesData {
-        private Location location;
+        private final Location location;
         private DocumentHighlightKind kind;
 
 

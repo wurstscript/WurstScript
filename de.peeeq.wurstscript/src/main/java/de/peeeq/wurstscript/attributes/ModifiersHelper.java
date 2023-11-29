@@ -62,7 +62,7 @@ public class ModifiersHelper {
 
     public static boolean isCompiletime(HasModifier e) {
         if (e instanceof HasModifier) {
-            return hasAnnotation((HasModifier) e, "compiletime");
+            return hasAnnotation(e, "compiletime");
         }
         return false;
     }

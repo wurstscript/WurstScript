@@ -33,21 +33,21 @@ public class ModelManagerImpl implements ModelManager {
 
     private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
-    private File projectPath;
+    private final File projectPath;
     // dependency folders (folders mentioned in wurst.dependencies)
     private final Set<File> dependencies = Sets.newLinkedHashSet();
     // private WurstGui gui = new WurstGuiLogger();
-    private List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
+    private final List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
     // compile errors for each file
-    private Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
+    private final Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
     // other errors for each file
-    private Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
+    private final Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
 
     // hashcode for each compilation unit content as string
-    private Map<WFile, Integer> fileHashcodes = new HashMap<>();
+    private final Map<WFile, Integer> fileHashcodes = new HashMap<>();
 
     // file for each compilation unit
-    private WeakHashMap<CompilationUnit, WFile> compilationunitFile = new WeakHashMap<>();
+    private final WeakHashMap<CompilationUnit, WFile> compilationunitFile = new WeakHashMap<>();
 
     public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;

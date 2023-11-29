@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 public class WurstTypeModule extends WurstTypeNamedScope {
 
-    private ModuleDef moduleDef;
+    private final ModuleDef moduleDef;
 
     public WurstTypeModule(ModuleDef moduleDef, boolean isStaticRef) {
         super(isStaticRef);

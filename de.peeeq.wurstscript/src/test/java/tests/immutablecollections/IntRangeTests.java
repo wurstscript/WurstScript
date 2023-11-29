@@ -14,7 +14,7 @@ public class IntRangeTests {
     public void test1() {
         List<IntRange> parts = IntRange.createFromIntList(Lists.newArrayList(5, 6, 7, 10, 11, 12));
         assertEquals("[5..<7, 10..<12]", parts.toString());
-        parts = IntRange.createFromIntList(Lists.<Integer>newArrayList());
+        parts = IntRange.createFromIntList(Lists.newArrayList());
         assertEquals("[]", parts.toString());
         parts = IntRange.createFromIntList(Lists.newArrayList(5, 6, 7, 10, 11, 12, 15));
         assertEquals("[5..<7, 10..<12, 15..<15]", parts.toString());

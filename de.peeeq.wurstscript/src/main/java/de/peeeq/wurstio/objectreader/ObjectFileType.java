@@ -11,10 +11,10 @@ public enum ObjectFileType {
     UPGRADES("w3q", "Units\\UpgradeData.slk", "Units\\UpgradeMetaData.slk", true);
 
 
-    private boolean usesLevels;
-    private String ext;
-    private String objectIDs;
-    private String modIDs;
+    private final boolean usesLevels;
+    private final String ext;
+    private final String objectIDs;
+    private final String modIDs;
 
     public boolean usesLevels() {
         return usesLevels;

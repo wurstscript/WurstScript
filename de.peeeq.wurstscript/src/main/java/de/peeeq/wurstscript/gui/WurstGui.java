@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 public abstract class WurstGui {
 
-    private List<CompileError> errors = Lists.newArrayList();
+    private final List<CompileError> errors = Lists.newArrayList();
 
 
     public abstract void sendProgress(String whatsRunningNow);

@@ -55,8 +55,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     public AboutDialog ab;
 
 
-    private String workspaceRoot;
-    private SimpleAttributeSet attributes = new SimpleAttributeSet();
+    private final String workspaceRoot;
+    private final SimpleAttributeSet attributes = new SimpleAttributeSet();
 
     /**
      * Creates new form WurstErrorWindow

@@ -130,7 +130,7 @@ public class VarLink extends DefLink {
 
     @Override
     public String toString() {
-        String r = "" + getVisibility() + " ";
+        String r = getVisibility() + " ";
         if (getReceiverType() != null) {
             r += getReceiverType() + ".";
         }

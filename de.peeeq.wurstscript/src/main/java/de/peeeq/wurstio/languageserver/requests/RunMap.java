@@ -5,7 +5,9 @@ import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.*;
+import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -26,12 +28,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Arrays;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
-import static net.moonlightflower.wc3libs.port.GameVersion.*;
+import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_31;
+import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_32;
 
 /**
  * Created by peter on 16.05.16.

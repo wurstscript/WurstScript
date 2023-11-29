@@ -19,7 +19,7 @@ public class NameGenerator {
     private final String charmap = charmapFirst + "3142567890";
     private final String charmapMid = charmap + "_";
 
-    private String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
+    private final String TEcharmap = "wurstqeiopadfghjklyxcvbnm";
     /**
      * A counter
      */
@@ -28,10 +28,10 @@ public class NameGenerator {
     /**
      * length of charmap
      */
-    private int lengthFirst;
-    private int length;
-    private int lengthMid;
-    private int TElength = 25;
+    private final int lengthFirst;
+    private final int length;
+    private final int lengthMid;
+    private final int TElength = 25;
 
 
     /**

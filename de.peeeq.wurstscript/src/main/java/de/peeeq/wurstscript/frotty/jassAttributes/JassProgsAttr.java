@@ -7,11 +7,11 @@ import java.util.Map;
 
 public class JassProgsAttr {
 
-    private static Map<String, JassFunction> functionsMap = Maps.newLinkedHashMap();
-    private static Map<String, JassNative> nativesMap = Maps.newLinkedHashMap();
-    private static Map<String, JassVar> globalsMap = Maps.newLinkedHashMap();
-    private static Map<String, JassTypeDef> typeDefsMap = Maps.newLinkedHashMap();
-    private static Map<String, String> extendsMap = Maps.newLinkedHashMap();
+    private static final Map<String, JassFunction> functionsMap = Maps.newLinkedHashMap();
+    private static final Map<String, JassNative> nativesMap = Maps.newLinkedHashMap();
+    private static final Map<String, JassVar> globalsMap = Maps.newLinkedHashMap();
+    private static final Map<String, JassTypeDef> typeDefsMap = Maps.newLinkedHashMap();
+    private static final Map<String, String> extendsMap = Maps.newLinkedHashMap();
 
 
     public static void addFunction(JassProgs jassProgs, JassFunction f) {

@@ -47,9 +47,9 @@ public class WPosWithComments extends WPos {
     }
 
     public static class Comment {
-        private WPos pos;
-        private String content;
-        private boolean singleLine;
+        private final WPos pos;
+        private final String content;
+        private final boolean singleLine;
 
         public Comment(WPos pos, String content, boolean singleLine) {
             this.pos = pos;

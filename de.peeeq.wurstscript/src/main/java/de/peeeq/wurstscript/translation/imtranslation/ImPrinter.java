@@ -549,7 +549,7 @@ public class ImPrinter {
     }
 
     public static String asString(List<?> s) {
-        return "[" + ((List<?>) s).stream()
+        return "[" + s.stream()
                     .map(Object::toString)
                     .collect(Collectors.joining(", ")) + "]";
     }

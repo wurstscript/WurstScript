@@ -8,8 +8,8 @@ import java.lang.reflect.Method;
 
 public class NativeJassFunction implements ExecutableJassFunction {
 
-    private Method method;
-    private Object provider;
+    private final Method method;
+    private final Object provider;
 
     public NativeJassFunction(Object provider, Method method) {
         this.provider = provider;

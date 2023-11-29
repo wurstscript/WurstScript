@@ -2,18 +2,23 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
+import de.peeeq.wurstscript.jassIm.ImTypeClassFunc;
+import de.peeeq.wurstscript.jassIm.ImTypeVar;
+import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Either;
@@ -23,7 +28,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -322,7 +326,7 @@ public class ExprTranslation {
         WParameters tupleParams = (WParameters) tupleParam.getParent();
         int tupleIndex = tupleParams.indexOf(tupleParam);
         if (left instanceof ImLExpr) {
-            return ImTupleSelection((ImLExpr) left, tupleIndex);
+            return ImTupleSelection(left, tupleIndex);
         } else {
             // if tupleExpr is not an l-value (e.g. foo().x)
             // store result in intermediate variable first:
@@ -585,10 +589,7 @@ public class ExprTranslation {
         if (e instanceof ExprMemberMethod) {
             ExprMemberMethod mm = (ExprMemberMethod) e;
             return mm.getLeft().attrTyp().allowsDynamicDispatch();
-        } else if (e.attrIsDynamicContext()) {
-            return true;
-        }
-        return false;
+        } else return e.attrIsDynamicContext();
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f) {

@@ -1,6 +1,5 @@
 package de.peeeq.wurstio;
 
-import config.WurstProjectBuildMapData;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -20,7 +19,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.function.Supplier;
 

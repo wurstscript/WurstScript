@@ -13,7 +13,7 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageServer, LanguageClientAware {
     private WFile rootUri;
-    private de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
+    private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
     private LanguageClient languageClient;
     private RemoteEndpoint remoteEndpoint;
 
@@ -31,11 +31,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         System.err.println("Loading Wurst version " + CompileTimeInfo.version);
         setupLogger();
-        try {
-            System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            System.err.println("Your JVM doesn't support UTF-8 encoding. Output defaults to system encoding.");
-        }
+        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8));
         if (params.getRootUri() == null) {
             System.err.println("Workspace null. Make sure to open a valid project root using File->Open Folder, before opening code files.");
             return CompletableFuture.completedFuture(null);

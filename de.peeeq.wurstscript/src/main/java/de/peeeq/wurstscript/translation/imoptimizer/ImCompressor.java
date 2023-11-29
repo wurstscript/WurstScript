@@ -9,9 +9,9 @@ import de.peeeq.wurstscript.validation.TRVEHelper;
 
 public class ImCompressor {
 
-    private ImTranslator trans;
-    private ImProg prog;
-    private NameGenerator ng;
+    private final ImTranslator trans;
+    private final ImProg prog;
+    private final NameGenerator ng;
 
     public ImCompressor(ImTranslator translator) {
         this.trans = translator;

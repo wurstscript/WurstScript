@@ -48,7 +48,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
         if (children2 != null) {
             return children2.iterator();
         } else {
-            return Collections.<ImmutableTree<T>>emptyList().iterator();
+            return Collections.emptyIterator();
         }
     }
 
@@ -70,7 +70,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
     }
 
     public static <T> ImmutableTree<T> empty() {
-        return node(ImmutableList.<ImmutableTree<T>>of());
+        return node(ImmutableList.of());
     }
 
     @Override
@@ -101,11 +101,8 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
             return false;
         @Nullable T e = elem;
         if (e == null) {
-            if (other.elem != null)
-                return false;
-        } else if (!e.equals(other.elem))
-            return false;
-        return true;
+            return other.elem == null;
+        } else return e.equals(other.elem);
     }
 
     @Override

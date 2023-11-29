@@ -10,8 +10,7 @@ public class SimpleStatementTests extends WurstScriptTest {
     public void testMod1() {
         assertOk(true,
                 "if 10. % 2. == 0.",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
 
@@ -19,48 +18,42 @@ public class SimpleStatementTests extends WurstScriptTest {
     public void testMod2() {
         assertOk(true,
                 "if 2 mod 10 == 2",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test
     public void testIf1() {
         assertOk(true,
                 "if 2 == 2 ",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test
     public void testIf2() {
         assertOk(true,
                 "if 10 > 5 ",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test
     public void testIf3() {
         assertOk(true,
                 "if not 10 > 5 or not 5 > 10 ",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test
     public void testIf4() {
         assertOk(true,
                 "if 10 >= 10 ",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test
     public void testIf5() {
         assertOk(true,
                 "if -4 <= -4 ",
-                "	testSuccess()\n" +
-                        "");
+                "	testSuccess()\n");
     }
 
     @Test

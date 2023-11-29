@@ -1,12 +1,12 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassAst.*;
-import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WPosWithComments;
 import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
+import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.jassprinter.JassPrinter.precedence;
@@ -272,7 +272,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprBoolVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append(String.valueOf(e.getValB()));
+        sb.append(e.getValB());
     }
 
     public static void prettyPrint(ExprCast e, Spacer spacer, StringBuilder sb, int indent) {

@@ -38,7 +38,7 @@ public class CompilationUnitInfo {
         this.indentationMode = indentationMode;
     }
 
-    static public interface IndentationMode {
+    public interface IndentationMode {
 
         static IndentationMode tabs() {
             return new IndentationMode() {

@@ -11,6 +11,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class ErrorReportingIO extends ErrorReporting {
 
@@ -50,8 +51,8 @@ public class ErrorReportingIO extends ErrorReporting {
                 options[1]); //default button titles
 
         if (n == 1) {
-            final boolean results[] = new boolean[3];
-            Thread threads[] = new Thread[4];
+            final boolean[] results = new boolean[3];
+            Thread[] threads = new Thread[4];
 
             threads[0] = new Thread(() -> results[0] = sendErrorReport(t, ""));
 
@@ -116,10 +117,10 @@ public class ErrorReportingIO extends ErrorReporting {
         try {
 
             // Construct data
-            String data = URLEncoder.encode("errormessage", "UTF-8") + "=" + URLEncoder.encode(t.getMessage(), "UTF-8");
-            data += "&" + URLEncoder.encode("stacktrace", "UTF-8") + "=" + URLEncoder.encode(Utils.printExceptionWithStackTrace(t), "UTF-8");
-            data += "&" + URLEncoder.encode("version", "UTF-8") + "=" + URLEncoder.encode(AboutDialog.version, "UTF-8");
-            data += "&" + URLEncoder.encode("source", "UTF-8") + "=" + URLEncoder.encode(sourcecode, "UTF-8");
+            String data = URLEncoder.encode("errormessage", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(t.getMessage(), StandardCharsets.UTF_8);
+            data += "&" + URLEncoder.encode("stacktrace", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(Utils.printExceptionWithStackTrace(t), StandardCharsets.UTF_8);
+            data += "&" + URLEncoder.encode("version", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(AboutDialog.version, StandardCharsets.UTF_8);
+            data += "&" + URLEncoder.encode("source", StandardCharsets.UTF_8) + "=" + URLEncoder.encode(sourcecode, StandardCharsets.UTF_8);
 
             String request = "http://peeeq.de/wursterrors.php";
             URL url = new URL(request);
@@ -130,7 +131,7 @@ public class ErrorReportingIO extends ErrorReporting {
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.setRequestProperty("charset", "utf-8");
-            connection.setRequestProperty("Content-Length", "" + Integer.toString(data.getBytes().length));
+            connection.setRequestProperty("Content-Length", String.valueOf(data.getBytes().length));
             connection.setUseCaches(false);
             DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
             wr.writeBytes(data);
@@ -185,7 +186,7 @@ public class ErrorReportingIO extends ErrorReporting {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         JScrollPane areaScrollPane = new JScrollPane(textArea);
-        JComponent inputs[] = {
+        JComponent[] inputs = {
                 new JLabel("Please add some contact information here in case we have further questions regarding this problem."),
                 new JLabel("This can be your hive user-name or your mail address."),
                 new JLabel("You can also add more information on how to reproduce the problem."),

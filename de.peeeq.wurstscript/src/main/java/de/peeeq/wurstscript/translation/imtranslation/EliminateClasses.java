@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
@@ -34,8 +34,8 @@ public class EliminateClasses {
     private final Map<ImVar, ImVar> fieldToArray = Maps.newLinkedHashMap();
     private final Map<ImMethod, ImFunction> dispatchFuncs = Maps.newLinkedHashMap();
     private final RecycleCodeGenerator recycleCodeGen = new RecycleCodeGeneratorQueue();
-    private boolean checkedDispatch;
-    private Set<String> specialNatives = ImmutableSet.of(
+    private final boolean checkedDispatch;
+    private final Set<String> specialNatives = ImmutableSet.of(
         TYPE_ID_TO_TYPE_NAME,
         MAX_TYPE_ID,
         INSTANCE_COUNT,
@@ -262,7 +262,7 @@ public class EliminateClasses {
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
         ImVar thisVar = df.getParameters().get(0);
-        ImExpr typeId = JassIm.ImVarArrayAccess(m.getTrace(), mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar)));
+        ImExpr typeId = JassIm.ImVarArrayAccess(m.getTrace(), mVars.typeId, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)));
 
         // ckeck if destroyed or nullpointer
         if (checkedDispatch) {
@@ -273,7 +273,7 @@ public class EliminateClasses {
                 // if typeId[this] == 0
                 JassIm.ImIf(
                     df.getTrace(), JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-                        (ImExpr) typeId.copy(), JassIm.ImIntVal(0)
+                                typeId.copy(), JassIm.ImIntVal(0)
                     )),
                     // then
                     // if this == 0
@@ -333,7 +333,7 @@ public class EliminateClasses {
             ImExpr condition = JassIm
                 .ImOperatorCall(
                     WurstOperator.LESS_EQ,
-                    JassIm.ImExprs((ImExpr) typeId.copy(),
+                    JassIm.ImExprs(typeId.copy(),
                         JassIm.ImIntVal(ranges.get(mid).getA().end)));
             stmts.add(JassIm.ImIf(df.getTrace(), condition, thenBlock,
                 elseBlock));
@@ -571,11 +571,11 @@ public class EliminateClasses {
 
     private ImExpr inRange(ImExpr obj, IntRange range) {
         if (range.start == range.end) {
-            return JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs((ImExpr) obj.copy(), JassIm.ImIntVal(range.start)));
+            return JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(obj.copy(), JassIm.ImIntVal(range.start)));
         } else {
             return JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(
-                JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs((ImExpr) obj.copy(), JassIm.ImIntVal(range.start))),
-                JassIm.ImOperatorCall(WurstOperator.LESS_EQ, JassIm.ImExprs((ImExpr) obj.copy(), JassIm.ImIntVal(range.end)))));
+                JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(obj.copy(), JassIm.ImIntVal(range.start))),
+                JassIm.ImOperatorCall(WurstOperator.LESS_EQ, JassIm.ImExprs(obj.copy(), JassIm.ImIntVal(range.end)))));
         }
     }
 

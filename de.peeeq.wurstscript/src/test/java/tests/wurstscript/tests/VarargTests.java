@@ -2,9 +2,6 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
-
 public class VarargTests extends WurstScriptTest {
 
 

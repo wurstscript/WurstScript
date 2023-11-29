@@ -12,7 +12,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstTypeTypeParam extends WurstType {
 
-    private TypeParamDef def;
+    private final TypeParamDef def;
 
     public WurstTypeTypeParam(TypeParamDef t) {
         this.def = t;

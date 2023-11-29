@@ -26,7 +26,7 @@ public class AttrParameterTypes {
 
     public static @Nullable WurstType receiverType(FuncDef f) {
         if (f.attrIsDynamicClassMember()) {
-            NameDef n = (NameDef) f.attrNearestStructureDef();
+            NameDef n = f.attrNearestStructureDef();
             return n.attrTyp();
         }
         return null;

@@ -1,12 +1,10 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.requests.Colors;
-import org.eclipse.lsp4j.Color;
 import org.eclipse.lsp4j.ColorInformation;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.testng.Assert.assertEquals;
