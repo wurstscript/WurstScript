@@ -16,6 +16,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'application'
+    id "org.sonarqube" version "4.4.1.3373"
 }
 
 import de.undercouch.gradle.tasks.download.Download
@@ -25,6 +26,14 @@ import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+
+sonar {
+  properties {
+    property "sonar.projectKey", "wurstscript_WurstScript"
+    property "sonar.organization", "wurstscript-1"
+    property "sonar.host.url", "https://sonarcloud.io"
+  }
+}
 
 
 mainClassName = "de.peeeq.wurstio.Main"
