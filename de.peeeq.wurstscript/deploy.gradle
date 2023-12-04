@@ -27,13 +27,13 @@ make_for_wurstpack.dependsOn(installDist)
 
 task create_zip_wurstpack_complete(type: Zip) {
     from '../Wurstpack'
-    archiveName 'wurstpack_complete.zip'
+    archiveFileName.set('wurstpack_complete.zip')
 }
 create_zip_wurstpack_complete.dependsOn(make_for_wurstpack)
 
 task create_zip_wurstpack_compiler(type: Zip) {
     from '../Wurstpack/wurstscript/'
-    archiveName 'wurstpack_compiler.zip'
+    archiveFileName.set('wurstpack_compiler.zip')
 }
 create_zip_wurstpack_compiler.dependsOn(make_for_wurstpack)
 
