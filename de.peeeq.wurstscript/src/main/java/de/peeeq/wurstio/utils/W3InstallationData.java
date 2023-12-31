@@ -21,6 +21,8 @@ public class W3InstallationData {
 
     private File selectedFolder;
 
+    private boolean shouldAskForPath = false;
+
     static {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -35,8 +37,9 @@ public class W3InstallationData {
     }
 
     /** Evaluates the game path and version by discovering the system environment. */
-    public W3InstallationData(WurstLanguageServer languageServer) {
+    public W3InstallationData(WurstLanguageServer languageServer, boolean shouldAskForPath) {
         this.languageServer = languageServer;
+        this.shouldAskForPath = shouldAskForPath;
         discoverExePath();
         discoverVersion();
     }
@@ -45,8 +48,9 @@ public class W3InstallationData {
      * Evaluates the game path and version, attempting to use the provided path if possible, before discovering the
      * system environment.
      */
-    public W3InstallationData(WurstLanguageServer languageServer, File wc3Path) {
+    public W3InstallationData(WurstLanguageServer languageServer, File wc3Path, boolean shouldAskForPath) {
         this.languageServer = languageServer;
+        this.shouldAskForPath = shouldAskForPath;
         if (!Orient.isWindowsSystem()) {
             WLogger.warning("Game path configuration only works on windows");
             discoverExePath();
@@ -89,7 +93,9 @@ public class W3InstallationData {
             WLogger.info("Discovered game path: " + gameExe);
         } catch (NotFoundException | UnsupportedPlatformException e) {
             WLogger.warning("Can't find game installation directory: " + e.getMessage());
-            showFileChooser();
+            if (shouldAskForPath) {
+                showFileChooser();
+            }
         }
     }
 

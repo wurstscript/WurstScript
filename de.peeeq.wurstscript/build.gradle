@@ -111,7 +111,7 @@ dependencies {
     implementation group: 'org.apache.velocity', name: 'velocity', version: '1.7'
 
     // Chardet for guessing the file-encoding of a source-file
-    implementation group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
+    implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
 
     // Crigges' jmpq
     implementation group: 'com.github.inwc3', name: 'jmpq3', version: '264c54cfc8'
