@@ -285,6 +285,17 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, Optional<File> mapCopy,
                                  WurstProjectConfigData projectConfigData, boolean isProd, File scriptFile) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
+
+        Optional<CompilationUnit> war3mapJ = modelManager.getModel()
+            .stream()
+            .filter((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))
+            .findFirst();
+
+        if (war3mapJ.isPresent()) {
+            modelManager.syncCompilationUnitContent(WFile.create(war3mapJ.get().getCuInfo().getFile()),
+                java.nio.file.Files.readString(scriptFile.toPath()));
+        }
+
         gui.sendProgress("Compiling Script");
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
