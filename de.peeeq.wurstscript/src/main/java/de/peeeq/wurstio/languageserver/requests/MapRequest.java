@@ -286,16 +286,6 @@ public abstract class MapRequest extends UserRequest<Object> {
                                  WurstProjectConfigData projectConfigData, boolean isProd, File scriptFile) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
 
-        Optional<CompilationUnit> war3mapJ = modelManager.getModel()
-            .stream()
-            .filter((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))
-            .findFirst();
-
-        if (war3mapJ.isPresent()) {
-            modelManager.syncCompilationUnitContent(WFile.create(war3mapJ.get().getCuInfo().getFile()),
-                java.nio.file.Files.readString(scriptFile.toPath()));
-        }
-
         gui.sendProgress("Compiling Script");
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
@@ -309,6 +299,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             gui.sendProgress("Building project");
             modelManager.buildProject();
         }
+
+        replaceBaseScriptWithConfig(modelManager, scriptFile);
 
         if (modelManager.hasErrors()) {
             for (CompileError compileError : modelManager.getParseErrors()) {
@@ -325,6 +317,18 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model, projectConfigData, isProd);
+    }
+
+    private static void replaceBaseScriptWithConfig(ModelManager modelManager, File scriptFile) throws IOException {
+        Optional<CompilationUnit> war3mapJ = modelManager.getModel()
+            .stream()
+            .filter((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))
+            .findFirst();
+
+        if (war3mapJ.isPresent()) {
+            modelManager.syncCompilationUnitContent(WFile.create(war3mapJ.get().getCuInfo().getFile()),
+                java.nio.file.Files.readString(scriptFile.toPath()));
+        }
     }
 
 
