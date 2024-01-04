@@ -13,16 +13,20 @@ public class WurstTypeNull extends WurstType {
 
     private static final WurstTypeNull instance = new WurstTypeNull();
 
-    private WurstTypeNull() { }
+    private WurstTypeNull() {
+    }
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping,
-            VariablePosition variablePosition) {
+                                                VariablePosition variablePosition) {
         if (other.isNullable()) {
             return mapping;
         }
-        if (Utils.isJassCode(location)
-                && (other instanceof WurstTypeInt || other instanceof WurstTypeIntLiteral)) {
+        if (Utils.isJassCode(location) &&
+            (other instanceof WurstTypeInt
+                || other instanceof WurstTypeIntLiteral
+                || other instanceof WurstTypeReal
+                || other instanceof WurstTypeBool)) {
             return mapping;
         }
 

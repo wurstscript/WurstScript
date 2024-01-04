@@ -239,6 +239,25 @@ public class JurstTests extends WurstScriptTest {
     }
 
     @Test
+    public void jassRealToNullComparison() {
+        String jassCode = Utils.string(
+            "function bar takes real r returns boolean",
+            "return r == null",
+            "endfunction\n");
+
+
+        String jurstCode = Utils.string(
+            "package test",
+            "	init",
+            "		bar(0)",
+            "		testSuccess()",
+            "	end",
+            "endpackage");
+
+        testJurstWithJass(true, true, jassCode, jurstCode);
+    }
+
+    @Test
     public void testBigJassScript() throws IOException {
         String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
 
