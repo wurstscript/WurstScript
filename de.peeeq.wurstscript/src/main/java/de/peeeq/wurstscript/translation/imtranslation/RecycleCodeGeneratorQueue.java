@@ -5,11 +5,18 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Constants;
 
+import javax.annotation.Nullable;
+import java.util.Optional;
+import java.util.function.Supplier;
+
 /**
  * Manages object ids in a queue. This way the time each object is
  * inactive is maximized and thus errors should be easier to detect
  */
 public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
+
+
+    private @Nullable Supplier<ImExpr> maxSizeElementFn = null;
 
     @Override
     public void createAllocFunc(ImTranslator translator, ImProg prog, ImClass c) {
@@ -19,12 +26,17 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ImStmts body = f.getBody();
         Element tr = c.getTrace();
 
+        if (maxSizeElementFn == null) {
+            Optional<ImVar> maxSizeVar = prog.getGlobals().stream().filter(var -> var.getName().equals("JASS_MAX_ARRAY_SIZE")).findFirst();
+            maxSizeVar.ifPresentOrElse(imVar -> this.maxSizeElementFn = (() -> JassIm.ImVarAccess(imVar)),
+                () -> this.maxSizeElementFn = () -> JassIm.ImIntVal(Constants.MAX_ARRAY_SIZE));
+        }
+
         ImVar thisVar = JassIm.ImVar(tr, translator.selfType(c), "this", false); // TODO change type
         locals.add(thisVar);
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
 
-        int maxSize = Constants.MAX_ARRAY_SIZE;
         // if freeCount == 0 then
         ImStmts elseBlock = JassIm.ImStmts();
         ImStmts thenBlock = JassIm.ImStmts();
@@ -33,9 +45,9 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                 thenBlock, elseBlock));
         ImStmts ifEnoughMemory = JassIm.ImStmts();
         ImStmts ifNotEnoughMemory = JassIm.ImStmts();
-        //     if maxIndex < 8191
+        //     if maxIndex < JASS_MAX_ARRAY_SIZE
         thenBlock.add(JassIm.ImIf(tr,
-                JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxSize))),
+                JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), maxSizeElementFn.get())),
                 ifEnoughMemory, ifNotEnoughMemory));
         //         maxIndex = maxIndex + 1
         ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
