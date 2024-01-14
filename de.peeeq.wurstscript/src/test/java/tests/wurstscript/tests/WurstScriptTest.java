@@ -25,6 +25,8 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGenerator;
+import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.Assert;
 
@@ -155,6 +157,7 @@ public class WurstScriptTest {
 
         private CompilationResult testScript() {
             RunArgs runArgs = new RunArgs();
+            RecycleCodeGeneratorQueue.setTestMode = true;
             if (withStdLib) {
                 runArgs = runArgs.with("-lib", StdLib.getLib());
             }
@@ -194,8 +197,8 @@ public class WurstScriptTest {
                 return new CompilationResult(model, gui);
             }
 
-            // translate with different options:
 
+            // translate with different options:
             testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
             testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
@@ -212,6 +215,8 @@ public class WurstScriptTest {
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
             }
+
+            RecycleCodeGeneratorQueue.setTestMode = false;
 
             return new CompilationResult(model, gui);
         }
