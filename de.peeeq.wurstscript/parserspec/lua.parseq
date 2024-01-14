@@ -81,6 +81,7 @@ LuaOpBinary =
     | LuaOpMult()
     | LuaOpDiv()
     | LuaOpMod()
+    | LuaOpFloorDiv()
 
 LuaOpUnary = 
       LuaOpNot()
