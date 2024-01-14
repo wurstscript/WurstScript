@@ -226,6 +226,10 @@ public class LuaPrinter {
         sb.append("/");
     }
 
+    public static void print(LuaOpFloorDiv luaOpFloorDiv, StringBuilder sb, int indent) {
+        sb.append("//");
+    }
+
     public static void print(LuaOpEquals luaOpEquals, StringBuilder sb, int indent) {
         sb.append("==");
     }

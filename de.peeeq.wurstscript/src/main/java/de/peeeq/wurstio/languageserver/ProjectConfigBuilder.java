@@ -31,57 +31,65 @@ import java.util.Optional;
 public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
 
-    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
 
+        WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
         MapRequest.CompilationResult result = new MapRequest.CompilationResult();
-        result.script = compiledScript;
+        result.script = mapScript;
+        W3I w3I;
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), true)) {
-            byte[] scriptBytes;
-            if (!projectConfig.getBuildMapData().getName().isEmpty()) {
-                result.script = new File(buildDir, "war3mapj_with_config.j.txt");
-                // Apply w3i config values
-                W3I w3I = prepareW3I(projectConfig, mpq);
-                FileInputStream inputStream = new FileInputStream(compiledScript);
-                StringWriter sw = new StringWriter();
-
-                if (runArgs.isLua()) {
-                    w3I.injectConfigsInLuaScript(inputStream, sw);
-                } else {
-                    if (w3data.getWc3PatchVersion().isPresent()) {
-                        w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
-                    } else {
-                        GameVersion version = GameVersion.VERSION_1_32;
-                        System.out.println(
-                            "Failed to determine installed game version. Falling back to " + version
-                        );
-                        w3I.injectConfigsInJassScript(inputStream, sw, version);
-                    }
-                }
-                scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
-
-                result.w3i = new File(buildDir, "war3map.w3i");
-                if (runArgs.isLua()) {
-                    w3I.setScriptLang(W3I.ScriptLang.LUA);
-                    w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
-                }
-                w3I.write(result.w3i);
-                Files.write(scriptBytes, result.script);
-            }
+            w3I = new W3I(mpq.extractFile("war3map.w3i"));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        if (StringUtils.isNotBlank(buildMapData.getName())) {
+            System.out.println("Found buildMapData name, applying config");
+            applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result);
+        } else {
+            System.out.println("No name found in buildMapData, not applying config");
+        }
+
+        result.w3i = new File(buildDir, "war3map.w3i");
+        if (runArgs.isLua()) {
+            System.out.println("Applying lua w3i config");
+            w3I.setScriptLang(W3I.ScriptLang.LUA);
+            w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+        }
+        w3I.write(result.w3i);
 
         applyMapHeader(projectConfig, targetMap);
 
         return result;
     }
 
-    private static W3I prepareW3I(WurstProjectConfigData projectConfig, MpqEditor mpq) throws Exception {
-        W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
+    private static void applyBuildMapData(WurstProjectConfigData projectConfig, File mapScript, File buildDir, W3InstallationData w3data, W3I w3I, MapRequest.CompilationResult result) throws IOException {
+        // Apply w3i config values
+        prepareW3I(projectConfig, w3I);
+        result.script = new File(buildDir, "war3mapj_with_config.j.txt");
+
+        FileInputStream inputStream = new FileInputStream(mapScript);
+        StringWriter sw = new StringWriter();
+
+        if (w3data.getWc3PatchVersion().isPresent()) {
+            w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
+        } else {
+            GameVersion version = GameVersion.VERSION_1_32;
+            System.out.println(
+                "Failed to determine installed game version. Falling back to " + version
+            );
+            w3I.injectConfigsInJassScript(inputStream, sw, version);
+        }
+        byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
+        Files.write(scriptBytes, result.script);
+    }
+
+
+    private static void prepareW3I(WurstProjectConfigData projectConfig, W3I w3I) {
         WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
         if (StringUtils.isNotBlank(buildMapData.getName())) {
             w3I.setMapName(buildMapData.getName());
@@ -98,8 +106,6 @@ public class ProjectConfigBuilder {
             applyForces(projectConfig, w3I);
         }
         applyOptionFlags(projectConfig, w3I);
-
-        return w3I;
     }
 
     private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {
@@ -202,13 +208,19 @@ public class ProjectConfigBuilder {
     }
 
     private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+        boolean shouldWrite = false;
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        if (projectConfig.getBuildMapData().getPlayers().size() > 0) {
+        if (!projectConfig.getBuildMapData().getPlayers().isEmpty()) {
             mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
+            shouldWrite = true;
         }
         if (StringUtils.isNotBlank(projectConfig.getBuildMapData().getName())) {
             mapHeader.setMapName(projectConfig.getBuildMapData().getName());
+            shouldWrite = true;
         }
-        mapHeader.writeToMapFile(targetMap);
+        if (shouldWrite) {
+            System.out.println("Applying map header");
+            mapHeader.writeToMapFile(targetMap);
+        }
     }
 }

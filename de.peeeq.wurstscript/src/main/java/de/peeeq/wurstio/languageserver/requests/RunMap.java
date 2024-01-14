@@ -70,82 +70,10 @@ public class RunMap extends MapRequest {
         }
 
         // TODO use normal compiler for this, avoid code duplication
-        WLogger.info("received runMap command: map=" + map + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
-            if (map.isPresent() && !map.get().exists()) {
-                throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
-            }
-
-            gui.sendProgress("Copying map");
-
-            // first we copy in same location to ensure validity
-            File buildDir = getBuildDir();
-            Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
-            CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
-
-            if (runArgs.isHotReload()) {
-                // call jhcr update
-                gui.sendProgress("Calling JHCR update");
-                callJhcrUpdate(result.script);
-
-                // if we are just reloading the mapscript with JHCR, we are done here
-                gui.sendProgress("update complete");
-                return "ok";
-            }
-
-
-            if (testMap.isPresent()) {
-
-                injectMapData(gui, testMap, result);
-
-                File mapCopy = copyToWarcraftMapDir(testMap.get());
-
-                gui.sendProgress("Starting Warcraft 3...");
-                WLogger.info("Starting wc3 ... ");
-                String path = "";
-                if (customTarget != null) {
-                    path = new File(customTarget, testMap.get().getName()).getAbsolutePath();
-                } else if (mapCopy != null) {
-                    path = mapCopy.getAbsolutePath();
-                }
-
-
-                if (!path.isEmpty()) {
-                    // now start the map
-                    File gameExe = w3data.getGameExe().get();
-                    if (!w3data.getWc3PatchVersion().isPresent()) {
-                        throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
-                    }
-                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
-                    Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
-                    if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
-                        if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_32) >= 0) {
-                            cmd.add("-launch");
-                        }
-	                    if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_31) < 0) {
-	                        cmd.add("-window");
-	                    } else {
-	                        cmd.add("-windowmode");
-	                        cmd.add("windowed");
-	                    }
-                    } else {
-                    	cmd.addAll(Arrays.asList(wc3RunArgs.get().split("\\s+")));
-                    }
-                    cmd.add("-loadfile");
-                    cmd.add(path);
-
-                    if (Orient.isLinuxSystem()) {
-                        // run with wine
-                        cmd.add(0, "wine");
-                    }
-
-                    gui.sendProgress("running " + cmd);
-                    Runtime.getRuntime().exec(cmd.toArray(new String[0]));
-                    timeTaker.endPhase();
-                    timeTaker.printReport();
-                }
-            }
+            String ok = compileMap(modelManager, gui, projectConfig);
+            if (ok != null) return ok;
         } catch (CompileError e) {
             WLogger.info(e);
             throw new RequestFailedException(MessageType.Error, "A compilation error occurred when running the map:\n" + e);
@@ -158,6 +86,87 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    @Nullable
+    private String compileMap(ModelManager modelManager, WurstGui gui, WurstProjectConfigData projectConfig) throws Exception {
+        if (map.isPresent() && !map.get().exists()) {
+            throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
+        }
+
+        gui.sendProgress("Copying map");
+
+        // first we copy in same location to ensure validity
+        File buildDir = getBuildDir();
+        Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
+        CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
+
+        if (runArgs.isHotReload()) {
+            // call jhcr update
+            gui.sendProgress("Calling JHCR update");
+            callJhcrUpdate(result.script);
+
+            // if we are just reloading the mapscript with JHCR, we are done here
+            gui.sendProgress("update complete");
+            return "ok";
+        }
+
+
+        if (testMap.isPresent()) {
+            startGame(gui, testMap, result);
+        }
+        return null;
+    }
+
+    private void startGame(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
+        injectMapData(gui, testMap, result);
+
+        File mapCopy = copyToWarcraftMapDir(testMap.get());
+
+        gui.sendProgress("Starting Warcraft 3...");
+        WLogger.info("Starting wc3 ... ");
+        String path = "";
+        if (customTarget != null) {
+            path = new File(customTarget, testMap.get().getName()).getAbsolutePath();
+        } else if (mapCopy != null) {
+            path = mapCopy.getAbsolutePath();
+        }
+
+
+        if (!path.isEmpty()) {
+            // now start the map
+            File gameExe = w3data.getGameExe().get();
+            if (!w3data.getWc3PatchVersion().isPresent()) {
+                throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
+            }
+            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
+            Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
+            if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
+                if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_32) >= 0) {
+                    cmd.add("-launch");
+                }
+                if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_31) < 0) {
+                    cmd.add("-window");
+                } else {
+                    cmd.add("-windowmode");
+                    cmd.add("windowed");
+                }
+            } else {
+                cmd.addAll(Arrays.asList(wc3RunArgs.get().split("\\s+")));
+            }
+            cmd.add("-loadfile");
+            cmd.add(path);
+
+            if (Orient.isLinuxSystem()) {
+                // run with wine
+                cmd.add(0, "wine");
+            }
+
+            gui.sendProgress("running " + cmd);
+            Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+            timeTaker.endPhase();
+            timeTaker.printReport();
+        }
     }
 
 

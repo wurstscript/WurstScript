@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.StringUtils;
@@ -36,6 +37,7 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -54,8 +56,7 @@ import java.util.stream.Collectors;
 
 public abstract class MapRequest extends UserRequest<Object> {
     protected final WurstLanguageServer langServer;
-    protected final @Nullable
-    Optional<File> map;
+    protected final Optional<File> map;
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
@@ -138,7 +139,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             timeTaker.measure("Runinng Compiletime Functions", () -> compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache()));
 
             if (runArgs.isLua()) {
-                print("translating program to Lua ... ");
+                print("Translating program to Lua ... ");
                 Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(compiler.transformProgToLua());
 
                 if (!luaCode.isPresent()) {
@@ -156,7 +157,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 return outFile;
 
             } else {
-                print("translating program to jass ... ");
+                print("Translating program to jass ... ");
                 compiler.transformProgToJass();
 
                 Optional<JassProg> jassProg = Optional.ofNullable(compiler.getProg());
@@ -439,7 +440,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         return scriptFile;
     }
 
-    private CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile) throws FileNotFoundException {
+    private CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile) {
         AtomicReference<CompilationResult> result = new AtomicReference<>();
         gui.sendProgress("Applying Map Config...");
         timeTaker.measure("Applying Map Config", () -> {

@@ -3,10 +3,14 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
+
+import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
+import static de.peeeq.wurstscript.jassIm.JassIm.ImTypeArguments;
 
 public class ExprTranslation {
 
@@ -75,6 +79,8 @@ public class ExprTranslation {
         LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         if (f.getName().equals(ImTranslator.$DEBUG_PRINT)) {
             f.setName("BJDebugMsg");
+        } else if (f.getName().equals("I2S")) {
+            f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
@@ -128,9 +134,8 @@ public class ExprTranslation {
                 return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
                     LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
             } else if (e.getOp() == WurstOperator.DIV_INT) {
-                op = LuaAst.LuaOpDiv();
-                return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
+                op = LuaAst.LuaOpFloorDiv();
+                return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
             } else {
                 // TODO special cases for integer division and modulo
                 op = e.getOp().luaTranslateBinary();
