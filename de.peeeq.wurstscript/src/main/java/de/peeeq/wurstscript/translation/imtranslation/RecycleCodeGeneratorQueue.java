@@ -15,6 +15,8 @@ import java.util.function.Supplier;
  */
 public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 
+    public static boolean setTestMode = false;
+
 
     private @Nullable Supplier<ImExpr> maxSizeElementFn = null;
 
@@ -27,7 +29,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         Element tr = c.getTrace();
 
         if (maxSizeElementFn == null) {
-            Optional<ImVar> maxSizeVar = prog.getGlobals().stream().filter(var -> var.getName().equals("JASS_MAX_ARRAY_SIZE")).findFirst();
+            Optional<ImVar> maxSizeVar = prog.getGlobals().stream().filter(var -> !setTestMode && var.getName().equals("JASS_MAX_ARRAY_SIZE")).findFirst();
             maxSizeVar.ifPresentOrElse(imVar -> this.maxSizeElementFn = (() -> JassIm.ImVarAccess(imVar)),
                 () -> this.maxSizeElementFn = () -> JassIm.ImIntVal(Constants.MAX_ARRAY_SIZE));
         }
