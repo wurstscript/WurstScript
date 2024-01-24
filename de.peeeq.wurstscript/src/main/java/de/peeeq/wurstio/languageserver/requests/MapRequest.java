@@ -459,14 +459,15 @@ public abstract class MapRequest extends UserRequest<Object> {
             return new W3InstallationData(Optional.empty(), Optional.empty());
         }
         if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
-            W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()), this instanceof RunMap);
+            W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()),
+                this instanceof RunMap && !runArgs.isHotReload());
             if (w3data.getWc3PatchVersion().isEmpty()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 
             return w3data;
         } else {
-            return new W3InstallationData(langServer, this instanceof RunMap);
+            return new W3InstallationData(langServer, this instanceof RunMap && !runArgs.isHotReload());
         }
     }
 
