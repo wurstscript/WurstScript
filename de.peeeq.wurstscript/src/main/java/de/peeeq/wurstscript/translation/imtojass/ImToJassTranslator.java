@@ -277,7 +277,7 @@ public class ImToJassTranslator {
             } else {
                 String name = func.getName();
                 // find a unique name, but keep special names 'main' and 'config'
-                if (!name.equals("main") && !name.equals("config")) {
+                if (!name.equals("main") && !name.equals("config") && !func.hasFlag(FunctionFlagEnum.IS_EXTERN)) {
                     name = getUniqueGlobalName(func.getName());
                 }
                 boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
