@@ -62,6 +62,12 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
 
+    public static long mapLastModified = 0L;
+    public static String mapPath = "";
+
+    private static Long lastMapModified = 0L;
+    private static String lastMapPath = "";
+
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
@@ -378,7 +384,6 @@ public abstract class MapRequest extends UserRequest<Object> {
         return result;
     }
 
-    private static Long lastMapModified = 0L;
 
     private File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
         File scriptFile = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
@@ -393,10 +398,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                     "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
             }
         }
-        long mapLastModified = mapCopy.get().lastModified();
-        if (mapLastModified > lastMapModified) {
-            lastMapModified = mapLastModified;
-            WLogger.info("extracting mapscript");
+        if (MapRequest.mapLastModified > lastMapModified || !MapRequest.mapPath.equals(lastMapPath)) {
+            lastMapModified = MapRequest.mapLastModified;
+            lastMapPath = MapRequest.mapPath;
+            System.out.println("Map not cached yet, extracting script");
             byte[] extractedScript = null;
             try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
                 if (mpqEditor.hasFile("war3map.j")) {

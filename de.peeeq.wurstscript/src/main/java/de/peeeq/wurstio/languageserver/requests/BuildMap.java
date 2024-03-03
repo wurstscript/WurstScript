@@ -52,6 +52,9 @@ public class BuildMap extends MapRequest {
                 throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
             }
 
+            MapRequest.mapLastModified = map.get().lastModified();
+            MapRequest.mapPath = map.get().getAbsolutePath();
+
             gui.sendProgress("Copying map");
 
             // first we copy in same location to ensure validity
