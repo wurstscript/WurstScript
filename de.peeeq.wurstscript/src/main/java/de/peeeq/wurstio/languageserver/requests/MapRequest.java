@@ -45,11 +45,9 @@ import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -477,6 +475,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             String mapScriptName;
             if (runArgs.isLua()) {
                 mapScriptName = "war3map.lua";
+                injectExternalLuaFiles(result.script);
             } else {
                 mapScriptName = "war3map.j";
             }
@@ -490,4 +489,42 @@ public abstract class MapRequest extends UserRequest<Object> {
             mpqEditor.insertFile(mapScriptName, result.script);
         }
     }
+
+    private void injectExternalLuaFiles(File script) {
+        File luaDir;
+        try {
+            luaDir = new File(workspaceRoot.getFile(), "lua");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Cannot get build dir", e);
+        }
+        if (luaDir.exists()) {
+            File[] children = luaDir.listFiles();
+            if (children != null) {
+                Arrays.stream(children).forEach(child -> {
+                    try {
+                        byte[] bytes = java.nio.file.Files.readAllBytes(child.toPath());
+                        if (child.getName().startsWith("pre_")) {
+                            byte[] existingBytes = java.nio.file.Files.readAllBytes(script.toPath());
+                            java.nio.file.Files.write(
+                                script.toPath(),
+                                bytes);
+                            java.nio.file.Files.write(
+                                script.toPath(),
+                                existingBytes,
+                                StandardOpenOption.APPEND);
+                        } else {
+                            java.nio.file.Files.write(
+                                script.toPath(),
+                                bytes,
+                                StandardOpenOption.APPEND);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
+    }
+
+
 }
