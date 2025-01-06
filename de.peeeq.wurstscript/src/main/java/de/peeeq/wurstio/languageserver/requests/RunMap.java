@@ -98,8 +98,10 @@ public class RunMap extends MapRequest {
 
         // first we copy in same location to ensure validity
         File buildDir = getBuildDir();
-        mapLastModified = map.get().lastModified();
-        mapPath = map.get().getAbsolutePath();
+        if (map.isPresent()) {
+            mapLastModified = map.get().lastModified();
+            mapPath = map.get().getAbsolutePath();
+        }
         Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
         CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
 
