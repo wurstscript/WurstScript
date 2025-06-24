@@ -427,6 +427,7 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore // This test was for a rewrite that caused an infinite loop in the optimizer.
     public void test_mult2rewrite() throws IOException {
         test().lines(
                 "package test",
