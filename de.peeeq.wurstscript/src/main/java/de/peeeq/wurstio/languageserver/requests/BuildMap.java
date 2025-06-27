@@ -27,7 +27,7 @@ public class BuildMap extends MapRequest {
 
     public BuildMap(WurstLanguageServer languageServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
                     List<String> compileArgs) {
-        super(languageServer, map, compileArgs, workspaceRoot, wc3Path);
+        super(languageServer, map, compileArgs, workspaceRoot, wc3Path, Optional.empty());
     }
 
     @Override

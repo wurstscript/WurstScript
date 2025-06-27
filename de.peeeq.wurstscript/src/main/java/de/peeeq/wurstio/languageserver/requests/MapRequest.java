@@ -28,8 +28,8 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
-import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.W3I;
+import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageParams;
@@ -37,7 +37,6 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -88,14 +87,18 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     public MapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
-                      Optional<String> wc3Path) {
+                      Optional<String> wc3Path, Optional<String> gameExePath) {
         this.langServer = langServer;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
-        this.w3data = getBestW3InstallationData();
+        if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
+            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.of(GameVersion.VERSION_1_29));
+        } else {
+            this.w3data = getBestW3InstallationData();
+        }
         if (runArgs.isMeasureTimes()) {
             this.timeTaker = new TimeTaker.Recording();
         } else {

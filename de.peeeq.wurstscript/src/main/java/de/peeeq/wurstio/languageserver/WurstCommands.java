@@ -100,10 +100,11 @@ public class WurstCommands {
         JsonObject options = (JsonObject) params.getArguments().get(0);
         Optional<String> mapPath = getString(options,  "mappath");
         Optional<String> wc3Path = getString(options, "wc3path");
+        Optional<String> gameExePath = getString(options, "gameExePath");
 
         Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new RunMap(server, workspaceRoot, wc3Path, map, compileArgs, gameExePath)).thenApply(x -> x);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {

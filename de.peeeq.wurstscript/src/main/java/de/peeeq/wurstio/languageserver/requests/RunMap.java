@@ -45,8 +45,8 @@ public class RunMap extends MapRequest {
 
 
     public RunMap(WurstLanguageServer langServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
-                  List<String> compileArgs) {
-        super(langServer, map, compileArgs, workspaceRoot, wc3Path);
+                  List<String> compileArgs, Optional<String> gameExePath) {
+        super(langServer, map, compileArgs, workspaceRoot, wc3Path, gameExePath);
         safeCompilation = SafetyLevel.QuickAndDirty;
     }
 
