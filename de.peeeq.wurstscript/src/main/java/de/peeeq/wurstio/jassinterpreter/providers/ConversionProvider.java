@@ -190,4 +190,8 @@ public class ConversionProvider extends Provider {
     public IlConstHandle ConvertMouseButtonType(ILconstInt i) {
         return new IlConstHandle("mousebuttontype" + i, new LinkedHashSet<>());
     }
+
+    public IlConstHandle ConvertDefenseType(ILconstInt i) {
+        return new IlConstHandle("defensetype" + i, new LinkedHashSet<>());
+    }
 }
