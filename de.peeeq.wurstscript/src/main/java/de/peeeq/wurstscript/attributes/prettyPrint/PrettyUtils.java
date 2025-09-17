@@ -2,8 +2,10 @@ package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.apache.commons.lang.StringUtils;
@@ -40,7 +42,13 @@ public class PrettyUtils {
     }
 
     public static String pretty(String source, String ending) {
-        CompilationUnit cu = parse(source, ending);
+        WurstGui gui = new WurstGuiCliImpl();
+        CompilationUnit cu = parse(source, ending, gui);
+        
+        // Check for compilation errors before pretty printing
+        if (gui.getErrorCount() > 0) {
+            throw new RuntimeException("Cannot format code with compilation errors:\n" + gui.getErrors());
+        }
 
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
@@ -50,11 +58,25 @@ public class PrettyUtils {
     }
 
     private static void prettyPrint(String filename) {
-        String clean = pretty(filename, filename.substring(filename.lastIndexOf(".")));
-        System.out.println(clean);
+        try {
+            String clean = pretty(filename, filename.substring(filename.lastIndexOf(".")));
+            System.out.println(clean);
+        } catch (RuntimeException e) {
+            System.err.println("Error formatting " + filename + ": " + e.getMessage());
+            throw e;
+        }
     }
 
     public static void pretty(CompilationUnit cu) {
+        pretty(cu, new WurstGuiCliImpl());
+    }
+    
+    public static void pretty(CompilationUnit cu, WurstGui gui) {
+        // Check for compilation errors before pretty printing
+        if (gui.getErrorCount() > 0) {
+            throw new RuntimeException("Cannot format code with compilation errors:\n" + gui.getErrors());
+        }
+        
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
         cu.prettyPrint(spacer, sb, 0);
@@ -64,7 +86,13 @@ public class PrettyUtils {
 
     private static void debug(String filename) {
         String contents = readFile(filename);
-        CompilationUnit cu = parse(contents, filename.substring(filename.lastIndexOf(".")));
+        WurstGui gui = new WurstGuiCliImpl();
+        CompilationUnit cu = parse(contents, filename.substring(filename.lastIndexOf(".")), gui);
+        
+        // Check for compilation errors before debugging
+        if (gui.getErrorCount() > 0) {
+            throw new RuntimeException("Cannot debug code with compilation errors:\n" + gui.getErrors());
+        }
 
         walkTree(cu, 0);
     }
@@ -91,7 +119,13 @@ public class PrettyUtils {
 
     private static String pretty(File f) {
         String contents = readFile(f.toString());
-        CompilationUnit cu = parse(contents, f.getName().substring(f.getName().lastIndexOf(".")));
+        WurstGui gui = new WurstGuiCliImpl();
+        CompilationUnit cu = parse(contents, f.getName().substring(f.getName().lastIndexOf(".")), gui);
+        
+        // Check for compilation errors before pretty printing
+        if (gui.getErrorCount() > 0) {
+            throw new RuntimeException("Cannot format code with compilation errors:\n" + gui.getErrors());
+        }
 
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
@@ -119,7 +153,24 @@ public class PrettyUtils {
 
     private static CompilationUnit parse(String input, String ending) {
         WurstGui gui = new WurstGuiCliImpl();
+        return parse(input, ending, gui);
+    }
+    
+    private static CompilationUnit parse(String input, String ending, WurstGui gui) {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs("-prettyPrint"));
-        return compiler.parse("format" + ending, new StringReader(input));
+        CompilationUnit cu = compiler.parse("format" + ending, new StringReader(input));
+        
+        // Create a minimal model to run validation
+        WurstModel model = Ast.WurstModel();
+        model.add(cu);
+        
+        // Run validation to detect compilation errors
+        try {
+            compiler.checkProg(model);
+        } catch (Exception e) {
+            // Errors are already added to gui during validation
+        }
+        
+        return cu;
     }
 }
