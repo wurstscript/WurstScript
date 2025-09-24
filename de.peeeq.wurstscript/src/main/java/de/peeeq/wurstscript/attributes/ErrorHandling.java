@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.List;
 import java.util.ListIterator;
 
 public class ErrorHandling {
@@ -28,36 +29,52 @@ public class ErrorHandling {
         }
     }
 
-    private static @Nullable CompileError makeCompileError(Element e, String msg,
-                                                           ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
-        WPos pos = e.attrErrorPos();
+    private static @Nullable CompileError makeCompileError(
+        Element e, String msg, ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
+
+        // Preserve unit-test semantics (throw eagerly)
         if (errorType == ErrorType.ERROR && handler.isUnitTestMode()) {
-            throw new CompileError(pos, msg);
+            throw new CompileError(e.attrErrorPos(), msg);
         }
-        ListIterator<CompileError> it = handler.getErrors().listIterator();
-        while (it.hasNext()) {
-            CompileError err = it.next();
-            if (err.getSource().getFile().equals(pos.getFile())) {
-                if (bigger(err.getSource(), pos)) {
-                    // remove bigger errors
-                    it.remove();
-                } else if (bigger(pos, err.getSource()) || equal(pos, err.getSource())) {
+
+        // Eager pos (like original), but we will only scan the same-file bucket
+        WPos pos = e.attrErrorPos();
+        final String file = pos.getFile();
+        final int left  = pos.getLeftPos();
+        final int right = pos.getRightPos();
+
+        // Fast path: no existing items for this file
+        List<CompileError> bucket = handler.getBucketForFile(file, errorType);
+        if (bucket != null && !bucket.isEmpty()) {
+            // Compare only within this file
+            ListIterator<CompileError> it = bucket.listIterator();
+            while (it.hasNext()) {
+                CompileError err = it.next();
+                WPos ep = err.getSource();
+                // same file by construction
+                final int eLeft  = ep.getLeftPos();
+                final int eRight = ep.getRightPos();
+
+                if (bigger(eLeft, eRight, left, right)) {
+                    // remove bigger error and keep going (might remove multiple)
+                    it.remove();              // from file bucket
+                    handler.removeFromGlobal(err); // from global list
+                } else if (bigger(left, right, eLeft, eRight) || equal(left, right, eLeft, eRight)) {
                     // do not add smaller or equal errors
                     return null;
                 }
             }
         }
+
         return new CompileError(pos, msg, errorType);
     }
 
-
-    private static boolean equal(WPos a, WPos b) {
-        return a.getLeftPos() == b.getLeftPos() && a.getRightPos() == b.getRightPos();
+    private static boolean equal(int aL, int aR, int bL, int bR) {
+        return aL == bL && aR == bR;
     }
 
-    private static boolean bigger(WPos a, WPos b) {
-        return a.getLeftPos() <= b.getLeftPos() && a.getRightPos() > b.getRightPos()
-                || a.getLeftPos() < b.getLeftPos() && a.getRightPos() >= b.getRightPos();
+    private static boolean bigger(int aL, int aR, int bL, int bR) {
+        return (aL <= bL && aR >  bR) || (aL <  bL && aR >= bR);
     }
 
     public static ErrorHandler getErrorHandler(Element e) {
@@ -77,6 +94,4 @@ public class ErrorHandling {
         }
         throw new Error("Empty model.");
     }
-
-
 }

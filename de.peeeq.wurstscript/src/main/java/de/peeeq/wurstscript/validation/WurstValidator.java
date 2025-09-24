@@ -14,12 +14,14 @@ import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
+import de.peeeq.wurstscript.validation.controlflow.ForwardExecution;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
@@ -722,36 +724,55 @@ public class WurstValidator {
 
     private void checkClosure(ExprClosure e) {
         WurstType expectedTyp = e.attrExpectedTypAfterOverloading();
+
+
+
         if (expectedTyp instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
-                for (Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
+                for (Map.Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
+
                     elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName()
-                            + "' in anonymous function. This is only possible with closures.");
+                        + "' in anonymous function. This is only possible with closures.");
                 }
             }
         } else if (expectedTyp instanceof WurstTypeUnknown || expectedTyp instanceof WurstTypeClosure) {
+
+
+
             e.addError("Closures can only be used when a interface or class type is given.");
 
+
+
         } else if (!(expectedTyp instanceof WurstTypeClass
-                || expectedTyp instanceof WurstTypeInterface)) {
+            || expectedTyp instanceof WurstTypeInterface)) {
             e.addError("Closures can only be used when a interface or class type is given, " + "but at this position a "
-                    + expectedTyp + " is expected.");
+                + expectedTyp + " is expected.");
         }
         e.attrCapturedVariables();
 
         if (e.getImplementation() instanceof ExprStatementsBlock) {
             ExprStatementsBlock block = (ExprStatementsBlock) e.getImplementation();
             new DataflowAnomalyAnalysis(false).execute(block);
+
+
+
         }
+
 
         if (expectedTyp instanceof WurstTypeClass) {
             WurstTypeClass ct = (WurstTypeClass) expectedTyp;
 
             ClassDef cd = ct.getClassDef();
             if (cd.getConstructors().stream().noneMatch(constr -> constr.getParameters().isEmpty())) {
+
+
+
+
+
+
                 e.addError("No default constructor for class " + ct
-                        + " found, so it cannot be instantiated using an anonymous function.");
+                    + " found, so it cannot be instantiated using an anonymous function.");
             }
         }
 
@@ -795,10 +816,11 @@ public class WurstValidator {
 
     private void checkTypeParameters(AstElementWithTypeParameters e) {
         for (TypeParamDef ta : e.getTypeParameters()) {
-            if (ta.getName().contains("<") || ta.getName().startsWith("#")) {
+            String name = ta.getName();
+            if (name.indexOf('<') >= 0 || (!name.isEmpty() && name.charAt(0) == '#')) {
                 ta.addError("Type parameter must be a simple name ");
             } else {
-                checkTypeName(ta, ta.getName());
+                checkTypeName(ta, name);
             }
             ta.attrTyp();
         }
@@ -1266,7 +1288,7 @@ public class WurstValidator {
                 isAbstract = true;
                 if (!func.attrHasEmptyBody()) {
                     func.getBody().get(0)
-                            .addError("The abstract function " + func.getName() + " must not have any statements.");
+                        .addError("The abstract function " + func.getName() + " must not have any statements.");
                 }
             }
         }
@@ -1274,12 +1296,16 @@ public class WurstValidator {
             checkReturn(f);
 
             if (!f.getSource().getFile().endsWith("common.j")
-                    && !f.getSource().getFile().endsWith("blizzard.j")
-                    && !f.getSource().getFile().endsWith("war3map.j")) {
+                && !f.getSource().getFile().endsWith("blizzard.j")
+                && !f.getSource().getFile().endsWith("war3map.j")) {
                 new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
             }
         }
+
+
     }
+
+
 
     private void checkCall(StmtCall call) {
         String funcName;
@@ -1297,24 +1323,80 @@ public class WurstValidator {
         call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
     }
 
+
+    private static final Object2ObjectOpenHashMap<WurstType, Object2BooleanOpenHashMap<WurstType>> SUBTYPE_MEMO
+        = new Object2ObjectOpenHashMap<>();
+    // crude cap to avoid unbounded growth; tune as needed
+    private static final int SUBTYPE_MEMO_CAP = 16_384;
+    private static int SUBTYPE_MEMO_SIZE = 0;
+
+    private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
+        if (actual == expected) return true;
+        // quick structural equality before expensive check
+        if (actual.equals(expected)) return true;
+
+        Object2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
+        if (inner != null && inner.containsKey(expected)) {
+            return inner.getBoolean(expected);
+        }
+
+        boolean res = actual.isSubtypeOf(expected, site);
+
+        if (inner == null) {
+            inner = new Object2BooleanOpenHashMap<>();
+            SUBTYPE_MEMO.put(actual, inner);
+        }
+        if (!inner.containsKey(expected)) {
+            inner.put(expected, res);
+            if (++SUBTYPE_MEMO_SIZE > SUBTYPE_MEMO_CAP) {
+                // simple eviction policy: clear all when too big (cheap & safe)
+                SUBTYPE_MEMO.clear();
+                SUBTYPE_MEMO_SIZE = 0;
+            }
+        }
+        return res;
+    }
+
     private void checkAnnotation(Annotation a) {
         FuncLink fl = a.attrFuncLink();
-        if (fl != null) {
-            if (a.getArgs().size() < fl.getParameterTypes().size()) {
-                a.addWarning("not enough arguments");
-            } else if (a.getArgs().size() > fl.getParameterTypes().size()) {
-                a.addWarning("too many enough arguments");
-            } else {
-                for (int i = 0; i < a.getArgs().size(); i++) {
-                    WurstType actual = a.getArgs().get(i).attrTyp();
-                    WurstType expected = fl.getParameterType(i);
-                    if (!actual.isSubtypeOf(expected, a)) {
-                        a.getArgs().get(i).addWarning("Expected " + expected + " but found " + actual + ".");
-                    }
-                }
+        if (fl == null) return;
+
+        // pull once; avoid repeated virtual calls and size reads
+        final var args = a.getArgs();
+        final int argCount = args.size();
+
+        // pull all parameter types once (and reuse). If FuncLink can expose an array, even better.
+        final var paramTypes = fl.getParameterTypes();
+        final int paramCount = paramTypes.size();
+
+        if (argCount < paramCount) {
+            a.addWarning("not enough arguments");
+            return;
+        } else if (argCount > paramCount) {
+            a.addWarning("too many arguments");
+            return;
+        }
+
+        // same count; validate pairwise
+        for (int i = 0; i < argCount; i++) {
+            // avoid double indexing/attr calls
+            final var argExpr = args.get(i);
+            final WurstType actual = argExpr.attrTyp();
+            final WurstType expected = paramTypes.get(i);
+
+            // fast path: == / equals handled inside isSubtypeCached too,
+            // but doing it here keeps it branch-predictable and avoids map lookups for exact matches
+            if (actual == expected || actual.equals(expected)) {
+                continue;
+            }
+
+            if (!isSubtypeCached(actual, expected, a)) {
+                // build message only on miss
+                argExpr.addWarning("Expected " + expected + " but found " + actual + ".");
             }
         }
     }
+
 
     private void visit(ExprFunctionCall stmtCall) {
         String funcName = stmtCall.getFuncName();
@@ -1758,10 +1840,56 @@ public class WurstValidator {
     }
 
     private void checkModifiers(final HasModifier e) {
+        final boolean inParams = e.getParent() instanceof WParameters;
+
         for (final Modifier m : e.getModifiers()) {
-            final StringBuilder error = new StringBuilder();
+            if (m instanceof WurstDoc) continue;
+            if (m instanceof ModVararg && inParams) continue;
+
+            final boolean isJurst = m.attrSource().getFile().endsWith(".jurst");
+
+            final StringBuilder[] error = {null}; // lazily allocate only if needed
 
             e.match(new HasModifier.MatcherVoid() {
+
+                @SafeVarargs
+                private final void check(Class<? extends Modifier>... allowed) {
+                    if (allowed.length == 0) {
+                        if (error[0] == null) error[0] = new StringBuilder(96);
+                        error[0].setLength(0);
+                        error[0].append("Type Parameters must not have modifiers");
+                        return;
+                    }
+
+                    boolean isAllowed = false;
+                    for (Class<? extends Modifier> a : allowed) {
+                        String modName = m.getClass().getName();
+                        String allowedName = a.getName();
+                        if (modName.startsWith(allowedName)) {
+                            isAllowed = true;
+                            break;
+                        }
+                    }
+                    if (isAllowed) return;
+
+                    if (error[0] == null) {
+                        error[0] = new StringBuilder(160);
+                        error[0].append("Modifier ")
+                            .append(printMod(m))
+                            .append(" not allowed for ")
+                            .append(Utils.printElement(e))
+                            .append(". Allowed: ");
+                    } else {
+                        error[0].append(", ");
+                    }
+
+                    boolean first = true;
+                    for (Class<? extends Modifier> c : allowed) {
+                        if (!first) error[0].append(", ");
+                        error[0].append(printMod(c));
+                        first = false;
+                    }
+                }
 
                 @Override
                 public void case_WParameter(WParameter wParameter) {
@@ -1775,44 +1903,12 @@ public class WurstValidator {
 
                 @Override
                 public void case_TypeParamDef(TypeParamDef typeParamDef) {
-                    error.append("Type Parameters must not have modifiers");
+                    check();
                 }
 
                 @Override
                 public void case_NativeType(NativeType nativeType) {
                     check(VisibilityPublic.class);
-                }
-
-                @SafeVarargs
-                private final void check(Class<? extends Modifier>... allowed) {
-                    if (m instanceof WurstDoc) {
-                        // wurstdoc always allowed
-                        return;
-                    }
-                    if (m instanceof ModVararg && e.getParent() instanceof WParameters) {
-                        return;
-                    }
-                    boolean isAllowed = false;
-                    for (Class<? extends Modifier> a : allowed) {
-                        String modName = m.getClass().getName();
-                        String allowedName = a.getName();
-                        if (modName.startsWith(allowedName)) {
-                            isAllowed = true;
-                            break;
-                        }
-                    }
-                    if (!isAllowed) {
-                        error.append("Modifier ").append(printMod(m)).append(" not allowed for ").append(Utils.printElement(e)).append(".\n Allowed are the " +
-                                "following modifiers: ");
-                        boolean first = true;
-                        for (Class<? extends Modifier> c : allowed) {
-                            if (!first) {
-                                error.append(", ");
-                            }
-                            error.append(printMod(c));
-                            first = false;
-                        }
-                    }
                 }
 
                 @Override
@@ -1834,20 +1930,22 @@ public class WurstValidator {
                 public void case_LocalVarDef(LocalVarDef localVarDef) {
                     check(ModConstant.class);
                     if (localVarDef.hasAnnotation("@compiletime")) {
-                        localVarDef.getAnnotation("@compiletime").addWarning("The annotation '@compiletime' has no effect on variables.");
+                        localVarDef.getAnnotation("@compiletime")
+                            .addWarning("The annotation '@compiletime' has no effect on variables.");
                     }
                 }
 
                 @Override
                 public void case_GlobalVarDef(GlobalVarDef g) {
                     if (g.attrNearestClassOrModule() != null) {
-                        check(VisibilityPrivate.class, VisibilityProtected.class, ModStatic.class, ModConstant.class,
-                                Annotation.class);
+                        check(VisibilityPrivate.class, VisibilityProtected.class,
+                            ModStatic.class, ModConstant.class, Annotation.class);
                     } else {
                         check(VisibilityPublic.class, ModConstant.class, Annotation.class);
                     }
                     if (g.hasAnnotation("@compiletime")) {
-                        g.getAnnotation("@compiletime").addWarning("The annotation '@compiletime' has no effect on variables.");
+                        g.getAnnotation("@compiletime")
+                            .addWarning("The annotation '@compiletime' has no effect on variables.");
                     }
                 }
 
@@ -1855,11 +1953,11 @@ public class WurstValidator {
                 public void case_FuncDef(FuncDef f) {
                     if (f.attrNearestStructureDef() != null) {
                         if (f.attrNearestStructureDef() instanceof InterfaceDef) {
-                            check(VisibilityPrivate.class, VisibilityProtected.class, ModAbstract.class,
-                                    ModOverride.class, Annotation.class);
+                            check(VisibilityPrivate.class, VisibilityProtected.class,
+                                ModAbstract.class, ModOverride.class, Annotation.class);
                         } else {
-                            check(VisibilityPrivate.class, VisibilityProtected.class, ModAbstract.class,
-                                    ModOverride.class, ModStatic.class, Annotation.class);
+                            check(VisibilityPrivate.class, VisibilityProtected.class,
+                                ModAbstract.class, ModOverride.class, ModStatic.class, Annotation.class);
                             if (f.attrNearestStructureDef() instanceof ClassDef) {
                                 if (f.attrIsStatic() && f.attrIsAbstract()) {
                                     f.addError("Static functions cannot be abstract.");
@@ -1871,11 +1969,11 @@ public class WurstValidator {
                     }
                     if (f.attrIsCompiletime()) {
                         if (f.getParameters().size() > 0) {
-                            f.addError("Functions annotated '@compiletime' may not take parameters." +
-                                    "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
+                            f.addError("Functions annotated '@compiletime' may not take parameters.\n"
+                                + "Note: The annotation marks functions to be executed by wurst at compiletime.");
                         } else if (f.attrIsDynamicClassMember()) {
-                            f.addError("Functions annotated '@compiletime' must be static." +
-                                    "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
+                            f.addError("Functions annotated '@compiletime' must be static.\n"
+                                + "Note: The annotation marks functions to be executed by wurst at compiletime.");
                         }
                     }
                 }
@@ -1894,8 +1992,8 @@ public class WurstValidator {
                 public void case_ClassDef(ClassDef classDef) {
                     check(VisibilityPublic.class, ModAbstract.class, ModStatic.class);
                     if (!classDef.isInnerClass() && classDef.attrIsStatic()) {
-                        classDef.addError("Top-level class " + classDef.getName() + " cannot be static. "
-                                + "Only inner classes can be declared static.");
+                        classDef.addError("Top-level class " + classDef.getName()
+                            + " cannot be static. Only inner classes can be declared static.");
                     }
                 }
 
@@ -1923,18 +2021,19 @@ public class WurstValidator {
                 public void case_EnumMember(EnumMember enumMember) {
                     check();
                 }
-
             });
-            if (error.length() > 0) {
-                if (m.attrSource().getFile().endsWith(".jurst")) {
-                    // for jurst only add a warning:
-                    m.addWarning(error.toString());
+
+            if (error[0] != null && error[0].length() > 0) {
+                if (isJurst) {
+                    m.addWarning(error[0].toString());
                 } else {
-                    m.addError(error.toString());
+                    m.addError(error[0].toString());
                 }
             }
         }
     }
+
+
 
     private static String printMod(Class<? extends Modifier> c) {
         String name = c.getName().toLowerCase();

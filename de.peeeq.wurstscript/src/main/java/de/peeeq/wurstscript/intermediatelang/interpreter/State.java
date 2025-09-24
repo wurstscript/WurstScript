@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
@@ -8,47 +7,79 @@ import de.peeeq.wurstscript.jassIm.ImArrayLikeType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
+/**
+ * Lazily allocates internal maps ONLY when needed.
+ * Behavior is unchanged vs. the original.
+ */
 public abstract class State {
 
-    private final Map<ImVar, ILconst> values = Maps.newLinkedHashMap();
-    protected Map<ImVar, ILconstArray> arrayValues = Maps.newLinkedHashMap();
+    // in State:
+    private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
+    private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
+
+    private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
+        Object2ObjectOpenHashMap<ImVar, ILconst> v = values;
+        if (v == null) {
+            v = new Object2ObjectOpenHashMap<>(8);
+            values = v;
+        }
+        return v;
+    }
+
+    protected Object2ObjectOpenHashMap<ImVar, ILconstArray> ensureArrayValues() {
+        Object2ObjectOpenHashMap<ImVar, ILconstArray> a = arrayValues;
+        if (a == null) {
+            a = new Object2ObjectOpenHashMap<>(4);
+            arrayValues = a;
+        }
+        return a;
+    }
 
 
     public void setVal(ImVar v, ILconst val) {
-        values.put(v, val);
+        ensureValues().put(v, val);
     }
 
     public @Nullable ILconst getVal(ImVar v) {
-        return values.get(v);
+        Map<ImVar, ILconst> vmap = values;
+        return vmap == null ? null : vmap.get(v);
     }
 
+    /** Returns the (lazy) array object for variable v, allocating only when first accessed. */
     protected ILconstArray getArray(ImVar v) {
-        return arrayValues.computeIfAbsent(v, k -> createArrayConstantFromType(v.getType()));
+        Map<ImVar, ILconstArray> amap = ensureArrayValues();
+        ILconstArray arr = amap.get(v);
+        if (arr == null) {
+            arr = createArrayConstantFromType(v.getType());
+            amap.put(v, arr);
+        }
+        return arr;
     }
 
     static ILconstArray createArrayConstantFromType(ImType vType) {
-        ILconstArray r;
-        ImType componentType;
-        int size = Integer.MAX_VALUE;
-        if (vType instanceof ImArrayLikeType) {
-            componentType = ((ImArrayLikeType) vType).getEntryType();
-            if (vType instanceof ImArrayTypeMulti) {
-                List<Integer> arraySize = ((ImArrayTypeMulti) vType).getArraySize();
-                if (arraySize.size() > 0) {
-                    size = arraySize.get(0);
-                }
-            }
-        } else {
+        if (!(vType instanceof ImArrayLikeType)) {
             throw new InterpreterException("Cannot get array for variable of type " + vType);
         }
-        r = new ILconstArray(size, componentType::defaultValue);
-        return r;
+        ImType componentType = ((ImArrayLikeType) vType).getEntryType();
+
+        // Use declared first dimension if present; otherwise use "unbounded" sentinel.
+        int size = Integer.MAX_VALUE;
+        if (vType instanceof ImArrayTypeMulti) {
+            List<Integer> arraySize = ((ImArrayTypeMulti) vType).getArraySize();
+            if (!arraySize.isEmpty()) {
+                size = arraySize.get(0);
+            }
+        }
+
+        // IMPORTANT: relies on ILconstArray being sparse/lazy itself.
+        // If ILconstArray actually allocates 'size' eagerly, consider a sparse implementation.
+        return new ILconstArray(size, componentType::defaultValue);
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
@@ -66,15 +97,5 @@ public abstract class State {
         }
         return ar.get(indexes.get(indexes.size() - 1));
     }
-
-    public @Nullable ILconst getVarValue(String varName) {
-        for (Entry<ImVar, ILconst> e : values.entrySet()) {
-            if (e.getKey().getName().equals(varName)) {
-                return e.getValue();
-            }
-        }
-        return null;
-    }
-
 
 }

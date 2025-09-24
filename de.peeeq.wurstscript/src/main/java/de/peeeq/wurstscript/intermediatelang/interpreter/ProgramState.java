@@ -11,6 +11,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -24,11 +26,11 @@ public class ProgramState extends State {
     private final List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;
-    private final HashMap<Integer, ILconstObject> indexToObject = new HashMap<>();
+    private final Int2ObjectOpenHashMap<ILconstObject> indexToObject = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private final Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private final boolean isCompiletime;
-    private final HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -184,7 +186,7 @@ public class ProgramState extends State {
         return indexToObject.get(val);
     }
 
-    public HashMap<Integer, IlConstHandle> getHandleMap() {
+    public Map<Integer, IlConstHandle> getHandleMap() {
         return handleMap;
     }
 
@@ -204,73 +206,64 @@ public class ProgramState extends State {
     public static class StackTrace {
         private final List<ILStackFrame> stackFrames;
 
-        public StackTrace(Deque<ILStackFrame> stackFrames) {
-            ImmutableList.Builder<ILStackFrame> builder = ImmutableList.builder();
-            for (ILStackFrame stackFrame : stackFrames) {
-                builder.add(stackFrame);
-            }
-            this.stackFrames = builder.build();
+        public StackTrace(Deque<ILStackFrame> frames) {
+            // copy once into an array-backed list
+            this.stackFrames = Collections.unmodifiableList(new ArrayList<>(frames));
         }
 
         public void appendTo(StringBuilder sb) {
-            for (ILStackFrame stackFrame : stackFrames) {
-                sb.append(stackFrame.getMessage());
-                sb.append("\n");
+            for (ILStackFrame sf : stackFrames) {
+                sb.append(sf.getMessage()).append('\n');
             }
         }
 
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
+        @Override public String toString() {
+            StringBuilder sb = new StringBuilder(stackFrames.size() * 32);
             appendTo(sb);
             return sb.toString();
         }
 
-        public List<ILStackFrame> getStackFrames() {
-            return stackFrames;
-        }
+        public List<ILStackFrame> getStackFrames() { return stackFrames; }
 
         public Iterable<ILStackFrame> getStackFramesReversed() {
-            return () -> {
-                ListIterator<ILStackFrame> it = stackFrames.listIterator();
-                return new Iterator<ILStackFrame>() {
-                    @Override
-                    public boolean hasNext() {
-                        return it.hasPrevious();
-                    }
-
-                    @Override
-                    public ILStackFrame next() {
-                        return it.previous();
-                    }
-                };
+            return () -> new Iterator<ILStackFrame>() {
+                int i = stackFrames.size() - 1;
+                @Override public boolean hasNext() { return i >= 0; }
+                @Override public ILStackFrame next() { return stackFrames.get(i--); }
             };
         }
-
-
     }
+
 
     public boolean isCompiletime() {
         return isCompiletime;
     }
 
+    // Reuse a shared, empty LocalState (ensure it's safe/side-effect free)
+    private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
+
+    @Override
     protected ILconstArray getArray(ImVar v) {
+        Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues = ensureArrayValues();
         ILconstArray r = arrayValues.get(v);
-        if (r == null) {
-            ImType vType = v.getType();
-            r = createArrayConstantFromType(vType);
-            arrayValues.put(v, r);
-            List<ImSet> e = prog.getGlobalInits().get(v);
-            if (e != null) {
-                LocalState ls = new LocalState();
-                for (int i = 0; i < e.size(); i++) {
-                    ILconst val = e.get(i).getRight().evaluate(this, ls);
-                    r.set(i, val);
-                }
+        if (r != null) return r;
+
+        r = createArrayConstantFromType(v.getType());
+        arrayValues.put(v, r);
+
+        // Initialize from globalInits only once
+        List<ImSet> inits = prog.getGlobalInits().get(v);
+        if (inits != null && !inits.isEmpty()) {
+            // evaluate with a reusable local state to avoid per-init allocations
+            final LocalState ls = EMPTY_LOCAL_STATE;
+            for (int i = 0; i < inits.size(); i++) {
+                ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                r.set(i, val);
             }
         }
         return r;
     }
+
 
 
 

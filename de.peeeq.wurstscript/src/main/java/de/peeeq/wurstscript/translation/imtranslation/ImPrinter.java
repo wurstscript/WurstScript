@@ -274,9 +274,14 @@ public class ImPrinter {
     }
 
     public static String smallHash(Object g) {
-        String c = "" + g.hashCode();
-        return c.substring(0, Math.min(3, c.length() - 1));
+        int h = g.hashCode();
+        // avoid negative hashes
+        h = Math.abs(h);
+        // take only the last 3 digits
+        int v = h % 1000;
+        return Integer.toString(v);
     }
+
 
     public static void print(ImVarArrayAccess p, Appendable sb, int indent) {
         append(sb, p.getVar().getName());

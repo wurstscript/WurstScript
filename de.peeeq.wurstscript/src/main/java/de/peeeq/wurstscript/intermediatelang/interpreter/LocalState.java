@@ -3,16 +3,19 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import org.eclipse.jdt.annotation.Nullable;
 
-
+/**
+ * Unchanged API. No eager map allocations unless you actually set/get vars/arrays.
+ */
 public class LocalState extends State {
 
-    private @Nullable ILconst returnVal = null;
-
-    public LocalState(ILconst returnVal) {
-        this.setReturnVal(returnVal);
-    }
+    private @Nullable ILconst returnVal;
 
     public LocalState() {
+        // no eager allocations
+    }
+
+    public LocalState(ILconst returnVal) {
+        this.returnVal = returnVal;
     }
 
     public @Nullable ILconst getReturnVal() {
@@ -23,6 +26,4 @@ public class LocalState extends State {
         this.returnVal = returnVal;
         return this;
     }
-
-
 }

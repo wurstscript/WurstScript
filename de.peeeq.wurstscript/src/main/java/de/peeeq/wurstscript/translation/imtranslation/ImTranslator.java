@@ -44,6 +44,10 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,27 +67,30 @@ public class ImTranslator {
 
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
-    private @Nullable Multimap<ImFunction, ImFunction> callRelations = null;
-    private @Nullable Set<ImVar> usedVariables = null;
-    private @Nullable Set<ImVar> readVariables = null;
-    private @Nullable Set<ImFunction> usedFunctions = null;
+    // existing fields (keep callRelations as Guava Multimap to avoid ripple effects)
+    private Multimap<ImFunction, ImFunction> callRelations;
+
+    // swap these Sets to fastutil; keep accessors returning Set if you have them
+    private ReferenceOpenHashSet<ImFunction> usedFunctions;
+    private ObjectOpenHashSet<ImVar> usedVariables;  // or ReferenceOpenHashSet<ImVar> if identity semantics are intended
+    private ObjectOpenHashSet<ImVar> readVariables;  // ditto
 
     private @Nullable ImFunction debugPrintFunction;
 
-    private final Map<TranslatedToImFunction, ImFunction> functionMap = new LinkedHashMap<>();
+    private final Map<TranslatedToImFunction, ImFunction> functionMap = new Object2ObjectLinkedOpenHashMap<>();
     private @Nullable ImFunction globalInitFunc;
 
     private final ImProg imProg;
 
-    final Map<WPackage, ImFunction> initFuncMap = new LinkedHashMap<>();
+    final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
 
-    private final Map<TranslatedToImFunction, ImVar> thisVarMap = new LinkedHashMap<>();
+    private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
-    private final Set<WPackage> translatedPackages = new LinkedHashSet<>();
-    private final Set<ClassDef> translatedClasses = new LinkedHashSet<>();
+    private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();
+    private final Set<ClassDef> translatedClasses = new ObjectLinkedOpenHashSet<>();
 
 
-    private final Map<VarDef, ImVar> varMap = new LinkedHashMap<>();
+    private final Map<VarDef, ImVar> varMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final WurstModel wurstProg;
 
@@ -97,7 +104,7 @@ public class ImTranslator {
     @Nullable public ImFunction ensureStrFunc = null;
     @Nullable public ImFunction stringConcatFunc = null;
 
-    private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
+    private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
 
@@ -115,7 +122,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new Object2ObjectLinkedOpenHashMap<>());
         this.runArgs = runArgs;
     }
 
@@ -1041,53 +1048,66 @@ public class ImTranslator {
         return callRelations;
     }
 
-    public void calculateCallRelationsAndUsedVariables() {
-        callRelations = LinkedHashMultimap.create();
-        usedVariables = Sets.newLinkedHashSet();
-        readVariables = Sets.newLinkedHashSet();
-        usedFunctions = Sets.newLinkedHashSet();
-        calculateCallRelations(getMainFunc());
-        calculateCallRelations(getConfFunc());
 
-//		WLogger.info("USED FUNCS:");
-//		for (ImFunction f : usedFunctions) {
-//			WLogger.info("	" + f.getName());
-//		}
-        imProg.getGlobals().forEach(global -> {
+
+    public void calculateCallRelationsAndUsedVariables() {
+        // estimate sizes to reduce rehashing
+        final int funcEstimate = Math.max(16, imProg.getFunctions().size());
+        final int varEstimate  = Math.max(32, imProg.getGlobals().size());
+
+        callRelations = com.google.common.collect.LinkedHashMultimap.create(); // keep Guava type externally
+
+        usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
+        usedVariables = new ObjectOpenHashSet<>(varEstimate);
+        readVariables = new ObjectOpenHashSet<>(varEstimate);
+
+        final ImFunction main = getMainFunc();
+        if (main != null) calculateCallRelations(main);
+
+        final ImFunction conf = getConfFunc();
+        if (conf != null && conf != main) calculateCallRelations(conf);
+
+        // mark protected globals as read
+        // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
+        for (ImVar global : imProg.getGlobals()) {
             if (TRVEHelper.protectedVariables.contains(global.getName())) {
-                getReadVariables().add(global);
+                readVariables.add(global);
             }
-        });
+        }
     }
 
     private void calculateCallRelations(ImFunction rootFunction) {
-        // Early return if rootFunction is already processed
-        if (getUsedFunctions().contains(rootFunction)) {
-            return;
-        }
+        // nothing to do
+        if (rootFunction == null) return;
 
-        Stack<ImFunction> functionStack = new Stack<>();
-        functionStack.push(rootFunction);
+        // if already processed, skip entirely
+        if (usedFunctions.contains(rootFunction)) return;
 
-        while (!functionStack.isEmpty()) {
-            ImFunction f = functionStack.pop();
+        final ArrayDeque<ImFunction> work = new ArrayDeque<>();
+        work.add(rootFunction);
 
-            // If the function is already processed, skip the remaining logic
-            // in this iteration
-            if (getUsedFunctions().contains(f)) {
+        while (!work.isEmpty()) {
+            final ImFunction f = work.removeLast(); // LIFO (DFS); change to removeFirst() for BFS
+
+            if (!usedFunctions.add(f)) {
+                // was already processed; skip
                 continue;
             }
 
-            getUsedFunctions().add(f);
-            getUsedVariables().addAll(f.calcUsedVariables());
-            getReadVariables().addAll(f.calcReadVariables());
+            // Only computed once per function thanks to usedFunctions.add() gate
+            usedVariables.addAll(f.calcUsedVariables());
+            readVariables.addAll(f.calcReadVariables());
 
-            Set<ImFunction> calledFuncs = f.calcUsedFunctions();
-            for (ImFunction called : calledFuncs) {
-                if (f != called) { // ignore reflexive call relations
-                    getCallRelations().put(f, called);
+            final Set<ImFunction> called = f.calcUsedFunctions();
+            // Avoid streams/alloc; avoid pushing functions we've already seen
+            for (ImFunction g : called) {
+                if (g == null) continue;
+                if (g != f) { // ignore self-calls in relation
+                    callRelations.put(f, g);
                 }
-                functionStack.push(called);
+                if (!usedFunctions.contains(g)) {
+                    work.add(g);
+                }
             }
         }
     }
@@ -1096,14 +1116,9 @@ public class ImTranslator {
         return callRelations;
     }
 
+    public ImFunction getMainFunc() { return mainFunc; }
+    public ImFunction getConfFunc() { return configFunc; }
 
-    public ImFunction getMainFunc() {
-        return mainFunc;
-    }
-
-    public ImFunction getConfFunc() {
-        return configFunc;
-    }
 
 
     /**

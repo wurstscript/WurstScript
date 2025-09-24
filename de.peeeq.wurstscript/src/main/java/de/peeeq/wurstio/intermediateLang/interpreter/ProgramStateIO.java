@@ -21,6 +21,9 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -331,10 +334,7 @@ public class ProgramStateIO extends ProgramState {
             out.close();
             byte[] w3_ = baos.toByteArray();
 
-            // TODO  wurst exported objects
-            FileUtils.write(
-                exportToWurst(dataStore, fileType),
-                new File(folder.get(), "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"));
+            exportToWurst(dataStore, fileType, new File(folder.get(), "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt").toPath());
 
             if (inject) {
                 if (mpqEditor == null) {
@@ -351,22 +351,22 @@ public class ProgramStateIO extends ProgramState {
 
     }
 
-    public String exportToWurst(ObjMod<? extends ObjMod.Obj> dataStore, ObjectFileType fileType) throws IOException {
+    public void exportToWurst(ObjMod<? extends ObjMod.Obj> dataStore,
+                              ObjectFileType fileType, Path outFile) throws IOException {
+        try (BufferedWriter out = Files.newBufferedWriter(outFile, StandardCharsets.UTF_8)) {
+            out.write("package WurstExportedObjects_" + fileType.getExt() + "\n");
+            out.write("import ObjEditingNatives\n\n");
 
-        Appendable out = new StringBuilder();
-        out.append("package WurstExportedObjects_").append(fileType.getExt()).append("\n");
-        out.append("import ObjEditingNatives\n\n");
+            out.write("// Modified Table (contains all custom objects)\n\n");
+            exportToWurst(dataStore.getCustomObjs(), fileType, out);
 
-        out.append("// Modified Table (contains all custom objects)\n\n");
-        exportToWurst(dataStore.getCustomObjs(), fileType, out);
-
-        out.append("// Original Table (contains all modified default objects)\n" +
-            "// Wurst does not support modifying default objects\n" +
-            "// but you can copy these functions and replace 'xxxx' with a new, custom id.\n\n");
-        exportToWurst(dataStore.getOrigObjs(), fileType, out);
-
-        return out.toString();
+            out.write("// Original Table (contains all modified default objects)\n" +
+                "// Wurst does not support modifying default objects\n" +
+                "// but you can copy these functions and replace 'xxxx' with a new, custom id.\n\n");
+            exportToWurst(dataStore.getOrigObjs(), fileType, out);
+        }
     }
+
 
     public void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out) throws IOException {
         for (ObjMod.Obj obj : customObjs) {

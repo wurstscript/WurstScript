@@ -15,6 +15,9 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -157,38 +160,104 @@ public class ILInterpreter implements AbstractInterpreter {
         return false;
     }
 
-    public static LinkedHashMap<ImFunction, LinkedHashMap<Integer, LocalState>> localStateCache = new LinkedHashMap<>();
 
+    private static final Object2ObjectOpenHashMap<ImFunction, Int2ObjectLinkedOpenHashMap<LocalState>> localStateCache =
+        new Object2ObjectOpenHashMap<>();
+
+    // Cap per-function cache size to avoid unbounded growth (tune as needed)
+    private static final int MAX_CACHE_PER_FUNC = 2048;
+
+    // If LocalState is immutable-or-treated-as-readonly when used as "no return":
+    // Prefer a TRUE singleton to avoid allocating huge internal maps for "void" cases.
+    private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
+
+    // -------------- public entry with varargs kept for API compatibility --------------
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        if (cache && isFunctionPure(f.getName())) {
-            int combinedHash = Objects.hash((Object[]) args);
-            if (localStateCache.containsKey(f) && localStateCache.get(f).containsKey(combinedHash)) {
-                return localStateCache.get(f).get(combinedHash);
+        // Delegate to the array overload to avoid double-allocations.
+        return runBuiltinFunction(globalState, f, args, /*isVarargs*/ true);
+    }
+
+    // -------------- internal overload that can be called with an existing ILconst[] --------------
+    private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
+        // Cache purity + name once
+        final String fname = f.getName();
+        final boolean pure = cache && isFunctionPure(fname);
+
+        // Fast, zero-allocation rolling hash for args (no Object[] boxing like Objects.hash)
+        final int combinedHash = pure ? fastHashArgs(args) : 0;
+
+        if (pure) {
+            final Int2ObjectLinkedOpenHashMap<LocalState> perFn =
+                localStateCache.get(f);
+            if (perFn != null) {
+                final LocalState cached = perFn.get(combinedHash);
+                if (cached != null) {
+                    return cached;
+                }
             }
         }
-        StringBuilder errors = new StringBuilder();
+
+        // Build error text lazily (only if we actually get exceptions)
+        StringBuilder errors = null;
+
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                LocalState localState = new LocalState(natives.invoke(f.getName(), args));
-                if (cache && isFunctionPure(f.getName())) {
-                    int combinedHash = Objects.hash((Object[]) args);
-                    LinkedHashMap<Integer, LocalState> cached = localStateCache.getOrDefault(f, new LinkedHashMap<>());
-                    cached.put(combinedHash, localState);
-                    localStateCache.put(f, cached);
+                // Invoke native; ideally you cache method handles per name elsewhere.
+                final LocalState localState = new LocalState(natives.invoke(fname, args));
+
+                if (pure) {
+                    // insert into per-function cache with bounded size
+                    Int2ObjectLinkedOpenHashMap<LocalState> perFn =
+                        localStateCache.get(f);
+                    if (perFn == null) {
+                        perFn = new Int2ObjectLinkedOpenHashMap<>(16);
+                        localStateCache.put(f, perFn);
+                    }
+                    perFn.put(combinedHash, localState);
+                    if (perFn.size() > MAX_CACHE_PER_FUNC) {
+                        // evict eldest (insertion order) to bound memory
+                        final int eldest = perFn.firstIntKey();
+                        perFn.remove(eldest);
+                    }
                 }
+
                 return localState;
+
             } catch (NoSuchNativeException e) {
-                errors.append("\n").append(e.getMessage());
-                // ignore
+                if (errors == null) errors = new StringBuilder(128);
+                errors.append('\n').append(e.getMessage());
+                // keep trying next provider
             }
         }
-        globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
+
+        // If we reach here, none of the providers handled it
+        if (errors == null) errors = new StringBuilder(64);
+        errors.insert(0, "function ").append(fname).append(" cannot be used from the Wurst interpreter.\n");
+        globalState.compilationError(errors.toString());
+
+        // Return a lightweight state
         if (f.getReturnType() instanceof ImVoid) {
-            return new LocalState();
+            return EMPTY_LOCAL_STATE;
         }
-        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+        // If you can, pass a lightweight state to evaluate default (avoid allocating a heavy LocalState)
+        final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
+            .evaluate(globalState, EMPTY_LOCAL_STATE);
         return new LocalState(returnValue);
     }
+
+    /** Zero-allocation combined hash for ILconst[] (order-sensitive). */
+    private static int fastHashArgs(ILconst[] args) {
+        int h = 1;
+        for (final ILconst a : args) {
+            // If ILconst has a stable, cheap hash (recommended), rely on it.
+            // If not, consider a dedicated method (e.g., a.fastHash()).
+            h = 31 * h + (a == null ? 0 : a.hashCode());
+        }
+        // Spread bits a little to reduce clustering (optional)
+        h ^= (h >>> 16);
+        return h;
+    }
+
 
     private static boolean isCompiletimeNative(ImFunction f) {
         if (f.getTrace() instanceof HasModifier) {

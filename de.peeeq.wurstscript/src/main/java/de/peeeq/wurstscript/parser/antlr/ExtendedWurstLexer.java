@@ -16,7 +16,7 @@ import java.util.*;
 public class ExtendedWurstLexer implements TokenSource {
 
     private final WurstLexer orig;
-    private final Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new ArrayDeque<>();
     private State state = State.INIT;
     private final Stack<Integer> indentationLevels = new Stack<>();
     private int spacesPerIndent = -1;

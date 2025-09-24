@@ -87,7 +87,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.13.1"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:062a7ff178'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:f4723157ec'
 
     // JUnit for testing
     testImplementation group: 'org.testng', name: 'testng', version: '7.8.0'
@@ -115,10 +115,10 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
 
     // Crigges' jmpq
-    implementation group: 'com.github.inwc3', name: 'jmpq3', version: '264c54cfc8'
+    implementation group: 'com.github.inwc3', name: 'jmpq3', version: 'dac0f9e21a'
 
     // Water's wc3 libs
-    implementation 'com.github.inwc3:wc3libs:00a29ccefd'
+    implementation 'com.github.inwc3:wc3libs:412316b332'
 
     // The setup tool for wurst.build handling
     implementation 'com.github.wurstscript:wurstsetup:475cc7fae8'
@@ -128,6 +128,8 @@ dependencies {
 
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.apache', version: '6.7.0.202309050840-r'
+
+    implementation 'it.unimi.dsi:fastutil:8.5.16'
 
     // Smallcheck testing library:
     testImplementation group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
