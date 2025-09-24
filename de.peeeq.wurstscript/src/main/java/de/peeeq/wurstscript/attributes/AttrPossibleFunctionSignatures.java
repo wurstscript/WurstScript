@@ -46,39 +46,79 @@ public class AttrPossibleFunctionSignatures {
         return findBestSignature(fc, resultBuilder.build());
     }
 
-    private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc, ImmutableCollection<FunctionSignature> res) {
-        ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
-        List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(fc);
-        for (FunctionSignature sig : res) {
-            FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
-            if (sig2 != null) {
-                resultBuilder2.add(sig2);
+    private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc,
+                                                                            ImmutableCollection<FunctionSignature> res) {
+        // Fast path: nothing to consider
+        if (res.isEmpty()) {
+            return ImmutableList.of();
+        }
+
+        // Materialize once to a random-access list (cheap for Immutable*)
+        final ImmutableList<FunctionSignature> sigs =
+            (res instanceof ImmutableList)
+                ? (ImmutableList<FunctionSignature>) res
+                : ImmutableList.copyOf(res);
+
+        // Compute arg types once
+        final List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(fc);
+
+        // --- Pass 1: exact matches only (cheap) ---------------------------------
+        // Use a single ArrayList and only copy if we actually have matches.
+        List<FunctionSignature> exact = new java.util.ArrayList<>(sigs.size());
+        for (int i = 0, n = sigs.size(); i < n; i++) {
+            FunctionSignature matched = sigs.get(i).matchAgainstArgs(argTypes, fc);
+            if (matched != null) {
+                exact.add(matched);
             }
         }
-        ImmutableCollection<FunctionSignature> res2 = resultBuilder2.build();
-        if (res2.isEmpty()) {
-            // no signature matches precisely --> try to match as good as possible
-            ImmutableList<ArgsMatchResult> match3 = res.stream()
-                    .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
-                    .collect(ImmutableList.toImmutableList());
-
-            if (match3.isEmpty()) {
-                return ImmutableList.of();
-            } else {
-                // add errors from best match (minimal badness)
-                ArgsMatchResult min = Collections.min(match3, Comparator.comparing(ArgsMatchResult::getBadness));
-                for (CompileError c : min.getErrors()) {
-                    fc.getErrorHandler().sendError(c);
-                }
-
-                return match3.stream()
-                        .map(ArgsMatchResult::getSig)
-                        .collect(ImmutableList.toImmutableList());
-            }
-        } else {
-            return res2;
+        if (!exact.isEmpty()) {
+            return ImmutableList.copyOf(exact);
         }
+
+        // --- Pass 2: best-effort matches (no exact match) ------------------------
+        // We must:
+        //  * find the min-badness result (to emit its errors)
+        //  * return ALL resulting signatures (to preserve current semantics)
+        final int n = sigs.size();
+        FunctionSignature[] inferredSigs = new FunctionSignature[n];
+        int bestIdx = -1;
+        int bestBadness = Integer.MAX_VALUE;
+        ArgsMatchResult bestResult = null;
+
+        // Cache args node once
+        final Arguments argsNode = fc.getArgs();
+
+        for (int i = 0; i < n; i++) {
+            // tryMatchAgainstArgs may also perform type-arg inference; we must keep its result sig
+            ArgsMatchResult r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
+            inferredSigs[i] = r.getSig();
+            int b = r.getBadness();
+            if (b < bestBadness) {
+                bestBadness = b;
+                bestIdx = i;
+                bestResult = r;
+            }
+        }
+
+        if (bestIdx == -1 || bestResult == null) {
+            // Shouldn’t happen, but be safe
+            return ImmutableList.of();
+        }
+
+        // Emit errors from the best match (same as before)
+        for (CompileError c : bestResult.getErrors()) {
+            fc.getErrorHandler().sendError(c);
+        }
+
+        // Return ALL candidate signatures (same as previous behavior)
+        // Avoid another stream/collect
+        ImmutableList.Builder<FunctionSignature> out = ImmutableList.builderWithExpectedSize(n);
+        for (int i = 0; i < n; i++) {
+            out.add(inferredSigs[i]);
+        }
+        return out.build();
     }
+
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
         TypeDef typeDef = fc.attrTypeDef();

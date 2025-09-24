@@ -493,6 +493,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     protected void injectMapData(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
         gui.sendProgress("Injecting map data");
+        timeTaker.beginPhase("Injecting map data");
         try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
             String mapScriptName;
             if (runArgs.isLua()) {
@@ -510,6 +511,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
             mpqEditor.insertFile(mapScriptName, result.script);
         }
+        timeTaker.endPhase();
     }
 
     private void injectExternalLuaFiles(File script) {

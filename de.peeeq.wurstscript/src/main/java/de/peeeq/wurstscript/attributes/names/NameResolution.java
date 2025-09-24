@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,12 +48,30 @@ public class NameResolution {
     }
 
     public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
-        ArrayList<FuncLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
-        for (int i = 0; i < result.size(); i++) {
-            result.set(i, result.get(i).withConfigDef());
+        // Pull once
+        final ImmutableCollection<FuncLink> raw = e.lookupFuncsNoConfig(name, showErrors);
+
+        // If we know the size, we can fast-path 0/1 and pre-size the builder.
+        if (raw != null) {
+            final java.util.Collection<FuncLink> c = raw;
+            final int n = c.size();
+            if (n == 0) return ImmutableList.of();
+            if (n == 1) {
+                // avoid builder/array allocs
+                final FuncLink only = c.iterator().next();
+                return ImmutableList.of(only.withConfigDef());
+            }
+            final ImmutableList.Builder<FuncLink> b = ImmutableList.builderWithExpectedSize(n);
+            for (FuncLink f : c) b.add(f.withConfigDef());
+            return b.build();
         }
-        return ImmutableList.copyOf(result);
+
+        // Fallback if not a Collection (unknown size)
+        ImmutableList.Builder<FuncLink> b = ImmutableList.builder();
+        for (FuncLink f : raw) b.add(f.withConfigDef());
+        return b.build();
     }
+
 
     private static <T extends NameLink> ImmutableCollection<T> removeDuplicates(List<T> nameLinks) {
         List<T> result = Lists.newArrayList();

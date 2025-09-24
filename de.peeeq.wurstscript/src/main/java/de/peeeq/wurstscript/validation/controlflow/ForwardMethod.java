@@ -37,7 +37,7 @@ public abstract class ForwardMethod<T, Target extends AstElementWithBody> {
 
     public void execute(Target f) {
         this.f = f;
-        ForwardExecution<T, Target> ex = new ForwardExecution<>(f, this);
+        SccForwardExecution<T, Target> ex = new SccForwardExecution<>(f, this);
         ex.execute();
     }
 

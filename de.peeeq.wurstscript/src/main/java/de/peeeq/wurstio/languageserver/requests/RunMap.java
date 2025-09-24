@@ -125,9 +125,11 @@ public class RunMap extends MapRequest {
     private void startGame(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
         injectMapData(gui, testMap, result);
 
+        timeTaker.beginPhase("Starting Warcraft 3");
+        gui.sendProgress("Starting Warcraft 3...");
+
         File mapCopy = copyToWarcraftMapDir(testMap.get());
 
-        gui.sendProgress("Starting Warcraft 3...");
         WLogger.info("Starting wc3 ... ");
         String path = "";
         if (customTarget != null) {
@@ -165,6 +167,7 @@ public class RunMap extends MapRequest {
                 // run with wine
                 cmd.add(0, "wine");
             }
+            timeTaker.endPhase();
 
             gui.sendProgress("running " + cmd);
             Runtime.getRuntime().exec(cmd.toArray(new String[0]));

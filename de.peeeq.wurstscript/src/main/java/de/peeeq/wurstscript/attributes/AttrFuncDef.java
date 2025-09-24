@@ -171,7 +171,14 @@ public class AttrFuncDef {
             if (arg instanceof ExprClosure) {
                 // for closures, we only calculate the type, if all argument types are specified:
                 ExprClosure closure = (ExprClosure) arg;
-                if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
+                boolean b = true;
+                for (WShortParameter wShortParameter : closure.getShortParameters()) {
+                    if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
                     argType = arg.attrTyp();
                 } else {
                     List<WurstType> paramTypes = new ArrayList<>();

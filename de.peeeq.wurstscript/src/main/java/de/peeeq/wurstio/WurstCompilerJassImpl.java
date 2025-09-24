@@ -472,8 +472,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
-        timeTaker.measure("flatten", () -> getImProg().flatten(imTranslator2));
-        timeTaker.measure("kill tuples", () -> EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2));
+        timeTaker.beginPhase("flatten");
+        getImProg().flatten(imTranslator2);
+        timeTaker.endPhase();
+        timeTaker.beginPhase("kill tuples");
+        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
+        timeTaker.endPhase();
+
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");

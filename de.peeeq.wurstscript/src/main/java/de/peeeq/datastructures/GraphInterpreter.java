@@ -29,7 +29,6 @@ public abstract class GraphInterpreter<T> {
         return new TopsortResult<>(false, result);
     }
 
-
     private @Nullable TopsortResult<T> topSort_add(List<T> result, Set<T> seen, List<T> seenStack, T n) {
         for (int i = seenStack.size() - 1; i >= 0; i--) {
             if (seenStack.get(i) == n) {
@@ -52,7 +51,6 @@ public abstract class GraphInterpreter<T> {
         return null;
     }
 
-
     public static class TopsortResult<T> {
         private final boolean isCycle;
         private final List<T> result;
@@ -69,80 +67,86 @@ public abstract class GraphInterpreter<T> {
         public List<T> getResult() {
             return result;
         }
-
-
     }
 
-
     /**
-     * Like topsort, but will find bigger cycles
+     * Like topsort, but will find bigger cycles.
+     * This is an iterative implementation of the path-based strong component algorithm
+     * to prevent StackOverflowErrors on deep graphs.
      * <p>
      * See https://en.wikipedia.org/wiki/Path-based_strong_component_algorithm
      */
     public Set<Set<T>> findStronglyConnectedComponents(List<T> nodes) {
-        // Stack S contains all the vertices that have not yet been assigned to a strongly connected component, in the order in which the depth-first search reaches the vertices.
         Deque<T> s = new ArrayDeque<>();
-        // Stack P contains vertices that have not yet been determined to belong to different strongly connected components from each other
         Deque<T> p = new ArrayDeque<>();
-        // It also uses a counter C of the number of vertices reached so far, which it uses to compute the preorder numbers of the vertices.
         AtomicInteger c = new AtomicInteger();
         AtomicInteger componentCount = new AtomicInteger();
-        Map<T, Integer> preorderNumber = new LinkedHashMap<>();
-        Map<T, Integer> component = new LinkedHashMap<>();
+        Map<T, Integer> preorderNumber = new HashMap<>();
+        Map<T, Integer> component = new HashMap<>();
 
-        for (T v : nodes) {
-            if (!preorderNumber.containsKey(v)) {
-                findStronglyConnectedComponentsRec(v, s, p, c, preorderNumber, component, componentCount);
-            }
-        }
-        return ImmutableSet.copyOf(Utils.inverseMapToSet(component).values());
-    }
+        // This stack simulates the recursive calls
+        Deque<T> traversalStack = new ArrayDeque<>();
+        // This map holds iterators for the children of each node
+        Map<T, Iterator<T>> iterators = new HashMap<>();
 
+        for (T startNode : nodes) {
+            if (!preorderNumber.containsKey(startNode)) {
+                traversalStack.push(startNode);
 
-    private void findStronglyConnectedComponentsRec(T v, Deque<T> s, Deque<T> p, AtomicInteger c, Map<T, Integer> preorderNumber, Map<T, Integer> component, AtomicInteger componentCount) {
+                while (!traversalStack.isEmpty()) {
+                    T v = traversalStack.peek();
 
+                    // Pre-order processing (first time visiting node v)
+                    if (!preorderNumber.containsKey(v)) {
+                        preorderNumber.put(v, c.getAndIncrement());
+                        s.push(v);
+                        p.push(v);
+                        iterators.put(v, getIncidentNodes(v).iterator());
+                    }
 
-        // When the depth-first search reaches a vertex v, the algorithm performs the following steps:
-        // 1. Set the preorder number of v to C, and increment C.
-        preorderNumber.put(v, c.getAndIncrement());
+                    boolean foundNewChild = false;
+                    Iterator<T> children = iterators.get(v);
 
-        // 2. Push v onto S and also onto P.
-        s.push(v);
-        p.push(v);
+                    // Iterate over children to find the next one to visit
+                    while (children.hasNext()) {
+                        T w = children.next();
+                        if (!preorderNumber.containsKey(w)) {
+                            // Found an unvisited child, push to stack to simulate recursive call
+                            traversalStack.push(w);
+                            foundNewChild = true;
+                            break;
+                        } else if (!component.containsKey(w)) {
+                            // Child w has been visited but is not yet in a component
+                            while (!p.isEmpty() && preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w)) {
+                                p.pop();
+                            }
+                        }
+                    }
 
-        // 3. For each edge from v to a neighboring vertex w:
-        for (T w : getIncidentNodes(v)) {
-            if (!preorderNumber.containsKey(w)) {
-                // If the preorder number of w has not yet been assigned, recursively search w;
-                findStronglyConnectedComponentsRec(w, s, p, c, preorderNumber, component, componentCount);
-            } else {
-                // Otherwise, if w has not yet been assigned to a strongly connected component:
-                if (!component.containsKey(w)) {
-                    // Repeatedly pop vertices from P until the top element of P has a preorder number less than or equal to the preorder number of w.
-                    while (!p.isEmpty()
-                            && preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w)) {
+                    if (foundNewChild) {
+                        // Continue the loop to process the new child on top of the stack
+                        continue;
+                    }
+
+                    // Post-order processing (all children of v have been visited)
+                    traversalStack.pop(); // Finished with v, pop it
+                    iterators.remove(v); // Clean up iterator
+
+                    if (!p.isEmpty() && p.peek() == v) {
+                        Integer newComponent = componentCount.incrementAndGet();
+                        while (true) {
+                            T popped = s.pop();
+                            component.put(popped, newComponent);
+                            if (popped == v) {
+                                break;
+                            }
+                        }
                         p.pop();
                     }
                 }
             }
         }
-        // 4. If v is the top element of P:
-        if (!p.isEmpty() && p.peek() == v) {
-            // Pop vertices from S until v has been popped, and assign the popped vertices to a new component.
-            Integer newComponent = componentCount.incrementAndGet();
-            while (true) {
-                T popped = s.pop();
-                component.put(popped, newComponent);
-                if (popped == v) {
-                    break;
-                }
-            }
-            // Pop v from P.
-            T popped = p.pop();
-            assert popped == v;
-        }
-
-
+        return ImmutableSet.copyOf(Utils.inverseMapToSet(component).values());
     }
 
     public String generateDotFile(List<T> nodes) {
@@ -166,5 +170,4 @@ public abstract class GraphInterpreter<T> {
         sb.append("}\n");
         return sb.toString();
     }
-
 }

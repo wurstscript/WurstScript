@@ -40,6 +40,13 @@ import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
  * attributes
  */
 public class WurstValidator {
+    private enum Phase { LIGHT, HEAVY }
+    private Phase phase = Phase.LIGHT;
+    private boolean isHeavy() { return phase == Phase.HEAVY; }
+
+
+    private final ArrayList<FunctionLike> heavyFunctions = new ArrayList<>();
+    private final ArrayList<ExprStatementsBlock> heavyBlocks = new ArrayList<>();
 
     private final WurstModel prog;
     private int functionCount;
@@ -57,28 +64,86 @@ public class WurstValidator {
         try {
             functionCount = countFunctions();
             visitedFunctions = 0;
+            heavyFunctions.clear();
+            heavyBlocks.clear();
 
-            prog.getErrorHandler().setProgress("Checking wurst types",
-                    ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
+            lightValidation(toCheck);
 
+            heavyValidation();
 
-            for (CompilationUnit cu : toCheck) {
-                walkTree(cu);
-            }
             prog.getErrorHandler().setProgress("Post checks", 0.55);
             postChecks(toCheck);
+
         } catch (RuntimeException e) {
             WLogger.severe(e);
             Element le = lastElement;
             if (le != null) {
                 le.addError("Encountered compiler bug near element " + Utils.printElement(le) + ":\n"
-                        + Utils.printException(e));
+                    + Utils.printException(e));
             } else {
-                // rethrow
                 throw e;
             }
         }
     }
+
+    private void heavyValidation() {
+        // ===== Phase 2: HEAVY (process only collected targets) =====
+        phase = Phase.HEAVY;
+        visitedFunctions = 0;
+        prog.getErrorHandler().setProgress("Validation (control-flow + dataflow)", 0.5);
+
+        // functions: returns + DFA + reachability walk inside the function body
+        for (FunctionLike f : heavyFunctions) {
+            // returns + DFA
+            checkUninitializedVars(f);
+
+            // reachability: walk only the function body statements
+            Element body = (f instanceof FunctionImplementation)
+                ? ((FunctionImplementation) f).getBody()
+                : f; // closures use ExprStatementsBlock path below
+            walkReachability(body);
+        }
+
+        // closure blocks collected for DFA
+        for (ExprStatementsBlock b : heavyBlocks) {
+            new DataflowAnomalyAnalysis(false).execute(b);
+            walkReachability(b);
+        }
+    }
+
+    private void lightValidation(Collection<CompilationUnit> toCheck) {
+        // ===== Phase 1: LIGHT (all regular checks, collect heavy targets) =====
+        phase = Phase.LIGHT;
+        prog.getErrorHandler().setProgress("Validation (light)",
+            ProgressHelper.getValidatorPercent(0, Math.max(1, functionCount)));
+
+        for (CompilationUnit cu : toCheck) {
+            walkTree(cu);
+        }
+
+        // Build CFG once for heavy phase (enables reachability/prev/next attrs)
+        for (CompilationUnit cu : toCheck) {
+            computeFlowAttributes(cu);
+        }
+    }
+
+    /** Visit only statements under root and run checkReachability where applicable. */
+    private void walkReachability(Element root) {
+        // fast local traversal; no other checks
+        Deque<Element> stack = new ArrayDeque<>();
+        stack.push(root);
+        while (!stack.isEmpty()) {
+            Element e = stack.pop();
+            if (e instanceof WStatement) {
+                checkReachability((WStatement) e);
+            }
+            for (int i = e.size() - 1; i >= 0; i--) {
+                stack.push(e.get(i));
+            }
+        }
+    }
+
+
 
     /**
      * checks done after walking the tree
@@ -192,79 +257,114 @@ public class WurstValidator {
         return null;
     }
 
-    private void collectUsedPackages(Set<PackageOrGlobal> used, Element e) {
-        for (int i = 0; i < e.size(); i++) {
-            collectUsedPackages(used, e.get(i));
-        }
+    private void collectUsedPackages(Set<PackageOrGlobal> used, Element root) {
+        ArrayDeque<Object> stack = new ArrayDeque<>();
+        // Push (element, visited=false). Boolean marks "post" processing.
+        stack.push(Boolean.FALSE);
+        stack.push(root);
 
-        if (e instanceof FuncRef) {
-            FuncRef fr = (FuncRef) e;
-            FuncLink link = fr.attrFuncLink();
-            if (link != null) {
-                used.add(link.getDef().attrNearestPackage());
-                if(link.getDef().attrHasAnnotation("@config")) {
-                    WPackage configPackage = getConfiguredPackage(link.getDef());
-                    if(configPackage != null) {
-                        used.add(configPackage);
+        while (!stack.isEmpty()) {
+            Element e = (Element) stack.pop();
+            boolean visited = (Boolean) stack.pop();
+
+            if (!visited) {
+                // schedule post-visit
+                stack.push(Boolean.TRUE);
+                stack.push(e);
+
+                // push children for pre-visit (so they’re processed before e)
+                for (int i = e.size() - 1; i >= 0; i--) {
+                    Element c = e.get(i);
+                    stack.push(Boolean.FALSE);
+                    stack.push(c);
+                }
+                continue;
+            }
+
+            // === post-order node work (same as your original) ===
+            if (e instanceof FuncRef) {
+                FuncRef fr = (FuncRef) e;
+                FuncLink link = fr.attrFuncLink();
+                if (link != null) {
+                    used.add(link.getDef().attrNearestPackage());
+                    if (link.getDef().attrHasAnnotation("@config")) {
+                        WPackage configPackage = getConfiguredPackage(link.getDef());
+                        if (configPackage != null) {
+                            used.add(configPackage);
+                        }
                     }
                 }
             }
-        }
-        if (e instanceof NameRef) {
-            NameRef nr = (NameRef) e;
-            NameLink def = nr.attrNameLink();
-            if (def != null) {
-                used.add(def.getDef().attrNearestPackage());
-                if(def.getDef().attrHasAnnotation("@config")) {
-                    WPackage configPackage = getConfiguredPackage(def.getDef());
-                    if(configPackage != null) {
-                        used.add(configPackage);
+
+            if (e instanceof NameRef) {
+                NameRef nr = (NameRef) e;
+                NameLink def = nr.attrNameLink();
+                if (def != null) {
+                    used.add(def.getDef().attrNearestPackage());
+                    if (def.getDef().attrHasAnnotation("@config")) {
+                        WPackage configPackage = getConfiguredPackage(def.getDef());
+                        if (configPackage != null) {
+                            used.add(configPackage);
+                        }
                     }
                 }
             }
-        }
-        if (e instanceof TypeRef) {
-            TypeRef t = (TypeRef) e;
-            TypeDef def = t.attrTypeDef();
-            if (def != null) {
-                used.add(def.attrNearestPackage());
-            }
-        }
-        if (e instanceof ExprBinary) {
-            ExprBinary binop = (ExprBinary) e;
-            FuncLink def = binop.attrFuncLink();
-            if (def != null) {
-                used.add(def.getDef().attrNearestPackage());
-            }
-        }
-        if (e instanceof Expr) {
-            WurstType typ = ((Expr) e).attrTyp();
-            if (typ instanceof WurstTypeNamedScope) {
-                WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
-                NamedScope def = ns.getDef();
+
+            if (e instanceof TypeRef) {
+                TypeRef t = (TypeRef) e;
+                TypeDef def = t.attrTypeDef();
                 if (def != null) {
                     used.add(def.attrNearestPackage());
                 }
-            } else if (typ instanceof WurstTypeTuple) {
-                TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
-                used.add(def.attrNearestPackage());
             }
-        }
-        if (e instanceof ModuleUse) {
-            ModuleUse mu = (ModuleUse) e;
-            @Nullable ModuleDef def = mu.attrModuleDef();
-            if (def != null) {
-                used.add(def.attrNearestPackage());
+
+            if (e instanceof ExprBinary) {
+                ExprBinary binop = (ExprBinary) e;
+                FuncLink def = binop.attrFuncLink();
+                if (def != null) {
+                    used.add(def.getDef().attrNearestPackage());
+                }
+            }
+
+            if (e instanceof Expr) {
+                WurstType typ = ((Expr) e).attrTyp();
+                if (typ instanceof WurstTypeNamedScope) {
+                    WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+                    NamedScope def = ns.getDef();
+                    if (def != null) {
+                        used.add(def.attrNearestPackage());
+                    }
+                } else if (typ instanceof WurstTypeTuple) {
+                    TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+                    used.add(def.attrNearestPackage());
+                }
+            }
+
+            if (e instanceof ModuleUse) {
+                ModuleUse mu = (ModuleUse) e;
+                @Nullable ModuleDef def = mu.attrModuleDef();
+                if (def != null) {
+                    used.add(def.attrNearestPackage());
+                }
             }
         }
     }
 
-    private void walkTree(Element e) {
-        lastElement = e;
-        check(e);
-        lastElement = null;
-        for (int i = 0; i < e.size(); i++) {
-            walkTree(e.get(i));
+
+    private void walkTree(Element root) {
+        ArrayDeque<Element> stack = new ArrayDeque<>();
+        stack.push(root);
+
+        while (!stack.isEmpty()) {
+            Element e = stack.pop();
+            lastElement = e;
+            check(e);
+            lastElement = null;
+
+            // left→right order: push in reverse
+            for (int i = e.size() - 1; i >= 0; i--) {
+                stack.push(e.get(i));
+            }
         }
     }
 
@@ -751,13 +851,14 @@ public class WurstValidator {
         }
         e.attrCapturedVariables();
 
-        if (e.getImplementation() instanceof ExprStatementsBlock) {
+        if (isHeavy() && e.getImplementation() instanceof ExprStatementsBlock) {
             ExprStatementsBlock block = (ExprStatementsBlock) e.getImplementation();
             new DataflowAnomalyAnalysis(false).execute(block);
-
-
-
+        } else if (!isHeavy() && e.getImplementation() instanceof ExprStatementsBlock) {
+            // Phase-1: collect closure blocks for Phase-2 DFA
+            heavyBlocks.add((ExprStatementsBlock) e.getImplementation());
         }
+
 
 
         if (expectedTyp instanceof WurstTypeClass) {
@@ -827,7 +928,7 @@ public class WurstValidator {
     }
 
     private void checkExprNull(ExprNull e) {
-        if (!Utils.isJassCode(e) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
+        if (e.attrExpectedTyp() instanceof WurstTypeUnknown && !Utils.isJassCode(e)) {
             e.addError(
                     "Cannot use 'null' constant here because " + "the compiler cannot infer which kind of null it is.");
         }
@@ -1213,6 +1314,7 @@ public class WurstValidator {
     }
 
     private void checkReturn(FunctionLike func) {
+        if (!isHeavy()) return;
         if (!func.attrHasEmptyBody()) {
             new ReturnsAnalysis().execute(func);
         } else { // no body, check if in interface:
@@ -1228,6 +1330,7 @@ public class WurstValidator {
     }
 
     private void checkReachability(WStatement s) {
+        if (!isHeavy()) return;
         if (s.getParent() instanceof WStatements) {
             WStatements stmts = (WStatements) s.getParent();
             if (s.attrPreviousStatements().isEmpty()) {
@@ -1286,24 +1389,31 @@ public class WurstValidator {
             FuncDef func = (FuncDef) f;
             if (func.attrIsAbstract()) {
                 isAbstract = true;
-                if (!func.attrHasEmptyBody()) {
+                if (isHeavy() && !func.attrHasEmptyBody()) {
                     func.getBody().get(0)
                         .addError("The abstract function " + func.getName() + " must not have any statements.");
                 }
             }
         }
-        if (!isAbstract) { // not abstract
-            checkReturn(f);
+        if (isAbstract) return;
 
-            if (!f.getSource().getFile().endsWith("common.j")
-                && !f.getSource().getFile().endsWith("blizzard.j")
-                && !f.getSource().getFile().endsWith("war3map.j")) {
-                new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
-            }
+        if (!isHeavy()) {
+            // Phase-1: collect, but do not analyze.
+            heavyFunctions.add(f);
+            return;
         }
 
+        // Phase-2: actually run heavy analyses:
+        checkReturn(f);
 
+        if (!f.getSource().getFile().endsWith("common.j")
+            && !f.getSource().getFile().endsWith("blizzard.j")
+            && !f.getSource().getFile().endsWith("war3map.j")) {
+            new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
+        }
     }
+
+
 
 
 
@@ -2139,13 +2249,28 @@ public class WurstValidator {
     }
 
     private void checkPackageName(CompilationUnit cu) {
-        if (cu.getPackages().size() == 1 && Utils.isWurstFile(cu.getCuInfo().getFile())) {
-            // only one package in a wurst file
-            WPackage p = cu.getPackages().get(0);
-            if (!Utils.fileName(cu.getCuInfo().getFile()).equals(p.getName() + ".wurst")
-                    && !Utils.fileName(cu.getCuInfo().getFile()).equals(p.getName() + ".jurst")) {
-                p.addError("The file must have the same name as the package " + p.getName());
-            }
+        // Fast exits
+        List<WPackage> pkgs = cu.getPackages();
+        if (pkgs.size() != 1) return;
+
+        String filePath = cu.getCuInfo().getFile();     // assume non-null
+        // Ultra-cheap extension check
+        boolean wurst = filePath.endsWith(".wurst");
+        boolean jurst = !wurst && filePath.endsWith(".jurst");
+        if (!wurst && !jurst) return;
+
+        // Get bare file name without touching java.nio
+        int slash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+        String fileName = (slash >= 0) ? filePath.substring(slash + 1) : filePath;
+
+        // Strip extension once
+        int dot = fileName.lastIndexOf('.');
+        if (dot <= 0) return; // no basename
+        String base = fileName.substring(0, dot);
+
+        String pkgName = pkgs.get(0).getName();
+        if (!base.equals(pkgName)) {
+            pkgs.get(0).addError("The file must have the same name as the package " + pkgName);
         }
     }
 

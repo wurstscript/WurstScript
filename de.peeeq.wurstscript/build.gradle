@@ -115,10 +115,10 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
 
     // Crigges' jmpq
-    implementation group: 'com.github.inwc3', name: 'jmpq3', version: 'dac0f9e21a'
+    implementation group: 'com.github.inwc3', name: 'jmpq3', version: '3183dd7680'
 
     // Water's wc3 libs
-    implementation 'com.github.inwc3:wc3libs:412316b332'
+    implementation 'com.github.inwc3:wc3libs:c3f131a0e5'
 
     // The setup tool for wurst.build handling
     implementation 'com.github.wurstscript:wurstsetup:475cc7fae8'
