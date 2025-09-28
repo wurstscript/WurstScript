@@ -16,6 +16,7 @@
             <class name="tests.wurstscript.tests.EnumTests"/>
             <class name="tests.wurstscript.tests.FlowAnalysisTests"/>
             <class name="tests.wurstscript.tests.GenericsTests"/>
+            <class name="tests.wurstscript.tests.GenericsWithTypeclassesTests"/>
             <class name="tests.wurstscript.tests.GenericsModuleTests"/>
             <class name="tests.utils.GraphInterpreterTests"/>
             <class name="tests.immutablecollections.ImmutableListTest"/>

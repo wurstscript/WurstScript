@@ -563,6 +563,7 @@ public class WurstScriptTest {
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
+            System.out.println("Suceed function called!");
             return;
         }
         throw new Error("Succeed function not called");

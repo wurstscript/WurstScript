@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
@@ -13,6 +14,7 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -133,8 +135,10 @@ public class ProgramState extends State {
         throw new Error("no class found for key " + key);
     }
 
-    public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
-        stackFrames.push(new ILStackFrame(f, args, trace));
+
+    public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver, ILconst[] args, WPos trace, Map<ImTypeVar, ImType> typeSubstitutions) {
+        System.out.println("pushStackframeWithTypes " + f.getName() + " with args " + Arrays.toString(args) + " with type substitutions " + typeSubstitutions);
+        stackFrames.push(new ILStackFrame(f, receiver, args, trace, typeSubstitutions));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
             stmt = f;
@@ -142,7 +146,71 @@ public class ProgramState extends State {
         lastStatements.push(stmt);
     }
 
+    // NEW: Resolve a generic type using current stack frame's type substitutions
+    public ImType resolveType(ImType genericType) {
+        if (stackFrames.isEmpty()) {
+            return genericType;
+        }
+
+        ILStackFrame currentFrame = stackFrames.peek();
+        return substituteTypeVars(genericType, currentFrame.typeSubstitutions);
+    }
+
+    // Helper method to substitute type variables
+    private ImType substituteTypeVars(ImType type, Map<ImTypeVar, ImType> substitutions) {
+        return type.match(new ImType.Matcher<ImType>() {
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef typeVarRef) {
+                ImType concrete = substitutions.get(typeVarRef.getTypeVariable());
+                return concrete != null ? concrete : typeVarRef;
+            }
+
+            @Override
+            public ImType case_ImClassType(ImClassType classType) {
+                // Recursively substitute in type arguments
+                ImTypeArguments newArgs = JassIm.ImTypeArguments();
+                for (ImTypeArgument arg : classType.getTypeArguments()) {
+                    ImType substituted = substituteTypeVars(arg.getType(), substitutions);
+                    newArgs.add(JassIm.ImTypeArgument(substituted, arg.getTypeClassBinding()));
+                }
+                return JassIm.ImClassType(classType.getClassDef(), newArgs);
+            }
+
+            // For other types, return as-is
+            @Override
+            public ImType case_ImSimpleType(ImSimpleType t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImArrayType(ImArrayType t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImTupleType(ImTupleType t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImVoid(ImVoid t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImAnyType(ImAnyType t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
+                return t;
+            }
+        });
+    }
+
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
+        System.out.println("pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -152,6 +220,7 @@ public class ProgramState extends State {
     }
 
     public void popStackframe() {
+        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
@@ -217,23 +286,80 @@ public class ProgramState extends State {
             }
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             StringBuilder sb = new StringBuilder(stackFrames.size() * 32);
             appendTo(sb);
             return sb.toString();
         }
 
-        public List<ILStackFrame> getStackFrames() { return stackFrames; }
+        public List<ILStackFrame> getStackFrames() {
+            return stackFrames;
+        }
 
         public Iterable<ILStackFrame> getStackFramesReversed() {
             return () -> new Iterator<ILStackFrame>() {
                 int i = stackFrames.size() - 1;
-                @Override public boolean hasNext() { return i >= 0; }
-                @Override public ILStackFrame next() { return stackFrames.get(i--); }
+
+                @Override
+                public boolean hasNext() {
+                    return i >= 0;
+                }
+
+                @Override
+                public ILStackFrame next() {
+                    return stackFrames.get(i--);
+                }
             };
         }
     }
 
+    private final Object2ObjectOpenHashMap<String, ILconst> genericStaticVals = new Object2ObjectOpenHashMap<>();
+
+
+    public String instantiationKey(ImClassType ct) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ct.getClassDef().getName());
+        if (!ct.getTypeArguments().isEmpty()) {
+            sb.append('<');
+            boolean first = true;
+            for (ImTypeArgument ta : ct.getTypeArguments()) {
+                if (!first) sb.append(',');
+                first = false;
+                sb.append(ta.toString()); // or your own stable printer
+            }
+            sb.append('>');
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public void setVal(ImVar v, ILconst val) {
+        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
+            if (stackFrames.peek().receiver != null) {
+                ImTypeArguments typeArguments = stackFrames.peek().receiver.getType().getTypeArguments();
+                String s = v.getName() + typeArguments.get(0).toString();
+                genericStaticVals.put(s, val);
+                return;
+            }
+
+        }
+        super.setVal(v, val);
+    }
+
+    public @Nullable ILconst getVal(ImVar v) {
+        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
+            System.out.println("looking for generic static var " + v);
+            if (stackFrames.peek().receiver != null) {
+                ImTypeArguments typeArguments = stackFrames.peek().receiver.getType().getTypeArguments();
+                String s = v.getName() + typeArguments.get(0).toString();
+                ILconst iLconst = genericStaticVals.get(s);
+                return iLconst;
+            }
+
+        }
+        return super.getVal(v);
+    }
 
     public boolean isCompiletime() {
         return isCompiletime;
@@ -263,8 +389,6 @@ public class ProgramState extends State {
         }
         return r;
     }
-
-
 
 
     public Collection<ILconstObject> getAllObjects() {

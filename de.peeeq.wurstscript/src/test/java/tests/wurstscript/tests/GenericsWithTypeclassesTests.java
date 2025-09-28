@@ -1274,4 +1274,76 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericVar_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private T store",
+            "        function put(T v)",
+            "            store = v      // instance method writes static generic array",
+            "        function get() returns T",
+            "            return store   // instance method reads static generic array",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(42)",
+            "        br.put(1.5)",
+            "        let xi = bi.get()",
+            "        let xr = br.get()",
+            "        if xi == 42 and xr == 1.5",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticVar_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private static T store",
+            "        function put(T v)",
+            "            store = v      // instance method writes static generic array",
+            "        function get() returns T",
+            "            return store   // instance method reads static generic array",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(42)",
+            "        br.put(1.5)",
+            "        let xi = bi.get()",
+            "        let xr = br.get()",
+            "        if xi == 42 and xr == 1.5",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticArray_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private static T array store",
+            "        function put(int i, T v)",
+            "            store[i] = v      // instance method writes static generic array",
+            "        function get(int i) returns T",
+            "            return store[i]   // instance method reads static generic array",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(3, 42)",
+            "        br.put(1, 1.5)",
+            "        let xi = bi.get(3)",
+            "        let xr = br.get(1)",
+            "        if xi == 42 and xr == 1.5",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
 }

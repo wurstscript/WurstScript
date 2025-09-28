@@ -817,7 +817,7 @@ public class WurstValidator {
             }
 
             if (!e.attrIsDynamicContext()) {
-                e.addError("Type variables must not be used in static contexts.");
+                //e.addError("Type variables must not be used in static contexts.");
             }
         }
     }
