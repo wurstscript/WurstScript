@@ -69,4 +69,13 @@ class Jmpq3BasedEditor implements MpqEditor {
         editor.setKeepHeaderOffset(flag);
     }
 
+    @Override
+    public void closeWithCompression() throws IOException {
+        try {
+            editor.close(true, false, true);
+        } catch (JMpqException e) {
+            throw new IOException(e);
+        }
+    }
+
 }
