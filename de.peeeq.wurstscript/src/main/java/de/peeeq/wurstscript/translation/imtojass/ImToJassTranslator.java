@@ -2,16 +2,9 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.JassFunction;
-import de.peeeq.wurstscript.jassAst.JassFunctions;
-import de.peeeq.wurstscript.jassAst.JassInitializedVar;
-import de.peeeq.wurstscript.jassAst.JassNative;
-import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassAst.JassSimpleVar;
-import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassAst.*;
-import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.RestrictedCompressedNames;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;

@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WPosWithComments;

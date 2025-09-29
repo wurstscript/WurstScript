@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.mpq;
 
 import com.google.common.base.Preconditions;
-import de.peeeq.wurstscript.WLogger;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.JMpqException;
 import systems.crigges.jmpq3.MPQOpenOption;

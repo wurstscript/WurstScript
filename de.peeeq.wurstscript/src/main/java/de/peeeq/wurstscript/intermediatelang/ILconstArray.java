@@ -1,14 +1,11 @@
 package de.peeeq.wurstscript.intermediatelang;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.function.Supplier;
-
-import static com.ibm.icu.text.PluralRules.Operand.e;
 
 public class ILconstArray extends ILconstAbstract {
 

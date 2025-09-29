@@ -14,8 +14,8 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -49,7 +49,6 @@ import java.util.function.Function;
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static de.peeeq.wurstscript.WurstOperator.PLUS;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_EXTERN;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_NATIVE;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 

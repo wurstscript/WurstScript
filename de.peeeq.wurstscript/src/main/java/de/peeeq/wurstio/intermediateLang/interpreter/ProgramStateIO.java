@@ -3,7 +3,6 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
-import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;

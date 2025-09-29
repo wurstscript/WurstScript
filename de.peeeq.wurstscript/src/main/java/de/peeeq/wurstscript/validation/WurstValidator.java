@@ -14,7 +14,6 @@ import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
-import de.peeeq.wurstscript.validation.controlflow.ForwardExecution;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;

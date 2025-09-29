@@ -11,8 +11,6 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.VariablePosition;
 import de.peeeq.wurstscript.types.WurstType;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
