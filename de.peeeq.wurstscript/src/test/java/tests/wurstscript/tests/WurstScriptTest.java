@@ -558,7 +558,7 @@ public class WurstScriptTest {
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
         try {
             // run the interpreter on the intermediate language
-            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false, false);
+            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {

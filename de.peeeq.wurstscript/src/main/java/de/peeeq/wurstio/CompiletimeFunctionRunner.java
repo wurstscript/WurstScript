@@ -86,7 +86,7 @@ public class CompiletimeFunctionRunner {
         this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
-        this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState, cache);
+        this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
         interpreter.addNativeProvider(new CompiletimeNatives(globalState, projectConfigData, isProd));
         interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));

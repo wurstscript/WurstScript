@@ -28,20 +28,18 @@ import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsR
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
-    private static boolean cache = false;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState, boolean cache) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
-        ILInterpreter.cache = cache;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
 //        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime, boolean cache) {
-        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime), cache);
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
+        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -174,7 +172,7 @@ public class ILInterpreter implements AbstractInterpreter {
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
         // Cache purity + name once
         final String fname = f.getName();
-        final boolean pure = cache && isFunctionPure(fname);
+        final boolean pure = isFunctionPure(fname);
 
         // Fast, zero-allocation rolling hash for args (no Object[] boxing like Objects.hash)
         final int combinedHash = pure ? fastHashArgs(args) : 0;
