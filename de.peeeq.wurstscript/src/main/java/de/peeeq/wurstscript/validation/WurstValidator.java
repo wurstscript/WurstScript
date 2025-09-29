@@ -916,7 +916,7 @@ public class WurstValidator {
     private void checkTypeParameters(AstElementWithTypeParameters e) {
         for (TypeParamDef ta : e.getTypeParameters()) {
             String name = ta.getName();
-            if (name.indexOf('<') >= 0 || (!name.isEmpty() && name.charAt(0) == '#')) {
+            if (name.isEmpty() || name.charAt(0) == '#' || name.indexOf('<') >= 0) {
                 ta.addError("Type parameter must be a simple name ");
             } else {
                 checkTypeName(ta, name);
