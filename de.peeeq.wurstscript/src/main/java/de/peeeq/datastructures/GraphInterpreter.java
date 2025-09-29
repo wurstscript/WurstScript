@@ -77,77 +77,80 @@ public abstract class GraphInterpreter<T> {
      * <p>
      * See https://en.wikipedia.org/wiki/Path-based_strong_component_algorithm
      */
-    public Set<Set<T>> findStronglyConnectedComponents(List<T> nodes) {
-        Deque<T> s = new ArrayDeque<>();
-        Deque<T> p = new ArrayDeque<>();
-        AtomicInteger c = new AtomicInteger();
-        AtomicInteger componentCount = new AtomicInteger();
-        Object2IntLinkedOpenHashMap<T> preorderNumber = new Object2IntLinkedOpenHashMap<>();
-        Object2IntLinkedOpenHashMap<T> component      = new Object2IntLinkedOpenHashMap<>();
+    public List<List<T>> findStronglyConnectedComponents(List<T> nodes) {
+        Deque<T> s = new ArrayDeque<>(); // S stack
+        Deque<T> p = new ArrayDeque<>(); // P stack
 
-        // This stack simulates the recursive calls
-        Deque<T> traversalStack = new ArrayDeque<>();
-        // This map holds iterators for the children of each node
-        Map<T, Iterator<T>> iterators = new HashMap<>();
+        int preorderCounter = 0;
+        int componentCounter = 0;
 
-        for (T startNode : nodes) {
-            if (!preorderNumber.containsKey(startNode)) {
-                traversalStack.push(startNode);
+        Object2IntLinkedOpenHashMap<T> preorder = new Object2IntLinkedOpenHashMap<>();
+        preorder.defaultReturnValue(-1);
+        Object2IntLinkedOpenHashMap<T> compId = new Object2IntLinkedOpenHashMap<>();
+        compId.defaultReturnValue(-1);
 
-                while (!traversalStack.isEmpty()) {
-                    T v = traversalStack.peek();
+        Deque<T> frameStack = new ArrayDeque<>();         // simulated recursion
+        Map<T, Iterator<T>> childIters = new HashMap<>(); // per-node child iterators
 
-                    // Pre-order processing (first time visiting node v)
-                    if (!preorderNumber.containsKey(v)) {
-                        preorderNumber.put(v, c.getAndIncrement());
-                        s.push(v);
-                        p.push(v);
-                        iterators.put(v, getIncidentNodes(v).iterator());
-                    }
+        List<List<T>> sccs = new ArrayList<>();
 
-                    boolean foundNewChild = false;
-                    Iterator<T> children = iterators.get(v);
+        for (T start : nodes) {
+            if (preorder.getInt(start) != -1) continue;
 
-                    // Iterate over children to find the next one to visit
-                    while (children.hasNext()) {
-                        T w = children.next();
-                        if (!preorderNumber.containsKey(w)) {
-                            // Found an unvisited child, push to stack to simulate recursive call
-                            traversalStack.push(w);
-                            foundNewChild = true;
-                            break;
-                        } else if (!component.containsKey(w)) {
-                            // Child w has been visited but is not yet in a component
-                            while (!p.isEmpty() && preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w)) {
-                                p.pop();
-                            }
+            frameStack.push(start);
+            while (!frameStack.isEmpty()) {
+                T v = frameStack.peek();
+
+                // First time at v
+                if (preorder.getInt(v) == -1) {
+                    preorder.put(v, preorderCounter++);
+                    s.push(v);
+                    p.push(v);
+                    childIters.put(v, getIncidentNodes(v).iterator());
+                }
+
+                boolean descended = false;
+                Iterator<T> it = childIters.get(v);
+
+                while (it.hasNext()) {
+                    T w = it.next();
+                    int preW = preorder.getInt(w);
+                    if (preW == -1) {
+                        frameStack.push(w);
+                        descended = true;
+                        break;
+                    } else if (compId.getInt(w) == -1) {
+                        // w discovered but not assigned; shrink P
+                        while (!p.isEmpty() && preorder.getInt(p.peek()) > preW) {
+                            p.pop();
                         }
                     }
+                }
 
-                    if (foundNewChild) {
-                        // Continue the loop to process the new child on top of the stack
-                        continue;
+                if (descended) continue;
+
+                // Post-order for v
+                frameStack.pop();
+                childIters.remove(v);
+
+                if (!p.isEmpty() && p.peek() == v) {
+                    int newCid = componentCounter++;
+                    ArrayList<T> cur = new ArrayList<>();
+                    while (true) {
+                        T x = s.pop();
+                        compId.put(x, newCid);
+                        cur.add(x);
+                        if (x == v) break;
                     }
+                    p.pop();
 
-                    // Post-order processing (all children of v have been visited)
-                    traversalStack.pop(); // Finished with v, pop it
-                    iterators.remove(v); // Clean up iterator
-
-                    if (!p.isEmpty() && p.peek() == v) {
-                        Integer newComponent = componentCount.incrementAndGet();
-                        while (true) {
-                            T popped = s.pop();
-                            component.put(popped, newComponent);
-                            if (popped == v) {
-                                break;
-                            }
-                        }
-                        p.pop();
-                    }
+                    // Gabow emits SCCs in reverse-topological order
+                    sccs.add(cur);
                 }
             }
         }
-        return ImmutableSet.copyOf(Utils.inverseMapToSet(component).values());
+
+        return sccs;
     }
 
     public String generateDotFile(List<T> nodes) {

@@ -52,7 +52,6 @@ public class ILconstArray extends ILconstAbstract {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        // Preserve previous semantics: identity equality only.
         return other == this;
     }
 

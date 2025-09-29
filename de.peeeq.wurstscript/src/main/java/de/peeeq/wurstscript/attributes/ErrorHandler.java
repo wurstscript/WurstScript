@@ -10,7 +10,6 @@ import java.util.Map;
 
 public class ErrorHandler {
 
-    // Public-facing lists (unchanged)
     private final List<CompileError> errors   = new NotNullList<>();
     private final List<CompileError> warnings = new NotNullList<>();
 
@@ -65,8 +64,6 @@ public class ErrorHandler {
         return unitTestMode;
     }
 
-    // ---------- package-private helpers for ErrorHandling ----------
-
     List<CompileError> getBucketForFile(String file, ErrorType type) {
         return (type == ErrorType.ERROR) ? errorsByFile.get(file) : warningsByFile.get(file);
     }
@@ -81,8 +78,6 @@ public class ErrorHandler {
             removeFromBucket(warningsByFile, file, err);
         }
     }
-
-    // ---------- internal helpers ----------
 
     private static void addToBucket(Map<String, List<CompileError>> byFile, CompileError err) {
         final String file = err.getSource().getFile();

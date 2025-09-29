@@ -46,10 +46,8 @@ public class NameResolution {
     }
 
     public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
-        // Pull once
         final ImmutableCollection<FuncLink> raw = e.lookupFuncsNoConfig(name, showErrors);
 
-        // If we know the size, we can fast-path 0/1 and pre-size the builder.
         if (raw != null) {
             final java.util.Collection<FuncLink> c = raw;
             final int n = c.size();

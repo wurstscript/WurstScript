@@ -25,7 +25,7 @@ public class GraphInterpreterTestsSC {
         System.out.println("iteration " + ++count);
         System.out.println(g);
 
-        Set<Set<Node>> components = g.findStronglyConnectedComponents(g.nodes);
+        List<List<Node>> components = g.findStronglyConnectedComponents(g.nodes);
 
         boolean componentCycle = (components.stream().anyMatch(c -> c.size() > 1));
 
@@ -38,7 +38,7 @@ public class GraphInterpreterTestsSC {
         boolean[][] adj = {{true,true},{true, false}};
         Graph g = new Graph(adj);
         System.out.println(g);
-        Set<Set<Node>> components = g.findStronglyConnectedComponents(g.nodes);
+        List<List<Node>> components = g.findStronglyConnectedComponents(g.nodes);
         boolean componentCycle = (components.stream().anyMatch(c -> c.size() > 1));
         assertEquals(componentCycle, isCyclic(g));
     }

@@ -4,10 +4,10 @@ package Annotations
 @config constant SOME_VAR = 24
 
 @compiletime function foo()
-	skip
+    skip
 
 @test function someTest()
-	skip
+    skip
 
 @deprecated("Use .size() instead") function getSize() returns int
-	skip
+    skip

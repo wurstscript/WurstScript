@@ -357,7 +357,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ModOverride(ModOverride modOverride) {
-            return string("override: This function overrides an other function from a module or superclass");
+            return string("override: This function overrides another function from a module or superclass");
         }
 
         @Override

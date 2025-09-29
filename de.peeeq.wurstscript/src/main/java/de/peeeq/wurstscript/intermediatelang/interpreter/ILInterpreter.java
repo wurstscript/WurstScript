@@ -161,20 +161,16 @@ public class ILInterpreter implements AbstractInterpreter {
     private static final Object2ObjectOpenHashMap<ImFunction, Int2ObjectLinkedOpenHashMap<LocalState>> localStateCache =
         new Object2ObjectOpenHashMap<>();
 
-    // Cap per-function cache size to avoid unbounded growth (tune as needed)
+    // Cap per-function cache size to avoid unbounded growth
     private static final int MAX_CACHE_PER_FUNC = 2048;
 
-    // If LocalState is immutable-or-treated-as-readonly when used as "no return":
-    // Prefer a TRUE singleton to avoid allocating huge internal maps for "void" cases.
     private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
 
-    // -------------- public entry with varargs kept for API compatibility --------------
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
         // Delegate to the array overload to avoid double-allocations.
         return runBuiltinFunction(globalState, f, args, /*isVarargs*/ true);
     }
 
-    // -------------- internal overload that can be called with an existing ILconst[] --------------
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
         // Cache purity + name once
         final String fname = f.getName();
@@ -199,7 +195,7 @@ public class ILInterpreter implements AbstractInterpreter {
 
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                // Invoke native; ideally you cache method handles per name elsewhere.
+                // Invoke native; TODO: cache method handles per name elsewhere.
                 final LocalState localState = new LocalState(natives.invoke(fname, args));
 
                 if (pure) {
@@ -236,7 +232,6 @@ public class ILInterpreter implements AbstractInterpreter {
         if (f.getReturnType() instanceof ImVoid) {
             return EMPTY_LOCAL_STATE;
         }
-        // If you can, pass a lightweight state to evaluate default (avoid allocating a heavy LocalState)
         final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
             .evaluate(globalState, EMPTY_LOCAL_STATE);
         return new LocalState(returnValue);
@@ -244,15 +239,7 @@ public class ILInterpreter implements AbstractInterpreter {
 
     /** Zero-allocation combined hash for ILconst[] (order-sensitive). */
     private static int fastHashArgs(ILconst[] args) {
-        int h = 1;
-        for (final ILconst a : args) {
-            // If ILconst has a stable, cheap hash (recommended), rely on it.
-            // If not, consider a dedicated method (e.g., a.fastHash()).
-            h = 31 * h + (a == null ? 0 : a.hashCode());
-        }
-        // Spread bits a little to reduce clustering (optional)
-        h ^= (h >>> 16);
-        return h;
+        return Arrays.hashCode(args);
     }
 
 

@@ -993,7 +993,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void testNameShadowError() {
-        testAssertErrorsLines(true, "Variable x hides an other local variable with the same name",
+        testAssertErrorsLines(true, "Variable x hides another local variable with the same name",
             "package Test",
             "native testSuccess()",
             "function foo() returns bool",

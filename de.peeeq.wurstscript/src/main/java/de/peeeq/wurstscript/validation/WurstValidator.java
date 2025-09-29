@@ -16,8 +16,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
-import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -891,7 +890,7 @@ public class WurstValidator {
 
                 if (!parametersTypeDisjunct(c1.getParameters(), c2.getParameters())) {
                     c2.addError(
-                            "Duplicate constructor, an other constructor with similar types is already defined in line "
+                            "Duplicate constructor, another constructor with similar types is already defined in line "
                                     + c1.attrSource().getLine());
                 }
             }
@@ -1433,8 +1432,8 @@ public class WurstValidator {
     }
 
 
-    private static final Object2ObjectOpenHashMap<WurstType, Object2BooleanOpenHashMap<WurstType>> SUBTYPE_MEMO
-        = new Object2ObjectOpenHashMap<>();
+    private static final Reference2ObjectOpenHashMap<WurstType, Reference2BooleanOpenHashMap<WurstType>>
+        SUBTYPE_MEMO = new Reference2ObjectOpenHashMap<>();
     // crude cap to avoid unbounded growth; tune as needed
     private static final int SUBTYPE_MEMO_CAP = 16_384;
     private static int SUBTYPE_MEMO_SIZE = 0;
@@ -1442,9 +1441,9 @@ public class WurstValidator {
     private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
         if (actual == expected) return true;
         // quick structural equality before expensive check
-        if (actual.equals(expected)) return true;
+        if (actual.equalsType(expected, site)) return true;
 
-        Object2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
+        Reference2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
         if (inner != null && inner.containsKey(expected)) {
             return inner.getBoolean(expected);
         }
@@ -1452,7 +1451,7 @@ public class WurstValidator {
         boolean res = actual.isSubtypeOf(expected, site);
 
         if (inner == null) {
-            inner = new Object2BooleanOpenHashMap<>();
+            inner = new Reference2BooleanOpenHashMap<>();
             SUBTYPE_MEMO.put(actual, inner);
         }
         if (!inner.containsKey(expected)) {
@@ -1495,7 +1494,7 @@ public class WurstValidator {
 
             // fast path: == / equals handled inside isSubtypeCached too,
             // but doing it here keeps it branch-predictable and avoids map lookups for exact matches
-            if (actual == expected || actual.equals(expected)) {
+            if (actual.equalsType(expected, a)) {
                 continue;
             }
 
@@ -2603,7 +2602,7 @@ public class WurstValidator {
         NameLink shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
         if (shadowed != null) {
             if (shadowed.getDef() instanceof LocalVarDef) {
-                v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
+                v.addError("Variable " + v.getName() + " hides another local variable with the same name.");
             } else if (shadowed.getDef() instanceof WParameter) {
                 v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
             }

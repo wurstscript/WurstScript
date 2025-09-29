@@ -15,7 +15,6 @@ import java.util.Map;
 
 /**
  * Lazily allocates internal maps ONLY when needed.
- * Behavior is unchanged vs. the original.
  */
 public abstract class State {
 
@@ -77,8 +76,6 @@ public abstract class State {
             }
         }
 
-        // IMPORTANT: relies on ILconstArray being sparse/lazy itself.
-        // If ILconstArray actually allocates 'size' eagerly, consider a sparse implementation.
         return new ILconstArray(size, componentType::defaultValue);
     }
 
