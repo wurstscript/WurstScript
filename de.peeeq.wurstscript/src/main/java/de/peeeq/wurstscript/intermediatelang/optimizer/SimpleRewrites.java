@@ -237,6 +237,7 @@ public class SimpleRewrites implements OptimizerPass {
                 int v = ((ImIntVal) expr).getValI();
                 if (v != Integer.MIN_VALUE && v <= 0) {
                     opc.replaceBy(JassIm.ImIntVal(-v));
+                } else {
                     wasViable = false;
                 }
             } else if (expr instanceof ImBoolVal) {
