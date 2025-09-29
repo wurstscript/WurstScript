@@ -276,7 +276,7 @@ public class ImPrinter {
     public static String smallHash(Object g) {
         int h = g.hashCode();
         // avoid negative hashes
-        h = Math.abs(h);
+        h = h & Integer.MAX_VALUE;
         // take only the last 3 digits
         int v = h % 1000;
         return Integer.toString(v);
