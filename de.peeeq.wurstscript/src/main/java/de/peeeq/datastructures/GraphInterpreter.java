@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.utils.Utils;
+import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -81,8 +82,8 @@ public abstract class GraphInterpreter<T> {
         Deque<T> p = new ArrayDeque<>();
         AtomicInteger c = new AtomicInteger();
         AtomicInteger componentCount = new AtomicInteger();
-        Map<T, Integer> preorderNumber = new HashMap<>();
-        Map<T, Integer> component = new HashMap<>();
+        Object2IntLinkedOpenHashMap<T> preorderNumber = new Object2IntLinkedOpenHashMap<>();
+        Object2IntLinkedOpenHashMap<T> component      = new Object2IntLinkedOpenHashMap<>();
 
         // This stack simulates the recursive calls
         Deque<T> traversalStack = new ArrayDeque<>();

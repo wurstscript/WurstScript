@@ -992,6 +992,23 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
+    public void testNameShadowError() {
+        testAssertErrorsLines(true, "Variable x hides an other local variable with the same name",
+            "package Test",
+            "native testSuccess()",
+            "function foo() returns bool",
+            "    var x = 0",
+            "    var sum = 0",
+            "    for x in x",
+            "        sum += x",
+            "    return true",
+            "init",
+            "    if foo()",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void testCyclicDependencyError() {
         testAssertErrorsLines(true, "For loop target int doesn't provide a iterator() function",
                 "package Test",
@@ -999,8 +1016,8 @@ public class BugTests extends WurstScriptTest {
                 "function foo() returns bool",
                 "    var x = 0",
                 "    var sum = 0",
-                "    for x in x",
-                "        sum += x",
+                "    for i in x",
+                "        sum += i",
                 "    return true",
                 "init",
                 "    if foo()",
