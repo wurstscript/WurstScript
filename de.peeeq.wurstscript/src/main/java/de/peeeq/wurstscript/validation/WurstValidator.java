@@ -64,6 +64,7 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
+            SUBTYPE_MEMO.clear();
 
             lightValidation(toCheck);
 
