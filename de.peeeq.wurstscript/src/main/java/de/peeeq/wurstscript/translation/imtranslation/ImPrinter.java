@@ -273,8 +273,12 @@ public class ImPrinter {
 
     public static String smallHash(Object g) {
         int h = g.hashCode();
-        // avoid negative hashes
-        h = h & Integer.MAX_VALUE;
+        // avoid negative hashes, handle Integer.MIN_VALUE explicitly
+        if (h == Integer.MIN_VALUE) {
+            h = 0;
+        } else {
+            h = Math.abs(h);
+        }
         // take only the last 3 digits
         int v = h % 1000;
         return Integer.toString(v);
