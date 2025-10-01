@@ -391,6 +391,16 @@ public class TempMerger implements OptimizerPass {
                 // never merge globals
                 return false;
             }
+
+            // --- FIX START ---
+            // Never inline expressions containing function calls.
+            // This prevents TempMerger from fighting with the Flatten pass, which
+            // explicitly creates temp variables to handle side effects from function calls.
+            if (containsFuncCall(e)) {
+                return false;
+            }
+            // --- FIX END ---
+
             if (e instanceof ImVarAccess) {
                 ImVarAccess va = (ImVarAccess) e;
                 if (va.getVar() == left) {

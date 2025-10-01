@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
+import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
@@ -156,9 +157,6 @@ public class ILInterpreter implements AbstractInterpreter {
     }
 
 
-    private static final Object2ObjectOpenHashMap<ImFunction, Int2ObjectLinkedOpenHashMap<LocalState>> localStateCache =
-        new Object2ObjectOpenHashMap<>();
-
     // Cap per-function cache size to avoid unbounded growth
     private static final int MAX_CACHE_PER_FUNC = 2048;
 
@@ -174,14 +172,14 @@ public class ILInterpreter implements AbstractInterpreter {
         final String fname = f.getName();
         final boolean pure = isFunctionPure(fname);
 
-        // Fast, zero-allocation rolling hash for args (no Object[] boxing like Objects.hash)
-        final int combinedHash = pure ? fastHashArgs(args) : 0;
-
+        GlobalCaches.ArgumentKey key = null;
         if (pure) {
-            final Int2ObjectLinkedOpenHashMap<LocalState> perFn =
-                localStateCache.get(f);
+            key = GlobalCaches.ArgumentKey.forLookup(args);
+
+            final Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                LOCAL_STATE_CACHE.get(f);
             if (perFn != null) {
-                final LocalState cached = perFn.get(combinedHash);
+                final LocalState cached = perFn.get(key);
                 if (cached != null) {
                     return cached;
                 }
@@ -198,16 +196,17 @@ public class ILInterpreter implements AbstractInterpreter {
 
                 if (pure) {
                     // insert into per-function cache with bounded size
-                    Int2ObjectLinkedOpenHashMap<LocalState> perFn =
-                        localStateCache.get(f);
+                    Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                        LOCAL_STATE_CACHE.get(f);
                     if (perFn == null) {
-                        perFn = new Int2ObjectLinkedOpenHashMap<>(16);
-                        localStateCache.put(f, perFn);
+                        perFn = new Object2ObjectOpenHashMap<>(16);
+                        LOCAL_STATE_CACHE.put(f, perFn);
                     }
-                    perFn.put(combinedHash, localState);
+                    perFn.put(key, localState);
                     if (perFn.size() > MAX_CACHE_PER_FUNC) {
                         // evict eldest (insertion order) to bound memory
-                        final int eldest = perFn.firstIntKey();
+                        // Object2ObjectOpenHashMap maintains insertion order
+                        final GlobalCaches.ArgumentKey eldest = perFn.keySet().iterator().next();
                         perFn.remove(eldest);
                     }
                 }

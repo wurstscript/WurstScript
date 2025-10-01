@@ -83,14 +83,11 @@ ImStmt =
 	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ref ImVar loopVar)
 	
 	
-ImExprOpt = 
-	  ImExpr
-	| ImFlatExprOpt
+ImExprOpt =
+      ImExpr
+    | ImNoExpr()
 
-ImFlatExprOpt = 
-	  ImFlatExpr
-	| ImNoExpr()
-	
+
 ImExprs * ImExpr
 	
 ImExpr = 
@@ -158,20 +155,20 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 ImFuncRefOrCall = ImFuncRef | ImFunctionCall
 
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
- | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
+ | ImSet
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
  | ImProg | ImFuncRef
  | ImAlloc | ImDealloc
 
-ElementWithTypes = ImTupleType | ImTupleArrayType
+ElementWithTypes = ImTupleType | ImArrayTypeMulti
 
-ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
+ElementWithVar = ImVarAccess | ImVarArrayAccess | ImMemberAccess
 
 
 ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImType | ImTypeVar | ImClass
 
-ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
-ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
+ImVarWrite = ImSet
+ImVarRead  = ImVarAccess | ImVarArrayAccess
 	
 attributes:
 	
@@ -213,6 +210,10 @@ ImLExpr.flattenL(
 ImStmt.attrPurity()
 	returns de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevel
 	implemented by de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevels.calculate
+
+ImOperatorCall.attrNeedsShortCircuitLowering()
+    returns boolean
+    implemented by de.peeeq.wurstscript.translation.imtranslation.FlattenAttributes.needsShortCircuitLowering
 
 ImStmts.translate(
 		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,

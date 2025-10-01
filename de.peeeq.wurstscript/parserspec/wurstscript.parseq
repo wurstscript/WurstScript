@@ -187,6 +187,7 @@ Expr =
 	| ExprStatementsBlock(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	| ExprIfElse(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr cond, Expr ifTrue, Expr ifFalse)
+	| ExprArrayLength(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr array)
 
 ExprMember =
 	  ExprMemberVar
@@ -313,7 +314,7 @@ Modifier =
 HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
-AstElementWithFuncName = ExprFunctionCall | ExprMemberMethod | ExprFuncRefc
+AstElementWithFuncName = ExprFunctionCall | ExprMemberMethod | ExprFuncRef
 
 AstElementWithBody = ExtensionFuncDef | InitBlock | ConstructorDef | OnDestroyDef | FuncDef | WBlock 
 	| LoopStatement | ExprStatementsBlock | FunctionLike

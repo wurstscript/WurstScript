@@ -12,7 +12,6 @@ public class ImPrinter {
     public static void print(ImProg p, Appendable sb, int indent) {
         for (ImVar g : p.getGlobals()) {
             g.print(sb, indent);
-            append(sb, "\n");
         }
         append(sb, "\n\n");
         p.getGlobalInits().forEach((v,es) -> {
@@ -31,7 +30,6 @@ public class ImPrinter {
         append(sb, "\n\n");
         for (ImFunction f : p.getFunctions()) {
             f.print(sb, indent);
-            append(sb, "\n");
         }
         for (ImMethod m : p.getMethods()) {
             printMethod(sb, m, indent);

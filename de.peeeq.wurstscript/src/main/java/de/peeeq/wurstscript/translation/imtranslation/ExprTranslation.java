@@ -766,6 +766,16 @@ public class ExprTranslation {
         }
     }
 
+    public static ImExpr translate(ExprArrayLength exprArrayLength, ImTranslator translator, ImFunction f) {
+        var t = exprArrayLength.getArray().attrTyp();
+        if (t instanceof WurstTypeArray wta && wta.getDimensions() > 0) {
+            return JassIm.ImIntVal(wta.getSize(0));
+        }
+        // if you ever support dynamic length, translate accordingly (otherwise error)
+        exprArrayLength.addError("length is only available for arrays with known size.");
+        return JassIm.ImIntVal(0);
+    }
+
 //    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {
 //        NameDef nameDef = e.tryGetNameDef();
 //        if (nameDef instanceof VarDef) {

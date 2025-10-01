@@ -477,6 +477,23 @@ public class OptimizerTests extends WurstScriptTest {
             "		println(I2S(blablub))",
             "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover2_inlopt.j"), Charsets.UTF_8);
+        // Better not inline GetRandomInt call - it might have side effects!
+        assertTrue(output.contains("blablub"));
+    }
+
+    @Test
+    public void test_tempVarRemover3() throws IOException {
+        test().lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	function GetRandomIntt(int a, int b) returns int",
+            "     return a + b",
+            "	init",
+            "		let blablub = GetRandomIntt(0,100)",
+            "		println(I2S(blablub))",
+            "endpackage");
+        String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover3_inlopt.j"), Charsets.UTF_8);
         assertFalse(output.contains("blablub"));
     }
 

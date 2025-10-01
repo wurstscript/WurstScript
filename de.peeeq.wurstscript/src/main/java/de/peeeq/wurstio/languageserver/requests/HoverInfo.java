@@ -618,6 +618,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ExprArrayLength(ExprArrayLength exprArrayLength) {
+            return List.of();
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_StmtLoop(StmtLoop stmtLoop) {
             return string("Primitive loop statement");
         }

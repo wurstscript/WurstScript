@@ -1,7 +1,6 @@
 package tests.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
@@ -9,7 +8,6 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;

@@ -462,6 +462,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // inliner
         if (runArgs.isInline()) {
             beginPhase(5, "inlining");
+            getImProg().flatten(imTranslator2);
             optimizer.doInlining();
             imTranslator2.assertProperties();
 

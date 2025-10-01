@@ -27,7 +27,9 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +49,11 @@ public class WurstScriptTest {
 
     protected boolean printDebugScripts() {
         return false;
+    }
+
+    @BeforeMethod(alwaysRun = true)
+    public void _clearBefore() {
+        GlobalCaches.clearAll();
     }
 
     class TestConfig {
@@ -172,7 +179,6 @@ public class WurstScriptTest {
 
 
             WurstModel model = parseFiles(inputFiles, additionalCompilationUnits, withStdLib, compiler);
-
 
             if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
                 throw gui.getErrorList().get(0);

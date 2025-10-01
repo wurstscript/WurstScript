@@ -2,15 +2,12 @@ package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.jassAst.JassExprUnary;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WPosWithComments;
 import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
 import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
-
-import static de.peeeq.wurstscript.jassprinter.JassPrinter.precedence;
 
 public class PrettyPrinter {
 
@@ -1429,5 +1426,10 @@ public class PrettyPrinter {
 
     public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
         // nothing
+    }
+
+    public static void prettyPrint(ExprArrayLength exprArrayLength, Spacer spacer, StringBuilder sb, int indent) {
+        exprArrayLength.getArray().prettyPrint(spacer, sb, indent);
+        sb.append(".length");
     }
 }

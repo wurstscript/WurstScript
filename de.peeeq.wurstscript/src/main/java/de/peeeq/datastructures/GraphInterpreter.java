@@ -1,6 +1,5 @@
 package de.peeeq.datastructures;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.utils.Utils;
@@ -8,7 +7,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class GraphInterpreter<T> {
 

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;

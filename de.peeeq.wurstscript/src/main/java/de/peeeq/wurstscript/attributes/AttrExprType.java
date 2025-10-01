@@ -582,4 +582,13 @@ public class AttrExprType {
         }
         return resT;
     }
+
+    public static WurstType calculate(ExprArrayLength exprArrayLength) {
+        var t = exprArrayLength.getArray().attrTyp();
+        if (t instanceof de.peeeq.wurstscript.types.WurstTypeArray) {
+            return de.peeeq.wurstscript.types.WurstTypeInt.instance();
+        }
+        exprArrayLength.addError(".length is only valid on arrays.");
+        return de.peeeq.wurstscript.types.WurstTypeUnknown.instance();
+    }
 }

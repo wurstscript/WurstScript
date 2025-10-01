@@ -421,4 +421,8 @@ public class DescriptionHtml {
     public static String description(NoTypeParamConstraints noTypeParamConstraints) {
         return "no type parameter constraints";
     }
+
+    public static String description(ExprArrayLength exprArrayLength) {
+        return "Get the length of an array.";
+    }
 }

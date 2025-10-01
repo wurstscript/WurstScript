@@ -9,7 +9,10 @@ import smallcheck.annotations.From;
 import smallcheck.annotations.Property;
 import smallcheck.generators.SeriesGen;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 

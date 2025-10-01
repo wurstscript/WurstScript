@@ -1,10 +1,10 @@
 package tests.utils;
 
-import org.testng.Assert;
-import org.testng.annotations.Test;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.util.stream.Collectors;
 

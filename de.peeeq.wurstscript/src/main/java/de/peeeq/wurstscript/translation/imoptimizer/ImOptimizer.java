@@ -3,7 +3,10 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.*;
+import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -27,7 +30,6 @@ public class ImOptimizer {
         localPasses.add(new GlobalsInliner());
         localPasses.add(new BranchMerger());
         localPasses.add(new SimpleRewrites());
-        localPasses.add(new TempMerger());
         localPasses.add(new LocalMerger());
     }
 
@@ -62,18 +64,21 @@ public class ImOptimizer {
 
     public void localOptimizations() {
         totalCount.clear();
+
         removeGarbage();
 
         int finalItr = 0;
         for (int i = 1; i <= 10 && optCount > 0; i++) {
             optCount = 0;
-            localPasses.forEach(pass -> {
+            for (OptimizerPass pass : localPasses) {
                 int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
                 optCount += count;
                 totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
-            });
-            trans.getImProg().flatten(trans);
+            }
+
             removeGarbage();
+            trans.getImProg().flatten(trans);
+
             finalItr = i;
             WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
         }

@@ -16,13 +16,14 @@ import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
-import it.unimi.dsi.fastutil.objects.*;
+import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
+import static de.peeeq.wurstscript.validation.GlobalCaches.SUBTYPE_MEMO;
 
 /**
  * this class validates a wurstscript program
@@ -1433,11 +1434,7 @@ public class WurstValidator {
     }
 
 
-    private static final Reference2ObjectOpenHashMap<WurstType, Reference2BooleanOpenHashMap<WurstType>>
-        SUBTYPE_MEMO = new Reference2ObjectOpenHashMap<>();
     // crude cap to avoid unbounded growth; tune as needed
-    private static final int SUBTYPE_MEMO_CAP = 16_384;
-    private static int SUBTYPE_MEMO_SIZE = 0;
 
     private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
         if (actual == expected) return true;
@@ -1457,11 +1454,6 @@ public class WurstValidator {
         }
         if (!inner.containsKey(expected)) {
             inner.put(expected, res);
-            if (++SUBTYPE_MEMO_SIZE > SUBTYPE_MEMO_CAP) {
-                // simple eviction policy: clear all when too big (cheap & safe)
-                SUBTYPE_MEMO.clear();
-                SUBTYPE_MEMO_SIZE = 0;
-            }
         }
         return res;
     }

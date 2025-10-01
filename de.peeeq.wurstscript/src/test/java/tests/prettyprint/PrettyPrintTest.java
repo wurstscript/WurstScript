@@ -39,7 +39,7 @@ public class PrettyPrintTest extends WurstScriptTest {
 
         CompilationUnit cu = compiler.parse("test", new StringReader(content));
 
-        debugPrint(cu);
+//        debugPrint(cu);
 
         PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
 

@@ -4,10 +4,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -208,18 +204,6 @@ public class NameResolution {
                         return n;
                     }
                 }
-            }
-        } else if (receiverType instanceof WurstTypeArray && name.equals("length")) {
-            // special lookup for length
-            WurstTypeArray wta = (WurstTypeArray) receiverType;
-            if (wta.getDimensions() > 0) {
-                int size = wta.getSize(0);
-                return new OtherLink(Visibility.PUBLIC, name, WurstTypeInt.instance()) {
-                    @Override
-                    public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-                        return JassIm.ImIntVal(size);
-                    }
-                };
             }
         }
 
