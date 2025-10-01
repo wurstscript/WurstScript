@@ -1,9 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WLogger;
@@ -21,13 +20,15 @@ import java.util.function.Consumer;
 
 public class NameLinks {
 
-    // OPTIMIZATION 1: Cache for package name links to avoid recomputation
-    private static final Map<WPackage, ImmutableMultimap<String, DefLink>> packageNameLinksCache =
-        new WeakHashMap<>();
-
     static private class OverrideCheckResult {
+        // does this override some other function
         boolean doesOverride = false;
+
+        // overrides a function from a class or module
+        // (for interfaces override modifier is optional)
         boolean requiresOverrideMod = false;
+
+        // errors for functions with same name that it does not override
         io.vavr.collection.List<String> overrideErrors = io.vavr.collection.List.empty();
 
         public void addError(String error) {
@@ -65,6 +66,7 @@ public class NameLinks {
     }
 
     private static void reportOverrideErrors(Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+        // report override errors
         for (Map<FuncLink, OverrideCheckResult> map : overrideCheckResults.values()) {
             for (Entry<FuncLink, OverrideCheckResult> e : map.entrySet()) {
                 FunctionDefinition f = e.getKey().getDef();
@@ -83,6 +85,7 @@ public class NameLinks {
                         f.addWarning("Function " + f.getName() + " should be marked with the 'override' modifier.");
                     }
                 }
+
             }
         }
     }
@@ -101,6 +104,7 @@ public class NameLinks {
             addNewNameLinks(result, overrideCheckResults, superI.nameLinks(), false);
         }
     }
+
 
     private static void addNamesFromImplementedInterfaces(Multimap<String, DefLink> result, WurstTypeClass classDef, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (WurstTypeInterface interfaceType : classDef.implementedInterfaces()) {
@@ -126,6 +130,7 @@ public class NameLinks {
             if (def instanceof FuncLink) {
                 FuncLink func = (FuncLink) def;
 
+                // check if function is overridden by any other function in
                 Map<FuncLink, OverrideCheckResult> otherFuncs = overrideCheckResults.getOrDefault(name, Collections.emptyMap());
                 for (Entry<FuncLink, OverrideCheckResult> e2 : otherFuncs.entrySet()) {
                     FuncLink otherFunc = e2.getKey();
@@ -141,13 +146,17 @@ public class NameLinks {
                     } else {
                         checkResult.addError(error);
                     }
+
+
                 }
+
             }
             if (!isOverridden) {
                 result.put(name, def.hidingPrivate());
             }
         }
     }
+
 
     public static ImmutableMultimap<String, DefLink> calculate(CompilationUnit cu) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
@@ -164,7 +173,8 @@ public class NameLinks {
         return result.build();
     }
 
-    private static void addVarDefIfAny(ImmutableMultimap.Builder<String, DefLink> result, WScope s) {
+
+    private static void addVarDefIfAny(Builder<String, DefLink> result, WScope s) {
         if (s instanceof LoopStatementWithVarDef) {
             LoopStatementWithVarDef l = (LoopStatementWithVarDef) s;
             result.put(l.getLoopVar().getName(), VarLink.create(l.getLoopVar(), s));
@@ -177,8 +187,10 @@ public class NameLinks {
         return result.build();
     }
 
+
     public static ImmutableMultimap<String, DefLink> calculate(@SuppressWarnings("unused") NativeFunc nativeFunc) {
-        return ImmutableMultimap.of();
+        ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
+        return result.build();
     }
 
     public static ImmutableMultimap<String, DefLink> calculate(TupleDef t) {
@@ -188,19 +200,7 @@ public class NameLinks {
     }
 
     public static ImmutableMultimap<String, DefLink> calculate(WPackage p) {
-        // OPTIMIZATION 2: Check cache first
-        ImmutableMultimap<String, DefLink> cached = packageNameLinksCache.get(p);
-        if (cached != null) {
-            return cached;
-        }
-
-        // OPTIMIZATION 3: Estimate size based on imports
-        int estimatedSize = p.getImports().size() * 50; // rough estimate
-        ImmutableMultimap.Builder<String, DefLink> result =
-            new ImmutableMultimap.Builder<>();
-
-        // OPTIMIZATION 4: Collect all imported packages first
-        List<WPackage> importedPackages = new ArrayList<>(p.getImports().size());
+        ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WImport imp : p.getImports()) {
             if (imp.getPackagename().equals("NoWurst")) {
                 continue;
@@ -210,52 +210,19 @@ public class NameLinks {
                 WLogger.info("could not resolve import: " + Utils.printElementWithSource(Optional.of(imp)));
                 continue;
             }
-            importedPackages.add(importedPackage);
-        }
-
-        // OPTIMIZATION 5: Special handling for REPL (all names)
-        if (p.getName().equals("WurstREPL")) {
-            for (WPackage importedPackage : importedPackages) {
+            if (p.getName().equals("WurstREPL")) {
+                // the REPL is special and can use all names
                 result.putAll(importedPackage.getElements().attrNameLinks());
                 result.putAll(importedPackage.attrNameLinks());
-            }
-        } else {
-            // OPTIMIZATION 6: Batch process exported names
-            // Instead of calling putAll for each package, collect into intermediate structure
-            if (importedPackages.size() == 1) {
-                // Fast path for single import
-                result.putAll(importedPackages.get(0).attrExportedNameLinks());
-            } else if (!importedPackages.isEmpty()) {
-                // OPTIMIZATION 7: Use a Set to track already added names (for deduplication)
-                Map<String, Set<DefLink>> mergedLinks = new HashMap<>(estimatedSize);
-
-                for (WPackage importedPackage : importedPackages) {
-                    ImmutableMultimap<String, DefLink> exportedLinks = importedPackage.attrExportedNameLinks();
-
-                    // OPTIMIZATION 8: Iterate entries once and merge
-                    for (Map.Entry<String, DefLink> entry : exportedLinks.entries()) {
-                        String name = entry.getKey();
-                        DefLink link = entry.getValue();
-
-                        mergedLinks.computeIfAbsent(name, k -> new LinkedHashSet<>(4))
-                            .add(link);
-                    }
-                }
-
-                // OPTIMIZATION 9: Bulk add to result
-                for (Map.Entry<String, Set<DefLink>> entry : mergedLinks.entrySet()) {
-                    result.putAll(entry.getKey(), entry.getValue());
-                }
+            } else {
+                // normal packages can only use the exported names of a package
+                result.putAll(importedPackage.attrExportedNameLinks());
             }
         }
 
-        ImmutableMultimap<String, DefLink> finalResult = result.build();
-
-        // OPTIMIZATION 10: Cache the result
-        packageNameLinksCache.put(p, finalResult);
-
-        return finalResult;
+        return result.build();
     }
+
 
     public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
@@ -297,22 +264,23 @@ public class NameLinks {
         return result.build();
     }
 
-    private static void addParametersIfAny(ImmutableMultimap.Builder<String, DefLink> result, WScope s) {
+    private static void addParametersIfAny(Builder<String, DefLink> result, WScope s) {
         if (s instanceof AstElementWithParameters) {
             AstElementWithParameters withParams = (AstElementWithParameters) s;
             for (WParameter p : withParams.getParameters()) {
                 result.put(p.getName(), VarLink.create(p, s));
             }
         }
+
     }
 
-    private static void addPackages(ImmutableMultimap.Builder<String, DefLink> result, CompilationUnit cu) {
+    private static void addPackages(Builder<String, DefLink> result, CompilationUnit cu) {
         for (WPackage p : cu.getPackages()) {
             result.put(p.getName(), PackageLink.create(p, cu));
         }
     }
 
-    private static void addJassNames(ImmutableMultimap.Builder<String, DefLink> result, CompilationUnit cu) {
+    private static void addJassNames(Builder<String, DefLink> result, CompilationUnit cu) {
         for (JassToplevelDeclaration jd : cu.getJassDecls()) {
             if (jd instanceof NameDef) {
                 NameDef def = (NameDef) jd;
@@ -323,6 +291,7 @@ public class NameLinks {
             }
         }
     }
+
 
     private static void addNameDefDefLink(Consumer<DefLink> result, NameDef def, WScope scope) {
         if (def instanceof VarDef) {
@@ -338,13 +307,14 @@ public class NameLinks {
         }
     }
 
-    private static void addNameDefDefLink(ImmutableMultimap.Builder<String, DefLink> result, NameDef def, WScope scope) {
+    private static void addNameDefDefLink(Builder<String, DefLink> result, NameDef def, WScope scope) {
         addNameDefDefLink(l -> result.put(l.getName(), l), def, scope);
     }
 
     private static void addNameDefDefLink(Multimap<String, DefLink> result, NameDef def, WScope scope) {
         addNameDefDefLink(l -> result.put(l.getName(), l), def, scope);
     }
+
 
     private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
                                                              Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
@@ -360,7 +330,7 @@ public class NameLinks {
         addDefinedNames(result, c, c.getInnerClasses());
     }
 
-    private static void addDefinedNames(ImmutableMultimap.Builder<String, DefLink> result, WScope definedIn, List<? extends NameDef> slots) {
+    private static void addDefinedNames(Builder<String, DefLink> result, WScope definedIn, List<? extends NameDef> slots) {
         for (NameDef n : slots) {
             addNameDefDefLink(result, n, definedIn);
         }
@@ -372,13 +342,15 @@ public class NameLinks {
         }
     }
 
-    public static void addHidingPrivate(ImmutableMultimap.Builder<String, DefLink> result, Multimap<String, DefLink> adding, List<TypeParamDef> typeParams) {
+
+    public static void addHidingPrivate(Builder<String, DefLink> result, Multimap<String, DefLink> adding, List<TypeParamDef> typeParams) {
         for (Entry<String, DefLink> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {
                 continue;
             }
             result.put(e.getKey(), e.getValue().hidingPrivate().withGenericTypeParams(typeParams));
         }
+
     }
 
     public static void addHidingPrivate(Multimap<String, DefLink> result, Multimap<String, DefLink> adding) {
@@ -388,6 +360,7 @@ public class NameLinks {
             }
             result.put(e.getKey(), e.getValue().hidingPrivate());
         }
+
     }
 
     public static void addHidingPrivateAndProtected(ImmutableMultimap.Builder<String, DefLink> r, Multimap<String, ? extends DefLink> adding) {
@@ -416,12 +389,4 @@ public class NameLinks {
         return result.build();
     }
 
-    // OPTIMIZATION 11: Clear cache method for when packages change
-    public static void clearPackageCache() {
-        packageNameLinksCache.clear();
-    }
-
-    public static void clearPackageCache(WPackage p) {
-        packageNameLinksCache.remove(p);
-    }
 }
