@@ -296,7 +296,6 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         if (right instanceof ImVarAccess && ((ImVarAccess) right).getVar() == var) {
                             // This is a self-assignment. It's a no-op and provides no new knowledge.
                             // We simply continue, allowing the existing knowledge about 'var' to flow through.
-                            System.out.println("Skipping self-assignment for variable: " + var.getName());
                         } else {
                             // --- Start of ORIGINAL logic ---
                             if (right instanceof ImConst) {
