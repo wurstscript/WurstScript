@@ -164,7 +164,13 @@ public class ProjectConfigBuilder {
         w3I.getPlayers().clear();
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
-            Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
+            Optional<Player> old = Optional.empty();
+            for (Player player2 : existing) {
+                if (player2.getNum() == wplayer.getId()) {
+                    old = Optional.of(player2);
+                    break;
+                }
+            }
             W3I.Player player = new Player();
             player.setNum(wplayer.getId());
             w3I.addPlayer(player);

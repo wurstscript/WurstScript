@@ -290,9 +290,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         File[] depProjects = dependencyFolder.listFiles();
         if (depProjects != null) {
             for (File depFile : depProjects) {
-                if (depFile.isDirectory()
-                    && dependencies.stream().noneMatch(f -> FileUtils.sameFile(f, depFile))) {
-                    dependencies.add(depFile);
+                if (depFile.isDirectory()) {
+                    boolean b = true;
+                    for (File f : dependencies) {
+                        if (FileUtils.sameFile(f, depFile)) {
+                            b = false;
+                            break;
+                        }
+                    }
+                    if (b) {
+                        dependencies.add(depFile);
+                    }
                 }
             }
         }
@@ -608,25 +616,32 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     @NotNull
     private ImFunction findNative(String funcName, WPos trace) {
-        return imProg.getFunctions()
-            .stream()
-            .filter(ImFunction::isNative)
-            .filter(func -> func.getName().equals(funcName))
-            .findFirst()
-            .orElseGet(() -> {
-                throw new CompileError(trace, "Could not find native " + funcName);
-            });
+        for (ImFunction func : imProg.getFunctions()) {
+            if (func.isNative()) {
+                if (func.getName().equals(funcName)) {
+                    return Optional.of(func)
+                        .orElseGet(() -> {
+                            throw new CompileError(trace, "Could not find native " + funcName);
+                        });
+                }
+            }
+        }
+        return Optional.<ImFunction>empty()
+            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
     }
 
     @NotNull
     private ImFunction findFunction(String funcName, WPos trace) {
-        return imProg.getFunctions()
-            .stream()
-            .filter(func -> func.getName().equals(funcName))
-            .findFirst()
-            .orElseGet(() -> {
-                throw new CompileError(trace, "Could not find native " + funcName);
-            });
+        for (ImFunction func : imProg.getFunctions()) {
+            if (func.getName().equals(funcName)) {
+                return Optional.of(func)
+                    .orElseGet(() -> {
+                        throw new CompileError(trace, "Could not find native " + funcName);
+                    });
+            }
+        }
+        return Optional.<ImFunction>empty()
+            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
     }
 
     @NotNull
@@ -671,10 +686,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private void printDebugImProg(String debugFile) {
-        if (!errorHandler.isUnitTestMode()) {
+        if (!errorHandler.isUnitTestMode() || !errorHandler.isOutputTestSource()) {
             // output only in unit test mode
             return;
         }
+
         try {
             // TODO remove test output
             File file = new File(debugFile);

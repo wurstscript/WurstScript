@@ -326,18 +326,25 @@ public class ILInterpreter implements AbstractInterpreter {
 
     @Override
     public int getInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .filter(o -> !o.isDestroyed())
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                if (!o.isDestroyed()) {
+                    count++;
+                }
+            }
+        }
+        return (int) count;
     }
 
     @Override
     public int getMaxInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                count++;
+            }
+        }
+        return (int) count;
     }
 }

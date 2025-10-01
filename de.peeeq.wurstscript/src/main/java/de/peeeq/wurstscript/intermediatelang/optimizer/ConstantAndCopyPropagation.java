@@ -317,9 +317,9 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                                 newOut = newOut.put(var, newValue);
                             }
                             // invalidate copies of the lhs
-                            Value varAsValue = new Value(var);
                             for (Tuple2<ImVar, Value> p : newOut) {
-                                if (p._2().equalValue(varAsValue)) {
+                                Value v = p._2();
+                                if (v.copyVar == var) {  // Direct field access, no object creation
                                     newOut = newOut.remove(p._1());
                                 }
                             }

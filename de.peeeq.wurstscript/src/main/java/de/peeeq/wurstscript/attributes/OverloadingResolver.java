@@ -8,10 +8,7 @@ import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class OverloadingResolver<F extends Element, C> {
@@ -68,9 +65,12 @@ public abstract class OverloadingResolver<F extends Element, C> {
         // if we have several functions matching a prefix,
         // we have to check if there is a function with the right number of parameters
 
-        List<F> rightNumberOfParams = funcs.stream()
-                .filter(f -> getParameterCount(f) == getArgumentCount(caller))
-                .collect(Collectors.toList());
+        List<F> rightNumberOfParams = new ArrayList<>();
+        for (F f1 : funcs) {
+            if (getParameterCount(f1) == getArgumentCount(caller)) {
+                rightNumberOfParams.add(f1);
+            }
+        }
         if (rightNumberOfParams.size() == 1) {
             return Optional.of(rightNumberOfParams.get(0));
         } else if (rightNumberOfParams.size() > 1) {

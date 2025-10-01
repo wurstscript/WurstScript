@@ -225,7 +225,12 @@ public class ImportFile {
             e.printStackTrace();
         }
         File[] arr = new File[paths.size()];
-        return paths.stream().map(Path::toFile).collect(Collectors.toList()).toArray(arr);
+        List<File> list = new ArrayList<>();
+        for (Path path : paths) {
+            File file = path.toFile();
+            list.add(file);
+        }
+        return list.toArray(arr);
     }
 
 }

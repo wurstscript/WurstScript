@@ -78,7 +78,11 @@ public class EliminateGenerics {
                 if (ct == null) {
                     throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass + " in member access " + ma);
                 }
-                List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
+                List<ImTypeArgument> typeArgs = new ArrayList<>();
+                for (ImTypeArgument imTypeArgument : ct.getTypeArguments()) {
+                    ImTypeArgument copy = imTypeArgument.copy();
+                    typeArgs.add(copy);
+                }
                 ma.getTypeArguments().addAll(0, typeArgs);
             }
 
@@ -137,15 +141,17 @@ public class EliminateGenerics {
         for (ImFunction f : functions) {
             prog.getFunctions().add(f);
 
-            List<ImTypeVar> newTypeVars = c.getTypeVariables()
-                    .stream()
-                    .map(ImTypeVar::copy)
-                    .collect(Collectors.toList());
+            List<ImTypeVar> newTypeVars = new ArrayList<>();
+            for (ImTypeVar imTypeVar : c.getTypeVariables()) {
+                ImTypeVar copy = imTypeVar.copy();
+                newTypeVars.add(copy);
+            }
             f.getTypeVariables().addAll(0, newTypeVars);
-            List<ImTypeArgument> typeArgs = newTypeVars
-                    .stream()
-                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
-                    .collect(Collectors.toList());
+            List<ImTypeArgument> typeArgs = new ArrayList<>();
+            for (ImTypeVar ta : newTypeVars) {
+                ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap());
+                typeArgs.add(imTypeArgument);
+            }
             rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
         }
     }
@@ -412,7 +418,11 @@ public class EliminateGenerics {
                     return;
                 }
                 genericsUses.add(() -> {
-                    List<ImClassType> newSuperClasses = c.getSuperClasses().stream().map(EliminateGenerics.this::specializeType).collect(Collectors.toList());
+                    List<ImClassType> newSuperClasses = new ArrayList<>();
+                    for (ImClassType imClassType : c.getSuperClasses()) {
+                        ImClassType specializeType = EliminateGenerics.this.specializeType(imClassType);
+                        newSuperClasses.add(specializeType);
+                    }
                     c.setSuperClasses(newSuperClasses);
                 });
 
@@ -533,8 +543,12 @@ public class EliminateGenerics {
 
             @Override
             public Boolean case_ImClassType(ImClassType t) {
-                return t.getTypeArguments().stream()
-                        .anyMatch(tt -> containsTypeVariable(tt.getType()));
+                for (ImTypeArgument tt : t.getTypeArguments()) {
+                    if (containsTypeVariable(tt.getType())) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             @Override
@@ -668,10 +682,12 @@ public class EliminateGenerics {
 
     @NotNull
     private List<ImTypeArgument> specializeTypeArgs(ImTypeArguments typeArgs) {
-        return typeArgs
-                .stream()
-                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding()))
-                .collect(Collectors.toList());
+        List<ImTypeArgument> list = new ArrayList<>();
+        for (ImTypeArgument ta : typeArgs) {
+            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding());
+            list.add(imTypeArgument);
+        }
+        return list;
     }
 
     class GenericReturnTypeFunc implements GenericUse {

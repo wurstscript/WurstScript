@@ -906,7 +906,6 @@ public class OptimizerTests extends WurstScriptTest {
             "		testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         assertFalse(compiled.contains("cyc_cyc"));
     }
 
@@ -1002,7 +1001,6 @@ public class OptimizerTests extends WurstScriptTest {
             "        testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation_opt.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         assertTrue(compiled.contains("if a == 7 then"));
     }
 
@@ -1038,7 +1036,6 @@ public class OptimizerTests extends WurstScriptTest {
             "    destroyA(42)"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation2_opt.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         // copy propagation obj -> this0
         assertTrue(compiled.contains("set Test_B_nextFree[Test_B_firstFree] = this0"));
     }
@@ -1092,7 +1089,6 @@ public class OptimizerTests extends WurstScriptTest {
 
         FunctionSplitter.splitFunc(tr, func);
 
-        System.out.println(prog);
         // should at least add one additional function
         assertTrue(prog.getFunctions().size() >= 2);
 

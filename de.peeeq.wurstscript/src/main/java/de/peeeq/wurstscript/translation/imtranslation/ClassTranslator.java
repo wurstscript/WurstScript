@@ -115,9 +115,11 @@ public class ClassTranslator {
     }
 
     private ImClassType imClassType() {
-        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
-                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap());
+            typeArgs.add(imTypeArgument);
+        }
         return JassIm.ImClassType(imClass, typeArgs);
     }
 

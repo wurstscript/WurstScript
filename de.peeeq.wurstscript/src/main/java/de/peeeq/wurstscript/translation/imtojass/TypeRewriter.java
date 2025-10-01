@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import de.peeeq.wurstscript.jassIm.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,9 +48,11 @@ public class TypeRewriter {
             @Override
             public void visit(ImClass e) {
                 super.visit(e);
-                List<ImClassType> newSuperClasses = e.getSuperClasses().stream()
-                        .map(tt -> (ImClassType) rewriteType(tt))
-                        .collect(Collectors.toList());
+                List<ImClassType> newSuperClasses = new ArrayList<>();
+                for (ImClassType tt : e.getSuperClasses()) {
+                    ImClassType imClassType = (ImClassType) rewriteType(tt);
+                    newSuperClasses.add(imClassType);
+                }
                 e.setSuperClasses(newSuperClasses);
             }
 

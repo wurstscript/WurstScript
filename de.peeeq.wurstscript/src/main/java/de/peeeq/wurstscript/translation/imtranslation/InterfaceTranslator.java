@@ -66,9 +66,11 @@ public class InterfaceTranslator {
     }
 
     private ImClassType imClassType() {
-        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
-                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap());
+            typeArgs.add(imTypeArgument);
+        }
         return JassIm.ImClassType(imClass, typeArgs);
     }
 
@@ -97,11 +99,14 @@ public class InterfaceTranslator {
             ImmutableCollection<WurstTypeInterface> interfaces = subCT.implementedInterfaces();
 
             VariableBinding typeBinding =
-                    interfaces.stream()
-                            .filter(t -> t.getDef() == interfaceDef)
-                            .map(WurstTypeNamedScope::getTypeArgBinding)
-                            .findFirst()
-                            .orElse(VariableBinding.emptyMapping());
+                VariableBinding.emptyMapping();
+            for (WurstTypeInterface t : interfaces) {
+                if (t.getDef() == interfaceDef) {
+                    VariableBinding typeArgBinding = t.getTypeArgBinding();
+                    typeBinding = typeArgBinding;
+                    break;
+                }
+            }
 
             FuncDef subM = subE.getValue();
             ImMethod m = translator.getMethodFor(subM);

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class ImPrinter {
@@ -556,9 +557,12 @@ public class ImPrinter {
     }
 
     public static String asString(List<?> s) {
-        return "[" + s.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", ")) + "]";
+        StringJoiner joiner = new StringJoiner(", ");
+        for (Object o : s) {
+            String string = o.toString();
+            joiner.add(string);
+        }
+        return "[" + joiner + "]";
     }
 
     public static String asString(ImTypeClassFunc s) {

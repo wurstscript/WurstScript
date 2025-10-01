@@ -260,8 +260,6 @@ public class CompiletimeTests extends WurstScriptTest {
                 "init",
                 "	let original = new LinkedList<int>..add(0, 1, 2)",
                 "	let mapped = original.map(i -> myFunction(i))",
-                "	println(mapped.get(0))",
-                "	println(mapped.get(1))",
                 "	if mapped.get(1) == \"i=1\"",
                 "		testSuccess()");
 

@@ -58,9 +58,14 @@ public class WurstTextDocumentService implements TextDocumentService {
         WLogger.info("references");
         return worker.handle(new GetUsages(params, worker.getBufferManager(), true))
                 .thenApply((List<GetUsages.UsagesData> udList) ->
-                        udList.stream()
-                                .map(GetUsages.UsagesData::getLocation)
-                                .collect(Collectors.toList()));
+                {
+                    List<Location> list = new ArrayList<>();
+                    for (GetUsages.UsagesData usagesData : udList) {
+                        Location location = usagesData.getLocation();
+                        list.add(location);
+                    }
+                    return list;
+                });
     }
 
     @Override
@@ -68,9 +73,14 @@ public class WurstTextDocumentService implements TextDocumentService {
         WLogger.info("documentHighlight");
         return worker.handle(new GetUsages(highlightParams, worker.getBufferManager(), false))
                 .thenApply((List<GetUsages.UsagesData> udList) ->
-                        udList.stream()
-                                .map(GetUsages.UsagesData::toDocumentHighlight)
-                                .collect(Collectors.toList()));
+                {
+                    List<DocumentHighlight> list = new ArrayList<>();
+                    for (GetUsages.UsagesData usagesData : udList) {
+                        DocumentHighlight documentHighlight = usagesData.toDocumentHighlight();
+                        list.add(documentHighlight);
+                    }
+                    return list;
+                });
     }
 
     @Override

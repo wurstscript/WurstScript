@@ -29,7 +29,13 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         Element tr = c.getTrace();
 
         if (maxSizeElementFn == null) {
-            Optional<ImVar> maxSizeVar = prog.getGlobals().stream().filter(var -> !setTestMode && var.getName().equals("JASS_MAX_ARRAY_SIZE")).findFirst();
+            Optional<ImVar> maxSizeVar = Optional.empty();
+            for (ImVar var : prog.getGlobals()) {
+                if (!setTestMode && var.getName().equals("JASS_MAX_ARRAY_SIZE")) {
+                    maxSizeVar = Optional.of(var);
+                    break;
+                }
+            }
             maxSizeVar.ifPresentOrElse(imVar -> this.maxSizeElementFn = (() -> JassIm.ImVarAccess(imVar)),
                 () -> this.maxSizeElementFn = () -> JassIm.ImIntVal(Constants.MAX_ARRAY_SIZE));
         }

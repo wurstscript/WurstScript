@@ -19,6 +19,7 @@ public class ErrorHandler {
 
     private final WurstGui gui;
     private boolean unitTestMode = false;
+    public static boolean outputTestSource = false;
 
     public ErrorHandler(WurstGui gui) {
         this.gui = gui;
@@ -62,6 +63,10 @@ public class ErrorHandler {
 
     public boolean isUnitTestMode() {
         return unitTestMode;
+    }
+
+    public boolean isOutputTestSource() {
+        return outputTestSource;
     }
 
     List<CompileError> getBucketForFile(String file, ErrorType type) {

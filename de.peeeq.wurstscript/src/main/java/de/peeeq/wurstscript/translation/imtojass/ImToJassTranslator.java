@@ -58,13 +58,14 @@ public class ImToJassTranslator {
      * makes names unique in a consistent way
      */
     private <T extends JassImElementWithName> void makeNamesUnique(List<T> list) {
-        List<T> sorted = list.stream()
-                .sorted(
-                        Comparator.comparing(JassImElementWithName::getName)
-                                .thenComparing(v -> v.getTrace().attrSource().getFile())
-                                .thenComparing(v -> v.getTrace().attrSource().getLine())
-                                .thenComparing(v -> v.getTrace().attrSource().getStartColumn()))
-                .collect(Collectors.toList());
+        List<T> sorted = new ArrayList<>();
+        for (T t : list) {
+            sorted.add(t);
+        }
+        sorted.sort(Comparator.comparing(JassImElementWithName::getName)
+            .thenComparing(v -> v.getTrace().attrSource().getFile())
+            .thenComparing(v -> v.getTrace().attrSource().getLine())
+            .thenComparing(v -> v.getTrace().attrSource().getStartColumn()));
 
         for (int i = 0; i < sorted.size(); i++) {
             T vi = sorted.get(i);

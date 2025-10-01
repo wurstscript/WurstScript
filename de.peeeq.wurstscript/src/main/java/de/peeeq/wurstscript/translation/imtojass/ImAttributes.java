@@ -67,8 +67,12 @@ public class ImAttributes {
     }
 
     public static boolean isCompiletime(ImFunction f) {
-        return f.getFlags().stream()
-                .anyMatch(flag -> flag instanceof FunctionFlagCompiletime);
+        for (FunctionFlag flag : f.getFlags()) {
+            if (flag instanceof FunctionFlagCompiletime) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

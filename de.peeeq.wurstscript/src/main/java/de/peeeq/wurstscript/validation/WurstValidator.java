@@ -154,9 +154,9 @@ public class WurstValidator {
         ValidateClassMemberUsage.checkClassMembers(toCheck);
         ValidateLocalUsage.checkLocalsUsage(toCheck);
 
-        trveWrapperFuncs.forEach(wrapper -> {
+        for (String wrapper : trveWrapperFuncs) {
             if (wrapperCalls.containsKey(wrapper)) {
-                wrapperCalls.get(wrapper).forEach(call -> {
+                for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
                         TRVEHelper.protectedVariables.add(varName.getValS());
@@ -164,9 +164,9 @@ public class WurstValidator {
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
                     }
-                });
+                }
             }
-        });
+        }
     }
 
     private void checkUnusedImports(Collection<CompilationUnit> toCheck) {
@@ -516,11 +516,14 @@ public class WurstValidator {
                 NameDef f = link.getDef();
                 if (f.attrIsAbstract()) {
                     if (f.attrNearestStructureDef() == c) {
-                        Element loc = f.getModifiers().stream()
-                                .filter(m -> m instanceof ModAbstract)
-                                .<Element>map(x -> x)
-                                .findFirst()
-                                .orElse(f);
+                        Element loc = f;
+                        for (Modifier m : f.getModifiers()) {
+                            if (m instanceof ModAbstract) {
+                                Element x = m;
+                                loc = x;
+                                break;
+                            }
+                        }
                         loc.addError("Non-abstract class " + c.getName() + " cannot have abstract functions like " + f.getName());
                     } else if (link instanceof FuncLink) {
                         toImplement.append("\n    ");
@@ -865,13 +868,14 @@ public class WurstValidator {
             WurstTypeClass ct = (WurstTypeClass) expectedTyp;
 
             ClassDef cd = ct.getClassDef();
-            if (cd.getConstructors().stream().noneMatch(constr -> constr.getParameters().isEmpty())) {
-
-
-
-
-
-
+            boolean b = true;
+            for (ConstructorDef constr : cd.getConstructors()) {
+                if (constr.getParameters().isEmpty()) {
+                    b = false;
+                    break;
+                }
+            }
+            if (b) {
                 e.addError("No default constructor for class " + ct
                     + " found, so it cannot be instantiated using an anonymous function.");
             }
@@ -2349,9 +2353,10 @@ public class WurstValidator {
             s.addError("The type " + s.getExpr().attrTyp()
                     + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
         } else {
-            List<Expr> switchExprs = s.getCases().stream()
-                    .flatMap(e -> e.getExpressions().stream())
-                    .collect(Collectors.toList());
+            List<Expr> switchExprs = new ArrayList<>();
+            for (SwitchCase e : s.getCases()) {
+                switchExprs.addAll(e.getExpressions());
+            }
             for (Expr cExpr : switchExprs) {
                 if (!cExpr.attrTyp().isSubtypeOf(s.getExpr().attrTyp(), cExpr)) {
                     cExpr.addError("The type " + cExpr.attrTyp() + " does not match the switchtype "

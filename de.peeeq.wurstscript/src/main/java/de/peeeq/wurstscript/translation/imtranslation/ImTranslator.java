@@ -508,9 +508,11 @@ public class ImTranslator {
             imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
-            List<ImExpr> translatedExprs = arInit.getValues().stream()
-                    .map(expr -> expr.imTranslateExpr(this, f))
-                    .collect(Collectors.toList());
+            List<ImExpr> translatedExprs = new ArrayList<>();
+            for (Expr expr : arInit.getValues()) {
+                ImExpr imExpr = expr.imTranslateExpr(this, f);
+                translatedExprs.add(imExpr);
+            }
             List<ImSet> imSets = new ArrayList<>();
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
@@ -844,9 +846,15 @@ public class ImTranslator {
     }
 
 
+    private static final String BJ1 = "blizzard.j";
+    private static final String BJ2 = "common.j";
+
     private boolean isBJ(WPos source) {
-        String f = source.getFile().toLowerCase();
-        return f.endsWith("blizzard.j") || f.endsWith("common.j");
+        String path = source.getFile(); // no lowercasing
+        int n = path.length();
+
+        return (n >= BJ1.length() && path.regionMatches(true, n - BJ1.length(), BJ1, 0, BJ1.length()))
+            || (n >= BJ2.length() && path.regionMatches(true, n - BJ2.length(), BJ2, 0, BJ2.length()));
     }
 
     public ImFunction getInitFuncFor(WPackage p) {

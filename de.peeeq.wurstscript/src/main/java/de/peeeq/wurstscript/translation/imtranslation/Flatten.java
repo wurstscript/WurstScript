@@ -80,7 +80,14 @@ public class Flatten {
 
         public Result(List<ImStmt> stmts, ImExpr expr) {
             Preconditions.checkArgument(expr.getParent() == null, "expression must not have a parent");
-            Preconditions.checkArgument(stmts.stream().allMatch(s -> s.getParent() == null), "statement must not have a parent");
+            boolean b = true;
+            for (ImStmt s : stmts) {
+                if (s.getParent() != null) {
+                    b = false;
+                    break;
+                }
+            }
+            Preconditions.checkArgument(b, "statement must not have a parent");
             this.stmts = stmts;
             this.expr = expr;
         }

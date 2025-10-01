@@ -157,9 +157,14 @@ public class StackTraceInjector2 {
     }
 
     private ImExpr getStackPosVar(ImFunction f) {
-        return JassIm.ImVarAccess(f.getParameters().stream()
-            .filter(this::isStackTraceParam)
-            .findFirst().orElseGet(() -> {
+        for (ImVar imVar : f.getParameters()) {
+            if (isStackTraceParam(imVar)) {
+                return JassIm.ImVarAccess(Optional.of(imVar).orElseGet(() -> {
+                    throw new CompileError(f, "Function " + f.getName() + " has no stacktrace parameter.");
+                }));
+            }
+        }
+        return JassIm.ImVarAccess(Optional.<ImVar>empty().orElseGet(() -> {
                 throw new CompileError(f, "Function " + f.getName() + " has no stacktrace parameter.");
             }));
     }

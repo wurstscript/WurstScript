@@ -90,11 +90,11 @@ public class ValidateClassMemberUsage {
 
         });
 
-        definedVars.forEach(var -> {
+        for (VarDef var : definedVars) {
             if (var.attrIsPrivate()) {
                 var.addWarning("Private variable <" + var.getName() + "> is never read.");
             }
-        });
+        }
 
     }
 
@@ -145,11 +145,11 @@ public class ValidateClassMemberUsage {
 
         });
 
-        definedFuncs.forEach(funcDef -> {
+        for (FunctionDefinition funcDef : definedFuncs) {
             if (funcDef.attrIsPrivate() && !(funcDef.attrIsStatic() && funcDef.hasAnnotation("@compiletime"))) {
                 funcDef.addWarning("Private function <" + funcDef.getName() + "> is never used.");
             }
-        });
+        }
 
     }
 }

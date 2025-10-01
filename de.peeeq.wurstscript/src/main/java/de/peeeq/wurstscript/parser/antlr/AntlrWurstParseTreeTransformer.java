@@ -87,10 +87,12 @@ public class AntlrWurstParseTreeTransformer {
 
 
         // positions, big last
-        List<WPosWithComments> positions2 = positions.stream()
-                .sorted(Comparator.comparing(WPos::getRightPos)
-                        .thenComparing(Comparator.comparing(WPos::getLeftPos).reversed()))
-                .collect(Collectors.toList());
+        List<WPosWithComments> positions2 = new ArrayList<>();
+        for (WPosWithComments position : positions) {
+            positions2.add(position);
+        }
+        positions2.sort(Comparator.comparing(WPos::getRightPos)
+            .thenComparing(Comparator.comparing(WPos::getLeftPos).reversed()));
 
         int pos = 0;
         int pos2 = 0;

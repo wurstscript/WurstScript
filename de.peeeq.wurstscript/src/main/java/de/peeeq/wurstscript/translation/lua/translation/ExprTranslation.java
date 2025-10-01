@@ -170,9 +170,13 @@ public class ExprTranslation {
 
 
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleFunc> tfo = tr.tupleEqualsFuncs.stream()
-            .filter(f -> f.tupleType.equalsType(t))
-            .findFirst();
+        Optional<TupleFunc> tfo = Optional.empty();
+        for (TupleFunc f : tr.tupleEqualsFuncs) {
+            if (f.tupleType.equalsType(t)) {
+                tfo = Optional.of(f);
+                break;
+            }
+        }
         TupleFunc tf;
         if (tfo.isPresent()) {
             tf = tfo.get();
@@ -203,9 +207,13 @@ public class ExprTranslation {
 
 
     public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleFunc> tfo = tr.tupleCopyFuncs.stream()
-            .filter(f -> f.tupleType.equalsType(t))
-            .findFirst();
+        Optional<TupleFunc> tfo = Optional.empty();
+        for (TupleFunc f : tr.tupleCopyFuncs) {
+            if (f.tupleType.equalsType(t)) {
+                tfo = Optional.of(f);
+                break;
+            }
+        }
         TupleFunc tf;
         if (tfo.isPresent()) {
             tf = tfo.get();
