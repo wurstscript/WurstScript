@@ -53,35 +53,54 @@ public class SimpleRewrites implements OptimizerPass {
             @Override
             public void visit(ImStmts stmts) {
                 super.visit(stmts);
-                removeUnreachableCode(stmts);
+                if (stmts.size() > 1) {
+                    removeUnreachableCode(stmts);
+                }
             }
         });
     }
 
     private void removeUnreachableCode(ImStmts stmts) {
-        Iterator<ImStmt> it = stmts.iterator();
         boolean reachable = true;
-        while (it.hasNext()) {
-            ImStmt s = it.next();
-            if (reachable) {
+        for (int i = 0; i < stmts.size(); ) {
+            ImStmt s = stmts.get(i);
+
+            if (!reachable) {
+                stmts.remove(i);
+                totalRewrites++;
+            } else {
+                // Check various ways code becomes unreachable
                 if (s instanceof ImReturn) {
                     reachable = false;
                 } else if (s instanceof ImExitwhen) {
-                    ImExitwhen imExitwhen = (ImExitwhen) s;
-                    ImExpr expr = imExitwhen.getCondition();
-                    if (expr instanceof ImBoolVal) {
-                        boolean b = ((ImBoolVal) expr).getValB();
-                        if (b) {
-                            // found "exitwhen true"
+                    ImExitwhen exitwhen = (ImExitwhen) s;
+                    if (exitwhen.getCondition() instanceof ImBoolVal) {
+                        boolean exits = ((ImBoolVal) exitwhen.getCondition()).getValB();
+                        if (exits) {
+                            reachable = false;
+                        }
+                    }
+                } else if (s instanceof ImIf) {
+                    // Check for "if true then return" patterns
+                    ImIf ifStmt = (ImIf) s;
+                    if (ifStmt.getCondition() instanceof ImBoolVal) {
+                        boolean condition = ((ImBoolVal) ifStmt.getCondition()).getValB();
+                        if (condition && endsWithReturn(ifStmt.getThenBlock())) {
+                            reachable = false;
+                        } else if (!condition && endsWithReturn(ifStmt.getElseBlock())) {
                             reachable = false;
                         }
                     }
                 }
-            } else {
-                totalRewrites++;
-                it.remove();
+                i++;
             }
         }
+    }
+
+    private boolean endsWithReturn(ImStmts block) {
+        if (block.isEmpty()) return false;
+        ImStmt last = block.get(block.size() - 1);
+        return last instanceof ImReturn;
     }
 
     /**

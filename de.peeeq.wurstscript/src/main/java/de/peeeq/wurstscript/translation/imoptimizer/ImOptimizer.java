@@ -25,14 +25,13 @@ public class ImOptimizer {
 
     static {
         localPasses.add(new SimpleRewrites());
+        localPasses.add(new LocalMerger());
+        localPasses.add(new BranchMerger());
         localPasses.add(new ConstantAndCopyPropagation());
         localPasses.add(new UselessFunctionCallsRemover());
         localPasses.add(new GlobalsInliner());
-        localPasses.add(new BranchMerger());
         localPasses.add(new SimpleRewrites());
-        localPasses.add(new LocalMerger());
     }
-
 
     private final TimeTaker timeTaker;
     ImTranslator trans;
@@ -105,12 +104,14 @@ public class ImOptimizer {
             int globalsAfter = prog.getGlobals().size();
             int globalsRemoved = globalsBefore - globalsAfter;
             totalGlobalsRemoved += globalsRemoved;
+
             // keep only functions reachable from main and config
             int functionsBefore = prog.getFunctions().size();
             changes |= prog.getFunctions().retainAll(trans.getUsedFunctions());
             int functionsAfter = prog.getFunctions().size();
             int functionsRemoved = functionsBefore - functionsAfter;
             totalFunctionsRemoved += functionsRemoved;
+
             // also consider class functions
             Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
             for (ImClass c : prog.getClasses()) {
@@ -125,6 +126,7 @@ public class ImOptimizer {
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
+
             for (ImFunction f : allFunctions) {
                 // remove set statements to unread variables
                 final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
@@ -140,14 +142,14 @@ public class ImOptimizer {
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                // TODO indexes might have side effects that we need to keep
+                                // IMPORTANT: removeAll() clears parent references
                                 List<ImExpr> exprs = va.getIndexes().removeAll();
                                 exprs.add(e.getRight());
                                 replacements.add(Pair.create(e, exprs));
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                            if(!trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
+                            if(var != null && !trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
                                 replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
@@ -157,21 +159,25 @@ public class ImOptimizer {
                             }
                         }
                     }
-
                 });
+
                 Replacer replacer = new Replacer();
                 for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
                     ImExpr r;
                     if (pair.getB().size() == 1) {
                         r = pair.getB().get(0);
+                        // CRITICAL: Clear parent before reusing the node
                         r.setParent(null);
                     } else {
-                        List<ImStmt> exprs = Collections.unmodifiableList(pair.getB());
-                        for (ImStmt expr : exprs) {
+                        // CRITICAL: Create proper list wrapper for multiple expressions
+                        List<ImStmt> stmts = new ArrayList<>();
+                        for (ImExpr expr : pair.getB()) {
+                            // Clear parent for each expression
                             expr.setParent(null);
+                            stmts.add(expr);
                         }
-                        r = ImHelper.statementExprVoid(JassIm.ImStmts(exprs));
+                        r = ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
                     }
                     replacer.replace(pair.getA(), r);
                 }
@@ -181,6 +187,4 @@ public class ImOptimizer {
             }
         }
     }
-
-
 }

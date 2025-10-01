@@ -128,7 +128,14 @@ public class RunMap extends MapRequest {
         timeTaker.beginPhase("Starting Warcraft 3");
         gui.sendProgress("Starting Warcraft 3...");
 
-        File mapCopy = copyToWarcraftMapDir(testMap.get());
+        File mapCopy = testMap.get();
+        if (w3data.getWc3PatchVersion().isPresent()) {
+            GameVersion gameVersion = w3data.getWc3PatchVersion().get();
+            if (gameVersion != VERSION_1_32) {
+                mapCopy = copyToWarcraftMapDir(testMap.get());
+            }
+        }
+
 
         WLogger.info("Starting wc3 ... ");
         String path = "";

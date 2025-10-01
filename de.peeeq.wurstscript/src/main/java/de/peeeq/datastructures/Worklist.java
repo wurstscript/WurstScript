@@ -1,24 +1,23 @@
 package de.peeeq.datastructures;
 
-import java.util.ArrayDeque;
+import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+
 import java.util.Collection;
-import java.util.HashSet;
 
 /**
- * A queue with efficient lookup using a hashset.
- * <p>
- * No element is added to the queue more than once.
+ * An optimized worklist that uses fastutil collections to reduce overhead and allocations.
  */
 public class Worklist<T> {
-    private final ArrayDeque<T> queue = new ArrayDeque<>();
-    private final HashSet<T> set = new HashSet<>();
+    private final ObjectArrayFIFOQueue<T> queue = new ObjectArrayFIFOQueue<>();
+    private final ObjectOpenHashSet<T> set = new ObjectOpenHashSet<>();
 
     public Worklist() {
     }
 
     public Worklist(Iterable<? extends T> nodes) {
         for (T node : nodes) {
-            addLast(node);
+            add(node);
         }
     }
 
@@ -26,24 +25,17 @@ public class Worklist<T> {
         return queue.isEmpty();
     }
 
-
-    public void addFirst(T node) {
+    public void add(T node) {
         if (set.add(node)) {
-            queue.addFirst(node);
-        }
-    }
-
-    public void addLast(T node) {
-        if (set.add(node)) {
-            queue.addLast(node);
+            queue.enqueue(node);
         }
     }
 
     public T poll() {
-        T result = queue.poll();
-        if (result != null) {
-            set.remove(result);
-        }
+        T result = queue.dequeue();
+        // The element is removed from the queue but must also be removed from the set
+        // so it can be added again later in the process.
+        set.remove(result);
         return result;
     }
 
@@ -53,7 +45,7 @@ public class Worklist<T> {
 
     public void addAll(Collection<? extends T> elems) {
         for (T elem : elems) {
-            addLast(elem);
+            add(elem);
         }
     }
 }

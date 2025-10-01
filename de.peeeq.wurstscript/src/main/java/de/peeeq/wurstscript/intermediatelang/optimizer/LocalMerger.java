@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
+import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
@@ -194,15 +195,22 @@ public class LocalMerger implements OptimizerPass {
         return false;
     }
 
+    /**
+     * Calculates liveness for each statement using a fixed-point iteration
+     * over the strongly connected components of the control flow graph.
+     */
     public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
+        // 1. Build Control Flow Graph
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         final List<Node> nodes = cfg.getNodes();
         final int N = nodes.size();
 
+        // Map nodes to indices for quick array access
         final Object2IntOpenHashMap<Node> idx = new Object2IntOpenHashMap<>(N);
         idx.defaultReturnValue(-1);
         for (int i = 0; i < N; i++) idx.put(nodes.get(i), i);
 
+        // 2. Calculate USE and DEF sets for each node
         @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] use = new ObjectOpenHashSet[N];
         @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] def = new ObjectOpenHashSet[N];
 
@@ -244,43 +252,72 @@ public class LocalMerger implements OptimizerPass {
             }
         }
 
+        // 3. Find SCCs on the REVERSED graph for backward analysis
+        GraphInterpreter<Node> reverseCfgInterpreter = new GraphInterpreter<>() {
+            @Override
+            protected Collection<Node> getIncidentNodes(Node t) {
+                // For backward analysis, we traverse predecessors
+                return t.getPredecessors();
+            }
+        };
+        // Use the path-based strong component algorithm [1] on the reversed CFG.
+        // It returns SCCs in reverse topological order of the graph it is given.
+        List<List<Node>> sccs = reverseCfgInterpreter.findStronglyConnectedComponents(nodes);
+        // For a backward analysis, we need to process SCCs in reverse topological order of the original CFG.
+        // The algorithm on the reversed graph gives a topological sort of the original graph's SCCs.
+        // Therefore, we reverse the list to get the required processing order.
+        Collections.reverse(sccs);
+
+        // 4. Initialize IN and OUT sets for the data-flow analysis
         @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] in  = new ObjectOpenHashSet[N];
         @SuppressWarnings("unchecked") final ObjectOpenHashSet<ImVar>[] out = new ObjectOpenHashSet[N];
         for (int i = 0; i < N; i++) { in[i] = new ObjectOpenHashSet<>(); out[i] = new ObjectOpenHashSet<>(); }
 
-        final it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue work = new it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue(N);
-        final boolean[] inQueue = new boolean[N];
-        for (int i = 0; i < N; i++) { work.enqueue(i); inQueue[i] = true; }
+        // 5. Iterate over SCCs in reverse topological order
+        for (List<Node> scc : sccs) {
+            if (scc.isEmpty()) continue;
 
-        while (!work.isEmpty()) {
-            final int u = work.dequeueInt();
-            inQueue[u] = false;
+            // Iterate within this SCC until a fixed point is reached for all its nodes.
+            boolean changedInScc = true;
+            while (changedInScc) {
+                changedInScc = false;
+                for (Node u_node : scc) {
+                    int u_idx = idx.getInt(u_node);
 
-            final ObjectOpenHashSet<ImVar> newOut = new ObjectOpenHashSet<>(out[u].size());
-            for (Node succ : nodes.get(u).getSuccessors()) {
-                int v = idx.getInt(succ);
-                newOut.addAll(in[v]);
-            }
+                    // Recalculate OUT[u] from the IN sets of its successors.
+                    // Any successor not in the current SCC has already been processed and its IN set is stable.
+                    final ObjectOpenHashSet<ImVar> newOut = new ObjectOpenHashSet<>();
+                    for (Node succ : u_node.getSuccessors()) {
+                        int v_idx = idx.getInt(succ);
+                        if (v_idx != -1) {
+                            newOut.addAll(in[v_idx]);
+                        }
+                    }
+                    out[u_idx] = newOut;
 
-            final ObjectOpenHashSet<ImVar> newIn = new ObjectOpenHashSet<>(in[u].size());
-            newIn.addAll(newOut);
-            newIn.removeAll(def[u]);
-            newIn.addAll(use[u]);
+                    // Recalculate IN[u] using the data-flow equation: in[u] = use[u] U (out[u] - def[u])
+                    final ObjectOpenHashSet<ImVar> oldIn = in[u_idx];
+                    final ObjectOpenHashSet<ImVar> newIn = new ObjectOpenHashSet<>();
+                    newIn.addAll(newOut);
+                    newIn.removeAll(def[u_idx]);
+                    newIn.addAll(use[u_idx]);
 
-            if (!newIn.equals(in[u])) {
-                in[u] = newIn;
-                for (Node pred : nodes.get(u).getPredecessors()) {
-                    int p = idx.getInt(pred);
-                    if (!inQueue[p]) { work.enqueue(p); inQueue[p] = true; }
+                    // If IN[u] changed, update it and flag that we need another iteration for this SCC.
+                    if (!newIn.equals(oldIn)) {
+                        in[u_idx] = newIn;
+                        changedInScc = true;
+                    }
                 }
             }
-            if (!newOut.equals(out[u])) out[u] = newOut;
         }
 
+        // 6. Collect results into the final map format
         final java.util.LinkedHashMap<ImStmt, Set<ImVar>> result = new java.util.LinkedHashMap<>();
         for (int i = 0; i < N; i++) {
             ImStmt stmt = nodes.get(i).getStmt();
-            if (stmt != null) result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
+            if (stmt != null) {
+                result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
+            }
         }
         return result;
     }

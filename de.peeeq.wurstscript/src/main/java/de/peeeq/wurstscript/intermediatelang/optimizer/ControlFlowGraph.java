@@ -10,7 +10,7 @@ import java.util.List;
 
 public class ControlFlowGraph {
 
-    static final class Node {
+    public static final class Node {
         private @Nullable ImStmt stmt;
         private @Nullable String name = null;
         // Use fastutil lists; far less overhead than ArrayList for small lists.
