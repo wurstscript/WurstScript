@@ -27,12 +27,12 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) {
-        getEditor().insertByteArray(filenameInMpq, contents);
+        getEditor().insertByteArray(filenameInMpq, contents, true);
     }
 
     @Override
     public void insertFile(String filenameInMpq, File contents) throws Exception {
-        getEditor().insertFile(filenameInMpq, contents, false);
+        getEditor().insertFile(filenameInMpq, contents, true);
     }
 
     @Override

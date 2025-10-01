@@ -98,7 +98,7 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'com.github.inwc3:jmpq3:1676fc7020'
     implementation 'com.github.inwc3:wc3libs:e33d3dc368'
-    implementation 'com.github.wurstscript:wurstsetup:475cc7fae8'
+    implementation 'com.github.wurstscript:wurstsetup:393cf5ea39'
     implementation 'org.slf4j:slf4j-api:1.7.25'
     implementation 'ch.qos.logback:logback-classic:1.5.13'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
