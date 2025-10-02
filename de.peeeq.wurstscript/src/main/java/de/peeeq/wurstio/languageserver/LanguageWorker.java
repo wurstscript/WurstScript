@@ -42,7 +42,7 @@ public class LanguageWorker implements Runnable {
     private final Thread thread;
     public final Duration reconcileWaitTime;
 
-    private ModelManager modelManager;
+    protected ModelManager modelManager;
 
     public void setRootPath(WFile rootPath) {
         this.rootPath = rootPath;

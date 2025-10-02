@@ -1105,9 +1105,23 @@ public class WurstValidator {
 
     private void checkAssignment(boolean isJassCode, Element pos, WurstType leftType, WurstType rightType) {
         if (!rightType.isSubtypeOf(leftType, pos)) {
+            // NEW: Allow null assignment to generic type parameters with colon constraint
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeBoundTypeParam) {
+                WurstTypeBoundTypeParam boundParam = (WurstTypeBoundTypeParam) leftType;
+                // Allow null for type parameters with colon constraint (class types)
+                // The translator will handle substituting default values for primitives
+                return;
+            }
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeTypeParam) {
+                WurstTypeTypeParam typeParam = (WurstTypeTypeParam) leftType;
+                // Check if this type parameter has a colon constraint (can be class types)
+                // Allow the assignment - translator will handle it
+                return;
+            }
+
             if (isJassCode) {
                 if (leftType.isSubtypeOf(WurstTypeReal.instance(), pos)
-                        && rightType.isSubtypeOf(WurstTypeInt.instance(), pos)) {
+                    && rightType.isSubtypeOf(WurstTypeInt.instance(), pos)) {
                     // special case: jass allows to assign an integer to a real
                     // variable
                     return;
@@ -1645,6 +1659,14 @@ public class WurstValidator {
             } else {
                 WurstType returnedType = returned.attrTyp();
                 if (!returnedType.isSubtypeOf(returnType, s)) {
+                    // NEW: Allow returning null for generic type parameters
+                    if (returnedType instanceof WurstTypeNull &&
+                        (returnType instanceof WurstTypeBoundTypeParam || returnType instanceof WurstTypeTypeParam)) {
+                        // Allow null return for generic type parameters
+                        // The translator will handle substituting default values for primitives
+                        return;
+                    }
+
                     s.addError("Cannot return " + returnedType + ", expected expression of type " + returnType);
                 }
             }

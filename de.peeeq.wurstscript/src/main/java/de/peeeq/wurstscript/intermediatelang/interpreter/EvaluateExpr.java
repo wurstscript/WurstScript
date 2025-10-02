@@ -41,25 +41,26 @@ public class EvaluateExpr {
 
         Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
         @Nullable ILconstObject receiver = null;
-        Element parent = e.getFunc().getParent().getParent();
-        if (parent instanceof ImClass) {
-            ImTypeVars typeParams = ((ImClass)parent).getTypeVariables();  // The T74 parameters
-            ImTypeArguments typeArgs = e.getTypeArguments(); // The <integer> arguments
+        if (e.getFunc().getParent() != null) {
+            Element parent = e.getFunc().getParent().getParent();
+            if (parent instanceof ImClass) {
+                ImTypeVars typeParams = ((ImClass) parent).getTypeVariables();  // The T74 parameters
+                ImTypeArguments typeArgs = e.getTypeArguments(); // The <integer> arguments
 
-            // Create mapping: T74 -> integer
-            for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
-                ImTypeVar genericParam = typeParams.get(i);
-                ImType concreteArg = typeArgs.get(i).getType();
-                typeSubstitutions.put(genericParam, concreteArg);
+                // Create mapping: T74 -> integer
+                for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
+                    ImTypeVar genericParam = typeParams.get(i);
+                    ImType concreteArg = typeArgs.get(i).getType();
+                    typeSubstitutions.put(genericParam, concreteArg);
+                }
+
+                if (args.length > 0 && args[0] instanceof ILconstObject) {
+                    receiver = (ILconstObject) args[0];
+                }
+
             }
-
-            if (args.length > 0 && args[0] instanceof ILconstObject) {
-                receiver = (ILconstObject) args[0];
-            }
-
         }
 
-        System.out.println("Eval ImFunctionCall: " + f.getName() + " with args: " + java.util.Arrays.toString(args) + " and type substitutions: " + typeSubstitutions);
         globalState.pushStackframeWithTypes(f, receiver, args, e.attrTrace().attrErrorPos(), typeSubstitutions);
 
 
@@ -90,12 +91,35 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImNull e, ProgramState globalState, LocalState localState) {
-        if (e.getType() instanceof ImAnyType
-            || e.getType() instanceof ImClassType
-            || e.getType() instanceof ImTypeVarRef
-            || TypesHelper.isIntType(e.getType())) {
+        ImType type = e.getType();
+
+        // Handle type variable references (before specialization)
+        if (type instanceof ImTypeVarRef) {
+            return ILconstInt.create(0); // Default - will be correct after specialization
+        }
+
+        // Handle specialized types (after EliminateGenerics)
+        if (type instanceof ImSimpleType) {
+            ImSimpleType simpleType = (ImSimpleType) type;
+            String typename = simpleType.getTypename();
+            if (typename.equals("integer") || typename.equals("int")) {
+                return ILconstInt.create(0);
+            } else if (typename.equals("real")) {
+                return ILconstReal.create(0);
+            } else if (typename.equals("boolean") || typename.equals("bool")) {
+                return ILconstBool.instance(false);
+            } else if (typename.equals("string")) {
+                return new ILconstString("");
+            }
+        }
+
+        // Class types and other reference types can be null
+        if (type instanceof ImAnyType
+            || type instanceof ImClassType
+            || TypesHelper.isIntType(type)) {
             return ILconstInt.create(0);
         }
+
         return ILconstNull.instance();
     }
 

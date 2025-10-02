@@ -137,7 +137,6 @@ public class ProgramState extends State {
 
 
     public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver, ILconst[] args, WPos trace, Map<ImTypeVar, ImType> typeSubstitutions) {
-        System.out.println("pushStackframeWithTypes " + f.getName() + " with args " + Arrays.toString(args) + " with type substitutions " + typeSubstitutions);
         stackFrames.push(new ILStackFrame(f, receiver, args, trace, typeSubstitutions));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -210,7 +209,7 @@ public class ProgramState extends State {
     }
 
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
-        System.out.println("pushStackframe compiletime expr " + f);
+//        System.out.println("pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -220,7 +219,7 @@ public class ProgramState extends State {
     }
 
     public void popStackframe() {
-        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
+//        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }

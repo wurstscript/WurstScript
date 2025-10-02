@@ -483,6 +483,7 @@ public class WurstScriptTest {
                 executeTests(gui, compiler.getImTranslator(), imProg);
             }
             if (executeProg) {
+                WLogger.info("Executing imProg before jass transformation");
                 executeImProg(gui, imProg);
             }
         }
@@ -498,6 +499,7 @@ public class WurstScriptTest {
             executeTests(gui, compiler.getImTranslator(), imProg);
         }
         if (executeProg) {
+            WLogger.info("Executing imProg after jass transformation");
             executeImProg(gui, imProg);
         }
 

@@ -34,7 +34,7 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
         return create(-val);
     }
 
-    static ILconstReal create(float f) {
+    public static ILconstReal create(float f) {
         return new ILconstReal(f);
     }
 

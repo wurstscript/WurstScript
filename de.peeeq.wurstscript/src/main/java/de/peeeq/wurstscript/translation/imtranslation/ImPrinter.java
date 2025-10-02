@@ -13,8 +13,9 @@ public class ImPrinter {
     public static void print(ImProg p, Appendable sb, int indent) {
         for (ImVar g : p.getGlobals()) {
             g.print(sb, indent);
+            append(sb,'\n');
         }
-        append(sb, "\n\n");
+        append(sb, "\n");
         p.getGlobalInits().forEach((v,es) -> {
             v.print(sb, indent);
             append(sb, " = ");

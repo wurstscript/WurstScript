@@ -19,7 +19,7 @@ public class ErrorHandler {
 
     private final WurstGui gui;
     private boolean unitTestMode = false;
-    public static boolean outputTestSource = false;
+    public static boolean outputTestSource = true;
 
     public ErrorHandler(WurstGui gui) {
         this.gui = gui;

@@ -50,7 +50,28 @@ public class ILInterpreter implements AbstractInterpreter {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
         try {
-            // ... (existing vararg and parameter validation logic) ...
+            if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+                // for vararg functions, rewrite args and put last argument
+                ILconst[] newArgs = new ILconst[f.getParameters().size()];
+                if (newArgs.length - 1 >= 0) System.arraycopy(args, 0, newArgs, 0, newArgs.length - 1);
+
+                ILconst[] varargArray = new ILconst[1 + args.length - newArgs.length];
+                for (int i = newArgs.length - 1, j = 0; i < args.length; i++, j++) {
+                    varargArray[j] = args[i];
+                }
+                newArgs[newArgs.length - 1] = new VarargArray(varargArray);
+                args = newArgs;
+            }
+
+            if (f.getParameters().size() != args.length) {
+                throw new Error("wrong number of parameters when calling func " + f.getName() + "(" +
+                    Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
+            }
+
+            for (int i = 0; i < f.getParameters().size(); i++) {
+                // TODO could do typecheck here
+                args[i] = adjustTypeOfConstant(args[i], f.getParameters().get(i).getType());
+            }
 
             if (isCompiletimeNative(f) || f.isNative()) {
                 return runBuiltinFunction(globalState, f, args);
