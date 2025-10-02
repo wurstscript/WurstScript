@@ -157,7 +157,7 @@ public class RunTests extends UserRequest<Object> {
             globalState = new ProgramState(gui, imProg, true);
         }
         if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState, false);
+            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         }
 
@@ -176,91 +176,90 @@ public class RunTests extends UserRequest<Object> {
 
         WLogger.info("Ran compiletime functions");
 
+        // Use try-with-resources for automatic cleanup
+        try (ScheduledExecutorService testScheduler = Executors.newSingleThreadScheduledExecutor()) {
 
-        for (ImFunction f : imProg.getFunctions()) {
-            if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
-                Element trace = f.attrTrace();
+            for (ImFunction f : imProg.getFunctions()) {
+                if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
+                    Element trace = f.attrTrace();
 
-                if (cu.isPresent() && !Utils.elementContained(Optional.of(trace), cu.get())) {
-                    continue;
-                }
-                if (funcToTest.isPresent() && trace != funcToTest.get()) {
-                    continue;
-                }
+                    if (cu.isPresent() && !Utils.elementContained(Optional.of(trace), cu.get())) {
+                        continue;
+                    }
+                    if (funcToTest.isPresent() && trace != funcToTest.get()) {
+                        continue;
+                    }
 
-
-                String message = "Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
+                    String message = "Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
                         + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..";
-                println(message);
-                WLogger.info(message);
-                try {
-                    @Nullable ILInterpreter finalInterpreter = interpreter;
-                    Callable<Void> run = () -> {
-                        finalInterpreter.runVoidFunc(f, null);
-                        // each test must finish it's own timers (otherwise, we would get strange results)
-                        finalInterpreter.completeTimers();
-                        return null;
-                    };
-                    RunnableFuture<Void> future = new FutureTask<>(run);
-                    if (service != null && !service.isShutdown()) {
-                        service.shutdownNow();
-                    }
-                    service = Executors.newSingleThreadScheduledExecutor();
-                    service.execute(future);
+                    println(message);
+                    WLogger.info(message);
+
                     try {
-                        future.get(timeoutSeconds, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
-                    } catch (TimeoutException ex) {
-                        future.cancel(true);
-                        throw new TestTimeOutException();
-                    } catch (ExecutionException e) {
-                        throw e.getCause();
-                    }
-                    service.shutdown();
-                    service.awaitTermination(10, TimeUnit.SECONDS);
-                    service = Executors.newSingleThreadScheduledExecutor();
-                    if (gui.getErrorCount() > 0) {
-                        StringBuilder sb = new StringBuilder();
-                        for (CompileError error : gui.getErrorList()) {
-                            sb.append(error).append("\n");
-                            println(error.getMessage());
+                        @Nullable ILInterpreter finalInterpreter = interpreter;
+                        Callable<Void> run = () -> {
+                            finalInterpreter.runVoidFunc(f, null);
+                            // each test must finish its own timers (otherwise, we would get strange results)
+                            finalInterpreter.completeTimers();
+                            return null;
+                        };
+
+                        Future<Void> future = testScheduler.submit(run);
+
+                        try {
+                            future.get(timeoutSeconds, TimeUnit.SECONDS);
+                        } catch (TimeoutException ex) {
+                            future.cancel(true);
+                            throw new TestTimeOutException();
+                        } catch (ExecutionException e) {
+                            throw e.getCause();
                         }
-                        gui.clearErrors();
-                        TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), sb.toString());
-                        failTests.add(failure);
-                    } else {
+
+                        if (gui.getErrorCount() > 0) {
+                            StringBuilder sb = new StringBuilder();
+                            for (CompileError error : gui.getErrorList()) {
+                                sb.append(error).append("\n");
+                                println(error.getMessage());
+                            }
+                            gui.clearErrors();
+                            TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), sb.toString());
+                            failTests.add(failure);
+                        } else {
+                            successTests.add(f);
+                            println("\tOK!");
+                        }
+                    } catch (TestSuccessException e) {
                         successTests.add(f);
                         println("\tOK!");
+                    } catch (TestFailException e) {
+                        TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                        failTests.add(failure);
+                        println("\tFAILED assertion:");
+                        println("\t" + failure.getMessageWithStackFrame());
+                    } catch (TestTimeOutException e) {
+                        failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
+                        println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
+                        println(interpreter.getStackFrames().toString());
+                    } catch (InterpreterException e) {
+                        TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                        failTests.add(failure);
+                        println("\t" + failure.getMessageWithStackFrame());
+                    } catch (Throwable e) {
+                        failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
+                        println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
+                        println(interpreter.getStackFrames().toString());
+                        println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        e.printStackTrace(pw);
+                        String sStackTrace = sw.toString();
+                        println("\t" + e.getLocalizedMessage());
+                        println("\t" + sStackTrace);
                     }
-                } catch (TestSuccessException e) {
-                    successTests.add(f);
-                    println("\tOK!");
-                } catch (TestFailException e) {
-                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
-                    failTests.add(failure);
-                    println("\tFAILED assertion:");
-                    println("\t" + failure.getMessageWithStackFrame());
-                } catch (TestTimeOutException e) {
-                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
-                    println(interpreter.getStackFrames().toString());
-                } catch (InterpreterException e) {
-                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
-                    failTests.add(failure);
-                    println("\t" + failure.getMessageWithStackFrame());
-                } catch (Throwable e) {
-                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
-                    println(interpreter.getStackFrames().toString());
-                    println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    e.printStackTrace(pw);
-                    String sStackTrace = sw.toString();
-                    println("\t" + e.getLocalizedMessage());
-                    println("\t" + sStackTrace);
                 }
             }
-        }
+        } // Scheduler is automatically shut down here
+
         println("Tests succeeded: " + successTests.size() + "/" + (successTests.size() + failTests.size()));
         if (failTests.size() == 0) {
             println(">> All tests have passed successfully!");

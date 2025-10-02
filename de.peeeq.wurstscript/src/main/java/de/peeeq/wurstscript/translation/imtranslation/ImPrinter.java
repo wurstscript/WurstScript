@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class ImPrinter {
@@ -12,7 +13,6 @@ public class ImPrinter {
     public static void print(ImProg p, Appendable sb, int indent) {
         for (ImVar g : p.getGlobals()) {
             g.print(sb, indent);
-            append(sb, "\n");
         }
         append(sb, "\n\n");
         p.getGlobalInits().forEach((v,es) -> {
@@ -31,7 +31,6 @@ public class ImPrinter {
         append(sb, "\n\n");
         for (ImFunction f : p.getFunctions()) {
             f.print(sb, indent);
-            append(sb, "\n");
         }
         for (ImMethod m : p.getMethods()) {
             printMethod(sb, m, indent);
@@ -275,8 +274,12 @@ public class ImPrinter {
 
     public static String smallHash(Object g) {
         int h = g.hashCode();
-        // avoid negative hashes
-        h = Math.abs(h);
+        // avoid negative hashes, handle Integer.MIN_VALUE explicitly
+        if (h == Integer.MIN_VALUE) {
+            h = 0;
+        } else {
+            h = Math.abs(h);
+        }
         // take only the last 3 digits
         int v = h % 1000;
         return Integer.toString(v);
@@ -554,9 +557,12 @@ public class ImPrinter {
     }
 
     public static String asString(List<?> s) {
-        return "[" + s.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", ")) + "]";
+        StringJoiner joiner = new StringJoiner(", ");
+        for (Object o : s) {
+            String string = o.toString();
+            joiner.add(string);
+        }
+        return "[" + joiner + "]";
     }
 
     public static String asString(ImTypeClassFunc s) {

@@ -14,7 +14,7 @@ import java.util.*;
  *
  * The algorithm works as follows:
  * 1.  The control flow graph (CFG) of the function is built.
- * 2.  The CFG is decomposed into its Strongly Connected Components using Tarjan's algorithm or a similar method.
+ * 2.  The CFG is decomposed into its Strongly Connected Components.
  * 3.  The graph of the SCCs (a Directed Acyclic Graph) is topologically sorted.
  * 4.  The analysis is performed on each SCC in topological order.
  * 5.  For each SCC, a local worklist algorithm iterates until a fixed-point is reached for all statements *within that component*.
@@ -55,14 +55,13 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
                 return t.attrNextStatements();
             }
         };
-        Set<Set<WStatement>> sccs = graphInterpreter.findStronglyConnectedComponents(allNodes);
+        List<List<WStatement>> sccs = graphInterpreter.findStronglyConnectedComponents(allNodes);
 
-        // 3. Build the graph of SCCs and topologically sort it
-        List<Set<WStatement>> sortedSccs = topSortSccs(sccs);
-
+        // 3. The SCC algorithm outputs components in reverse topological order, so we need to reverse them
+        Collections.reverse(sccs);
 
         // 4. Analyze each SCC in topological order
-        for (Set<WStatement> scc : sortedSccs) {
+        for (List<WStatement> scc : sccs) {
             analyzeComponent(scc);
         }
 
@@ -73,7 +72,7 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
         method.checkFinal(finalState);
     }
 
-    private void analyzeComponent(Set<WStatement> scc) {
+    private void analyzeComponent(List<WStatement> scc) {
         Queue<WStatement> worklist = new ArrayDeque<>(scc);
 
         int iterations = 0;
@@ -106,45 +105,6 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
             }
         }
     }
-
-    private List<Set<WStatement>> topSortSccs(Set<Set<WStatement>> sccs) {
-        // Map each statement to its component for quick lookup
-        Map<WStatement, Set<WStatement>> stmtToScc = new Object2ObjectOpenHashMap<>();
-        for (Set<WStatement> scc : sccs) {
-            for (WStatement stmt : scc) {
-                stmtToScc.put(stmt, scc);
-            }
-        }
-
-        GraphInterpreter<Set<WStatement>> sccGraphInterpreter = new GraphInterpreter<>() {
-            @Override
-            protected Collection<Set<WStatement>> getIncidentNodes(Set<WStatement> scc) {
-                // Use fastutil's ObjectOpenHashSet for the result set
-                Set<Set<WStatement>> nextSccs = new ObjectOpenHashSet<>();
-                for (WStatement stmt : scc) {
-                    for (WStatement succ : stmt.attrNextStatements()) {
-                        Set<WStatement> succScc = stmtToScc.get(succ);
-                        if (succScc != null && succScc != scc) {
-                            nextSccs.add(succScc);
-                        }
-                    }
-                }
-                return nextSccs;
-            }
-        };
-
-        GraphInterpreter.TopsortResult<Set<WStatement>> sortResult = sccGraphInterpreter.topSort(new ArrayList<>(sccs));
-        if (sortResult.isCycle()) {
-            // This should not happen if SCCs are calculated correctly, as the SCC graph is a DAG
-            throw new RuntimeException("Cycle detected in the SCC graph.");
-        }
-
-        List<Set<WStatement>> sorted = sortResult.getResult();
-        // The topsort provides a reverse topological order, so we reverse it
-        Collections.reverse(sorted);
-        return sorted;
-    }
-
 
     private List<WStatement> getAllStatements() {
         List<WStatement> allNodes = new ArrayList<>();

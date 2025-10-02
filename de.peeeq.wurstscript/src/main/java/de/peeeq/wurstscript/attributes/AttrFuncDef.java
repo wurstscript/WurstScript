@@ -126,7 +126,14 @@ public class AttrFuncDef {
             if (arg instanceof ExprClosure) {
                 // for closures, we only calculate the type, if all argument types are specified:
                 ExprClosure closure = (ExprClosure) arg;
-                if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
+                boolean b = true;
+                for (WShortParameter wShortParameter : closure.getShortParameters()) {
+                    if (!(wShortParameter.getTypOpt() instanceof TypeExpr)) {
+                        b = false;
+                        break;
+                    }
+                }
+                if (b) {
                     argType = arg.attrTyp();
                 } else {
                     WurstType expected = arg.attrExpectedTyp();
@@ -274,9 +281,13 @@ public class AttrFuncDef {
     }
 
     private static List<FuncLink> ignoreWithIfNotDefinedAnnotation(FuncRef node, List<FuncLink> funcs) {
-        return funcs.stream()
-                .filter(fl -> !fl.hasIfNotDefinedAnnotation())
-                .collect(Collectors.toList());
+        List<FuncLink> list = new ArrayList<>();
+        for (FuncLink fl : funcs) {
+            if (!fl.hasIfNotDefinedAnnotation()) {
+                list.add(fl);
+            }
+        }
+        return list;
     }
 
 
@@ -372,9 +383,12 @@ public class AttrFuncDef {
             return ImmutableList.of(Utils.getFirst(funcs3));
         } else if (funcs4.size() == 1) {
             return ImmutableList.of(Utils.getFirst(funcs4));
-        } else if (argumentTypes.stream().anyMatch(t -> t instanceof WurstTypeUnknown)) {
-            // if some argument type could not be determined, we don't want errors here, just take the first one
-            return ImmutableList.of(Utils.getFirst(funcs4));
+        } else {// if some argument type could not be determined, we don't want errors here, just take the first one
+            for (WurstType t : argumentTypes) {
+                if (t instanceof WurstTypeUnknown) {
+                    return ImmutableList.of(Utils.getFirst(funcs4));
+                }
+            }
         }
         return funcs4;
     }
@@ -461,9 +475,11 @@ public class AttrFuncDef {
     }
 
     public static FuncLink calculate(Annotation node) {
-        List<WurstType> argumentTypes = node.getArgs().stream()
-                .map(Expr::attrTyp)
-                .collect(Collectors.toList());
+        List<WurstType> argumentTypes = new ArrayList<>();
+        for (Expr expr : node.getArgs()) {
+            WurstType attrTyp = expr.attrTyp();
+            argumentTypes.add(attrTyp);
+        }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes);
         if (result == null) {
             return null;

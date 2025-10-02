@@ -86,7 +86,7 @@ public class CompiletimeFunctionRunner {
         this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
-        this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState, cache);
+        this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
         interpreter.addNativeProvider(new CompiletimeNatives(globalState, projectConfigData, isProd));
         interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
@@ -286,9 +286,11 @@ public class CompiletimeFunctionRunner {
                     for (Map.Entry<List<Integer>, ILconst> entry2 : value1.entrySet()) {
                         List<Integer> indexes = entry2.getKey();
                         ILconst attrValue = entry2.getValue();
-                        ImExprs indexesT = indexes.stream()
-                                .map(i -> constantToExpr(trace, ILconstInt.create(i)))
-                                .collect(Collectors.toCollection(JassIm::ImExprs));
+                        ImExprs indexesT = JassIm.ImExprs();
+                        for (Integer i : indexes) {
+                            ImExpr imExpr = constantToExpr(trace, ILconstInt.create(i));
+                            indexesT.add(imExpr);
+                        }
                         ImExpr value2 = constantToExpr(trace, attrValue);
                         if(translator.isLuaTarget() && value2.toString().equals("0")) {
                             ImType varType = var.getType();
@@ -345,11 +347,14 @@ public class CompiletimeFunctionRunner {
         } else if (value instanceof ILconstString) {
             return JassIm.ImStringVal(((ILconstString) value).getVal());
         } else if (value instanceof ILconstTuple) {
+            List<ImExpr> list = new ArrayList<>();
+            for (ILconst e : ((ILconstTuple) value).values()) {
+                ImExpr imExpr = constantToExpr(trace, e);
+                list.add(imExpr);
+            }
             return JassIm.ImTupleExpr(
                     JassIm.ImExprs(
-                            ((ILconstTuple) value).values().stream()
-                                    .map(e -> constantToExpr(trace, e))
-                                    .collect(Collectors.toList())
+                        list
                     )
             );
         } else if (value instanceof IlConstHandle) {
@@ -469,14 +474,18 @@ public class CompiletimeFunctionRunner {
 
     @NotNull
     private ImFunction findNative(String funcName, WPos trace) {
-        return imProg.getFunctions()
-                .stream()
-                .filter(ImFunction::isNative)
-                .filter(func -> func.getName().equals(funcName))
-                .findFirst()
-                .orElseGet(() -> {
-                    throw new CompileError(trace, "Could not find native 'InitHashtable'");
-                });
+        for (ImFunction func : imProg.getFunctions()) {
+            if (func.isNative()) {
+                if (func.getName().equals(funcName)) {
+                    return Optional.of(func)
+                        .orElseGet(() -> {
+                            throw new CompileError(trace, "Could not find native 'InitHashtable'");
+                        });
+                }
+            }
+        }
+        return Optional.<ImFunction>empty()
+                .orElseThrow(() -> new CompileError(trace, "Could not find native 'InitHashtable'"));
     }
 
 
@@ -486,7 +495,7 @@ public class CompiletimeFunctionRunner {
                 if (!f.getBody().isEmpty()) {
                     interpreter.getGlobalState().setLastStatement(f.getBody().get(0));
                 }
-                WLogger.info("running " + functionFlag + " function " + f.getName());
+                WLogger.debug("running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
                 successTests.add(f);
             } catch (TestSuccessException e) {

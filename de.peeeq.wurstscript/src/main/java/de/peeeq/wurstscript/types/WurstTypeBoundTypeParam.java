@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;

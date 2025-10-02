@@ -25,10 +25,11 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGenerator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +49,11 @@ public class WurstScriptTest {
 
     protected boolean printDebugScripts() {
         return false;
+    }
+
+    @BeforeMethod(alwaysRun = true)
+    public void _clearBefore() {
+        GlobalCaches.clearAll();
     }
 
     class TestConfig {
@@ -173,7 +179,6 @@ public class WurstScriptTest {
 
 
             WurstModel model = parseFiles(inputFiles, additionalCompilationUnits, withStdLib, compiler);
-
 
             if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
                 throw gui.getErrorList().get(0);
@@ -559,7 +564,7 @@ public class WurstScriptTest {
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
         try {
             // run the interpreter on the intermediate language
-            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false, false);
+            ILInterpreter interpreter = new ILInterpreter(imProg, gui, Optional.empty(), false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {

@@ -72,7 +72,7 @@ public class UtilsTest {
         String[] ar3 = {"a", "b", "c", "d", "e"};
         Assert.assertEquals(ar3, Utils.joinArrays(ar1, ar2));
     }
-  
+
 /* TODO utils unit tests
   @Test
   public void isJassCode() {

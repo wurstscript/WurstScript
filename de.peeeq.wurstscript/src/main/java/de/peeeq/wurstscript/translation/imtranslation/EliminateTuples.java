@@ -177,7 +177,13 @@ public class EliminateTuples {
                     ImExprs indexes = va.getIndexes();
                     ImExprs indexExprs = JassIm.ImExprs();
                     ImStmts stmts = JassIm.ImStmts();
-                    boolean sideEffects = indexes.stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                    boolean sideEffects = false;
+                    for (ImExpr index : indexes) {
+                        if (SideEffectAnalyzer.quickcheckHasSideeffects(index)) {
+                            sideEffects = true;
+                            break;
+                        }
+                    }
                     for (ImExpr ie : indexes) {
                         if (sideEffects) {
                             // use temp variables if there are side effects
@@ -361,15 +367,33 @@ public class EliminateTuples {
         if (op == WurstOperator.EQ) {
             // (x1,y1,z1) == (x2,y2,z2)
             // ==> x1 == x2 && y1 == y2 && z1 == z2
-            newExpr = componentComparisons.stream()
-                    .reduce((l, r) -> JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(l, r)))
+            boolean seen = false;
+            ImExpr acc = null;
+            for (ImExpr componentComparison : componentComparisons) {
+                if (!seen) {
+                    seen = true;
+                    acc = componentComparison;
+                } else {
+                    acc = JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(acc, componentComparison));
+                }
+            }
+            newExpr = (seen ? Optional.of(acc) : Optional.<ImExpr>empty())
                     .get();
         } else {
             assert op == WurstOperator.NOTEQ;
             // (x1,y1,z1) == (x2,y2,z2)
             // ==> x1 != x2 || y1 != y2 && z1 != z2
-            newExpr = componentComparisons.stream()
-                    .reduce((l, r) -> JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(l, r)))
+            boolean seen = false;
+            ImExpr acc = null;
+            for (ImExpr componentComparison : componentComparisons) {
+                if (!seen) {
+                    seen = true;
+                    acc = componentComparison;
+                } else {
+                    acc = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(acc, componentComparison));
+                }
+            }
+            newExpr = (seen ? Optional.of(acc) : Optional.<ImExpr>empty())
                     .get();
         }
         replacer.replace(opCall, newExpr);

@@ -13,31 +13,8 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
-import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImAnyType;
-import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
-import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImFuncRef;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImReturn;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
-import de.peeeq.wurstscript.jassIm.ImTypeVar;
-import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
-import de.peeeq.wurstscript.jassIm.ImTypeVars;
-import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVars;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -531,9 +508,11 @@ public class ImTranslator {
             imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
-            List<ImExpr> translatedExprs = arInit.getValues().stream()
-                    .map(expr -> expr.imTranslateExpr(this, f))
-                    .collect(Collectors.toList());
+            List<ImExpr> translatedExprs = new ArrayList<>();
+            for (Expr expr : arInit.getValues()) {
+                ImExpr imExpr = expr.imTranslateExpr(this, f);
+                translatedExprs.add(imExpr);
+            }
             List<ImSet> imSets = new ArrayList<>();
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
@@ -867,9 +846,15 @@ public class ImTranslator {
     }
 
 
+    private static final String BJ1 = "blizzard.j";
+    private static final String BJ2 = "common.j";
+
     private boolean isBJ(WPos source) {
-        String f = source.getFile().toLowerCase();
-        return f.endsWith("blizzard.j") || f.endsWith("common.j");
+        String path = source.getFile(); // no lowercasing
+        int n = path.length();
+
+        return (n >= BJ1.length() && path.regionMatches(true, n - BJ1.length(), BJ1, 0, BJ1.length()))
+            || (n >= BJ2.length() && path.regionMatches(true, n - BJ2.length(), BJ2, 0, BJ2.length()));
     }
 
     public ImFunction getInitFuncFor(WPackage p) {
@@ -1550,11 +1535,15 @@ public class ImTranslator {
         return originalReturnValues.computeIfAbsent(f, ImFunction::getReturnType);
     }
 
+    final Set<AssertProperty> properties = Sets.newHashSet();
+
     public void assertProperties(AssertProperty... properties1) {
         if (!debug) {
             return;
         }
-        final Set<AssertProperty> properties = Sets.newHashSet(properties1);
+        properties.clear();
+        Collections.addAll(properties, properties1);
+
         assertProperties(properties, imProg);
     }
 
@@ -1562,7 +1551,9 @@ public class ImTranslator {
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
-        properties.parallelStream().forEach(p -> p.check(e));
+        for (AssertProperty p : properties) {
+            p.check(e);
+        }
         if (properties.contains(AssertProperty.NOTUPLES)) {
             // TODO ?
         }

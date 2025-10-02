@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import de.peeeq.datastructures.Worklist;
+import de.peeeq.datastructures.GraphInterpreter;
+import de.peeeq.datastructures.NodeWorklist;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
@@ -11,7 +13,9 @@ import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Map;
+import java.util.*;
+
+import static de.peeeq.wurstscript.WurstOperator.*;
 
 public class ConstantAndCopyPropagation implements OptimizerPass {
     private int totalPropagated = 0;
@@ -34,12 +38,9 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
     }
 
     static class Value {
-        // one of the two is null
-        final @Nullable
-        ImVar copyVar;
-        final @Nullable
-        ImConst constantValue;
-        ImTupleExpr constantTuple;
+        final @Nullable ImVar copyVar;
+        final @Nullable ImConst constantValue;
+        final @Nullable ImTupleExpr constantTuple;
 
         public Value(ImVar copyVar) {
             this.copyVar = copyVar;
@@ -60,14 +61,14 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             this.copyVar = null;
             this.constantValue = null;
             this.constantTuple = tupleExpr;
-            
-            for(ImExpr e :  tupleExpr.getExprs()) {
+
+            for(ImExpr e : tupleExpr.getExprs()) {
                 if(tryValue(e) == null) {
                     throw new IllegalArgumentException("tupleExpr must only contain constant values.");
                 }
             }
         }
-        
+
         public static Value tryValue(ImExpr e) {
             try {
                 if (e instanceof ImVarAccess) {
@@ -106,7 +107,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                 for(int i = 0; i < a.getExprs().size() ;++i) {
                     Value aV = tryValue(a.getExprs().get(i));
                     Value bV = tryValue(b.getExprs().get(i));
-                    if(!aV.equalValue(bV)) {
+                    if(aV == null || bV == null || !aV.equalValue(bV)) {
                         return false;
                     }
                 }
@@ -125,7 +126,6 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                 return "tuple of " + constantTuple;
             }
         }
-
     }
 
     static class Knowledge {
@@ -136,8 +136,6 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         public String toString() {
             return "[in =" + varKnowledge + ", out=" + varKnowledgeOut + "]";
         }
-
-
     }
 
     void optimizeFunc(ImFunction func) {
@@ -170,38 +168,36 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     imSet.getRight().accept(this);
                 }
 
-                @Override
                 public void visit(ImVarAccess va) {
                     if (va.isUsedAsLValue()) {
                         return;
                     }
+
                     Value val = kn.varKnowledge.get(va.getVar()).getOrNull();
-                    if (val == null) {
-                        return;
-                    }
+                    if (val == null) return;
+
                     if (val.constantValue != null) {
                         va.replaceBy(val.constantValue.copy());
                         totalPropagated++;
                     } else if (val.copyVar != null) {
-                        va.setVar(val.copyVar);
-                        // recursive call, because maybe it is possible to also replace the new var
-                        visit(va);
+                        ImVar old = va.getVar();
+                        ImVar target = val.copyVar;
+                        if (old != target) {
+                            va.setVar(target);
+                            totalPropagated++;
+                            visit(va);
+                        }
                     } else if (val.constantTuple != null) {
-                        // Tuple literals are not always propagated, because they are more expensive (multiple values).
+                        boolean changed = false;
                         if(va.getParent() instanceof ImTupleSelection) {
-                            // Tuple selections of constant tuples are replaced by the selected constant value.
                             ImTupleSelection ts = (ImTupleSelection) va.getParent();
                             Element t = ts;
                             ImExpr constT = val.constantTuple;
                             while(t instanceof ImTupleSelection) {
                                 ts = (ImTupleSelection) t;
-                                // follow the constant tuple according to the tuple selection index
                                 constT = ((ImTupleExpr) constT).getExprs().get(ts.getTupleIndex());
-                                // follow the tuple selection to get to the full tuple
                                 t = ts.getParent();
                             }
-                            // constT now holds the literal that is selected
-                            // Only perform replacement, if the literal is small enough.
                             boolean replace = true;
                             if(constT instanceof ImTupleExpr) {
                                 ImTupleExpr te = (ImTupleExpr) constT;
@@ -211,49 +207,74 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                             }
                             if(replace) {
                                 ts.replaceBy(constT.copy());
+                                changed = true;
                             }
-                            
                         } else {
-                            // Only perform replacement, if the literal is small enough.
                             if(val.constantTuple.getExprs().size() == 1 && !(val.constantTuple.getExprs().get(0) instanceof ImTupleSelection)) {
                                 va.replaceBy(val.constantTuple.copy());
+                                changed = true;
                             }
                         }
-                        totalPropagated++;
+                        if (changed) {
+                            totalPropagated++;
+                        }
                     }
                 }
             });
-
         }
-
     }
 
     private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg) {
         Map<Node, Knowledge> knowledge = new java.util.HashMap<>();
+        List<Node> allNodes = cfg.getNodes();
+        if (allNodes.isEmpty()) {
+            return knowledge;
+        }
 
-        // initialize with empty knowledge:
-
-        for (Node n : cfg.getNodes()) {
+        // Initialize knowledge for all nodes
+        for (Node n : allNodes) {
             knowledge.put(n, new Knowledge());
         }
 
-        Worklist<Node> todo = new Worklist<>(cfg.getNodes());
+        // Decompose the CFG into Strongly Connected Components
+        GraphInterpreter<Node> graphInterpreter = new GraphInterpreter<>() {
+            @Override
+            protected Collection<Node> getIncidentNodes(Node t) {
+                return t.getSuccessors();
+            }
+        };
+        List<List<Node>> sccs = graphInterpreter.findStronglyConnectedComponents(allNodes);
 
-        while (!todo.isEmpty()) {
-            Node n = todo.poll();
+        // The SCC algorithm outputs components in reverse topological order, so we reverse them
+        Collections.reverse(sccs);
 
+        // Analyze each SCC in topological order
+        for (List<Node> scc : sccs) {
+            analyzeComponent(scc, knowledge);
+        }
+
+        return knowledge;
+    }
+
+    /**
+     * Runs a local worklist algorithm on a single SCC until it reaches a fixed-point.
+     */
+    private void analyzeComponent(List<Node> scc, Map<Node, Knowledge> knowledge) {
+        NodeWorklist worklist = new NodeWorklist(scc);
+        java.util.HashSet<Node> sccNodeSet = new java.util.HashSet<>(scc);
+
+        while (!worklist.isEmpty()) {
+            Node n = worklist.poll();
             Knowledge kn = knowledge.get(n);
 
-            // get knowledge from predecessor out
+            // --- MERGE PREDECESSORS ---
             HashMap<ImVar, Value> newKnowledge = HashMap.empty();
             if (!n.getPredecessors().isEmpty()) {
                 Node pred1 = n.getPredecessors().get(0);
-                HashMap<ImVar, Value> predKnowledgeOut = knowledge.get(pred1).varKnowledgeOut;
+                newKnowledge = knowledge.get(pred1).varKnowledgeOut;
 
-                // only keep knowledge that is the same for all predecessors:
-                newKnowledge = predKnowledgeOut;
                 if (n.getPredecessors().size() > 1) {
-                    for (Tuple2<ImVar, Value> e : predKnowledgeOut) {
+                    for (Tuple2<ImVar, Value> e : newKnowledge) {
                         ImVar var = e._1();
                         Value val = e._2();
                         boolean allSame = true;
@@ -271,48 +292,76 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     }
                 }
             }
-            // at the output get all from the input knowledge
-            HashMap<ImVar, Value> newOut = newKnowledge;
 
+            // --- APPLY TRANSFER FUNCTION ---
+            HashMap<ImVar, Value> newOut = newKnowledge;
             ImStmt stmt = n.getStmt();
             if (stmt instanceof ImSet) {
                 ImSet imSet = (ImSet) stmt;
                 if (imSet.getLeft() instanceof ImVarAccess) {
                     ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
                     if (var != null && !var.isGlobal()) {
-                        Value newValue = null;
                         ImExpr right = imSet.getRight();
-                        if (right instanceof ImConst) {
-                            newValue = Value.tryValue(right);
-                        } else if (right instanceof ImVarAccess) {
-                            // If there already is a value, prefer it.
-                            // Tuples are not always propagated, because tuple literals are more expensive (multiple values).
-                            // However, by using the existing value, the knowledge of a tuple literal is preserved
-                            // and may be used later to access a specific value within the tuple literal.
-                            ImVar varRight = ((ImVarAccess) right).getVar();
-                            if(newOut.containsKey(varRight)) {
-                                newValue = newOut.get(varRight).getOrNull();
-                            } else {
-                                newValue = Value.tryValue(right);
-                            }
-                        } else if(right instanceof ImTupleExpr) {
-                            newValue = Value.tryValue(right);
-                        }
-                        if (newValue == null) {
-                            // invalidate old value
-                            newOut = newOut.remove(var);
+
+                        // Check if this is a no-op like 'set x = x'
+                        if (right instanceof ImVarAccess && ((ImVarAccess) right).getVar() == var) {
+                            // Self-assignment: no-op, don't change knowledge
                         } else {
-                            newOut = newOut.put(var, newValue);
-                        }
-                        // invalidate copies of the lhs
-                        // for example:
-                        // x = a; [x->a]
-                        // y = b; [x->a, y->b]
-                        // a = 5; [y->b, a->5] // here [x->a] has been invalidated
-                        Value varAsValue = new Value(var);
-                        for (Tuple2<ImVar, Value> p : newOut) {
-                            if (p._2().equalValue(varAsValue)) {
-                                newOut = newOut.remove(p._1());
+                            Value newValue = null;
+
+                            // Try constant folding first
+                            ImExpr foldedExpr = tryConstantFold(right, newOut);
+                            if (foldedExpr != null && foldedExpr != right) {
+                                // We successfully folded to a constant
+                                newValue = Value.tryValue(foldedExpr);
+                                if (newValue != null) {
+                                    // Replace the RHS with the folded constant in the AST
+                                    right.replaceBy(foldedExpr);
+                                }
+                            }
+
+                            // If no folding happened, try regular value propagation
+                            if (newValue == null) {
+                                if (right instanceof ImConst) {
+                                    newValue = Value.tryValue(right);
+                                } else if (right instanceof ImVarAccess) {
+                                    ImVar varRight = ((ImVarAccess) right).getVar();
+                                    if(newOut.containsKey(varRight)) {
+                                        newValue = newOut.get(varRight).getOrNull();
+                                    } else {
+                                        newValue = Value.tryValue(right);
+                                    }
+                                } else if(right instanceof ImTupleExpr) {
+                                    newValue = Value.tryValue(right);
+                                }
+                            }
+
+                            if (newValue == null) {
+                                // invalidate old value
+                                newOut = newOut.remove(var);
+                            } else {
+                                newOut = newOut.put(var, newValue);
+                            }
+
+                            // OPTIMIZED: invalidate copies of the lhs
+                            // Only iterate if we actually have entries in the map
+                            if (!newOut.isEmpty()) {
+                                // Collect keys to remove to avoid modification during iteration
+                                List<ImVar> toRemove = null;
+                                for (Tuple2<ImVar, Value> p : newOut) {
+                                    Value v = p._2();
+                                    if (v.copyVar == var) {
+                                        if (toRemove == null) {
+                                            toRemove = new ArrayList<>(2); // Usually very few
+                                        }
+                                        toRemove.add(p._1());
+                                    }
+                                }
+                                if (toRemove != null) {
+                                    for (ImVar removeVar : toRemove) {
+                                        newOut = newOut.remove(removeVar);
+                                    }
+                                }
                             }
                         }
                     }
@@ -322,50 +371,225 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         Value rightVal = Value.tryValue(imSet.getRight());
                         Value existingValue = newOut.get(var).getOrNull();
                         if (rightVal != null && existingValue != null && existingValue.constantTuple != null) {
-                            // rightVal is constant or copy
-                            // existingValue is constant tuple (the existing knowledge is altered partially, which does not work on copies)
-                            // update known constant tuple
                             ImTupleExpr te = existingValue.constantTuple.copy();
                             ImExpr knownTuple = te;
                             Element left = imSet.getLeft();
-                            // go to innermost selection
                             while (left instanceof ImTupleSelection) {
                                 left = ((ImTupleSelection) left).getTupleExpr();
                             }
-                            // go back to the initial selection and follow along in the known tuple
                             while (left != imSet.getLeft()) {
                                 left = left.getParent();
                                 knownTuple = ((ImTupleExpr) knownTuple).getExprs().get(((ImTupleSelection) left).getTupleIndex());
                             }
                             knownTuple.replaceBy(imSet.getRight().copy());
-                            // update value
                             newOut = newOut.put(var, new Value(te));
                         } else {
-                            // cannot update knowledge of lhs
-                            // value of lhs unknown
                             newOut = newOut.remove(var);
                         }
-                        // either way, lhs has now a new value and copies of it must be invalidated
-                        Value varAsValue = new Value(var);
-                        for (Tuple2<ImVar, Value> p : newOut) {
-                            if (p._2().equalValue(varAsValue)) {
-                                newOut = newOut.remove(p._1());
+
+                        // OPTIMIZED: invalidate copies of the lhs
+                        if (!newOut.isEmpty()) {
+                            List<ImVar> toRemove = null;
+                            for (Tuple2<ImVar, Value> p : newOut) {
+                                Value v = p._2();
+                                if (v.copyVar == var) {
+                                    if (toRemove == null) {
+                                        toRemove = new ArrayList<>(2);
+                                    }
+                                    toRemove.add(p._1());
+                                }
+                            }
+                            if (toRemove != null) {
+                                for (ImVar removeVar : toRemove) {
+                                    newOut = newOut.remove(removeVar);
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // if there are changes, revisit successors:
+            // --- PROPAGATE CHANGES ---
             if (!kn.varKnowledgeOut.equals(newOut)) {
-                todo.addAll(n.getSuccessors());
-            }
-            // update knowledge
-            kn.varKnowledge = newKnowledge;
-            kn.varKnowledgeOut = newOut;
+                kn.varKnowledge = newKnowledge;
+                kn.varKnowledgeOut = newOut;
 
+                for (Node succ : n.getSuccessors()) {
+                    if (sccNodeSet.contains(succ)) {
+                        worklist.add(succ);
+                    }
+                }
+            }
         }
-        return knowledge;
     }
 
+    /**
+     * Try to constant-fold an expression using known values.
+     * Returns the folded constant expression, or null if folding is not possible.
+     */
+    private @Nullable ImExpr tryConstantFold(ImExpr expr, HashMap<ImVar, Value> knowledge) {
+        // Binary operations
+        if (expr instanceof ImOperatorCall) {
+            ImOperatorCall op = (ImOperatorCall) expr;
+            if (op.getArguments().size() == 2) {
+                ImExpr left = op.getArguments().get(0);
+                ImExpr right = op.getArguments().get(1);
+
+                // Resolve variables to their constant values
+                ImConst leftConst = resolveToConstant(left, knowledge);
+                ImConst rightConst = resolveToConstant(right, knowledge);
+
+                if (leftConst != null && rightConst != null) {
+                    return foldBinaryOp(op.getOp(), leftConst, rightConst);
+                }
+            }
+        }
+
+        // Unary operations
+        if (expr instanceof ImOperatorCall) {
+            ImOperatorCall op = (ImOperatorCall) expr;
+            if (op.getArguments().size() == 1) {
+                ImExpr arg = op.getArguments().get(0);
+                ImConst argConst = resolveToConstant(arg, knowledge);
+                if (argConst != null) {
+                    return foldUnaryOp(op.getOp(), argConst);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private @Nullable ImConst resolveToConstant(ImExpr expr, HashMap<ImVar, Value> knowledge) {
+        if (expr instanceof ImConst) {
+            return (ImConst) expr;
+        }
+        if (expr instanceof ImVarAccess) {
+            ImVar var = ((ImVarAccess) expr).getVar();
+            Value val = knowledge.get(var).getOrNull();
+            if (val != null && val.constantValue != null) {
+                return val.constantValue;
+            }
+        }
+        return null;
+    }
+
+    private @Nullable ImExpr foldBinaryOp(WurstOperator op, ImConst left, ImConst right) {
+        try {
+            if (left instanceof ImIntVal && right instanceof ImIntVal) {
+                int l = ((ImIntVal) left).getValI();
+                int r = ((ImIntVal) right).getValI();
+
+                switch (op) {
+                    case PLUS: return JassIm.ImIntVal(l + r);
+                    case MINUS: return JassIm.ImIntVal(l - r);
+                    case MULT: return JassIm.ImIntVal(l * r);
+                    case DIV_INT: if (r != 0) return JassIm.ImIntVal(l / r); break;
+                    case MOD_INT: if (r != 0) return JassIm.ImIntVal(l % r); break;
+                    // IMPORTANT: Return ImBoolVal for comparisons, not ImIntVal!
+                    case EQ: return JassIm.ImBoolVal(l == r);
+                    case NOTEQ: return JassIm.ImBoolVal(l != r);
+                    case LESS: return JassIm.ImBoolVal(l < r);
+                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
+                    case GREATER: return JassIm.ImBoolVal(l > r);
+                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
+                    // Bitwise/logical operations
+                    case AND: return JassIm.ImIntVal(l & r);
+                    case OR: return JassIm.ImIntVal(l | r);
+                }
+            } else if (left instanceof ImRealVal && right instanceof ImRealVal) {
+                double l = Double.parseDouble(((ImRealVal) left).getValR());
+                double r = Double.parseDouble(((ImRealVal) right).getValR());
+
+                switch (op) {
+                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
+                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
+                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
+                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
+                    // IMPORTANT: Return ImBoolVal for comparisons!
+                    case EQ: return JassIm.ImBoolVal(l == r);
+                    case NOTEQ: return JassIm.ImBoolVal(l != r);
+                    case LESS: return JassIm.ImBoolVal(l < r);
+                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
+                    case GREATER: return JassIm.ImBoolVal(l > r);
+                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
+                }
+            } else if (left instanceof ImBoolVal && right instanceof ImBoolVal) {
+                // Handle boolean operations
+                boolean l = ((ImBoolVal) left).getValB();
+                boolean r = ((ImBoolVal) right).getValB();
+
+                switch (op) {
+                    case EQ: return JassIm.ImBoolVal(l == r);
+                    case NOTEQ: return JassIm.ImBoolVal(l != r);
+                    case AND: return JassIm.ImBoolVal(l && r);
+                    case OR: return JassIm.ImBoolVal(l || r);
+                }
+            } else if (left instanceof ImIntVal && right instanceof ImRealVal) {
+                // int op real -> real
+                double l = ((ImIntVal) left).getValI();
+                double r = Double.parseDouble(((ImRealVal) right).getValR());
+
+                switch (op) {
+                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
+                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
+                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
+                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
+                    // Comparisons return bool
+                    case EQ: return JassIm.ImBoolVal(l == r);
+                    case NOTEQ: return JassIm.ImBoolVal(l != r);
+                    case LESS: return JassIm.ImBoolVal(l < r);
+                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
+                    case GREATER: return JassIm.ImBoolVal(l > r);
+                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
+                }
+            } else if (left instanceof ImRealVal && right instanceof ImIntVal) {
+                // real op int -> real
+                double l = Double.parseDouble(((ImRealVal) left).getValR());
+                double r = ((ImIntVal) right).getValI();
+
+                switch (op) {
+                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
+                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
+                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
+                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
+                    // Comparisons return bool
+                    case EQ: return JassIm.ImBoolVal(l == r);
+                    case NOTEQ: return JassIm.ImBoolVal(l != r);
+                    case LESS: return JassIm.ImBoolVal(l < r);
+                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
+                    case GREATER: return JassIm.ImBoolVal(l > r);
+                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
+                }
+            }
+        } catch (Exception e) {
+            // Folding failed, return null
+        }
+        return null;
+    }
+
+    private @Nullable ImExpr foldUnaryOp(WurstOperator op, ImConst arg) {
+        try {
+            if (arg instanceof ImIntVal) {
+                int val = ((ImIntVal) arg).getValI();
+                switch (op) {
+                    case UNARY_MINUS: return JassIm.ImIntVal(-val);
+                    case NOT: return JassIm.ImBoolVal(val == 0); // Return ImBoolVal!
+                }
+            } else if (arg instanceof ImRealVal) {
+                double val = Double.parseDouble(((ImRealVal) arg).getValR());
+                switch (op) {
+                    case UNARY_MINUS: return JassIm.ImRealVal(String.valueOf(-val));
+                }
+            } else if (arg instanceof ImBoolVal) {
+                boolean val = ((ImBoolVal) arg).getValB();
+                switch (op) {
+                    case NOT: return JassIm.ImBoolVal(!val);
+                }
+            }
+        } catch (Exception e) {
+            // Folding failed
+        }
+        return null;
+    }
 }

@@ -29,10 +29,12 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
     @Override
     public List<Either<SymbolInformation, DocumentSymbol>> execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument.getUri()));
-        return symbolsFromCu(cu)
-                .stream()
-                .map(Either::<SymbolInformation, DocumentSymbol>forRight)
-                .collect(Collectors.toList());
+        List<Either<SymbolInformation, DocumentSymbol>> list = new ArrayList<>();
+        for (DocumentSymbol documentSymbol : symbolsFromCu(cu)) {
+            Either<SymbolInformation, DocumentSymbol> forRight = Either.forRight(documentSymbol);
+            list.add(forRight);
+        }
+        return list;
     }
 
     private List<DocumentSymbol> symbolsFromCu(CompilationUnit cu) {

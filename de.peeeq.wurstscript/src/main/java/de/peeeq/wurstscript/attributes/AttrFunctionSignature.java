@@ -56,9 +56,14 @@ public class AttrFunctionSignature {
         }
 
 
-
-
-        if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
+        boolean b = true;
+        for (WurstType t : argTypes) {
+            if (t instanceof WurstTypeUnknown) {
+                b = false;
+                break;
+            }
+        }
+        if (b) {
             // only show overloading error, if type for all arguments could be determined
             StringBuilder alternatives = new StringBuilder();
             for (FunctionSignature s : candidates) {
@@ -71,9 +76,13 @@ public class AttrFunctionSignature {
     }
 
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {
-        return candidates.stream()
-                .filter(sig -> !sig.hasIfNotDefinedAnnotation())
-                .collect(Collectors.toList());
+        List<FunctionSignature> list = new ArrayList<>();
+        for (FunctionSignature sig : candidates) {
+            if (!sig.hasIfNotDefinedAnnotation()) {
+                list.add(sig);
+            }
+        }
+        return list;
     }
 
     @NotNull

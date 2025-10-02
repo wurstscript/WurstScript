@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -63,10 +64,13 @@ public class GlobalsInliner implements OptimizerPass {
                     obsoleteVars.add(v);
                 }
             } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImTupleType)) {
-                List<ImVarWrite> initWrites = v.attrWrites().stream().filter(write -> {
-                    ImFunction nearestFunc = write.getNearestFunc();
-                    return isInInit(nearestFunc);
-                }).collect(Collectors.toList());
+                List<ImVarWrite> initWrites = new ArrayList<>();
+                for (ImVarWrite imVarWrite : v.attrWrites()) {
+                    ImFunction nearestFunc = imVarWrite.getNearestFunc();
+                    if (isInInit(nearestFunc)) {
+                        initWrites.add(imVarWrite);
+                    }
+                }
                 if (initWrites.size() == 1) {
                     if(v.getType() instanceof ImSimpleType) {
                         ImExpr write = v.attrWrites().iterator().next().getRight();

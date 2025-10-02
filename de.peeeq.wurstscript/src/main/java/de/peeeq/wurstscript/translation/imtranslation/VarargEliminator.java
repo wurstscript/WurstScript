@@ -110,7 +110,12 @@ public class VarargEliminator {
             ImFunctionCall call = (ImFunctionCall) params.getParent();
 
             params.remove(va);
-            params.addAll(newParams.stream().map(JassIm::ImVarAccess).collect(Collectors.toList()));
+            List<ImVarAccess> list = new ArrayList<>();
+            for (ImVar newParam : newParams) {
+                ImVarAccess imVarAccess = JassIm.ImVarAccess(newParam);
+                list.add(imVarAccess);
+            }
+            params.addAll(list);
 
             // generate function for this new call
             generateVarargFunc(call.getFunc(), call.getArguments().size());
@@ -118,7 +123,13 @@ public class VarargEliminator {
 
 
         // Remove vararg flag
-        newFunc.setFlags(newFunc.getFlags().stream().filter(flag -> flag != IS_VARARG).collect(Collectors.toList()));
+        List<FunctionFlag> list = new ArrayList<>();
+        for (FunctionFlag flag : newFunc.getFlags()) {
+            if (flag != IS_VARARG) {
+                list.add(flag);
+            }
+        }
+        newFunc.setFlags(list);
         // Add new function to prog
         prog.getFunctions().add(newFunc);
         varargFuncs.put(func, numberOfParams, newFunc);

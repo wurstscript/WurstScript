@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
@@ -109,7 +109,16 @@ public class EliminateClasses {
     }
 
     public static int calculateMaxTypeId(ImProg prog) {
-        return prog.attrTypeId().values().stream().mapToInt(x -> x).max().orElse(-1);
+        boolean seen = false;
+        int best = 0;
+        for (Integer x : prog.attrTypeId().values()) {
+            int i = x;
+            if (!seen || i > best) {
+                seen = true;
+                best = i;
+            }
+        }
+        return seen ? best : -1;
     }
 
     @NotNull
@@ -531,9 +540,11 @@ public class EliminateClasses {
     private void replaceInstanceof(ImInstanceof e) {
         ImFunction f = e.getNearestFunc();
         List<ImClass> allSubClasses = getAllSubclasses(e.getClazz().getClassDef());
-        List<Integer> subClassIds = allSubClasses.stream()
-            .map(ImClass::attrTypeId)
-            .collect(Collectors.toList());
+        List<Integer> subClassIds = new ArrayList<>();
+        for (ImClass allSubClass : allSubClasses) {
+            Integer attrTypeId = allSubClass.attrTypeId();
+            subClassIds.add(attrTypeId);
+        }
         List<IntRange> idRanges = IntRange.createFromIntList(subClassIds);
         ImExpr obj = e.getObj();
         obj.setParent(null);

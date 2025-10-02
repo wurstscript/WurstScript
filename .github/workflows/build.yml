@@ -16,7 +16,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: 17
+          java-version: 25
           distribution: 'zulu' # Alternative distribution options are available
       - name: Cache Gradle packages
         uses: actions/cache@v3

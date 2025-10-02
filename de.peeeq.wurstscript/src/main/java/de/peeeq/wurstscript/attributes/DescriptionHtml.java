@@ -238,7 +238,7 @@ public class DescriptionHtml {
 
     public static String description(ModOverride m) {
         // TODO add info about which function is overridden
-        return "override: This function overrides an other function from a module or superclass";
+        return "override: This function overrides another function from a module or superclass";
     }
 
     public static String description(ModStatic modStatic) {
@@ -420,5 +420,9 @@ public class DescriptionHtml {
 
     public static String description(NoTypeParamConstraints noTypeParamConstraints) {
         return "no type parameter constraints";
+    }
+
+    public static String description(ExprArrayLength exprArrayLength) {
+        return "Get the length of an array.";
     }
 }

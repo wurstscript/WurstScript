@@ -201,9 +201,11 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
-        List<Integer> indexes = e.getIndexes().stream()
-            .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-            .collect(Collectors.toList());
+        List<Integer> indexes = new ArrayList<>();
+        for (ImExpr ie : e.getIndexes()) {
+            Integer val = ((ILconstInt) ie.evaluate(globalState, localState)).getVal();
+            indexes.add(val);
+        }
 
         if (e.getVar().isGlobal()) {
             return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
@@ -248,9 +250,11 @@ public class EvaluateExpr {
         if (receiver == null) {
             throw new InterpreterException(ma.getTrace(), "Null pointer dereference");
         }
-        List<Integer> indexes = ma.getIndexes().stream()
-            .map(i -> ((ILconstInt) i.evaluate(globalState, localState)).getVal())
-            .collect(Collectors.toList());
+        List<Integer> indexes = new ArrayList<>();
+        for (ImExpr i : ma.getIndexes()) {
+            Integer val = ((ILconstInt) i.evaluate(globalState, localState)).getVal();
+            indexes.add(val);
+        }
         return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
     }
 
@@ -333,9 +337,11 @@ public class EvaluateExpr {
         ImVar v = va.getVar();
         State state;
         state = v.isGlobal() ? globalState : localState;
-        List<Integer> indexes = va.getIndexes().stream()
-            .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-            .collect(Collectors.toList());
+        List<Integer> indexes = new ArrayList<>();
+        for (ImExpr ie : va.getIndexes()) {
+            Integer val = ((ILconstInt) ie.evaluate(globalState, localState)).getVal();
+            indexes.add(val);
+        }
         return new ILaddress() {
             @Override
             public void set(ILconst value) {

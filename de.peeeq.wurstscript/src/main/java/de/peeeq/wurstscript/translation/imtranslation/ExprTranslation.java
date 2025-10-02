@@ -2,22 +2,11 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
-import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
-import de.peeeq.wurstscript.jassIm.ImTypeClassFunc;
-import de.peeeq.wurstscript.jassIm.ImTypeVar;
-import de.peeeq.wurstscript.jassIm.ImTypeVars;
-import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -775,6 +764,16 @@ public class ExprTranslation {
         } else {
             throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
         }
+    }
+
+    public static ImExpr translate(ExprArrayLength exprArrayLength, ImTranslator translator, ImFunction f) {
+        var t = exprArrayLength.getArray().attrTyp();
+        if (t instanceof WurstTypeArray wta && wta.getDimensions() > 0) {
+            return JassIm.ImIntVal(wta.getSize(0));
+        }
+        // if you ever support dynamic length, translate accordingly (otherwise error)
+        exprArrayLength.addError("length is only available for arrays with known size.");
+        return JassIm.ImIntVal(0);
     }
 
 //    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {

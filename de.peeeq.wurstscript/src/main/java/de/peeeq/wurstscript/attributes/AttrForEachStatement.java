@@ -20,7 +20,13 @@ public class AttrForEachStatement {
         ImmutableCollection<FuncLink> iterator = iterationTarget.lookupMemberFuncs(itrType, "iterator", false);
         // find the 'iterator' function without parameters:
         // must exist, because this is after type check
-        Optional<FuncLink> iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+        Optional<FuncLink> iteratorFunc = Optional.empty();
+        for (FuncLink nl : iterator) {
+            if (nl.getParameterTypes().isEmpty()) {
+                iteratorFunc = Optional.of(nl);
+                break;
+            }
+        }
         // find the 'hasNext' function without parameters
         if (!iteratorFunc.isPresent()) {
             forEach.getIn().addError("For loop target " + itrType + " doesn't provide a iterator() function");
@@ -40,7 +46,13 @@ public class AttrForEachStatement {
         // find 'hasNext' function:
         ImmutableCollection<FuncLink> hasNext = forEach.getIn().lookupMemberFuncs(iteratorType, "hasNext", false);
         // find the 'hasNext' function without parameters
-        Optional<FuncLink> nextFunc = hasNext.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+        Optional<FuncLink> nextFunc = Optional.empty();
+        for (FuncLink nl : hasNext) {
+            if (nl.getParameterTypes().isEmpty()) {
+                nextFunc = Optional.of(nl);
+                break;
+            }
+        }
         if (!nextFunc.isPresent()) {
             forEach.getIn().addError("For loop iterator doesn't provide a hasNext() function that returns boolean");
         } else {
@@ -58,7 +70,13 @@ public class AttrForEachStatement {
         // find 'next' function:
         ImmutableCollection<FuncLink> next = forEach.getIn().lookupMemberFuncs(iteratorType, "next", false);
         // find the 'next' function without parameters
-        Optional<FuncLink> nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+        Optional<FuncLink> nextFunc = Optional.empty();
+        for (FuncLink nl : next) {
+            if (nl.getParameterTypes().isEmpty()) {
+                nextFunc = Optional.of(nl);
+                break;
+            }
+        }
         if (!nextFunc.isPresent()) {
             forEach.getIn().addError("Target of for-loop '" + forEach.getIn().attrTyp().getName() + "' doesn't provide a proper next() function");
         } else {
@@ -79,7 +97,13 @@ public class AttrForEachStatement {
         // find 'close' function:
         ImmutableCollection<FuncLink> close = forEach.getIn().lookupMemberFuncs(iteratorType, "close", false);
         // find the 'close' function without parameters
-        Optional<FuncLink> closeFunc = close.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+        Optional<FuncLink> closeFunc = Optional.empty();
+        for (FuncLink nl : close) {
+            if (nl.getParameterTypes().isEmpty()) {
+                closeFunc = Optional.of(nl);
+                break;
+            }
+        }
         if (!closeFunc.isPresent()) {
             forEach.getIn().addError("Target of for-loop <" + forEach.getIn().attrTyp().getName() + " doesn't provide a proper close() function");
         } else {

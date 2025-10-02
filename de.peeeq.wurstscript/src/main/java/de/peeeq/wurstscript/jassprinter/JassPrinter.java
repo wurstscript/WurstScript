@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class JassPrinter {
@@ -202,9 +203,12 @@ public class JassPrinter {
     }
 
     private static String printParams(JassSimpleVars params, boolean withSpace) {
-        return params.stream()
-                .map(v -> v.getType() + " " + v.getName())
-                .collect(Collectors.joining(comma(withSpace)));
+        StringJoiner joiner = new StringJoiner(comma(withSpace));
+        for (JassSimpleVar v : params) {
+            String s = v.getType() + " " + v.getName();
+            joiner.add(s);
+        }
+        return joiner.toString();
     }
 
     private void printComment(StringBuilder sb, Element f, int indent) {

@@ -149,11 +149,12 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     public @Nullable TypeDef lookupInnerType(String typeName) {
-        return getDef().getInnerClasses()
-            .stream()
-            .filter(ic -> ic.getName().equals(typeName))
-            .findFirst()
-            .orElse(null);
+        for (ClassDef ic : getDef().getInnerClasses()) {
+            if (ic.getName().equals(typeName)) {
+                return ic;
+            }
+        }
+        return null;
     }
 
 

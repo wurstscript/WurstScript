@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
@@ -93,9 +94,12 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         syncCompilationUnitContent(resource, "");
-        List<CompilationUnit> toRemove = model2.stream()
-            .filter(cu -> wFile(cu).equals(resource))
-            .collect(Collectors.toList());
+        List<CompilationUnit> toRemove = new ArrayList<>();
+        for (CompilationUnit compilationUnit : model2) {
+            if (wFile(compilationUnit).equals(resource)) {
+                toRemove.add(compilationUnit);
+            }
+        }
         model2.removeAll(toRemove);
         return new Changes(toRemove.stream()
             .map(this::wFile),
@@ -191,13 +195,22 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             return Collections.emptyList();
         }
-        return model2.stream().filter(cu -> fileNames.contains(wFile(cu))).collect(Collectors.toList());
+        List<CompilationUnit> list = new ArrayList<>();
+        for (CompilationUnit cu : model2) {
+            if (fileNames.contains(wFile(cu))) {
+                list.add(cu);
+            }
+        }
+        return list;
     }
 
     private List<WFile> getfileNames(Collection<CompilationUnit> compilationUnits) {
-        return compilationUnits.stream()
-                .map(this::wFile)
-                .collect(Collectors.toList());
+        List<WFile> list = new ArrayList<>();
+        for (CompilationUnit compilationUnit : compilationUnits) {
+            WFile wFile = wFile(compilationUnit);
+            list.add(wFile);
+        }
+        return list;
     }
 
     /**
@@ -384,10 +397,12 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private Set<String> providedPackages(CompilationUnit c) {
-        return c.getPackages()
-            .stream()
-            .map(WPackage::getName)
-            .collect(Collectors.toSet());
+        Set<String> set = new HashSet<>();
+        for (WPackage wPackage : c.getPackages()) {
+            String name = wPackage.getName();
+            set.add(name);
+        }
+        return set;
     }
 
     private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
@@ -454,7 +469,6 @@ public class ModelManagerImpl implements ModelManager {
             String contents = Files.toString(f, Charsets.UTF_8);
             bufferManager.updateFile(WFile.create(f), contents);
             replaceCompilationUnit(filename, contents, true);
-            WLogger.info("replaceCompilationUnit 3 " + f);
         } catch (IOException e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
@@ -477,10 +491,12 @@ public class ModelManagerImpl implements ModelManager {
         }
         for (CompilationUnit cu : model) {
             if (wFile(cu).equals(f)) {
-                return cu.getPackages()
-                        .stream()
-                        .map(WPackage::getName)
-                        .collect(Collectors.toSet());
+                Set<String> set = new HashSet<>();
+                for (WPackage wPackage : cu.getPackages()) {
+                    String name = wPackage.getName();
+                    set.add(name);
+                }
+                return set;
             }
         }
         return Collections.emptySet();
@@ -613,13 +629,17 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void reconcile(Changes changes) {
+        GlobalCaches.clearAll();
         WurstModel model2 = model;
         if (model2 == null) {
             return;
         }
-        Collection<CompilationUnit> toCheck1 = model2.stream()
-            .filter(cu -> changes.getAffectedFiles().contains(WFile.create(cu.getCuInfo().getFile())))
-            .collect(Collectors.toSet());
+        Collection<CompilationUnit> toCheck1 = new HashSet<>();
+        for (CompilationUnit cu : model2) {
+            if (changes.getAffectedFiles().contains(WFile.create(cu.getCuInfo().getFile()))) {
+                toCheck1.add(cu);
+            }
+        }
         Set<String> oldPackageNames = changes.getAffectedPackageNames().toJavaSet();
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
         WurstGui gui = new WurstGuiLogger();
@@ -657,7 +677,14 @@ public class ModelManagerImpl implements ModelManager {
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(changed);
 
-        if (changed.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
+        boolean b = false;
+        for (CompilationUnit compilationUnit : changed) {
+            if (compilationUnit.getCuInfo().getFile().endsWith(".j")) {
+                b = true;
+                break;
+            }
+        }
+        if (b) {
             // when plain Jass files are changed, everything must be checked again:
             result.addAll(model);
             return result;

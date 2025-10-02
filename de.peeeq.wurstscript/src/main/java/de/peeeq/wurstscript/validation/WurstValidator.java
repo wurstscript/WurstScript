@@ -14,17 +14,16 @@ import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
-import de.peeeq.wurstscript.validation.controlflow.ForwardExecution;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import io.vavr.Tuple2;
-import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
+import static de.peeeq.wurstscript.validation.GlobalCaches.SUBTYPE_MEMO;
 
 /**
  * this class validates a wurstscript program
@@ -66,6 +65,7 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
+            SUBTYPE_MEMO.clear();
 
             lightValidation(toCheck);
 
@@ -154,9 +154,9 @@ public class WurstValidator {
         ValidateClassMemberUsage.checkClassMembers(toCheck);
         ValidateLocalUsage.checkLocalsUsage(toCheck);
 
-        trveWrapperFuncs.forEach(wrapper -> {
+        for (String wrapper : trveWrapperFuncs) {
             if (wrapperCalls.containsKey(wrapper)) {
-                wrapperCalls.get(wrapper).forEach(call -> {
+                for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
                         TRVEHelper.protectedVariables.add(varName.getValS());
@@ -164,9 +164,9 @@ public class WurstValidator {
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
                     }
-                });
+                }
             }
-        });
+        }
     }
 
     private void checkUnusedImports(Collection<CompilationUnit> toCheck) {
@@ -516,11 +516,14 @@ public class WurstValidator {
                 NameDef f = link.getDef();
                 if (f.attrIsAbstract()) {
                     if (f.attrNearestStructureDef() == c) {
-                        Element loc = f.getModifiers().stream()
-                                .filter(m -> m instanceof ModAbstract)
-                                .<Element>map(x -> x)
-                                .findFirst()
-                                .orElse(f);
+                        Element loc = f;
+                        for (Modifier m : f.getModifiers()) {
+                            if (m instanceof ModAbstract) {
+                                Element x = m;
+                                loc = x;
+                                break;
+                            }
+                        }
                         loc.addError("Non-abstract class " + c.getName() + " cannot have abstract functions like " + f.getName());
                     } else if (link instanceof FuncLink) {
                         toImplement.append("\n    ");
@@ -865,13 +868,14 @@ public class WurstValidator {
             WurstTypeClass ct = (WurstTypeClass) expectedTyp;
 
             ClassDef cd = ct.getClassDef();
-            if (cd.getConstructors().stream().noneMatch(constr -> constr.getParameters().isEmpty())) {
-
-
-
-
-
-
+            boolean b = true;
+            for (ConstructorDef constr : cd.getConstructors()) {
+                if (constr.getParameters().isEmpty()) {
+                    b = false;
+                    break;
+                }
+            }
+            if (b) {
                 e.addError("No default constructor for class " + ct
                     + " found, so it cannot be instantiated using an anonymous function.");
             }
@@ -892,7 +896,7 @@ public class WurstValidator {
 
                 if (!parametersTypeDisjunct(c1.getParameters(), c2.getParameters())) {
                     c2.addError(
-                            "Duplicate constructor, an other constructor with similar types is already defined in line "
+                            "Duplicate constructor, another constructor with similar types is already defined in line "
                                     + c1.attrSource().getLine());
                 }
             }
@@ -918,7 +922,7 @@ public class WurstValidator {
     private void checkTypeParameters(AstElementWithTypeParameters e) {
         for (TypeParamDef ta : e.getTypeParameters()) {
             String name = ta.getName();
-            if (name.indexOf('<') >= 0 || (!name.isEmpty() && name.charAt(0) == '#')) {
+            if (name.isEmpty() || name.charAt(0) == '#' || name.indexOf('<') >= 0) {
                 ta.addError("Type parameter must be a simple name ");
             } else {
                 checkTypeName(ta, name);
@@ -1434,18 +1438,14 @@ public class WurstValidator {
     }
 
 
-    private static final Object2ObjectOpenHashMap<WurstType, Object2BooleanOpenHashMap<WurstType>> SUBTYPE_MEMO
-        = new Object2ObjectOpenHashMap<>();
     // crude cap to avoid unbounded growth; tune as needed
-    private static final int SUBTYPE_MEMO_CAP = 16_384;
-    private static int SUBTYPE_MEMO_SIZE = 0;
 
     private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
         if (actual == expected) return true;
         // quick structural equality before expensive check
-        if (actual.equals(expected)) return true;
+        if (actual.equalsType(expected, site)) return true;
 
-        Object2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
+        Reference2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
         if (inner != null && inner.containsKey(expected)) {
             return inner.getBoolean(expected);
         }
@@ -1453,16 +1453,11 @@ public class WurstValidator {
         boolean res = actual.isSubtypeOf(expected, site);
 
         if (inner == null) {
-            inner = new Object2BooleanOpenHashMap<>();
+            inner = new Reference2BooleanOpenHashMap<>();
             SUBTYPE_MEMO.put(actual, inner);
         }
         if (!inner.containsKey(expected)) {
             inner.put(expected, res);
-            if (++SUBTYPE_MEMO_SIZE > SUBTYPE_MEMO_CAP) {
-                // simple eviction policy: clear all when too big (cheap & safe)
-                SUBTYPE_MEMO.clear();
-                SUBTYPE_MEMO_SIZE = 0;
-            }
         }
         return res;
     }
@@ -1496,7 +1491,7 @@ public class WurstValidator {
 
             // fast path: == / equals handled inside isSubtypeCached too,
             // but doing it here keeps it branch-predictable and avoids map lookups for exact matches
-            if (actual == expected || actual.equals(expected)) {
+            if (actual.equalsType(expected, a)) {
                 continue;
             }
 
@@ -2358,9 +2353,10 @@ public class WurstValidator {
             s.addError("The type " + s.getExpr().attrTyp()
                     + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
         } else {
-            List<Expr> switchExprs = s.getCases().stream()
-                    .flatMap(e -> e.getExpressions().stream())
-                    .collect(Collectors.toList());
+            List<Expr> switchExprs = new ArrayList<>();
+            for (SwitchCase e : s.getCases()) {
+                switchExprs.addAll(e.getExpressions());
+            }
             for (Expr cExpr : switchExprs) {
                 if (!cExpr.attrTyp().isSubtypeOf(s.getExpr().attrTyp(), cExpr)) {
                     cExpr.addError("The type " + cExpr.attrTyp() + " does not match the switchtype "
@@ -2604,7 +2600,7 @@ public class WurstValidator {
         NameLink shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
         if (shadowed != null) {
             if (shadowed.getDef() instanceof LocalVarDef) {
-                v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
+                v.addError("Variable " + v.getName() + " hides another local variable with the same name.");
             } else if (shadowed.getDef() instanceof WParameter) {
                 v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
             }

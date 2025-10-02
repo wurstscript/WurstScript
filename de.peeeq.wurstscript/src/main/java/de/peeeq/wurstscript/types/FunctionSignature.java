@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.annotation.CheckReturnValue;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -98,9 +99,12 @@ public class FunctionSignature {
 
 
     public static List<String> getParamNames(WParameters parameters) {
-        return parameters.stream()
-                .map(WParameter::getName)
-                .collect(Collectors.toList());
+        List<String> list = new ArrayList<>();
+        for (WParameter parameter : parameters) {
+            String wParameterName = parameter.getName();
+            list.add(wParameterName);
+        }
+        return list;
     }
 
 

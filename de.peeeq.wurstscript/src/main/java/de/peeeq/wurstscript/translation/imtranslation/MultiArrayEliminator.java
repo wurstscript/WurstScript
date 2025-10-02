@@ -182,7 +182,7 @@ public class MultiArrayEliminator {
         ImExpr lowCond = JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(arrayIndex), JassIm.ImIntVal(0)));
         ImExpr condition = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lowCond, highCond));
         ImStmts body = JassIm.ImStmts(JassIm.ImIf(aVar.getTrace(),
-                condition, thenBlock, elseBlock));
+            condition, thenBlock, elseBlock));
 
         ImFunction setFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_set", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex, value), JassIm.ImVoid(), locals, body, Lists.newArrayList());
         if (generateStacktraces) {
@@ -209,12 +209,12 @@ public class MultiArrayEliminator {
             ImStmts thenBlock = JassIm.ImStmts();
             ImStmts elseBlock = JassIm.ImStmts();
             ImExpr condition = JassIm
-                    .ImOperatorCall(
-                            WurstOperator.LESS_EQ,
-                            JassIm.ImExprs(JassIm.ImVarAccess(indexVar2),
-                                    JassIm.ImIntVal(mid)));
+                .ImOperatorCall(
+                    WurstOperator.LESS_EQ,
+                    JassIm.ImExprs(JassIm.ImVarAccess(indexVar2),
+                        JassIm.ImIntVal(mid)));
             stmts.add(JassIm.ImIf(value.getTrace(), condition, thenBlock,
-                    elseBlock));
+                elseBlock));
 
             generateBinSearchSet(thenBlock, indexVar1, indexVar2, value, newArrays, start, mid, trace);
             generateBinSearchSet(elseBlock, indexVar1, indexVar2, value, newArrays, mid + 1, end, trace);
@@ -236,7 +236,7 @@ public class MultiArrayEliminator {
         ImExpr condition = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lowCond, highCond));
         ImStmts body = JassIm.ImStmts(JassIm.ImIf(aVar.getTrace(),
                 condition, thenBlock, elseBlock),
-                JassIm.ImReturn(returnVal.getTrace(), JassIm.ImVarAccess(returnVal)));
+            JassIm.ImReturn(returnVal.getTrace(), JassIm.ImVarAccess(returnVal)));
 
         ImFunction getFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_get", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex), mtype.getEntryType(), locals, body, Lists.newArrayList());
         if (generateStacktraces) {
@@ -259,12 +259,12 @@ public class MultiArrayEliminator {
             ImStmts thenBlock = JassIm.ImStmts();
             ImStmts elseBlock = JassIm.ImStmts();
             ImExpr condition = JassIm
-                    .ImOperatorCall(
-                            WurstOperator.LESS_EQ,
-                            JassIm.ImExprs(JassIm.ImVarAccess(indexVar2),
-                                    JassIm.ImIntVal(mid)));
+                .ImOperatorCall(
+                    WurstOperator.LESS_EQ,
+                    JassIm.ImExprs(JassIm.ImVarAccess(indexVar2),
+                        JassIm.ImIntVal(mid)));
             stmts.add(JassIm.ImIf(resultVar.getTrace(), condition, thenBlock,
-                    elseBlock));
+                elseBlock));
 
             generateBinSearchGet(thenBlock, indexVar1, indexVar2, resultVar, newArrays, start, mid, trace);
             generateBinSearchGet(elseBlock, indexVar1, indexVar2, resultVar, newArrays, mid + 1, end, trace);

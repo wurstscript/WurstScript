@@ -58,7 +58,7 @@ public class NameLinks {
         for (DefLink link : result.values()) {
             if (link instanceof FuncLink) {
                 Map<FuncLink, OverrideCheckResult> map = overrideCheckResults.computeIfAbsent(link.getName(),
-                        s -> new HashMap<>());
+                    s -> new HashMap<>());
                 map.put((FuncLink) link, new OverrideCheckResult());
             }
         }

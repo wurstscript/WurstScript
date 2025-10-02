@@ -2,99 +2,55 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import de.peeeq.wurstscript.jassIm.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class TypeRewriter {
 
-    /**
-     * Visits all elements where a type can be used and
-     * applies the given function to rewrite the type.
-     */
-    public static void rewriteTypes(Element e, Function<ImType, ImType> rewriteType) {
-        e.accept(new Element.DefaultVisitor() {
+    public static void rewriteTypes(Element root, Function<ImType, ImType> rewriteFunc) {
+        // Memoization is the key performance optimization
+        Map<ImType, ImType> cache = new HashMap<>();
+        Function<ImType, ImType> memoizedRewrite = t -> cache.computeIfAbsent(t, rewriteFunc);
 
-            private ImType rewriteType(ImType type) {
-                return rewriteType.apply(type);
-            }
-
-
-            @Override
-            public void visit(ImVar e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
-
-            @Override
-            public void visit(ImFunction e) {
-                super.visit(e);
-                e.setReturnType(rewriteType(e.getReturnType()));
-            }
-
-            @Override
-            public void visit(ImNull e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
-
-            @Override
-            public void visit(ImTypeArgument e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
-
-            @Override
-            public void visit(ImClass e) {
-                super.visit(e);
-                List<ImClassType> newSuperClasses = e.getSuperClasses().stream()
-                        .map(tt -> (ImClassType) rewriteType(tt))
-                        .collect(Collectors.toList());
-                e.setSuperClasses(newSuperClasses);
-            }
-
-            @Override
-            public void visit(ImMethod e) {
-                super.visit(e);
-                e.setMethodClass((ImClassType) rewriteType(e.getMethodClass()));
-            }
-
-            @Override
-            public void visit(ImAlloc e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImDealloc e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImInstanceof e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImTypeIdOfObj e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImTypeIdOfClass e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImCast e) {
-                super.visit(e);
-                e.setToType(rewriteType(e.getToType()));
-            }
-        });
+        rewrite(root, memoizedRewrite);
     }
 
+    private static void rewrite(Element e, Function<ImType, ImType> rewriteFunc) {
+        if (e == null) {
+            return;
+        }
+
+        // Apply rewrite logic using modern pattern matching switch
+        switch (e) {
+            case ImVar v -> v.setType(rewriteFunc.apply(v.getType()));
+            case ImFunction f -> f.setReturnType(rewriteFunc.apply(f.getReturnType()));
+            case ImNull n -> n.setType(rewriteFunc.apply(n.getType()));
+            case ImTypeArgument ta -> ta.setType(rewriteFunc.apply(ta.getType()));
+            case ImCast c -> c.setToType(rewriteFunc.apply(c.getToType()));
+            case ImAlloc a -> a.setClazz((ImClassType) rewriteFunc.apply(a.getClazz()));
+            case ImDealloc d -> d.setClazz((ImClassType) rewriteFunc.apply(d.getClazz()));
+            case ImInstanceof i -> i.setClazz((ImClassType) rewriteFunc.apply(i.getClazz()));
+            case ImTypeIdOfObj t -> t.setClazz((ImClassType) rewriteFunc.apply(t.getClazz()));
+            case ImTypeIdOfClass t -> t.setClazz((ImClassType) rewriteFunc.apply(t.getClazz()));
+            case ImMethod m -> m.setMethodClass((ImClassType) rewriteFunc.apply(m.getMethodClass()));
+            case ImClass c -> {
+                List<ImClassType> newSuperClasses = new ArrayList<>();
+                for (ImClassType tt : c.getSuperClasses()) {
+                    newSuperClasses.add((ImClassType) rewriteFunc.apply(tt));
+                }
+                c.setSuperClasses(newSuperClasses);
+            }
+            default -> {
+                // No specific action for this node type
+            }
+        }
+
+        // Recurse to children
+        for (int i = 0; i < e.size(); i++) {
+            rewrite(e.get(i), rewriteFunc);
+        }
+    }
 }

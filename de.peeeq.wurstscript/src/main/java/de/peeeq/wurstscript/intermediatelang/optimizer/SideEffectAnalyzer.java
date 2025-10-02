@@ -48,7 +48,12 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImVarArrayAccess(ImVarArrayAccess e) {
-                return e.getIndexes().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                for (ImExpr imExpr : e.getIndexes()) {
+                    if (quickcheckHasSideeffects(imExpr)) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             @Override
@@ -83,7 +88,12 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImTupleExpr(ImTupleExpr e) {
-                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                for (ImExpr imExpr : e.getExprs()) {
+                    if (quickcheckHasSideeffects(imExpr)) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             @Override
@@ -103,7 +113,12 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImOperatorCall(ImOperatorCall e) {
-                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                for (ImExpr imExpr : e.getArguments()) {
+                    if (quickcheckHasSideeffects(imExpr)) {
+                        return true;
+                    }
+                }
+                return false;
             }
 
             @Override

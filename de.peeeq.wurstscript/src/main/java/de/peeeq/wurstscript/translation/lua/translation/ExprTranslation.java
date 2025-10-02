@@ -3,14 +3,10 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
-
-import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImTypeArguments;
 
 public class ExprTranslation {
 
@@ -174,9 +170,13 @@ public class ExprTranslation {
 
 
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleFunc> tfo = tr.tupleEqualsFuncs.stream()
-            .filter(f -> f.tupleType.equalsType(t))
-            .findFirst();
+        Optional<TupleFunc> tfo = Optional.empty();
+        for (TupleFunc f : tr.tupleEqualsFuncs) {
+            if (f.tupleType.equalsType(t)) {
+                tfo = Optional.of(f);
+                break;
+            }
+        }
         TupleFunc tf;
         if (tfo.isPresent()) {
             tf = tfo.get();
@@ -207,9 +207,13 @@ public class ExprTranslation {
 
 
     public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleFunc> tfo = tr.tupleCopyFuncs.stream()
-            .filter(f -> f.tupleType.equalsType(t))
-            .findFirst();
+        Optional<TupleFunc> tfo = Optional.empty();
+        for (TupleFunc f : tr.tupleCopyFuncs) {
+            if (f.tupleType.equalsType(t)) {
+                tfo = Optional.of(f);
+                break;
+            }
+        }
         TupleFunc tf;
         if (tfo.isPresent()) {
             tf = tfo.get();

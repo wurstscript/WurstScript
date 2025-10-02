@@ -338,7 +338,6 @@ public class ModelManagerTests {
             public void visit(ClassDef c) {
                 for (ModuleInstanciation mi : c.getModuleInstanciations()) {
                     String s = Utils.prettyPrint(mi.getConstructors());
-                    System.out.println(s);
                     assertThat(s, CoreMatchers.containsString("x = 7"));
                 }
             }

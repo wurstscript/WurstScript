@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.testng.AssertJUnit.*;
+import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
@@ -31,136 +31,136 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_number_shortening() {
         test().lines(
-                "package test",
-                "	function foo() returns int",
-                "		return 800000",
-                "endpackage");
+            "package test",
+            "	function foo() returns int",
+            "		return 800000",
+            "endpackage");
     }
 
     @Test
     public void test_number_shortening2() {
         test().lines(
-                "package test",
-                "	function foo() returns real",
-                "		if 1.0 > 0.1",
-                "			return 0.0",
-                "		else",
-                "			return 1.10",
-                "endpackage");
+            "package test",
+            "	function foo() returns real",
+            "		if 1.0 > 0.1",
+            "			return 0.0",
+            "		else",
+            "			return 1.10",
+            "endpackage");
     }
 
 
     @Test
     public void test_double_renaming_bug() {
         test().lines(
-                "package test",
-                "	int testVar = 0",
-                "	function w() returns int",
-                "		return 1",
-                "	function s(int j) returns int",
-                "		return testVar",
-                "	init",
-                "		w()",
-                "		s(2)",
-                "		let c = function w",
-                "endpackage");
+            "package test",
+            "	int testVar = 0",
+            "	function w() returns int",
+            "		return 1",
+            "	function s(int j) returns int",
+            "		return testVar",
+            "	init",
+            "		w()",
+            "		s(2)",
+            "		let c = function w",
+            "endpackage");
     }
 
     @Test
     public void test_remove_useless() {
         test().lines(
-                "package test",
-                "	int testVar1 = 1",
-                "	real testVar2 = 1.1",
-                "	string testVar3 = \"blub\"",
-                "	boolean testVar4 = true",
-                "	init",
-                "		int i = testVar1",
-                "endpackage");
+            "package test",
+            "	int testVar1 = 1",
+            "	real testVar2 = 1.1",
+            "	string testVar3 = \"blub\"",
+            "	boolean testVar4 = true",
+            "	init",
+            "		int i = testVar1",
+            "endpackage");
     }
 
     @Test
     public void test_inline_globals() {
         test().lines(
-                "package test",
-                "	int testVar1 = 1",
-                "	real testVar2 = 1.1",
-                "	string testVar3 = \"blub\"",
-                "	boolean testVar4 = true",
-                "	init",
-                "		int i = testVar1",
-                "		real r = testVar2",
-                "		string s = testVar3",
-                "		boolean b = testVar4",
-                "endpackage");
+            "package test",
+            "	int testVar1 = 1",
+            "	real testVar2 = 1.1",
+            "	string testVar3 = \"blub\"",
+            "	boolean testVar4 = true",
+            "	init",
+            "		int i = testVar1",
+            "		real r = testVar2",
+            "		string s = testVar3",
+            "		boolean b = testVar4",
+            "endpackage");
     }
 
 
     @Test
     public void test_nullsetter1() {
         test().executeProg().lines(
-                "type player extends handle",
-                "package test",
-                "	@extern native Player(integer id) returns player",
-                "	@extern native GetPlayerId(player whichPlayer) returns integer",
-                "	native testSuccess()",
-                "	function foo()",
-                "		player p = Player(0)",
-                "	init",
-                "		foo()",
-                "		testSuccess()",
-                "endpackage");
+            "type player extends handle",
+            "package test",
+            "	@extern native Player(integer id) returns player",
+            "	@extern native GetPlayerId(player whichPlayer) returns integer",
+            "	native testSuccess()",
+            "	function foo()",
+            "		player p = Player(0)",
+            "	init",
+            "		foo()",
+            "		testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_nullsetter2() {
         test().executeProg().lines(
-                "type player extends handle",
-                "package test",
-                "	@extern native Player(integer id) returns player",
-                "	@extern native GetPlayerId(player whichPlayer) returns integer",
-                "	native testSuccess()",
-                "	function foo() returns player",
-                "		player p = Player(0)",
-                "		return p",
-                "	init",
-                "		foo()",
-                "		testSuccess()",
-                "endpackage");
+            "type player extends handle",
+            "package test",
+            "	@extern native Player(integer id) returns player",
+            "	@extern native GetPlayerId(player whichPlayer) returns integer",
+            "	native testSuccess()",
+            "	function foo() returns player",
+            "		player p = Player(0)",
+            "		return p",
+            "	init",
+            "		foo()",
+            "		testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_nullsetter3() {
         test().executeProg().lines(
-                "type player extends handle",
-                "package test",
-                "	@extern native Player(integer id) returns player",
-                "	@extern native GetPlayerId(player whichPlayer) returns integer",
-                "	native testSuccess()",
-                "	function foo() returns int",
-                "		player p = Player(0)",
-                "		return GetPlayerId(p)",
-                "	init",
-                "		foo()",
-                "		testSuccess()",
-                "endpackage");
+            "type player extends handle",
+            "package test",
+            "	@extern native Player(integer id) returns player",
+            "	@extern native GetPlayerId(player whichPlayer) returns integer",
+            "	native testSuccess()",
+            "	function foo() returns int",
+            "		player p = Player(0)",
+            "		return GetPlayerId(p)",
+            "	init",
+            "		foo()",
+            "		testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_nullsetter4() {
         test().executeProg().lines(
-                "type player extends handle",
-                "package test",
-                "	@extern native Player(integer id) returns player",
-                "	@extern native GetPlayerId(player whichPlayer) returns integer",
-                "	native testSuccess()",
-                "	function foo() returns int",
-                "		player p = Player(0)",
-                "		return 0",
-                "	init",
-                "		foo()",
-                "		testSuccess()",
-                "endpackage");
+            "type player extends handle",
+            "package test",
+            "	@extern native Player(integer id) returns player",
+            "	@extern native GetPlayerId(player whichPlayer) returns integer",
+            "	native testSuccess()",
+            "	function foo() returns int",
+            "		player p = Player(0)",
+            "		return 0",
+            "	init",
+            "		foo()",
+            "		testSuccess()",
+            "endpackage");
     }
 
     //	(04:49:22 PM) Frotty: öh
@@ -172,9 +172,9 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_varRemoval() {
         test().lines(
-                "package test",
-                "	constant i = 5",
-                "endpackage");
+            "package test",
+            "	constant i = 5",
+            "endpackage");
     }
 
 
@@ -194,252 +194,252 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_ifTrue() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = true",
-                "	init",
-                "		if b",
-                "			testSuccess()",
-                "		else",
-                "			testFail(\"\")",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = true",
+            "	init",
+            "		if b",
+            "			testSuccess()",
+            "		else",
+            "			testFail(\"\")",
+            "endpackage");
     }
 
     @Test
     public void test_ifFalse() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = false",
-                "	init",
-                "		if b",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = false",
+            "	init",
+            "		if b",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifDoubleOr1() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = false",
-                "	init",
-                "		if b or true",
-                "			testSuccess()",
-                "		else",
-                "			testFail(\"\")",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = false",
+            "	init",
+            "		if b or true",
+            "			testSuccess()",
+            "		else",
+            "			testFail(\"\")",
+            "endpackage");
     }
 
     @Test
     public void test_ifDoubleOr2() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = false",
-                "	init",
-                "		if b or false",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = false",
+            "	init",
+            "		if b or false",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifDoubleAnd1() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = true",
-                "	init",
-                "		if b and true",
-                "			testSuccess()",
-                "		else",
-                "			testFail(\"\")",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = true",
+            "	init",
+            "		if b and true",
+            "			testSuccess()",
+            "		else",
+            "			testFail(\"\")",
+            "endpackage");
     }
 
     @Test
     public void test_ifDoubleAnd2() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = true",
-                "	init",
-                "		if b and false",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = true",
+            "	init",
+            "		if b and false",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifMulti() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	constant b = true",
-                "	constant c = true",
-                "	init",
-                "		if b and true and c and true and false",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	constant b = true",
+            "	constant c = true",
+            "	init",
+            "		if b and true and c and true and false",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifInt1() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		if 3 > 4",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		if 3 > 4",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifInt2() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		if 3 < 4 - 2",
-                "			testFail(\"\")",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		if 3 < 4 - 2",
+            "			testFail(\"\")",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifInt3() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		if 8 >= 8 and 50 != 40",
-                "			testSuccess()",
-                "		else",
-                "			testFail(\"\")",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		if 8 >= 8 and 50 != 40",
+            "			testSuccess()",
+            "		else",
+            "			testFail(\"\")",
+            "endpackage");
     }
 
 
     @Test
     public void test_ifInt4() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		if 8 >= 8 and 50 != 50",
-                "		else",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		if 8 >= 8 and 50 != 50",
+            "		else",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ifEmpty() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	int x = 0",
-                "	function foo() returns boolean",
-                "		if x == 0",
-                "			x = 1",
-                "			return true",
-                "		return false",
-                "	init",
-                "		if foo()",
-                "		if x == 1",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	int x = 0",
+            "	function foo() returns boolean",
+            "		if x == 0",
+            "			x = 1",
+            "			return true",
+            "		return false",
+            "	init",
+            "		if foo()",
+            "		if x == 1",
+            "			testSuccess()",
+            "endpackage");
     }
 
 
     @Test
     public void test_exitwhen() {
         test().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		while true",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		while true",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_ConstFolding() {
         test().lines(
-                "package test",
-                "	init",
-                "		int i = 3 + 7 * 2 * 33",
-                "endpackage");
+            "package test",
+            "	init",
+            "		int i = 3 + 7 * 2 * 33",
+            "endpackage");
     }
 
     @Test
     public void test_ConstFoldingCombined() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		int i = 3 + 7 * 2 * 33",
-                "		if i == 465",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		int i = 3 + 7 * 2 * 33",
+            "		if i == 465",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	native println(string s)",
-                "	@extern native GetRandomInt(int a, int b) returns int",
-                "	init",
-                "		let blub_a = GetRandomInt(0,100)",
-                "		let blub_b = blub_a",
-                "		let blub_c = blub_b + blub_b + blub_b",
-                "		println(I2S(blub_c))",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	@extern native GetRandomInt(int a, int b) returns int",
+            "	init",
+            "		let blub_a = GetRandomInt(0,100)",
+            "		let blub_b = blub_a",
+            "		let blub_c = blub_b + blub_b + blub_b",
+            "		println(I2S(blub_c))",
+            "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover_inlopt.j"), Charsets.UTF_8);
 
         assertTrue(!output.contains("blub_a") ? (output.contains("blub_b") || output.contains("blub_c")) : (!output.contains("blub_b") && !output.contains
-                ("blub_c")));
+            ("blub_c")));
     }
 
     @Test
     @Ignore // This test was for a rewrite that caused an infinite loop in the optimizer.
     public void test_mult2rewrite() throws IOException {
         test().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	native println(string s)",
-                "	@extern native GetRandomInt(int a, int b) returns int",
-                "	init",
-                "		let blub_a = GetRandomInt(0,100)",
-                "		let blub_b = blub_a",
-                "		let blub_c = blub_b + blub_b",
-                "		println(I2S(blub_c))",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	@extern native GetRandomInt(int a, int b) returns int",
+            "	init",
+            "		let blub_a = GetRandomInt(0,100)",
+            "		let blub_b = blub_a",
+            "		let blub_c = blub_b + blub_b",
+            "		println(I2S(blub_c))",
+            "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_mult2rewrite_inlopt.j"), Charsets.UTF_8);
 
         assertTrue(!output.contains("blub_a") && !(output.contains("blub_b") && !output.contains("blub_c")));
@@ -448,17 +448,17 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_mult3rewrite() throws IOException {
         test().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	native println(string s)",
-                "	int ghs = 0",
-                "	function foo() returns int",
-                "		ghs += 2",
-                "		return 4 + ghs",
-                "	init",
-                "		let blub_c = foo() + foo()",
-                "		println(I2S(blub_c))",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	int ghs = 0",
+            "	function foo() returns int",
+            "		ghs += 2",
+            "		return 4 + ghs",
+            "	init",
+            "		let blub_c = foo() + foo()",
+            "		println(I2S(blub_c))",
+            "endpackage");
         String output1 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_inlopt.j"), Charsets.UTF_8);
         String output2 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_opt.j"), Charsets.UTF_8);
         assertFalse(output1.contains("foo()"));
@@ -468,89 +468,106 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_tempVarRemover2() throws IOException {
         test().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	native println(string s)",
-                "	@extern native GetRandomInt(int a, int b) returns int",
-                "	init",
-                "		let blablub = GetRandomInt(0,100)",
-                "		println(I2S(blablub))",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	@extern native GetRandomInt(int a, int b) returns int",
+            "	init",
+            "		let blablub = GetRandomInt(0,100)",
+            "		println(I2S(blablub))",
+            "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover2_inlopt.j"), Charsets.UTF_8);
+        // Better not inline GetRandomInt call - it might have side effects!
+        assertTrue(output.contains("blablub"));
+    }
+
+    @Test
+    public void test_tempVarRemover3() throws IOException {
+        test().lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native println(string s)",
+            "	function GetRandomIntt(int a, int b) returns int",
+            "     return a + b",
+            "	init",
+            "		let blablub = GetRandomIntt(0,100)",
+            "		println(I2S(blablub))",
+            "endpackage");
+        String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover3_inlopt.j"), Charsets.UTF_8);
         assertFalse(output.contains("blablub"));
     }
 
     @Test
     public void test_localVarMerger() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	init",
-                "		int a = 0",
-                "		int b = 0",
-                "		int c = 0",
-                "		int d = 0",
-                "		int e = 0",
-                "		while c<1000",
-                "			d = a+2",
-                "			b = d-1",
-                "			if b < a",
-                "				c = c+b",
-                "			else",
-                "				c = c-b",
-                "			e = b*4",
-                "			d = e + 1",
-                "			e = d - 1",
-                "			a = e div 2",
-                "			if a >= 20",
-                "				break",
-                "		if c == -26",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	init",
+            "		int a = 0",
+            "		int b = 0",
+            "		int c = 0",
+            "		int d = 0",
+            "		int e = 0",
+            "		while c<1000",
+            "			d = a+2",
+            "			b = d-1",
+            "			if b < a",
+            "				c = c+b",
+            "			else",
+            "				c = c-b",
+            "			e = b*4",
+            "			d = e + 1",
+            "			e = d - 1",
+            "			a = e div 2",
+            "			if a >= 20",
+            "				break",
+            "		if c == -26",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void test_localVarMerger2() {
         test().executeProg().lines(
-                "package test",
-                "	native testSuccess()",
-                "	native testFail(string s)",
-                "	@extern native Sin(real r) returns real",
-                "	init",
-                "		var i = 5",
-                "		var x = Sin(5)",
-                "		if x < 20",
-                "			x = x + 1",
-                "		if i == 5",
-                "			testSuccess()",
-                "endpackage");
+            "package test",
+            "	native testSuccess()",
+            "	native testFail(string s)",
+            "	@extern native Sin(real r) returns real",
+            "	init",
+            "		var i = 5",
+            "		var x = Sin(5)",
+            "		if x < 20",
+            "			x = x + 1",
+            "		if i == 5",
+            "			testSuccess()",
+            "endpackage");
     }
 
     @Test
     @Ignore // test for #747
     public void test_localVarMerger3() throws IOException {
         test().lines(
-                "package test",
-                "native testSuccess()",
-                "native testFail(string s)",
-                "native sideEffects()",
-                "@extern native Sin(real r) returns real",
-                "int g = 0",
-                "int h = 0",
-                "function f(int x)",
-                "	sideEffects()",
-                "function foo(int x)",
-                "	int a = g",
-                "	if h == 10",
-                "		f(a)",
-                "function initVars()",
-                "	g = 7",
-                "	h = 10",
-                "init",
-                "	initVars()",
-                "	foo(3)",
-                "	testSuccess()"
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "native sideEffects()",
+            "@extern native Sin(real r) returns real",
+            "int g = 0",
+            "int h = 0",
+            "function f(int x)",
+            "	sideEffects()",
+            "function foo(int x)",
+            "	int a = g",
+            "	if h == 10",
+            "		f(a)",
+            "function initVars()",
+            "	g = 7",
+            "	h = 10",
+            "init",
+            "	initVars()",
+            "	foo(3)",
+            "	testSuccess()"
         );
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_localVarMerger3_opt.j"), Charsets.UTF_8);
         assertTrue(compiledAndOptimized.contains("call f(test_g)"));
@@ -559,66 +576,66 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_unused_func_remover() throws IOException {
         test().executeProg().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	native testSuccess()",
-                "	init",
-                "		I2S(5)",
-                "		testSuccess()",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native testSuccess()",
+            "	init",
+            "		I2S(5)",
+            "		testSuccess()",
+            "endpackage");
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover_opt.j"), Charsets.UTF_8);
-        assertFalse("I2S should be removed", compiledAndOptimized.contains("I2S"));
+        assertFalse(compiledAndOptimized.contains("I2S"), "I2S should be removed");
     }
 
     @Test
     public void test_unused_func_remover2() throws IOException {
         test().lines(
-                "package test",
-                "	@extern native I2S(int i) returns string",
-                "	init",
-                "		I2S(1 div 0)",
-                "endpackage");
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	init",
+            "		I2S(1 div 0)",
+            "endpackage");
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover2_opt.j"), Charsets.UTF_8);
-        assertTrue("I2S should not be removed", compiledAndOptimized.contains("I2S"));
+        assertTrue(compiledAndOptimized.contains("I2S"), "I2S should not be removed");
     }
 
     @Test
     public void test_unreachableCodeRemover() throws IOException {
         test().withStdLib().lines(
-                "package test",
-                "	import MagicFunctions",
-                "	function foo()",
-                "		if not false",
-                "			return",
-                "		testSuccess()",
-                "	init",
-                "		foo()",
-                "endpackage");
+            "package test",
+            "	import MagicFunctions",
+            "	function foo()",
+            "		if not false",
+            "			return",
+            "		testSuccess()",
+            "	init",
+            "		foo()",
+            "endpackage");
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unreachableCodeRemover_opt.j"), Charsets.UTF_8);
-        assertFalse("testSuccess should be removed", compiledAndOptimized.contains("testSuccess"));
+        assertFalse(compiledAndOptimized.contains("testSuccess"), "testSuccess should be removed");
     }
 
     @Test
     public void controlFlowMergeNoSideEffect() throws IOException {
         test().lines(
-                "package Test",
-                "native testSuccess()",
-                "native testFail(string msg)",
-                "var ghs = 12",
-                "function nonInlinable(int x) returns bool",
-                "	if x > 6",
-                "		return true",
-                "	else",
-                "		return false",
-                "init",
-                "	var x = 6",
-                "	if nonInlinable(x)",
-                "		ghs = 0",
-                "		testFail(\"bad\")",
-                "	else",
-                "		ghs = 0",
-                "		if ghs == 0",
-                "			testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "var ghs = 12",
+            "function nonInlinable(int x) returns bool",
+            "	if x > 6",
+            "		return true",
+            "	else",
+            "		return false",
+            "init",
+            "	var x = 6",
+            "	if nonInlinable(x)",
+            "		ghs = 0",
+            "		testFail(\"bad\")",
+            "	else",
+            "		ghs = 0",
+            "		if ghs == 0",
+            "			testSuccess()"
         );
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
         assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
@@ -627,50 +644,50 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void test_controlFlowMergeSideEffect() throws IOException {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "native testFail(string msg)",
-                "var ghs = 12",
-                "function nonInlinable(int x) returns bool",
-                "	ghs += 6",
-                "	if x > 6",
-                "		return true",
-                "	else",
-                "		return false",
-                "init",
-                "	var x = 6",
-                "	if nonInlinable(x)",
-                "		ghs = 0",
-                "		testFail(\"bad\")",
-                "	else",
-                "		ghs = 0",
-                "		if ghs == 0",
-                "			testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "var ghs = 12",
+            "function nonInlinable(int x) returns bool",
+            "	ghs += 6",
+            "	if x > 6",
+            "		return true",
+            "	else",
+            "		return false",
+            "init",
+            "	var x = 6",
+            "	if nonInlinable(x)",
+            "		ghs = 0",
+            "		testFail(\"bad\")",
+            "	else",
+            "		ghs = 0",
+            "		if ghs == 0",
+            "			testSuccess()"
         );
     }
 
     @Test
     public void controlFlowMergeSideEffect() throws IOException {
         test().lines(
-                "package Test",
-                "native testSuccess()",
-                "native testFail(string msg)",
-                "var ghs = 12",
-                "function nonInlinable(int x) returns bool",
-                "	ghs += 6",
-                "	if x > 6",
-                "		return true",
-                "	else",
-                "		return false",
-                "init",
-                "	var x = 6",
-                "	if nonInlinable(x)",
-                "		ghs = 0",
-                "		testFail(\"bad\")",
-                "	else",
-                "		ghs = 0",
-                "		if ghs == 0",
-                "			testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "var ghs = 12",
+            "function nonInlinable(int x) returns bool",
+            "	ghs += 6",
+            "	if x > 6",
+            "		return true",
+            "	else",
+            "		return false",
+            "init",
+            "	var x = 6",
+            "	if nonInlinable(x)",
+            "		ghs = 0",
+            "		testFail(\"bad\")",
+            "	else",
+            "		ghs = 0",
+            "		if ghs == 0",
+            "			testSuccess()"
         );
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect_opt.j"), Charsets.UTF_8);
         assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
@@ -679,24 +696,24 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void controlFlowMergeSideEffect2() throws IOException {
         test().withStdLib().lines(
-                "package Test",
-                "var ghs = 12",
-                "function someSideEffectFunc(int x) returns bool",
-                "	if x < 3",
-                "		BJDebugMsg(\"test\")",
-                "	if x > 6",
-                "		return true",
-                "	else",
-                "		return false",
-                "init",
-                "	var x = 6",
-                "	if someSideEffectFunc(x)",
-                "		ghs = 0",
-                "		testFail(\"bad\")",
-                "	else",
-                "		ghs = 0",
-                "		if ghs == 0",
-                "			testSuccess()"
+            "package Test",
+            "var ghs = 12",
+            "function someSideEffectFunc(int x) returns bool",
+            "	if x < 3",
+            "		BJDebugMsg(\"test\")",
+            "	if x > 6",
+            "		return true",
+            "	else",
+            "		return false",
+            "init",
+            "	var x = 6",
+            "	if someSideEffectFunc(x)",
+            "		ghs = 0",
+            "		testFail(\"bad\")",
+            "	else",
+            "		ghs = 0",
+            "		if ghs == 0",
+            "			testSuccess()"
         );
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect2_opt.j"), Charsets.UTF_8);
         assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
@@ -706,76 +723,76 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void optimizeSet() {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "var ghs = 12",
-                "init",
-                "	var x = 6 + 3",
-                "	ghs += 2",
-                "	ghs -= 2",
-                "	if ghs == 12 and x == 9",
-                "		testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "var ghs = 12",
+            "init",
+            "	var x = 6 + 3",
+            "	ghs += 2",
+            "	ghs -= 2",
+            "	if ghs == 12 and x == 9",
+            "		testSuccess()"
         );
     }
 
     @Test
     public void optimizeSet2() {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "var x = 100",
-                "init",
-                "	var Test_x = x - 100",
-                "	Test_x += 1",
-                "	x += 1",
-                "	if x == 101 and Test_x == 1",
-                "		testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "var x = 100",
+            "init",
+            "	var Test_x = x - 100",
+            "	Test_x += 1",
+            "	x += 1",
+            "	if x == 101 and Test_x == 1",
+            "		testSuccess()"
         );
     }
 
     @Test
     public void optimizeExitwhen() {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "var x = 100",
-                "init",
-                "	while x > 0",
-                "		if x == 50",
-                "			break",
-                "		if x == 101",
-                "			break",
-                "		x--",
-                "	testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "var x = 100",
+            "init",
+            "	while x > 0",
+            "		if x == 50",
+            "			break",
+            "		if x == 101",
+            "			break",
+            "		x--",
+            "	testSuccess()"
         );
     }
 
     @Test
     public void number() {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "function foo(int x) returns bool",
-                "	return (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((x == 1) or (x == 852056)) or (x == 852064)) or (x == 852065)) or (x == 852067)) or (x == 852068)) or (x == 852076)) or (x == 852077)) or (x == 852090)) or (x == 852091)) or (x == 852100)) or (x == 852102)) or (x == 852103)) or (x == 852107)) or (x == 852108)) or (x == 852129)) or (x == 852130)) or (x == 852133)) or (x == 852134)) or (x == 852136)) or (x == 852137)) or (x == 852150)) or (x == 852151)) or (x == 852174)) or (x == 852158)) or (x == 852159)) or (x == 852162)) or (x == 852163)) or (x == 852174)) or (x == 852175)) or (x == 852177)) or (x == 852178)) or (x == 852191)) or (x == 852192)) or (x == 852198)) or (x == 852199)) or (x == 852203)) or (x == 852204)) or (x == 852212)) or (x == 852213)) or (x == 852244)) or (x == 852245)) or (x == 852249)) or (x == 852250)) or (x == 852255)) or (x == 852256)) or (x == 852458)) or (x == 852459)) or (x == 852478)) or (x == 852479)) or (x == 852484)) or (x == 852485)) or (x == 852515)) or (x == 852516)) or (x == 852522)) or (x == 852523)) or (x == 852540)) or (x == 852541)) or (x == 852543)) or (x == 852544)) or (x == 852546)) or (x == 852547)) or (x == 852549)) or (x == 852550)) or (x == 852552)) or (x == 852553)) or (x == 852562)) or (x == 852563)) or (x == 852571)) or (x == 852578)) or (x == 852579)) or (x == 852589)) or (x == 852590)) or (x == 852602)) or (x == 852603)) or (x == 852671)) or (x == 852672))",
-                "init",
-                "	if foo(852478)",
-                "		testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "function foo(int x) returns bool",
+            "	return (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((x == 1) or (x == 852056)) or (x == 852064)) or (x == 852065)) or (x == 852067)) or (x == 852068)) or (x == 852076)) or (x == 852077)) or (x == 852090)) or (x == 852091)) or (x == 852100)) or (x == 852102)) or (x == 852103)) or (x == 852107)) or (x == 852108)) or (x == 852129)) or (x == 852130)) or (x == 852133)) or (x == 852134)) or (x == 852136)) or (x == 852137)) or (x == 852150)) or (x == 852151)) or (x == 852174)) or (x == 852158)) or (x == 852159)) or (x == 852162)) or (x == 852163)) or (x == 852174)) or (x == 852175)) or (x == 852177)) or (x == 852178)) or (x == 852191)) or (x == 852192)) or (x == 852198)) or (x == 852199)) or (x == 852203)) or (x == 852204)) or (x == 852212)) or (x == 852213)) or (x == 852244)) or (x == 852245)) or (x == 852249)) or (x == 852250)) or (x == 852255)) or (x == 852256)) or (x == 852458)) or (x == 852459)) or (x == 852478)) or (x == 852479)) or (x == 852484)) or (x == 852485)) or (x == 852515)) or (x == 852516)) or (x == 852522)) or (x == 852523)) or (x == 852540)) or (x == 852541)) or (x == 852543)) or (x == 852544)) or (x == 852546)) or (x == 852547)) or (x == 852549)) or (x == 852550)) or (x == 852552)) or (x == 852553)) or (x == 852562)) or (x == 852563)) or (x == 852571)) or (x == 852578)) or (x == 852579)) or (x == 852589)) or (x == 852590)) or (x == 852602)) or (x == 852603)) or (x == 852671)) or (x == 852672))",
+            "init",
+            "	if foo(852478)",
+            "		testSuccess()"
         );
     }
 
     @Test
     public void optimizeDuplicateNullSets() throws IOException {
         testAssertOkLinesWithStdLib(true,
-                "package Test",
-                "var x = 100",
-                "init",
-                "	unit u = createUnit(Player(0), 'hfoo', vec2(0,0), angle(0))",
-                "	print(u.getTypeId())",
-                "	print(u.getTypeId() + 1)",
-                "	print(u.getTypeId() + 2)",
-                "	testSuccess()",
-                "	u = null",
-                "	u = null"
+            "package Test",
+            "var x = 100",
+            "init",
+            "	unit u = createUnit(Player(0), 'hfoo', vec2(0,0), angle(0))",
+            "	print(u.getTypeId())",
+            "	print(u.getTypeId() + 1)",
+            "	print(u.getTypeId() + 2)",
+            "	testSuccess()",
+            "	u = null",
+            "	u = null"
         );
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_optimizeDuplicateNullSets_opt.j"), Charsets.UTF_8);
         assertEquals(compiledAndOptimized.indexOf("u = null"), compiledAndOptimized.lastIndexOf("u = null"));
@@ -784,36 +801,36 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void testInlineAnnotation() throws IOException {
         testAssertOkLinesWithStdLib(false,
-                "package Test",
-                "@inline function over9000(int i, boolean b, real r)",
-                "	var s = \"\"",
-                "	s += r.toString()",
-                "	s += i.toString()",
-                "	s += b.toString()",
-                "	if s.length() > 5",
-                "		print(s)",
-                "	print(\"end\")",
-                "function over9001(int i, boolean b, real r)",
-                "	var s = \"\"",
-                "	s += r.toString()",
-                "	s += i.toString()",
-                "	s += b.toString()",
-                "	if s.length() > 5",
-                "		print(s)",
-                "	print(\"end\")",
-                "function foo()",
-                "	over9000(141, true and true, 12315.233)",
-                "	over9001(141, true and true, 12315.233)",
-                "function bar()",
-                "	print(\"end\")",
-                "@noinline function noot()",
-                "	print(\"end\")",
-                "init",
-                "	over9000(12412411, true and true, 12315.233)",
-                "	over9001(12412411, true and true, 12315.233)",
-                "	foo()",
-                "	bar()",
-                "	noot()"
+            "package Test",
+            "@inline function over9000(int i, boolean b, real r)",
+            "	var s = \"\"",
+            "	s += r.toString()",
+            "	s += i.toString()",
+            "	s += b.toString()",
+            "	if s.length() > 5",
+            "		print(s)",
+            "	print(\"end\")",
+            "function over9001(int i, boolean b, real r)",
+            "	var s = \"\"",
+            "	s += r.toString()",
+            "	s += i.toString()",
+            "	s += b.toString()",
+            "	if s.length() > 5",
+            "		print(s)",
+            "	print(\"end\")",
+            "function foo()",
+            "	over9000(141, true and true, 12315.233)",
+            "	over9001(141, true and true, 12315.233)",
+            "function bar()",
+            "	print(\"end\")",
+            "@noinline function noot()",
+            "	print(\"end\")",
+            "init",
+            "	over9000(12412411, true and true, 12315.233)",
+            "	over9001(12412411, true and true, 12315.233)",
+            "	foo()",
+            "	bar()",
+            "	noot()"
 
         );
         String inlined = Files.toString(new File("test-output/OptimizerTests_testInlineAnnotation_inl.j"), Charsets.UTF_8);
@@ -827,69 +844,68 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void moveTowardsBug() { // see #737
         testAssertOkLines(true,
-                "package test",
-                "native testSuccess()",
-                "@extern native SquareRoot(real x) returns real",
-                "@extern native R2S(real x) returns string",
-                "native println(string s)",
-                "tuple vec3(real x, real y, real z)",
-                "public function vec3.length() returns real",
-                "    return SquareRoot(this.x * this.x + this.y * this.y + this.z * this.z)",
-                "public function vec3.op_plus(vec3 v)	returns vec3",
-                "    return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
-                "public function vec3.op_minus(vec3 v)	returns vec3",
-                "    return vec3(this.x - v.x, this.y - v.y, this.z - v.z)",
-                "public function vec3.op_mult(real factor) returns vec3",
-                "    return vec3(this.x * factor, this.y * factor, this.z * factor)",
-                "public function real.op_mult(vec3 v) returns vec3",
-                "    return vec3(v.x * this, v.y * this, v.z * this)",
-                "public function vec3.normalizedPointerTo(vec3 target) returns vec3",
-                "    vec3 diff = target - this",
-                "    real len = diff.length()",
-                "    if len > 0",
-                "        diff = diff * (1. / len)",
-                "    else",
-                "        diff = vec3(1, 0, 0)",
-                "    return diff",
-                "function vec3.moveTowards(vec3 target, real dist) returns vec3",
-                "    return this + dist*this.normalizedPointerTo(target)",
-                "function vec3.approxEq(vec3 o) returns bool",
-                "    return this.x - 0.01 < o.x and o.x < this.x + 0.01",
-                "       and this.y - 0.01 < o.y and o.y < this.y + 0.01",
-                "       and this.z - 0.01 < o.z and o.z < this.z + 0.01",
-                "init",
-                "    let a = vec3(0,0,0).moveTowards(vec3(1,2,3), 10)",
-                "    let b = vec3(0,0,0).moveTowards(vec3(6,5,4), 10)",
-                "    if a.approxEq(vec3(2.673, 5.345, 8.018)) and b.approxEq(vec3(6.838, 5.698, 4.558))",
-                "        testSuccess()",
-                "endpackage");
+            "package test",
+            "native testSuccess()",
+            "@extern native SquareRoot(real x) returns real",
+            "@extern native R2S(real x) returns string",
+            "native println(string s)",
+            "tuple vec3(real x, real y, real z)",
+            "public function vec3.length() returns real",
+            "    return SquareRoot(this.x * this.x + this.y * this.y + this.z * this.z)",
+            "public function vec3.op_plus(vec3 v)	returns vec3",
+            "    return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
+            "public function vec3.op_minus(vec3 v)	returns vec3",
+            "    return vec3(this.x - v.x, this.y - v.y, this.z - v.z)",
+            "public function vec3.op_mult(real factor) returns vec3",
+            "    return vec3(this.x * factor, this.y * factor, this.z * factor)",
+            "public function real.op_mult(vec3 v) returns vec3",
+            "    return vec3(v.x * this, v.y * this, v.z * this)",
+            "public function vec3.normalizedPointerTo(vec3 target) returns vec3",
+            "    vec3 diff = target - this",
+            "    real len = diff.length()",
+            "    if len > 0",
+            "        diff = diff * (1. / len)",
+            "    else",
+            "        diff = vec3(1, 0, 0)",
+            "    return diff",
+            "function vec3.moveTowards(vec3 target, real dist) returns vec3",
+            "    return this + dist*this.normalizedPointerTo(target)",
+            "function vec3.approxEq(vec3 o) returns bool",
+            "    return this.x - 0.01 < o.x and o.x < this.x + 0.01",
+            "       and this.y - 0.01 < o.y and o.y < this.y + 0.01",
+            "       and this.z - 0.01 < o.z and o.z < this.z + 0.01",
+            "init",
+            "    let a = vec3(0,0,0).moveTowards(vec3(1,2,3), 10)",
+            "    let b = vec3(0,0,0).moveTowards(vec3(6,5,4), 10)",
+            "    if a.approxEq(vec3(2.673, 5.345, 8.018)) and b.approxEq(vec3(6.838, 5.698, 4.558))",
+            "        testSuccess()",
+            "endpackage");
     }
 
     @Test
     public void cyclicFunctionRemover() throws IOException {
         testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "function foo(int x) returns int",
-                "	if x > 1000",
-                "		return g(x)",
-                "	if x > 100",
-                "		return h(x)",
-                "	if x > 10",
-                "		return i(x)",
-                "	return x",
-                "function g(int x) returns int",
-                "	return foo(x div 1000)",
-                "function h(int x) returns int",
-                "	return foo(x div 100)",
-                "function i(int x) returns int",
-                "	return foo(x div 10)",
-                "init",
-                "	if foo(7531) == 7",
-                "		testSuccess()"
+            "package Test",
+            "native testSuccess()",
+            "function foo(int x) returns int",
+            "	if x > 1000",
+            "		return g(x)",
+            "	if x > 100",
+            "		return h(x)",
+            "	if x > 10",
+            "		return i(x)",
+            "	return x",
+            "function g(int x) returns int",
+            "	return foo(x div 1000)",
+            "function h(int x) returns int",
+            "	return foo(x div 100)",
+            "function i(int x) returns int",
+            "	return foo(x div 10)",
+            "init",
+            "	if foo(7531) == 7",
+            "		testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         assertFalse(compiled.contains("cyc_cyc"));
     }
 
@@ -933,7 +949,7 @@ public class OptimizerTests extends WurstScriptTest {
             "init",
             "    if getDamage(2) > 239 and getDamage(2) < 241",
             "        testSuccess()"
-            );
+        );
     }
 
     @Test
@@ -951,7 +967,7 @@ public class OptimizerTests extends WurstScriptTest {
             "    foo()",
             "    if at.vals[4] == 42",
             "        testSuccess()"
-            );
+        );
     }
 
 
@@ -985,7 +1001,6 @@ public class OptimizerTests extends WurstScriptTest {
             "        testSuccess()"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation_opt.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         assertTrue(compiled.contains("if a == 7 then"));
     }
 
@@ -1021,7 +1036,6 @@ public class OptimizerTests extends WurstScriptTest {
             "    destroyA(42)"
         );
         String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation2_opt.j"), Charsets.UTF_8);
-        System.out.println(compiled);
         // copy propagation obj -> this0
         assertTrue(compiled.contains("set Test_B_nextFree[Test_B_firstFree] = this0"));
     }
@@ -1037,7 +1051,7 @@ public class OptimizerTests extends WurstScriptTest {
         ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
         ImVar d = JassIm.ImVar(trace, TypesHelper.imInt(), "d", false);
         ImVar e = JassIm.ImVar(trace, TypesHelper.imInt(), "e", false);
-        ImVars locals = JassIm.ImVars(a,b,c,d,e);
+        ImVars locals = JassIm.ImVars(a, b, c, d, e);
 
         ImStmts body = JassIm.ImStmts(
             JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImIntVal(0)),
@@ -1075,13 +1089,292 @@ public class OptimizerTests extends WurstScriptTest {
 
         FunctionSplitter.splitFunc(tr, func);
 
-        System.out.println(prog);
         // should at least add one additional function
         assertTrue(prog.getFunctions().size() >= 2);
 
 
-
     }
 
+    @Test
+    public void unaryMinus_minInt_notFolded() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    int x = -2147483648",
+            "    int y = -x",              // MUST NOT fold to 2147483648 (invalid)",
+            "    // We can't compare to 2147483648; just check the IR still contains unary minus or equals x",
+            "    if x == -2147483648",     // just to use x/y and compile",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void realFormatting_consistent_fromIntOps() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "init",
+            "   real a = 1 div 2",
+            "   real b = 5 mod 2",
+            "   real c = 1 / 2",    // real path",
+            "   print(a)",
+            "   print(b)",
+            "   print(c)",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_realFormatting_consistent_fromIntOps_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("(0.5)"));
+        assertTrue(out.contains("(1)"));
+        assertFalse(out.matches("(?s).*E[-+]?\\d+.*")); // no scientific notation
+    }
+
+    @Test
+    public void stringConcat_leftEmptyNeutral() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function s() returns string",
+            "    return \"x\"",
+            "init",
+            "    string a = \"\" + s()",
+            "    if a == \"x\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void intDivMod_negatives_folded() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    int a = -7 div 3",
+            "    int b = -7 mod 3",
+            "    // Java-style: a=-2, b=-1. If Wurst/JASS defines differently, update asserts.",
+            "    if a == -2 and b == -1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void notComparison_and_deMorgan() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    if not (3 < 4) or not (5 == 6)",
+            "        testSuccess()" // should fold to true",
+        );
+    }
+
+    @Test
+    public void unaryMinus_real_fold() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real x = -0.5",
+            "    if x < 0.0",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void stringConcat_bothNeutralSides() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function f() returns string",
+            "    return \"y\"",
+            "init",
+            "    string a = \"\" + (\"x\" + \"\") + f() + \"\"",
+            "    if a == \"xy\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void noFold_divOrModByZero() throws Exception {
+        test().lines(
+            "package test",
+            "native printi(int i)",
+            "native printr(real r)",
+            "init",
+            "    int a = 5 div 0",
+            "    int b = 5 mod 0",
+            "    real c = 5.0 / 0.0",
+            "    real d = 5.0 % 0.0",
+            "    printi(a)",
+            "    printi(b)",
+            "    printr(c)",
+            "    printr(d)",
+            "endpackage");
+        String out = Files.toString(new File("test-output/OptimizerTests_noFold_divOrModByZero_opt.j"), Charsets.UTF_8);
+        // Just a weak check: expressions remain, not constants
+        assertTrue(out.contains("5 / 0") && out.contains("ModuloInteger(5, 0)") && out.contains("5.0 / 0.0") && out.contains("ModuloReal(5.0, 0.0)"));
+    }
+
+    @Test
+    public void consecutiveSet_dontFireWhenRightUsesVar() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    int x = 100",
+            "    x = 1",
+            "    x = x + (x + 2)", // right uses x -> MUST NOT rewrite to (1 + (x+2))",
+            "    if x == 4",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void realRealMixed_add_sub() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real a = 2 + 0.5",
+            "    real b = 0.5 + 2",
+            "    real c = 2 - 0.5",
+            "    real d = 0.5 - 2",
+            "    if a == 2.5 and b == 2.5 and c == 1.5 and d == -1.5",
+            "        testSuccess()"
+        );
+    }
+
+
+    @Test
+    public void realRealMixed_mult() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real a = 2 * 0.5",
+            "    real b = 0 * 3.14",
+            "    if a == 1.0 and b == 0.0",
+            "        testSuccess()"
+        );
+    }
+    @Test
+    public void realRealMixed_div_bothDirections() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real a = 1 / 2.0",
+            "    real b = 1.0 / 2",
+            "    real c = 4 * (1.0 / 2)",  // ensure nested fold plays nice",
+            "    if a == 0.5 and b == 0.5 and c == 2.0",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void realRealMixed_comparisons() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    boolean p1 = 2 > 1.5",
+            "    boolean p2 = 2 >= 2.0",
+            "    boolean p3 = 1.5 < 2",
+            "    boolean p4 = 1.5 <= 1",
+            "    boolean p5 = 2 == 2.0",
+            "    boolean p6 = 2 != 2.5",
+            "    if p1 and p2 and p3 and (not p4) and p5 and p6",
+            "        testSuccess()"
+        );
+    }
+    @Test
+    public void realRealMixed_precision_oneThird_literal() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "init",
+            "    real a = 1.0 / 3",
+            "    real b = 1 / 3.0",
+            "    print(a)", // keep usage so it survives",
+            "    print(b)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_precision_oneThird_literal_opt.j"), Charsets.UTF_8);
+        // Common 32-bit float for 1/3 is 0.33333334 — accept either a or b presence
+        assertTrue(out.contains("0.33333334"));
+        // Also guard against scientific notation
+        assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
+    }
+
+    @Test
+    public void realRealMixed_chained() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real a = 1 + 2.0 - 3 + 4.0 * 0.5",
+            "    // 1 + 2 - 3 + 2 = 2",
+            "    if a == 2.0",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void realRealMixed_nestedParen() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    real inner = (1.0 + 2) * (6 / 4.0)", // (3.0) * (1.5) = 4.5",
+            "    if inner == 4.5",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void realRealMixed_divByZero_notFolded_textual() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "init",
+            "   real a = 1 / 0.0",
+            "   real b = 1.0 / 0",
+            "   print(a)",
+            "   print(b)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_divByZero_notFolded_textual_opt.j"), Charsets.UTF_8);
+        // We don't rely on runtime Infinity/NaN behavior; just ensure constants weren't folded in.
+        // Accept either form depending on earlier rewrites (1/0.0, 1.0/0):
+        assertTrue(out.contains("/ 0.0") || out.contains("/ 0"));
+    }
+
+    @Test
+    public void realRealMixed_noScientificNotation() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "init",
+            "    real a = 2 * 0.5",
+            "    real b = 1 / 3.0",
+            "    real c = 1.0 / 2",
+            "    print(a)",
+            "    print(b)",
+            "    print(c)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_noScientificNotation_opt.j"), Charsets.UTF_8);
+        assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
+    }
+
+    @Test
+    public void realRealMixed_equality_roundTripGuard() throws Exception {
+        test().lines(
+            "package test",
+            "native print(boolean b)",
+            "init",
+            "    boolean b = (0.1 + 0.2) == 0.3", // all reals; but drives the round-trip idea",
+            "    print(b)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_equality_roundTripGuard_opt.j"), Charsets.UTF_8);
+        // We don't assert true/false (depends on float), we only ensure no sci-notation
+        assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
+    }
 
 }

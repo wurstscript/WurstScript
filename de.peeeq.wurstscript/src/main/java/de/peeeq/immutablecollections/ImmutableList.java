@@ -17,7 +17,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
     abstract public ImmutableList<T> appFront(T elem);
 
     /**
-     * adds an other ImmutableList to the end
+     * adds another ImmutableList to the end
      */
     abstract public <R extends T> ImmutableList<T> cons(ImmutableList<R> other);
 

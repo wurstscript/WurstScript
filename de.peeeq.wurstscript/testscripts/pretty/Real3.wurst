@@ -6,62 +6,62 @@ public HashMap<int, MobWrapper> mobMap = new HashMap<int, MobWrapper>
 public HashMap<int, TowerWrapper> towerMap = new HashMap<int, TowerWrapper>
 
 public abstract class TowerWrapper
-	unit u
+    unit u
 
-	construct(unit u)
-		this.u = u
-		towerMap.put(this.u.getHandleId(), this)
+    construct(unit u)
+        this.u = u
+        towerMap.put(this.u.getHandleId(), this)
 
-	function getUnit() returns unit
-		return this.u
+    function getUnit() returns unit
+        return this.u
 
-	ondestroy
-		towerMap.remove(this.u.getHandleId())
+    ondestroy
+        towerMap.remove(this.u.getHandleId())
 
 public class EmptyMobWrapper extends MobWrapper
-	construct(unit u)
-		super(u)
+    construct(unit u)
+        super(u)
 
 public abstract class MobWrapper implements Spawner, Enterer, Deather, Ender, Ticker
-	unit u
+    unit u
 
-	construct(unit u)
-		this.u = u
-		mobMap.put(this.u.getHandleId(), this)
+    construct(unit u)
+        this.u = u
+        mobMap.put(this.u.getHandleId(), this)
 
-	function getUnit() returns unit
-		return this.u
+    function getUnit() returns unit
+        return this.u
 
-	function onSpawn()
-		skip
+    function onSpawn()
+        skip
 
-	function onEnter()
-		skip
+    function onEnter()
+        skip
 
-	function onEnd() returns bool
-		return false
+    function onEnd() returns bool
+        return false
 
-	function onDeath()
-		skip
+    function onDeath()
+        skip
 
-	function startTick()
-		skip
+    function startTick()
+        skip
 
-	ondestroy
-		mobMap.remove(this.u.getHandleId())
-		u.remove()
+    ondestroy
+        mobMap.remove(this.u.getHandleId())
+        u.remove()
 
 public interface Spawner
-	function onSpawn()
+    function onSpawn()
 
 public interface Enterer
-	function onEnter()
+    function onEnter()
 
 public interface Deather
-	function onDeath()
+    function onDeath()
 
 public interface Ender
-	function onEnd() returns bool
+    function onEnd() returns bool
 
 public interface Ticker
-	function startTick()
+    function startTick()

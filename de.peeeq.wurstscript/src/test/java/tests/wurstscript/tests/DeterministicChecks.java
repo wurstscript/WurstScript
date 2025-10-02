@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -21,7 +22,9 @@ public class DeterministicChecks extends WurstScriptTest {
 
     @Test
     public void simple() throws IOException {
+        ErrorHandler.outputTestSource = true;
         run(this::exampleCode, "exampleCode");
+        ErrorHandler.outputTestSource = false;
     }
 
     private void run(Runnable example, String name) throws IOException {
@@ -59,7 +62,9 @@ public class DeterministicChecks extends WurstScriptTest {
 
     @Test
     public void cyclicFunctionCall() throws IOException {
+        ErrorHandler.outputTestSource = true;
         run(this::cycleExample, "cycleExample");
+        ErrorHandler.outputTestSource = false;
     }
 
     private void cycleExample() {

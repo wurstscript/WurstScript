@@ -1,75 +1,64 @@
 buildscript {
-    repositories {
-        mavenCentral()
-    }
+    repositories { mavenCentral() }
     dependencies {
-        classpath 'de.undercouch:gradle-download-task:4.1.2'
+        // used at configuration-time for version info
         classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
     }
 }
 
 plugins {
-    id "jacoco"
-    id 'com.github.kt3k.coveralls' version '2.12.0'
     id 'java'
+    id 'application'
     id 'antlr'
     id 'eclipse'
     id 'idea'
-    id 'application'
-    id "org.sonarqube" version "4.4.1.3373"
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'jacoco'
+    id 'maven-publish'
+    id 'com.github.kt3k.coveralls' version '2.12.2'
+    id 'com.gradleup.shadow' version '9.2.2'
+    id 'de.undercouch.download' version '5.6.0'
 }
+
 
 import de.undercouch.gradle.tasks.download.Download
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 
-import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-sonar {
-  properties {
-    property "sonar.projectKey", "wurstscript_WurstScript"
-    property "sonar.organization", "wurstscript-1"
-    property "sonar.host.url", "https://sonarcloud.io"
-  }
+application {
+    mainClass = "de.peeeq.wurstio.Main"
 }
 
-
-mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.1.0"
 
 java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
-    }
+    toolchain { languageVersion = JavaLanguageVersion.of(25) }
 }
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
 
 jacoco {
-    toolVersion = "0.8.5"
+    toolVersion = "0.8.13"
 }
 
 jacocoTestReport {
-    reports {
-        xml.required.set(true)
-    }
-
+    dependsOn test
+    reports { xml.required.set(true) }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it,
-                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'])
+            fileTree(dir: it, exclude: [
+                    '**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'
+            ])
         }))
     }
 }
 
-String genDir = "$projectDir/src-gen"
+def genDir = "$projectDir/src-gen"
 
 sourceSets {
     main {
-        java {
-            srcDir genDir
-        }
+        java.srcDir(genDir)
     }
 }
 
@@ -79,122 +68,108 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
+configurations {
+    // isolated classpath for the generator
+    astgen
+}
+
 dependencies {
     implementation 'org.jetbrains:annotations:23.0.0'
 
-
-    // Antlr parsing library
+    // Antlr
     antlr "org.antlr:antlr4:4.13.1"
 
-    // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:f4723157ec'
+    // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
 
-    // JUnit for testing
-    testImplementation group: 'org.testng', name: 'testng', version: '7.8.0'
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
 
-    // Google guava
+    // Tests
+    testImplementation 'org.testng:testng:7.11.0'
+    testImplementation 'org.hamcrest:hamcrest-all:1.3'
+
+    // Libs
     implementation 'com.google.guava:guava:32.1.3-jre'
-
-    // Better functional data structures:
-    implementation 'io.vavr:vavr:0.10.4'
-
-    // Support for the vscode language server protocol
-    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.21.1'
-
-    // @Nullable annotations
-    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
-
-    // Gson for json parsing
-    implementation group: 'com.google.code.gson', name: 'gson', version: '2.10.1'
-
-    // Velocity template engine for generating Html documents from Hotdoc documentation
-    implementation group: 'org.apache.velocity', name: 'velocity', version: '1.7'
-
-    // Chardet for guessing the file-encoding of a source-file
+    implementation 'io.vavr:vavr:0.10.7'
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.24.0'
+    implementation 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'org.apache.velocity:velocity:1.7'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
-
-    // Crigges' jmpq
-    implementation group: 'com.github.inwc3', name: 'jmpq3', version: '3183dd7680'
-
-    // Water's wc3 libs
-    implementation 'com.github.inwc3:wc3libs:c3f131a0e5'
-
-    // The setup tool for wurst.build handling
-    implementation 'com.github.wurstscript:wurstsetup:475cc7fae8'
-
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.11'
-
-    implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '6.7.0.202309050840-r'
-    implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.apache', version: '6.7.0.202309050840-r'
-
+    implementation 'com.github.inwc3:jmpq3:29b55f2c32'
+    implementation 'com.github.inwc3:wc3libs:8a8fc98f3a'
+    implementation 'com.github.wurstscript:wurstsetup:393cf5ea39'
+    implementation 'org.slf4j:slf4j-api:1.7.25'
+    implementation 'ch.qos.logback:logback-classic:1.5.13'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:6.7.0.202309050840-r'
     implementation 'it.unimi.dsi:fastutil:8.5.16'
 
-    // Smallcheck testing library:
-    testImplementation group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
+    // Smallcheck
+    testImplementation 'com.github.peterzeller:java-smallcheck:3f6a178ba7'
 }
 
-configurations.all {
+configurations.configureEach {
     exclude group: "org.slf4j", module: "slf4j-log4j12"
     exclude group: "log4j", module: "log4j"
 }
 
-task genAst {
-    description = 'Compile ast specifications'
-    fileTree(dir: 'parserspec', include: '**/*.parseq').each { file ->
-        Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;")
-        String fileContents = file.text
+/** -------- AST generation (abstractsyntaxgen) -------- */
 
-        Matcher matcher = PACKAGE_PATTERN.matcher(fileContents)
-        String packageName = ""
-        if (matcher.find()) {
-            packageName = matcher.group(1)
-        }
+def parseqFiles = fileTree(dir: 'parserspec', include: '*.parseq')
 
-        String targetDir = "$genDir/" + packageName.replace(".", "/")
+def pkgPattern = Pattern.compile(/package\s+(\S+)\s*;/)
 
-        inputs.file(file)
-        outputs.dir(targetDir)
+tasks.register('genAst') {
+    // make it incremental/cacheable
+    inputs.files(parseqFiles)
+    outputs.dir(genDir)
 
-        doLast {
-            javaexec {
-                classpath configurations.compileClasspath
-                main = "asg.Main"
-                args = [file, targetDir]
+    doLast {
+        // fetch ExecOperations from Gradle services (no @Inject needed)
+        ExecOperations execOps = project.services.get(ExecOperations)
+
+        parseqFiles.files.each { File f ->
+            String contents = f.getText('UTF-8')
+            def m = pkgPattern.matcher(contents)
+            String pkg = m.find() ? m.group(1) : ""
+            File targetDir = file("$genDir/${pkg.replace('.', '/')}")
+
+            targetDir.mkdirs()
+
+            // run: asg.Main <file> <targetDir>  using isolated classpath
+            execOps.javaexec {
+                classpath = configurations.astgen
+                mainClass.set('asg.Main')
+                args(f.absolutePath, targetDir.absolutePath)
             }
         }
     }
 }
 
+/** -------- Version info file generation -------- */
 
-task versionInfoFile {
+tasks.register('versionInfoFile') {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
-    String gitRevision = "unknown-version"
-    String gitRevisionlong = "unknown-version"
-
+    // resolve git info at configuration time
     Git git = Git.open(new File(rootProject.projectDir, '..'))
     ObjectId head = git.getRepository().resolve(Constants.HEAD)
-
-    gitRevision = head.abbreviate(8).name()
-    gitRevisionlong = head.getName()
-
+    String gitRevision = head.abbreviate(8).name()
+    String gitRevisionlong = head.getName()
     String tag = git.describe().setTarget(head).setAlways(true).setTags(true).call()
-
     String wurstVersion = "${version}-${tag}"
+
     inputs.property("wurstVersion", wurstVersion)
 
-    def dir = new File('./src-gen/de/peeeq/wurstscript/')
-    def f = new File(dir, 'CompileTimeInfo.java')
-    outputs.file(f)
+    def dir = new File("$genDir/de/peeeq/wurstscript/")
+    def out = new File(dir, 'CompileTimeInfo.java')
+    outputs.file(out)
 
     doLast {
         dir.mkdirs()
-
         String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
-
-        f.text = """
+        out.text = """
         package de.peeeq.wurstscript;
 
         public class CompileTimeInfo {
@@ -204,46 +179,132 @@ task versionInfoFile {
             public static final String version="${wurstVersion}";
         }
         """
-
     }
 }
 
+/** -------- Aggregate generation + wiring into compile -------- */
 
-task gen {
+tasks.register('gen') {
     description "Generates code from various input files"
+    dependsOn 'genAst', 'versionInfoFile', 'generateGrammarSource'
 }
-gen.dependsOn genAst
-gen.dependsOn versionInfoFile
-gen.dependsOn generateGrammarSource
+tasks.named('compileJava') { it.dependsOn('gen') }
 
-compileJava.dependsOn gen
-
+/** -------- Tests -------- */
 
 test {
-    // set minimal heap size required to run tests:
-    jvmArgs = ['-Xms256m']
+    useTestNG()
 
-    useTestNG() {
-        suites 'src/test/resources/AllTestsSuite.xml'
-    }
+    jvmArgs(
+            '-Xmx2g',                         // local: give it room to finish and dump
+            '-XX:MaxMetaspaceSize=256m',
+            '-XX:+HeapDumpOnOutOfMemoryError',
+    )
 }
 
-// delete the generated sources on clean
-clean.doFirst {
-    delete genDir
+/** -------- Clean generated sources -------- */
+tasks.named('clean') {
+    doFirst { delete genDir }
 }
 
+/** -------- Download helpers -------- */
 
-apply plugin: 'de.undercouch.download'
-
-task downloadZipFile(type: Download) {
+tasks.register('downloadZipFile', Download) {
     src 'https://github.com/wurstscript/wurstStdlib2/archive/master.zip'
     dest new File(buildDir, 'stdlib2.zip')
 }
 
-task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
-    from zipTree(downloadZipFile.dest)
+tasks.register('downloadAndUnzipFile', Copy) {
+    dependsOn 'downloadZipFile'
+    from zipTree(tasks.named('downloadZipFile').get().dest)
     into new File(buildDir, '/deps/')
 }
 
+/** -------- Shadow / packaging -------- */
+
+shadowJar {
+    archiveBaseName.set('wurstscript')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    manifest { attributes 'Main-Class': application.mainClass.get() }
+}
+
+def fatJar = shadowJar.archiveFile.map { it.asFile }
+
+tasks.register('make_for_userdir', Copy) {
+    dependsOn 'shadowJar'
+    from fatJar
+    into "${System.properties['user.home']}/.wurst/"
+}
+
+tasks.register('make_for_wurstpack', Copy) {
+    dependsOn 'shadowJar'
+    from fatJar
+    into '../Wurstpack/wurstscript/'
+}
+
+tasks.register('create_zip_wurstpack_complete', Zip) {
+    dependsOn 'make_for_wurstpack'
+    from '../Wurstpack'
+    archiveFileName.set('wurstpack_complete.zip')
+}
+
+tasks.register('create_zip_wurstpack_compiler', Zip) {
+    dependsOn 'make_for_wurstpack'
+    from '../Wurstpack/wurstscript/'
+    archiveFileName.set('wurstpack_compiler.zip')
+}
+
+tasks.register('create_zips') {
+    dependsOn 'shadowJar', 'create_zip_wurstpack_complete', 'create_zip_wurstpack_compiler'
+
+    doLast {
+        ExecOperations execOps = project.services.get(ExecOperations)
+
+        mkdir("../downloads/")
+
+        copy {
+            from fatJar.get()
+            into '../downloads/'
+        }
+        copy {
+            from '../Wurstpack'
+            into '../downloads/Wurstpack/'
+        }
+        copy {
+            from '../WurstSetup/build/libs/WurstSetup.jar'
+            into '../downloads/'
+        }
+
+        mkdir("../Checksums/bin")
+        execOps.javaexec {
+            classpath = sourceSets.main.runtimeClasspath
+            mainClass.set('de.peeeq.wurstio.Checksums')
+            args("../downloads/Wurstpack/", "../downloads/wurstpack.md5")
+        }
+    }
+}
+
+/** -------- Hotdoc generation -------- */
+
+tasks.register('generate_hotdoc') {
+    dependsOn 'compileJava', 'downloadAndUnzipFile'
+
+    doLast {
+        ExecOperations execOps = project.services.get(ExecOperations)
+
+        copy {
+            from("src/main/resources/")
+            // Gradle 9 output classes dir
+            into("build/classes/java/main/")
+        }
+        execOps.javaexec {
+            classpath = sourceSets.main.runtimeClasspath
+            mainClass.set('de.peeeq.wurstio.Main')
+            args("--hotdoc", "./build/deps/", "../downloads/hotdoc")
+        }
+    }
+}
+
+/** -------- Apply deployment settings -------- */
 apply from: 'deploy.gradle'

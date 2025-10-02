@@ -15,33 +15,33 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.*;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
+import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
-    private static boolean cache = false;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState, boolean cache) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
-        ILInterpreter.cache = cache;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
 //        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime, boolean cache) {
-        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime), cache);
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
+        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -155,36 +155,29 @@ public class ILInterpreter implements AbstractInterpreter {
     }
 
 
-    private static final Object2ObjectOpenHashMap<ImFunction, Int2ObjectLinkedOpenHashMap<LocalState>> localStateCache =
-        new Object2ObjectOpenHashMap<>();
-
-    // Cap per-function cache size to avoid unbounded growth (tune as needed)
+    // Cap per-function cache size to avoid unbounded growth
     private static final int MAX_CACHE_PER_FUNC = 2048;
 
-    // If LocalState is immutable-or-treated-as-readonly when used as "no return":
-    // Prefer a TRUE singleton to avoid allocating huge internal maps for "void" cases.
     private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
 
-    // -------------- public entry with varargs kept for API compatibility --------------
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
         // Delegate to the array overload to avoid double-allocations.
         return runBuiltinFunction(globalState, f, args, /*isVarargs*/ true);
     }
 
-    // -------------- internal overload that can be called with an existing ILconst[] --------------
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
         // Cache purity + name once
         final String fname = f.getName();
-        final boolean pure = cache && isFunctionPure(fname);
+        final boolean pure = isFunctionPure(fname);
 
-        // Fast, zero-allocation rolling hash for args (no Object[] boxing like Objects.hash)
-        final int combinedHash = pure ? fastHashArgs(args) : 0;
-
+        GlobalCaches.ArgumentKey key = null;
         if (pure) {
-            final Int2ObjectLinkedOpenHashMap<LocalState> perFn =
-                localStateCache.get(f);
+            key = GlobalCaches.ArgumentKey.forLookup(args);
+
+            final Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                LOCAL_STATE_CACHE.get(f);
             if (perFn != null) {
-                final LocalState cached = perFn.get(combinedHash);
+                final LocalState cached = perFn.get(key);
                 if (cached != null) {
                     return cached;
                 }
@@ -196,21 +189,22 @@ public class ILInterpreter implements AbstractInterpreter {
 
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                // Invoke native; ideally you cache method handles per name elsewhere.
+                // Invoke native; TODO: cache method handles per name elsewhere.
                 final LocalState localState = new LocalState(natives.invoke(fname, args));
 
                 if (pure) {
                     // insert into per-function cache with bounded size
-                    Int2ObjectLinkedOpenHashMap<LocalState> perFn =
-                        localStateCache.get(f);
+                    Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                        LOCAL_STATE_CACHE.get(f);
                     if (perFn == null) {
-                        perFn = new Int2ObjectLinkedOpenHashMap<>(16);
-                        localStateCache.put(f, perFn);
+                        perFn = new Object2ObjectOpenHashMap<>(16);
+                        LOCAL_STATE_CACHE.put(f, perFn);
                     }
-                    perFn.put(combinedHash, localState);
+                    perFn.put(key, localState);
                     if (perFn.size() > MAX_CACHE_PER_FUNC) {
                         // evict eldest (insertion order) to bound memory
-                        final int eldest = perFn.firstIntKey();
+                        // Object2ObjectOpenHashMap maintains insertion order
+                        final GlobalCaches.ArgumentKey eldest = perFn.keySet().iterator().next();
                         perFn.remove(eldest);
                     }
                 }
@@ -233,7 +227,6 @@ public class ILInterpreter implements AbstractInterpreter {
         if (f.getReturnType() instanceof ImVoid) {
             return EMPTY_LOCAL_STATE;
         }
-        // If you can, pass a lightweight state to evaluate default (avoid allocating a heavy LocalState)
         final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
             .evaluate(globalState, EMPTY_LOCAL_STATE);
         return new LocalState(returnValue);
@@ -241,15 +234,7 @@ public class ILInterpreter implements AbstractInterpreter {
 
     /** Zero-allocation combined hash for ILconst[] (order-sensitive). */
     private static int fastHashArgs(ILconst[] args) {
-        int h = 1;
-        for (final ILconst a : args) {
-            // If ILconst has a stable, cheap hash (recommended), rely on it.
-            // If not, consider a dedicated method (e.g., a.fastHash()).
-            h = 31 * h + (a == null ? 0 : a.hashCode());
-        }
-        // Spread bits a little to reduce clustering (optional)
-        h ^= (h >>> 16);
-        return h;
+        return Arrays.hashCode(args);
     }
 
 
@@ -339,18 +324,25 @@ public class ILInterpreter implements AbstractInterpreter {
 
     @Override
     public int getInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .filter(o -> !o.isDestroyed())
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                if (!o.isDestroyed()) {
+                    count++;
+                }
+            }
+        }
+        return (int) count;
     }
 
     @Override
     public int getMaxInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                count++;
+            }
+        }
+        return (int) count;
     }
 }
