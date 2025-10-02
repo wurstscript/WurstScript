@@ -97,7 +97,7 @@ dependencies {
     implementation 'org.apache.velocity:velocity:1.7'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'com.github.inwc3:jmpq3:29b55f2c32'
-    implementation 'com.github.inwc3:wc3libs:bd76116d0e'
+    implementation 'com.github.inwc3:wc3libs:8a8fc98f3a'
     implementation 'com.github.wurstscript:wurstsetup:393cf5ea39'
     implementation 'org.slf4j:slf4j-api:1.7.25'
     implementation 'ch.qos.logback:logback-classic:1.5.13'

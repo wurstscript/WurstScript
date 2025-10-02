@@ -117,22 +117,23 @@ public class RunMap extends MapRequest {
 
 
         if (testMap.isPresent()) {
-            startGame(gui, testMap, result);
+            startGame(gui, result);
         }
         return null;
     }
 
-    private void startGame(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
-        injectMapData(gui, testMap, result);
+    private void startGame(WurstGui gui, CompilationResult result) throws Exception {
+        Optional<File> cachedMapFile = Optional.ofNullable(getCachedMapFile());
+        injectMapData(gui, cachedMapFile, result);
 
         timeTaker.beginPhase("Starting Warcraft 3");
         gui.sendProgress("Starting Warcraft 3...");
 
-        File mapCopy = testMap.get();
+        File mapCopy = cachedMapFile.get();
         if (w3data.getWc3PatchVersion().isPresent()) {
             GameVersion gameVersion = w3data.getWc3PatchVersion().get();
-            if (gameVersion != VERSION_1_32) {
-                mapCopy = copyToWarcraftMapDir(testMap.get());
+            if (gameVersion.compareTo(GameVersion.VERSION_1_32) < 0) {
+                mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
             }
         }
 
@@ -140,7 +141,7 @@ public class RunMap extends MapRequest {
         WLogger.info("Starting wc3 ... ");
         String path = "";
         if (customTarget != null) {
-            path = new File(customTarget, testMap.get().getName()).getAbsolutePath();
+            path = new File(customTarget, cachedMapFile.get().getName()).getAbsolutePath();
         } else if (mapCopy != null) {
             path = mapCopy.getAbsolutePath();
         }

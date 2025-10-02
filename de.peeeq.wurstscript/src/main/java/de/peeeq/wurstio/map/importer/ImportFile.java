@@ -426,6 +426,9 @@ public class ImportFile {
     /**
      * Cached version that only updates changed files
      */
+    /**
+     * Cached version that only updates changed files
+     */
     private static ImportResult insertImportedFiles_Cached(MpqEditor mpq, List<File> directories) throws Exception {
         long startTime = System.currentTimeMillis();
 
@@ -468,7 +471,13 @@ public class ImportFile {
             // Quick check: if file hasn't been modified, assume it's the same
             CacheManifest.FileEntry oldEntry = oldManifest.importFiles.get(path);
             if (oldEntry != null && oldEntry.lastModified == lastModified) {
-                // File hasn't changed, reuse the old hash
+                // File hasn't changed, but verify it exists in MPQ
+                if (!mpq.hasFile(path)) {
+                    WLogger.info("File in manifest but missing from MPQ, re-adding: " + path);
+                    mpq.insertFile(path, file);
+                    importsChanged = true;
+                    filesUpdated++;
+                }
                 newManifest.importFiles.put(path, oldEntry);
                 continue;
             }
@@ -486,10 +495,12 @@ public class ImportFile {
                 WLogger.info("Modified import: " + path);
                 importsChanged = true;
                 filesUpdated++;
-                mpq.deleteFile(path);
+                // Delete first to ensure clean update
+                if (mpq.hasFile(path)) {
+                    mpq.deleteFile(path);
+                }
                 mpq.insertFile(path, file);
             }
-            // If hashes match, do nothing!
         }
 
         // 3. Process deletions (files in old manifest but not in current file list)
@@ -500,12 +511,14 @@ public class ImportFile {
             WLogger.info("Deleting import: " + deletedPath);
             importsChanged = true;
             filesDeleted++;
-            mpq.deleteFile(deletedPath);
+            if (mpq.hasFile(deletedPath)) {
+                mpq.deleteFile(deletedPath);
+            }
         }
 
-        // 4. Rebuild war3map.imp ONLY if something changed
-        if (importsChanged) {
-            WLogger.info("Rebuilding war3map.imp due to changes in imports.");
+        // 4. Always rebuild war3map.imp to ensure it's in sync
+        if (importsChanged || !mpq.hasFile(IMP.GAME_PATH)) {
+            WLogger.info("Rebuilding war3map.imp");
             IMP importFile = new IMP();
             for (String path : allFiles.keySet()) {
                 IMP.Obj importObj = new IMP.Obj();
@@ -514,7 +527,9 @@ public class ImportFile {
                 importFile.addObj(importObj);
             }
 
-            mpq.deleteFile(IMP.GAME_PATH);
+            if (mpq.hasFile(IMP.GAME_PATH)) {
+                mpq.deleteFile(IMP.GAME_PATH);
+            }
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
                 importFile.write(out);
@@ -522,11 +537,9 @@ public class ImportFile {
             baos.flush();
             byte[] byteArray = baos.toByteArray();
             mpq.insertFile(IMP.GAME_PATH, byteArray);
-        } else {
-            WLogger.info("No changes to imported files detected. Skipping war3map.imp rebuild.");
         }
 
-        // 5. Save the new manifest to the MPQ for next run
+        // 5. Save the new manifest AFTER all changes are made
         saveManifest(mpq, newManifest);
 
         long endTime = System.currentTimeMillis();

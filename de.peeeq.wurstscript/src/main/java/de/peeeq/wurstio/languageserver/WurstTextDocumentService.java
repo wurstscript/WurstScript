@@ -37,7 +37,6 @@ public class WurstTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<Hover> hover(HoverParams hoverParams) {
-        WLogger.info("hover");
         return worker.handle(new HoverInfo(hoverParams, worker.getBufferManager()));
     }
 
@@ -90,7 +89,6 @@ public class WurstTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
-        WLogger.info("codeAction");
         return worker.handle(new CodeActionRequest(params, worker.getBufferManager()));
     }
 

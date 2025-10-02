@@ -10,7 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 class Jmpq3BasedEditor implements MpqEditor {
-
     private final JMpqEditor editor;
 
     private JMpqEditor getEditor() {
@@ -23,16 +22,19 @@ class Jmpq3BasedEditor implements MpqEditor {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
         this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
+
     }
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) {
-        getEditor().insertByteArray(filenameInMpq, contents, true);
+        getEditor().deleteFile(filenameInMpq);
+        getEditor().insertByteArray(filenameInMpq, contents);
     }
 
     @Override
     public void insertFile(String filenameInMpq, File contents) throws Exception {
-        getEditor().insertFile(filenameInMpq, contents, true);
+        getEditor().deleteFile(filenameInMpq);
+        getEditor().insertFile(filenameInMpq, contents);
     }
 
     @Override

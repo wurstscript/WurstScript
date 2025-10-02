@@ -451,13 +451,13 @@ public class ProgramStateIO extends ProgramState {
                 if (oldManifest.hasEntry(fileType.getExt()) &&
                     oldManifest.hashMatches(fileType.getExt(), currentHash)) {
 
-                    WLogger.info("Object file " + fileType.getExt() + " unchanged (hash match), skipping writeback");
+                    System.out.println("Object file " + fileType.getExt() + " unchanged (hash match), skipping writeback");
                     filesSkipped++;
 
                     // Still add to new manifest
                     newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());
                 } else {
-                    WLogger.info("Object file " + fileType.getExt() + " changed or new, writing back");
+                    System.out.println("Object file " + fileType.getExt() + " changed or new, writing back");
                     filesUpdated++;
                     writebackObjectFile(dataStore, fileType, inject);
                     newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());

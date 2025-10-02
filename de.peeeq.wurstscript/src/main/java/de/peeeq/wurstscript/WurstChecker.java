@@ -48,7 +48,6 @@ public class WurstChecker {
         // validate the resource:
         WurstValidator validator = new WurstValidator(root);
         validator.validate(toCheck);
-        WLogger.info("debug - finished checkProg");
     }
 
     private void attachErrorHandler(WurstModel root) {

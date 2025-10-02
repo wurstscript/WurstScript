@@ -44,7 +44,7 @@ public class HoverInfo extends UserRequest<Hover> {
             return new Hover(Collections.singletonList(Either.forLeft("File " + filename + " is not part of the project. Move it to the wurst folder.")));
         }
         Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
-        WLogger.info("hovering over " + Utils.printElement(e));
+        WLogger.debug("hovering over " + Utils.printElement(e));
         List<Either<String, MarkedString>> desription = e.match(new Description());
         desription = addArgumentHint(e, desription);
 

@@ -469,7 +469,6 @@ public class ModelManagerImpl implements ModelManager {
             String contents = Files.toString(f, Charsets.UTF_8);
             bufferManager.updateFile(WFile.create(f), contents);
             replaceCompilationUnit(filename, contents, true);
-            WLogger.info("replaceCompilationUnit 3 " + f);
         } catch (IOException e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
