@@ -812,17 +812,25 @@ public class WurstValidator {
      * check that type parameters are used in correct contexts:
      */
     private void checkTypeparamsUsedCorrectly(TypeExpr e, TypeParamDef tp) {
-        if (tp.isStructureDefTypeParam()) { // typeParamDef is for
-            // structureDef
-            if (tp.attrNearestStructureDef() instanceof ModuleDef) {
-                // in modules we can also type-params in static contexts
-                return;
-            }
-
-            if (!e.attrIsDynamicContext()) {
-                //e.addError("Type variables must not be used in static contexts.");
-            }
+        // type param of a structure (class/interface/module)?
+        if (!tp.isStructureDefTypeParam()) {
+            return; // free/generic TP outside structures: no special restriction here
         }
+
+        if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+            return;
+        }
+
+        if (e.attrIsDynamicContext()) {
+            return;
+        }
+
+        if (isTypeParamNewGeneric(tp)) {
+            return;
+        }
+
+        // Old-style generics (no colon) or colon bound not reference-like → keep the original restriction
+        e.addError("Type variables must not be used in static contexts.");
     }
 
     private void checkClosure(ExprClosure e) {
@@ -1843,7 +1851,7 @@ public class WurstValidator {
             WurstType typ = boundTyp.getBaseType();
 
             TypeParamDef tp = t._1();
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+            if (isTypeParamNewGeneric(tp)) {
                 // new style generics
             } else { // old style generics
 
@@ -1909,6 +1917,10 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    private static boolean isTypeParamNewGeneric(TypeParamDef tp) {
+        return tp.getTypeParamConstraints() instanceof TypeExprList;
     }
 
     private void checkFuncRef(FuncRef ref) {
