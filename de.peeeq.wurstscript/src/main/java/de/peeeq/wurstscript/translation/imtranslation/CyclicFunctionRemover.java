@@ -141,13 +141,13 @@ public class CyclicFunctionRemover {
                 relevant.add(imFunctionCall);
             }
         });
-        relevant.parallelStream().forEach(relevantElem -> {
+        for (Element relevantElem : relevant) {
             if (relevantElem instanceof ImFuncRef) {
                 replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFuncRef) relevantElem);
             } else if (relevantElem instanceof ImFunctionCall) {
                 replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) relevantElem);
             }
-        });
+        }
     }
 
     private void replaceImFuncRef(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, ImFuncRef e) {

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -19,24 +20,58 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
  * flattening expressions and statements
  * after flattening there will be no more StatementExprs
  * for expressions there might be a StatementExpr on the top level
- * <p>
- * TODO wait, its not that easy: you have to make sure that the execution order is not changed for functions and global variables
- * <p>
- * e.g. take
- * <p>
- * y = x + StatementExpr(setX(4), 2)
- * <p>
- * this should be translated to:
- * <p>
- * temp = x
- * setX(4)
- * y = temp + 2
- * <p>
- * <p>
- * alternative: relax language semantics
  */
 public class Flatten {
 
+    // Configuration flag - set this to control parallel execution
+    public static boolean USE_PARALLEL_EXECUTION = false;
+
+    // Threshold for parallel execution (only if USE_PARALLEL_EXECUTION is true)
+    public static int PARALLEL_THRESHOLD = 10000;
+
+    // Cached temporary variable names
+    private static final String[] TEMP_VAR_NAMES;
+    private static final String[] AND_LEFT_VAR_NAMES;
+    private static final String[] TUPLE_TEMP_VAR_NAMES;
+
+    static {
+        TEMP_VAR_NAMES = new String[200];
+        for (int i = 0; i < TEMP_VAR_NAMES.length; i++) {
+            TEMP_VAR_NAMES[i] = "temp" + i;
+        }
+
+        AND_LEFT_VAR_NAMES = new String[50];
+        for (int i = 0; i < AND_LEFT_VAR_NAMES.length; i++) {
+            AND_LEFT_VAR_NAMES[i] = "andLeft" + i;
+        }
+
+        TUPLE_TEMP_VAR_NAMES = new String[50];
+        for (int i = 0; i < TUPLE_TEMP_VAR_NAMES.length; i++) {
+            TUPLE_TEMP_VAR_NAMES[i] = "tuple_temp" + i;
+        }
+    }
+
+    private static final ThreadLocal<Integer> tempVarCounter = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Integer> andLeftVarCounter = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Integer> tupleTempVarCounter = ThreadLocal.withInitial(() -> 0);
+
+    private static String getTempVarName() {
+        int count = tempVarCounter.get();
+        tempVarCounter.set(count + 1);
+        return TEMP_VAR_NAMES[count % TEMP_VAR_NAMES.length];
+    }
+
+    private static String getAndLeftVarName() {
+        int count = andLeftVarCounter.get();
+        andLeftVarCounter.set(count + 1);
+        return AND_LEFT_VAR_NAMES[count % AND_LEFT_VAR_NAMES.length];
+    }
+
+    private static String getTupleTempVarName() {
+        int count = tupleTempVarCounter.get();
+        tupleTempVarCounter.set(count + 1);
+        return TUPLE_TEMP_VAR_NAMES[count % TUPLE_TEMP_VAR_NAMES.length];
+    }
 
     public static Result flatten(ImTypeVarDispatch imTypeVarDispatch, ImTranslator translator, ImFunction f) {
         throw new RuntimeException("called too early");
@@ -296,7 +331,6 @@ public class Flatten {
     }
 
     public static Result flatten(ImOperatorCall e, ImTranslator t, ImFunction f) {
-        // TODO special case and, or
         de.peeeq.wurstscript.ast.Element trace = e.attrTrace();
         switch (e.getOp()) {
             case AND: {
@@ -307,7 +341,7 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
+                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
                     f.getLocals().add(tempVar);
                     ImStmts thenBlock = JassIm.ImStmts();
                     // if left is true then check right
@@ -327,9 +361,9 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
+                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
                     f.getLocals().add(tempVar);
-                    // if left is true then result is ture
+                    // if left is true then result is true
                     ImStmts thenBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(true)));
                     // else check right
                     ImStmts elseBlock = JassIm.ImStmts();
@@ -398,7 +432,7 @@ public class Flatten {
         } else {
             // in the unlikely event that this is not an l-value (e.g. foo().x)
             // we create a temporary variable and store the result there
-            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "tuple_temp", false);
+            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTupleTempVarName(), false);
             f.getLocals().add(v);
             stmts = new ArrayList<>(r.stmts);
             stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));
@@ -429,9 +463,21 @@ public class Flatten {
     }
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {
-        imProg.getFunctions().parallelStream().forEach(f -> f.flatten(translator));
-        imProg.getClasses().parallelStream().forEach(c ->
-            c.getFunctions().parallelStream().forEach(f -> f.flatten(translator)));
+        // Collect all functions
+        List<ImFunction> allFunctions = new ArrayList<>();
+        allFunctions.addAll(imProg.getFunctions());
+        for (ImClass c : imProg.getClasses()) {
+            allFunctions.addAll(c.getFunctions());
+        }
+
+        // Choose execution strategy based on flags and size
+        if (USE_PARALLEL_EXECUTION && allFunctions.size() >= PARALLEL_THRESHOLD) {
+            // Use parallel stream directly - no wrapper needed
+            allFunctions.parallelStream().forEach(f -> f.flatten(translator));
+        } else {
+            // Sequential processing for small programs or when parallel is disabled
+            allFunctions.forEach(f -> f.flatten(translator));
+        }
 
         translator.assertProperties(AssertProperty.FLAT);
     }
@@ -468,7 +514,7 @@ public class Flatten {
                 || i >= withStmts) {
                 newExprs.add(r.expr);
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
+                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));
@@ -499,7 +545,7 @@ public class Flatten {
                 || i >= withStmts) {
                 newExprs.add(r.getExpr());
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
+                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));

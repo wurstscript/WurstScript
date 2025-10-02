@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
@@ -629,6 +630,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void reconcile(Changes changes) {
+        GlobalCaches.clearAll();
         WurstModel model2 = model;
         if (model2 == null) {
             return;

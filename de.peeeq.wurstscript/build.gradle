@@ -193,8 +193,13 @@ tasks.named('compileJava') { it.dependsOn('gen') }
 /** -------- Tests -------- */
 
 test {
-    jvmArgs = ['-XX:MaxRAMPercentage=75','-XX:InitialRAMPercentage=30', '-XX:MinRAMPercentage=30']
     useTestNG()
+
+    jvmArgs(
+            '-Xmx2g',                         // local: give it room to finish and dump
+            '-XX:MaxMetaspaceSize=256m',
+            '-XX:+HeapDumpOnOutOfMemoryError',
+    )
 }
 
 /** -------- Clean generated sources -------- */

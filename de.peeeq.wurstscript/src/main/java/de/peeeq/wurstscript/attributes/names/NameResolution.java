@@ -2,56 +2,21 @@ package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
 public class NameResolution {
 
-    // OPTIMIZATION 1: Thread-local caches to avoid synchronization overhead
-    private static final ThreadLocal<Map<CacheKey, Object>> lookupCache =
-        ThreadLocal.withInitial(() -> new WeakHashMap<>(256));
-
-    // OPTIMIZATION 2: Cache key for lookups
-    private static class CacheKey {
-        final Element element;
-        final String name;
-        final LookupType type;
-
-        CacheKey(Element element, String name, LookupType type) {
-            this.element = element;
-            this.name = name;
-            this.type = type;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof CacheKey)) return false;
-            CacheKey that = (CacheKey) o;
-            return element == that.element && name.equals(that.name) && type == that.type;
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * (31 * System.identityHashCode(element) + name.hashCode()) + type.hashCode();
-        }
-    }
-
-    private enum LookupType {
-        FUNC, VAR, TYPE, PACKAGE, MEMBER_FUNC, MEMBER_VAR
-    }
-
     public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
-        // OPTIMIZATION 3: Check cache first
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name, LookupType.FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.FUNC);
             @SuppressWarnings("unchecked")
-            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) lookupCache.get().get(key);
+            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
             }
@@ -66,18 +31,15 @@ public class NameResolution {
             }
         }
 
-        // OPTIMIZATION 4: Pre-allocate with reasonable size
         List<FuncLink> result = new ArrayList<>(4);
         WScope scope = node.attrNearestScope();
 
-        // OPTIMIZATION 5: Collect all scopes first to avoid repeated nextScope calls
         List<WScope> scopes = new ArrayList<>(8);
         while (scope != null) {
             scopes.add(scope);
             scope = nextScope(scope);
         }
 
-        // OPTIMIZATION 6: Use Set to track seen definitions for deduplication
         Set<NameDef> seen = new HashSet<>();
 
         for (WScope s : scopes) {
@@ -86,7 +48,6 @@ public class NameResolution {
 
             for (DefLink n : links) {
                 if (n instanceof FuncLink && n.getReceiverType() == null) {
-                    // OPTIMIZATION 7: Deduplicate during collection
                     if (seen.add(n.getDef())) {
                         result.add((FuncLink) n);
                     }
@@ -98,8 +59,8 @@ public class NameResolution {
 
         // Cache the result
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name, LookupType.FUNC);
-            lookupCache.get().put(key, immutableResult);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.FUNC);
+            GlobalCaches.lookupCache.put(key, immutableResult);
         }
 
         return immutableResult;
@@ -112,7 +73,6 @@ public class NameResolution {
             return ImmutableList.of();
         }
 
-        // OPTIMIZATION 8: Avoid builder allocation for single element
         if (raw.size() == 1) {
             FuncLink only = raw.iterator().next();
             return ImmutableList.of(only.withConfigDef());
@@ -130,7 +90,6 @@ public class NameResolution {
             return ImmutableList.copyOf(nameLinks);
         }
 
-        // OPTIMIZATION 9: Use IdentityHashSet for deduplication
         Set<NameDef> seen = Collections.newSetFromMap(new IdentityHashMap<>(nameLinks.size()));
         List<T> result = new ArrayList<>(nameLinks.size());
 
@@ -157,11 +116,10 @@ public class NameResolution {
     }
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
-        // OPTIMIZATION 10: Cache member function lookups
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name + "@" + receiverType, LookupType.MEMBER_FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
             @SuppressWarnings("unchecked")
-            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) lookupCache.get().get(key);
+            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
             }
@@ -172,7 +130,6 @@ public class NameResolution {
 
         WScope scope = node.attrNearestScope();
 
-        // OPTIMIZATION 11: Collect scopes once
         List<WScope> scopes = new ArrayList<>(8);
         while (scope != null) {
             scopes.add(scope);
@@ -198,8 +155,8 @@ public class NameResolution {
         ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
 
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name + "@" + receiverType, LookupType.MEMBER_FUNC);
-            lookupCache.get().put(key, immutableResult);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.lookupCache.put(key, immutableResult);
         }
 
         return immutableResult;
@@ -210,10 +167,9 @@ public class NameResolution {
     }
 
     public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
-        // OPTIMIZATION 12: Cache variable lookups
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name, LookupType.VAR);
-            NameLink cached = (NameLink) lookupCache.get().get(key);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+            NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
             }
@@ -222,7 +178,6 @@ public class NameResolution {
         NameLink privateCandidate = null;
         List<NameLink> candidates = new ArrayList<>(1);
 
-        // OPTIMIZATION 13: Collect scopes once
         List<WScope> scopes = new ArrayList<>(8);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
@@ -244,8 +199,8 @@ public class NameResolution {
                 for (DefLink link : receiverType.nameLinks(name)) {
                     if (!(link instanceof FuncLink)) {
                         if (!showErrors) {
-                            CacheKey key = new CacheKey(node, name, LookupType.VAR);
-                            lookupCache.get().put(key, link);
+                            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+                            GlobalCaches.lookupCache.put(key, link);
                         }
                         return link;
                     }
@@ -276,8 +231,8 @@ public class NameResolution {
                 }
                 NameLink result = candidates.get(0);
                 if (!showErrors) {
-                    CacheKey key = new CacheKey(node, name, LookupType.VAR);
-                    lookupCache.get().put(key, result);
+                    GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+                    GlobalCaches.lookupCache.put(key, result);
                 }
                 return result;
             }
@@ -296,10 +251,9 @@ public class NameResolution {
     }
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
-        // OPTIMIZATION 14: Cache member var lookups
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name + "@" + receiverType, LookupType.MEMBER_VAR);
-            NameLink cached = (NameLink) lookupCache.get().get(key);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+            NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
             }
@@ -324,8 +278,8 @@ public class NameResolution {
                 DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
                 if (n2 != null) {
                     if (!showErrors) {
-                        CacheKey key = new CacheKey(node, name + "@" + receiverType, LookupType.MEMBER_VAR);
-                        lookupCache.get().put(key, n2);
+                        GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+                        GlobalCaches.lookupCache.put(key, n2);
                     }
                     return n2;
                 }
@@ -366,10 +320,9 @@ public class NameResolution {
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
-        // OPTIMIZATION 15: Cache type lookups
         if (!showErrors) {
-            CacheKey key = new CacheKey(node, name, LookupType.TYPE);
-            TypeDef cached = (TypeDef) lookupCache.get().get(key);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.TYPE);
+            TypeDef cached = (TypeDef) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
             }
@@ -408,8 +361,8 @@ public class NameResolution {
                 }
                 TypeDef result = (TypeDef) candidates.get(0).getDef();
                 if (!showErrors) {
-                    CacheKey key = new CacheKey(node, name, LookupType.TYPE);
-                    lookupCache.get().put(key, result);
+                    GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.TYPE);
+                    GlobalCaches.lookupCache.put(key, result);
                 }
                 return result;
             }
@@ -473,8 +426,4 @@ public class NameResolution {
         return null;
     }
 
-    // OPTIMIZATION 16: Add cache clearing method for when AST changes
-    public static void clearCache() {
-        lookupCache.get().clear();
-    }
 }

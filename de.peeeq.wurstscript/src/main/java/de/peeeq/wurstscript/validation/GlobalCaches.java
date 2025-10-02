@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.validation;
 
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import de.peeeq.wurstscript.types.WurstType;
@@ -8,6 +10,8 @@ import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 // Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
 public final class GlobalCaches {
@@ -59,5 +63,37 @@ public final class GlobalCaches {
     public static void clearAll() {
         LOCAL_STATE_CACHE.clear();
         SUBTYPE_MEMO.clear();
+        lookupCache.clear();
     }
+
+    public enum LookupType {
+        FUNC, VAR, TYPE, PACKAGE, MEMBER_FUNC, MEMBER_VAR
+    }
+
+    public static class CacheKey {
+        final Element element;
+        final String name;
+        final LookupType type;
+
+        public CacheKey(Element element, String name, LookupType type) {
+            this.element = element;
+            this.name = name;
+            this.type = type;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof CacheKey)) return false;
+            CacheKey that = (CacheKey) o;
+            return element == that.element && name.equals(that.name) && type == that.type;
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * (31 * System.identityHashCode(element) + name.hashCode()) + type.hashCode();
+        }
+    }
+
+    public static final Map<CacheKey, Object> lookupCache = new Object2ObjectOpenHashMap<>();
 }

@@ -10,17 +10,19 @@ import de.peeeq.wurstscript.attributes.names.Visibility;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public abstract class WurstTypeNamedScope extends WurstType {
 
     private final boolean isStaticRef;
+    // TODO change this to a list of TypeParamDef and add typeMapping?
     private final List<WurstTypeBoundTypeParam> typeParameters;
 
-    // OPTIMIZATION 1: Cache the name links with type arg binding
-    private volatile ImmutableMultimap<String, DefLink> cachedNameLinks = null;
-    private volatile VariableBinding cachedBinding = null;
+
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
@@ -31,6 +33,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
         this.isStaticRef = false;
         this.typeParameters = typeParameters;
     }
+
 
     public WurstTypeNamedScope(boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
@@ -73,8 +76,9 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return typeParameters;
     }
 
+
     protected String printTypeParams() {
-        if (typeParameters.isEmpty()) {
+        if (typeParameters.size() == 0) {
             return "";
         }
         StringBuilder s = new StringBuilder("<");
@@ -87,18 +91,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return s + ">";
     }
 
+
+
     @Override
     public VariableBinding getTypeArgBinding() {
-        // OPTIMIZATION 2: Cache the type arg binding
-        if (cachedBinding != null) {
-            return cachedBinding;
-        }
-
         VariableBinding res = VariableBinding.emptyMapping();
         for (WurstTypeBoundTypeParam tp : typeParameters) {
             res = res.set(tp.getTypeParamDef(), tp);
         }
-        cachedBinding = res;
         return res;
     }
 
@@ -115,18 +115,16 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     public WurstType replaceTypeVarsUsingTypeArgs(TypeExprList typeArgs) {
         if (typeArgs.isEmpty()) {
+            // TODO replace with unknown types?
             return this;
         }
-
-        // OPTIMIZATION 3: Pre-size the list
-        List<WurstTypeBoundTypeParam> typeParams = new ArrayList<>(typeParameters.size());
+        List<WurstTypeBoundTypeParam> typeParams = new ArrayList<>();
 
         if (typeArgs.size() != typeParameters.size()) {
             typeArgs.addError("Expected " + typeParameters.size() + " type arguments, but got " + typeArgs.size());
         }
 
-        int minSize = Math.min(typeArgs.size(), typeParameters.size());
-        for (int i = 0; i < minSize; i++) {
+        for (int i = 0; i < typeArgs.size() && i < typeParameters.size(); i++) {
             WurstTypeBoundTypeParam tp = typeParameters.get(i);
             TypeParamDef tpDef = tp.getTypeParamDef();
             TypeExpr typeArg = typeArgs.get(i);
@@ -134,11 +132,16 @@ public abstract class WurstTypeNamedScope extends WurstType {
             typeParams.add(new WurstTypeBoundTypeParam(tpDef, baseType, typeArg));
         }
 
+//		List<WurstType> newTypes = node.getTypeArgs().stream()
+//				.map((TypeExpr te) -> te.attrTyp().dynamic())
+//				.collect(Collectors.toList());
+
         return replaceTypeVars(typeParams);
     }
 
-    protected VariableBinding matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2,
-                                              @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+
+    protected VariableBinding matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+
         if (list.size() != list2.size()) {
             return null;
         }
@@ -155,6 +158,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     public boolean allowsDynamicDispatch() {
+        // dynamic dispatch is possible if this is not a static reference
         return !isStaticRef();
     }
 
@@ -163,105 +167,71 @@ public abstract class WurstTypeNamedScope extends WurstType {
      * This includes inherited names
      */
     public ImmutableMultimap<String, DefLink> nameLinks() {
-        // OPTIMIZATION 4: Cache the entire nameLinks result
-        VariableBinding currentBinding = getTypeArgBinding();
-
-        // Check if cache is valid
-        if (cachedNameLinks != null &&
-            ((currentBinding.isEmpty() && cachedBinding == null) ||
-                (currentBinding.equals(cachedBinding)))) {
-            return cachedNameLinks;
-        }
-
-        NamedScope def = getDef();
-        if (def == null) {
-            return ImmutableMultimap.of();
-        }
-
-        ImmutableMultimap<String, DefLink> res = def.attrNameLinks();
-
-        if (!currentBinding.isEmpty()) {
-            // OPTIMIZATION 5: Use builderWithExpectedSize
-            int expectedSize = res.size();
-            ImmutableMultimap.Builder<String, DefLink> resBuilder =
-                new ImmutableMultimap.Builder<>();
-
+        ImmutableMultimap<String, DefLink> res = getDef().attrNameLinks();
+        VariableBinding binding = getTypeArgBinding();
+        if (!binding.isEmpty()) {
+            // OPT maybe cache this
+            ImmutableMultimap.Builder<String, DefLink> resBuilder = ImmutableMultimap.builder();
             for (Map.Entry<String, DefLink> e : res.entries()) {
-                resBuilder.put(e.getKey(), e.getValue().withTypeArgBinding(def, currentBinding));
+                resBuilder.put(e.getKey(), e.getValue().withTypeArgBinding(getDef(), binding));
             }
-            res = resBuilder.build();
+            return resBuilder.build();
         }
-
-        // Cache the result
-        cachedNameLinks = res;
-        cachedBinding = currentBinding;
-
         return res;
     }
 
     public ImmutableCollection<DefLink> nameLinks(String name) {
-        // OPTIMIZATION 6: Direct lookup in cached multimap
         return nameLinks().get(name);
     }
 
     @Override
-    public void addMemberMethods(Element node, String name, List<FuncLink> result) {
-        // OPTIMIZATION 7: Single lookup and iteration
-        ImmutableCollection<DefLink> links = nameLinks(name);
-
-        if (links.isEmpty()) {
-            return;
-        }
-
-        for (DefLink defLink : links) {
-            if (!(defLink instanceof FuncLink)) {
-                continue;
-            }
-
-            FuncLink f = (FuncLink) defLink;
-            Visibility vis = f.getVisibility();
-
-            if (vis.isPublic()) {
-                result.add(f);
-            } else if (vis.isInherited()) {
-                // OPTIMIZATION 8: Cache these lookups if possible
-                NamedScope def = getDef();
-                if (def != null && node.attrNearestPackage() != def.attrNearestPackage()) {
-                    ClassDef nearestClass = node.attrNearestClassDef();
-                    if (nearestClass == null || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
-                        f = f.withVisibility(Visibility.PROTECTED_OTHER);
+    public void addMemberMethods(Element node, String name,
+                                 List<FuncLink> result) {
+        for (DefLink defLink : nameLinks(name)) {
+            if (defLink instanceof FuncLink) {
+                FuncLink f = (FuncLink) defLink;
+                if (f.getVisibility().isPublic()) {
+                    result.add(f);
+                } else if (f.getVisibility().isInherited()) {
+                    // for protected members:
+                    NamedScope def = getDef();
+                    if (def != null && node.attrNearestPackage() != def.attrNearestPackage()) {
+                        // if in different package, check if we are in a subclass:
+                        ClassDef nearestClass = node.attrNearestClassDef();
+                        if (nearestClass == null
+                            || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
+                            // if not in a subclass, change to not visible
+                            f = f.withVisibility(Visibility.PROTECTED_OTHER);
+                        }
                     }
+                    result.add(f);
                 }
-                result.add(f);
             }
         }
     }
 
     @Override
     public Stream<FuncLink> getMemberMethods(Element node) {
-        // OPTIMIZATION 9: Avoid stream operations if possible
         return nameLinks().values().stream()
-            .filter(n -> n instanceof FuncLink && n.getReceiverType() != null)
-            .map(n -> (FuncLink) n);
+            .filter(n -> {
+                WurstType receiverType = n.getReceiverType();
+                return n instanceof FuncLink
+                    && receiverType != null;
+            }).map(n -> (FuncLink) n);
     }
 
     @Override
     public boolean isNestedInside(WurstType other) {
-        if (!(other instanceof WurstTypeNamedScope)) {
-            return false;
-        }
-
-        WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
-        NamedScope scope = wtns.getDef();
-        Element node = this.getDef();
-
-        // OPTIMIZATION 10: Limit traversal depth
-        int maxDepth = 50; // Prevent infinite loops
-        while (node != null && maxDepth-- > 0) {
-            if (node == scope) {
-                return true;
+        if (other instanceof WurstTypeNamedScope) {
+            WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
+            NamedScope scope = wtns.getDef();
+            Element node = this.getDef();
+            while (node != null) {
+                if (node == scope) {
+                    return true;
+                }
+                node = node.getParent();
             }
-            node = node.getParent();
         }
         return false;
     }
@@ -271,9 +241,5 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return true;
     }
 
-    // OPTIMIZATION 11: Clear cache when type changes
-    protected void invalidateCache() {
-        cachedNameLinks = null;
-        cachedBinding = null;
-    }
+
 }

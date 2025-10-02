@@ -68,9 +68,10 @@ public class BuildMap extends MapRequest {
 
             gui.sendProgress("Finalizing map");
 
-            MpqEditor mpq = MpqEditorFactory.getEditor(targetMap);
-            if (mpq != null) {
-                mpq.closeWithCompression();
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
+                if (mpq != null) {
+                    mpq.closeWithCompression();
+                }
             }
 
             gui.sendProgress("Done.");

@@ -1535,11 +1535,15 @@ public class ImTranslator {
         return originalReturnValues.computeIfAbsent(f, ImFunction::getReturnType);
     }
 
+    final Set<AssertProperty> properties = Sets.newHashSet();
+
     public void assertProperties(AssertProperty... properties1) {
         if (!debug) {
             return;
         }
-        final Set<AssertProperty> properties = Sets.newHashSet(properties1);
+        properties.clear();
+        Collections.addAll(properties, properties1);
+
         assertProperties(properties, imProg);
     }
 
@@ -1547,7 +1551,9 @@ public class ImTranslator {
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
-        properties.parallelStream().forEach(p -> p.check(e));
+        for (AssertProperty p : properties) {
+            p.check(e);
+        }
         if (properties.contains(AssertProperty.NOTUPLES)) {
             // TODO ?
         }
