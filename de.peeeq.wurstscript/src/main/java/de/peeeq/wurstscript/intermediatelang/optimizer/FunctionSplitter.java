@@ -257,7 +257,7 @@ public class FunctionSplitter {
     private int estimateFuelMethod(ImMethod method) {
         int sum = 0;
         for (ImMethod m : method.getSubMethods()) {
-            int i = estimateFuelMethod(method);
+            int i = estimateFuelMethod(m);
             sum += i;
         }
         return Math.max(
