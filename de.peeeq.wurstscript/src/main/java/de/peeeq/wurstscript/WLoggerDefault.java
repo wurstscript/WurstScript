@@ -22,6 +22,11 @@ public class WLoggerDefault implements WLoggerI {
         logger.trace(msg);
     }
 
+    @Override
+    public void debug(String s) {
+        logger.debug(s);
+    }
+
     /**
      * (non-Javadoc)
      *
