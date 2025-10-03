@@ -33,7 +33,7 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImVoid t) {
-        throw new Error("Could not get default value for void variable.");
+        return new ILconstInt(0);
     }
 
     public static ILconst get(ImArrayTypeMulti t) {
@@ -57,6 +57,6 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImAnyType imAnyType) {
-        return ILconstNull.instance();
+        return new ILconstInt(0);
     }
 }

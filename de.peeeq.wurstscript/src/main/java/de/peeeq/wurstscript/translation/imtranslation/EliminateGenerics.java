@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
+import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
@@ -875,101 +872,133 @@ public class EliminateGenerics {
      * For specialized functions, the name contains the type information
      */
     private GenericTypes inferGenericsFromFunction(Element element, ImClass owningClass) {
-        // Walk up to find the enclosing function
         Element current = element;
         while (current != null) {
             if (current instanceof ImFunction) {
                 ImFunction func = (ImFunction) current;
 
-                // Check if this is a specialized function (name contains ⟪...⟫)
-                String funcName = func.getName();
-                if (funcName.contains("⟪") && funcName.contains("⟫")) {
-                    // This is a specialized function
-                    // Look at the first parameter (receiver) to get the type
-                    if (!func.getParameters().isEmpty()) {
-                        ImVar receiver = func.getParameters().get(0);
-                        ImType receiverType = receiver.getType();
+                // If function is still generic, we can't decide yet.
+                if (!func.getTypeVariables().isEmpty()) {
+                    return null;
+                }
 
-                        if (receiverType instanceof ImClassType) {
-                            ImClassType ct = (ImClassType) receiverType;
-                            // Check if this class type matches our owning class
-                            if (ct.getClassDef().getName().startsWith(owningClass.getName())) {
-                                // Extract the type arguments from the specialized class name
-                                return extractGenericsFromClassName(ct.getClassDef().getName(), owningClass);
+                if (!func.getParameters().isEmpty()) {
+                    ImVar receiver = func.getParameters().get(0);
+                    ImType rt = receiver.getType();
+
+                    if (rt instanceof ImClassType) {
+                        ImClassType ct = (ImClassType) rt;
+                        ImClass raw = ct.getClassDef();
+
+                        boolean matches =
+                            raw.getName().equals(owningClass.getName()) ||
+                                raw.getName().startsWith(owningClass.getName() + "⟪") ||
+                                raw.isSubclassOf(owningClass);
+
+                        if (matches) {
+                            // PRIMARY: use actual type args if present
+                            if (!ct.getTypeArguments().isEmpty()) {
+                                List<ImTypeArgument> copied = new ArrayList<>(ct.getTypeArguments().size());
+                                for (ImTypeArgument ta : ct.getTypeArguments()) {
+                                    copied.add(JassIm.ImTypeArgument(ta.getType().copy(), ta.getTypeClassBinding()));
+                                }
+                                return new GenericTypes(copied);
+                            }
+
+                            // FALLBACK: parse from specialized class name: Box⟪...⟫
+                            GenericTypes fromName = extractGenericsFromClassName(raw.getName());
+                            if (fromName != null && !fromName.getTypeArguments().isEmpty()) {
+                                return fromName;
                             }
                         }
                     }
                 }
-
-                // For generic functions that haven't been specialized yet,
-                // check the type parameters
-                if (!func.getTypeVariables().isEmpty() &&
-                    func.getTypeVariables().size() >= owningClass.getTypeVariables().size()) {
-                    // This function has type parameters - it will be specialized later
-                    // We can't determine the concrete types yet
-                    return null;
-                }
+                return null;
             }
             current = current.getParent();
         }
-
         return null;
     }
+
 
     /**
      * NEW: Extract generic types from a specialized class name like "Box⟪integer⟫"
      */
-    private GenericTypes extractGenericsFromClassName(String className, ImClass owningClass) {
-        int startIdx = className.indexOf("⟪");
-        int endIdx = className.indexOf("⟫");
+    private GenericTypes extractGenericsFromClassName(String className) {
+        int start = className.indexOf('⟪');
+        int end   = className.lastIndexOf('⟫');
+        if (start < 0 || end < 0 || end <= start + 1) return null;
 
-        if (startIdx < 0 || endIdx < 0) {
-            return null;
+        String payload = className.substring(start + 1, end).trim();
+        List<String> parts = splitTopLevel(payload); // comma-split with bracket depth
+        List<ImTypeArgument> args = new ArrayList<>(parts.size());
+        for (String p : parts) {
+            ImType t = parseTypeAtom(p.trim());
+            args.add(JassIm.ImTypeArgument(t, Collections.emptyMap()));
         }
-
-        String typeStr = className.substring(startIdx + 1, endIdx);
-
-        // Parse the type string to create type arguments
-        // For simple types like "integer", "real", create ImSimpleType
-        List<ImTypeArgument> typeArgs = new ArrayList<>();
-
-        // Split by comma for multiple type arguments
-        String[] types = typeStr.split(",\\s*");
-        for (String type : types) {
-            type = type.trim();
-            ImType imType;
-
-            // Handle common simple types
-            if (type.equals("integer") || type.equals("int")) {
-                imType = JassIm.ImSimpleType("integer");
-            } else if (type.equals("real")) {
-                imType = JassIm.ImSimpleType("real");
-            } else if (type.equals("boolean") || type.equals("bool")) {
-                imType = JassIm.ImSimpleType("boolean");
-            } else if (type.equals("string")) {
-                imType = JassIm.ImSimpleType("string");
-            } else {
-                // Try to find a class with this name
-                ImClass foundClass = null;
-                for (ImClass c : prog.getClasses()) {
-                    if (c.getName().equals(type)) {
-                        foundClass = c;
-                        break;
-                    }
-                }
-                if (foundClass != null) {
-                    imType = JassIm.ImClassType(foundClass, JassIm.ImTypeArguments());
-                } else {
-                    // Default to simple type
-                    imType = JassIm.ImSimpleType(type);
-                }
-            }
-
-            typeArgs.add(JassIm.ImTypeArgument(imType, Collections.emptyMap()));
-        }
-
-        return new GenericTypes(typeArgs);
+        return new GenericTypes(args);
     }
+
+    /** split by commas at top level, respecting both ⟪⟫ and ⦅⦆ */
+    private List<String> splitTopLevel(String s) {
+        List<String> res = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        int depthAngle = 0, depthTuple = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch == '⟪') depthAngle++;
+            else if (ch == '⟫') depthAngle--;
+            else if (ch == '⦅') depthTuple++;
+            else if (ch == '⦆') depthTuple--;
+
+            if (ch == ',' && depthAngle == 0 && depthTuple == 0) {
+                res.add(cur.toString());
+                cur.setLength(0);
+                continue;
+            }
+            cur.append(ch);
+        }
+        if (cur.length() > 0) res.add(cur.toString());
+        return res;
+    }
+
+    /** parse simple atoms and tuples like ⦅integer, integer⦆ (can nest) */
+    private ImType parseTypeAtom(String s) {
+        s = s.trim();
+        // tuple
+        if (s.startsWith("⦅") && s.endsWith("⦆")) {
+            String inner = s.substring(1, s.length() - 1).trim();
+            List<String> elems = splitTopLevel(inner);
+            List<ImType> tt = new ArrayList<>();
+            List<String> names = Lists.newArrayList();
+            int i = 1;
+            for (String e : elems) {
+                tt.add(parseTypeAtom(e));
+                names.add("" + i++);
+            }
+            return JassIm.ImTupleType(tt, names);
+        }
+
+        // common simples
+        switch (s) {
+            case "integer":
+            case "int":    return JassIm.ImSimpleType("integer");
+            case "real":   return JassIm.ImSimpleType("real");
+            case "boolean":
+            case "bool":   return JassIm.ImSimpleType("boolean");
+            case "string": return JassIm.ImSimpleType("string");
+        }
+
+        // class type without visible args here
+        for (ImClass c : prog.getClasses()) {
+            if (c.getName().equals(s)) {
+                return JassIm.ImClassType(c, JassIm.ImTypeArguments());
+            }
+        }
+        // fallback: simple type with this name
+        return JassIm.ImSimpleType(s);
+    }
+
 
 
     class GenericVar implements GenericUse {

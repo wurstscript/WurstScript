@@ -267,8 +267,7 @@ public class ILInterpreter implements AbstractInterpreter {
         if (f.getReturnType() instanceof ImVoid) {
             return EMPTY_LOCAL_STATE;
         }
-        final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
-            .evaluate(globalState, EMPTY_LOCAL_STATE);
+        final ILconst returnValue = f.getReturnType().defaultValue();
         return new LocalState(returnValue);
     }
 

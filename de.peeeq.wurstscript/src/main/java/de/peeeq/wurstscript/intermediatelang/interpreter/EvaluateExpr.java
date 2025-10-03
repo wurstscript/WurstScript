@@ -91,37 +91,11 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImNull e, ProgramState globalState, LocalState localState) {
-        ImType type = e.getType();
-
-        // Handle type variable references (before specialization)
-        if (type instanceof ImTypeVarRef) {
-            return ILconstInt.create(0); // Default - will be correct after specialization
-        }
-
-        // Handle specialized types (after EliminateGenerics)
-        if (type instanceof ImSimpleType) {
-            ImSimpleType simpleType = (ImSimpleType) type;
-            String typename = simpleType.getTypename();
-            if (typename.equals("integer") || typename.equals("int")) {
-                return ILconstInt.create(0);
-            } else if (typename.equals("real")) {
-                return ILconstReal.create(0);
-            } else if (typename.equals("boolean") || typename.equals("bool")) {
-                return ILconstBool.instance(false);
-            } else if (typename.equals("string")) {
-                return new ILconstString("");
-            }
-        }
-
-        // Class types and other reference types can be null
-        if (type instanceof ImAnyType
-            || type instanceof ImClassType
-            || TypesHelper.isIntType(type)) {
-            return ILconstInt.create(0);
-        }
-
-        return ILconstNull.instance();
+        // Resolve generics / type variables according to the current frame (pre-elimination run).
+        ImType resolved = globalState.resolveType(e.getType());
+        return resolved.defaultValue();
     }
+
 
     public static ILconst eval(ImOperatorCall e, final ProgramState globalState, final LocalState localState) {
         final ImExprs arguments = e.getArguments();
