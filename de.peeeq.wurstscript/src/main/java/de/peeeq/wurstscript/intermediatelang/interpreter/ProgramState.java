@@ -152,8 +152,8 @@ public class ProgramState extends State {
             normalized.put(e.getKey(), rhs);
         }
 
-        System.out.println("pushStackframe " + f + " with receiver " + receiver
-            + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
+//        System.out.println("pushStackframe " + f + " with receiver " + receiver
+//            + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
 
         stackFrames.push(new ILStackFrame(f, receiver, args, trace, normalized));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
@@ -289,7 +289,7 @@ public class ProgramState extends State {
     }
 
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
-        System.out.println("pushStackframe compiletime expr " + f);
+//        System.out.println("pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -299,7 +299,7 @@ public class ProgramState extends State {
     }
 
     public void popStackframe() {
-        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
+//        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
