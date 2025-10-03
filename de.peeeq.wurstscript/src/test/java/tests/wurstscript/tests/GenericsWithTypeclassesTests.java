@@ -1399,4 +1399,34 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericStaticTuple_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    tuple tup(int i, int r)",
+            "    class Box<T:>",
+            "        private static T array store",
+            "        function put(int i, T v)",
+            "            store[i] = v      // instance method writes static generic array",
+            "        function get(int i) returns T",
+            "            let i2 = 1",
+            "            if i2 < 1",
+            "                return null",
+            "            return store[i]   // instance method reads static generic array",
+            "        function clear(int i)",
+            "            store[i] = null",
+            "    init",
+            "        let bi = new Box<tup>",
+            "        bi.put(1, tup(3, 42))",
+            "        let xi = bi.get(1).i",
+            "        let xr = bi.get(1).r",
+            "        bi.clear(1)",
+            "        let xr2 = bi.get(1).i",
+            "        if xi == 3 and xr == 42 and xr2 == 0",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
 }

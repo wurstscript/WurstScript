@@ -157,6 +157,28 @@ public class EliminateTuples {
         Replacer replacer = new Replacer();
         body.accept(new Element.DefaultVisitor() {
             @Override
+            public void visit(ImNull n) {
+                // Expand null<⦅T1, T2, ...⦆>  ==>  <null<T1>, null<T2>, ...>
+                ImType t = n.getType(); // or n.attrTyp() if that's the established source of truth
+                if (t instanceof ImTupleType) {
+                    ImTupleType tt = (ImTupleType) t;
+
+                    ImExprs parts = JassIm.ImExprs();
+                    for (ImType elemT : tt.getTypes()) {
+                        parts.add(JassIm.ImNull(elemT.copy()));
+                    }
+
+                    ImTupleExpr replacement = JassIm.ImTupleExpr(parts);
+                    // Replace node in-place:
+                    Replacer replacer = new Replacer();
+                    replacer.replace(n, replacement);
+                } else {
+                    super.visit(n);
+                }
+            }
+
+
+            @Override
             public void visit(ImVarAccess va) {
                 if (va.attrTyp() instanceof ImTupleType) {
                     ImVar v = va.getVar();
@@ -400,11 +422,28 @@ public class EliminateTuples {
     }
 
     private static ImStatementExpr inSet(ImSet imSet, ImFunction f) {
-        if (!(imSet.getLeft() instanceof ImTupleExpr && imSet.getRight() instanceof ImTupleExpr)) {
+        Element L = imSet.getLeft();
+        Element R = imSet.getRight();
+
+        // Fallback: if RHS is null<tuple>, expand to a tuple of nulls
+        if (R instanceof ImNull && ((ImNull) R).getType() instanceof ImTupleType) {
+            ImNull rn = (ImNull) R;
+            ImTupleType tt = (ImTupleType) rn.getType();
+            ImExprs parts = JassIm.ImExprs();
+            for (ImType elemT : tt.getTypes()) {
+                parts.add(JassIm.ImNull(elemT.copy()));
+            }
+            ImTupleExpr expanded = JassIm.ImTupleExpr(parts);
+            imSet.setRight(expanded);
+            R = expanded;
+        }
+
+        if (!(L instanceof ImTupleExpr && R instanceof ImTupleExpr)) {
             throw new RuntimeException("invalid set statement:\n" + imSet);
         }
-        ImTupleExpr left = (ImTupleExpr) imSet.getLeft();
-        ImTupleExpr right = (ImTupleExpr) imSet.getRight();
+
+        ImTupleExpr left  = (ImTupleExpr) L;
+        ImTupleExpr right = (ImTupleExpr) R;
 
         ImStmts stmts = JassIm.ImStmts();
 
@@ -414,9 +453,8 @@ public class EliminateTuples {
             leftExprs.add(extractSideEffect(expr, stmts));
         }
 
-
-        List<ImVar> tempVars = new ArrayList<>();
         // 2) assign right hand side to temporary variables:
+        List<ImVar> tempVars = new ArrayList<>();
         for (ImExpr expr : right.getExprs()) {
             ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_temp", false);
             expr.setParent(null);
@@ -424,14 +462,17 @@ public class EliminateTuples {
             tempVars.add(temp);
             f.getLocals().add(temp);
         }
-        // then assign right vars
+
+        // 3) then assign temps to the LHS components
         for (int i = 0; i < leftExprs.size(); i++) {
             ImLExpr leftE = (ImLExpr) leftExprs.get(i);
             leftE.setParent(null);
             stmts.add(JassIm.ImSet(imSet.getTrace(), leftE, JassIm.ImVarAccess(tempVars.get(i))));
         }
+
         return ImHelper.statementExprVoid(stmts);
     }
+
 
     private static ImStatementExpr inReturn(ImReturn parent, ImTupleExpr tupleExpr, ImTranslator translator, ImFunction f) {
         VarsForTupleResult returnVars1 = translator.getTupleTempReturnVarsFor(f);

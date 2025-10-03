@@ -95,17 +95,36 @@ public class ILInterpreter implements AbstractInterpreter {
 
             if (!(caller instanceof ImFunctionCall)) {
                 if (caller instanceof ImMethodCall) {
-                    Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
-                    ImClassType type = ((ImClassType)f.getParameters().get(0).getType());
-                    ILconstObject thisArg = (ILconstObject) args[0];
-                    Map<ImTypeVar, ImType> substitueMap = new HashMap<>();
+                    // Instance method call: bind class T-vars from the *receiver*'s concrete type args
+                    final Map<ImTypeVar, ImType> subst = new HashMap<>();
 
-                    ImTypeArguments typeParams = thisArg.getType().getTypeArguments();  // The T74 parameters
-                    ImTypeArguments typeArgs = type.getTypeArguments(); // The <integer> arguments
+                    // First parameter is the implicit 'this'
+                    final ImVar thisParam = f.getParameters().get(0);
+                    final ImType thisParamType = thisParam.getType();
+                    if (!(thisParamType instanceof ImClassType)) {
+                        // Defensive: still push with no substitutions
+                        globalState.pushStackframeWithTypes(f, null, args, f.attrTrace().attrErrorPos(), Collections.emptyMap());
+                    } else {
+                        final ImClassType sigThisType = (ImClassType) thisParamType; // may contain ImTypeVarRefs
+                        final ILconstObject thisArg = (ILconstObject) args[0];
+                        final ImClassType recvType = thisArg.getType();              // concrete type Box<tuple<int,int>> etc.
 
+                        // Class type variables (on the class definition)
+                        final ImClass cls = sigThisType.getClassDef();
+                        final ImTypeVars tvars = cls.getTypeVariables();             // e.g., [T74]
 
-                    globalState.pushStackframeWithTypes(f, thisArg, args, f.attrTrace().attrErrorPos(), Collections.emptyMap());
+                        // Concrete type arguments from receiver (same order)
+                        final ImTypeArguments concreteArgs = recvType.getTypeArguments();
+
+                        final int n = Math.min(tvars.size(), concreteArgs.size());
+                        for (int i2 = 0; i2 < n; i2++) {
+                            subst.put(tvars.get(i2), concreteArgs.get(i2).getType());
+                        }
+
+                        globalState.pushStackframeWithTypes(f, thisArg, args, f.attrTrace().attrErrorPos(), subst);
+                    }
                 } else {
+                    // Static function or unknown caller kind
                     globalState.pushStackframeWithTypes(f, null, args, f.attrTrace().attrErrorPos(), Collections.emptyMap());
                 }
             }
