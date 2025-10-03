@@ -670,7 +670,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericReturnOverride() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertOkLines(false,
                 "package Test",
                 "interface I<T:>",
                 "	function f() returns T",
@@ -1129,7 +1129,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsFunc() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T, T",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1140,7 +1140,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsMethod() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T, T",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",
@@ -1164,7 +1164,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsFunc() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Too many type arguments given",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1175,7 +1175,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsMethod() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Too many type arguments given",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",
