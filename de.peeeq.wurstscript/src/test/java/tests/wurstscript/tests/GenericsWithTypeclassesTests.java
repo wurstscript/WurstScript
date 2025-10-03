@@ -1440,4 +1440,95 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void mixingNewOwner_legacyType_classField() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic classimpl 'B<T>' from a new-generic declaration. Migrate 'B<T>' to 'B<T:>' or convert this declaration to legacy generics.",
+            "package test",
+            "class B<T>",
+            "class A<T:>",
+            "    B<T> b"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_classField() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "package test",
+            "class B<T:>",
+            "class A<T>",
+            "    B<T> b"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_functionReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic classimpl 'B<T>' from a new-generic declaration. Migrate 'B<T>' to 'B<T:>' or convert this declaration to legacy generics.",
+            "package test",
+            "class B<T>",
+            "function makeB<T:>() returns B<T>",
+            "    return null"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_functionReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "package test",
+            "class B<T:>",
+            "function makeB<T>() returns B<T>",
+            "    return null"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_inExtendsClause() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic interfaceimpl 'I<T>' from a new-generic declaration. Migrate 'I<T>' to 'I<T:>' or convert this declaration to legacy generics.",
+            "package test",
+            "interface I<T>",
+            "class C<T:> implements I<T>"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_methodReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic interfaceimpl 'I<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "package test",
+            "interface I<T:>",
+            "class C<T>",
+            "    function f() returns I<T>",
+            "        return null"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_nestedGenericUse() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic classimpl 'Box<T>' from a new-generic declaration. Migrate 'Box<T>' to 'Box<T:>' or convert this declaration to legacy generics.",
+            "package test",
+            "class Box<X>",
+            "class B<T>",
+            "class A<T:>",
+            "    Box<B<T>> field"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_insideGenericClassMethod() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "package test",
+            "class B<T:>",
+            "class A<T>",
+            "    function usee()",
+            "        B<T> x = null"
+        );
+    }
+
+
 }

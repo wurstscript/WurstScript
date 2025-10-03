@@ -776,7 +776,90 @@ public class WurstValidator {
             checkTypeparamsUsedCorrectly(e, tp);
         }
 
+        // Cross-flavor generics ban inside generic declarations:
+        checkGenericFlavorCompatibility(e);
+
     }
+
+    /** For type usages inside a generic declaration, ban cross-flavor references (NEW cannot use LEGACY and vice versa). */
+    private void checkGenericFlavorCompatibility(TypeExpr e) {
+        // Only enforce *inside* a generic declaration:
+        AstElementWithTypeParameters owner = nearestGenericOwner(e);
+        if (owner == null) return;
+
+        @Nullable GenericFlavor ownerFlavor = flavorOf(owner);
+        if (ownerFlavor == null) return; // non-generic owner (defensive)
+
+        // Resolve the referenced type definition:
+        TypeDef targetDef = e.attrTypeDef();
+        if (targetDef == null) return;
+
+        // Allow non-generic targets:
+        @Nullable GenericFlavor targetFlavor = flavorOf(targetDef);
+        if (targetFlavor == null) return;
+
+        if (ownerFlavor != targetFlavor) {
+            // Craft a clear, actionable message:
+            String targetKind = targetDef.getClass().getSimpleName().replace("Def", "").toLowerCase(); // "class", "interface", ...
+            String targetName = targetDef.getName();
+            if (ownerFlavor == GenericFlavor.NEW) {
+                e.addError("Cannot reference legacy-generic " + targetKind + " '" + targetName
+                    + "<T>' from a new-generic declaration. Migrate '" + targetName + "<T>' to '" + targetName + "<T:>' or convert this declaration to legacy generics.");
+            } else {
+                e.addError("Cannot reference new-generic " + targetKind + " '" + targetName
+                    + "<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.");
+            }
+        }
+    }
+
+    // --- Generic flavor detection ----------------------------------------------
+    private enum GenericFlavor { NEW, LEGACY }
+
+    /** Returns NEW if all TPs are new style (colon), LEGACY if any exist and none are colon, else null (non-generic). */
+    private @Nullable GenericFlavor flavorOf(AstElementWithTypeParameters owner) {
+        TypeParamDefs tps = owner.getTypeParameters();
+        if (tps == null || tps.size() == 0) return null;
+
+        boolean anyNew = false, anyOld = false;
+        for (TypeParamDef tp : owner.getTypeParameters()) {
+            if (isTypeParamNewGeneric(tp)) anyNew = true; else anyOld = true;
+            if (anyNew && anyOld) {
+                // Mixed syntax in a single declaration – if you already forbid this elsewhere,
+                // this path won’t be reachable; otherwise warn/error here:
+                tp.addError("Mixed generic syntax in one declaration is not allowed. Use either <T:> or <T> consistently.");
+                // Pick a flavor to avoid cascaded errors:
+                return GenericFlavor.NEW; // arbitrary; we already emitted an error
+            }
+        }
+        if (anyNew)  return GenericFlavor.NEW;
+        if (anyOld)  return GenericFlavor.LEGACY;
+        return null; // no type parameters after all (shouldn't happen)
+    }
+
+    /** Returns the flavor of the referenced generic definition, or null if the target is non-generic. */
+    private @Nullable GenericFlavor flavorOf(TypeDef def) {
+        if (def instanceof AstElementWithTypeParameters) {
+            return flavorOf((AstElementWithTypeParameters) def);
+        }
+        return null;
+    }
+
+    /** Walk up and find the *nearest* generic declaration owning the current node (class/interface/func). */
+    private @Nullable AstElementWithTypeParameters nearestGenericOwner(Element e) {
+        Element p = e;
+        while (p != null) {
+            if (p instanceof FuncDef || p instanceof ClassDef || p instanceof InterfaceDef) {
+                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
+                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
+                    return a;
+                }
+            }
+            p = p.getParent();
+        }
+        return null;
+    }
+
+
 
     /**
      * Checks that module types are only used in valid places

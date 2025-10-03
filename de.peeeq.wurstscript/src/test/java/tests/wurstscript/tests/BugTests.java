@@ -827,6 +827,26 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void unreadVarWarning3() { // #380
+        testAssertErrorsLines(true, "closure-captured variable",
+            "package test",
+            "@annotation public function annotation()",
+            "@annotation public function extern()",
+            "@extern native I2S(int x) returns string",
+            "native testSuccess()",
+            "interface Fn",
+            "	function apply()",
+            "function foo(Fn _f)",
+            "init",
+            "	var i = 5",
+            "	foo() ->",
+            "		i++",
+            "	if i == 5",
+            "		testSuccess()"
+        );
+    }
+
 
     @Test
     public void unreadVarWarningArrays() { // #813
