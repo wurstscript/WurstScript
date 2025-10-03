@@ -422,73 +422,171 @@ public class EliminateTuples {
     }
 
     private static ImStatementExpr inSet(ImSet imSet, ImFunction f) {
-        Element L = imSet.getLeft();
-        Element R = imSet.getRight();
-
-        // Fallback: if RHS is null<tuple>, expand to a tuple of nulls
-        if (R instanceof ImNull && ((ImNull) R).getType() instanceof ImTupleType) {
-            ImNull rn = (ImNull) R;
-            ImTupleType tt = (ImTupleType) rn.getType();
-            ImExprs parts = JassIm.ImExprs();
-            for (ImType elemT : tt.getTypes()) {
-                parts.add(JassIm.ImNull(elemT.copy()));
-            }
-            ImTupleExpr expanded = JassIm.ImTupleExpr(parts);
-            imSet.setRight(expanded);
-            R = expanded;
-        }
-
-        if (!(L instanceof ImTupleExpr && R instanceof ImTupleExpr)) {
+        if (!(imSet.getLeft() instanceof ImTupleExpr && imSet.getRight() instanceof ImTupleExpr)) {
             throw new RuntimeException("invalid set statement:\n" + imSet);
         }
-
-        ImTupleExpr left  = (ImTupleExpr) L;
-        ImTupleExpr right = (ImTupleExpr) R;
+        ImTupleExpr left  = (ImTupleExpr) imSet.getLeft();
+        ImTupleExpr right = (ImTupleExpr) imSet.getRight();
 
         ImStmts stmts = JassIm.ImStmts();
 
-        // 1) extract side effects from left expressions
-        List<ImExpr> leftExprs = new ArrayList<>();
-        for (ImExpr expr : left.getExprs()) {
-            leftExprs.add(extractSideEffect(expr, stmts));
+        // 1) Flatten LHS into L-values (recursively), hoisting side-effects
+        List<ImLExpr> lhsLeaves = new ArrayList<>();
+        for (ImExpr e : left.getExprs()) {
+            flattenLhsTuple(e, lhsLeaves, stmts);
         }
 
-        // 2) assign right hand side to temporary variables:
-        List<ImVar> tempVars = new ArrayList<>();
-        for (ImExpr expr : right.getExprs()) {
-            ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_temp", false);
-            expr.setParent(null);
-            stmts.add(JassIm.ImSet(expr.attrTrace(), JassIm.ImVarAccess(temp), expr));
-            tempVars.add(temp);
-            f.getLocals().add(temp);
+        // 2) Flatten RHS into expressions (recursively), expanding null<TUPLE> to defaults, hoisting side-effects
+        List<ImExpr> rhsLeaves = new ArrayList<>();
+        for (ImExpr e : right.getExprs()) {
+            flattenRhsTuple(e, rhsLeaves, stmts);
         }
 
-        // 3) then assign temps to the LHS components
-        for (int i = 0; i < leftExprs.size(); i++) {
-            ImLExpr leftE = (ImLExpr) leftExprs.get(i);
-            leftE.setParent(null);
-            stmts.add(JassIm.ImSet(imSet.getTrace(), leftE, JassIm.ImVarAccess(tempVars.get(i))));
+        // 3) Pad / normalize RHS arity to match LHS arity (needed for nested tuples + null<TUPLE>)
+        for (int i = rhsLeaves.size(); i < lhsLeaves.size(); i++) {
+            // default for the target component's type
+            ImType targetT = lhsLeaves.get(i).attrTyp();
+            rhsLeaves.add(ImHelper.defaultValueForComplexType(targetT));
+        }
+
+        if (rhsLeaves.size() != lhsLeaves.size()) {
+            throw new RuntimeException("Tuple arity mismatch in set: LHS has "
+                + lhsLeaves.size() + " leaves, RHS has " + rhsLeaves.size()
+                + "\nLHS=" + left + "\nRHS=" + right);
+        }
+
+        // 4) Evaluate RHS leaves first into temps (preserve side-effect order & alias safety)
+        List<ImVar> temps = new ArrayList<>(rhsLeaves.size());
+        for (int i = 0; i < rhsLeaves.size(); i++) {
+            ImLExpr l = lhsLeaves.get(i);
+            ImType  targetT = l.attrTyp();
+            ImExpr  r = rhsLeaves.get(i);
+
+            // if a scalar null slipped through, replace with default of target type
+            if (r instanceof ImNull) {
+                r = ImHelper.defaultValueForComplexType(targetT);
+            }
+
+            ImVar t = JassIm.ImVar(r.attrTrace(), targetT, "tuple_temp", false);
+            f.getLocals().add(t);
+
+            r.setParent(null);
+            stmts.add(JassIm.ImSet(r.attrTrace(), JassIm.ImVarAccess(t), r));
+            temps.add(t);
+        }
+
+        // 5) Now assign temps into LHS leaves
+        for (int i = 0; i < lhsLeaves.size(); i++) {
+            ImLExpr l = lhsLeaves.get(i);
+            l.setParent(null);
+            stmts.add(JassIm.ImSet(imSet.getTrace(), l, JassIm.ImVarAccess(temps.get(i))));
         }
 
         return ImHelper.statementExprVoid(stmts);
     }
 
+    /** Flatten LHS recursively into addressable leaves (ImLExpr), hoisting side-effects */
+    private static void flattenLhsTuple(ImExpr e, List<ImLExpr> out, ImStmts sideStmts) {
+        ImExpr x = extractSideEffect(e, sideStmts);
+        if (x instanceof ImTupleExpr) {
+            for (ImExpr sub : ((ImTupleExpr) x).getExprs()) {
+                flattenLhsTuple(sub, out, sideStmts);
+            }
+        } else {
+            out.add((ImLExpr) x);
+        }
+    }
 
-    private static ImStatementExpr inReturn(ImReturn parent, ImTupleExpr tupleExpr, ImTranslator translator, ImFunction f) {
-        VarsForTupleResult returnVars1 = translator.getTupleTempReturnVarsFor(f);
-        List<ImVar> returnVars = returnVars1.allValuesStream().collect(Collectors.toList());
+    /** Flatten RHS recursively into leaves, expanding null<TUPLE> to tuple of defaults, hoisting side-effects */
+    private static void flattenRhsTuple(ImExpr e, List<ImExpr> out, ImStmts sideStmts) {
+        ImExpr x = extractSideEffect(e, sideStmts);
+
+        // Expand typed nulls for tuple types so arities match
+        if (x instanceof ImNull) {
+            ImType t = ((ImNull) x).getType();
+            if (t instanceof ImTupleType) {
+                ImExpr defaults = ImHelper.defaultValueForComplexType(t); // -> ImTupleExpr of defaults
+                flattenRhsTuple(defaults, out, sideStmts);
+                return;
+            }
+        }
+
+        if (x instanceof ImTupleExpr) {
+            for (ImExpr sub : ((ImTupleExpr) x).getExprs()) {
+                flattenRhsTuple(sub, out, sideStmts);
+            }
+        } else {
+            out.add(x);
+        }
+    }
+
+
+
+    private static ImStatementExpr inReturn(ImReturn parent, ImTupleExpr tupleExpr,
+                                            ImTranslator translator, ImFunction f) {
+        // flat list of return temps, already created by translator:
+        List<ImVar> returnVars = translator.getTupleTempReturnVarsFor(f)
+            .allValuesStream().collect(Collectors.toList());
+
         ImStmts stmts = JassIm.ImStmts();
 
+        // 1) Flatten the RHS tuple expression (preserving side effects)
+        List<ImExpr> flatExprs = new ArrayList<>();
+        flattenTupleExpr(tupleExpr, stmts, flatExprs);
+
+        // Sanity:
+        if (flatExprs.size() != returnVars.size()) {
+            throw new RuntimeException("Tuple arity mismatch in return: RHS has "
+                + flatExprs.size() + " leaves, but function expects "
+                + returnVars.size());
+        }
+
+        // 2) Assign per component, converting nulls to proper defaults of LHS type
         for (int i = 0; i < returnVars.size(); i++) {
             ImVar rv = returnVars.get(i);
-            ImExpr te = tupleExpr.getExprs().get(i);
-            te.setParent(null);
-            stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(rv), te));
-        }
-        stmts.add(JassIm.ImReturn(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(0))));
+            ImExpr rhs = flatExprs.get(i);
+            rhs.setParent(null);
 
+            if (rhs instanceof ImNull) {
+                // Use the *component target type* to build the correct default (0 for ints,
+                // (0,0) for tuple components if those ever occur, etc)
+                ImExpr defaultRhs = ImHelper.defaultValueForComplexType(rv.getType());
+                stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(rv), defaultRhs));
+            } else {
+                stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(rv), rhs));
+            }
+        }
+
+        // 3) Return the first component temp
+        stmts.add(JassIm.ImReturn(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(0))));
         return ImHelper.statementExprVoid(stmts);
     }
+
+    private static void flattenTupleExpr(ImExpr e, ImStmts intoStmts, List<ImExpr> out) {
+        // Hoist side-effects out of the way first:
+        ImExpr noSE = extractSideEffect(e, intoStmts);
+
+        // NEW: expand null<TUPLE> into a tuple of defaults so arity matches
+        if (noSE instanceof ImNull) {
+            ImType t = ((ImNull) noSE).getType();        // already the typed null<T>
+            if (t instanceof ImTupleType) {
+                ImExpr defaultTuple = ImHelper.defaultValueForComplexType(t); // -> ImTupleExpr of defaults (recursively)
+                flattenTupleExpr(defaultTuple, intoStmts, out);
+                return;
+            }
+        }
+
+        if (noSE instanceof ImTupleExpr) {
+            ImTupleExpr te = (ImTupleExpr) noSE;
+            for (ImExpr sub : te.getExprs()) {
+                flattenTupleExpr(sub, intoStmts, out);
+            }
+        } else {
+            out.add(noSE);
+        }
+    }
+
+
 
 
     private static Element inTupleSelection(ImTupleSelection ts, ImTupleExpr tupleExpr, ImFunction f) {

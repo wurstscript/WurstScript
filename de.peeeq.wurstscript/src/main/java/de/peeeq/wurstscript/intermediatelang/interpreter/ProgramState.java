@@ -136,24 +136,104 @@ public class ProgramState extends State {
     }
 
 
-    public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver, ILconst[] args, WPos trace, Map<ImTypeVar, ImType> typeSubstitutions) {
-        stackFrames.push(new ILStackFrame(f, receiver, args, trace, typeSubstitutions));
-        de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
-        if (stmt == null) {
-            stmt = f;
+    public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver,
+                                        ILconst[] args, WPos trace,
+                                        Map<ImTypeVar, ImType> typeSubstitutions) {
+
+        // normalize the incoming map: RHS = fully resolved type
+        Map<ImTypeVar, ImType> normalized = new HashMap<>();
+        for (Map.Entry<ImTypeVar, ImType> e : typeSubstitutions.entrySet()) {
+            ImType rhs = resolveType(e.getValue()); // resolve through existing frames
+            // skip self-maps (T -> T)
+            if (rhs instanceof ImTypeVarRef &&
+                ((ImTypeVarRef) rhs).getTypeVariable() == e.getKey()) {
+                continue;
+            }
+            normalized.put(e.getKey(), rhs);
         }
+
+        System.out.println("pushStackframe " + f + " with receiver " + receiver
+            + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
+
+        stackFrames.push(new ILStackFrame(f, receiver, args, trace, normalized));
+        de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
+        if (stmt == null) stmt = f;
         lastStatements.push(stmt);
     }
 
-    // NEW: Resolve a generic type using current stack frame's type substitutions
-    public ImType resolveType(ImType genericType) {
-        if (stackFrames.isEmpty()) {
-            return genericType;
-        }
 
-        ILStackFrame currentFrame = stackFrames.peek();
-        return substituteTypeVars(genericType, currentFrame.typeSubstitutions);
+    // NEW: Resolve a generic type using current stack frame's type substitutions
+// Replace both resolveType(...) and substituteTypeVars(...) with this:
+
+    public ImType resolveType(ImType t) {
+        return resolveTypeDeep(t, 32); // small budget to avoid cycles
     }
+
+    private ImType resolveTypeDeep(ImType t, int budget) {
+        if (budget <= 0 || t == null) return t;
+
+        return t.match(new ImType.Matcher<ImType>() {
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef tvr) {
+                // search from top-most frame down
+                for (ILStackFrame sf : stackFrames) { /* we iterate deque top-first: use an iterator if needed */
+                    ImType mapped = sf.typeSubstitutions.get(tvr.getTypeVariable());
+                    if (mapped != null) {
+                        ImType resolved = resolveTypeDeep(mapped, budget - 1);
+                        return resolved;
+                    }
+                }
+                // no mapping anywhere -> keep the type var
+                return tvr;
+            }
+
+            @Override
+            public ImType case_ImClassType(ImClassType ct) {
+                if (ct.getTypeArguments().isEmpty()) return ct;
+                ImTypeArguments newArgs = JassIm.ImTypeArguments();
+                boolean changed = false;
+                for (ImTypeArgument ta : ct.getTypeArguments()) {
+                    ImType rt = resolveTypeDeep(ta.getType(), budget - 1);
+                    newArgs.add(JassIm.ImTypeArgument(rt, ta.getTypeClassBinding()));
+                    changed |= (rt != ta.getType());
+                }
+                return changed ? JassIm.ImClassType(ct.getClassDef(), newArgs) : ct;
+            }
+
+            @Override
+            public ImType case_ImArrayType(ImArrayType at) {
+                ImType et = resolveTypeDeep(at.getEntryType(), budget - 1);
+                return et == at.getEntryType() ? at : JassIm.ImArrayType(et);
+            }
+
+            @Override
+            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti at) {
+                ImType et = resolveTypeDeep(at.getEntryType(), budget - 1);
+                return et == at.getEntryType() ? at : JassIm.ImArrayTypeMulti(et, at.getArraySize());
+            }
+
+            @Override
+            public ImType case_ImTupleType(ImTupleType tt) {
+                List<ImType> nts = new ArrayList<>();
+                List<String> names = new ArrayList<>();
+                boolean changed = false;
+                var i = 0;
+                for (ImType it : tt.getTypes()) {
+                    ImType rt = resolveTypeDeep(it, budget - 1);
+                    nts.add(rt);
+                    changed |= (rt != it);
+                    i++;
+                    names.add(i + "");
+                }
+                return changed ? JassIm.ImTupleType(nts, names) : tt;
+            }
+
+            @Override public ImType case_ImSimpleType(ImSimpleType st) { return st; }
+            @Override public ImType case_ImAnyType(ImAnyType at)       { return at; }
+            @Override public ImType case_ImVoid(ImVoid v)              { return v; }
+        });
+    }
+
 
     // Helper method to substitute type variables
     private ImType substituteTypeVars(ImType type, Map<ImTypeVar, ImType> substitutions) {
@@ -209,7 +289,7 @@ public class ProgramState extends State {
     }
 
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
-//        System.out.println("pushStackframe compiletime expr " + f);
+        System.out.println("pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -219,7 +299,7 @@ public class ProgramState extends State {
     }
 
     public void popStackframe() {
-//        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
+        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
@@ -335,13 +415,14 @@ public class ProgramState extends State {
     @Override
     public void setVal(ImVar v, ILconst val) {
         if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
-            if (stackFrames.peek().receiver != null) {
-                ImTypeArguments typeArguments = stackFrames.peek().receiver.getType().getTypeArguments();
-                String s = v.getName() + typeArguments.get(0).toString();
+            ILStackFrame top = stackFrames.peek();
+            if (top != null && top.receiver != null) {
+                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
+                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
+                String s = v.getName() + resolved;
                 genericStaticVals.put(s, val);
                 return;
             }
-
         }
         super.setVal(v, val);
     }
@@ -349,13 +430,13 @@ public class ProgramState extends State {
     public @Nullable ILconst getVal(ImVar v) {
         if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
             System.out.println("looking for generic static var " + v);
-            if (stackFrames.peek().receiver != null) {
-                ImTypeArguments typeArguments = stackFrames.peek().receiver.getType().getTypeArguments();
-                String s = v.getName() + typeArguments.get(0).toString();
-                ILconst iLconst = genericStaticVals.get(s);
-                return iLconst;
+            ILStackFrame top = stackFrames.peek();
+            if (top != null && top.receiver != null) {
+                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
+                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
+                String s = v.getName() + resolved;
+                return genericStaticVals.get(s);
             }
-
         }
         return super.getVal(v);
     }

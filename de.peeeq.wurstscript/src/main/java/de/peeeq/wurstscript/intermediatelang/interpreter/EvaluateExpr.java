@@ -215,33 +215,43 @@ public class EvaluateExpr {
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState));
-
         globalState.assertAllocated(receiver, mc.attrTrace());
-
 
         List<ImExpr> args = mc.getArguments();
 
-
         ImMethod mostPrecise = mc.getMethod();
-
-        // find correct implementation:
         for (ImMethod m : mc.getMethod().getSubMethods()) {
-
             if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
                 if (globalState.isInstanceOf(receiver, m.attrClass(), mc.attrTrace())) {
-                    // found more precise method
                     mostPrecise = m;
                 }
             }
         }
-        // execute most precise method
+
         ILconst[] eargs = new ILconst[args.size() + 1];
         eargs[0] = receiver;
         for (int i = 0; i < args.size(); i++) {
             eargs[i + 1] = args.get(i).evaluate(globalState, localState);
         }
-        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
+
+        // NEW: push type substitutions for the method's owning class
+        ImFunction impl = mostPrecise.getImplementation();
+        Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
+        ImTypeVars typeParams = mostPrecise.getMethodClass().getClassDef().getTypeVariables();
+        ImTypeArguments typeArgs = mc.getTypeArguments(); // injected earlier by addMemberTypeArguments()
+
+        for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
+            typeSubstitutions.put(typeParams.get(i), typeArgs.get(i).getType());
+        }
+
+        globalState.pushStackframeWithTypes(impl, receiver, eargs, mc.attrTrace().attrErrorPos(), typeSubstitutions);
+        try {
+            return evaluateFunc(globalState, impl, mc, eargs);
+        } finally {
+            globalState.popStackframe();
+        }
     }
+
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
