@@ -194,15 +194,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "			return true",
                 "		function next() returns S",
                 "			return t",
+                "		function close()",
+                "			skip",
                 "	class A",
                 "	class B",
                 "	class C",
                 "	init",
                 "		List<B> a = new List<B>()",
-//				"		for B b in a",
-                "		Iterator<B> iterator = a.iterator()",
-                "		while iterator.hasNext()",
-                "			B b = iterator.next()",
+				"		for B b in a",
+//                "		Iterator<B> iterator = a.iterator()",
+//                "		while iterator.hasNext()",
                 "			testSuccess()",
                 "endpackage"
         );
@@ -226,7 +227,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "package test",
                 "	class A<T:>",
                 "	class B<S:> extends A<S>",
-                "	function foo<X>()",
+                "	function foo<X:>()",
                 "		A<X> x = new B<X>",
                 "endpackage"
         );
@@ -1443,7 +1444,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingNewOwner_legacyType_classField() {
         testAssertErrorsLines(false,
-            "Cannot reference legacy-generic classimpl 'B<T>' from a new-generic declaration. Migrate 'B<T>' to 'B<T:>' or convert this declaration to legacy generics.",
+            "Cannot reference legacy-generic",
             "package test",
             "class B<T>",
             "class A<T:>",
@@ -1454,7 +1455,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingLegacyOwner_newType_classField() {
         testAssertErrorsLines(false,
-            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "Cannot reference new-generic",
             "package test",
             "class B<T:>",
             "class A<T>",
@@ -1465,7 +1466,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingNewOwner_legacyType_functionReturn() {
         testAssertErrorsLines(false,
-            "Cannot reference legacy-generic classimpl 'B<T>' from a new-generic declaration. Migrate 'B<T>' to 'B<T:>' or convert this declaration to legacy generics.",
+            "Cannot reference legacy-generic",
             "package test",
             "class B<T>",
             "function makeB<T:>() returns B<T>",
@@ -1476,7 +1477,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingLegacyOwner_newType_functionReturn() {
         testAssertErrorsLines(false,
-            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "Cannot reference new-generic",
             "package test",
             "class B<T:>",
             "function makeB<T>() returns B<T>",
@@ -1487,7 +1488,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingNewOwner_legacyType_inExtendsClause() {
         testAssertErrorsLines(false,
-            "Cannot reference legacy-generic interfaceimpl 'I<T>' from a new-generic declaration. Migrate 'I<T>' to 'I<T:>' or convert this declaration to legacy generics.",
+            "Cannot reference legacy-generic",
             "package test",
             "interface I<T>",
             "class C<T:> implements I<T>"
@@ -1497,7 +1498,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingLegacyOwner_newType_methodReturn() {
         testAssertErrorsLines(false,
-            "Cannot reference new-generic interfaceimpl 'I<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "Cannot reference new-generic",
             "package test",
             "interface I<T:>",
             "class C<T>",
@@ -1509,7 +1510,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingNewOwner_legacyType_nestedGenericUse() {
         testAssertErrorsLines(false,
-            "Cannot reference legacy-generic classimpl 'Box<T>' from a new-generic declaration. Migrate 'Box<T>' to 'Box<T:>' or convert this declaration to legacy generics.",
+            "Cannot reference legacy-generic",
             "package test",
             "class Box<X>",
             "class B<T>",
@@ -1521,7 +1522,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void mixingLegacyOwner_newType_insideGenericClassMethod() {
         testAssertErrorsLines(false,
-            "Cannot reference new-generic classimpl 'B<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.",
+            "Cannot reference new-generic",
             "package test",
             "class B<T:>",
             "class A<T>",

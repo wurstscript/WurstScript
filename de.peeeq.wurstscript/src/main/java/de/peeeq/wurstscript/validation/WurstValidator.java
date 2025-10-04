@@ -781,37 +781,6 @@ public class WurstValidator {
 
     }
 
-    /** For type usages inside a generic declaration, ban cross-flavor references (NEW cannot use LEGACY and vice versa). */
-    private void checkGenericFlavorCompatibility(TypeExpr e) {
-        // Only enforce *inside* a generic declaration:
-        AstElementWithTypeParameters owner = nearestGenericOwner(e);
-        if (owner == null) return;
-
-        @Nullable GenericFlavor ownerFlavor = flavorOf(owner);
-        if (ownerFlavor == null) return; // non-generic owner (defensive)
-
-        // Resolve the referenced type definition:
-        TypeDef targetDef = e.attrTypeDef();
-        if (targetDef == null) return;
-
-        // Allow non-generic targets:
-        @Nullable GenericFlavor targetFlavor = flavorOf(targetDef);
-        if (targetFlavor == null) return;
-
-        if (ownerFlavor != targetFlavor) {
-            // Craft a clear, actionable message:
-            String targetKind = targetDef.getClass().getSimpleName().replace("Def", "").toLowerCase(); // "class", "interface", ...
-            String targetName = targetDef.getName();
-            if (ownerFlavor == GenericFlavor.NEW) {
-                e.addError("Cannot reference legacy-generic " + targetKind + " '" + targetName
-                    + "<T>' from a new-generic declaration. Migrate '" + targetName + "<T>' to '" + targetName + "<T:>' or convert this declaration to legacy generics.");
-            } else {
-                e.addError("Cannot reference new-generic " + targetKind + " '" + targetName
-                    + "<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.");
-            }
-        }
-    }
-
     // --- Generic flavor detection ----------------------------------------------
     private enum GenericFlavor { NEW, LEGACY }
 
@@ -824,16 +793,14 @@ public class WurstValidator {
         for (TypeParamDef tp : owner.getTypeParameters()) {
             if (isTypeParamNewGeneric(tp)) anyNew = true; else anyOld = true;
             if (anyNew && anyOld) {
-                // Mixed syntax in a single declaration – if you already forbid this elsewhere,
-                // this path won’t be reachable; otherwise warn/error here:
                 tp.addError("Mixed generic syntax in one declaration is not allowed. Use either <T:> or <T> consistently.");
                 // Pick a flavor to avoid cascaded errors:
-                return GenericFlavor.NEW; // arbitrary; we already emitted an error
+                return GenericFlavor.NEW;
             }
         }
         if (anyNew)  return GenericFlavor.NEW;
         if (anyOld)  return GenericFlavor.LEGACY;
-        return null; // no type parameters after all (shouldn't happen)
+        return null;
     }
 
     /** Returns the flavor of the referenced generic definition, or null if the target is non-generic. */
@@ -843,6 +810,65 @@ public class WurstValidator {
         }
         return null;
     }
+
+    /** Walk up to the nearest *structure* (ClassDef/InterfaceDef) which actually has type parameters. */
+    private @Nullable AstElementWithTypeParameters nearestGenericStructureOwner(Element e) {
+        Element p = e;
+        while (p != null) {
+            if (p instanceof ClassDef || p instanceof InterfaceDef) {
+                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
+                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
+                    return a;
+                }
+                // keep walking if the structure itself has no TPs
+            }
+            // IMPORTANT: skip function owners entirely — method generics are allowed to mix.
+            if (p instanceof FuncDef) {
+                return null;
+            }
+            p = p.getParent();
+        }
+        return null;
+    }
+
+    /** For type usages inside ANY generic declaration (class/interface/function),
+     *  ban cross-flavor references (NEW cannot use LEGACY and vice versa). */
+    private void checkGenericFlavorCompatibility(TypeExpr e) {
+        // Enforce inside the nearest generic owner: class, interface, or function
+        AstElementWithTypeParameters owner = nearestGenericOwner(e);
+        if (owner == null) return;
+
+        @Nullable GenericFlavor ownerFlavor = flavorOf(owner);
+        if (ownerFlavor == null) return; // owner not actually generic
+
+        // What type is being referenced?
+        TypeDef targetDef = e.attrTypeDef();
+        if (targetDef == null) return;
+
+        // Only care when the referenced definition itself is generic
+        @Nullable GenericFlavor targetFlavor = flavorOf(targetDef);
+        if (targetFlavor == null) return; // non-generic target → allowed
+
+        if (ownerFlavor != targetFlavor) {
+            String targetKind =
+                (targetDef instanceof ClassDef) ? "class" :
+                    (targetDef instanceof InterfaceDef) ? "interface" : "type";
+            String targetName = targetDef.getName();
+
+            if (ownerFlavor == GenericFlavor.NEW) {
+                // owner is <T:> and target is legacy
+                e.addError("Cannot reference legacy-generic " + targetKind + " '" + targetName
+                    + "<T>' from a new-generic declaration. Migrate '" + targetName
+                    + "<T>' to '" + targetName + "<T:>' or convert this declaration to legacy generics.");
+            } else {
+                // owner is legacy <T> and target is new
+                e.addError("Cannot reference new-generic " + targetKind + " '" + targetName
+                    + "<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.");
+            }
+        }
+    }
+
+
 
     /** Walk up and find the *nearest* generic declaration owning the current node (class/interface/func). */
     private @Nullable AstElementWithTypeParameters nearestGenericOwner(Element e) {

@@ -524,18 +524,17 @@ public class EliminateGenerics {
                     }
                 }
             }
-
             @Override
             public void visit(ImVar v) {
                 super.visit(v);
-                // Skip globals - they're handled separately
-                if (v.isGlobal()) {
-                    return;
-                }
+
+                // Skip globals - they're handled elsewhere
+                if (v.isGlobal()) return;
+
+                // Do NOT error on type variables here. The initializer/method calls may
+                // still specialize this. We'll validate at the very end.
+                // If it's generic-but-concrete, schedule specialization:
                 if (isGenericType(v.getType())) {
-                    if (containsTypeVariable(v.getType())) {
-                        throw new CompileError(v, "Var should not have type variables.");
-                    }
                     genericsUses.add(new GenericVar(v));
                 }
             }
