@@ -15,6 +15,7 @@ import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,6 +66,8 @@ public class BuildMap extends MapRequest {
             CompilationResult result = compileScript(modelManager, gui, targetMap, projectConfig, buildDir, true);
 
             injectMapData(gui, targetMap, result);
+
+            Files.copy(getCachedMapFile().toPath(), targetMap.get().toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             gui.sendProgress("Finalizing map");
 
