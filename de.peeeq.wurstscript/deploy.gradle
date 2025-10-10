@@ -1,4 +1,6 @@
+import org.gradle.internal.os.OperatingSystem
 
+// ----------------------- Publishing (kept from your original) -----------------------
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -14,3 +16,184 @@ publishing {
         // or: maven { url = uri("${buildDir}/repo") }
     }
 }
+
+// ----------------------- Tool discovery (jdeps/jlink via toolchain) -----------------
+def toolExecutable = { String toolName ->
+    def svc = project.extensions.getByType(org.gradle.jvm.toolchain.JavaToolchainService)
+    def launcher = svc.launcherFor(project.java.toolchain)
+    def javaHome = launcher.get().metadata.installationPath.asFile
+    def ext = OperatingSystem.current().isWindows() ? ".exe" : ""
+    new File(javaHome, "bin/${toolName}${ext}").absolutePath
+}
+
+// ----------------------- Common providers/locations ---------------------------------
+def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
+
+// Allow adding modules if reflection/ServiceLoader pulls them in:
+//   ./gradlew jlinkRuntime25 -PextraJdkModules=java.desktop,jdk.crypto.ec
+def extraJdkModules = (project.findProperty("extraJdkModules") ?: "").toString().trim()
+
+def jlinkWorkDir  = layout.buildDirectory.dir("jlink")
+def modulesTxt    = jlinkWorkDir.map { it.file("modules.txt") }
+def jreImageDir   = layout.buildDirectory.dir("jre-wurst-25")
+
+def os   = OperatingSystem.current()
+def arch = System.getProperty("os.arch") // "amd64"/"x86_64"/"aarch64"
+def plat = os.isWindows() ? "win-x64"
+        : os.isMacOsX() ? (arch == "aarch64" ? "macos-arm64" : "macos-x64")
+        : "linux-x64"
+
+def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
+def releasesDir = layout.buildDirectory.dir("releases")
+
+// ----------------------- Tasks: jdeps → jlink → assemble → package ------------------
+
+// 1) Detect JDK modules via jdeps (from the fat jar)
+tasks.register("jdepsModules") {
+    description = "Detects required JDK modules for the fat compiler.jar via jdeps"
+    group = "distribution"
+
+    inputs.file(fatJar)
+    outputs.file(modulesTxt)
+
+    doLast {
+        ExecOperations execOps = project.services.get(ExecOperations)
+        def jdeps = toolExecutable("jdeps")
+        def outBuf = new ByteArrayOutputStream()
+
+        modulesTxt.get().asFile.parentFile.mkdirs()
+
+        execOps.exec {
+            commandLine jdeps,
+                    "--multi-release", "25",
+                    "--ignore-missing-deps",
+                    "--print-module-deps",
+                    fatJar.get().asFile.absolutePath
+            standardOutput = outBuf
+        }
+
+        def detected = outBuf.toString().trim()
+        if (detected.isEmpty()) detected = "java.base"
+        if (!extraJdkModules.isEmpty()) detected = detected + "," + extraJdkModules
+
+        modulesTxt.get().asFile.text = detected
+        logger.lifecycle("[jdeps] Using modules: ${detected}")
+    }
+}
+
+// 2) Build slim runtime with jlink (overwrite if exists)
+tasks.register("jlinkRuntime25") {
+    description = "Builds a slim Java 25 runtime image containing only the needed modules"
+    group = "distribution"
+    dependsOn("shadowJar", "jdepsModules")
+
+    inputs.file(modulesTxt)
+    outputs.dir(jreImageDir)
+
+    doLast {
+        ExecOperations execOps = project.services.get(ExecOperations)
+        def jlink  = toolExecutable("jlink")
+        def mods   = modulesTxt.get().asFile.text.trim()
+        def outDir = jreImageDir.get().asFile
+
+        // jlink requires the output dir to NOT exist
+        if (outDir.exists()) {
+            project.delete(outDir)
+        }
+        outDir.parentFile.mkdirs()
+
+        execOps.exec {
+            commandLine jlink,
+                    "--add-modules", mods,
+                    "--no-header-files",
+                    "--no-man-pages",
+                    "--strip-java-debug-attributes",
+                    "--compress=2",
+                    "--output", outDir.absolutePath
+        }
+        logger.lifecycle("[jlink] Runtime created at: ${outDir}")
+    }
+}
+
+// 3) Assemble folder layout: jre + compiler.jar (no manifest)
+tasks.register("assembleSlimCompilerDist", Copy) {
+    description = "Assembles dist folder with slim JRE and compiler.jar (no manifest)."
+    group = "distribution"
+    dependsOn("jlinkRuntime25", "shadowJar")
+
+    from(jreImageDir) { into("wurst-runtime") }
+    from(fatJar)      { into("wurst-compiler") }
+    into(distRoot)
+
+    doLast {
+        logger.lifecycle("[dist] Folder ready at: ${distRoot.get().asFile}")
+    }
+}
+
+// 4a) Package ZIP on Windows
+tasks.register("packageSlimCompilerDistZip", Zip) {
+    description = "Packages slim dist as a ZIP archive (Windows)."
+    group = "distribution"
+    enabled = os.isWindows()
+
+    dependsOn("assembleSlimCompilerDist")
+
+    from(distRoot)
+    destinationDirectory.set(releasesDir)
+    archiveFileName.set("wurst-compiler-${project.version}-${plat}.zip")
+}
+
+// 4b) Package tar.gz on Linux/macOS
+tasks.register("packageSlimCompilerDistTar", Tar) {
+    description = "Packages slim dist as a tar.gz archive (Linux/macOS)."
+    group = "distribution"
+    enabled = !os.isWindows()
+
+    dependsOn("assembleSlimCompilerDist")
+
+    from(distRoot)
+    destinationDirectory.set(releasesDir)
+    compression = Compression.GZIP
+    archiveExtension.set("tar.gz")
+    archiveFileName.set("wurst-compiler-${project.version}-${plat}.tar.gz")
+}
+
+// 4c) OS-aware convenience wrapper
+tasks.register("packageSlimCompilerDist") {
+    description = "Packages slim dist for the current platform (zip on Windows, tar.gz elsewhere)."
+    group = "distribution"
+    dependsOn(os.isWindows() ? "packageSlimCompilerDistZip" : "packageSlimCompilerDistTar")
+}
+
+// 5) SHA-256 checksum for the packaged archive
+tasks.register("checksumSlimCompilerDist") {
+    description = "Writes SHA-256 alongside the packaged archive."
+    group = "distribution"
+    dependsOn("packageSlimCompilerDist")
+
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def outDir = releasesDir.get().asFile
+        def expectedZip   = new File(outDir, "wurst-compiler-${project.version}-${plat}.zip")
+        def expectedTarGz = new File(outDir, "wurst-compiler-${project.version}-${plat}.tar.gz")
+        def archFile = expectedZip.exists() ? expectedZip : (expectedTarGz.exists() ? expectedTarGz : null)
+        if (archFile == null) throw new GradleException("Archive not found in ${outDir}")
+
+        def md = java.security.MessageDigest.getInstance("SHA-256")
+        archFile.withInputStream { is ->
+            byte[] buf = new byte[8192]
+            for (int r = is.read(buf); r != -1; r = is.read(buf)) {
+                md.update(buf, 0, r)
+            }
+        }
+        def hex = md.digest().collect { String.format("%02x", it) }.join()
+        def sumFile = new File(outDir, archFile.name + ".sha256")
+        sumFile.text = "${hex}  ${archFile.name}\n"
+
+        logger.lifecycle("[sha256] ${sumFile.name} -> ${hex}")
+        logger.lifecycle("[release] Upload: ${archFile.absolutePath}")
+    }
+}
+
+

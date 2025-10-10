@@ -1,32 +1,58 @@
-name: Build Pipeline
+name: CI (build & test)
+
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
   build:
-    name: Build and analyze
-    runs-on: ubuntu-latest
+    name: Gradle build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    defaults:
+      run:
+        working-directory: de.peeeq.wurstscript
+
+    matrix:
+      os: [ ubuntu-latest, windows-latest, macos-13, macos-14 ] # Linux, Win, macOS Intel, macOS ARM
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+          fetch-depth: 0  # needed for your JGit version/describe
+
+      - name: Setup Temurin JDK 25
+        uses: actions/setup-java@v4
         with:
-          java-version: 25
-          distribution: 'zulu' # Alternative distribution options are available
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
+          distribution: temurin
+          java-version: '25'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon --stacktrace
+
+      # Build slim jlink image + package for the *current runner OS*
+      - name: Package slim runtime
+        run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
+
+      - name: Upload packaged artifact (per-OS)
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
-      - name: Build & Run Tests
-        working-directory: ./de.peeeq.wurstscript
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew test --info
+          name: wurst-compiler-${{ matrix.os }}
+          path: |
+            de.peeeq.wurstscript/build/releases/*.zip
+            de.peeeq.wurstscript/build/releases/*.tar.gz
+            de.peeeq.wurstscript/build/releases/*.sha256
