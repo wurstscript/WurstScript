@@ -22,7 +22,6 @@ jobs:
       contents: read
     env:
       GRADLE_OPTS: -Dorg.gradle.daemon=false
-      JAVA_TOOL_OPTIONS: --enable-native-access=ALL-UNNAMED
     defaults:
       run:
         working-directory: de.peeeq.wurstscript
@@ -38,24 +37,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+          cache: 'gradle'
+
+      # Pin Gradle toolchains to the setup-java JDK (avoid /usr/lib/jvm on Ubuntu)
+      - name: Pin Gradle toolchain
+        run: |
+          echo "org.gradle.java.installations.paths=${JAVA_HOME}" >> gradle.properties
+          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
+
+      # Cross-shell Java/jlink version print (works on both Bash and PowerShell)
+      - name: Show Java & jlink
+        shell: bash
+        run: |
+          echo "JAVA_HOME=${JAVA_HOME}"
+          "${JAVA_HOME}/bin/java" -version
+          "${JAVA_HOME}/bin/jlink" --version
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 
-      - name: Setup Gradle cache
+      - name: Setup Gradle (build cache)
         uses: gradle/actions/setup-gradle@v4
-
-      # Ensure Gradle/toolchain use the setup-java JDK (avoids /usr/lib/jvm noise on Ubuntu)
-      - name: Pin Gradle toolchain to setup-java JDK
-        run: |
-          echo "org.gradle.java.installations.paths=$JAVA_HOME" >> gradle.properties
-          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
-
-      - name: Print Java & jlink
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          "$JAVA_HOME/bin/java" -version
-          "$JAVA_HOME/bin/jlink" --version
 
       - name: Run tests
         run: ./gradlew test --no-daemon --stacktrace
