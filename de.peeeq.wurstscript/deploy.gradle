@@ -105,24 +105,40 @@ tasks.register("jlinkRuntime25") {
         def mods   = modulesTxt.get().asFile.text.trim()
         def outDir = jreImageDir.get().asFile
 
+        if (!mods) throw new GradleException("No modules detected for jlink.")
         // jlink requires the output dir to NOT exist
-        if (outDir.exists()) {
-            project.delete(outDir)
-        }
+        if (outDir.exists()) project.delete(outDir)
         outDir.parentFile.mkdirs()
 
-        execOps.exec {
+        logger.lifecycle("[jlink] Using: ${jlink}")
+        logger.lifecycle("[jlink] Modules: ${mods}")
+
+        def errBuf = new ByteArrayOutputStream()
+        def outBuf = new ByteArrayOutputStream()
+        def result = execOps.exec {
             commandLine jlink,
+                    "--verbose",
                     "--add-modules", mods,
                     "--no-header-files",
                     "--no-man-pages",
                     "--strip-debug",
                     "--compress", "zip-6",
                     "--output", outDir.absolutePath
+            errorOutput = errBuf
+            standardOutput = outBuf
+            ignoreExitValue = true
         }
+
+        if (result.exitValue != 0) {
+            logger.lifecycle("[jlink][stdout]\n${outBuf.toString()}")
+            logger.error("[jlink][stderr]\n${errBuf.toString()}")
+            throw new GradleException("jlink failed with exit ${result.exitValue}")
+        }
+
         logger.lifecycle("[jlink] Runtime created at: ${outDir}")
     }
 }
+
 
 // 3) Assemble folder layout: jre + compiler.jar (no manifest)
 tasks.register("assembleSlimCompilerDist", Copy) {
