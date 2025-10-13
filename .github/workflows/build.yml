@@ -32,15 +32,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Optional: still install a JDK so Gradle wrapper validation etc. have a JVM before we switch
-      - name: Setup Temurin JDK 25 (baseline)
+      - name: Setup Temurin JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
           cache: 'gradle'
 
-      # ---------- Portable JDK for Linux ----------
+      # Linux only: use a portable, pristine Temurin 25 for jlink
       - name: (Linux) Install portable Temurin 25
         if: runner.os == 'Linux'
         shell: bash
@@ -48,43 +47,22 @@ jobs:
           set -euo pipefail
           URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz"
           mkdir -p "$RUNNER_TEMP/temurin25"
-          echo "Downloading $URL"
           curl -fsSL "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
           tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
           PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)"
           echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
           echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
 
-      # ---------- Portable JDK for Windows ----------
-      - name: (Windows) Install portable Temurin 25
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $url = 'https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_windows_hotspot_25_36.zip'
-          $root = "$env:RUNNER_TEMP\temurin25"
-          New-Item -ItemType Directory -Force -Path $root | Out-Null
-          Write-Host "Downloading $url"
-          Invoke-WebRequest -Uri $url -OutFile "$root\jdk.zip"
-          Expand-Archive -Path "$root\jdk.zip" -DestinationPath $root -Force
-          $dir = Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -like 'jdk-25*' } | Select-Object -First 1
-          if (-not $dir) { throw "Extracted JDK directory not found under $root" }
-          $pjh = $dir.FullName
-          "PORTABLE_JAVA_HOME=$pjh" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "$pjh\bin"               | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-
-      # Pin Gradle toolchain to the active (portable) JAVA_HOME
-      - name: Pin Gradle toolchain to portable JDK
+      # Pin Gradle toolchain to the active JDK (portable on Linux, setup-java on Windows)
+      - name: Pin Gradle toolchain
         shell: bash
         run: |
           ACTIVE_JAVA_HOME="${PORTABLE_JAVA_HOME:-$JAVA_HOME}"
           echo "JAVA_HOME=${ACTIVE_JAVA_HOME}" >> "$GITHUB_ENV"
           echo "${ACTIVE_JAVA_HOME}/bin" >> "$GITHUB_PATH"
-          # write gradle.properties in repo root (defaults.working-directory is already the module)
           echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
           echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
 
-      # Cross-shell sanity print (bash works on both runners)
       - name: Show Java & jlink
         shell: bash
         run: |
@@ -98,12 +76,11 @@ jobs:
       - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
 
-      # ---------- FAIL FAST: build slim runtime + package BEFORE tests ----------
+      # ---- FAIL FAST: package first (so jlink issues show immediately) ----
       - name: Package slim runtime (fail fast)
         shell: bash
         run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
 
-      # Only run tests if packaging passed
       - name: Run tests
         shell: bash
         run: ./gradlew test --no-daemon --stacktrace
