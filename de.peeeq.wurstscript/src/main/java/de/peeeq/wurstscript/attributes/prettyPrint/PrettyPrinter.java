@@ -1,15 +1,13 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
-import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.jassAst.JassExprUnary;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WPosWithComments;
 import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
 import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
-
-import static de.peeeq.wurstscript.jassprinter.JassPrinter.precedence;
 
 public class PrettyPrinter {
 
@@ -129,7 +127,7 @@ public class PrettyPrinter {
         sb.append(e.getAnnotationType());
         if (e.getAnnotationMessage() != null && e.getAnnotationMessage().length() >= 1) {
             sb.append("(");
-            sb.append(e.getAnnotationMessage());
+            sb.append(Utils.escapeString(e.getAnnotationMessage()));
             sb.append(")");
         }
     }
@@ -220,13 +218,55 @@ public class PrettyPrinter {
         }
     }
 
+    public static int precedence(WurstOperator op) {
+        // Higher number = binds tighter
+        // 5: unary (not, unary minus)
+        // 4: * / % (mod)
+        // 3: + -
+        // 2: comparisons (<= >= > < == !=)
+        // 1: or
+        // 0: and
+        switch (op) {
+            case NOT:
+            case UNARY_MINUS:
+                return 5;
+
+            case MULT:
+            case DIV_INT:
+            case DIV_REAL:
+            case MOD_INT:
+            case MOD_REAL:
+                return 4;
+
+            case PLUS:
+            case MINUS:
+                return 3;
+
+            case LESS:
+            case LESS_EQ:
+            case GREATER:
+            case GREATER_EQ:
+            case EQ:
+            case NOTEQ:
+                return 2;
+
+            case OR:
+                return 1;
+
+            case AND:
+                return 0;
+        }
+        // Fallback if new ops appear
+        return 0;
+    }
+
 
     public static void prettyPrint(ExprBinary e, Spacer spacer, StringBuilder sb, int indent) {
         boolean useParanthesesLeft = false;
         boolean useParanthesesRight = false;
         if (e.getLeft() instanceof ExprBinary) {
             ExprBinary left = (ExprBinary) e.getLeft();
-            if (precedence(left.getOp().jassTranslateBinary()) < precedence(e.getOp().jassTranslateBinary())) {
+            if (precedence(left.getOp()) < precedence(e.getOp())) {
                 // if the precedence level on the left is _smaller_ we have to use parentheses
                 useParanthesesLeft = true;
             }
@@ -237,8 +277,8 @@ public class PrettyPrinter {
         }
         if (e.getRight() instanceof ExprBinary) {
             ExprBinary right = (ExprBinary) e.getRight();
-            JassOpBinary op = right.getOp().jassTranslateBinary();
-            JassOpBinary op2 = e.getOp().jassTranslateBinary();
+            WurstOperator op = right.getOp();
+            WurstOperator op2 = e.getOp();
             if (precedence(op) < precedence(op2)) {
                 // if the precedence level on the right is smaller we have to use parentheses
                 useParanthesesRight = true;
@@ -247,10 +287,10 @@ public class PrettyPrinter {
                 // left associative but for commutative operators (+, *, and, or) we do not
                 // need parentheses
 
-                if (!((op instanceof JassOpPlus && op2 instanceof JassOpPlus)
-                    || (op instanceof JassOpMult && op2 instanceof JassOpMult)
-                    || (op instanceof JassOpOr && op2 instanceof JassOpOr)
-                    || (op instanceof JassOpAnd && op2 instanceof JassOpAnd))) {
+                if (!((op == WurstOperator.PLUS && op2 == WurstOperator.PLUS)
+                    || (op == WurstOperator.MULT && op2 == WurstOperator.MULT)
+                    || (op == WurstOperator.OR && op2 == WurstOperator.OR)
+                    || (op == WurstOperator.AND && op2 == WurstOperator.AND))) {
                     // in other cases use parentheses
                     // for example
                     useParanthesesRight = true;
@@ -1386,5 +1426,10 @@ public class PrettyPrinter {
 
     public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
         // nothing
+    }
+
+    public static void prettyPrint(ExprArrayLength exprArrayLength, Spacer spacer, StringBuilder sb, int indent) {
+        exprArrayLength.getArray().prettyPrint(spacer, sb, indent);
+        sb.append(".length");
     }
 }

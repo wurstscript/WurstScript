@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -69,11 +70,19 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
                 }
             }
         });
-        return classDef.getImplementsList().stream()
-                .filter(i -> i != null && i.attrTyp() instanceof WurstTypeInterface)
-                .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
-                .filter(i -> i.level() < level())
-                .collect(ImmutableList.toImmutableList());
+        List<WurstTypeInterface> result = new ArrayList<>();
+        for (TypeExpr i : classDef.getImplementsList()) {
+            if (i == null) continue;
+
+            WurstType t = i.attrTyp();
+            if (t instanceof WurstTypeInterface) {
+                WurstTypeInterface wti = (WurstTypeInterface) t.setTypeArgs(getTypeArgBinding());
+                if (wti.level() < level()) {
+                    result.add(wti);
+                }
+            }
+        }
+        return ImmutableList.copyOf(result);
     }
 
     /**
@@ -140,11 +149,12 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     public @Nullable TypeDef lookupInnerType(String typeName) {
-        return getDef().getInnerClasses()
-            .stream()
-            .filter(ic -> ic.getName().equals(typeName))
-            .findFirst()
-            .orElse(null);
+        for (ClassDef ic : getDef().getInnerClasses()) {
+            if (ic.getName().equals(typeName)) {
+                return ic;
+            }
+        }
+        return null;
     }
 
 

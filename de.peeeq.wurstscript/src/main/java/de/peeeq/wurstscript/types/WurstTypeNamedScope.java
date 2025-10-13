@@ -199,7 +199,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
                         // if in different package, check if we are in a subclass:
                         ClassDef nearestClass = node.attrNearestClassDef();
                         if (nearestClass == null
-                                || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
+                            || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
                             // if not in a subclass, change to not visible
                             f = f.withVisibility(Visibility.PROTECTED_OTHER);
                         }
@@ -213,11 +213,11 @@ public abstract class WurstTypeNamedScope extends WurstType {
     @Override
     public Stream<FuncLink> getMemberMethods(Element node) {
         return nameLinks().values().stream()
-                .filter(n -> {
-                    WurstType receiverType = n.getReceiverType();
-                    return n instanceof FuncLink
-                            && receiverType != null;
-                }).map(n -> (FuncLink) n);
+            .filter(n -> {
+                WurstType receiverType = n.getReceiverType();
+                return n instanceof FuncLink
+                    && receiverType != null;
+            }).map(n -> (FuncLink) n);
     }
 
     @Override

@@ -20,9 +20,6 @@ public class PositionTests extends WurstScriptTest {
         FunctionCall c = (FunctionCall) Utils.getAstElementAtPos(model.get(0), 3, 12, false).get();
 
         WPos pos = c.attrErrorPos();
-        System.out.println("pos = " + pos.getLine());
-        System.out.println("pos = " + pos.getStartColumn());
-        System.out.println("pos = " + pos.getEndColumn());
 
     }
 }

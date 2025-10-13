@@ -11,12 +11,15 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Queue;
+import java.util.Stack;
 
 public class ExtendedWurstLexer implements TokenSource {
 
     private final WurstLexer orig;
-    private final Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new ArrayDeque<>();
     private State state = State.INIT;
     private final Stack<Integer> indentationLevels = new Stack<>();
     private int spacesPerIndent = -1;

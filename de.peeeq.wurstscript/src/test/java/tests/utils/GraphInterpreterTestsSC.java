@@ -9,7 +9,10 @@ import smallcheck.annotations.From;
 import smallcheck.annotations.Property;
 import smallcheck.generators.SeriesGen;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -22,10 +25,7 @@ public class GraphInterpreterTestsSC {
 
     @Property(maxInvocations = 50000)
     public void test(@From(GraphGen.class) Graph g) {
-        System.out.println("iteration " + ++count);
-        System.out.println(g);
-
-        Set<Set<Node>> components = g.findStronglyConnectedComponents(g.nodes);
+        List<List<Node>> components = g.findStronglyConnectedComponents(g.nodes);
 
         boolean componentCycle = (components.stream().anyMatch(c -> c.size() > 1));
 
@@ -37,8 +37,7 @@ public class GraphInterpreterTestsSC {
     public void simpleGraph() {
         boolean[][] adj = {{true,true},{true, false}};
         Graph g = new Graph(adj);
-        System.out.println(g);
-        Set<Set<Node>> components = g.findStronglyConnectedComponents(g.nodes);
+        List<List<Node>> components = g.findStronglyConnectedComponents(g.nodes);
         boolean componentCycle = (components.stream().anyMatch(c -> c.size() > 1));
         assertEquals(componentCycle, isCyclic(g));
     }

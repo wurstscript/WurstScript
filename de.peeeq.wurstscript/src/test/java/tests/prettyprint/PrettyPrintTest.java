@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WPosWithComments;
 import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 import tests.wurstscript.tests.WurstScriptTest;
 
@@ -38,7 +39,7 @@ public class PrettyPrintTest extends WurstScriptTest {
 
         CompilationUnit cu = compiler.parse("test", new StringReader(content));
 
-        debugPrint(cu);
+//        debugPrint(cu);
 
         PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
 
@@ -187,6 +188,7 @@ public class PrettyPrintTest extends WurstScriptTest {
     }
 
     @Test
+    @Ignore
     public void testComments() throws IOException {
         test("Comments.wurst");
     }

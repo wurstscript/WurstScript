@@ -1,18 +1,8 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
-import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
-import de.peeeq.wurstscript.jassIm.ImTypeVar;
-import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -125,9 +115,11 @@ public class ClassTranslator {
     }
 
     private ImClassType imClassType() {
-        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
-                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap());
+            typeArgs.add(imTypeArgument);
+        }
         return JassIm.ImClassType(imClass, typeArgs);
     }
 

@@ -55,7 +55,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         this.column = position.getPosition().getCharacter();
         this.lines = buffer.split("\\n|\\r\\n");
         if (line <= lines.length) {
-            WLogger.info("Get completions in line " + line + ": \n" + currentLine().replace('\t', ' ') + "\n" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
+            WLogger.debug("Get completions in line " + line + ": \n" + currentLine().replace('\t', ' ') + "\n" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
                     " at column " + column);
         }
     }
@@ -102,14 +102,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
         alreadyEntered = getAlreadyEnteredText();
         alreadyEnteredLower = alreadyEntered.toLowerCase();
-        WLogger.info("already entered = " + alreadyEntered);
+        WLogger.debug("already entered = " + alreadyEntered);
 
         for (SearchMode mode : SearchMode.values()) {
             searchMode = mode;
             List<CompletionItem> completions = Lists.newArrayList();
 
             elem = Utils.getAstElementAtPos(cu, line, column + 1, false).get();
-            WLogger.info("get completions at " + Utils.printElement(elem));
+            WLogger.debug("get completions at " + Utils.printElement(elem));
             expectedType = null;
             if (elem instanceof Expr) {
                 Expr expr = (Expr) elem;

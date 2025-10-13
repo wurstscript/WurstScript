@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.UsedVariables;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Splits a long function into several smaller functions which are
@@ -41,7 +40,7 @@ public class FunctionSplitter {
         // run some basic optimizations first:
         func.flatten(tr);
         new ConstantAndCopyPropagation().optimizeFunc(func);
-        new TempMerger().optimizeFunc(func);
+//        new TempMerger().optimizeFunc(func);
         new LocalMerger().optimizeFunc(func);
         Set<ImVar> usedVars = UsedVariables.calculate(func);
         func.getLocals().removeIf(v -> !usedVars.contains(v));
@@ -256,11 +255,14 @@ public class FunctionSplitter {
     }
 
     private int estimateFuelMethod(ImMethod method) {
+        int sum = 0;
+        for (ImMethod m : method.getSubMethods()) {
+            int i = estimateFuelMethod(m);
+            sum += i;
+        }
         return Math.max(
             estimateFuelFunc(method.getImplementation()),
-            method.getSubMethods().stream()
-                .mapToInt(m -> estimateFuelMethod(method))
-                .sum());
+            sum);
     }
 
     private int estimateFuelFunc(ImFunction f) {
@@ -270,11 +272,15 @@ public class FunctionSplitter {
         if (fuelVisited.containsKey(f)) {
             Integer v = fuelVisited.get(f);
             if (v == null) {
+                StringJoiner joiner = new StringJoiner(", ");
+                for (Map.Entry<ImFunction, Integer> e : fuelVisited.entrySet()) {
+                    if (e.getValue() == null) {
+                        String name = e.getKey().getName();
+                        joiner.add(name);
+                    }
+                }
                 throw new CompileError(func, "Cannot split recursive method " + func.getName() + " calling funcs: " +
-                    fuelVisited.entrySet().stream()
-                        .filter(e -> e.getValue() == null)
-                        .map(e -> e.getKey().getName())
-                        .collect(Collectors.joining(", ")));
+                    joiner.toString());
             }
             return v;
         } else {
@@ -294,6 +300,11 @@ public class FunctionSplitter {
     }
 
     private int estimateFuel(List<? extends ImStmt> stmts) {
-        return stmts.stream().mapToInt(this::estimateFuel).sum();
+        int sum = 0;
+        for (ImStmt stmt : stmts) {
+            int i = estimateFuel(stmt);
+            sum += i;
+        }
+        return sum;
     }
 }

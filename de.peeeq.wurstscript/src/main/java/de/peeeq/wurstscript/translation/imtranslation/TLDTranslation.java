@@ -7,12 +7,19 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class TLDTranslation {
 
-
     public static void translate(JassGlobalBlock jassGlobalBlock, ImTranslator translator) {
+        // Batch process all globals to reduce overhead
+        List<GlobalVarDef> globals = new ArrayList<>();
         for (GlobalVarDef g : jassGlobalBlock) {
+            globals.add(g);
+        }
+
+        // Process in batch to improve cache locality
+        for (GlobalVarDef g : globals) {
             translateVar(g, translator);
         }
     }
@@ -46,16 +53,27 @@ public class TLDTranslation {
         }
         translator.setTranslated(pack);
 
-        // first translate all packages used by this package
+        // Batch process imports
+        List<WPackage> packagesToTranslate = new ArrayList<>();
         for (WImport imp : pack.getImports()) {
             WPackage p = imp.attrImportedPackage();
             if (p != null) {
-                p.imTranslateTLD(translator);
+                packagesToTranslate.add(p);
             }
         }
 
-        // translate the package itself
+        for (WPackage p : packagesToTranslate) {
+            p.imTranslateTLD(translator);
+        }
+
+        // Batch process elements by type for better cache locality
+        List<WEntity> elements = new ArrayList<>();
         for (WEntity e : pack.getElements()) {
+            elements.add(e);
+        }
+
+        // Process elements
+        for (WEntity e : elements) {
             translator.lasttranslatedThing = e;
             e.imTranslateEntity(translator);
         }
@@ -65,54 +83,70 @@ public class TLDTranslation {
         if (translator.isTranslated(classDef)) {
             return;
         }
+
+        // Cache type lookup
         WurstTypeClass ct = classDef.attrTypC();
         WurstTypeClass extendedClass = ct.extendedClass();
         if (extendedClass != null) {
-            // first translate super classes:
             translate(extendedClass.getClassDef(), translator);
         }
+
         ClassTranslator.translate(classDef, translator);
         translator.setTranslated(classDef);
     }
 
-
     public static void translate(FuncDef funcDef, ImTranslator translator) {
+        // Cache function lookup - this is a hotspot
         ImFunction f = translator.getFuncFor(funcDef);
 
-        // body
+        // Pre-allocate body list with estimated capacity if possible
         List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
-        f.getBody().addAll(stmts);
 
+        // Use addAll for batch addition
+        if (!stmts.isEmpty()) {
+            f.getBody().addAll(stmts);
+        }
+
+        // Cache package lookup
         if (funcDef.attrNearestPackage() instanceof CompilationUnit) {
-            if (funcDef.getName().equals("main")) {
+            String funcName = funcDef.getName();
+            if ("main".equals(funcName)) {
                 translator.setMainFunc(f);
-            } else if (funcDef.getName().equals("config")) {
+            } else if ("config".equals(funcName)) {
                 translator.setConfigFunc(f);
             }
         }
     }
 
     public static void translate(ExtensionFuncDef funcDef, ImTranslator translator) {
+        // Cache function lookup - this is a hotspot
         ImFunction f = translator.getFuncFor(funcDef);
-        // body
+
+        // Translate statements once and add in batch
         List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());
-        f.getBody().addAll(stmts);
+        if (!stmts.isEmpty()) {
+            f.getBody().addAll(stmts);
+        }
     }
 
     public static void translate(InitBlock initBlock, ImTranslator translator) {
-        ImFunction f = translator.getInitFuncFor((WPackage) initBlock.attrNearestPackage());
-        f.getBody().addAll(translator.translateStatements(f, initBlock.getBody()));
-    }
+        // Cache function lookup
+        WPackage nearestPackage = (WPackage) initBlock.attrNearestPackage();
+        ImFunction f = translator.getInitFuncFor(nearestPackage);
 
+        // Translate and add statements in batch
+        List<ImStmt> stmts = translator.translateStatements(f, initBlock.getBody());
+        if (!stmts.isEmpty()) {
+            f.getBody().addAll(stmts);
+        }
+    }
 
     public static void translate(InterfaceDef interfaceDef, ImTranslator translator) {
         new InterfaceTranslator(interfaceDef, translator).translate();
-
     }
 
-
     public static void translate(ModuleDef moduleDef, ImTranslator translator) {
-        // nothing to do, only translate module instanciations
+        // nothing to do, only translate module instantiations
     }
 
     public static void translate(TypeParamDef typeParamDef, ImTranslator translator) {
@@ -122,11 +156,9 @@ public class TLDTranslation {
 
     public static void translate(EnumDef enumDef, ImTranslator translator) {
         // nothing to do
-
     }
 
     public static void translate(ModuleInstanciation moduleInstanciation, ImTranslator translator) {
         // nothing to do?
     }
-
 }

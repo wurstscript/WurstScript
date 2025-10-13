@@ -35,7 +35,7 @@ public class ScopingTests extends WurstScriptTest {
 
     @Test
     public void test_import_same() {
-        testAssertErrorsLines(false, "ambiguous",
+         testAssertErrorsLines(false, "ambiguous",
                 "package A",
                 "	public int x = 2",
                 "endpackage",

@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstAbstract;
 import de.peeeq.wurstscript.types.WurstType;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class JassArray extends ILconstAbstract {
@@ -38,15 +40,20 @@ public class JassArray extends ILconstAbstract {
         }
 
         int finalI = i;
-        values.keySet().stream().sorted().filter(x -> x < 0 || x >= finalI).forEach(k -> {
-            ILconst v = values.get(k);
-            if (res.length() > 0) {
-                res.append(", ");
+        List<Integer> toSort = new ArrayList<>();
+        toSort.addAll(values.keySet());
+        toSort.sort(null);
+        for (Integer x : toSort) {
+            if (x < 0 || x >= finalI) {
+                ILconst v = values.get(x);
+                if (!res.isEmpty()) {
+                    res.append(", ");
+                }
+                res.append(x);
+                res.append(" -> ");
+                res.append(v);
             }
-            res.append(k);
-            res.append(" -> ");
-            res.append(v);
-        });
+        }
 
         return "[" + res + "]";
     }

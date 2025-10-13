@@ -31,10 +31,15 @@ public class SymbolInformationRequest extends UserRequest<Either<List<? extends 
     }
 
     private List<SymbolInformation> symbolsFromModel(WurstModel model) {
-        return model.stream()
-                .flatMap(cu -> symbolsFromCu(cu).stream())
-                .filter(si -> (si.getContainerName() + "." + si.getName()).toLowerCase().contains(query))
-                .collect(Collectors.toList());
+        List<SymbolInformation> list = new ArrayList<>();
+        for (CompilationUnit cu : model) {
+            for (SymbolInformation si : symbolsFromCu(cu)) {
+                if ((si.getContainerName() + "." + si.getName()).toLowerCase().contains(query)) {
+                    list.add(si);
+                }
+            }
+        }
+        return list;
     }
 
     private List<SymbolInformation> symbolsFromCu(CompilationUnit cu) {

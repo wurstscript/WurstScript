@@ -15,33 +15,32 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.validation.GlobalCaches;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
+import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
-    private static boolean cache = false;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState, boolean cache) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
-        ILInterpreter.cache = cache;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
 //        globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime, boolean cache) {
-        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime), cache);
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
+        this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -157,38 +156,89 @@ public class ILInterpreter implements AbstractInterpreter {
         return false;
     }
 
-    public static LinkedHashMap<ImFunction, LinkedHashMap<Integer, LocalState>> localStateCache = new LinkedHashMap<>();
+
+    // Cap per-function cache size to avoid unbounded growth
+    private static final int MAX_CACHE_PER_FUNC = 2048;
+
+    private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        if (cache && isFunctionPure(f.getName())) {
-            int combinedHash = Objects.hash((Object[]) args);
-            if (localStateCache.containsKey(f) && localStateCache.get(f).containsKey(combinedHash)) {
-                return localStateCache.get(f).get(combinedHash);
+        // Delegate to the array overload to avoid double-allocations.
+        return runBuiltinFunction(globalState, f, args, /*isVarargs*/ true);
+    }
+
+    private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst[] args, boolean isVarargs) {
+        // Cache purity + name once
+        final String fname = f.getName();
+        final boolean pure = isFunctionPure(fname);
+
+        GlobalCaches.ArgumentKey key = null;
+        if (pure) {
+            key = GlobalCaches.ArgumentKey.forLookup(args);
+
+            final Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                LOCAL_STATE_CACHE.get(f);
+            if (perFn != null) {
+                final LocalState cached = perFn.get(key);
+                if (cached != null) {
+                    return cached;
+                }
             }
         }
-        StringBuilder errors = new StringBuilder();
+
+        // Build error text lazily (only if we actually get exceptions)
+        StringBuilder errors = null;
+
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                LocalState localState = new LocalState(natives.invoke(f.getName(), args));
-                if (cache && isFunctionPure(f.getName())) {
-                    int combinedHash = Objects.hash((Object[]) args);
-                    LinkedHashMap<Integer, LocalState> cached = localStateCache.getOrDefault(f, new LinkedHashMap<>());
-                    cached.put(combinedHash, localState);
-                    localStateCache.put(f, cached);
+                // Invoke native; TODO: cache method handles per name elsewhere.
+                final LocalState localState = new LocalState(natives.invoke(fname, args));
+
+                if (pure) {
+                    // insert into per-function cache with bounded size
+                    Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
+                        LOCAL_STATE_CACHE.get(f);
+                    if (perFn == null) {
+                        perFn = new Object2ObjectOpenHashMap<>(16);
+                        LOCAL_STATE_CACHE.put(f, perFn);
+                    }
+                    perFn.put(key, localState);
+                    if (perFn.size() > MAX_CACHE_PER_FUNC) {
+                        // evict eldest (insertion order) to bound memory
+                        // Object2ObjectOpenHashMap maintains insertion order
+                        final GlobalCaches.ArgumentKey eldest = perFn.keySet().iterator().next();
+                        perFn.remove(eldest);
+                    }
                 }
+
                 return localState;
+
             } catch (NoSuchNativeException e) {
-                errors.append("\n").append(e.getMessage());
-                // ignore
+                if (errors == null) errors = new StringBuilder(128);
+                errors.append('\n').append(e.getMessage());
+                // keep trying next provider
             }
         }
-        globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
+
+        // If we reach here, none of the providers handled it
+        if (errors == null) errors = new StringBuilder(64);
+        errors.insert(0, "function ").append(fname).append(" cannot be used from the Wurst interpreter.\n");
+        globalState.compilationError(errors.toString());
+
+        // Return a lightweight state
         if (f.getReturnType() instanceof ImVoid) {
-            return new LocalState();
+            return EMPTY_LOCAL_STATE;
         }
-        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+        final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
+            .evaluate(globalState, EMPTY_LOCAL_STATE);
         return new LocalState(returnValue);
     }
+
+    /** Zero-allocation combined hash for ILconst[] (order-sensitive). */
+    private static int fastHashArgs(ILconst[] args) {
+        return Arrays.hashCode(args);
+    }
+
 
     private static boolean isCompiletimeNative(ImFunction f) {
         if (f.getTrace() instanceof HasModifier) {
@@ -276,18 +326,25 @@ public class ILInterpreter implements AbstractInterpreter {
 
     @Override
     public int getInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .filter(o -> !o.isDestroyed())
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                if (!o.isDestroyed()) {
+                    count++;
+                }
+            }
+        }
+        return (int) count;
     }
 
     @Override
     public int getMaxInstanceCount(int val) {
-        return (int) globalState.getAllObjects()
-            .stream()
-            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
-            .count();
+        long count = 0L;
+        for (ILconstObject o : globalState.getAllObjects()) {
+            if (o.getType().getClassDef().attrTypeId() == val) {
+                count++;
+            }
+        }
+        return (int) count;
     }
 }

@@ -376,15 +376,23 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         return n;
     }
 
-    private void collectLocalVars(Set<LocalVarDef> r, Element e) {
-        if (isLocalVarDef(e)) {
-            r.add((LocalVarDef) e);
-        }
+    private void collectLocalVars(Set<LocalVarDef> out, Element root) {
+        ArrayDeque<Element> stack = new ArrayDeque<>();
+        stack.push(root);
 
-        for (int i = 0; i < e.size(); i++) {
-            Element c = e.get(i);
-            if (!(c instanceof ExprClosure) && !(c instanceof ExprStatementsBlock)) {
-                collectLocalVars(r, c);
+        while (!stack.isEmpty()) {
+            Element e = stack.pop();
+
+            if (isLocalVarDef(e)) {
+                out.add((LocalVarDef) e);
+            }
+
+            // visit children left→right: push in reverse
+            for (int i = e.size() - 1; i >= 0; i--) {
+                Element c = e.get(i);
+                if (!(c instanceof ExprClosure) && !(c instanceof ExprStatementsBlock)) {
+                    stack.push(c);
+                }
             }
         }
     }

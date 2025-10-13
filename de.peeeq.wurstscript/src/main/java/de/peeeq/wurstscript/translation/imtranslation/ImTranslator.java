@@ -13,37 +13,18 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
-import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImAnyType;
-import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
-import de.peeeq.wurstscript.jassIm.ImExprs;
-import de.peeeq.wurstscript.jassIm.ImFuncRef;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImReturn;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
-import de.peeeq.wurstscript.jassIm.ImTypeVar;
-import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
-import de.peeeq.wurstscript.jassIm.ImTypeVars;
-import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVars;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,27 +44,30 @@ public class ImTranslator {
 
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
-    private @Nullable Multimap<ImFunction, ImFunction> callRelations = null;
-    private @Nullable Set<ImVar> usedVariables = null;
-    private @Nullable Set<ImVar> readVariables = null;
-    private @Nullable Set<ImFunction> usedFunctions = null;
+    // existing fields (keep callRelations as Guava Multimap to avoid ripple effects)
+    private Multimap<ImFunction, ImFunction> callRelations;
+
+    // swap these Sets to fastutil; keep accessors returning Set if you have them
+    private ReferenceOpenHashSet<ImFunction> usedFunctions;
+    private ObjectOpenHashSet<ImVar> usedVariables;  // or ReferenceOpenHashSet<ImVar> if identity semantics are intended
+    private ObjectOpenHashSet<ImVar> readVariables;  // ditto
 
     private @Nullable ImFunction debugPrintFunction;
 
-    private final Map<TranslatedToImFunction, ImFunction> functionMap = new LinkedHashMap<>();
+    private final Map<TranslatedToImFunction, ImFunction> functionMap = new Object2ObjectLinkedOpenHashMap<>();
     private @Nullable ImFunction globalInitFunc;
 
     private final ImProg imProg;
 
-    final Map<WPackage, ImFunction> initFuncMap = new LinkedHashMap<>();
+    final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
 
-    private final Map<TranslatedToImFunction, ImVar> thisVarMap = new LinkedHashMap<>();
+    private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
-    private final Set<WPackage> translatedPackages = new LinkedHashSet<>();
-    private final Set<ClassDef> translatedClasses = new LinkedHashSet<>();
+    private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();
+    private final Set<ClassDef> translatedClasses = new ObjectLinkedOpenHashSet<>();
 
 
-    private final Map<VarDef, ImVar> varMap = new LinkedHashMap<>();
+    private final Map<VarDef, ImVar> varMap = new Object2ObjectLinkedOpenHashMap<>();
 
     private final WurstModel wurstProg;
 
@@ -97,7 +81,7 @@ public class ImTranslator {
     @Nullable public ImFunction ensureStrFunc = null;
     @Nullable public ImFunction stringConcatFunc = null;
 
-    private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
+    private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
     private final boolean isUnitTestMode;
 
@@ -115,7 +99,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new Object2ObjectLinkedOpenHashMap<>());
         this.runArgs = runArgs;
     }
 
@@ -524,9 +508,11 @@ public class ImTranslator {
             imProg.getGlobalInits().put(v, Collections.singletonList(imSet));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
-            List<ImExpr> translatedExprs = arInit.getValues().stream()
-                    .map(expr -> expr.imTranslateExpr(this, f))
-                    .collect(Collectors.toList());
+            List<ImExpr> translatedExprs = new ArrayList<>();
+            for (Expr expr : arInit.getValues()) {
+                ImExpr imExpr = expr.imTranslateExpr(this, f);
+                translatedExprs.add(imExpr);
+            }
             List<ImSet> imSets = new ArrayList<>();
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
@@ -860,9 +846,15 @@ public class ImTranslator {
     }
 
 
+    private static final String BJ1 = "blizzard.j";
+    private static final String BJ2 = "common.j";
+
     private boolean isBJ(WPos source) {
-        String f = source.getFile().toLowerCase();
-        return f.endsWith("blizzard.j") || f.endsWith("common.j");
+        String path = source.getFile(); // no lowercasing
+        int n = path.length();
+
+        return (n >= BJ1.length() && path.regionMatches(true, n - BJ1.length(), BJ1, 0, BJ1.length()))
+            || (n >= BJ2.length() && path.regionMatches(true, n - BJ2.length(), BJ2, 0, BJ2.length()));
     }
 
     public ImFunction getInitFuncFor(WPackage p) {
@@ -1041,53 +1033,66 @@ public class ImTranslator {
         return callRelations;
     }
 
-    public void calculateCallRelationsAndUsedVariables() {
-        callRelations = LinkedHashMultimap.create();
-        usedVariables = Sets.newLinkedHashSet();
-        readVariables = Sets.newLinkedHashSet();
-        usedFunctions = Sets.newLinkedHashSet();
-        calculateCallRelations(getMainFunc());
-        calculateCallRelations(getConfFunc());
 
-//		WLogger.info("USED FUNCS:");
-//		for (ImFunction f : usedFunctions) {
-//			WLogger.info("	" + f.getName());
-//		}
-        imProg.getGlobals().forEach(global -> {
+
+    public void calculateCallRelationsAndUsedVariables() {
+        // estimate sizes to reduce rehashing
+        final int funcEstimate = Math.max(16, imProg.getFunctions().size());
+        final int varEstimate  = Math.max(32, imProg.getGlobals().size());
+
+        callRelations = com.google.common.collect.LinkedHashMultimap.create(); // keep Guava type externally
+
+        usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
+        usedVariables = new ObjectOpenHashSet<>(varEstimate);
+        readVariables = new ObjectOpenHashSet<>(varEstimate);
+
+        final ImFunction main = getMainFunc();
+        if (main != null) calculateCallRelations(main);
+
+        final ImFunction conf = getConfFunc();
+        if (conf != null && conf != main) calculateCallRelations(conf);
+
+        // mark protected globals as read
+        // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
+        for (ImVar global : imProg.getGlobals()) {
             if (TRVEHelper.protectedVariables.contains(global.getName())) {
-                getReadVariables().add(global);
+                readVariables.add(global);
             }
-        });
+        }
     }
 
     private void calculateCallRelations(ImFunction rootFunction) {
-        // Early return if rootFunction is already processed
-        if (getUsedFunctions().contains(rootFunction)) {
-            return;
-        }
+        // nothing to do
+        if (rootFunction == null) return;
 
-        Stack<ImFunction> functionStack = new Stack<>();
-        functionStack.push(rootFunction);
+        // if already processed, skip entirely
+        if (usedFunctions.contains(rootFunction)) return;
 
-        while (!functionStack.isEmpty()) {
-            ImFunction f = functionStack.pop();
+        final ArrayDeque<ImFunction> work = new ArrayDeque<>();
+        work.add(rootFunction);
 
-            // If the function is already processed, skip the remaining logic
-            // in this iteration
-            if (getUsedFunctions().contains(f)) {
+        while (!work.isEmpty()) {
+            final ImFunction f = work.removeLast(); // LIFO (DFS); change to removeFirst() for BFS
+
+            if (!usedFunctions.add(f)) {
+                // was already processed; skip
                 continue;
             }
 
-            getUsedFunctions().add(f);
-            getUsedVariables().addAll(f.calcUsedVariables());
-            getReadVariables().addAll(f.calcReadVariables());
+            // Only computed once per function thanks to usedFunctions.add() gate
+            usedVariables.addAll(f.calcUsedVariables());
+            readVariables.addAll(f.calcReadVariables());
 
-            Set<ImFunction> calledFuncs = f.calcUsedFunctions();
-            for (ImFunction called : calledFuncs) {
-                if (f != called) { // ignore reflexive call relations
-                    getCallRelations().put(f, called);
+            final Set<ImFunction> called = f.calcUsedFunctions();
+            // Avoid streams/alloc; avoid pushing functions we've already seen
+            for (ImFunction g : called) {
+                if (g == null) continue;
+                if (g != f) { // ignore self-calls in relation
+                    callRelations.put(f, g);
                 }
-                functionStack.push(called);
+                if (!usedFunctions.contains(g)) {
+                    work.add(g);
+                }
             }
         }
     }
@@ -1096,14 +1101,9 @@ public class ImTranslator {
         return callRelations;
     }
 
+    public ImFunction getMainFunc() { return mainFunc; }
+    public ImFunction getConfFunc() { return configFunc; }
 
-    public ImFunction getMainFunc() {
-        return mainFunc;
-    }
-
-    public ImFunction getConfFunc() {
-        return configFunc;
-    }
 
 
     /**
@@ -1535,11 +1535,15 @@ public class ImTranslator {
         return originalReturnValues.computeIfAbsent(f, ImFunction::getReturnType);
     }
 
+    final Set<AssertProperty> properties = Sets.newHashSet();
+
     public void assertProperties(AssertProperty... properties1) {
         if (!debug) {
             return;
         }
-        final Set<AssertProperty> properties = Sets.newHashSet(properties1);
+        properties.clear();
+        Collections.addAll(properties, properties1);
+
         assertProperties(properties, imProg);
     }
 
@@ -1547,7 +1551,9 @@ public class ImTranslator {
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
-        properties.parallelStream().forEach(p -> p.check(e));
+        for (AssertProperty p : properties) {
+            p.check(e);
+        }
         if (properties.contains(AssertProperty.NOTUPLES)) {
             // TODO ?
         }

@@ -8,13 +8,13 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class ExtendedJurstLexer implements TokenSource {
 
     private final JurstLexer orig;
-    private final Queue<Token> nextTokens = new LinkedList<>();
+    private final Queue<Token> nextTokens = new ArrayDeque<>();
     private State state = State.INIT;
     private @Nullable Token eof = null;
     private @Nullable Token firstNewline;

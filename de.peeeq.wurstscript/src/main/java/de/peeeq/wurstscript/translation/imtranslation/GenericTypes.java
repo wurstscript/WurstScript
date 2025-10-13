@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.jassIm.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -133,19 +134,38 @@ class GenericTypes {
     }
 
     public GenericTypes take(int n) {
+        List<ImTypeArgument> list = new ArrayList<>();
+        long limit = n;
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (limit-- == 0) break;
+            list.add(typeArgument);
+        }
         return new GenericTypes(
-                typeArguments.stream().limit(n).collect(Collectors.toList())
+            list
         );
     }
 
     public GenericTypes drop(int n) {
+        List<ImTypeArgument> list = new ArrayList<>();
+        long toSkip = n;
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (toSkip > 0) {
+                toSkip--;
+                continue;
+            }
+            list.add(typeArgument);
+        }
         return new GenericTypes(
-                typeArguments.stream().skip(n).collect(Collectors.toList())
+            list
         );
     }
 
     public boolean containsTypeVariable() {
-        return typeArguments.stream()
-                .anyMatch(ta -> EliminateGenerics.containsTypeVariable(ta.getType()));
+        for (ImTypeArgument ta : typeArguments) {
+            if (EliminateGenerics.containsTypeVariable(ta.getType())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

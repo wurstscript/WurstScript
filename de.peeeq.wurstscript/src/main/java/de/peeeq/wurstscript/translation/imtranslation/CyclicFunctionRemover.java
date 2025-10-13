@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
@@ -33,16 +32,19 @@ public class CyclicFunctionRemover {
 
     public void work() {
         tr.calculateCallRelationsAndUsedVariables();
-        AtomicReference<Set<Set<ImFunction>>> components = new AtomicReference<>();
-        timeTaker.measure("finding cycles", () -> components.set(graph.findStronglyConnectedComponents(prog.getFunctions())));
-
+        AtomicReference<List<List<ImFunction>>> components = new AtomicReference<>();
+        timeTaker.measure("finding cycles",
+            () -> components.set(graph.findStronglyConnectedComponents(prog.getFunctions()))
+        );
         timeTaker.measure("removing cycles", () -> removeCycles(components));
     }
 
-    private void removeCycles(AtomicReference<Set<Set<ImFunction>>> components) {
-        for (Set<ImFunction> component : components.get()) {
+    private void removeCycles(AtomicReference<List<List<ImFunction>>> componentsRef) {
+        for (List<ImFunction> component : componentsRef.get()) {
             if (component.size() > 1) {
-                removeCycle(ImmutableList.copyOf(component), component);
+                // keep list for order; set for O(1) membership
+                Set<ImFunction> funcSet = new HashSet<>(component);
+                removeCycle(component, funcSet);
             }
         }
     }
@@ -139,13 +141,13 @@ public class CyclicFunctionRemover {
                 relevant.add(imFunctionCall);
             }
         });
-        relevant.parallelStream().forEach(relevantElem -> {
+        for (Element relevantElem : relevant) {
             if (relevantElem instanceof ImFuncRef) {
                 replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFuncRef) relevantElem);
             } else if (relevantElem instanceof ImFunctionCall) {
                 replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) relevantElem);
             }
-        });
+        }
     }
 
     private void replaceImFuncRef(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, ImFuncRef e) {

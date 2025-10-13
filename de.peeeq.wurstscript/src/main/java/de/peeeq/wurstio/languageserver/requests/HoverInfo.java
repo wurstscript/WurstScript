@@ -44,7 +44,7 @@ public class HoverInfo extends UserRequest<Hover> {
             return new Hover(Collections.singletonList(Either.forLeft("File " + filename + " is not part of the project. Move it to the wurst folder.")));
         }
         Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
-        WLogger.info("hovering over " + Utils.printElement(e));
+        WLogger.debug("hovering over " + Utils.printElement(e));
         List<Either<String, MarkedString>> desription = e.match(new Description());
         desription = addArgumentHint(e, desription);
 
@@ -357,7 +357,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ModOverride(ModOverride modOverride) {
-            return string("override: This function overrides an other function from a module or superclass");
+            return string("override: This function overrides another function from a module or superclass");
         }
 
         @Override
@@ -615,6 +615,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_StmtForRangeUp(StmtForRangeUp stmtForRangeUp) {
             return string("Execute the body several times, counting up");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_ExprArrayLength(ExprArrayLength exprArrayLength) {
+            return List.of();
         }
 
         @Override

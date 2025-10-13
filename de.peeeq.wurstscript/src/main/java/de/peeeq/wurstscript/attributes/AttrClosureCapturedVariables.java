@@ -16,7 +16,6 @@ public class AttrClosureCapturedVariables {
         // closure itself
         collect(result, e, e.getImplementation());
 
-        // TODO Auto-generated method stub
         return result.build();
     }
 

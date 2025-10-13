@@ -1,100 +1,16 @@
-// Apply shadow plugin (assumes this is applied from main build.gradle with buildscript setup)
-apply plugin: 'com.github.johnrengelman.shadow'
 
-// Shadow JAR config using externally defined mainClassName
-shadowJar {
-    archiveBaseName.set('wurstscript')
-    archiveClassifier.set('')
-    archiveVersion.set('')
-    manifest {
-        attributes 'Main-Class': mainClassName
-    }
-}
-
-// Get reference to fat JAR for reuse
-def fatJar = shadowJar.archiveFile.map { it.asFile }
-
-// Install fat jar into ~/.wurst
-task make_for_userdir(type: Copy) {
-    from fatJar
-    into "${System.properties['user.home']}/.wurst/"
-}
-make_for_userdir.dependsOn(shadowJar)
-
-// Copy fat jar into Wurstpack bundle dir
-task make_for_wurstpack(type: Copy) {
-    from fatJar
-    into '../Wurstpack/wurstscript/'
-}
-make_for_wurstpack.dependsOn(shadowJar)
-
-// Full zip of Wurstpack (includes wrappers, .exe, etc.)
-task create_zip_wurstpack_complete(type: Zip) {
-    from '../Wurstpack'
-    archiveFileName.set('wurstpack_complete.zip')
-}
-create_zip_wurstpack_complete.dependsOn(make_for_wurstpack)
-
-// Compiler-only zip (just the fat jar and related files)
-task create_zip_wurstpack_compiler(type: Zip) {
-    from '../Wurstpack/wurstscript/'
-    archiveFileName.set('wurstpack_compiler.zip')
-}
-create_zip_wurstpack_compiler.dependsOn(make_for_wurstpack)
-
-// Bundle downloads for GitHub release
-task create_zips {
-    doLast {
-        mkdir("../downloads/")
-
-        copy {
-            from fatJar
-            into '../downloads/'
-        }
-
-        copy {
-            from '../Wurstpack'
-            into '../downloads/Wurstpack/'
-        }
-
-        copy {
-            from '../WurstSetup/build/libs/WurstSetup.jar'
-            into '../downloads/'
-        }
-
-        // Generate checksums
-        mkdir("../Checksums/bin")
-        javaexec {
-            classpath = sourceSets.main.runtimeClasspath
-            main = "de.peeeq.wurstio.Checksums"
-            args = [
-                    "../downloads/Wurstpack/",
-                    "../downloads/wurstpack.md5"
-            ]
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact tasks.shadowJar
+            groupId    = project.group ?: 'de.peeeq'
+            artifactId = 'wurstscript'
+            version    = project.version
         }
     }
-}
-create_zips.dependsOn(shadowJar)
-create_zips.dependsOn(create_zip_wurstpack_complete)
-create_zips.dependsOn(create_zip_wurstpack_compiler)
-
-// Hotdoc generation
-task generate_hotdoc {
-    doLast {
-        copy {
-            from("src/main/resources/")
-            into("build/classes/main/")
-        }
-        javaexec {
-            classpath = sourceSets.main.runtimeClasspath
-            main = "de.peeeq.wurstio.Main"
-            args = [
-                    "--hotdoc",
-                    "./build/deps/",
-                    "../downloads/hotdoc"
-            ]
-        }
+    repositories {
+        mavenLocal()
+        // or: maven { url = uri("${buildDir}/repo") }
     }
 }
-generate_hotdoc.dependsOn(compileJava)
-generate_hotdoc.dependsOn(downloadAndUnzipFile)

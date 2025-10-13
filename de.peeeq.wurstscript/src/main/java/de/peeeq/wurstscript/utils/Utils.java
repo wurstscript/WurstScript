@@ -127,7 +127,12 @@ public class Utils {
     }
 
     public static String printSep(String sep, List<?> args) {
-        return args.stream().map(String::valueOf).collect(Collectors.joining(sep));
+        StringJoiner joiner = new StringJoiner(sep);
+        for (Object arg : args) {
+            String s = String.valueOf(arg);
+            joiner.add(s);
+        }
+        return joiner.toString();
     }
 
     /**
@@ -992,7 +997,13 @@ public class Utils {
      * Copy of the list without its last element
      */
     public static <T> List<T> init(List<T> list) {
-        return list.stream().limit(list.size() - 1).collect(Collectors.toList());
+        List<T> result = new ArrayList<>();
+        long limit = list.size() - 1;
+        for (T t : list) {
+            if (limit-- == 0) break;
+            result.add(t);
+        }
+        return result;
     }
 
     public static Optional<String> getEnvOrConfig(String varName) {

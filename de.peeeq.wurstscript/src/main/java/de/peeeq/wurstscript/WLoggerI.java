@@ -7,6 +7,8 @@ public interface WLoggerI {
 
     void trace(String msg);
 
+    void debug(String s);
+
     void info(String msg);
 
     void warning(String msg);

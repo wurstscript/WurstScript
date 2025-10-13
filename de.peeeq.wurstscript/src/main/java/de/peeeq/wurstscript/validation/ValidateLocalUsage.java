@@ -63,7 +63,9 @@ public class ValidateLocalUsage {
             }
         });
 
-        locals.forEach(local -> local.addWarning("Constant local variables should be defined using 'let'."));
+        for (NameDef local : locals) {
+            local.addWarning("Constant local variables should be defined using 'let'.");
+        }
 
     }
 

@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.attributes.names.DesugarArrayLength;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -27,6 +28,7 @@ public class WurstChecker {
             return;
         }
         TRVEHelper.protectedVariables.clear();
+        new DesugarArrayLength().run(root);
         gui.sendProgress("Checking Files");
 
         if (errorHandler.getErrorCount() > 0) return;
@@ -46,7 +48,6 @@ public class WurstChecker {
         // validate the resource:
         WurstValidator validator = new WurstValidator(root);
         validator.validate(toCheck);
-        WLogger.info("debug - finished checkProg");
     }
 
     private void attachErrorHandler(WurstModel root) {

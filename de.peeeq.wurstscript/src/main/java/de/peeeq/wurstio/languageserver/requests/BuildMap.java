@@ -66,9 +66,12 @@ public class BuildMap extends MapRequest {
 
             injectMapData(gui, targetMap, result);
 
-            //noinspection EmptyTryBlock
-            try(MpqEditor ignored = MpqEditorFactory.getEditor(targetMap)) {
-                // Just finalization
+            gui.sendProgress("Finalizing map");
+
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
+                if (mpq != null) {
+                    mpq.closeWithCompression();
+                }
             }
 
             gui.sendProgress("Done.");

@@ -2,27 +2,28 @@ package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.FUNC);
+            @SuppressWarnings("unchecked")
+            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         StructureDef nearestStructureDef = node.attrNearestStructureDef();
         if (nearestStructureDef != null) {
-            // inside a class one can write foo instead of this.foo()
-            // so the receiver type is implicitly given by the enclosing class
             WurstType receiverType = nearestStructureDef.attrTyp();
             ImmutableCollection<FuncLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
             if (!funcs.isEmpty()) {
@@ -30,41 +31,74 @@ public class NameResolution {
             }
         }
 
-
-        List<FuncLink> result = Lists.newArrayList();
+        List<FuncLink> result = new ArrayList<>(4);
         WScope scope = node.attrNearestScope();
+
+        List<WScope> scopes = new ArrayList<>(8);
         while (scope != null) {
-            for (DefLink n : scope.attrNameLinks().get(name)) {
+            scopes.add(scope);
+            scope = nextScope(scope);
+        }
+
+        Set<NameDef> seen = new HashSet<>();
+
+        for (WScope s : scopes) {
+            Collection<DefLink> links = s.attrNameLinks().get(name);
+            if (links.isEmpty()) continue;
+
+            for (DefLink n : links) {
                 if (n instanceof FuncLink && n.getReceiverType() == null) {
-                    if (!result.contains(n)) {
+                    if (seen.add(n.getDef())) {
                         result.add((FuncLink) n);
                     }
                 }
             }
-            scope = nextScope(scope);
         }
-        return removeDuplicates(result);
+
+        ImmutableCollection<FuncLink> immutableResult = ImmutableList.copyOf(result);
+
+        // Cache the result
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.FUNC);
+            GlobalCaches.lookupCache.put(key, immutableResult);
+        }
+
+        return immutableResult;
     }
 
     public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
-        ArrayList<FuncLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
-        for (int i = 0; i < result.size(); i++) {
-            result.set(i, result.get(i).withConfigDef());
+        final ImmutableCollection<FuncLink> raw = e.lookupFuncsNoConfig(name, showErrors);
+
+        if (raw.isEmpty()) {
+            return ImmutableList.of();
         }
-        return ImmutableList.copyOf(result);
+
+        if (raw.size() == 1) {
+            FuncLink only = raw.iterator().next();
+            return ImmutableList.of(only.withConfigDef());
+        }
+
+        final ImmutableList.Builder<FuncLink> b = ImmutableList.builderWithExpectedSize(raw.size());
+        for (FuncLink f : raw) {
+            b.add(f.withConfigDef());
+        }
+        return b.build();
     }
 
     private static <T extends NameLink> ImmutableCollection<T> removeDuplicates(List<T> nameLinks) {
-        List<T> result = Lists.newArrayList();
-        nextLink:
-        for (T nl : nameLinks) {
-            for (T other : result) {
-                if (other.getDef() == nl.getDef()) {
-                    continue nextLink;
-                }
-            }
-            result.add(nl);
+        if (nameLinks.size() <= 1) {
+            return ImmutableList.copyOf(nameLinks);
         }
+
+        Set<NameDef> seen = Collections.newSetFromMap(new IdentityHashMap<>(nameLinks.size()));
+        List<T> result = new ArrayList<>(nameLinks.size());
+
+        for (T nl : nameLinks) {
+            if (seen.add(nl.getDef())) {
+                result.add(nl);
+            }
+        }
+
         return ImmutableList.copyOf(result);
     }
 
@@ -76,20 +110,37 @@ public class NameResolution {
         WScope currentScope = scope;
         if (currentScope instanceof ModuleInstanciation) {
             ModuleInstanciation moduleInstanciation = (ModuleInstanciation) currentScope;
-            // for module instanciations the next scope is the package in which
-            // the module was defined
             return nextScope(moduleInstanciation.attrModuleOrigin());
         }
         return parent.attrNearestScope();
     }
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
-        List<FuncLink> result = Lists.newArrayList();
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            @SuppressWarnings("unchecked")
+            ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
+        List<FuncLink> result = new ArrayList<>(4);
         addMemberMethods(node, receiverType, name, result);
 
         WScope scope = node.attrNearestScope();
+
+        List<WScope> scopes = new ArrayList<>(8);
         while (scope != null) {
-            for (DefLink n : scope.attrNameLinks().get(name)) {
+            scopes.add(scope);
+            scope = nextScope(scope);
+        }
+
+        for (WScope s : scopes) {
+            Collection<DefLink> links = s.attrNameLinks().get(name);
+            if (links.isEmpty()) continue;
+
+            for (DefLink n : links) {
                 if (!(n instanceof FuncLink)) {
                     continue;
                 }
@@ -99,71 +150,100 @@ public class NameResolution {
                     result.add(f);
                 }
             }
-            scope = nextScope(scope);
         }
-        return removeDuplicates(result);
+
+        ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
+
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.lookupCache.put(key, immutableResult);
+        }
+
+        return immutableResult;
     }
 
-    public static void addMemberMethods(Element node,
-                                        WurstType receiverType, String name, List<FuncLink> result) {
+    public static void addMemberMethods(Element node, WurstType receiverType, String name, List<FuncLink> result) {
         receiverType.addMemberMethods(node, name, result);
     }
 
     public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+            NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         NameLink privateCandidate = null;
-        List<NameLink> candidates = Lists.newArrayList();
+        List<NameLink> candidates = new ArrayList<>(1);
 
-        for (WScope scope = node.attrNearestScope(); scope != null; scope = nextScope(scope)) {
+        List<WScope> scopes = new ArrayList<>(8);
+        WScope scope = node.attrNearestScope();
+        while (scope != null) {
+            scopes.add(scope);
+            scope = nextScope(scope);
+        }
 
-            if (scope instanceof LoopStatementWithVarDef) {
-                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) scope;
-                // only consider this scope if node is in the body:
+        for (WScope s : scopes) {
+            if (s instanceof LoopStatementWithVarDef) {
+                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) s;
                 if (!Utils.elementContained(Optional.of(node), loop.getBody())) {
                     continue;
                 }
             }
 
-            if (scope instanceof StructureDef) {
-                StructureDef nearestStructureDef = (StructureDef) scope;
-                // inside a class one can write foo instead of this.foo()
-                // so the receiver type is implicitly given by the enclosing class
+            if (s instanceof StructureDef) {
+                StructureDef nearestStructureDef = (StructureDef) s;
                 WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
                 for (DefLink link : receiverType.nameLinks(name)) {
                     if (!(link instanceof FuncLink)) {
+                        if (!showErrors) {
+                            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+                            GlobalCaches.lookupCache.put(key, link);
+                        }
                         return link;
                     }
                 }
             }
-            for (DefLink n : scope.attrNameLinks().get(name)) {
+
+            Collection<DefLink> links = s.attrNameLinks().get(name);
+            if (links.isEmpty()) continue;
+
+            for (DefLink n : links) {
                 WurstType n_receiverType = n.getReceiverType();
                 if (n instanceof VarLink && n_receiverType == null) {
-
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
-                            && n.getVisibility() != Visibility.PROTECTED_OTHER) {
+                        && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
                     } else if (privateCandidate == null) {
                         privateCandidate = n;
                     }
-
                 } else if (n instanceof TypeDefLink) {
                     candidates.add(n);
                 }
-
             }
-            if (candidates.size() > 0) {
+
+            if (!candidates.isEmpty()) {
                 if (showErrors && candidates.size() > 1) {
                     node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n"
-                            + Utils.printAlternatives(candidates));
+                        + Utils.printAlternatives(candidates));
                 }
-                return candidates.get(0);
+                NameLink result = candidates.get(0);
+                if (!showErrors) {
+                    GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.VAR);
+                    GlobalCaches.lookupCache.put(key, result);
+                }
+                return result;
             }
         }
+
         if (showErrors) {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
                 node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
-                        + " is not visible inside this package. If you want to access it, declare it public.");
+                    + " is not visible inside this package. If you want to access it, declare it public.");
                 return privateCandidate;
             }
         }
@@ -171,18 +251,39 @@ public class NameResolution {
     }
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+            NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
+        // Collect scopes once
+        List<WScope> scopes = new ArrayList<>(8);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (DefLink n : scope.attrNameLinks().get(name)) {
+            scopes.add(scope);
+            scope = nextScope(scope);
+        }
+
+        for (WScope s : scopes) {
+            Collection<DefLink> links = s.attrNameLinks().get(name);
+            if (links.isEmpty()) continue;
+
+            for (DefLink n : links) {
                 if (!(n instanceof VarLink)) {
                     continue;
                 }
                 DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
                 if (n2 != null) {
+                    if (!showErrors) {
+                        GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+                        GlobalCaches.lookupCache.put(key, n2);
+                    }
                     return n2;
                 }
             }
-            scope = nextScope(scope);
         }
 
         if (receiverType instanceof WurstTypeClassOrInterface) {
@@ -193,18 +294,6 @@ public class NameResolution {
                         return n;
                     }
                 }
-            }
-        } else if (receiverType instanceof WurstTypeArray && name.equals("length")) {
-            // special lookup for length
-            WurstTypeArray wta = (WurstTypeArray) receiverType;
-            if (wta.getDimensions() > 0) {
-                int size = wta.getSize(0);
-                return new OtherLink(Visibility.PUBLIC, name, WurstTypeInt.instance()) {
-                    @Override
-                    public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-                        return JassIm.ImIntVal(size);
-                    }
-                };
             }
         }
 
@@ -231,37 +320,60 @@ public class NameResolution {
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
+        if (!showErrors) {
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.TYPE);
+            TypeDef cached = (TypeDef) GlobalCaches.lookupCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
 
         NameLink privateCandidate = null;
-        List<NameLink> candidates = Lists.newArrayList();
+        List<NameLink> candidates = new ArrayList<>(1);
 
+        // Collect scopes once
+        List<WScope> scopes = new ArrayList<>(8);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrTypeNameLinks().get(name)) {
+            scopes.add(scope);
+            scope = nextScope(scope);
+        }
+
+        for (WScope s : scopes) {
+            ImmutableCollection<TypeLink> links = s.attrTypeNameLinks().get(name);
+            if (links.isEmpty()) continue;
+
+            for (NameLink n : links) {
                 if (n.getDef() instanceof TypeDef) {
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
-                            && n.getVisibility() != Visibility.PROTECTED_OTHER) {
+                        && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
                     } else if (privateCandidate == null) {
                         privateCandidate = n;
                     }
                 }
             }
-            if (candidates.size() > 0) {
+
+            if (!candidates.isEmpty()) {
                 if (showErrors && candidates.size() > 1) {
                     node.addError("Reference to type " + name + " is ambiguous. Alternatives are:\n"
-                            + Utils.printAlternatives(candidates));
+                        + Utils.printAlternatives(candidates));
                 }
-                return (TypeDef) candidates.get(0).getDef();
+                TypeDef result = (TypeDef) candidates.get(0).getDef();
+                if (!showErrors) {
+                    GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.TYPE);
+                    GlobalCaches.lookupCache.put(key, result);
+                }
+                return result;
             }
-            scope = nextScope(scope);
         }
+
         if (showErrors) {
             if (privateCandidate == null) {
                 node.addError("Could not find type " + name + ".");
             } else {
                 node.addError(Utils.printElementWithSource(Optional.of(privateCandidate.getDef()))
-                        + " is not visible inside this package. If you want to access it, declare it public.");
+                    + " is not visible inside this package. If you want to access it, declare it public.");
                 return (TypeDef) privateCandidate.getDef();
             }
         }
@@ -313,6 +425,5 @@ public class NameResolution {
         }
         return null;
     }
-
 
 }

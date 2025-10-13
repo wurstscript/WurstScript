@@ -22,6 +22,11 @@ public class WLoggerDefault implements WLoggerI {
         logger.trace(msg);
     }
 
+    @Override
+    public void debug(String s) {
+        logger.debug(s);
+    }
+
     /**
      * (non-Javadoc)
      *
@@ -30,6 +35,9 @@ public class WLoggerDefault implements WLoggerI {
     @Override
     public void info(String msg) {
         logger.info(msg);
+        if (System.currentTimeMillis() - startTime > 250) { // Wait 250 mseconds
+            System.out.println("Info: " + msg);
+        }
     }
 
     /**
@@ -50,7 +58,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void warning(String msg, Throwable e) {
-        System.out.println("Warning: " + msg);
+        System.out.println("Warning: " + msg + " e:" + e.getMessage());
         logger.warn(msg, e);
     }
 
@@ -76,6 +84,8 @@ public class WLoggerDefault implements WLoggerI {
         logger.error("Error", t);
     }
 
+    private final long startTime = System.currentTimeMillis();
+
     /**
      * (non-Javadoc)
      *
@@ -84,7 +94,9 @@ public class WLoggerDefault implements WLoggerI {
     @Override
     public void info(Throwable e) {
         logger.info("Error", e);
-
+        if (System.currentTimeMillis() - startTime > 5000) { // Wait 5 seconds
+            System.out.println("Info: " + e.getMessage());
+        }
     }
 
     /**

@@ -1,6 +1,6 @@
 package Enum
 
 enum State
-	FLYING
-	GROUND
-	WATER
+    FLYING
+    GROUND
+    WATER

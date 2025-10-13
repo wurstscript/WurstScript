@@ -11,6 +11,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
@@ -182,6 +183,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 if (!runArgs.isDisablePjass()) {
                     gui.sendProgress("Running PJass");
+                    timeTaker.beginPhase("Pjass execution");
                     Pjass.Result pJassResult = Pjass.runPjass(outFile,
                         new File(buildDir, "common.j").getAbsolutePath(),
                         new File(buildDir, "blizzard.j").getAbsolutePath());
@@ -192,6 +194,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                         }
                         throw new RuntimeException("Could not compile project (PJass error)");
                     }
+                    timeTaker.endPhase();
                 }
 
                 if (runArgs.isHotStartmap()) {
@@ -339,22 +342,73 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
+    /**
+     * Checks if we can use the cached map
+     */
+    protected boolean canUseCachedMap(File cachedMap) {
+        if (!cachedMap.exists()) {
+            WLogger.info("No cached map found");
+            return false;
+        }
 
-    protected CompilationResult compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap, WurstProjectConfigData projectConfigData, File buildDir, boolean isProd) throws Exception {
-        if (testMap.isPresent() && testMap.get().exists()) {
-            boolean deleteOk = testMap.get().delete();
-            if (!deleteOk) {
-                throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + testMap);
-            }
+        // Check if source map is newer
+        if (map.isPresent() && map.get().lastModified() > cachedMap.lastModified()) {
+            WLogger.info("Source map is newer than cache");
+            return false;
         }
-        if (map.isPresent() && testMap.isPresent()) {
-            Files.copy(map.get(), testMap.get());
+
+        WLogger.info("Using cached map from previous build");
+        return true;
+    }
+
+
+    /**
+     * Gets or creates the cached map file location
+     */
+    protected File getCachedMapFile() {
+        File buildDir = getBuildDir();
+        File cacheDir = new File(buildDir, "cache");
+        if (!cacheDir.exists()) {
+            UtilsIO.mkdirs(cacheDir);
         }
+        return new File(cacheDir, "cached_map.w3x");
+    }
+
+    /**
+     * Ensures cached map exists and is up to date
+     */
+    protected File ensureCachedMap(WurstGui gui) throws IOException {
+        File cachedMap = getCachedMapFile();
+
+        if (!map.isPresent()) {
+            throw new RequestFailedException(MessageType.Error, "No source map provided");
+        }
+
+        File sourceMap = map.get();
+
+        // If cached map doesn't exist or source is newer, update cache
+        if (!cachedMap.exists() || sourceMap.lastModified() > cachedMap.lastModified()) {
+            WLogger.info("Updating cached map from source");
+            gui.sendProgress("Updating cached map");
+            Files.copy(sourceMap, cachedMap);
+        }
+
+        return cachedMap;
+    }
+
+    protected CompilationResult compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap,
+                                              WurstProjectConfigData projectConfigData, File buildDir,
+                                              boolean isProd) throws Exception {
+
+        // Ensure we're working with the cached map
+        File cachedMap = ensureCachedMap(gui);
+
+        // Update testMap to point to cached map
+        testMap = Optional.of(cachedMap);
 
         CompilationResult result;
 
         if (runArgs.isHotReload()) {
-            // For hot reload use cached war3map if it exists
             result = new CompilationResult();
             result.script = new File(buildDir, "war3mapj_with_config.j.txt");
             if (!result.script.exists()) {
@@ -370,8 +424,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile);
         }
 
-
-        // first compile the script:
+        // Compile the script
         result.script = compileScript(gui, modelManager, compileArgs, testMap, projectConfigData, isProd, result.script);
 
         Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
@@ -387,18 +440,108 @@ public abstract class MapRequest extends UserRequest<Object> {
         return result;
     }
 
+    protected void injectMapData(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
+        gui.sendProgress("Injecting map data");
+        timeTaker.beginPhase("Injecting map data");
+
+        // Work directly with the cached map
+        File cachedMap = getCachedMapFile();
+
+        if (!cachedMap.exists()) {
+            throw new RequestFailedException(MessageType.Error, "Cached map does not exist");
+        }
+
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(cachedMap))) {
+            String mapScriptName;
+            if (runArgs.isLua()) {
+                mapScriptName = "war3map.lua";
+                injectExternalLuaFiles(result.script);
+            } else {
+                mapScriptName = "war3map.j";
+            }
+
+            // Delete old scripts
+            if (mpqEditor.hasFile("war3map.j")) {
+                mpqEditor.deleteFile("war3map.j");
+            }
+            if (mpqEditor.hasFile("war3map.lua")) {
+                mpqEditor.deleteFile("war3map.lua");
+            }
+
+            // Insert new script
+            mpqEditor.insertFile(mapScriptName, result.script);
+
+            // Insert w3i if it changed
+            if (result.w3i != null) {
+                String w3iHash = ImportFile.calculateFileHash(result.w3i);
+
+                Optional<ImportFile.CacheManifest> manifestOpt = ImportFile.getCachedManifest(mpqEditor);
+                boolean w3iChanged = true;
+
+                if (manifestOpt.isPresent() && manifestOpt.get().w3iConfigMatches(w3iHash)) {
+                    WLogger.info("W3I file unchanged, skipping injection");
+                    w3iChanged = false;
+                }
+
+                if (w3iChanged) {
+                    WLogger.info("W3I file changed, injecting");
+                    if (mpqEditor.hasFile(W3I.GAME_PATH.getName())) {
+                        mpqEditor.deleteFile(W3I.GAME_PATH.getName());
+                    }
+                    mpqEditor.insertFile(W3I.GAME_PATH.getName(), result.w3i);
+
+                    // Update manifest
+                    ImportFile.CacheManifest manifest = manifestOpt.orElse(new ImportFile.CacheManifest());
+                    manifest.setW3iConfig(w3iHash);
+                    ImportFile.saveManifest(mpqEditor, manifest);
+                }
+            }
+
+            // CRITICAL: Import files into THIS mpq editor instance
+            gui.sendProgress("Importing resource files");
+            timeTaker.beginPhase("Importing files");
+            try {
+                ImportFile.ImportResult importResult = ImportFile.importFilesFromImports(
+                    workspaceRoot.getFile(),
+                    mpqEditor
+                );
+                WLogger.info("Import result: " + importResult.toString());
+            } catch (Exception e) {
+                WLogger.severe("Failed to import files: " + e.getMessage());
+                throw e;
+            }
+            timeTaker.endPhase();
+        }
+
+        timeTaker.endPhase();
+
+        WLogger.info("Cached map size after injection: " + (cachedMap.length() / 1024 / 1024) + " MB");
+    }
+
+    private static boolean startsWith(byte[] data, byte[] prefix) {
+        if (data.length < prefix.length) return false;
+        for (int i = 0; i < prefix.length; i++) {
+            if (data[i] != prefix[i]) return false;
+        }
+        return true;
+    }
 
     private File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
         File scriptFile = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
         if (!mapCopy.isPresent() || runArgs.isNoExtractMapScript()) {
+            System.out.println("No extract map script enabled - not extracting.");
             if (scriptFile.exists()) {
-                modelManager.syncCompilationUnit(WFile.create(scriptFile));
+                System.out.println("war3map.j exists at wurst root.");
+                CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
+                if (compilationUnit == null) {
+                    modelManager.syncCompilationUnit(WFile.create(scriptFile));
+                }
                 return scriptFile;
             } else {
                 throw new CompileError(new WPos("", new LineOffsets(), 0, 0),
-                    "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
+                    "RunArg noExtractMapScript is set but no war3map.j is provided inside the wurst folder");
             }
         }
         if (MapRequest.mapLastModified > lastMapModified || !MapRequest.mapPath.equals(lastMapPath)) {
@@ -421,7 +564,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                     gui.showInfoMessage(err.getMessage());
                     WLogger.severe(err);
                 }
-            } else if (new String(extractedScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
+            } else if (startsWith(extractedScript, JassPrinter.WURST_COMMENT_RAW.getBytes(StandardCharsets.UTF_8))) {
                 WLogger.info("map has already been compiled with wurst");
                 // file generated by wurst, do not use
                 if (scriptFile.exists()) {
@@ -477,26 +620,6 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    protected void injectMapData(WurstGui gui, Optional<File> testMap, CompilationResult result) throws Exception {
-        gui.sendProgress("Injecting map data");
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
-            String mapScriptName;
-            if (runArgs.isLua()) {
-                mapScriptName = "war3map.lua";
-                injectExternalLuaFiles(result.script);
-            } else {
-                mapScriptName = "war3map.j";
-            }
-            // delete both original mapscripts, just to be sure:
-            mpqEditor.deleteFile("war3map.j");
-            mpqEditor.deleteFile("war3map.lua");
-            if (result.w3i != null) {
-                mpqEditor.deleteFile(W3I.GAME_PATH.getName());
-                mpqEditor.insertFile(W3I.GAME_PATH.getName(), result.w3i);
-            }
-            mpqEditor.insertFile(mapScriptName, result.script);
-        }
-    }
 
     private void injectExternalLuaFiles(File script) {
         File luaDir;

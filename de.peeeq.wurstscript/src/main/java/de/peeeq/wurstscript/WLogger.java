@@ -32,6 +32,10 @@ public abstract class WLogger {
         instance.info(msg);
     }
 
+    public static void debug(String s) {
+        instance.debug(s);
+    }
+
     public static void setLevel(Level level) {
         instance.setLevel(level);
     }
@@ -104,4 +108,6 @@ public abstract class WLogger {
     public static void setLogger(String loggerName) {
         WLogger.instance = new WLoggerDefault(loggerName);
     }
+
+
 }

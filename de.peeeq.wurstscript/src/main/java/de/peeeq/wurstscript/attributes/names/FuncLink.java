@@ -10,8 +10,7 @@ import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -35,12 +34,16 @@ public class FuncLink extends DefLink {
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
         Visibility visibiliy = calcVisibility(definedIn, func);
         List<TypeParamDef> typeParams = typeParams(func).collect(Collectors.toList());
-        List<String> lParameterNames = func.getParameters().stream()
-                .map(WParameter::getName)
-                .collect(Collectors.toList());
-        List<WurstType> lParameterTypes = func.getParameters().stream()
-                .map(WParameter::attrTyp)
-                .collect(Collectors.toList());
+        List<String> lParameterNames = new ArrayList<>();
+        for (WParameter wParameter : func.getParameters()) {
+            String name = wParameter.getName();
+            lParameterNames.add(name);
+        }
+        List<WurstType> lParameterTypes = new ArrayList<>();
+        for (WParameter wParameter : func.getParameters()) {
+            WurstType attrTyp = wParameter.attrTyp();
+            lParameterTypes.add(attrTyp);
+        }
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
         VariableBinding mapping = VariableBinding.emptyMapping();
@@ -107,10 +110,14 @@ public class FuncLink extends DefLink {
         result.append(getName());
         if (!typeParams.isEmpty()) {
             result.append("<");
-            result.append(typeParams.stream()
-                    .map(TypeParamDef::getName)
-                    .collect(Collectors.joining(", ")));
-            result.append(">");
+            StringJoiner joiner = new StringJoiner(", ");
+            for (TypeParamDef typeParam : typeParams) {
+                String name = typeParam.getName();
+                joiner.add(name);
+            }
+            for (String s : Arrays.asList(joiner.toString(), ">")) {
+                result.append(s);
+            }
         }
         result.append("(");
         result.append(getParameterDescription());
@@ -154,9 +161,12 @@ public class FuncLink extends DefLink {
         changed = changed || newReceiverType != getReceiverType();
         if (changed) {
             // remove type parameters that are now bound:
-            List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(tp -> !binding.contains(tp))
-                    .collect(Collectors.toList());
+            List<TypeParamDef> newTypeParams = new ArrayList<>();
+            for (TypeParamDef tp : getTypeParams()) {
+                if (!binding.contains(tp)) {
+                    newTypeParams.add(tp);
+                }
+            }
             return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType, binding);
         } else {
             return this;

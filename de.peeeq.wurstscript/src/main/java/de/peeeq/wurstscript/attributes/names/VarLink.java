@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -148,9 +149,12 @@ public class VarLink extends DefLink {
 
 
         if (changed) {
-            List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(binding::contains)
-                    .collect(Collectors.toList());
+            List<TypeParamDef> newTypeParams = new ArrayList<>();
+            for (TypeParamDef typeParamDef : getTypeParams()) {
+                if (binding.contains(typeParamDef)) {
+                    newTypeParams.add(typeParamDef);
+                }
+            }
             return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, newType);
         } else {
             return this;

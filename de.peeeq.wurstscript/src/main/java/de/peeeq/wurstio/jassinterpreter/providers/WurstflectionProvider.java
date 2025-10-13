@@ -4,7 +4,11 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
+
+import java.util.Map;
+import java.util.Optional;
 
 import static de.peeeq.wurstscript.translation.imtranslation.EliminateClasses.calculateClassName;
 import static de.peeeq.wurstscript.translation.imtranslation.EliminateClasses.calculateMaxTypeId;
@@ -19,11 +23,16 @@ public class WurstflectionProvider extends Provider {
     public ILconstString typeIdToTypeName(ILconstInt typeId) {
         ImProg prog = interpreter.getImProg();
         int typeIdInt = typeId.getVal();
-        return prog.attrTypeId().entrySet()
-            .stream()
-            .filter(e -> e.getValue() == typeIdInt)
-            .map(e -> new ILconstString(calculateClassName(e.getKey())))
-            .findFirst()
+        for (Map.Entry<ImClass, Integer> e : prog.attrTypeId().entrySet()) {
+            if (e.getValue() == typeIdInt) {
+                ILconstString iLconstString = new ILconstString(calculateClassName(e.getKey()));
+                return Optional.of(iLconstString)
+                    .orElseGet(() -> {
+                        throw new InterpreterException("Could not determine type name for id " + typeId);
+                    });
+            }
+        }
+        return Optional.<ILconstString>empty()
             .orElseGet(() -> {
                 throw new InterpreterException("Could not determine type name for id " + typeId);
             });
