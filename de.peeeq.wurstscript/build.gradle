@@ -34,8 +34,12 @@ application {
 version = "1.8.1.0"
 
 java {
-    toolchain { languageVersion = JavaLanguageVersion.of(25) }
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+        vendor = JvmVendorSpec.ADOPTIUM
+    }
 }
+
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
 
 jacoco {

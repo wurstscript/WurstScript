@@ -19,11 +19,20 @@ publishing {
 
 // ----------------------- Tool discovery (jdeps/jlink via toolchain) -----------------
 def toolExecutable = { String toolName ->
-    def svc = project.extensions.getByType(org.gradle.jvm.toolchain.JavaToolchainService)
-    def launcher = svc.launcherFor(project.java.toolchain)
-    def javaHome = launcher.get().metadata.installationPath.asFile
+    File javaHome = null
+    def envHome = System.getenv('JAVA_HOME')
+    if (envHome) {
+        javaHome = new File(envHome)
+    }
+    if (!javaHome?.exists()) {
+        def svc = project.extensions.getByType(JavaToolchainService)
+        def launcher = svc.launcherFor(project.java.toolchain)
+        javaHome = launcher.get().metadata.installationPath.asFile
+    }
     def ext = OperatingSystem.current().isWindows() ? ".exe" : ""
-    new File(javaHome, "bin/${toolName}${ext}").absolutePath
+    def path = new File(javaHome, "bin/${toolName}${ext}").absolutePath
+    logger.lifecycle("[tools] Using ${toolName} at ${path}")
+    return path
 }
 
 // ----------------------- Common providers/locations ---------------------------------
