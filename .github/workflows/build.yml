@@ -32,6 +32,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Always install a JDK first (Windows uses this; Linux will be overridden below for jlink)
       - name: Setup Temurin JDK 25
         uses: actions/setup-java@v4
         with:
@@ -39,32 +40,57 @@ jobs:
           java-version: '25'
           cache: 'gradle'
 
-      # Pin Gradle toolchains to the setup-java JDK (avoid /usr/lib/jvm on Ubuntu)
-      - name: Pin Gradle toolchain
+      # On Ubuntu, fetch a *portable* pristine Temurin JDK 25 just for jlink (isolated from system JDKs)
+      - name: (Linux) Install portable Temurin 25 for jlink
+        if: runner.os == 'Linux'
+        shell: bash
         run: |
-          echo "org.gradle.java.installations.paths=${JAVA_HOME}" >> gradle.properties
-          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
+          set -euo pipefail
+          VER="25.0.0+36"
+          BASE="jdk-25.0.0+36"
+          URL="https://github.com/adoptium/temurin25-binaries/releases/download/${BASE}/OpenJDK25U-jdk_x64_linux_hotspot_25.0.0_36.tar.gz"
+          mkdir -p "$RUNNER_TEMP/temurin25"
+          echo "Downloading $URL"
+          curl -L "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
+          tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
+          PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)"
+          echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
 
-      # Cross-shell Java/jlink version print (works on both Bash and PowerShell)
+      # Pin Gradle toolchain discovery to whatever JAVA_HOME is active at execution time
+      - name: Pin Gradle toolchain
+        shell: bash
+        run: |
+          # If we installed a portable JDK (Linux), use that; otherwise use setup-java's JAVA_HOME.
+          ACTIVE_JAVA_HOME="${PORTABLE_JAVA_HOME:-$JAVA_HOME}"
+          echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
+          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
+          echo "JAVA_HOME=${ACTIVE_JAVA_HOME}" >> "$GITHUB_ENV"
+          echo "${ACTIVE_JAVA_HOME}/bin" >> "$GITHUB_PATH"
+
+      # Sanity print (bash works on both runners)
       - name: Show Java & jlink
         shell: bash
         run: |
-          echo "JAVA_HOME=${JAVA_HOME}"
-          "${JAVA_HOME}/bin/java" -version
-          "${JAVA_HOME}/bin/jlink" --version
+          echo "JAVA_HOME=$JAVA_HOME"
+          "$JAVA_HOME/bin/java" -version
+          "$JAVA_HOME/bin/jlink" --version
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 
-      - name: Setup Gradle (build cache)
+      - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run tests
-        run: ./gradlew test --no-daemon --stacktrace
-
-      # Build slim jlink image + package for the *current runner OS*
-      - name: Package slim runtime
+      # ---------- FAIL FAST: build slim runtime + package BEFORE tests ----------
+      - name: Package slim runtime (fail fast)
+        shell: bash
         run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
+
+      # If packaging passed, *then* run tests
+      - name: Run tests
+        shell: bash
+        run: ./gradlew test --no-daemon --stacktrace
 
       - name: Upload packaged artifact (per-OS)
         uses: actions/upload-artifact@v4
