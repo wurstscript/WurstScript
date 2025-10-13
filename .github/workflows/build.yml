@@ -32,43 +32,59 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Always install a JDK first (Windows uses this; Linux will be overridden below for jlink)
-      - name: Setup Temurin JDK 25
+      # Optional: still install a JDK so Gradle wrapper validation etc. have a JVM before we switch
+      - name: Setup Temurin JDK 25 (baseline)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
           cache: 'gradle'
 
-      # On Ubuntu, fetch a *portable* pristine Temurin JDK 25 just for jlink (isolated from system JDKs)
-      - name: (Linux) Install portable Temurin 25 for jlink
+      # ---------- Portable JDK for Linux ----------
+      - name: (Linux) Install portable Temurin 25
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          VER="25.0.0+36"
-          BASE="jdk-25.0.0+36"
-          URL="https://github.com/adoptium/temurin25-binaries/releases/download/${BASE}/OpenJDK25U-jdk_x64_linux_hotspot_25.0.0_36.tar.gz"
+          URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz"
           mkdir -p "$RUNNER_TEMP/temurin25"
           echo "Downloading $URL"
-          curl -L "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
+          curl -fsSL "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
           tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
           PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)"
           echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
           echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
 
-      # Pin Gradle toolchain discovery to whatever JAVA_HOME is active at execution time
-      - name: Pin Gradle toolchain
+      # ---------- Portable JDK for Windows ----------
+      - name: (Windows) Install portable Temurin 25
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_windows_hotspot_25_36.zip'
+          $root = "$env:RUNNER_TEMP\temurin25"
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Write-Host "Downloading $url"
+          Invoke-WebRequest -Uri $url -OutFile "$root\jdk.zip"
+          Expand-Archive -Path "$root\jdk.zip" -DestinationPath $root -Force
+          $dir = Get-ChildItem -Path $root -Directory | Where-Object { $_.Name -like 'jdk-25*' } | Select-Object -First 1
+          if (-not $dir) { throw "Extracted JDK directory not found under $root" }
+          $pjh = $dir.FullName
+          "PORTABLE_JAVA_HOME=$pjh" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "$pjh\bin"               | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      # Pin Gradle toolchain to the active (portable) JAVA_HOME
+      - name: Pin Gradle toolchain to portable JDK
         shell: bash
         run: |
-          # If we installed a portable JDK (Linux), use that; otherwise use setup-java's JAVA_HOME.
           ACTIVE_JAVA_HOME="${PORTABLE_JAVA_HOME:-$JAVA_HOME}"
-          echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
-          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
           echo "JAVA_HOME=${ACTIVE_JAVA_HOME}" >> "$GITHUB_ENV"
           echo "${ACTIVE_JAVA_HOME}/bin" >> "$GITHUB_PATH"
+          # write gradle.properties in repo root (defaults.working-directory is already the module)
+          echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
+          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
 
-      # Sanity print (bash works on both runners)
+      # Cross-shell sanity print (bash works on both runners)
       - name: Show Java & jlink
         shell: bash
         run: |
@@ -87,7 +103,7 @@ jobs:
         shell: bash
         run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
 
-      # If packaging passed, *then* run tests
+      # Only run tests if packaging passed
       - name: Run tests
         shell: bash
         run: ./gradlew test --no-daemon --stacktrace
