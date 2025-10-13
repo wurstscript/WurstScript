@@ -128,12 +128,12 @@ tasks.register("jlinkRuntime25") {
         def result = execOps.exec {
             commandLine jlink,
                     "--verbose",
-                    "--module-path", jmodsDir,      // <— force clean jmods
+                    "--module-path", jmodsDir,
                     "--add-modules", mods,
                     "--no-header-files",
                     "--no-man-pages",
                     "--strip-debug",
-                    "--compress", "zip-6",          // replaces deprecated "--compress=2"
+                    "--compress=zip-6",
                     "--output", outDir.absolutePath
             errorOutput = errBuf
             standardOutput = outBuf
