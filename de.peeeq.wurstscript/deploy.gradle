@@ -17,23 +17,19 @@ publishing {
     }
 }
 
-// ----------------------- Tool discovery (jdeps/jlink via toolchain) -----------------
-def toolExecutable = { String toolName ->
-    File javaHome = null
-    def envHome = System.getenv('JAVA_HOME')
-    if (envHome) {
-        javaHome = new File(envHome)
-    }
-    if (!javaHome?.exists()) {
-        def svc = project.extensions.getByType(JavaToolchainService)
-        def launcher = svc.launcherFor(project.java.toolchain)
-        javaHome = launcher.get().metadata.installationPath.asFile
-    }
-    def ext = OperatingSystem.current().isWindows() ? ".exe" : ""
-    def path = new File(javaHome, "bin/${toolName}${ext}").absolutePath
-    logger.lifecycle("[tools] Using ${toolName} at ${path}")
-    return path
+
+def toolJavaHome = {
+    def svc = project.extensions.getByType(JavaToolchainService)
+    def launcher = svc.launcherFor(project.java.toolchain)
+    launcher.get().metadata.installationPath.asFile
 }
+
+def toolExecutable = { String toolName ->
+    def javaHome = System.getenv('JAVA_HOME') ? new File(System.getenv('JAVA_HOME')) : toolJavaHome()
+    def ext = OperatingSystem.current().isWindows() ? ".exe" : ""
+    new File(javaHome, "bin/${toolName}${ext}").absolutePath
+}
+
 
 // ----------------------- Common providers/locations ---------------------------------
 def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
@@ -91,6 +87,7 @@ tasks.register("jdepsModules") {
 }
 
 // 2) Build slim runtime with jlink (overwrite if exists)
+// 2) Build slim runtime with jlink (overwrite if exists)
 tasks.register("jlinkRuntime25") {
     description = "Builds a slim Java 25 runtime image containing only the needed modules"
     group = "distribution"
@@ -101,28 +98,42 @@ tasks.register("jlinkRuntime25") {
 
     doLast {
         ExecOperations execOps = project.services.get(ExecOperations)
-        def jlink  = toolExecutable("jlink")
-        def mods   = modulesTxt.get().asFile.text.trim()
-        def outDir = jreImageDir.get().asFile
+
+        // Resolve Java home from toolchain (fallback to JAVA_HOME if set)
+        def svc = project.extensions.getByType(JavaToolchainService)
+        def launcher = svc.launcherFor(project.java.toolchain)
+        File javaHome = System.getenv('JAVA_HOME') ? new File(System.getenv('JAVA_HOME')) : launcher.get().metadata.installationPath.asFile
+
+        def jlink    = new File(javaHome, "bin/${OperatingSystem.current().isWindows() ? 'jlink.exe' : 'jlink'}").absolutePath
+        def jmodsDir = new File(javaHome, "jmods").absolutePath
+        def mods     = modulesTxt.get().asFile.text.trim()
+        def outDir   = jreImageDir.get().asFile
 
         if (!mods) throw new GradleException("No modules detected for jlink.")
+
         // jlink requires the output dir to NOT exist
-        if (outDir.exists()) project.delete(outDir)
+        if (outDir.exists()) {
+            project.delete(outDir)
+        }
         outDir.parentFile.mkdirs()
 
         logger.lifecycle("[jlink] Using: ${jlink}")
+        logger.lifecycle("[jlink] JAVA_HOME: ${javaHome}")
+        logger.lifecycle("[jlink] jmods: ${jmodsDir}")
         logger.lifecycle("[jlink] Modules: ${mods}")
 
         def errBuf = new ByteArrayOutputStream()
         def outBuf = new ByteArrayOutputStream()
+
         def result = execOps.exec {
             commandLine jlink,
                     "--verbose",
+                    "--module-path", jmodsDir,      // <— force clean jmods
                     "--add-modules", mods,
                     "--no-header-files",
                     "--no-man-pages",
                     "--strip-debug",
-                    "--compress", "zip-6",
+                    "--compress", "zip-6",          // replaces deprecated "--compress=2"
                     "--output", outDir.absolutePath
             errorOutput = errBuf
             standardOutput = outBuf
@@ -138,6 +149,7 @@ tasks.register("jlinkRuntime25") {
         logger.lifecycle("[jlink] Runtime created at: ${outDir}")
     }
 }
+
 
 
 // 3) Assemble folder layout: jre + compiler.jar (no manifest)
