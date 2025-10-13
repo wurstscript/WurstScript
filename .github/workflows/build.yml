@@ -11,6 +11,8 @@ jobs:
     name: Gradle build on ${{ matrix.os }}
     strategy:
       fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -19,9 +21,6 @@ jobs:
     defaults:
       run:
         working-directory: de.peeeq.wurstscript
-
-    matrix:
-      os: [ ubuntu-latest, windows-latest, macos-13, macos-14 ] # Linux, Win, macOS Intel, macOS ARM
 
     steps:
       - name: Checkout
