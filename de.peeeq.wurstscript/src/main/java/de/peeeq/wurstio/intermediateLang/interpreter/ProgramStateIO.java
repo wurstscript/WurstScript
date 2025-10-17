@@ -430,53 +430,74 @@ public class ProgramStateIO extends ProgramState {
         gui.sendProgress("Writing back generated objects");
         long startTime = System.currentTimeMillis();
 
-        // Load the existing cache manifest
         ObjectCacheManifest oldManifest = loadObjectCacheManifest();
         ObjectCacheManifest newManifest = new ObjectCacheManifest();
 
-        int filesProcessed = 0;
-        int filesUpdated = 0;
-        int filesSkipped = 0;
+        int filesProcessed = 0, filesUpdated = 0, filesSkipped = 0;
+        boolean anyFileWritten = false;
 
         for (ObjectFileType fileType : ObjectFileType.values()) {
             filesProcessed++;
             ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
 
-            if (!dataStore.getObjsList().isEmpty()) {
-                // Calculate hash of current object file
-                String currentHash = calculateObjectFileHash(dataStore);
-                dataStoreHashes.put(fileType, currentHash);
+            if (dataStore.getObjsList().isEmpty()) {
+                WLogger.info("Object file " + fileType.getExt() + " is empty, skipping");
+                continue;
+            }
 
-                // Check if it matches the cached version
-                if (oldManifest.hasEntry(fileType.getExt()) &&
-                    oldManifest.hashMatches(fileType.getExt(), currentHash)) {
+            // Compute hash of what we intend to write
+            String currentHash = calculateObjectFileHash(dataStore);
+            dataStoreHashes.put(fileType, currentHash);
 
-                    System.out.println("Object file " + fileType.getExt() + " unchanged (hash match), skipping writeback");
-                    filesSkipped++;
+            boolean mpqHasSame = false;
+            if (mpqEditor != null && mpqEditor.hasFile("war3map." + fileType.getExt())) {
+                try {
+                    byte[] existing = mpqEditor.extractFile("war3map." + fileType.getExt());
+                    String existingHash = ImportFile.calculateHash(existing);
+                    mpqHasSame = existingHash.equals(currentHash);
+                } catch (Exception e) {
+                    WLogger.info("Could not validate MPQ content for " + fileType.getExt() + ": " + e.getMessage());
+                }
+            }
 
-                    // Still add to new manifest
-                    newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());
-                } else {
-                    System.out.println("Object file " + fileType.getExt() + " changed or new, writing back");
-                    filesUpdated++;
-                    writebackObjectFile(dataStore, fileType, inject);
+            boolean manifestSaysSame = oldManifest.hasEntry(fileType.getExt())
+                && oldManifest.hashMatches(fileType.getExt(), currentHash);
+
+            // Only skip if BOTH the manifest and the actual MPQ content match
+            if (manifestSaysSame && mpqHasSame) {
+                WLogger.info("Object file " + fileType.getExt() + " unchanged (hash match), skipping writeback");
+                filesSkipped++;
+                if (inject) {
                     newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());
                 }
-            } else {
-                WLogger.info("Object file " + fileType.getExt() + " is empty, skipping");
+                continue;
+            }
+
+            WLogger.info("Object file " + fileType.getExt() + " changed or MPQ out of sync, writing back");
+            filesUpdated++;
+            writebackObjectFile(dataStore, fileType, inject);
+            anyFileWritten = anyFileWritten || inject;
+            if (inject) {
+                newManifest.putEntry(fileType.getExt(), currentHash, dataStore.getObjsList().size());
             }
         }
 
-        // Always write w3o file (it's relatively cheap)
-        writeW3oFile();
+        // Always write the .w3o (debug aid) – but do NOT touch the manifest for it
+//        writeW3oFile();
 
-        // Save the new manifest
-        saveObjectCacheManifest(newManifest);
+        // Only persist a new manifest if we actually injected files
+        if (inject && anyFileWritten) {
+            saveObjectCacheManifest(newManifest);
+        } else {
+            WLogger.info("Skipping manifest update (inject=" + inject + ", anyFileWritten=" + anyFileWritten + ")");
+        }
 
         long endTime = System.currentTimeMillis();
-        WLogger.info(String.format("Object writeback complete in %dms: %d files processed, %d updated, %d skipped (cached)",
+        WLogger.info(String.format(
+            "Object writeback complete in %dms: %d files processed, %d updated, %d skipped",
             endTime - startTime, filesProcessed, filesUpdated, filesSkipped));
     }
+
 
     private void writeW3oFile() {
         Optional<File> objFile = getObjectEditingOutputFolder().map(fo -> new File(fo, "wurstCreatedObjects.w3o"));
@@ -516,6 +537,7 @@ public class ProgramStateIO extends ProgramState {
                 String filenameInMpq = "war3map." + fileType.getExt();
                 mpqEditor.deleteFile(filenameInMpq);
                 mpqEditor.insertFile(filenameInMpq, w3_);
+                WLogger.info("Injected modified object file: " + filenameInMpq);
             }
         } catch (Exception e) {
             WLogger.severe(e);
