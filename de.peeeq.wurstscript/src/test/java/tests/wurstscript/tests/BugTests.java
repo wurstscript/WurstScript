@@ -1442,7 +1442,6 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
-
     @Test
     public void duplicateNameInClassHierachy() {
         testAssertErrorsLines(false, "Variable x in class B hides variable x from superclass A",
@@ -1459,6 +1458,20 @@ public class BugTests extends WurstScriptTest {
             "endpackage");
     }
 
+    @Test
+    public void callingDestroyThisInConstructor() {
+        testAssertErrorsLines(false, "Cannot destroy 'this' in constructor",
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    construct()",
+            "       destroy this",
+            "init",
+            "	let b = new A()",
+            "	if b != null",
+            "		testSuccess()",
+            "endpackage");
+    }
     @Test
     public void derivedGenericClassConstructor() {
         testAssertOkLinesWithStdLib(true,
