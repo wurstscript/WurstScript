@@ -102,40 +102,63 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # needed to publish a Release with GITHUB_TOKEN
+      contents: write
     steps:
       - name: Download all packaged artifacts
-      # grabs every artifact your matrix uploaded (keeps your names)
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Gather files
+      # Copy only archives (skip .sha256 for nightly)
+      - name: Gather files (zip + tar.gz, no checksums)
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p upload
-          # pick up what your existing packaging already produced
-          find artifacts -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.sha256' \) -print0 | xargs -0 -I{} cp "{}" upload/
+          find artifacts -type f \( -name '*.zip' -o -name '*.tar.gz' \) -print0 | xargs -0 -I{} cp "{}" upload/
 
-      - name: Normalize nightly filenames
+      # Ensure both Windows (.zip) and Linux (.tar.gz) exist
+      - name: Verify we have both archive types
         shell: bash
         run: |
-          # Copy artifacts into ./upload first (keep your existing step if you already do this)
-          # Then rename: replace the first version-looking token with 'nightly'
+          shopt -s nullglob
+          zips=(upload/*.zip)
+          tars=(upload/*.tar.gz)
+          echo "Found ${#zips[@]} zip(s) and ${#tars[@]} tar.gz file(s)."
+          if (( ${#zips[@]} == 0 || ${#tars[@]} == 0 )); then
+            echo "ERROR: Expected both .zip (Windows) and .tar.gz (Linux) artifacts."
+            ls -alR upload || true
+            exit 1
+          fi
+
+      # Rename artifacts: replace ONLY the version token between hyphens with 'nightly', keep platform + extension
+      - name: Normalize nightly filenames (preserve platform + extension)
+        shell: bash
+        run: |
+          set -euo pipefail
           shopt -s nullglob
           for f in upload/*; do
             base="$(basename "$f")"
-            new="$(echo "$base" | sed -E 's/([0-9]+\.[0-9]+(\.[0-9]+)*([.-][0-9A-Za-z]+)*)/nightly/; s/--/-/g')"
-            # only rename if it actually changed and if it won't overwrite a different file type
+            ext=""; stem="$base"
+            if [[ "$base" == *.* ]]; then
+              ext=".${base##*.}"        # extension incl. dot
+              stem="${base%.*}"         # name without extension
+            fi
+            # Replace the first hyphen-delimited numeric version token with 'nightly'
+            # Example: wurst-compiler-1.8.1.0-linux-x64 -> wurst-compiler-nightly-linux-x64
+            new_stem="$(echo "$stem" | sed -E 's/-[0-9]+(\.[0-9]+)*-/-nightly-/' )"
+            new="${new_stem}${ext}"
             if [[ "$base" != "$new" ]]; then
               mv -f "upload/$base" "upload/$new"
             fi
           done
+          echo "After rename:"
+          ls -alh upload
 
-      - name: Publish Nightly Release
+      - name: Publish Nightly Release (rolling 'nightly' tag)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-master
+          tag_name: nightly
           name: Nightly Build (master)
           prerelease: true
           draft: false
@@ -143,10 +166,9 @@ jobs:
           generate_release_notes: false
           body: |
             Nightly build for the latest commit on `master`.
+            This release is automatically updated in-place (same tag).
           files: |
-            upload/*.zip
-            upload/*.tar.gz
-            upload/*.sha256
-          fail_on_unmatched_files: true
+            upload/**
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
