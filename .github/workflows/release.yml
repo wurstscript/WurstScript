@@ -1,51 +1,65 @@
-name: Deploy Pipeline
+name: Release slim runtimes (jlink)
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - 'v*'   # e.g. v1.8.1.0
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Build WurstScript and Upload to GitHub Release
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.plat }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            plat: win-x64
+          - os: ubuntu-latest
+            plat: linux-x64
+          - os: macos-13
+            plat: macos-x64
+          - os: macos-14
+            plat: macos-arm64
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    defaults:
+      run:
+        working-directory: de.peeeq.wurstscript
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # your version task uses git describe
 
-      - name: Set up JDK 17
+      - name: Setup Temurin JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: 17
           distribution: temurin
+          java-version: '25'
 
-      - name: Grant Gradle permissions
-        working-directory: ./de.peeeq.wurstscript
-        run: chmod +x ./gradlew
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
 
-      - name: Build WurstScript zips
-        working-directory: ./de.peeeq.wurstscript
-        run: ./gradlew create_zips
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Create or update nightly-master tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f nightly-master
-          git push -f origin nightly-master
+      # Build fat jar + jdeps + jlink + package + checksum for this OS
+      - name: Package slim runtime (per-OS)
+        run: ./gradlew --no-daemon --stacktrace checksumSlimCompilerDist
 
-      - name: Create GitHub Release and upload zips
-        uses: softprops/action-gh-release@v1
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly-master
-          name: Nightly Build (master)
-          body: "This release is automatically updated from the latest push to `master`."
-          draft: false
-          prerelease: true
+          # Attaches the per-OS files produced on this runner
           files: |
-            de.peeeq.wurstscript/build/distributions/wurstpack_complete.zip
-            de.peeeq.wurstscript/build/distributions/wurstpack_compiler.zip
+            de.peeeq.wurstscript/build/releases/wurst-compiler-*-*.zip
+            de.peeeq.wurstscript/build/releases/wurst-compiler-*-*.tar.gz
+            de.peeeq.wurstscript/build/releases/*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

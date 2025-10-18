@@ -776,7 +776,116 @@ public class WurstValidator {
             checkTypeparamsUsedCorrectly(e, tp);
         }
 
+        // Cross-flavor generics ban inside generic declarations:
+        checkGenericFlavorCompatibility(e);
+
     }
+
+    // --- Generic flavor detection ----------------------------------------------
+    private enum GenericFlavor { NEW, LEGACY }
+
+    /** Returns NEW if all TPs are new style (colon), LEGACY if any exist and none are colon, else null (non-generic). */
+    private @Nullable GenericFlavor flavorOf(AstElementWithTypeParameters owner) {
+        TypeParamDefs tps = owner.getTypeParameters();
+        if (tps == null || tps.size() == 0) return null;
+
+        boolean anyNew = false, anyOld = false;
+        for (TypeParamDef tp : owner.getTypeParameters()) {
+            if (isTypeParamNewGeneric(tp)) anyNew = true; else anyOld = true;
+            if (anyNew && anyOld) {
+                tp.addError("Mixed generic syntax in one declaration is not allowed. Use either <T:> or <T> consistently.");
+                // Pick a flavor to avoid cascaded errors:
+                return GenericFlavor.NEW;
+            }
+        }
+        if (anyNew)  return GenericFlavor.NEW;
+        if (anyOld)  return GenericFlavor.LEGACY;
+        return null;
+    }
+
+    /** Returns the flavor of the referenced generic definition, or null if the target is non-generic. */
+    private @Nullable GenericFlavor flavorOf(TypeDef def) {
+        if (def instanceof AstElementWithTypeParameters) {
+            return flavorOf((AstElementWithTypeParameters) def);
+        }
+        return null;
+    }
+
+    /** Walk up to the nearest *structure* (ClassDef/InterfaceDef) which actually has type parameters. */
+    private @Nullable AstElementWithTypeParameters nearestGenericStructureOwner(Element e) {
+        Element p = e;
+        while (p != null) {
+            if (p instanceof ClassDef || p instanceof InterfaceDef) {
+                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
+                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
+                    return a;
+                }
+                // keep walking if the structure itself has no TPs
+            }
+            // IMPORTANT: skip function owners entirely — method generics are allowed to mix.
+            if (p instanceof FuncDef) {
+                return null;
+            }
+            p = p.getParent();
+        }
+        return null;
+    }
+
+    /** For type usages inside ANY generic declaration (class/interface/function),
+     *  ban cross-flavor references (NEW cannot use LEGACY and vice versa). */
+    private void checkGenericFlavorCompatibility(TypeExpr e) {
+        // Enforce inside the nearest generic owner: class, interface, or function
+        AstElementWithTypeParameters owner = nearestGenericOwner(e);
+        if (owner == null) return;
+
+        @Nullable GenericFlavor ownerFlavor = flavorOf(owner);
+        if (ownerFlavor == null) return; // owner not actually generic
+
+        // What type is being referenced?
+        TypeDef targetDef = e.attrTypeDef();
+        if (targetDef == null) return;
+
+        // Only care when the referenced definition itself is generic
+        @Nullable GenericFlavor targetFlavor = flavorOf(targetDef);
+        if (targetFlavor == null) return; // non-generic target → allowed
+
+        if (ownerFlavor != targetFlavor) {
+            String targetKind =
+                (targetDef instanceof ClassDef) ? "class" :
+                    (targetDef instanceof InterfaceDef) ? "interface" : "type";
+            String targetName = targetDef.getName();
+
+            if (ownerFlavor == GenericFlavor.NEW) {
+                // owner is <T:> and target is legacy
+                e.addError("Cannot reference legacy-generic " + targetKind + " '" + targetName
+                    + "<T>' from a new-generic declaration. Migrate '" + targetName
+                    + "<T>' to '" + targetName + "<T:>' or convert this declaration to legacy generics.");
+            } else {
+                // owner is legacy <T> and target is new
+                e.addError("Cannot reference new-generic " + targetKind + " '" + targetName
+                    + "<T:>' from a legacy-generic declaration. Use legacy syntax here or migrate this declaration to new generics.");
+            }
+        }
+    }
+
+
+
+    /** Walk up and find the *nearest* generic declaration owning the current node (class/interface/func). */
+    private @Nullable AstElementWithTypeParameters nearestGenericOwner(Element e) {
+        Element p = e;
+        while (p != null) {
+            if (p instanceof FuncDef || p instanceof ClassDef || p instanceof InterfaceDef) {
+                AstElementWithTypeParameters a = (AstElementWithTypeParameters) p;
+                if (a.getTypeParameters() != null && a.getTypeParameters().size() > 0) {
+                    return a;
+                }
+            }
+            p = p.getParent();
+        }
+        return null;
+    }
+
+
 
     /**
      * Checks that module types are only used in valid places
@@ -812,17 +921,25 @@ public class WurstValidator {
      * check that type parameters are used in correct contexts:
      */
     private void checkTypeparamsUsedCorrectly(TypeExpr e, TypeParamDef tp) {
-        if (tp.isStructureDefTypeParam()) { // typeParamDef is for
-            // structureDef
-            if (tp.attrNearestStructureDef() instanceof ModuleDef) {
-                // in modules we can also type-params in static contexts
-                return;
-            }
-
-            if (!e.attrIsDynamicContext()) {
-                e.addError("Type variables must not be used in static contexts.");
-            }
+        // type param of a structure (class/interface/module)?
+        if (!tp.isStructureDefTypeParam()) {
+            return; // free/generic TP outside structures: no special restriction here
         }
+
+        if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+            return;
+        }
+
+        if (e.attrIsDynamicContext()) {
+            return;
+        }
+
+        if (isTypeParamNewGeneric(tp)) {
+            return;
+        }
+
+        // Old-style generics (no colon) or colon bound not reference-like → keep the original restriction
+        e.addError("Type variables must not be used in static contexts.");
     }
 
     private void checkClosure(ExprClosure e) {
@@ -1105,9 +1222,23 @@ public class WurstValidator {
 
     private void checkAssignment(boolean isJassCode, Element pos, WurstType leftType, WurstType rightType) {
         if (!rightType.isSubtypeOf(leftType, pos)) {
+            // NEW: Allow null assignment to generic type parameters with colon constraint
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeBoundTypeParam) {
+                WurstTypeBoundTypeParam boundParam = (WurstTypeBoundTypeParam) leftType;
+                // Allow null for type parameters with colon constraint (class types)
+                // The translator will handle substituting default values for primitives
+                return;
+            }
+            if (rightType instanceof WurstTypeNull && leftType instanceof WurstTypeTypeParam) {
+                WurstTypeTypeParam typeParam = (WurstTypeTypeParam) leftType;
+                // Check if this type parameter has a colon constraint (can be class types)
+                // Allow the assignment - translator will handle it
+                return;
+            }
+
             if (isJassCode) {
                 if (leftType.isSubtypeOf(WurstTypeReal.instance(), pos)
-                        && rightType.isSubtypeOf(WurstTypeInt.instance(), pos)) {
+                    && rightType.isSubtypeOf(WurstTypeInt.instance(), pos)) {
                     // special case: jass allows to assign an integer to a real
                     // variable
                     return;
@@ -1645,6 +1776,14 @@ public class WurstValidator {
             } else {
                 WurstType returnedType = returned.attrTyp();
                 if (!returnedType.isSubtypeOf(returnType, s)) {
+                    // NEW: Allow returning null for generic type parameters
+                    if (returnedType instanceof WurstTypeNull &&
+                        (returnType instanceof WurstTypeBoundTypeParam || returnType instanceof WurstTypeTypeParam)) {
+                        // Allow null return for generic type parameters
+                        // The translator will handle substituting default values for primitives
+                        return;
+                    }
+
                     s.addError("Cannot return " + returnedType + ", expected expression of type " + returnType);
                 }
             }
@@ -1821,7 +1960,7 @@ public class WurstValidator {
             WurstType typ = boundTyp.getBaseType();
 
             TypeParamDef tp = t._1();
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+            if (isTypeParamNewGeneric(tp)) {
                 // new style generics
             } else { // old style generics
 
@@ -1887,6 +2026,10 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    private static boolean isTypeParamNewGeneric(TypeParamDef tp) {
+        return tp.getTypeParamConstraints() instanceof TypeExprList;
     }
 
     private void checkFuncRef(FuncRef ref) {

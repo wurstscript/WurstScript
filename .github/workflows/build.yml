@@ -1,32 +1,97 @@
-name: Build Pipeline
+name: CI (build & test)
+
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
     types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Build and analyze
-    runs-on: ubuntu-latest
+    name: Gradle build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    defaults:
+      run:
+        working-directory: de.peeeq.wurstscript
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+          fetch-depth: 0
+
+      - name: Setup Temurin JDK 25
+        uses: actions/setup-java@v4
         with:
-          java-version: 25
-          distribution: 'zulu' # Alternative distribution options are available
-      - name: Cache Gradle packages
-        uses: actions/cache@v3
+          distribution: temurin
+          java-version: '25'
+          cache: 'gradle'
+
+      # Linux only: use a portable, pristine Temurin 25 for jlink
+      - name: (Linux) Install portable Temurin 25
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz"
+          mkdir -p "$RUNNER_TEMP/temurin25"
+          curl -fsSL "$URL" -o "$RUNNER_TEMP/temurin25/jdk.tar.gz"
+          tar -xzf "$RUNNER_TEMP/temurin25/jdk.tar.gz" -C "$RUNNER_TEMP/temurin25"
+          PORTABLE_JAVA_HOME="$(find "$RUNNER_TEMP/temurin25" -maxdepth 1 -type d -name 'jdk-25*' | head -n1)"
+          echo "PORTABLE_JAVA_HOME=$PORTABLE_JAVA_HOME" >> "$GITHUB_ENV"
+          echo "$PORTABLE_JAVA_HOME/bin" >> "$GITHUB_PATH"
+
+      # Pin Gradle toolchain to the active JDK (portable on Linux, setup-java on Windows)
+      - name: Pin Gradle toolchain
+        shell: bash
+        run: |
+          ACTIVE_JAVA_HOME="${PORTABLE_JAVA_HOME:-$JAVA_HOME}"
+          echo "JAVA_HOME=${ACTIVE_JAVA_HOME}" >> "$GITHUB_ENV"
+          echo "${ACTIVE_JAVA_HOME}/bin" >> "$GITHUB_PATH"
+          echo "org.gradle.java.installations.paths=${ACTIVE_JAVA_HOME}" >> gradle.properties
+          echo "org.gradle.java.installations.auto-detect=false" >> gradle.properties
+
+      - name: Show Java & jlink
+        shell: bash
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          "$JAVA_HOME/bin/java" -version
+          "$JAVA_HOME/bin/jlink" --version
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Gradle (cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      # ---- FAIL FAST: package first (so jlink issues show immediately) ----
+      - name: Package slim runtime (fail fast)
+        shell: bash
+        run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
+
+      - name: Run tests
+        shell: bash
+        run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Upload packaged artifact (per-OS)
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: ${{ runner.os }}-gradle
-      - name: Build & Run Tests
-        working-directory: ./de.peeeq.wurstscript
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew test --info
+          name: wurst-compiler-${{ matrix.os }}
+          path: |
+            de.peeeq.wurstscript/build/releases/*.zip
+            de.peeeq.wurstscript/build/releases/*.tar.gz
+            de.peeeq.wurstscript/build/releases/*.sha256
+          if-no-files-found: error
+          retention-days: 7

@@ -12,7 +12,9 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -29,7 +31,44 @@ public class EvaluateExpr {
     public static @Nullable ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
         ImFunction f = e.getFunc();
         ImExprs arguments = e.getArguments();
-        return evaluateFunc(globalState, localState, f, arguments, e);
+
+
+        // Evaluate arguments
+        ILconst[] args = new ILconst[arguments.size()];
+        for (int i = 0; i < arguments.size(); i++) {
+            args[i] = arguments.get(i).evaluate(globalState, localState);
+        }
+
+        Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
+        @Nullable ILconstObject receiver = null;
+        if (e.getFunc().getParent() != null) {
+            Element parent = e.getFunc().getParent().getParent();
+            if (parent instanceof ImClass) {
+                ImTypeVars typeParams = ((ImClass) parent).getTypeVariables();  // The T74 parameters
+                ImTypeArguments typeArgs = e.getTypeArguments(); // The <integer> arguments
+
+                // Create mapping: T74 -> integer
+                for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
+                    ImTypeVar genericParam = typeParams.get(i);
+                    ImType concreteArg = typeArgs.get(i).getType();
+                    typeSubstitutions.put(genericParam, concreteArg);
+                }
+
+                if (args.length > 0 && args[0] instanceof ILconstObject) {
+                    receiver = (ILconstObject) args[0];
+                }
+
+            }
+        }
+
+        globalState.pushStackframeWithTypes(f, receiver, args, e.attrTrace().attrErrorPos(), typeSubstitutions);
+
+
+        try {
+            return ILInterpreter.runFunc(globalState, f, e, args).getReturnVal();
+        } finally {
+            globalState.popStackframe();
+        }
     }
 
     public static @Nullable ILconst evaluateFunc(ProgramState globalState,
@@ -52,14 +91,11 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImNull e, ProgramState globalState, LocalState localState) {
-        if (e.getType() instanceof ImAnyType
-            || e.getType() instanceof ImClassType
-            || e.getType() instanceof ImTypeVarRef
-            || TypesHelper.isIntType(e.getType())) {
-            return ILconstInt.create(0);
-        }
-        return ILconstNull.instance();
+        // Resolve generics / type variables according to the current frame (pre-elimination run).
+        ImType resolved = globalState.resolveType(e.getType());
+        return resolved.defaultValue();
     }
+
 
     public static ILconst eval(ImOperatorCall e, final ProgramState globalState, final LocalState localState) {
         final ImExprs arguments = e.getArguments();
@@ -179,33 +215,43 @@ public class EvaluateExpr {
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState));
-
         globalState.assertAllocated(receiver, mc.attrTrace());
-
 
         List<ImExpr> args = mc.getArguments();
 
-
         ImMethod mostPrecise = mc.getMethod();
-
-        // find correct implementation:
         for (ImMethod m : mc.getMethod().getSubMethods()) {
-
             if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
                 if (globalState.isInstanceOf(receiver, m.attrClass(), mc.attrTrace())) {
-                    // found more precise method
                     mostPrecise = m;
                 }
             }
         }
-        // execute most precise method
+
         ILconst[] eargs = new ILconst[args.size() + 1];
         eargs[0] = receiver;
         for (int i = 0; i < args.size(); i++) {
             eargs[i + 1] = args.get(i).evaluate(globalState, localState);
         }
-        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
+
+        // NEW: push type substitutions for the method's owning class
+        ImFunction impl = mostPrecise.getImplementation();
+        Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
+        ImTypeVars typeParams = mostPrecise.getMethodClass().getClassDef().getTypeVariables();
+        ImTypeArguments typeArgs = mc.getTypeArguments(); // injected earlier by addMemberTypeArguments()
+
+        for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
+            typeSubstitutions.put(typeParams.get(i), typeArgs.get(i).getType());
+        }
+
+        globalState.pushStackframeWithTypes(impl, receiver, eargs, mc.attrTrace().attrErrorPos(), typeSubstitutions);
+        try {
+            return evaluateFunc(globalState, impl, mc, eargs);
+        } finally {
+            globalState.popStackframe();
+        }
     }
+
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
@@ -220,9 +266,15 @@ public class EvaluateExpr {
         return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
     }
 
-    public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
-                               LocalState localState) {
-        return globalState.allocate(imAlloc.getClazz(), imAlloc.attrTrace());
+    public static ILconst eval(ImAlloc e, ProgramState globalState, LocalState localState) {
+        // Get the generic type from the allocation instruction
+        ImClassType genericType = e.getClazz(); // This is Box<T74>
+
+        // NEW: Resolve it using current stack frame's type substitutions
+        ImClassType concreteType = (ImClassType) globalState.resolveType(genericType); // This becomes Box<integer>
+
+        // Allocate with the concrete type
+        return globalState.allocate(concreteType, e.attrTrace());
     }
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,

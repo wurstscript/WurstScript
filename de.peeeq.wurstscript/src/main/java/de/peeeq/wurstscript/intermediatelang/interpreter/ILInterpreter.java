@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
+import java.util.*;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -72,15 +73,13 @@ public class ILInterpreter implements AbstractInterpreter {
                 args[i] = adjustTypeOfConstant(args[i], f.getParameters().get(i).getType());
             }
 
-            if (isCompiletimeNative(f)) {
-                return runBuiltinFunction(globalState, f, args);
-            }
-
-            if (f.isNative()) {
+            if (isCompiletimeNative(f) || f.isNative()) {
                 return runBuiltinFunction(globalState, f, args);
             }
 
             LocalState localState = new LocalState();
+
+            // Set up local variables
             int i = 0;
             for (ImVar p : f.getParameters()) {
                 localState.setVal(p, args[i]);
@@ -93,7 +92,44 @@ public class ILInterpreter implements AbstractInterpreter {
                 globalState.setLastStatement(f.getBody().get(0));
             }
 
-            globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
+
+            if (!(caller instanceof ImFunctionCall)) {
+                if (caller instanceof ImMethodCall) {
+                    // Instance method call: bind class T-vars from the *receiver*'s concrete type args
+                    final Map<ImTypeVar, ImType> subst = new HashMap<>();
+
+                    // First parameter is the implicit 'this'
+                    final ImVar thisParam = f.getParameters().get(0);
+                    final ImType thisParamType = thisParam.getType();
+                    if (!(thisParamType instanceof ImClassType)) {
+                        // Defensive: still push with no substitutions
+                        globalState.pushStackframeWithTypes(f, null, args, f.attrTrace().attrErrorPos(), Collections.emptyMap());
+                    } else {
+                        final ImClassType sigThisType = (ImClassType) thisParamType; // may contain ImTypeVarRefs
+                        final ILconstObject thisArg = (ILconstObject) args[0];
+                        final ImClassType recvType = thisArg.getType();              // concrete type Box<tuple<int,int>> etc.
+
+                        // Class type variables (on the class definition)
+                        final ImClass cls = sigThisType.getClassDef();
+                        final ImTypeVars tvars = cls.getTypeVariables();             // e.g., [T74]
+
+                        // Concrete type arguments from receiver (same order)
+                        final ImTypeArguments concreteArgs = recvType.getTypeArguments();
+
+                        final int n = Math.min(tvars.size(), concreteArgs.size());
+                        for (int i2 = 0; i2 < n; i2++) {
+                            subst.put(tvars.get(i2), concreteArgs.get(i2).getType());
+                        }
+
+                        globalState.pushStackframeWithTypes(f, thisArg, args, f.attrTrace().attrErrorPos(), subst);
+                    }
+                } else {
+                    // Static function or unknown caller kind
+                    globalState.pushStackframeWithTypes(f, null, args, f.attrTrace().attrErrorPos(), Collections.emptyMap());
+                }
+            }
+
+
 
             try {
                 f.getBody().runStatements(globalState, localState);
@@ -104,10 +140,12 @@ public class ILInterpreter implements AbstractInterpreter {
                 retVal = adjustTypeOfConstant(retVal, f.getReturnType());
                 return localState.setReturnVal(retVal);
             }
+
             if (f.getReturnType() instanceof ImVoid) {
                 return localState;
             }
             throw new InterpreterException("function " + f.getName() + " did not return any value...");
+
         } catch (InterpreterException e) {
             String msg = buildStacktrace(globalState, e);
             e.setStacktrace(msg);
@@ -229,8 +267,7 @@ public class ILInterpreter implements AbstractInterpreter {
         if (f.getReturnType() instanceof ImVoid) {
             return EMPTY_LOCAL_STATE;
         }
-        final ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType())
-            .evaluate(globalState, EMPTY_LOCAL_STATE);
+        final ILconst returnValue = f.getReturnType().defaultValue();
         return new LocalState(returnValue);
     }
 

@@ -56,7 +56,8 @@ public class RunStatement {
     }
 
     public static void run(ImSet s, ProgramState globalState, LocalState localState) {
-        ILaddress v = s.getLeft().evaluateLvalue(globalState, localState);
+        ImLExpr left = s.getLeft();
+        ILaddress v = left.evaluateLvalue(globalState, localState);
         ILconst right = s.getRight().evaluate(globalState, localState);
         v.set(right);
     }

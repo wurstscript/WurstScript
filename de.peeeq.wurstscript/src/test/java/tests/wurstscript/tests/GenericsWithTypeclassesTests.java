@@ -194,15 +194,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "			return true",
                 "		function next() returns S",
                 "			return t",
+                "		function close()",
+                "			skip",
                 "	class A",
                 "	class B",
                 "	class C",
                 "	init",
                 "		List<B> a = new List<B>()",
-//				"		for B b in a",
-                "		Iterator<B> iterator = a.iterator()",
-                "		while iterator.hasNext()",
-                "			B b = iterator.next()",
+				"		for B b in a",
+//                "		Iterator<B> iterator = a.iterator()",
+//                "		while iterator.hasNext()",
                 "			testSuccess()",
                 "endpackage"
         );
@@ -226,7 +227,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "package test",
                 "	class A<T:>",
                 "	class B<S:> extends A<S>",
-                "	function foo<X>()",
+                "	function foo<X:>()",
                 "		A<X> x = new B<X>",
                 "endpackage"
         );
@@ -670,7 +671,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericReturnOverride() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertOkLines(false,
                 "package Test",
                 "interface I<T:>",
                 "	function f() returns T",
@@ -1129,7 +1130,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsFunc() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T, T",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1140,7 +1141,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsMethod() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T, T",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",
@@ -1164,7 +1165,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsFunc() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Too many type arguments given",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1175,7 +1176,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsMethod() {
-        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
+        testAssertErrorsLines(false, "Too many type arguments given",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",
@@ -1273,5 +1274,262 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "		testSuccess()"
         );
     }
+
+    @Test
+    public void genericVar_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private T store",
+            "        function put(T v)",
+            "            store = v      // instance method writes static generic array",
+            "        function get() returns T",
+            "            return store   // instance method reads static generic array",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(42)",
+            "        br.put(1.5)",
+            "        let xi = bi.get()",
+            "        let xr = br.get()",
+            "        if xi == 42 and xr == 1.5",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticVar_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private static T store",
+            "        function put(T v)",
+            "            store = v      // instance method writes static generic array",
+            "        function get() returns T",
+            "            let i = 1",
+            "            if i < 1",
+            "                return null",
+            "            return store   // instance method reads static generic array",
+            "        function clear()",
+            "            store = null",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(42)",
+            "        br.put(1.5)",
+            "        let xi = bi.get()",
+            "        let xr = br.get()",
+            "        bi.clear()",
+            "        br.clear()",
+            "        let xi2 = bi.get()",
+            "        let xr2 = br.get()",
+            "        if xi == 42 and xr == 1.5 and xi2 == 0 and 1.0001 - xr2 > 1.",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticVar_Class() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "    class B",
+            "    class Box<T:>",
+            "        private static T store",
+            "        function put(T v)",
+            "            store = v      // instance method writes static generic array",
+            "        function get() returns T",
+            "            let i = 1",
+            "            if i < 1",
+            "                return null",
+            "            return store   // instance method reads static generic array",
+            "        function clear()",
+            "            store = null",
+            "    init",
+            "        let bi = new Box<A>",
+            "        let br = new Box<B>",
+            "        bi.put(new A())",
+            "        br.put(new B())",
+            "        let xi = bi.get()",
+            "        let xr = br.get()",
+            "        bi.clear()",
+            "        br.clear()",
+            "        let xi2 = bi.get()",
+            "        let xr2 = br.get()",
+            "        if xi != null and xr != null  and xi2 == null and xr2 == null",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticArray_instanceMethods_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private static T array store",
+            "        function put(int i, T v)",
+            "            store[i] = v      // instance method writes static generic array",
+            "        function get(int i) returns T",
+            "            let i2 = 1",
+            "            if i2 < 1",
+            "                return null",
+            "            return store[i]   // instance method reads static generic array",
+            "        function clear(int i)",
+            "            store[i] = null",
+            "    init",
+            "        let bi = new Box<int>",
+            "        let br = new Box<real>",
+            "        bi.put(3, 42)",
+            "        br.put(1, 1.5)",
+            "        let xi = bi.get(3)",
+            "        let xr = br.get(1)",
+            "        bi.clear(3)",
+            "        br.clear(1)",
+            "        let xi2 = bi.get(3)",
+            "        let xr2 = br.get(1)",
+            "        if xi == 42 and xr == 1.5 and xi2 == 0 and 1.0001 - xr2 > 1.",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticTuple_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    tuple ntup(int i, int i2)",
+            "    tuple tup(int i, ntup nt)",
+            "    class BoxItr<T:>",
+            "        private int i = 0",
+            "        private Box<T> box",
+            "        construct(Box<T> box)",
+            "            this.box = box",
+            "        function next() returns T",
+            "            return null",
+            "    class Box<T:>",
+            "        private static T array store",
+            "        function iterator() returns BoxItr<T>",
+            "            return new BoxItr<T>(this)",
+            "        function put(int i, T v)",
+            "            store[i] = v      // instance method writes static generic array",
+            "        function get(int i) returns T",
+            "            let i2 = 1",
+            "            if i2 < 1",
+            "                return null",
+            "            return store[i]   // instance method reads static generic array",
+            "        function clear(int i)",
+            "            store[i] = null",
+            "    init",
+            "        let bi = new Box<tup>",
+            "        let itr = bi.iterator()",
+            "        bi.put(1, tup(3, ntup(42, 17)))",
+            "        let xi = bi.get(1).i",
+            "        let xr = bi.get(1).nt.i",
+            "        bi.clear(1)",
+            "        let xr2 = bi.get(1).i",
+            "        if xi == 3 and xr == 42 and xr2 == 0 and itr.next().i == 0",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_classField() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic",
+            "package test",
+            "class B<T>",
+            "class A<T:>",
+            "    B<T> b"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_classField() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic",
+            "package test",
+            "class B<T:>",
+            "class A<T>",
+            "    B<T> b"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_functionReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic",
+            "package test",
+            "class B<T>",
+            "function makeB<T:>() returns B<T>",
+            "    return null"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_functionReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic",
+            "package test",
+            "class B<T:>",
+            "function makeB<T>() returns B<T>",
+            "    return null"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_inExtendsClause() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic",
+            "package test",
+            "interface I<T>",
+            "class C<T:> implements I<T>"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_methodReturn() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic",
+            "package test",
+            "interface I<T:>",
+            "class C<T>",
+            "    function f() returns I<T>",
+            "        return null"
+        );
+    }
+
+    @Test
+    public void mixingNewOwner_legacyType_nestedGenericUse() {
+        testAssertErrorsLines(false,
+            "Cannot reference legacy-generic",
+            "package test",
+            "class Box<X>",
+            "class B<T>",
+            "class A<T:>",
+            "    Box<B<T>> field"
+        );
+    }
+
+    @Test
+    public void mixingLegacyOwner_newType_insideGenericClassMethod() {
+        testAssertErrorsLines(false,
+            "Cannot reference new-generic",
+            "package test",
+            "class B<T:>",
+            "class A<T>",
+            "    function usee()",
+            "        B<T> x = null"
+        );
+    }
+
 
 }

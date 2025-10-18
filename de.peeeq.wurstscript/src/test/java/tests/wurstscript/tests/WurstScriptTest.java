@@ -483,6 +483,7 @@ public class WurstScriptTest {
                 executeTests(gui, compiler.getImTranslator(), imProg);
             }
             if (executeProg) {
+                WLogger.info("Executing imProg before jass transformation");
                 executeImProg(gui, imProg);
             }
         }
@@ -498,6 +499,7 @@ public class WurstScriptTest {
             executeTests(gui, compiler.getImTranslator(), imProg);
         }
         if (executeProg) {
+            WLogger.info("Executing imProg after jass transformation");
             executeImProg(gui, imProg);
         }
 
@@ -568,6 +570,7 @@ public class WurstScriptTest {
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
+            System.out.println("Suceed function called!");
             return;
         }
         throw new Error("Succeed function not called");

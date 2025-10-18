@@ -35,8 +35,8 @@ public class WLoggerDefault implements WLoggerI {
     @Override
     public void info(String msg) {
         logger.info(msg);
-        if (System.currentTimeMillis() - startTime > 250) { // Wait 250 mseconds
-            System.out.println("Info: " + msg);
+        if (System.currentTimeMillis() - startTime > 100) { // Wait 250 mseconds
+//            System.out.println("Info: " + msg);
         }
     }
 

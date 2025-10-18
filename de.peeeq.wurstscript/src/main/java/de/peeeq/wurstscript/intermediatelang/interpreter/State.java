@@ -1,12 +1,10 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import com.google.common.base.Objects;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
-import de.peeeq.wurstscript.jassIm.ImArrayLikeType;
-import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -22,22 +20,19 @@ public abstract class State {
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
 
+
     private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
-        Object2ObjectOpenHashMap<ImVar, ILconst> v = values;
-        if (v == null) {
-            v = new Object2ObjectOpenHashMap<>(8);
-            values = v;
+        if (values == null) {
+            values = new Object2ObjectOpenHashMap<>(8);
         }
-        return v;
+        return values;
     }
 
     protected Object2ObjectOpenHashMap<ImVar, ILconstArray> ensureArrayValues() {
-        Object2ObjectOpenHashMap<ImVar, ILconstArray> a = arrayValues;
-        if (a == null) {
-            a = new Object2ObjectOpenHashMap<>(4);
-            arrayValues = a;
+        if (arrayValues == null) {
+            arrayValues = new Object2ObjectOpenHashMap<>(4);
         }
-        return a;
+        return arrayValues;
     }
 
 
@@ -50,7 +45,9 @@ public abstract class State {
         return vmap == null ? null : vmap.get(v);
     }
 
-    /** Returns the (lazy) array object for variable v, allocating only when first accessed. */
+    /**
+     * Returns the (lazy) array object for variable v, allocating only when first accessed.
+     */
     protected ILconstArray getArray(ImVar v) {
         Map<ImVar, ILconstArray> amap = ensureArrayValues();
         ILconstArray arr = amap.get(v);

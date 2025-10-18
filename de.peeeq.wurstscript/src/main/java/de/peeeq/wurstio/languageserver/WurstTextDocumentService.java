@@ -105,6 +105,10 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         WLogger.info("formatting");
+
+        if (worker.modelManager.hasErrors()) {
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + worker.modelManager.getFirstErrorDescription());
+        }
         TextDocumentIdentifier doc = params.getTextDocument();
         String buffer = worker.getBufferManager().getBuffer(doc);
 
