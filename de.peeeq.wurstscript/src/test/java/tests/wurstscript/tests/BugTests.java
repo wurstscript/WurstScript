@@ -1472,5 +1472,41 @@ public class BugTests extends WurstScriptTest {
             "		testSuccess()",
             "endpackage");
     }
+    @Test
+    public void derivedGenericClassConstructor() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import LinkedList",
+            "public class ListIterator<T> extends LLIterator<T>",
+            "    construct(LinkedList<T> parent)",
+            "        super(parent)",
+            "init",
+            "	let b = new ListIterator<int>(new LinkedList<int>())",
+            "	if b != null",
+            "		testSuccess()",
+            "endpackage");
+    }
+
+    @Test
+    public void derivedGenericClassConstructorNewGenerics() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A<T:>",
+            "    T value",
+            "class B<X:>",
+            "    A<X> a",
+            "    construct(A<X> a)",
+            "        this.a = a",
+            "public class C<T:> extends B<T>",
+            "    construct(A<T> parent)",
+            "        super(parent)",
+            "init",
+            "	let b = new C<int>(new A<int>())",
+            "	if b != null",
+            "		testSuccess()",
+            "endpackage");
+    }
+
 
 }
