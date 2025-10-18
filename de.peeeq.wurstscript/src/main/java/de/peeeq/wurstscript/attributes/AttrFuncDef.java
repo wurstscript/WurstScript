@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs;
+
 
 /**
  * this attribute find the variable definition for every variable reference
@@ -64,18 +66,60 @@ public class AttrFuncDef {
         return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
     }
 
-    public static @Nullable FuncLink calculate(final ExprMemberMethod node) {
+    public static de.peeeq.wurstscript.attributes.names.FuncLink calculate(final ExprMemberMethod node) {
+        // collect candidates
+        WurstType recvT = node.getLeft().attrTyp();
+        String name = node.getFuncName();
+        var cands = de.peeeq.wurstscript.attributes.names.NameResolution
+            .lookupMemberFuncs(node, recvT, name, /*showErrors=*/false);
 
-        Expr left = node.getLeft();
-        WurstType leftType = left.attrTyp();
-        String funcName = node.getFuncName();
+        if (cands.isEmpty()) return null;
 
-        @Nullable FuncLink result = searchMemberFunc(node, leftType, funcName, argumentTypes(node));
-        if (result == null) {
-            node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
+        // resolve with arguments using the same rules as signatures:
+        // build a (sig, link) pair for each candidate and pick the best match.
+        java.util.List<WurstType> argTypes = de.peeeq.wurstscript.attributes.AttrFuncDef.argumentTypesPre(node);
+        de.peeeq.wurstscript.attributes.names.FuncLink bestLink = null;
+        de.peeeq.wurstscript.types.FunctionSignature bestSig = null;
+
+        // Pass 1: exact matches only
+        for (var f : cands) {
+            var sig = de.peeeq.wurstscript.types.FunctionSignature.fromNameLink(f);
+            var matched = sig.matchAgainstArgs(argTypes, node);
+            if (matched != null) {
+                // choose the first exact match; if you want “most specific” tie-break, add it here
+                bestLink = f;
+                bestSig  = matched;
+                break;
+            }
         }
-        return result;
+
+        if (bestLink == null) {
+            // Pass 2: best-effort (to align with diagnostics), pick the lowest badness
+            int bestBadness = Integer.MAX_VALUE;
+            for (var f : cands) {
+                var sig = de.peeeq.wurstscript.types.FunctionSignature.fromNameLink(f);
+                var res = sig.tryMatchAgainstArgs(argTypes, node.getArgs(), node);
+                if (res.getBadness() < bestBadness) {
+                    bestBadness = res.getBadness();
+                    bestLink = f;
+                    bestSig  = res.getSig();
+                }
+            }
+        }
+
+        if (bestLink == null) return null;
+
+        // IMPORTANT: carry the mapping from the matched signature back into the link,
+        // so downstream types are fully bound at the call site.
+        var bound = bestLink.withTypeArgBinding(node, bestSig.getMapping());
+        return bound;
     }
+
+    public static @Nullable FunctionDefinition calculateDef(final ExprMemberMethod node) {
+        var fl = node.attrFuncLink();
+        return fl == null ? null : fl.getDef();
+    }
+
 
     public static @Nullable FuncLink calculate(final ExprFunctionCall node) {
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));

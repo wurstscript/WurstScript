@@ -1473,4 +1473,35 @@ public class BugTests extends WurstScriptTest {
             "endpackage");
     }
 
+    @Test
+    public void overloadsHiddenBySubclassName_onlyZeroArgSeen_errorsOnArgs() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native println(string s)",
+            "class A",
+            "    function func(int i)",
+            "        println(\"func_int...\")",
+            "",
+            "    function func(string s)",
+            "        println(\"func_string...\")",
+            "",
+            "class B extends A",
+            "    function func()",
+            "        println(\"func_noarg\")",
+            "",
+            "    function func(bool b)",
+            "        println(\"func_boolean...\")",
+            "",
+            "init",
+            "    let b = new B()",
+            "    b.func()",
+            "    b.func(true)",
+            "    b.func(1)",
+            "    b.func(\"1\")",
+            "    testSuccess()"
+        );
+    }
+
+
 }

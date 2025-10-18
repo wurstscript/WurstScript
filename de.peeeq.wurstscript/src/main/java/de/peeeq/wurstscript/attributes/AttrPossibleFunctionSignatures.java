@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.types.VariableBinding;
@@ -115,6 +116,28 @@ public class AttrPossibleFunctionSignatures {
             out.add(inferredSigs[i]);
         }
         return out.build();
+    }
+
+    public static com.google.common.collect.ImmutableCollection<FunctionSignature> calculate(ExprMemberMethod mm) {
+        // 1) Collect all member candidates (includes inherited overloads)
+        WurstType recvT = mm.getLeft().attrTyp();
+        com.google.common.collect.ImmutableCollection<FuncLink> fs =
+            NameResolution.lookupMemberFuncs(mm, recvT, mm.getFuncName(), /*showErrors=*/false);
+
+        // 2) Convert to signatures using the bound link (receiver/params/return + type-arg binding)
+        com.google.common.collect.ImmutableList.Builder<FunctionSignature> out = com.google.common.collect.ImmutableList.builder();
+        for (FuncLink f : fs) {
+            FunctionSignature sig = FunctionSignature.fromNameLink(f);
+
+            // Apply any explicit/given type-args at the call-site to the signature mapping:
+            VariableBinding mapping = givenBinding(mm, sig.getDefinitionTypeVariables());
+            sig = sig.setTypeArgs(mm, mapping);
+
+            out.add(sig);
+        }
+
+        // 3) Reuse the common “pick best” logic (exact matches first, then best-errors)
+        return findBestSignature(mm, out.build());
     }
 
 
