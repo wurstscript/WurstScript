@@ -1742,7 +1742,7 @@ public class WurstValidator {
                 // if (expected instanceof AstElementWithTypeArgs)
                 if (!actual.isSubtypeOf(expected, where)) {
                     args.get(i).addError(
-                            preMsg + "Expected " + expected + " as parameter " + (i + 1) + " but  found " + actual);
+                            preMsg + "Expected " + expected + " as parameter " + (i + 1) + " but found " + actual);
                 }
             }
         }
@@ -2363,22 +2363,30 @@ public class WurstValidator {
             WurstTypeClass ct = c.attrTypC();
             WurstTypeClass extendedClass = ct.extendedClass();
             if (extendedClass != null) {
-                // check if super constructor is called correctly...
-                // TODO check constr: get it from ct so that it has the correct type binding
+                // Use the *bound* super-constructor signature
                 ConstructorDef sc = d.attrSuperConstructor();
                 if (sc == null) {
                     d.addError("No super constructor found.");
                 } else {
-                    List<WurstType> paramTypes = Lists.newArrayList();
+                    // Build expected param types in the subclass binding context
+                    List<WurstType> expected = Lists.newArrayList();
+
+                    // The binding that maps the superclass type params to the subclass type args
+                    VariableBinding binding = extendedClass.getTypeArgBinding();
+
                     for (WParameter p : sc.getParameters()) {
-                        paramTypes.add(p.attrTyp());
+                        WurstType t = p.attrTyp();
+                        t = t.setTypeArgs(binding);
+
+                        expected.add(t);
                     }
+
                     if (d.getSuperConstructorCall() instanceof NoSuperConstructorCall
-                            && paramTypes.size() > 0) {
+                        && !expected.isEmpty()) {
                         c.addError("The extended class <" + extendedClass.getName() + "> does not expose a no-arg constructor. " +
-                                "You must define a constructor that calls super(..) appropriately, in this class.");
+                            "You must define a constructor that calls super(..) appropriately, in this class.");
                     } else {
-                        checkParams(d, "Incorrect call to super constructor: ", superArgs(d), paramTypes);
+                        checkParams(d, "Incorrect call to super constructor: ", superArgs(d), expected);
                     }
                 }
             }
@@ -2388,6 +2396,7 @@ public class WurstValidator {
             }
         }
     }
+
 
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
