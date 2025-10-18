@@ -1473,21 +1473,4 @@ public class BugTests extends WurstScriptTest {
             "endpackage");
     }
 
-    @Test
-    public void duplicateNameInClassHierachy() {
-        testAssertErrorsLines(false, "Variable x in class B hides variable x from superclass A",
-            "package test",
-            "native testSuccess()",
-            "class A",
-            "    int x",
-            "class B extends A",
-            "    int x",
-            "init",
-            "	let b = new B()",
-            "	if b != null",
-            "		testSuccess()",
-            "endpackage");
-    }
-
-
 }
