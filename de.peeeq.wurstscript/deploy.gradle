@@ -167,6 +167,17 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     }
 }
 
+tasks.named("assembleSlimCompilerDist", Copy) { t ->
+    if (os.isWindows()) {
+        from("../Wurstpack/wurstscript/wurstscript.cmd") { into(".") }
+    } else {
+        from("../Wurstpack/wurstscript/wurstscript") {
+            into(".")
+            fileMode = 0755
+        }
+    }
+}
+
 // 4a) Package ZIP on Windows
 tasks.register("packageSlimCompilerDistZip", Zip) {
     description = "Packages slim dist as a ZIP archive (Windows)."
