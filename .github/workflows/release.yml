@@ -3,8 +3,11 @@ name: Release slim runtimes (jlink)
 on:
   push:
     tags:
-      - 'v*'   # e.g. v1.8.1.0
+      - 'v*' 
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -63,3 +66,4 @@ jobs:
             de.peeeq.wurstscript/build/releases/*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
