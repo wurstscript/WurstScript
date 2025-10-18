@@ -132,7 +132,7 @@ jobs:
             fi
           done
 
-      - name: Publish Nightly Release (rolling "nightly" tag)
+      - name: Publish Nightly Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly-master
@@ -143,7 +143,6 @@ jobs:
           generate_release_notes: false
           body: |
             Nightly build for the latest commit on `master`.
-            This release is automatically updated in-place.
           files: |
             upload/*.zip
             upload/*.tar.gz
