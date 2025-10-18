@@ -1568,8 +1568,51 @@ public class WurstValidator {
         call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
     }
 
+    /** Error when a field in this class hides a field from a superclass. */
+    private void checkFieldShadowing(ClassDef c) {
+        // Iterate only the fields *declared* in this class:
+        for (NameLink nl : c.attrNameLinks().values()) {
+            NameDef def = nl.getDef();
+            // consider only variables that are declared in this class body
+            if (!(def instanceof GlobalVarDef)) continue;
+            if (nl.getDefinedIn() != c) continue; // not declared here
 
-    // crude cap to avoid unbounded growth; tune as needed
+            String name = def.getName();
+
+            // Look up all visible declarations of the same name in this class scope:
+            ImmutableCollection<DefLink> all = c.attrNameLinks().get(name);
+            for (DefLink other : all) {
+                if (!(other instanceof NameLink)) continue;
+                if (other.getDefinedIn() == c) continue; // skip "self" (duplicates in same class handled elsewhere)
+                NameDef od = other.getDef();
+                if (!(od instanceof GlobalVarDef)) continue;
+
+                // Is the other definition a superclass' field?
+                StructureDef owner = od.attrNearestStructureDef();
+                if (owner instanceof ClassDef) {
+                    ClassDef superOwner = (ClassDef) owner;
+                    if (isStrictSuperclassOf(superOwner, c)) {
+                        // produce the requested error text
+                        def.addError("Variable " + name + " in class " + c.getName()
+                            + " hides variable " + name + " from superclass " + superOwner.getName());
+                        // one error per conflicting ancestor is enough
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isStrictSuperclassOf(ClassDef sup, ClassDef sub) {
+        WurstTypeClass t = sub.attrTypC();
+        WurstTypeClass cur = (t != null) ? t.extendedClass() : null;
+        while (cur != null) {
+            ClassDef cd = cur.getClassDef();
+            if (cd == sup) return true;
+            cur = cur.extendedClass();
+        }
+        return false;
+    }
 
     private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
         if (actual == expected) return true;
@@ -1796,12 +1839,15 @@ public class WurstValidator {
 
     private void visit(ClassDef classDef) {
         checkTypeName(classDef, classDef.getName());
-        if (!(classDef.getExtendedClass() instanceof NoTypeExpr) && !(classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass)) {
+        if (!(classDef.getExtendedClass() instanceof NoTypeExpr)
+            && !(classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass)) {
             classDef.getExtendedClass().addError("Classes may only extend other classes.");
         }
         if (classDef.isInnerClass() && !classDef.attrIsStatic()) {
             classDef.addError("At the moment only static inner classes are supported.");
         }
+
+        checkFieldShadowing(classDef);
     }
 
     private void checkTypeName(Element source, String name) {

@@ -8,7 +8,6 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'application'
     id 'antlr'
     id 'eclipse'
     id 'idea'
@@ -27,9 +26,7 @@ import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Pattern
 
-application {
-    mainClass = "de.peeeq.wurstio.Main"
-}
+ext.mainClassName = "de.peeeq.wurstio.Main"
 
 version = "1.8.1.0"
 
@@ -229,7 +226,9 @@ shadowJar {
     archiveBaseName.set('wurstscript')
     archiveClassifier.set('')
     archiveVersion.set('')
-    manifest { attributes 'Main-Class': application.mainClass.get() }
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
 }
 
 def fatJar = shadowJar.archiveFile.map { it.asFile }
