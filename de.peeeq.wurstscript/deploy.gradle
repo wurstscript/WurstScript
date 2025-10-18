@@ -173,7 +173,6 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
     } else {
         from("../Wurstpack/wurstscript/wurstscript") {
             into(".")
-            fileMode = 0755
         }
     }
 }
@@ -204,6 +203,12 @@ tasks.register("packageSlimCompilerDistTar", Tar) {
     compression = Compression.GZIP
     archiveExtension.set("tar.gz")
     archiveFileName.set("wurst-compiler-${project.version}-${plat}.tar.gz")
+
+    from(distRoot) {
+        filesMatching("wurstscript") { details ->
+            details.mode = 0755
+        }
+    }
 }
 
 // 4c) OS-aware convenience wrapper
