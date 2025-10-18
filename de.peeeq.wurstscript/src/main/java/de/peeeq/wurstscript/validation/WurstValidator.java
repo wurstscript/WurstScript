@@ -1817,6 +1817,13 @@ public class WurstValidator {
     }
 
     private void visit(ExprDestroy stmtDestroy) {
+        if (stmtDestroy.getDestroyedObj() instanceof ExprThis) {
+            if (isInConstructor(stmtDestroy)) {
+                stmtDestroy.addError("Cannot destroy 'this' in constructor");
+                return;
+            }
+        }
+
         WurstType typ = stmtDestroy.getDestroyedObj().attrTyp();
         if (typ instanceof WurstTypeModule) {
 
