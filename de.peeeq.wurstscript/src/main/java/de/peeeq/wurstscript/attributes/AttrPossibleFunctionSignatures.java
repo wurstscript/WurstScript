@@ -6,12 +6,11 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameResolution;
-import de.peeeq.wurstscript.types.FunctionSignature;
+import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
-import de.peeeq.wurstscript.types.VariableBinding;
-import de.peeeq.wurstscript.types.VariablePosition;
-import de.peeeq.wurstscript.types.WurstType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
@@ -47,97 +46,245 @@ public class AttrPossibleFunctionSignatures {
 
     private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc,
                                                                             ImmutableCollection<FunctionSignature> res) {
-        // Fast path: nothing to consider
-        if (res.isEmpty()) {
-            return ImmutableList.of();
-        }
+        if (res.isEmpty()) return ImmutableList.of();
 
-        // Materialize once to a random-access list (cheap for Immutable*)
-        final ImmutableList<FunctionSignature> sigs =
-            (res instanceof ImmutableList)
-                ? (ImmutableList<FunctionSignature>) res
-                : ImmutableList.copyOf(res);
+        final ImmutableList<FunctionSignature> sigs = (res instanceof ImmutableList)
+            ? (ImmutableList<FunctionSignature>) res
+            : ImmutableList.copyOf(res);
 
-        // Compute arg types once
         final List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(fc);
 
-        // --- Pass 1: exact matches only (cheap) ---------------------------------
-        // Use a single ArrayList and only copy if we actually have matches.
-        List<FunctionSignature> exact = new java.util.ArrayList<>(sigs.size());
-        for (int i = 0, n = sigs.size(); i < n; i++) {
-            FunctionSignature matched = sigs.get(i).matchAgainstArgs(argTypes, fc);
-            if (matched != null) {
-                exact.add(matched);
-            }
+        // Pass 1: exact matches
+        List<FunctionSignature> exact = new ArrayList<>(sigs.size());
+        for (FunctionSignature s : sigs) {
+            FunctionSignature m = s.matchAgainstArgs(argTypes, fc);
+            if (m != null) exact.add(m);
         }
-        if (!exact.isEmpty()) {
-            return ImmutableList.copyOf(exact);
+        if (!exact.isEmpty()) return ImmutableList.copyOf(exact);
+
+        // Pass 2: best effort + (maybe) errors
+        boolean allKnown = true;
+        for (WurstType t : argTypes) {
+            if (t instanceof WurstTypeUnknown) { allKnown = false; break; }
         }
 
-        // --- Pass 2: best-effort matches (no exact match) ------------------------
-        // We must:
-        //  * find the min-badness result (to emit its errors)
-        //  * return ALL resulting signatures (to preserve current semantics)
-        final int n = sigs.size();
-        FunctionSignature[] inferredSigs = new FunctionSignature[n];
-        int bestIdx = -1;
-        int bestBadness = Integer.MAX_VALUE;
-        ArgsMatchResult bestResult = null;
+        int n = sigs.size(), bestIdx = -1, bestBad = Integer.MAX_VALUE;
+        FunctionSignature[] inferred = new FunctionSignature[n];
+        FunctionSignature.ArgsMatchResult best = null;
 
-        // Cache args node once
         final Arguments argsNode = fc.getArgs();
-
         for (int i = 0; i < n; i++) {
-            // tryMatchAgainstArgs may also perform type-arg inference; we must keep its result sig
-            ArgsMatchResult r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
-            inferredSigs[i] = r.getSig();
-            int b = r.getBadness();
-            if (b < bestBadness) {
-                bestBadness = b;
-                bestIdx = i;
-                bestResult = r;
+            var r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
+            inferred[i] = r.getSig();
+            if (r.getBadness() < bestBad) { bestBad = r.getBadness(); bestIdx = i; best = r; }
+        }
+
+        if (allKnown && best != null) {
+            for (var c : best.getErrors()) {
+                fc.getErrorHandler().sendError(c);
             }
         }
 
-        if (bestIdx == -1 || bestResult == null) {
-            // Shouldn’t happen, but be safe
+        return ImmutableList.copyOf(inferred);
+    }
+
+
+    public static boolean isExtension(de.peeeq.wurstscript.attributes.names.FuncLink f) {
+        return f.getDef() instanceof de.peeeq.wurstscript.ast.ExtensionFuncDef;
+    }
+
+    public static boolean isVisible(de.peeeq.wurstscript.attributes.names.FuncLink f) {
+        Visibility v = f.getVisibility();
+        // NameLinks pre-resolve visibility “relative to the current site”.
+        // *_OTHER means: *not* visible here.
+        return v != Visibility.PRIVATE_OTHER && v != Visibility.PROTECTED_OTHER;
+    }
+
+    public static <T> java.util.List<T> keepMostSpecificReceivers(
+        java.util.List<T> candidates,
+        java.util.function.Function<T, de.peeeq.wurstscript.types.WurstType> recvOf,
+        de.peeeq.wurstscript.ast.Element site // for isSubtypeOf diagnostics
+    ) {
+        if (candidates.size() <= 1) return candidates;
+        java.util.ArrayList<T> kept = new java.util.ArrayList<>(candidates.size());
+        outer:
+        for (int i = 0; i < candidates.size(); i++) {
+            var ri = recvOf.apply(candidates.get(i));
+            if (ri == null) { kept.add(candidates.get(i)); continue; } // static/global
+            for (int j = 0; j < candidates.size(); j++) {
+                if (i == j) continue;
+                var rj = recvOf.apply(candidates.get(j));
+                if (rj == null) continue;
+                // If rj is a strict subtype of ri, drop ri
+                boolean rj_le_ri = rj.isSubtypeOf(ri, site);
+                boolean ri_le_rj = ri.isSubtypeOf(rj, site);
+                if (rj_le_ri && !ri_le_rj) {
+                    continue outer;
+                }
+            }
+            kept.add(candidates.get(i));
+        }
+        return kept.isEmpty() ? candidates : kept;
+    }
+
+
+
+    public static ImmutableCollection<FunctionSignature> calculate(ExprMemberMethod mm) {
+        // Receiver and method name
+        final Expr left = mm.getLeft();
+        final WurstType leftType = left.attrTyp();
+        final String name = mm.getFuncName();
+
+        // Collect raw member candidates (no errors yet)
+        final ImmutableCollection<FuncLink> raw =
+            mm.lookupMemberFuncs(leftType, name, /*showErrors*/ false);
+
+        if (raw.isEmpty()) {
+            // Let downstream handle "not found"
             return ImmutableList.of();
         }
 
-        // Emit errors from the best match (same as before)
-        for (CompileError c : bestResult.getErrors()) {
-            fc.getErrorHandler().sendError(c);
+        // Partition by accessibility
+        final java.util.List<FuncLink> visible = new java.util.ArrayList<>(raw.size());
+        final java.util.List<FuncLink> hidden  = new java.util.ArrayList<>(2);
+        for (FuncLink f : raw) {
+            de.peeeq.wurstscript.attributes.names.Visibility v = f.getVisibility();
+            boolean accessible = (v != de.peeeq.wurstscript.attributes.names.Visibility.PRIVATE_OTHER
+                && v != de.peeeq.wurstscript.attributes.names.Visibility.PROTECTED_OTHER);
+            if (accessible) {
+                visible.add(f);
+            } else {
+                hidden.add(f);
+            }
         }
 
-        // Return ALL candidate signatures (same as previous behavior)
-        // Avoid another stream/collect
-        ImmutableList.Builder<FunctionSignature> out = ImmutableList.builderWithExpectedSize(n);
-        for (int i = 0; i < n; i++) {
-            out.add(inferredSigs[i]);
+        if (visible.isEmpty()) {
+            // Only hidden matches exist → keep the old precise message
+            if (!hidden.isEmpty()) {
+                mm.addError(
+                    de.peeeq.wurstscript.utils.Utils.printElement(java.util.Optional.of(hidden.get(0).getDef()))
+                        + " is not visible here.");
+            }
+            // Return non-empty to avoid a second generic "not found" message
+            return ImmutableList.of(FunctionSignature.empty);
         }
-        return out.build();
-    }
 
-    public static com.google.common.collect.ImmutableCollection<FunctionSignature> calculate(ExprMemberMethod mm) {
-        // 1) Collect all member candidates (includes inherited overloads)
-        WurstType recvT = mm.getLeft().attrTyp();
-        com.google.common.collect.ImmutableCollection<FuncLink> fs =
-            NameResolution.lookupMemberFuncs(mm, recvT, mm.getFuncName(), /*showErrors=*/false);
-
-        // 2) Convert to signatures using the bound link (receiver/params/return + type-arg binding)
-        com.google.common.collect.ImmutableList.Builder<FunctionSignature> out = com.google.common.collect.ImmutableList.builder();
-        for (FuncLink f : fs) {
+        // Prepare function signatures: bind receiver + explicit type args
+        final java.util.List<FunctionSignature> prepared = new java.util.ArrayList<>(visible.size());
+        for (FuncLink f : visible) {
             FunctionSignature sig = FunctionSignature.fromNameLink(f);
 
-            // Apply any explicit/given type-args at the call-site to the signature mapping:
-            VariableBinding mapping = givenBinding(mm, sig.getDefinitionTypeVariables());
-            sig = sig.setTypeArgs(mm, mapping);
+            // Bind type variables using the actual receiver
+            WurstType recv = sig.getReceiverType();
+            if (recv != null) {
+                VariableBinding m = leftType.matchAgainstSupertype(
+                    recv, mm, sig.getMapping(), VariablePosition.RIGHT);
+                if (m == null) {
+                    // Should not happen; lookupMemberFuncs already checked. Skip defensively.
+                    continue;
+                }
+                sig = sig.setTypeArgs(mm, m);
+            }
 
-            out.add(sig);
+            // Apply explicit type args from the call-site (e.g., c.foo<T,...>(...))
+            VariableBinding explicit = GenericsHelper.givenBinding(mm, sig.getDefinitionTypeVariables());
+            sig = sig.setTypeArgs(mm, explicit);
+
+            prepared.add(sig);
         }
 
-        // 3) Reuse the common “pick best” logic (exact matches first, then best-errors)
-        return findBestSignature(mm, out.build());
+        if (prepared.isEmpty()) {
+            return ImmutableList.of();
+        }
+
+        // Rank by argument match FIRST (fixes subclass-overload case)
+        final java.util.List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(mm);
+        final java.util.List<FunctionSignature.ArgsMatchResult> results =
+            new java.util.ArrayList<>(prepared.size());
+
+        int minBadness = Integer.MAX_VALUE;
+        for (FunctionSignature sig : prepared) {
+            FunctionSignature.ArgsMatchResult r =
+                sig.tryMatchAgainstArgs(argTypes, mm.getArgs(), mm);
+            results.add(r);
+            if (r.getBadness() < minBadness) {
+                minBadness = r.getBadness();
+            }
+        }
+
+        // Keep only best-badness candidates
+        final java.util.List<FunctionSignature.ArgsMatchResult> best =
+            new java.util.ArrayList<>();
+        for (FunctionSignature.ArgsMatchResult r : results) {
+            if (r.getBadness() == minBadness) {
+                best.add(r);
+            }
+        }
+
+        // Among equally good matches, prefer the ones that fully infer type vars
+        boolean anyFullyInferred = false;
+        for (FunctionSignature.ArgsMatchResult r : best) {
+            if (!r.getSig().getMapping().hasUnboundTypeVars()) {
+                anyFullyInferred = true;
+                break;
+            }
+        }
+        if (anyFullyInferred) {
+            final java.util.List<FunctionSignature.ArgsMatchResult> filtered = new java.util.ArrayList<>(best.size());
+            for (FunctionSignature.ArgsMatchResult r : best) {
+                if (!r.getSig().getMapping().hasUnboundTypeVars()) {
+                    filtered.add(r);
+                }
+            }
+            if (!filtered.isEmpty()) {
+                best.clear();
+                best.addAll(filtered);
+            }
+        }
+
+        // Among still-equal matches, prefer the most-specific receiver
+        if (best.size() > 1) {
+            final int n = best.size();
+            final boolean[] drop = new boolean[n];
+
+            for (int i = 0; i < n; i++) {
+                WurstType ri = best.get(i).getSig().getReceiverType();
+                if (ri == null) continue;
+                for (int j = 0; j < n; j++) {
+                    if (i == j || drop[i]) continue;
+                    WurstType rj = best.get(j).getSig().getReceiverType();
+                    if (rj == null) continue;
+
+                    boolean jSubI = rj.isSubtypeOf(ri, mm);
+                    boolean iSubJ = ri.isSubtypeOf(rj, mm);
+
+                    // j strictly more specific than i → drop i
+                    if (jSubI && !iSubJ) {
+                        drop[i] = true;
+                    }
+                }
+            }
+
+            boolean anyDrop = false;
+            for (boolean d : drop) { if (d) { anyDrop = true; break; } }
+            if (anyDrop) {
+                java.util.List<FunctionSignature.ArgsMatchResult> filtered = new java.util.ArrayList<>(n);
+                for (int i = 0; i < n; i++) {
+                    if (!drop[i]) filtered.add(best.get(i));
+                }
+                if (!filtered.isEmpty()) {
+                    best.clear();
+                    best.addAll(filtered);
+                }
+            }
+        }
+
+        // IMPORTANT: do NOT emit errors here (defer to AttrFunctionSignature)
+        ImmutableList.Builder<FunctionSignature> out = ImmutableList.builderWithExpectedSize(best.size());
+        for (FunctionSignature.ArgsMatchResult r : best) {
+            out.add(r.getSig());
+        }
+        return out.build();
     }
 
 

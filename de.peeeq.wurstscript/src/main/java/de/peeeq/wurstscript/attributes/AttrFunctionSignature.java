@@ -18,11 +18,25 @@ public class AttrFunctionSignature {
     public static FunctionSignature calculate(StmtCall fc) {
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
         FunctionSignature sig = filterSigs(sigs, argTypes(fc), fc);
+
         VariableBinding mapping = sig.getMapping();
         for (CompileError error : mapping.getErrors()) {
             fc.getErrorHandler().sendError(error);
         }
-        if (mapping.hasUnboundTypeVars()) {
+
+        // If any argument is a closure, let it be typed using the selected signature’s
+        // expected parameter types before complaining about unbound type variables.
+        boolean hasClosureArg = false;
+        if (fc instanceof AstElementWithArgs) {
+            for (Expr a : ((AstElementWithArgs) fc).getArgs()) {
+                if (a instanceof ExprClosure) {
+                    hasClosureArg = true;
+                    break;
+                }
+            }
+        }
+
+        if (mapping.hasUnboundTypeVars() && !hasClosureArg) {
             fc.addError("Cannot infer type for type parameter " + mapping.printUnboundTypeVars());
         }
 

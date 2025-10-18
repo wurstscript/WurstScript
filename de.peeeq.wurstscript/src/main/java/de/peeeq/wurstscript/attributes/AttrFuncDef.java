@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.*;
 import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs;
 
 
@@ -66,54 +68,96 @@ public class AttrFuncDef {
         return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
     }
 
-    public static de.peeeq.wurstscript.attributes.names.FuncLink calculate(final ExprMemberMethod node) {
-        // collect candidates
+    public static @Nullable FuncLink calculate(final ExprMemberMethod node) {
         WurstType recvT = node.getLeft().attrTyp();
-        String name = node.getFuncName();
-        var cands = de.peeeq.wurstscript.attributes.names.NameResolution
-            .lookupMemberFuncs(node, recvT, name, /*showErrors=*/false);
+        var raw = NameResolution.lookupMemberFuncs(node, recvT, node.getFuncName(), /*showErrors=*/false);
 
-        if (cands.isEmpty()) return null;
+        java.util.ArrayList<FuncLink> visible = new java.util.ArrayList<>(raw.size());
+        java.util.ArrayList<FuncLink> hidden  = new java.util.ArrayList<>(raw.size());
+        for (var f : raw) {
+            if (isVisible(f)) visible.add(f); else hidden.add(f);
+        }
 
-        // resolve with arguments using the same rules as signatures:
-        // build a (sig, link) pair for each candidate and pick the best match.
-        java.util.List<WurstType> argTypes = de.peeeq.wurstscript.attributes.AttrFuncDef.argumentTypesPre(node);
-        de.peeeq.wurstscript.attributes.names.FuncLink bestLink = null;
-        de.peeeq.wurstscript.types.FunctionSignature bestSig = null;
+        if (!raw.isEmpty() && visible.isEmpty()) {
+            // Keep the classic diagnostic the tests look for:
+            node.addError("The method " + node.getFuncName() + " is not visible here.");
+            return null; // don’t leak a def to downstream passes/codegen
+        }
 
-        // Pass 1: exact matches only
+        java.util.List<FuncLink> methods = new java.util.ArrayList<>();
+        java.util.List<FuncLink> exts    = new java.util.ArrayList<>();
+        for (var f : visible) {
+            if (isExtension(f)) exts.add(f); else methods.add(f);
+        }
+
+        if (!exts.isEmpty()) {
+            exts = keepMostSpecificReceivers(exts, FuncLink::getReceiverType, node);
+        }
+
+        java.util.ArrayList<FuncLink> cands = new java.util.ArrayList<>(methods.size() + exts.size());
+        cands.addAll(methods);
+        cands.addAll(exts);
+
+        var argTypes = AttrFuncDef.argumentTypesPre(node);
+
+        // Pass 1: exact matches
+        java.util.ArrayList<FuncLink> exactLinks = new java.util.ArrayList<>();
+        java.util.ArrayList<FunctionSignature> exactSigs = new java.util.ArrayList<>();
         for (var f : cands) {
-            var sig = de.peeeq.wurstscript.types.FunctionSignature.fromNameLink(f);
-            var matched = sig.matchAgainstArgs(argTypes, node);
-            if (matched != null) {
-                // choose the first exact match; if you want “most specific” tie-break, add it here
-                bestLink = f;
-                bestSig  = matched;
-                break;
+            var sig = FunctionSignature.fromNameLink(f);
+            var m = sig.matchAgainstArgs(argTypes, node);
+            if (m != null) {
+                exactLinks.add(f);
+                exactSigs.add(m);
             }
         }
-
-        if (bestLink == null) {
-            // Pass 2: best-effort (to align with diagnostics), pick the lowest badness
-            int bestBadness = Integer.MAX_VALUE;
-            for (var f : cands) {
-                var sig = de.peeeq.wurstscript.types.FunctionSignature.fromNameLink(f);
-                var res = sig.tryMatchAgainstArgs(argTypes, node.getArgs(), node);
-                if (res.getBadness() < bestBadness) {
-                    bestBadness = res.getBadness();
-                    bestLink = f;
-                    bestSig  = res.getSig();
+        if (!exactLinks.isEmpty()) {
+            // methods vs others
+            java.util.ArrayList<Integer> methodIdxs = new java.util.ArrayList<>();
+            for (int i = 0; i < exactLinks.size(); i++) {
+                if (!isExtension(exactLinks.get(i))) methodIdxs.add(i);
+            }
+            if (methodIdxs.size() > 1) {
+                // filter method candidates by most specific receiver
+                java.util.ArrayList<FunctionSignature> methSigs = new java.util.ArrayList<>();
+                for (int i : methodIdxs) methSigs.add(exactSigs.get(i));
+                methSigs = (java.util.ArrayList<FunctionSignature>) keepMostSpecificReceivers(
+                    methSigs, FunctionSignature::getReceiverType, node
+                );
+                // pick the first of the survivors
+                var chosenSig = methSigs.get(0);
+                // find corresponding link
+                for (int i = 0; i < exactSigs.size(); i++) {
+                    if (exactSigs.get(i) == chosenSig) {
+                        return exactLinks.get(i).withTypeArgBinding(node, chosenSig.getMapping());
+                    }
                 }
+            } else if (methodIdxs.size() == 1) {
+                int i = methodIdxs.get(0);
+                return exactLinks.get(i).withTypeArgBinding(node, exactSigs.get(i).getMapping());
+            } else {
+                // no methods, only extensions exact → pick first (they were narrowed already)
+                return exactLinks.get(0).withTypeArgBinding(node, exactSigs.get(0).getMapping());
             }
         }
 
-        if (bestLink == null) return null;
-
-        // IMPORTANT: carry the mapping from the matched signature back into the link,
-        // so downstream types are fully bound at the call site.
-        var bound = bestLink.withTypeArgBinding(node, bestSig.getMapping());
-        return bound;
+        // Pass 2: best-effort (unchanged)
+        int bestBad = Integer.MAX_VALUE;
+        FuncLink best = null;
+        FunctionSignature bestSig = null;
+        for (var f : cands) {
+            var sig = FunctionSignature.fromNameLink(f);
+            var r = sig.tryMatchAgainstArgs(argTypes, node.getArgs(), node);
+            if (r.getBadness() < bestBad) {
+                bestBad = r.getBadness();
+                best = f;
+                bestSig = r.getSig();
+            }
+        }
+        return best == null ? null : best.withTypeArgBinding(node, bestSig.getMapping());
     }
+
+
 
     public static @Nullable FunctionDefinition calculateDef(final ExprMemberMethod node) {
         var fl = node.attrFuncLink();
