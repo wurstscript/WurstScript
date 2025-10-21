@@ -55,7 +55,7 @@ jobs:
 
       # Build fat jar + jdeps + jlink + package + checksum for this OS
       - name: Package slim runtime (per-OS)
-        run: ./gradlew --no-daemon --stacktrace checksumSlimCompilerDist
+        run: ./gradlew --no-daemon --stacktrace packageSlimCompilerDist
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2

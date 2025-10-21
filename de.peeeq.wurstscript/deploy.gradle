@@ -177,12 +177,11 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
     }
 }
 
-// 4a) Package ZIP on Windows
+// 4) Package ZIP on all platforms
 tasks.register("packageSlimCompilerDistZip", Zip) {
-    description = "Packages slim dist as a ZIP archive (Windows)."
+    description = "Packages slim dist as a ZIP archive (all platforms)."
     group = "distribution"
-    enabled = os.isWindows()
-
+    enabled = true
     dependsOn("assembleSlimCompilerDist")
 
     from(distRoot)
@@ -190,57 +189,12 @@ tasks.register("packageSlimCompilerDistZip", Zip) {
     archiveFileName.set("wurst-compiler-${project.version}-${plat}.zip")
 }
 
-// 4b) Package tar.gz on Linux/macOS
-tasks.register("packageSlimCompilerDistTar", Tar) {
-    description = "Packages slim dist as a tar.gz archive (Linux/macOS)."
-    group = "distribution"
-    enabled = !os.isWindows()
-
-    dependsOn("assembleSlimCompilerDist")
-
-    from(distRoot)
-    destinationDirectory.set(releasesDir)
-    compression = Compression.GZIP
-    archiveExtension.set("tar.gz")
-    archiveFileName.set("wurst-compiler-${project.version}-${plat}.tar.gz")
-}
-
-// 4c) OS-aware convenience wrapper
+// OS-aware convenience wrapper now just points to ZIP
 tasks.register("packageSlimCompilerDist") {
-    description = "Packages slim dist for the current platform (zip on Windows, tar.gz elsewhere)."
+    description = "Packages slim dist for the current platform (ZIP on all OSes)."
     group = "distribution"
-    dependsOn(os.isWindows() ? "packageSlimCompilerDistZip" : "packageSlimCompilerDistTar")
+    dependsOn("packageSlimCompilerDistZip")
 }
 
-// 5) SHA-256 checksum for the packaged archive
-tasks.register("checksumSlimCompilerDist") {
-    description = "Writes SHA-256 alongside the packaged archive."
-    group = "distribution"
-    dependsOn("packageSlimCompilerDist")
-
-    outputs.upToDateWhen { false }
-
-    doLast {
-        def outDir = releasesDir.get().asFile
-        def expectedZip   = new File(outDir, "wurst-compiler-${project.version}-${plat}.zip")
-        def expectedTarGz = new File(outDir, "wurst-compiler-${project.version}-${plat}.tar.gz")
-        def archFile = expectedZip.exists() ? expectedZip : (expectedTarGz.exists() ? expectedTarGz : null)
-        if (archFile == null) throw new GradleException("Archive not found in ${outDir}")
-
-        def md = java.security.MessageDigest.getInstance("SHA-256")
-        archFile.withInputStream { is ->
-            byte[] buf = new byte[8192]
-            for (int r = is.read(buf); r != -1; r = is.read(buf)) {
-                md.update(buf, 0, r)
-            }
-        }
-        def hex = md.digest().collect { String.format("%02x", it) }.join()
-        def sumFile = new File(outDir, archFile.name + ".sha256")
-        sumFile.text = "${hex}  ${archFile.name}\n"
-
-        logger.lifecycle("[sha256] ${sumFile.name} -> ${hex}")
-        logger.lifecycle("[release] Upload: ${archFile.absolutePath}")
-    }
-}
 
 

@@ -79,7 +79,7 @@ jobs:
       # ---- FAIL FAST: package first (so jlink issues show immediately) ----
       - name: Package slim runtime (fail fast)
         shell: bash
-        run: ./gradlew checksumSlimCompilerDist --no-daemon --stacktrace
+        run: ./gradlew packageSlimCompilerDist --no-daemon --stacktrace
 
       - name: Run tests
         shell: bash
@@ -123,10 +123,9 @@ jobs:
         run: |
           shopt -s nullglob
           zips=(upload/*.zip)
-          tars=(upload/*.tar.gz)
           echo "Found ${#zips[@]} zip(s) and ${#tars[@]} tar.gz file(s)."
-          if (( ${#zips[@]} == 0 || ${#tars[@]} == 0 )); then
-            echo "ERROR: Expected both .zip (Windows) and .tar.gz (Linux) artifacts."
+          if (( ${#zips[@]} != 2 )); then
+            echo "ERROR: Expected both .zip (Windows) and .zip (Linux) artifacts."
             ls -alR upload || true
             exit 1
           fi
