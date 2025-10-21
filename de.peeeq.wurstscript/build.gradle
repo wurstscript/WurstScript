@@ -28,7 +28,7 @@ import java.util.regex.Pattern
 
 ext.mainClassName = "de.peeeq.wurstio.Main"
 
-version = "1.8.1.0"
+version = "1.9.0.0"
 
 java {
     toolchain {
@@ -97,10 +97,10 @@ dependencies {
     implementation 'org.apache.velocity:velocity:1.7'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'com.github.inwc3:jmpq3:29b55f2c32'
-    implementation 'com.github.inwc3:wc3libs:8a8fc98f3a'
+    implementation 'com.github.inwc3:wc3libs:bab65b961b'
     implementation 'com.github.wurstscript:wurstsetup:393cf5ea39'
-    implementation 'org.slf4j:slf4j-api:1.7.25'
-    implementation 'ch.qos.logback:logback-classic:1.5.13'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'ch.qos.logback:logback-classic:1.5.20'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
     implementation 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:6.7.0.202309050840-r'
     implementation 'it.unimi.dsi:fastutil:8.5.16'
