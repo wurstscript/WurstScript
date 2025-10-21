@@ -109,65 +109,89 @@ jobs:
         with:
           path: artifacts
 
-      # Copy only archives (skip .sha256 for nightly)
-      - name: Gather files (zip + tar.gz, no checksums)
+      - name: Gather files (zip only)
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p upload
-          find artifacts -type f \( -name '*.zip' -o -name '*.tar.gz' \) -print0 | xargs -0 -I{} cp "{}" upload/
+          find artifacts -type f -name '*.zip' -print0 | xargs -0 -I{} cp "{}" upload/
 
-      # Ensure both Windows (.zip) and Linux (.tar.gz) exist
-      - name: Verify we have both archive types
+      - name: Verify we have both platform zips
         shell: bash
         run: |
           shopt -s nullglob
           zips=(upload/*.zip)
-          echo "Found ${#zips[@]} zip(s) and ${#tars[@]} tar.gz file(s)."
-          if (( ${#zips[@]} != 2 )); then
-            echo "ERROR: Expected both .zip (Windows) and .zip (Linux) artifacts."
-            ls -alR upload || true
+          echo "Found ${#zips[@]} zip(s):"; ls -alh upload
+          if (( ${#zips[@]} < 2 )); then
+            echo "ERROR: expected at least Win + Linux zips."
             exit 1
           fi
-
-      # Rename artifacts: replace ONLY the version token between hyphens with 'nightly', keep platform + extension
-      - name: Normalize nightly filenames (preserve platform + extension)
+      - name: Normalize nightly filenames
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          for f in upload/*; do
+          for f in upload/*.zip; do
             base="$(basename "$f")"
-            ext=""; stem="$base"
-            if [[ "$base" == *.* ]]; then
-              ext=".${base##*.}"        # extension incl. dot
-              stem="${base%.*}"         # name without extension
-            fi
-            # Replace the first hyphen-delimited numeric version token with 'nightly'
-            # Example: wurst-compiler-1.8.1.0-linux-x64 -> wurst-compiler-nightly-linux-x64
+            stem="${base%.zip}"
             new_stem="$(echo "$stem" | sed -E 's/-[0-9]+(\.[0-9]+)*-/-nightly-/' )"
-            new="${new_stem}${ext}"
-            if [[ "$base" != "$new" ]]; then
-              mv -f "upload/$base" "upload/$new"
-            fi
+            new="upload/${new_stem}.zip"
+            if [[ "upload/$base" != "$new" ]]; then mv -f "upload/$base" "$new"; fi
           done
-          echo "After rename:"
-          ls -alh upload
+          echo "Renamed to:"; ls -alh upload
 
-      - name: Publish Nightly Release (rolling 'nightly' tag)
+      # Delete old release + tag, then create a fresh one at HEAD
+      - name: Recreate nightly release and tag at HEAD
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = 'nightly';
+
+            // Delete existing release (if any)
+            try {
+              const rel = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              await github.rest.repos.deleteRelease({ owner, repo, release_id: rel.data.id });
+              core.info(`Deleted release id=${rel.data.id}`);
+            } catch (e) {
+              core.info(`No previous release to delete: ${e.message}`);
+            }
+
+            // Delete tag (if any)
+            try {
+              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
+              core.info('Deleted ref tags/nightly');
+            } catch (e) {
+              core.info(`No existing tag to delete: ${e.message}`);
+            }
+
+            // Create fresh prerelease at the current commit
+            const { data: rel2 } = await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: tag,
+              target_commitish: context.sha,
+              name: 'Nightly Build (master)',
+              body: 'Nightly build for the latest commit on `master`.\nThis release is automatically updated on each push.',
+              draft: false,
+              prerelease: true,
+              make_latest: 'false'  // MUST be a string
+            });
+            core.setOutput('upload_url', rel2.upload_url);
+
+      - name: Publish Nightly Release (upload assets)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
-          name: Nightly Build (master)
+          target_commitish: ${{ github.sha }}
           prerelease: true
           draft: false
-          make_latest: false
-          generate_release_notes: false
+          make_latest: "false"  # keep as string here too
+          name: Nightly Build (master)
           body: |
             Nightly build for the latest commit on `master`.
-            This release is automatically updated in-place (same tag).
-          files: |
-            upload/**
+            This release is automatically updated on each push.
+          files: upload/**
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
