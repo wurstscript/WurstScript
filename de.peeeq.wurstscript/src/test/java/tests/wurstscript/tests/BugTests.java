@@ -1539,5 +1539,33 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void iteratorManualType() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import Printing",
+            "import LinkedListModule",
+            "class A",
+            "    use LinkedListModule",
+            "    string s",
+            "init",
+            "    A a1 = new A()",
+            "    a1.s = \"hello\"",
+            "    A a2 = new A()",
+            "    a2.s = \"world\"",
+            "    int itrCount = 0",
+            "    let itr = A.iterator()",
+            "    while itr.hasNext()",
+            "        let a = itr.next()",
+            "        itrCount += 1",
+            "        print(a.s)",
+            "    itr.close()",
+            "    if itrCount == 2",
+            "        testSuccess()",
+            "endpackage"
+
+            );
+    }
+
 
 }
