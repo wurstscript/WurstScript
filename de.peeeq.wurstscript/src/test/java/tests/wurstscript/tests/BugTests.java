@@ -1636,5 +1636,49 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void linkedListModule_perClassStatics_andTyping_ok() {
+        testAssertOkLinesWithStdLib(true,
+            "package Test",
+            "import LinkedListModule",
+            "",
+            "native println(string s)",
+            "",
+            "class A",
+            "    use LinkedListModule",
+            "",
+            "class B extends A",
+            "    use LinkedListModule",
+            "",
+            "class C extends A",
+            "",
+            "class D extends C",
+            "    use LinkedListModule",
+            "",
+            "function doSmth()",
+            "    // Iteration should compile for any class that uses LinkedListModule:",
+            "    for a in A",
+            "        // ok: iterates A list",
+            "    for b in B",
+            "        // ok: iterates B list (distinct from A)",
+            "",
+            "    // Accessing class statics should be typed to that concrete class:",
+            "    B b2 = B.first        // must typecheck as B, not A",
+            "    A a2 = A.first        // must typecheck as A",
+            "",
+            "    // D extends C but only D uses the module; typing must be D:",
+            "    var d = D.first       // type D",
+            "    while d != null",
+            "        d = d.next        // type D",
+            "",
+            "init",
+            "    // We don’t rely on runtime behavior here—this test targets typing/name resolution.",
+            "    // If all lines above typecheck and run, we count it as success:",
+            "    doSmth()",
+            "    testSuccess()"
+        );
+    }
+
+
 
 }

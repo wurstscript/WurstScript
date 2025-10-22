@@ -267,37 +267,148 @@ public class NameResolution {
             scope = nextScope(scope);
         }
 
+        DefLinkMatch bestMatch = null;
+
         for (WScope s : scopes) {
             Collection<DefLink> links = s.attrNameLinks().get(name);
             if (links.isEmpty()) continue;
 
-            for (DefLink n : links) {
-                if (!(n instanceof VarLink)) {
-                    continue;
-                }
-                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
-                if (n2 != null) {
-                    if (!showErrors) {
-                        GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
-                        GlobalCaches.lookupCache.put(key, n2);
+            DefLinkMatch candidate = findBestMemberVarMatch(links, receiverType, node, showErrors);
+            if (candidate != null) {
+                if (bestMatch == null || candidate.distance < bestMatch.distance) {
+                    bestMatch = candidate;
+                    if (bestMatch.distance == 0) {
+                        break;
                     }
-                    return n2;
                 }
             }
         }
 
+        if (bestMatch != null) {
+            if (!showErrors) {
+                GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+                GlobalCaches.lookupCache.put(key, bestMatch.link);
+            }
+            return bestMatch.link;
+        }
+
         if (receiverType instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
-            for (DefLink n : ct.nameLinks().get(name)) {
-                if (n instanceof VarLink || n instanceof TypeDefLink) {
-                    if (n.getVisibility().isPublic()) {
-                        return n;
-                    }
+            Collection<DefLink> typeNameLinks = ct.nameLinks().get(name);
+            DefLinkMatch candidate = findBestMemberVarMatch(typeNameLinks, receiverType, node, showErrors);
+            if (candidate != null && candidate.link.getVisibility().isPublic()) {
+                return candidate.link;
+            }
+            for (DefLink n : typeNameLinks) {
+                if (n instanceof TypeDefLink && n.getVisibility().isPublic()) {
+                    return n;
                 }
             }
         }
 
         return null;
+    }
+
+    private static @Nullable DefLinkMatch findBestMemberVarMatch(Collection<DefLink> links, WurstType receiverType, Element node, boolean showErrors) {
+        DefLink bestLink = null;
+        int bestDistance = Integer.MAX_VALUE;
+
+        for (DefLink n : links) {
+            if (!(n instanceof VarLink)) {
+                continue;
+            }
+            DefLink matched = matchDefLinkReceiver(n, receiverType, node, showErrors);
+            if (matched == null) {
+                continue;
+            }
+            int distance = receiverDistance(receiverType, matched.getReceiverType(), node);
+            if (distance < bestDistance) {
+                bestLink = matched;
+                bestDistance = distance;
+                if (distance == 0) {
+                    break;
+                }
+            }
+        }
+
+        if (bestLink == null) {
+            return null;
+        }
+        return new DefLinkMatch(bestLink, bestDistance);
+    }
+
+    private static int receiverDistance(WurstType receiverType, @Nullable WurstType candidateType, Element node) {
+        if (candidateType == null) {
+            return Integer.MAX_VALUE;
+        }
+
+        if (receiverType.equalsType(candidateType, node)) {
+            return 0;
+        }
+
+        ClassDef receiverClass = owningClass(receiverType);
+        ClassDef candidateClass = owningClass(candidateType);
+        if (receiverClass != null && candidateClass != null) {
+            int distance = inheritanceDistance(receiverClass, candidateClass);
+            if (distance >= 0) {
+                return distance;
+            }
+        }
+
+        return Integer.MAX_VALUE / 2;
+    }
+
+    private static int inheritanceDistance(ClassDef start, ClassDef target) {
+        int distance = 0;
+        ClassDef current = start;
+        while (current != null) {
+            if (current == target) {
+                return distance;
+            }
+            OptTypeExpr extended = current.getExtendedClass();
+            if (!(extended instanceof TypeExpr)) {
+                break;
+            }
+            WurstType extendedType = ((TypeExpr) extended).attrTyp();
+            if (!(extendedType instanceof WurstTypeClass)) {
+                break;
+            }
+            current = ((WurstTypeClass) extendedType).getClassDef();
+            distance++;
+        }
+        return -1;
+    }
+
+    private static @Nullable ClassDef owningClass(WurstType type) {
+        if (type instanceof WurstTypeClass) {
+            return ((WurstTypeClass) type).getClassDef();
+        }
+        if (type instanceof WurstTypeClassOrInterface) {
+            ClassOrInterface def = ((WurstTypeClassOrInterface) type).getDef();
+            if (def instanceof ClassDef) {
+                return (ClassDef) def;
+            }
+            return null;
+        }
+        if (type instanceof WurstTypeModuleInstanciation) {
+            NamedScope inst = ((WurstTypeModuleInstanciation) type).getDef();
+            return inst.attrNearestClassDef();
+        }
+        if (type instanceof WurstTypeModule) {
+            ModuleDef moduleDef = ((WurstTypeModule) type).getDef();
+            return moduleDef.attrNearestClassDef();
+        }
+        return null;
+    }
+
+    private static final class DefLinkMatch {
+        private final DefLink link;
+        private final int distance;
+
+        private DefLinkMatch(DefLink link, int distance) {
+            this.link = link;
+            this.distance = distance;
+        }
     }
 
     public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
@@ -312,7 +423,7 @@ public class NameResolution {
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
                 node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
+            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER && !receiverType.isSubtypeOf(n_receiverType, node)) {
                 node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
             }
         }
@@ -338,6 +449,7 @@ public class NameResolution {
             scopes.add(scope);
             scope = nextScope(scope);
         }
+
 
         for (WScope s : scopes) {
             ImmutableCollection<TypeLink> links = s.attrTypeNameLinks().get(name);
