@@ -423,7 +423,7 @@ public class NameResolution {
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
                 node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
+            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER && !receiverType.isSubtypeOf(n_receiverType, node)) {
                 node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
             }
         }
