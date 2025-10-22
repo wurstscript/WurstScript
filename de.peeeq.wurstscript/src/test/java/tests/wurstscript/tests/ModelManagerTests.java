@@ -683,21 +683,16 @@ public class ModelManagerTests {
         ModelManager.Changes changes = manager.syncCompilationUnitContent(fileHello, pkgHello + "\n// touch");
         manager.reconcile(changes);
         assertEquals(diags.get(fileHello), "", "reconcile after harmless edit must be clean");
-        GlobalCaches.printStats();
 
         // --- First RunMap-like compile on SAME model ---
         touchWar3mapJ(manager, fileWar3mapJ, " // pass 1");
         runRunmapLikeCompile_Closer(projectFolder, manager);
         assertLocalAIsClassA(manager.getCompilationUnit(fileHello));
 
-        GlobalCaches.printStats();
-
         // --- Second RunMap-like compile (caches should not corrupt resolution) ---
         touchWar3mapJ(manager, fileWar3mapJ, " // pass 2");
         runRunmapLikeCompile_Closer(projectFolder, manager);
         assertLocalAIsClassA(manager.getCompilationUnit(fileHello));
-
-        GlobalCaches.printStats();
     }
 
 

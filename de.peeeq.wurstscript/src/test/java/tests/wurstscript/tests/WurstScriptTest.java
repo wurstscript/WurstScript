@@ -205,13 +205,10 @@ public class WurstScriptTest {
 
             // translate with different options:
             testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
-            GlobalCaches.printStats();
 
             testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
-            GlobalCaches.printStats();
 
             testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
-            GlobalCaches.printStats();
 
             testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 

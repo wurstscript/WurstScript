@@ -79,7 +79,6 @@ public class RealWorldExamples extends WurstScriptTest {
     @Test
     public void setFrottyBugKnockbackNull() throws IOException {
         super.testAssertOkFileWithStdLib(new File(TEST_DIR + "knockback.wurst"), false);
-        GlobalCaches.printStats();
     }
 
     @Test
@@ -156,8 +155,6 @@ public class RealWorldExamples extends WurstScriptTest {
                 .withInputFiles(inputs)
                 .run()
                 .getModel();
-
-        GlobalCaches.printStats();
 
     }
 
