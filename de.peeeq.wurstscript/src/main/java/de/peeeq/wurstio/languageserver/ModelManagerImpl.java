@@ -629,7 +629,6 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void reconcile(Changes changes) {
-        GlobalCaches.clearAll();
         WurstModel model2 = model;
         if (model2 == null) {
             return;

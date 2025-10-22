@@ -6,6 +6,7 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 

@@ -1,13 +1,22 @@
 package tests.wurstscript.tests;
 
 import com.google.common.collect.ImmutableSet;
+import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.utils.FileUtils;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.hamcrest.CoreMatchers;
@@ -20,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -249,7 +259,7 @@ public class ModelManagerTests {
             results.put(WFile.create(res.getUri()), errors);
 
             for (Diagnostic err : res.getDiagnostics()) {
-                System.out.println("   " + err.getSeverity() + " in " + res.getUri() + ", line " + err.getRange().getStart().getLine()  + "\n     " + err.getMessage());
+                System.out.println("   " + err.getSeverity() + " in " + res.getUri() + ", line " + err.getRange().getStart().getLine() + "\n     " + err.getMessage());
             }
         });
         return results;
@@ -586,6 +596,223 @@ public class ModelManagerTests {
         assertThat(errors.get(fileT1), CoreMatchers.containsString("Reference to function foo could not be resolved."));
         assertThat(errors.get(fileT1), CoreMatchers.containsString("extraneous input '(' expecting NL"));
     }
+
+    @Test
+    public void runmapLikePipeline_cacheRegression_closerToRunMap() throws Exception {
+        File projectFolder = new File("./temp/testProject_runmap_like_real/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        // --- Minimal LinkedList-style module ---
+        String pkgLinkedList = string(
+            "package LinkedListModule",
+            "public module LinkedListModule",
+            "    static function iterator() returns Iterator",
+            "        return new Iterator()",
+            "    static class Iterator",
+            "        LinkedListModule.thistype current = null",
+            "        function hasNext() returns boolean",
+            "            return false",
+            "        function next() returns LinkedListModule.thistype",
+            "            return current",
+            "        function close()",
+            "            destroy this"
+        );
+
+        // --- Minimal string iterator stub to create competing iterator symbol ---
+        String pkgStrIter = string(
+            "package StrIter",
+            "public function string.iterator() returns StringIterator",
+            "    return new StringIterator(this)",
+            "public class StringIterator",
+            "    string str",
+            "    construct(string s)",
+            "        this.str = s",
+            "    function hasNext() returns boolean",
+            "        return false",
+            "    function next() returns string",
+            "        return \"\"",
+            "    function close()",
+            "        destroy this"
+        );
+
+        // --- Reproducer using both packages ---
+        String pkgHello = string(
+            "package Hello",
+            "import LinkedListModule",
+            "import StrIter",
+            "",
+            "class A",
+            "    use LinkedListModule",
+            "",
+            "init",
+            "    let itr = A.iterator()",
+            "    while itr.hasNext()",
+            "        let a = itr.next()",
+            "        destroy a",
+            "    itr.close()",
+            "    let s = \"hello\".iterator()",
+            "    while s.hasNext()",
+            "        BJDebugMsg(s.next())",
+            "    s.close()"
+        );
+
+        // A tiny JASS file so purge logic and JASS transform path look more like RunMap’s environment:
+        String jass = "globals\nendglobals\n// war3map.j placeholder";
+
+        WFile fileLinkedList = WFile.create(new File(wurstFolder, "LinkedListModule.wurst"));
+        WFile fileStrIter    = WFile.create(new File(wurstFolder, "StrIter.wurst"));
+        WFile fileHello      = WFile.create(new File(wurstFolder, "Hello.wurst"));
+        WFile fileWurst      = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileWar3mapJ   = WFile.create(new File(wurstFolder, "war3map.j"));
+
+        writeFile(fileLinkedList, pkgLinkedList);
+        writeFile(fileStrIter,    pkgStrIter);
+        writeFile(fileHello,      pkgHello);
+        writeFile(fileWurst,      "package Wurst\n");
+        writeFile(fileWar3mapJ,   jass);
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> diags = keepErrorsInMap(manager);
+
+        // Baseline build (matches "no IDE errors")
+        manager.buildProject();
+        assertEquals(diags.get(fileHello), "", "initial build must be clean");
+
+        // VSCode-like reconcile touch:
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileHello, pkgHello + "\n// touch");
+        manager.reconcile(changes);
+        assertEquals(diags.get(fileHello), "", "reconcile after harmless edit must be clean");
+
+        // --- First RunMap-like compile on SAME model ---
+        touchWar3mapJ(manager, fileWar3mapJ, " // pass 1");
+        runRunmapLikeCompile_Closer(projectFolder, manager);
+        assertLocalAIsClassA(manager.getCompilationUnit(fileHello));
+
+        // --- Second RunMap-like compile (caches should not corrupt resolution) ---
+        touchWar3mapJ(manager, fileWar3mapJ, " // pass 2");
+        runRunmapLikeCompile_Closer(projectFolder, manager);
+        assertLocalAIsClassA(manager.getCompilationUnit(fileHello));
+    }
+
+
+    /** Simulate RunMap.replaceBaseScriptWithConfig(..): rewrite war3map.j inside the SAME model. */
+    private void touchWar3mapJ(ModelManagerImpl manager, WFile war3map, String suffix) throws IOException {
+        String content = "globals\nendglobals\n// war3map.j placeholder" + suffix + "\n";
+        manager.syncCompilationUnitContent(war3map, content);
+    }
+
+    /** Run a RunMap-like compile on the SAME model: purge imports, check → IM, then JASS transform. */
+    private void runRunmapLikeCompile_Closer(File projectFolder, ModelManagerImpl manager) {
+        WurstGui gui = new WurstGuiLogger();
+        TimeTaker time = new TimeTaker.Default();
+        WurstCompilerJassImpl compiler =
+            new WurstCompilerJassImpl(time, projectFolder, gui, null, new RunArgs(java.util.Collections.emptyList()));
+
+        WurstModel model = manager.getModel();
+
+        // 2) Check program
+        gui.sendProgress("Check program");
+        compiler.checkProg(model);
+        if (gui.getErrorCount() > 0) {
+            throw new AssertionError("RunMap-like checkProg reported errors: " + gui.getErrorList());
+        }
+
+        // 3) Translate to IM
+        compiler.translateProgToIm(model);
+        if (gui.getErrorCount() > 0) {
+            throw new AssertionError("RunMap-like translateProgToIm reported errors: " + gui.getErrorList());
+        }
+
+        // 4) (Optional but closer to reality) Transform to JASS
+        compiler.transformProgToJass();
+        // We don't run PJass here; just exercising additional phases & caches.
+    }
+
+    /** Same as MapRequest.purgeUnimportedFiles: keep wurst-folder CUs and any imported transitively, plus .j files. */
+    private void purgeUnimportedFiles_likeRunMap(WurstModel model, ModelManagerImpl manager) {
+        // Seed: files inside project root (wurst folder) OR .j files.
+        java.util.Set<CompilationUnit> keep = model.stream()
+            .filter(cu -> isInWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager) || cu.getCuInfo().getFile().endsWith(".j"))
+            .collect(java.util.stream.Collectors.toSet());
+
+        // Recursively add imported packages’ CUs (uses attrImportedPackage like RunMap)
+        addImports_likeRunMap(keep, keep);
+        model.removeIf(cu -> !keep.contains(cu));
+    }
+
+    private boolean isInWurstFolder_likeRunMap(String file, ModelManagerImpl manager) {
+        java.nio.file.Path p = java.nio.file.Paths.get(file);
+        java.nio.file.Path w = manager.getProjectPath().toPath(); // project root
+        return p.startsWith(w)
+            && java.nio.file.Files.exists(p)
+            && Utils.isWurstFile(file);
+    }
+
+    private void addImports_likeRunMap(java.util.Set<CompilationUnit> result, java.util.Set<CompilationUnit> toAdd) {
+        java.util.Set<CompilationUnit> imported =
+            toAdd.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .flatMap(p -> p.getImports().stream())
+                .map(WImport::attrImportedPackage)
+                .filter(java.util.Objects::nonNull)
+                .map(WPackage::attrCompilationUnit)
+                .collect(java.util.stream.Collectors.toSet());
+        boolean changed = result.addAll(imported);
+        if (changed) addImports_likeRunMap(result, imported);
+    }
+
+    /** Assert that 'let a = itr.next()' has type A and that next() returns A. */
+    private void assertLocalAIsClassA(CompilationUnit cu) {
+        final AtomicBoolean checked = new AtomicBoolean(false);
+        final AtomicBoolean didFindA = new AtomicBoolean(false);
+        final AtomicBoolean didFindString = new AtomicBoolean(false);
+
+        cu.accept(new Element.DefaultVisitor() {
+            @Override public void visit(LocalVarDef l) {
+                if (!"a".equals(l.getNameId().getName())) { super.visit(l); return; }
+
+                VarInitialization init = l.getInitialExpr();
+                if (init == null) throw new AssertionError("local 'a' has no initializer");
+
+                if (init instanceof ExprMemberMethod) {
+                    WurstType t = ((ExprMemberMethod) init).attrTyp();
+                    if (t instanceof WurstTypeClass) {
+                        String cname = ((WurstTypeClass) t).getClassDef().getName();
+                        assertEquals(cname, "A", "Expected local 'a' to be of class A");
+                    } else {
+                        throw new AssertionError("Expected class type for 'a', but got: " + t);
+                    }
+                }
+
+                checked.set(true);
+                super.visit(l);
+            }
+
+            @Override public void visit(ExprMemberMethodDot call) {
+                if ("next".equals(call.getFuncName())) {
+                    WurstType rt = call.attrTyp();
+                    if (rt instanceof WurstTypeClass) {
+                        String cname = ((WurstTypeClass) rt).getClassDef().getName();
+                        assertEquals(cname, "A", "next() must return A");
+                        didFindA.set(true);
+                    } else if (rt instanceof WurstTypeString) {
+                        String cname = ((WurstTypeString) rt).getName();
+                        assertEquals(cname, "string", "next() must return string");
+                        didFindString.set(true);
+                    } else {
+                        throw new AssertionError("next() must return class A or string, but was: " + rt);
+                    }
+                }
+                super.visit(call);
+            }
+        });
+
+        if (!checked.get()) throw new AssertionError("Did not find local var 'a' to assert.");
+        if (!didFindA.get()) throw new AssertionError("Did not find call to next() returning class A.");
+        if (!didFindString.get()) throw new AssertionError("Did not find call to next() returning string.");
+    }
+
 
 
 }

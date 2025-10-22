@@ -9,33 +9,37 @@ public final class AttrModuleInstanciations {
     private AttrModuleInstanciations() {}
 
     public static @Nullable ModuleDef getModuleOrigin(ModuleInstanciation mi) {
-        // NOTE: For ModuleInstanciation the "name" used for resolution has historically been getName().
-        // Keep this to preserve prior behavior.
+        // A ModuleInstanciation's parent is always ModuleInstanciations (the list),
+        // whose parent is either a ClassDef or a ModuleDef.
+        // We must resolve the module name through that owner's scope.
+
         final String name = mi.getName();
 
-        // 1) Normal path: resolve relative to the lexical parent (old behavior)
-        final Element parent = mi.getParent();
-        if (parent != null) {
-            TypeDef def = parent.lookupType(name, /*showErrors*/ false);
-            if (def instanceof ModuleDef) {
-                return (ModuleDef) def;
-            }
-            // Attached but not found -> keep the old error
-            mi.addError("Could not find module origin for " + Utils.printElement(mi));
+        Element parent = mi.getParent(); // This is ModuleInstanciations (plural)
+        if (parent == null) {
+            // Detached node during incremental compilation - this is transient.
+            // Don't emit errors; return null and let the next full pass resolve it.
             return null;
         }
 
-        // 2) Detached during incremental build: try the nearest attached scope
-        final WScope scope = mi.attrNearestScope();
-        if (scope != null) {
-            TypeDef def = scope.lookupType(name, /*showErrors*/ false);
-            if (def instanceof ModuleDef) {
-                return (ModuleDef) def;
-            }
+        // Get the actual owner (ClassDef or ModuleDef)
+        Element owner = parent.getParent();
+        if (owner == null) {
+            // Still detached at the owner level
+            return null;
         }
 
-        // 3) Still not found and we're detached: this can be a transient state,
-        // so don't emit an error here. Return null and let callers handle gracefully.
+        // Resolve through the owner's scope
+        TypeDef def = owner.lookupType(name, /*showErrors*/ false);
+        if (def instanceof ModuleDef) {
+            return (ModuleDef) def;
+        }
+
+        // Only emit error if we're fully attached (not in a transient state)
+        if (mi.getModel() != null) {
+            mi.addError("Could not find module origin for " + Utils.printElement(mi));
+        }
+
         return null;
     }
 }
