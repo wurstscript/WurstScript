@@ -179,11 +179,6 @@ public class AttrPossibleFunctionSignatures {
             if (recv != null) {
                 VariableBinding m = leftType.matchAgainstSupertype(
                     recv, mm, sig.getMapping(), VariablePosition.RIGHT);
-//                if (m == null) {
-//                    // Should not happen; lookupMemberFuncs already checked. Skip defensively.
-//                    continue;
-//                }
-//                sig = sig.setTypeArgs(mm, m);
 
                 // IMPORTANT:
                 // For members injected via `use module`, the receiver can be a synthetic/module `thistype`
