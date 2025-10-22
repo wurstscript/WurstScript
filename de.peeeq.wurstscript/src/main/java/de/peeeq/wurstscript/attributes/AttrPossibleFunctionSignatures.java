@@ -179,11 +179,19 @@ public class AttrPossibleFunctionSignatures {
             if (recv != null) {
                 VariableBinding m = leftType.matchAgainstSupertype(
                     recv, mm, sig.getMapping(), VariablePosition.RIGHT);
-                if (m == null) {
-                    // Should not happen; lookupMemberFuncs already checked. Skip defensively.
-                    continue;
+//                if (m == null) {
+//                    // Should not happen; lookupMemberFuncs already checked. Skip defensively.
+//                    continue;
+//                }
+//                sig = sig.setTypeArgs(mm, m);
+
+                // IMPORTANT:
+                // For members injected via `use module`, the receiver can be a synthetic/module `thistype`
+                // that is not directly comparable here (especially during incremental builds).
+                // Do NOT drop the candidate if binding fails; keep it and let arg matching rank it later.
+                if (m != null) {
+                    sig = sig.setTypeArgs(mm, m);
                 }
-                sig = sig.setTypeArgs(mm, m);
             }
 
             // Apply explicit type args from the call-site (e.g., c.foo<T,...>(...))

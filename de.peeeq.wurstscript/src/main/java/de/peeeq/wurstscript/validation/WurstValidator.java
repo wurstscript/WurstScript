@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
-import static de.peeeq.wurstscript.validation.GlobalCaches.SUBTYPE_MEMO;
 
 /**
  * this class validates a wurstscript program
@@ -65,7 +64,7 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
-            SUBTYPE_MEMO.clear();
+            GlobalCaches.clearAll();
 
             lightValidation(toCheck);
 
@@ -1614,26 +1613,12 @@ public class WurstValidator {
         return false;
     }
 
-    private static boolean isSubtypeCached(WurstType actual, WurstType expected, Annotation site) {
+    private static boolean isSubtypeCached(WurstType actual, WurstType expected, Element site) {
+        // Fast paths first
         if (actual == expected) return true;
-        // quick structural equality before expensive check
         if (actual.equalsType(expected, site)) return true;
 
-        Reference2BooleanOpenHashMap<WurstType> inner = SUBTYPE_MEMO.get(actual);
-        if (inner != null && inner.containsKey(expected)) {
-            return inner.getBoolean(expected);
-        }
-
-        boolean res = actual.isSubtypeOf(expected, site);
-
-        if (inner == null) {
-            inner = new Reference2BooleanOpenHashMap<>();
-            SUBTYPE_MEMO.put(actual, inner);
-        }
-        if (!inner.containsKey(expected)) {
-            inner.put(expected, res);
-        }
-        return res;
+        return actual.isSubtypeOf(expected, site);
     }
 
     private void checkAnnotation(Annotation a) {

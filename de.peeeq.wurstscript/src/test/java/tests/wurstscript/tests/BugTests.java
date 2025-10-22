@@ -10,6 +10,8 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static de.peeeq.wurstscript.utils.Utils.string;
+
 public class BugTests extends WurstScriptTest {
     private static final String TEST_DIR = "./testscripts/concept/";
 
@@ -1565,6 +1567,73 @@ public class BugTests extends WurstScriptTest {
             "endpackage"
 
             );
+    }
+
+    @Test
+    public void moduleInOtherPackage() {
+        String pkgLinkedList = string(
+            "package LinkedListModule",
+            "public module LinkedListModule",
+            "    static function iterator() returns Iterator",
+            "        return new Iterator()",
+            "    static class Iterator",
+            "        LinkedListModule.thistype current = null",
+            "        function hasNext() returns boolean",
+            "            return false",
+            "        function next() returns LinkedListModule.thistype",
+            "            return current",
+            "        function close()",
+            "            destroy this",
+            "endpackage"
+        );
+
+        // --- Minimal string iterator stub to create competing iterator symbol ---
+        String pkgStrIter = string(
+            "package StrIter",
+            "public function string.iterator() returns StringIterator",
+            "    return new StringIterator(this)",
+            "public class StringIterator",
+            "    string str",
+            "    construct(string s)",
+            "        this.str = s",
+            "    function hasNext() returns boolean",
+            "        return false",
+            "    function next() returns string",
+            "        return \"\"",
+            "    function close()",
+            "        destroy this",
+            "endpackage"
+        );
+
+        // --- Reproducer using both packages ---
+        String pkgHello = string(
+            "package Hello",
+            "import LinkedListModule",
+            "import StrIter",
+            "native print(string s)",
+            "native testSuccess()",
+            "",
+            "class A",
+            "    use LinkedListModule",
+            "",
+            "init",
+            "    let itr = A.iterator()",
+            "    while itr.hasNext()",
+            "        let a = itr.next()",
+            "        destroy a",
+            "    itr.close()",
+            "    let s = \"hello\".iterator()",
+            "    while s.hasNext()",
+            "        print(s.next())",
+            "    s.close()",
+            "    testSuccess()",
+            "endpackage"
+        );
+        testAssertOkLines(true,
+            pkgLinkedList,
+            pkgStrIter,
+            pkgHello
+        );
     }
 
 

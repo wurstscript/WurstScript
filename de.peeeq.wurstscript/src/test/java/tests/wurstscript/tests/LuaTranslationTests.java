@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 

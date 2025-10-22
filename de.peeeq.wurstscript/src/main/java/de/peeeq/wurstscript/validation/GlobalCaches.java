@@ -1,20 +1,57 @@
 package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.attributes.names.NameResolution;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
-import de.peeeq.wurstscript.types.WurstType;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 // Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
 public final class GlobalCaches {
+
+    // Statistics tracking
+    public static class CacheStats {
+        final AtomicLong hits = new AtomicLong();
+        final AtomicLong misses = new AtomicLong();
+        final AtomicLong evictions = new AtomicLong();
+        final String name;
+
+        CacheStats(String name) {
+            this.name = name;
+        }
+
+        void recordHit() {
+            hits.incrementAndGet();
+        }
+
+        void recordMiss() {
+            misses.incrementAndGet();
+        }
+
+        void recordEviction(int count) {
+            evictions.addAndGet(count);
+        }
+
+        double hitRate() {
+            long h = hits.get();
+            long m = misses.get();
+            long total = h + m;
+            return total == 0 ? 0.0 : (double) h / total;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s: hits=%d, misses=%d, hitRate=%.2f%%, evictions=%d",
+                name, hits.get(), misses.get(), hitRate() * 100, evictions.get());
+        }
+    }
+
+    private static final CacheStats lookupStats = new CacheStats("LookupCache");
+    private static final CacheStats localStateStats = new CacheStats("LocalStateCache");
+
     // Optimized ArgumentKey that minimizes allocation overhead
     public static final class ArgumentKey {
         private final ILconst[] args;
@@ -48,21 +85,48 @@ public final class GlobalCaches {
         }
     }
 
-    public enum Mode { TEST_ISOLATED, DEV_PERSISTENT }
+    public enum Mode {TEST_ISOLATED, DEV_PERSISTENT}
+
     private static volatile Mode mode = Mode.DEV_PERSISTENT;
 
-    public static void setMode(Mode m) { mode = m; }
-    public static Mode mode() { return mode; }
+    public static void setMode(Mode m) {
+        mode = m;
+    }
 
-    private GlobalCaches() {}
+    public static Mode mode() {
+        return mode;
+    }
 
-    public static final Object2ObjectOpenHashMap<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>> LOCAL_STATE_CACHE = new Object2ObjectOpenHashMap<>();
-    public static final Reference2ObjectOpenHashMap<WurstType, Reference2BooleanOpenHashMap<WurstType>> SUBTYPE_MEMO = new Reference2ObjectOpenHashMap<>();
+    private GlobalCaches() {
+    }
 
-    /** Call this between tests (and after each compile) */
+    // Wrapped caches with statistics
+    public static final Object2ObjectOpenHashMap<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>> LOCAL_STATE_CACHE =
+        new Object2ObjectOpenHashMap<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>>() {
+            @Override
+            public Object2ObjectOpenHashMap<ArgumentKey, LocalState> get(Object key) {
+                Object2ObjectOpenHashMap<ArgumentKey, LocalState> result = super.get(key);
+                if (result != null) {
+                    localStateStats.recordHit();
+                } else {
+                    localStateStats.recordMiss();
+                }
+                return result;
+            }
+
+            @Override
+            public void clear() {
+                localStateStats.recordEviction(size());
+                super.clear();
+            }
+        };
+
+
+    /**
+     * Call this between tests (and after each compile)
+     */
     public static void clearAll() {
         LOCAL_STATE_CACHE.clear();
-        SUBTYPE_MEMO.clear();
         lookupCache.clear();
     }
 
@@ -95,5 +159,59 @@ public final class GlobalCaches {
         }
     }
 
-    public static final Map<CacheKey, Object> lookupCache = new Object2ObjectOpenHashMap<>();
+    public static final Map<CacheKey, Object> lookupCache = new Object2ObjectOpenHashMap<CacheKey, Object>() {
+        @Override
+        public Object get(Object key) {
+            Object result = super.get(key);
+            if (result != null) {
+                lookupStats.recordHit();
+            } else {
+                lookupStats.recordMiss();
+            }
+            return result;
+        }
+
+        @Override
+        public Object put(CacheKey key, Object value) {
+            // Note: put returns old value, null if new entry
+            Object old = super.put(key, value);
+            if (old == null) {
+                // New entry, the miss was already recorded in get()
+            }
+            return old;
+        }
+
+        @Override
+        public void clear() {
+            lookupStats.recordEviction(size());
+            super.clear();
+        }
+    };
+
+    // Statistics methods
+    public static void printStats() {
+        System.out.println("=== GlobalCaches Statistics ===");
+        System.out.println(lookupStats);
+        System.out.println(localStateStats);
+        System.out.println("Current sizes: lookup=" + lookupCache.size() +
+            ", localState=" + LOCAL_STATE_CACHE.size());
+        System.out.println("==============================");
+    }
+
+    public static void resetStats() {
+        lookupStats.hits.set(0);
+        lookupStats.misses.set(0);
+        lookupStats.evictions.set(0);
+        localStateStats.hits.set(0);
+        localStateStats.misses.set(0);
+        localStateStats.evictions.set(0);
+    }
+
+    public static CacheStats getLookupStats() {
+        return lookupStats;
+    }
+
+    public static CacheStats getLocalStateStats() {
+        return localStateStats;
+    }
 }

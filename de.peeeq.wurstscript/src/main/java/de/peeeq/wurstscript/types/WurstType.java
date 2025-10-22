@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
