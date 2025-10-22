@@ -1462,7 +1462,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void callingDestroyThisInConstructor() {
-        testAssertErrorsLines(false, "Cannot destroy 'this' in constructor",
+        testAssertWarningsLines(false, "Should not destroy 'this' in constructor",
             "package test",
             "native testSuccess()",
             "class A",
