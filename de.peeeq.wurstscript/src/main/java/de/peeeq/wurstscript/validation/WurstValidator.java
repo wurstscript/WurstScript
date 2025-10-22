@@ -1850,8 +1850,7 @@ public class WurstValidator {
     private void visit(ExprDestroy stmtDestroy) {
         if (stmtDestroy.getDestroyedObj() instanceof ExprThis) {
             if (isInConstructor(stmtDestroy)) {
-                stmtDestroy.addError("Cannot destroy 'this' in constructor");
-                return;
+                stmtDestroy.addWarning("Should not destroy 'this' in constructor, because 'new' would return an invalid object.\nMove destruction logic into a separate function outside the constructor.\nThis will be an error in the future.");
             }
         }
 

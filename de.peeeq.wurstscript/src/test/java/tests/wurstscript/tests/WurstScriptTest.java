@@ -63,6 +63,8 @@ public class WurstScriptTest {
         private boolean executeTests;
         private boolean executeProgOnlyAfterTransforms;
         private String expectedError;
+        private String expectedWarning;
+
         private final List<File> inputFiles = new ArrayList<>();
         private final List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
@@ -103,6 +105,11 @@ public class WurstScriptTest {
 
         TestConfig executeProg(boolean b) {
             this.executeProg = b;
+            return this;
+        }
+
+        TestConfig expectWarning(String expectedWarning) {
+            this.expectedWarning = expectedWarning;
             return this;
         }
 
@@ -147,6 +154,18 @@ public class WurstScriptTest {
                             }
                             throw new RuntimeException("Unexpected error", errors.get(0));
                         }
+                    }
+                }
+                if (expectedWarning != null) {
+                    List<CompileError> warnings = res.getGui().getWarningList();
+                    if (warnings.isEmpty()) {
+                        fail("No warnings were discovered");
+                    } else if (warnings.stream()
+                        .noneMatch(w -> w.getMessage().toLowerCase().contains(expectedWarning.toLowerCase()))) {
+                        for (CompileError w : warnings) {
+                            System.err.println("Unexpected warning:" + w);
+                        }
+                        throw new RuntimeException("Unexpected warning", warnings.get(0));
                     }
                 }
                 return res;
@@ -353,6 +372,23 @@ public class WurstScriptTest {
 
     void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
         test().executeProg(executeProg).expectError(errorMessage).lines(prog);
+    }
+
+    public void testAssertWarningsLines(boolean executeProg, String warningMessage, String... input) {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(executeProg)
+            .expectWarning(warningMessage)
+            .lines(input);
+    }
+
+    public void testAssertWarningsLinesWithStdLib(boolean executeProg, String warningMessage, String... input) {
+        test()
+            .withStdLib()
+            .setStopOnFirstError(false)
+            .executeProg(executeProg)
+            .expectWarning(warningMessage)
+            .lines(input);
     }
 
     protected WurstModel testScript(String name, boolean executeProg, String prog) {
