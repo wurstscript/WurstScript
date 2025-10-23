@@ -28,6 +28,9 @@ public class NameLinks {
         // (for interfaces override modifier is optional)
         boolean requiresOverrideMod = false;
 
+        // inherited functions used for override checks only, skip reporting
+        boolean skipErrorReporting = false;
+
         // errors for functions with same name that it does not override
         io.vavr.collection.List<String> overrideErrors = io.vavr.collection.List.empty();
 
@@ -71,6 +74,9 @@ public class NameLinks {
             for (Entry<FuncLink, OverrideCheckResult> e : map.entrySet()) {
                 FunctionDefinition f = e.getKey().getDef();
                 OverrideCheckResult check = e.getValue();
+                if (check.skipErrorReporting) {
+                    continue;
+                }
                 if (f.attrIsOverride() && !check.doesOverride) {
                     StringBuilder msg = new StringBuilder("Function " + f.getName() + " does not override anything.");
                     for (String overrideError : check.overrideErrors) {
@@ -101,29 +107,35 @@ public class NameLinks {
 
     private static void addNamesFromExtendedInterfaces(Multimap<String, DefLink> result, WurstTypeInterface iType, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (WurstTypeInterface superI : iType.extendedInterfaces()) {
-            addNewNameLinks(result, overrideCheckResults, superI.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, superI.nameLinks(), false, null);
         }
     }
 
 
     private static void addNamesFromImplementedInterfaces(Multimap<String, DefLink> result, WurstTypeClass classDef, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (WurstTypeInterface interfaceType : classDef.implementedInterfaces()) {
-            addNewNameLinks(result, overrideCheckResults, interfaceType.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, interfaceType.nameLinks(), false, classDef.getClassDef());
         }
     }
 
     private static void addNamesFromSuperClass(Multimap<String, DefLink> result, WurstTypeClass c, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         @Nullable WurstTypeClass superClass = c.extendedClass();
         if (superClass != null) {
-            addNewNameLinks(result, overrideCheckResults, superClass.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, superClass.nameLinks(), false, c.getClassDef());
         }
     }
 
-    private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride) {
+    private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride, @Nullable ClassDef currentClass) {
         for (Entry<String, DefLink> e : newNameLinks.entries()) {
             DefLink def = e.getValue();
             if (!def.getVisibility().isInherited()) {
                 continue;
+            }
+            if (currentClass != null && def instanceof FuncLink) {
+                DefLink adapted = ((FuncLink) def).adaptToReceiverType(currentClass.attrTyp());
+                if (adapted != null) {
+                    def = adapted;
+                }
             }
             String name = e.getKey();
             boolean isOverridden = false;
@@ -153,7 +165,40 @@ public class NameLinks {
             }
             if (!isOverridden) {
                 result.put(name, def.hidingPrivate());
+                if (def instanceof FuncLink) {
+                    registerOverrideCandidate(overrideCheckResults, name, (FuncLink) def, currentClass);
+                }
             }
+        }
+    }
+
+    private static void registerOverrideCandidate(Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults,
+                                                  String name, FuncLink funcLink, @Nullable ClassDef currentClass) {
+        if (currentClass == null) {
+            return;
+        }
+        FunctionDefinition def = funcLink.getDef();
+        if (!(def instanceof FuncDef)) {
+            return;
+        }
+        if (def.attrIsAbstract()) {
+            return;
+        }
+        if (def.attrNearestClassDef() == null) {
+            return;
+        }
+        if (currentClass != null) {
+            DefLink adapted = funcLink.adaptToReceiverType(currentClass.attrTyp());
+            if (adapted instanceof FuncLink) {
+                funcLink = (FuncLink) adapted;
+            }
+        }
+        Map<FuncLink, OverrideCheckResult> map = overrideCheckResults.computeIfAbsent(name, s -> new HashMap<>());
+        OverrideCheckResult check = map.get(funcLink);
+        if (check == null) {
+            check = new OverrideCheckResult();
+            check.skipErrorReporting = true;
+            map.put(funcLink, check);
         }
     }
 
@@ -319,7 +364,7 @@ public class NameLinks {
     private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
                                                              Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (ModuleInstanciation m : c.getModuleInstanciations()) {
-            addNewNameLinks(result, overrideCheckResults, m.attrNameLinks(), true);
+            addNewNameLinks(result, overrideCheckResults, m.attrNameLinks(), true, null);
         }
     }
 

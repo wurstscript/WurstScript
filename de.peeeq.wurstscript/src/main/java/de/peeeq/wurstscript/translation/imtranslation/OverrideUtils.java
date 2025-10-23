@@ -78,6 +78,9 @@ public class OverrideUtils {
         }
 
         if (!needConversion) {
+            if (superMethodIm == subMethod) {
+                return;
+            }
             superMethodIm.getSubMethods().add(subMethod);
             return;
         }

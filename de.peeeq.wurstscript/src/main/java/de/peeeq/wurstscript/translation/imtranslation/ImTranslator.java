@@ -1129,21 +1129,68 @@ public class ImTranslator {
                     + " in "
                     + Utils.printElementWithSource(Optional.of(c)));
             }
-            for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                NameDef nameDef = nameLink.getDef();
-                if (nameLink.getDefinedIn() == c) {
-                    if (nameLink instanceof FuncLink && nameLink.getDef() instanceof FuncDef) {
-                        FuncLink funcLink = (FuncLink) nameLink;
-                        FuncDef f = (FuncDef) funcLink.getDef();
-                        // check if function f overrides func
-                        if (WurstValidator.canOverride(funcLink, funcNameLink, false)) {
-                            result.put(c, f);
-                        }
-                    }
-                }
+            FuncLink implementationLink = findImplementationLink(c, funcNameLink);
+            if (implementationLink != null && implementationLink.getDef() instanceof FuncDef) {
+                result.put(c, (FuncDef) implementationLink.getDef());
             }
         }
         return result;
+    }
+
+    private @Nullable FuncLink findImplementationLink(ClassDef c, FuncLink target) {
+        FuncLink best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (NameLink candidateLink : c.attrNameLinks().get(target.getName())) {
+            if (!(candidateLink instanceof FuncLink)) {
+                continue;
+            }
+            FuncLink candidate = (FuncLink) candidateLink;
+            if (!WurstValidator.canOverride(candidate, target, false)) {
+                continue;
+            }
+            FunctionDefinition candidateDef = candidate.getDef();
+            if (!(candidateDef instanceof FuncDef)) {
+                continue;
+            }
+            if (candidateDef.attrIsAbstract()) {
+                continue;
+            }
+            ClassDef owner = candidateDef.attrNearestClassDef();
+            if (owner == null) {
+                continue;
+            }
+            int distance = distanceToOwner(c, owner);
+            if (distance == Integer.MAX_VALUE) {
+                continue;
+            }
+            if (best == null || distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    private int distanceToOwner(ClassDef start, ClassDef owner) {
+        int distance = 0;
+        ClassDef current = start;
+        Set<ClassDef> visited = new HashSet<>();
+        while (current != null && visited.add(current)) {
+            if (current == owner) {
+                return distance;
+            }
+            WurstTypeClass type = current.attrTypC();
+            if (type == null) {
+                break;
+            }
+            WurstTypeClass superType = type.extendedClass();
+            if (superType == null) {
+                break;
+            }
+            current = superType.getClassDef();
+            distance++;
+        }
+        return Integer.MAX_VALUE;
     }
 
 
