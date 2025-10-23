@@ -538,6 +538,26 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     @Test
+    public void interfaceImplementationFromSuperClass() {
+        testAssertOkLines(true,
+                "package test",
+                "       native testSuccess()",
+                "       interface Foo",
+                "               function doSomething()",
+                "       interface Bar",
+                "               function doSomething()",
+                "       class BaseFoo implements Foo",
+                "               override function doSomething()",
+                "                       testSuccess()",
+                "       class FooBar extends BaseFoo implements Bar",
+                "       init",
+                "               FooBar fb = new FooBar()",
+                "               fb.doSomething()",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void testEmptyImplements() {
         CompilationResult res = test().executeProg(false)
                 .setStopOnFirstError(false)

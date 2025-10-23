@@ -61,6 +61,13 @@ public class FunctionSignature {
         return receiverType;
     }
 
+    public @Nullable FunctionDefinition getDef() {
+        if (trace instanceof FunctionDefinition) {
+            return (FunctionDefinition) trace;
+        }
+        return null;
+    }
+
     @CheckReturnValue
     public FunctionSignature setTypeArgs(Element context, VariableBinding newMapping) {
         if (newMapping.isEmpty()) {

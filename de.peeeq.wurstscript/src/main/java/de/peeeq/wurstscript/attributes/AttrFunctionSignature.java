@@ -69,6 +69,11 @@ public class AttrFunctionSignature {
             return candidates.get(0);
         }
 
+        candidates = filterPreferNonAbstract(candidates);
+        if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+
 
         boolean b = true;
         for (WurstType t : argTypes) {
@@ -97,6 +102,20 @@ public class AttrFunctionSignature {
             }
         }
         return list;
+    }
+
+    private static List<FunctionSignature> filterPreferNonAbstract(List<FunctionSignature> candidates) {
+        List<FunctionSignature> nonAbstract = new ArrayList<>();
+        for (FunctionSignature sig : candidates) {
+            FunctionDefinition def = sig.getDef();
+            if (def != null && !def.attrIsAbstract()) {
+                nonAbstract.add(sig);
+            }
+        }
+        if (!nonAbstract.isEmpty()) {
+            return nonAbstract;
+        }
+        return candidates;
     }
 
     @NotNull
