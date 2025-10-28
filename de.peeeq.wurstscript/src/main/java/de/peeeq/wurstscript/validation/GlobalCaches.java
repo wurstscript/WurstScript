@@ -1,12 +1,15 @@
 package de.peeeq.wurstscript.validation;
 
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.AttrNearest;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 // Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
@@ -87,7 +90,7 @@ public final class GlobalCaches {
 
     public enum Mode {TEST_ISOLATED, DEV_PERSISTENT}
 
-    private static volatile Mode mode = Mode.DEV_PERSISTENT;
+    public static volatile Mode mode = Mode.DEV_PERSISTENT;
 
     public static void setMode(Mode m) {
         mode = m;
@@ -129,6 +132,118 @@ public final class GlobalCaches {
         LOCAL_STATE_CACHE.clear();
         lookupCache.clear();
     }
+
+    /**
+     * Evict cache entries that are tied to any of the given compilation units.
+     *
+     * <p>The validator replaces only a subset of units on incremental runs. Instead of
+     * purging the full global caches (which would force re-computation for every file), we
+     * walk both caches and drop entries whose owner element/function belongs to one of the
+     * affected compilation units.</p>
+     */
+    public static void invalidateFor(WurstModel model, Collection<CompilationUnit> changedUnits) {
+        if (mode == Mode.TEST_ISOLATED) {
+            clearAll();
+            return;
+        }
+
+        Set<CompilationUnit> affected = toIdentitySet(changedUnits);
+        Set<CompilationUnit> live = model == null ? null : toIdentitySet(model);
+
+        if (affected.isEmpty() && (live == null || live.isEmpty())) {
+            return;
+        }
+
+        invalidateLookupCache(affected, live);
+        invalidateLocalStateCache(affected, live);
+    }
+
+    private static Set<CompilationUnit> toIdentitySet(Iterable<CompilationUnit> units) {
+        Set<CompilationUnit> set = Collections.newSetFromMap(new IdentityHashMap<>());
+        if (units == null) {
+            return set;
+        }
+        for (CompilationUnit cu : units) {
+            if (cu != null) {
+                set.add(cu);
+            }
+        }
+        return set;
+    }
+
+    private static void invalidateLookupCache(Set<CompilationUnit> affected, Set<CompilationUnit> live) {
+        if (lookupCache.isEmpty()) {
+            return;
+        }
+
+        int evicted = 0;
+        Iterator<Map.Entry<CacheKey, Object>> it = lookupCache.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<CacheKey, Object> entry = it.next();
+            Element element = entry.getKey().element;
+            if (element == null) {
+                continue;
+            }
+
+            CompilationUnit owner = AttrNearest.nearestCompilationUnit(element);
+            if (owner == null) {
+                continue;
+            }
+
+            boolean shouldEvict = affected.contains(owner)
+                || (live != null && !live.contains(owner));
+
+            if (shouldEvict) {
+                it.remove();
+                evicted++;
+            }
+        }
+
+        if (evicted > 0) {
+            lookupStats.recordEviction(evicted);
+        }
+    }
+
+    private static void invalidateLocalStateCache(Set<CompilationUnit> affected, Set<CompilationUnit> live) {
+        if (LOCAL_STATE_CACHE.isEmpty()) {
+            return;
+        }
+
+        int evicted = 0;
+        Iterator<Map.Entry<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>>> it =
+            LOCAL_STATE_CACHE.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>> entry = it.next();
+            Object key = entry.getKey();
+            if (!(key instanceof ImFunction)) {
+                continue;
+            }
+
+            ImFunction function = (ImFunction) key;
+            Element trace = function.attrTrace();
+            if (trace == null) {
+                continue;
+            }
+
+            CompilationUnit owner = AttrNearest.nearestCompilationUnit(trace);
+            if (owner == null) {
+                continue;
+            }
+
+            boolean shouldEvict = affected.contains(owner)
+                || (live != null && !live.contains(owner));
+
+            if (shouldEvict) {
+                it.remove();
+                evicted++;
+            }
+        }
+
+        if (evicted > 0) {
+            localStateStats.recordEviction(evicted);
+        }
+    }
+
 
     public enum LookupType {
         FUNC, VAR, TYPE, PACKAGE, MEMBER_FUNC, MEMBER_VAR

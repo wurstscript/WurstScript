@@ -64,7 +64,7 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
-            GlobalCaches.clearAll();
+            GlobalCaches.invalidateFor(prog, toCheck);
 
             lightValidation(toCheck);
 
@@ -601,7 +601,7 @@ public class WurstValidator {
 
     private void visit(StmtExitwhen exitwhen) {
         Element parent = exitwhen.getParent();
-        while (!(parent instanceof FunctionDefinition)) {
+        while (parent != null && !(parent instanceof FunctionDefinition)) {
             if (parent instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) parent;
                 if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
