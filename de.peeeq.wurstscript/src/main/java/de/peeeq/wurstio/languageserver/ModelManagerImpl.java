@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.*;
+import com.google.common.io.BaseEncoding;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
@@ -10,6 +11,8 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
@@ -18,6 +21,8 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -46,6 +51,12 @@ public class ModelManagerImpl implements ModelManager {
 
     // hashcode for each compilation unit content as string
     private final Map<WFile, Integer> fileHashcodes = new HashMap<>();
+
+    // hash for each function inside a Jass compilation unit
+    private final Map<WFile, Map<String, String>> jassFunctionSnapshots = new HashMap<>();
+
+    // functions that changed in recently modified Jass compilation units
+    private final Map<WFile, Set<String>> pendingJassFunctionChanges = new HashMap<>();
 
     // file for each compilation unit
     private final WeakHashMap<CompilationUnit, WFile> compilationunitFile = new WeakHashMap<>();
@@ -88,6 +99,10 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public Changes removeCompilationUnit(WFile resource) {
         parseErrors.remove(resource);
+        if (isJassFile(resource)) {
+            jassFunctionSnapshots.remove(resource);
+            pendingJassFunctionChanges.remove(resource);
+        }
         WurstModel model2 = model;
         if (model2 == null) {
             return Changes.empty();
@@ -114,6 +129,8 @@ public class ModelManagerImpl implements ModelManager {
         parseErrors.clear();
         model = null;
         dependencies.clear();
+        jassFunctionSnapshots.clear();
+        pendingJassFunctionChanges.clear();
         WLogger.info("Clean done.");
     }
 
@@ -539,6 +556,17 @@ public class ModelManagerImpl implements ModelManager {
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
         cu.getCuInfo().setFile(filename.toString());
+
+        if (isJassFile(filename)) {
+            Map<String, String> newFunctions = collectJassFunctions(cu);
+            Map<String, String> oldFunctions = jassFunctionSnapshots.getOrDefault(filename, Collections.emptyMap());
+            Set<String> changedFunctions = determineChangedJassFunctions(oldFunctions, newFunctions);
+            pendingJassFunctionChanges.put(filename, changedFunctions);
+            jassFunctionSnapshots.put(filename, newFunctions);
+        } else {
+            pendingJassFunctionChanges.remove(filename);
+        }
+
         updateModel(cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
@@ -625,6 +653,7 @@ public class ModelManagerImpl implements ModelManager {
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck, oldPackages, model2);
 
         partialTypecheck(model2, toCheckRec, gui, comp);
+        clearPendingJassChanges(toCheckFilenames);
     }
 
     @Override
@@ -644,6 +673,7 @@ public class ModelManagerImpl implements ModelManager {
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);
         partialTypecheck(model2, toCheckRec, gui, comp);
+        clearPendingJassChanges(changes.getAffectedFiles().toJavaSet());
     }
 
     private void partialTypecheck(WurstModel model2, Collection<CompilationUnit> toCheckRec, WurstGui gui, WurstCompilerJassImpl comp) {
@@ -676,17 +706,25 @@ public class ModelManagerImpl implements ModelManager {
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(changed);
 
-        boolean b = false;
+        Map<WFile, Set<String>> changedJassFunctions = new HashMap<>();
+        boolean missingJassInfo = false;
         for (CompilationUnit compilationUnit : changed) {
-            if (compilationUnit.getCuInfo().getFile().endsWith(".j")) {
-                b = true;
-                break;
+            if (isJassFile(compilationUnit)) {
+                WFile file = wFile(compilationUnit);
+                Set<String> changedFunctions = pendingJassFunctionChanges.get(file);
+                if (changedFunctions == null) {
+                    missingJassInfo = true;
+                } else {
+                    changedJassFunctions.put(file, changedFunctions);
+                }
             }
         }
-        if (b) {
-            // when plain Jass files are changed, everything must be checked again:
+        if (missingJassInfo) {
             result.addAll(model);
             return result;
+        }
+        if (!changedJassFunctions.isEmpty()) {
+            addAffectedByJass(changedJassFunctions, model, result);
         }
 
         // get packages provided by the changed CUs
@@ -701,6 +739,236 @@ public class ModelManagerImpl implements ModelManager {
         addPossiblyAffectedPackages(affectedPackages, model, result);
 
         return result;
+    }
+
+    private Map<String, String> collectJassFunctions(CompilationUnit cu) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (JassToplevelDeclaration decl : cu.getJassDecls()) {
+            if (decl instanceof FunctionDefinition) {
+                FunctionDefinition function = (FunctionDefinition) decl;
+                result.put(function.getName(), fingerprintJassFunction(function));
+            }
+        }
+        return result;
+    }
+
+    private String fingerprintJassFunction(FunctionDefinition function) {
+        DefaultSpacer spacer = new DefaultSpacer();
+        String rendered = function.match(new FunctionDefinition.Matcher<String>() {
+            @Override
+            public String case_NativeFunc(NativeFunc nativeFunc) {
+                return prettyPrint(nativeFunc, spacer);
+            }
+
+            @Override
+            public String case_TupleDef(TupleDef tupleDef) {
+                return prettyPrint(tupleDef, spacer);
+            }
+
+            @Override
+            public String case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+                return prettyPrint(extensionFuncDef, spacer);
+            }
+
+            @Override
+            public String case_FuncDef(FuncDef funcDef) {
+                return prettyPrint(funcDef, spacer);
+            }
+        });
+        return sha256(rendered);
+    }
+
+    private String prettyPrint(NativeFunc nativeFunc, DefaultSpacer spacer) {
+        StringBuilder sb = new StringBuilder();
+        seedBuilder(sb);
+        PrettyPrinter.jassPrettyPrint(nativeFunc, spacer, sb, 0);
+        trimBuilderPrefix(sb);
+        return sb.toString();
+    }
+
+    private String prettyPrint(FuncDef funcDef, DefaultSpacer spacer) {
+        StringBuilder sb = new StringBuilder();
+        seedBuilder(sb);
+        PrettyPrinter.jassPrettyPrint(funcDef, spacer, sb, 0);
+        trimBuilderPrefix(sb);
+        return sb.toString();
+    }
+
+    private String prettyPrint(FunctionDefinition function, DefaultSpacer spacer) {
+        StringBuilder sb = new StringBuilder();
+        seedBuilder(sb);
+        function.prettyPrint(spacer, sb, 0);
+        trimBuilderPrefix(sb);
+        return sb.toString();
+    }
+
+    private void seedBuilder(StringBuilder sb) {
+        sb.append('\n').append('\n');
+    }
+
+    private void trimBuilderPrefix(StringBuilder sb) {
+        while (sb.length() > 0 && sb.charAt(0) == '\n') {
+            sb.deleteCharAt(0);
+        }
+    }
+
+    private String sha256(String content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(content.getBytes(UTF_8));
+            return BaseEncoding.base16().lowerCase().encode(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
+    }
+
+    private Set<String> determineChangedJassFunctions(Map<String, String> oldFunctions, Map<String, String> newFunctions) {
+        Set<String> changed = new HashSet<>();
+        for (Map.Entry<String, String> entry : newFunctions.entrySet()) {
+            String oldFingerprint = oldFunctions.get(entry.getKey());
+            String newFingerprint = entry.getValue();
+            if (oldFingerprint == null || !newFingerprint.equals(oldFingerprint)) {
+                changed.add(entry.getKey());
+            }
+        }
+        for (String oldName : oldFunctions.keySet()) {
+            if (!newFunctions.containsKey(oldName)) {
+                changed.add(oldName);
+            }
+        }
+        return Collections.unmodifiableSet(changed);
+    }
+
+    private void addAffectedByJass(Map<WFile, Set<String>> changedJassFunctions, WurstModel model, Set<CompilationUnit> result) {
+        boolean hasRealChanges = changedJassFunctions.values().stream().anyMatch(s -> !s.isEmpty());
+        if (!hasRealChanges) {
+            return;
+        }
+        for (CompilationUnit cu : model) {
+            if (result.contains(cu)) {
+                continue;
+            }
+            if (usesChangedJassFunctions(cu, changedJassFunctions)) {
+                result.add(cu);
+            }
+        }
+    }
+
+    private boolean usesChangedJassFunctions(CompilationUnit cu, Map<WFile, Set<String>> changedJassFunctions) {
+        JassFunctionUsageCollector collector = new JassFunctionUsageCollector(changedJassFunctions);
+        cu.accept(collector);
+        return collector.isFound();
+    }
+
+    private final class JassFunctionUsageCollector extends Element.DefaultVisitor {
+        private final Map<WFile, Set<String>> changedJassFunctions;
+        private boolean found = false;
+
+        private JassFunctionUsageCollector(Map<WFile, Set<String>> changedJassFunctions) {
+            this.changedJassFunctions = changedJassFunctions;
+        }
+
+        private boolean isFound() {
+            return found;
+        }
+
+        private void checkFuncRef(FuncRef funcRef) {
+            if (found) {
+                return;
+            }
+            FunctionDefinition funcDef = null;
+            try {
+                funcDef = funcRef.attrFuncDef();
+            } catch (RuntimeException ignored) {
+                // fall back to name-based matching below
+            }
+            if (funcDef != null) {
+                CompilationUnit defCu = funcDef.attrCompilationUnit();
+                if (defCu == null) {
+                    return;
+                }
+                WFile defFile = wFile(defCu);
+                Set<String> changed = changedJassFunctions.get(defFile);
+                if (changed == null || changed.isEmpty()) {
+                    return;
+                }
+                if (changed.contains(funcDef.getName())) {
+                    found = true;
+                }
+                return;
+            }
+            String funcName = funcRef.getFuncName();
+            if (functionNameChanged(funcName)) {
+                found = true;
+            }
+        }
+
+        private boolean functionNameChanged(String funcName) {
+            if (funcName == null) {
+                return false;
+            }
+            for (Set<String> changed : changedJassFunctions.values()) {
+                if (changed.contains(funcName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void visit(ExprFunctionCall e) {
+            if (found) {
+                return;
+            }
+            checkFuncRef(e);
+            if (!found) {
+                super.visit(e);
+            }
+        }
+
+        @Override
+        public void visit(ExprMemberMethodDot e) {
+            if (found) {
+                return;
+            }
+            checkFuncRef(e);
+            if (!found) {
+                super.visit(e);
+            }
+        }
+
+        @Override
+        public void visit(ExprMemberMethodDotDot e) {
+            if (found) {
+                return;
+            }
+            checkFuncRef(e);
+            if (!found) {
+                super.visit(e);
+            }
+        }
+
+        @Override
+        public void visit(ExprFuncRef e) {
+            if (found) {
+                return;
+            }
+            checkFuncRef(e);
+            if (!found) {
+                super.visit(e);
+            }
+        }
+
+        @Override
+        public void visit(Annotation annotation) {
+            if (found) {
+                return;
+            }
+            checkFuncRef(annotation);
+            if (!found) {
+                super.visit(annotation);
+            }
+        }
     }
 
 
@@ -789,6 +1057,22 @@ public class ModelManagerImpl implements ModelManager {
             }
         } else if (Utils.isWurstFile(file)) {
             result.add(file);
+        }
+    }
+
+    private boolean isJassFile(CompilationUnit cu) {
+        return cu.getCuInfo().getFile().endsWith(".j");
+    }
+
+    private boolean isJassFile(WFile file) {
+        return file.toString().endsWith(".j");
+    }
+
+    private void clearPendingJassChanges(Collection<WFile> files) {
+        for (WFile file : files) {
+            if (isJassFile(file)) {
+                pendingJassFunctionChanges.remove(file);
+            }
         }
     }
 
