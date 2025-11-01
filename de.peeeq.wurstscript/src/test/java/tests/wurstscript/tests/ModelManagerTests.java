@@ -26,16 +26,25 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 public class ModelManagerTests {
 
@@ -277,6 +286,131 @@ public class ModelManagerTests {
 
     private String string(String... lines) {
         return Utils.join(lines, "\n");
+    }
+
+
+    @Test
+    public void jassFunctionChangeTargetsOnlyUsers() throws Exception {
+        JassFixture fixture = setupJassFixture("testProjectJassDeps1", baseJass());
+
+        String updated = string(
+            "function Foo takes nothing returns nothing",
+            "    call BJDebugMsg(\"foo2\")",
+            "endfunction",
+            "",
+            "function Bar takes nothing returns nothing",
+            "    call BJDebugMsg(\"bar\")",
+            "endfunction"
+        );
+
+        fixture.manager.syncCompilationUnitContent(fixture.jassFile, updated);
+        CompilationUnit jassCu = fixture.manager.getCompilationUnit(fixture.jassFile);
+        Set<WFile> updatedFiles = calculateUpdatedFiles(fixture.manager, jassCu);
+
+        assertEquals(updatedFiles, ImmutableSet.of(fixture.jassFile, fixture.fileA));
+    }
+
+    @Test
+    public void jassCommentChangeDoesNotFanOut() throws Exception {
+        JassFixture fixture = setupJassFixture("testProjectJassDeps2", baseJass());
+
+        String updated = baseJass() + "\n// comment";
+        fixture.manager.syncCompilationUnitContent(fixture.jassFile, updated);
+        CompilationUnit jassCu = fixture.manager.getCompilationUnit(fixture.jassFile);
+        Set<WFile> updatedFiles = calculateUpdatedFiles(fixture.manager, jassCu);
+
+        assertEquals(updatedFiles, ImmutableSet.of(fixture.jassFile));
+    }
+
+    @Test
+    public void jassFunctionRemovalTouchesConsumers() throws Exception {
+        JassFixture fixture = setupJassFixture("testProjectJassDeps3", baseJass());
+
+        String updated = string(
+            "function Foo takes nothing returns nothing",
+            "    call BJDebugMsg(\"foo\")",
+            "endfunction"
+        );
+
+        fixture.manager.syncCompilationUnitContent(fixture.jassFile, updated);
+        CompilationUnit jassCu = fixture.manager.getCompilationUnit(fixture.jassFile);
+        Set<WFile> updatedFiles = calculateUpdatedFiles(fixture.manager, jassCu);
+
+        assertEquals(updatedFiles, ImmutableSet.of(fixture.jassFile, fixture.fileB));
+    }
+
+    private String baseJass() {
+        return string(
+            "function Foo takes nothing returns nothing",
+            "    call BJDebugMsg(\"foo\")",
+            "endfunction",
+            "",
+            "function Bar takes nothing returns nothing",
+            "    call BJDebugMsg(\"bar\")",
+            "endfunction"
+        );
+    }
+
+    private JassFixture setupJassFixture(String folderName, String jassContent) throws IOException {
+        File projectFolder = new File("./temp/" + folderName + "/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile jassFile = WFile.create(new File(wurstFolder, "functions.j"));
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+        writeFile(jassFile, jassContent);
+        writeFile(fileA, string(
+            "package A",
+            "public function useFoo()",
+            "    Foo()"
+        ));
+        writeFile(fileB, string(
+            "package B",
+            "public function useBar()",
+            "    Bar()"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        keepErrorsInMap(manager);
+        manager.buildProject();
+
+        return new JassFixture(manager, jassFile, fileA, fileB, fileWurst);
+    }
+
+    private Set<WFile> calculateUpdatedFiles(ModelManagerImpl manager, CompilationUnit changedCu)
+        throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method method = ModelManagerImpl.class.getDeclaredMethod(
+            "calculateCUsToUpdate", Collection.class, Set.class, WurstModel.class);
+        method.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Set<CompilationUnit> result = (Set<CompilationUnit>) method.invoke(
+            manager,
+            Collections.singletonList(changedCu),
+            Collections.emptySet(),
+            manager.getModel());
+        return result.stream()
+            .map(cu -> WFile.create(cu.getCuInfo().getFile()))
+            .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private static final class JassFixture {
+        final ModelManagerImpl manager;
+        final WFile jassFile;
+        final WFile fileA;
+        final WFile fileB;
+        final WFile fileWurst;
+
+        private JassFixture(ModelManagerImpl manager, WFile jassFile, WFile fileA, WFile fileB, WFile fileWurst) {
+            this.manager = manager;
+            this.jassFile = jassFile;
+            this.fileA = fileA;
+            this.fileB = fileB;
+            this.fileWurst = fileWurst;
+        }
     }
 
 
