@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class JurstTests extends WurstScriptTest {
@@ -338,6 +339,45 @@ public class JurstTests extends WurstScriptTest {
 
         String output = com.google.common.io.Files.toString(new File("./test-output/JurstJassTest_inlopt.j"), Charsets.UTF_8);
         assertTrue(output.contains("real myVar"));
+    }
+
+    @Test
+    public void testStringNullCheckStaysNull() throws IOException {
+        String jassCode = Utils.string(
+            "globals",
+            "    string array s__SaveCodes",
+            "    integer PID",
+            "    integer unitSaveID",
+            "endglobals",
+            "",
+            "function main takes nothing returns nothing",
+            "    if s__SaveCodes[PID * 19 + unitSaveID] != null then",
+            "        call BJDebugMsg(\"\")", // could be anything
+            "    endif",
+            "endfunction"
+        );
+
+        String jurstCode = Utils.string(
+            "package test",
+            "endpackage"
+        );
+
+        testJurstWithJass(false, true, jassCode, jurstCode);
+
+        File out = new File("./test-output/JurstJassTest_inlopt.j");
+        String output = com.google.common.io.Files.toString(out, Charsets.UTF_8);
+
+        // Ensure the null check survives as a null check
+        assertTrue(
+            "Expected string null check to stay != null",
+            output.contains("s__SaveCodes[PID * 19 + unitSaveID] != null")
+        );
+
+        // And make sure we did NOT silently change it to empty string
+        assertFalse(
+            "String null check must not become != \"\"",
+            output.contains("s__SaveCodes[PID * 19 + unitSaveID] != \"\"")
+        );
     }
 
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
