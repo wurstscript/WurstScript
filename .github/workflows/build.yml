@@ -126,6 +126,7 @@ jobs:
             echo "ERROR: expected at least Win + Linux zips."
             exit 1
           fi
+
       - name: Normalize nightly filenames
         shell: bash
         run: |
@@ -139,44 +140,6 @@ jobs:
           done
           echo "Renamed to:"; ls -alh upload
 
-      # Delete old release + tag, then create a fresh one at HEAD
-      - name: Recreate nightly release and tag at HEAD
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const tag = 'nightly';
-
-            // Delete existing release (if any)
-            try {
-              const rel = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-              await github.rest.repos.deleteRelease({ owner, repo, release_id: rel.data.id });
-              core.info(`Deleted release id=${rel.data.id}`);
-            } catch (e) {
-              core.info(`No previous release to delete: ${e.message}`);
-            }
-
-            // Delete tag (if any)
-            try {
-              await github.rest.git.deleteRef({ owner, repo, ref: `tags/${tag}` });
-              core.info('Deleted ref tags/nightly');
-            } catch (e) {
-              core.info(`No existing tag to delete: ${e.message}`);
-            }
-
-            // Create fresh prerelease at the current commit
-            const { data: rel2 } = await github.rest.repos.createRelease({
-              owner, repo,
-              tag_name: tag,
-              target_commitish: context.sha,
-              name: 'Nightly Build (master)',
-              body: 'Nightly build for the latest commit on `master`.\nThis release is automatically updated on each push.',
-              draft: false,
-              prerelease: true,
-              make_latest: 'false'  // MUST be a string
-            });
-            core.setOutput('upload_url', rel2.upload_url);
-
       - name: Publish Nightly Release (upload assets)
         uses: softprops/action-gh-release@v2
         with:
@@ -184,7 +147,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           prerelease: true
           draft: false
-          make_latest: "false"  # keep as string here too
+          make_latest: "false"
           name: Nightly Build (master)
           body: |
             Nightly build for the latest commit on `master`.
@@ -193,5 +156,4 @@ jobs:
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
