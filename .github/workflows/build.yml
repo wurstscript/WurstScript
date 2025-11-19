@@ -104,6 +104,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout (to update nightly tag)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move 'nightly' tag to this commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f nightly "$GITHUB_SHA"
+          git push origin nightly --force
+
       - name: Download all packaged artifacts
         uses: actions/download-artifact@v4
         with:
@@ -143,8 +155,7 @@ jobs:
       - name: Publish Nightly Release (upload assets)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly
-          target_commitish: ${{ github.sha }}
+          tag_name: nightly           # tag now points at $GITHUB_SHA
           prerelease: true
           draft: false
           make_latest: "false"
