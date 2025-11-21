@@ -79,6 +79,12 @@ tasks.register("jdepsModules") {
 
         def detected = outBuf.toString().trim()
         if (detected.isEmpty()) detected = "java.base"
+
+        def jdwpModule = "jdk.jdwp.agent"
+        if (!detected.split(",").contains(jdwpModule)) {
+            detected = detected + "," + jdwpModule
+        }
+        
         if (!extraJdkModules.isEmpty()) detected = detected + "," + extraJdkModules
 
         modulesTxt.get().asFile.text = detected
