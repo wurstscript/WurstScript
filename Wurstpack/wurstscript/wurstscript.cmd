@@ -1,30 +1,36 @@
 @echo off
-setlocal EnableExtensions
+setlocal
 
-rem ---- shared slim runtime ----
-set "RUNTIME=%USERPROFILE%\.wurst\wurst-runtime\bin\java.exe"
+rem Save current code page
+for /f "tokens=2 delims=: " %%A in ('chcp') do set "_OLDCP=%%A"
 
-rem script directory (trailing backslash)
+rem Switch to UTF-8
+chcp 65001 >NUL
+
 set "DIR=%~dp0"
-
-if not exist "%RUNTIME%" (
-  echo [wurstscript] ERROR: Runtime not found:
-  echo(%RUNTIME%
-  echo Reinstall Wurstscript via the VSCode extension.
-  exit /b 1
-)
-
-rem ---- fixed jar location(s), no wildcards ----
+set "JAVA=%DIR%wurst-runtime\bin\java.exe"
 set "JAR=%DIR%wurst-compiler\wurstscript.jar"
-if not exist "%JAR%" set "JAR=%DIR%..\wurst-compiler\wurstscript.jar"
+
 if not exist "%JAR%" (
-  echo [wurstscript] ERROR: Missing jar:
-  echo(%DIR%wurst-compiler\wurstscript.jar
-  echo or
-  echo(%DIR%..\wurst-compiler\wurstscript.jar
-  exit /b 1
+    set "JAR=%DIR%..\wurst-compiler\wurstscript.jar"
 )
 
-rem Optional JVM flags via env var, e.g. set WURST_JAVA_OPTS=-Xmx1g
-"%RUNTIME%" %WURST_JAVA_OPTS% -jar "%JAR%" %*
+if not exist "%JAR%" (
+    echo [wurstscript] ERROR: Missing jar. Searched:
+    echo   %DIR%wurst-compiler\wurstscript.jar
+    echo   %DIR%..\wurst-compiler\wurstscript.jar
+    goto :restore
+)
+
+if not exist "%JAVA%" (
+    echo [wurstscript] ERROR: Bundled runtime not found or not executable at:
+    echo   %JAVA%
+    echo Please reinstall wurstscript via the VS Code extension.
+    goto :restore
+)
+
+"%JAVA%" -Dfile.encoding=UTF-8 -jar "%JAR%" %*
+
+:restore
+if defined _OLDCP chcp %_OLDCP% >NUL
 endlocal
