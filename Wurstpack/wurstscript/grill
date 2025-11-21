@@ -1,3 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-java -jar ~/.wurst/WurstSetup.jar ${@:1:6}
+RUNTIME="$HOME/.wurst/wurst-runtime/bin/java"
+
+# Resolve script dir (absolute)
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+JAR="$DIR/grill/grill.jar"
+if [[ ! -f "$JAR" ]]; then
+  JAR="$DIR/../grill/grill.jar"
+fi
+
+if [[ ! -f "$JAR" ]]; then
+  echo "[grill] ERROR: Missing jar. Searched:"
+  echo "  $DIR/grill/grill.jar"
+  echo "  $DIR/../grill/grill.jar"
+  exit 2
+fi
+
+if [[ ! -x "$RUNTIME" ]]; then
+  echo "[grill] ERROR: Bundled runtime not found or not executable at:"
+  echo "  $RUNTIME"
+  echo "Please reinstall wurstscript via the VSCode extension."
+  exit 3
+fi
+
+exec "$RUNTIME" -jar "$JAR" "$@"
