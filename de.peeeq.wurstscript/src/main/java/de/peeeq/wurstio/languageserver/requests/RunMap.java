@@ -137,6 +137,7 @@ public class RunMap extends MapRequest {
         if (!mapDocumentPath.isEmpty()) {
             Path path = Paths.get(mapDocumentPath).resolve(cachedMapFile.get().getName());
             mapCopy = path.toFile();
+            mapCopy.mkdirs();
             java.nio.file.Files.copy(cachedMapFile.get().toPath(), path, StandardCopyOption.REPLACE_EXISTING);
         } else if (w3data.getWc3PatchVersion().isPresent()) {
             GameVersion gameVersion = w3data.getWc3PatchVersion().get();
