@@ -1,9 +1,7 @@
 pluginManagement {
     repositories {
-        maven { url = uri("https://cache-redirector.jetbrains.com/plugins.gradle.org/m2") }
         gradlePluginPortal()
         maven { url = uri("https://plugins.gradle.org/m2") }
-        maven { url = uri("https://cache-redirector.jetbrains.com/maven-central") }
         mavenCentral()
     }
 }
@@ -11,7 +9,6 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        maven { url = uri("https://cache-redirector.jetbrains.com/maven-central") }
         mavenCentral()
         google()
         maven { url 'https://jitpack.io' }
