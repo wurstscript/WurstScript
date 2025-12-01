@@ -404,8 +404,11 @@ public class EvaluateExpr {
         ILconst receiverVal = va.getReceiver().evaluate(globalState, localState);
         ILconstObject receiver = globalState.toObject(receiverVal);
         if (receiver == null && receiverVal instanceof ILconstInt && va.getReceiver().attrTyp() instanceof ImClassType) {
-            receiver = globalState.ensureObject((ImClassType) va.getReceiver().attrTyp(),
-                ((ILconstInt) receiverVal).getVal(), va.attrTrace());
+            int objectId = ((ILconstInt) receiverVal).getVal();
+            if (objectId != 0) {
+                receiver = globalState.ensureObject((ImClassType) va.getReceiver().attrTyp(),
+                    objectId, va.attrTrace());
+            }
         }
         if (receiver == null) {
             throw new InterpreterException(va.attrTrace(), "Null pointer dereference");
