@@ -342,15 +342,6 @@ public class ProgramState extends State {
         return handleMap.get(val);
     }
 
-    public ILconstObject toObject(ILconst val) {
-        if (val instanceof ILconstObject) {
-            return (ILconstObject) val;
-        } else if (val instanceof ILconstInt) {
-            return indexToObject.get(((ILconstInt) val).getVal());
-        }
-        throw new InterpreterException(this, "Value " + val + " (" + val.getClass().getSimpleName() + ") cannot be cast to object.");
-    }
-
     public ILconstObject ensureObject(ImClassType clazz, int objectId, Element trace) {
         ILconstObject existing = indexToObject.get(objectId);
         if (existing != null) {
@@ -359,6 +350,15 @@ public class ProgramState extends State {
         ILconstObject res = new ILconstObject(clazz, objectId, trace);
         indexToObject.put(objectId, res);
         return res;
+    }
+
+    public ILconstObject toObject(ILconst val) {
+        if (val instanceof ILconstObject) {
+            return (ILconstObject) val;
+        } else if (val instanceof ILconstInt) {
+            return indexToObject.get(((ILconstInt) val).getVal());
+        }
+        throw new InterpreterException(this, "Value " + val + " (" + val.getClass().getSimpleName() + ") cannot be cast to object.");
     }
 
     public static class StackTrace {

@@ -1578,6 +1578,41 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void inheritedField_lazyClosure_uses_enclosing_receiver() {
+        testAssertOkLines(true,
+            "package test",
+            "",
+            "native testSuccess()",
+            "",
+            "public abstract class Lazy<T:>",
+            "    T val = null",
+            "    boolean wasRetrieved = false",
+            "",
+            "    abstract function retrieve() returns T",
+            "",
+            "    function get() returns T",
+            "        if not wasRetrieved",
+            "            val = retrieve()",
+            "            wasRetrieved = true",
+            "        return val",
+            "",
+            "public function lazy<T:>(Lazy<T> l) returns Lazy<T>",
+            "    return l",
+            "",
+            "public class BaseBuilding",
+            "    boolean hasDetector = true",
+            "",
+            "public class AdvancedBuilding extends BaseBuilding",
+            "    Lazy<boolean> detectorAvailable = lazy<boolean>(() -> hasDetector)",
+            "",
+            "init",
+            "    let b = new AdvancedBuilding()",
+            "    b.hasDetector = true",
+            "    if b.detectorAvailable.get()",
+            "        testSuccess()"
+        );
+    }
 
 
 }
