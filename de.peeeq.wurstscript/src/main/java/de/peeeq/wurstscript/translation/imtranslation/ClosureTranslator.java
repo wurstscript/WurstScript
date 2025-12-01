@@ -30,6 +30,7 @@ public class ClosureTranslator {
     private Map<ImTypeVar, ImTypeVar> typeVars;
     private ImFunction impl;
     private ImClass c;
+    private ImVar capturedThisField;
 
     public ClosureTranslator(ExprClosure e, ImTranslator tr, ImFunction f) {
         super();
@@ -167,6 +168,7 @@ public class ClosureTranslator {
         } else {
             impl.getBody().add(JassIm.ImReturn(e, translated));
         }
+        captureEnclosingThis();
         transformTranslated(translated);
 
         typeVars = rewriteTypeVars(c);
@@ -245,6 +247,9 @@ public class ClosureTranslator {
      */
     private void transformTranslated(ImExpr t) {
         final List<ImVarAccess> vas = Lists.newArrayList();
+        final List<ImMemberAccess> receiversToRewrite = Lists.newArrayList();
+        ImVar closureThisVar = tr.getThisVar(e);
+
         t.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -254,6 +259,16 @@ public class ClosureTranslator {
                 }
             }
 
+            @Override
+            public void visit(ImMemberAccess ma) {
+                super.visit(ma);
+                if (capturedThisField != null && ma.getReceiver() instanceof ImVarAccess) {
+                    ImVar recvVar = ((ImVarAccess) ma.getReceiver()).getVar();
+                    if (recvVar == closureThisVar && capturesFromEnclosingThis(owningClass(ma.getVar()))) {
+                        receiversToRewrite.add(ma);
+                    }
+                }
+            }
 
         });
 
@@ -261,6 +276,60 @@ public class ClosureTranslator {
             ImVar v = getClosureVarFor(va.getVar());
             va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
         }
+
+        for (ImMemberAccess ma : receiversToRewrite) {
+            ma.setReceiver(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), capturedThisField, JassIm.ImExprs()));
+        }
+    }
+
+    private void captureEnclosingThis() {
+        ImVar outerThis = getEnclosingThisVar();
+        if (outerThis != null) {
+            capturedThisField = getClosureVarFor(outerThis);
+        }
+    }
+
+    private ImVar getEnclosingThisVar() {
+        if (f != null && !f.getParameters().isEmpty()) {
+            ImVar param = f.getParameters().get(0);
+            if ("this".equals(param.getName()) && param.getType() instanceof ImClassType) {
+                return param;
+            }
+        }
+        return null;
+    }
+
+    private ImClass owningClass(ImVar var) {
+        if (var.getParent() != null && var.getParent().getParent() instanceof ImClass) {
+            return (ImClass) var.getParent().getParent();
+        }
+        return null;
+    }
+
+    private boolean capturesFromEnclosingThis(ImClass owner) {
+        if (owner == null || capturedThisField == null) {
+            return false;
+        }
+        if (!(capturedThisField.getType() instanceof ImClassType)) {
+            return false;
+        }
+
+        ImClass capturedClass = ((ImClassType) capturedThisField.getType()).getClassDef();
+        return capturedClass == owner || capturedClass.isSubclassOf(owner);
+    }
+
+    private ImVar findOuterThisVar(ImClass owner) {
+        // in instance methods, the first parameter is typically "this"
+        for (ImVar p : f.getParameters()) {
+            ImType t = p.getType();
+            if (t instanceof ImClassType) {
+                ImClassType ct = (ImClassType) t;
+                if (ct.getClassDef() == owner) {
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 
     private ImVarAccess closureThis() {

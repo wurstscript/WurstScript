@@ -342,6 +342,16 @@ public class ProgramState extends State {
         return handleMap.get(val);
     }
 
+    public ILconstObject ensureObject(ImClassType clazz, int objectId, Element trace) {
+        ILconstObject existing = indexToObject.get(objectId);
+        if (existing != null) {
+            return existing;
+        }
+        ILconstObject res = new ILconstObject(clazz, objectId, trace);
+        indexToObject.put(objectId, res);
+        return res;
+    }
+
     public ILconstObject toObject(ILconst val) {
         if (val instanceof ILconstObject) {
             return (ILconstObject) val;
