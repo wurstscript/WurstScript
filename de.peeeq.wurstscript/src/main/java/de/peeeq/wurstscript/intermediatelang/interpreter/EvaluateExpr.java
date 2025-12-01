@@ -401,20 +401,30 @@ public class EvaluateExpr {
 
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
-        ILconstObject receiver = globalState.toObject(va.getReceiver().evaluate(globalState, localState));
+        ILconst receiverVal = va.getReceiver().evaluate(globalState, localState);
+        ILconstObject receiver = globalState.toObject(receiverVal);
+        if (receiver == null && receiverVal instanceof ILconstInt && va.getReceiver().attrTyp() instanceof ImClassType) {
+            receiver = globalState.ensureObject((ImClassType) va.getReceiver().attrTyp(),
+                ((ILconstInt) receiverVal).getVal(), va.attrTrace());
+        }
+        if (receiver == null) {
+            throw new InterpreterException(va.attrTrace(), "Null pointer dereference");
+        }
+        ILconstObject receiverFinal = receiver;
         List<Integer> indexes =
             va.getIndexes().stream()
                 .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
                 .collect(Collectors.toList());
+        List<Integer> indexesFinal = indexes;
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
-                receiver.set(v, indexes, value);
+                receiverFinal.set(v, indexesFinal, value);
             }
 
             @Override
             public ILconst get() {
-                return receiver.get(v, indexes)
+                return receiverFinal.get(v, indexesFinal)
                     .orElseGet(() -> va.attrTyp().defaultValue());
             }
         };

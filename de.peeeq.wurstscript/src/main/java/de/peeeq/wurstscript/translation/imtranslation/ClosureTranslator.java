@@ -244,23 +244,93 @@ public class ClosureTranslator {
      * class variables instead
      */
     private void transformTranslated(ImExpr t) {
-        final List<ImVarAccess> vas = Lists.newArrayList();
+        final List<ImVarAccess> capturedLocals = Lists.newArrayList();
+        final List<ImMemberAccess> capturedFields = Lists.newArrayList();
+
         t.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
                 super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
-                    vas.add(va);
+                    capturedLocals.add(va);
                 }
             }
 
+            @Override
+            public void visit(ImMemberAccess ma) {
+                super.visit(ma);
+                if (isCapturedOuterField(ma)) {
+                    capturedFields.add(ma);
+                }
+            }
 
+            private boolean isCapturedOuterField(ImMemberAccess ma) {
+                // receiver must be *this* of the closure
+                if (!(ma.getReceiver() instanceof ImVarAccess)) {
+                    return false;
+                }
+                ImVarAccess recv = (ImVarAccess) ma.getReceiver();
+                if (recv.getVar() != tr.getThisVar(e)) {
+                    return false;
+                }
+
+                // field must belong to some class
+                var pp = ma.getVar().getParent();
+                if (pp == null || !(pp.getParent() instanceof ImClass)) {
+                    return false;
+                }
+
+                ImClass owner = (ImClass) pp.getParent();
+                // and it must not be a field of the closure class itself
+                return owner != c;
+            }
         });
 
-        for (ImVarAccess va : vas) {
+        // Existing behaviour: capture locals from outer functions
+        for (ImVarAccess va : capturedLocals) {
             ImVar v = getClosureVarFor(va.getVar());
-            va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
+            va.replaceBy(JassIm.ImMemberAccess(e, closureThis(),
+                JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
         }
+
+        // New behaviour: capture outer "this" for fields of the enclosing class
+        for (ImMemberAccess ma : capturedFields) {
+            ImVar field = ma.getVar();
+            ImClass owner = (ImClass) field.getParent().getParent();
+
+            ImVar outerThis = findOuterThisVar(owner);
+            if (outerThis == null) {
+                // no obvious owning instance – leave it, fail later with a clear error if needed
+                continue;
+            }
+
+            // Create/get the closure field to store outer "this"
+            ImVar capturedOuterThisField = getClosureVarFor(outerThis);
+
+            // Rewrite receiver: this.capturedOuterThisField
+            ImExpr newReceiver = JassIm.ImMemberAccess(
+                e,
+                closureThis(),
+                JassIm.ImTypeArguments(),
+                capturedOuterThisField,
+                JassIm.ImExprs()
+            );
+            ma.setReceiver(newReceiver);
+        }
+    }
+
+    private ImVar findOuterThisVar(ImClass owner) {
+        // in instance methods, the first parameter is typically "this"
+        for (ImVar p : f.getParameters()) {
+            ImType t = p.getType();
+            if (t instanceof ImClassType) {
+                ImClassType ct = (ImClassType) t;
+                if (ct.getClassDef() == owner) {
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 
     private ImVarAccess closureThis() {

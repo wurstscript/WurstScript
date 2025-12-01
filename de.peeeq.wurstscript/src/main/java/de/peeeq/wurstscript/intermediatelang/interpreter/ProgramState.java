@@ -351,6 +351,16 @@ public class ProgramState extends State {
         throw new InterpreterException(this, "Value " + val + " (" + val.getClass().getSimpleName() + ") cannot be cast to object.");
     }
 
+    public ILconstObject ensureObject(ImClassType clazz, int objectId, Element trace) {
+        ILconstObject existing = indexToObject.get(objectId);
+        if (existing != null) {
+            return existing;
+        }
+        ILconstObject res = new ILconstObject(clazz, objectId, trace);
+        indexToObject.put(objectId, res);
+        return res;
+    }
+
     public static class StackTrace {
         private final List<ILStackFrame> stackFrames;
 
