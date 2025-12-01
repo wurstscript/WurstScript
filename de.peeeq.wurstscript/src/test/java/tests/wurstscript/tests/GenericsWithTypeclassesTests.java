@@ -1531,5 +1531,88 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void arrayListCapacity_lazyClosure_repro() {
+        testAssertOkLines(true,
+            "package test",
+            "",
+            "native testSuccess()",
+            "",
+            "constant int JASS_MAX_ARRAY_SIZE = 8190",
+            "",
+            "public function lazy<T:>(Lazy<T> l) returns Lazy<T>",
+            "    return l",
+            "",
+            "public abstract class Lazy<T:>",
+            "    T val = null",
+            "    boolean wasRetrieved = false",
+            "",
+            "    abstract function retrieve() returns T",
+            "",
+            "    function get() returns T",
+            "        if not wasRetrieved",
+            "            val = retrieve()",
+            "            wasRetrieved = true",
+            "        return val",
+            "",
+            "public class ArrayList<T:>",
+            "",
+            "public class CFBuilding",
+            "    ArrayList<CFBuilding> upgrades = null",
+            "    Lazy<boolean> hasAAUpgrade = lazy<boolean>(() -> begin",
+            "            var result = false",
+            "            if upgrades != null",
+        "                   result = true",
+            "            return result",
+            "        end)",
+            "",
+            "",
+            "init",
+            "    let a = new CFBuilding()",
+            "    let b = new CFBuilding()",
+            "    // ensure upgrades is non-null so closure does some work",
+            "    b.upgrades = new ArrayList<CFBuilding>()",
+            "    // invoke lazy attribute so its closure is actually referenced",
+            "    if b.hasAAUpgrade.get() and not a.hasAAUpgrade.get()",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void inheritedField_lazyClosure_uses_enclosing_receiver() {
+        testAssertOkLines(true,
+            "package test",
+            "",
+            "native testSuccess()",
+            "",
+            "public abstract class Lazy<T:>",
+            "    T val = null",
+            "    boolean wasRetrieved = false",
+            "",
+            "    abstract function retrieve() returns T",
+            "",
+            "    function get() returns T",
+            "        if not wasRetrieved",
+            "            val = retrieve()",
+            "            wasRetrieved = true",
+            "        return val",
+            "",
+            "public function lazy<T:>(Lazy<T> l) returns Lazy<T>",
+            "    return l",
+            "",
+            "public class BaseBuilding",
+            "    boolean hasDetector = true",
+            "",
+            "public class AdvancedBuilding extends BaseBuilding",
+            "    Lazy<boolean> detectorAvailable = lazy<boolean>(() -> hasDetector)",
+            "",
+            "init",
+            "    let b = new AdvancedBuilding()",
+            "    b.hasDetector = true",
+            "    if b.detectorAvailable.get()",
+            "        testSuccess()"
+        );
+    }
+
 
 }
