@@ -223,6 +223,49 @@ public class EliminateGenerics {
         }
     }
 
+    private void fixCalleesInSpecializedFunction(ImFunction newF, GenericTypes generics) {
+        newF.accept(new Element.DefaultVisitor() {
+
+            @Override
+            public void visit(ImFunctionCall fc) {
+                super.visit(fc);
+
+                ImFunction callee = fc.getFunc();
+                if (callee == null) return;
+
+                // Only interesting if callee itself is generic
+                if (callee.getTypeVariables().isEmpty()) {
+                    return;
+                }
+
+                // Determine which generics to use for the callee
+                GenericTypes calleeGenerics;
+
+                if (!fc.getTypeArguments().isEmpty()) {
+                    // Call carries explicit type args → honor them
+                    calleeGenerics = new GenericTypes(specializeTypeArgs(fc.getTypeArguments()));
+                } else {
+                    // No explicit type args → use the same generics context as the enclosing function.
+                    // This matches the pattern: destroyArrayList<T>(this: ArrayList<T>) calls ArrayList_onDestroy<T>(this)
+                    calleeGenerics = generics;
+                }
+
+                if (calleeGenerics.containsTypeVariable()) {
+                    // Still not concrete → let the normal pipeline handle it later or fail explicitly if needed
+                    return;
+                }
+
+                ImFunction specializedCallee = specializedFunctions.get(callee, calleeGenerics);
+                if (specializedCallee == null) {
+                    specializedCallee = specializeFunction(callee, calleeGenerics);
+                }
+
+                fc.setFunc(specializedCallee);
+                fc.getTypeArguments().removeAll();
+            }
+        });
+    }
+
     /**
      * creates a specialized version of this function
      */
@@ -246,7 +289,13 @@ public class EliminateGenerics {
 
         newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
         rewriteGenerics(newF, generics, typeVars);
+
+        // fix calls inside this specialized function so they also point to specialized callees
+        fixCalleesInSpecializedFunction(newF, generics);
+
+        // Then collect further generic uses inside the now-specialized body
         collectGenericUsages(newF);
+
         return newF;
     }
 
