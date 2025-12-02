@@ -98,7 +98,7 @@ public class AttrFuncDef {
         cands.addAll(methods);
         cands.addAll(exts);
 
-        var argTypes = AttrFuncDef.argumentTypesPre(node);
+        var argTypes = AttrFuncDef.argumentTypes(node);
 
         // Pass 1: exact matches
         java.util.ArrayList<FuncLink> exactLinks = new java.util.ArrayList<>();
@@ -242,9 +242,11 @@ public class AttrFuncDef {
                         pIndex++;
                     }
                     if (hasInferredType) {
-                        // if there are unknown parameter types, use an approximated function type for overloading resolution
-                        WurstType resultType = WurstTypeInfer.instance();
-                        argType = new WurstTypeClosure(paramTypes, resultType);
+                        WurstType bodyType = closure.getImplementation().attrTyp();
+                        if (bodyType == null || bodyType instanceof WurstTypeUnknown) {
+                            bodyType = WurstTypeInfer.instance();
+                        }
+                        argType = new WurstTypeClosure(paramTypes, bodyType);
                     } else {
                         // if there are no unknown types for the argument, then it should be safe to directly calculate the type
                         argType = arg.attrTyp();
