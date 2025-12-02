@@ -343,11 +343,9 @@ public class EliminateGenerics {
                     }
                 });
             }else {
-                // DO NOT mutate subClass.getSuperClasses() here.
-                ImClassType subClassTSpecialized = specializeType(subClassT);
-                ImClassType newClassTSpecialized = specializeType(newClassT);
-
-                if (subClassTSpecialized.getClassDef().isSubclassOf(newClassTSpecialized.getClassDef())) {
+                subClass.getSuperClasses().replaceAll(this::specializeType);
+                ImClassType newClassTspecialized = specializeType(newClassT);
+                if (subClass.isSubclassOf(newClassTspecialized.getClassDef())) {
                     newM.getSubMethods().add(subMethod);
                 }
             }
