@@ -427,7 +427,6 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    @Ignore // This test was for a rewrite that caused an infinite loop in the optimizer.
     public void test_mult2rewrite() throws IOException {
         test().lines(
             "package test",
@@ -442,7 +441,7 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_mult2rewrite_inlopt.j"), Charsets.UTF_8);
 
-        assertTrue(!output.contains("blub_a") && !(output.contains("blub_b") && !output.contains("blub_c")));
+        assertTrue(output.contains("blub_a") && !(output.contains("blub_b") && !output.contains("blub_c")));
     }
 
     @Test

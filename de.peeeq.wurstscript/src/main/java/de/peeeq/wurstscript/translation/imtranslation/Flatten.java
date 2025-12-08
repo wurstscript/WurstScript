@@ -178,7 +178,7 @@ public class Flatten {
 
     public static class MultiResult {
 
-        final List<ImStmt> stmts;
+        public final List<ImStmt> stmts;
         final List<ImExpr> exprs;
 
         public MultiResult(List<ImStmt> stmts, List<ImExpr> exprs) {
@@ -488,6 +488,49 @@ public class Flatten {
     }
 
 
+    private static boolean isEffectivelyPure(ImExpr expr) {
+        if (expr.attrPurity() instanceof Pure) {
+            return true;
+        }
+        return expr instanceof ImConst;
+    }
+
+    private static boolean isUnchangedVarAccess(ImExpr expr, List<? extends Result> laterResults, int startIndex) {
+        if (!(expr instanceof ImVarAccess)) {
+            return false;
+        }
+
+        ImVar target = ((ImVarAccess) expr).getVar();
+        for (int i = startIndex; i < laterResults.size(); i++) {
+            for (ImStmt stmt : laterResults.get(i).stmts) {
+                if (writesVar(stmt, target)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean writesVar(ImStmt stmt, ImVar var) {
+        class WriteDetector extends ImStmt.DefaultVisitor {
+            boolean writes = false;
+
+            @Override
+            public void visit(ImSet e) {
+                super.visit(e);
+                if (e.getLeft() instanceof ImVarAccess
+                    && ((ImVarAccess) e.getLeft()).getVar() == var) {
+                    writes = true;
+                }
+            }
+        }
+
+        WriteDetector detector = new WriteDetector();
+        stmt.accept(detector);
+        return detector.writes;
+    }
+
     private static MultiResult flattenExprs(ImTranslator t, ImFunction f, ImExpr... exprs) {
         return flattenExprs(t, f, Arrays.asList(exprs));
     }
@@ -510,7 +553,8 @@ public class Flatten {
             Result r = results.get(i);
 
             stmts.addAll(r.stmts);
-            if (r.expr.attrPurity() instanceof Pure
+            if (isEffectivelyPure(r.expr)
+                || isUnchangedVarAccess(r.expr, results, i + 1)
                 || i >= withStmts) {
                 newExprs.add(r.expr);
             } else {
@@ -541,7 +585,8 @@ public class Flatten {
             ResultL r = results.get(i);
 
             stmts.addAll(r.stmts);
-            if (r.expr.attrPurity() instanceof Pure
+            if (isEffectivelyPure(r.expr)
+                || isUnchangedVarAccess(r.expr, results, i + 1)
                 || i >= withStmts) {
                 newExprs.add(r.getExpr());
             } else {
