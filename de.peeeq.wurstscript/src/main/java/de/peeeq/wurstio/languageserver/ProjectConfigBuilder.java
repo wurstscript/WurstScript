@@ -147,10 +147,10 @@ public class ProjectConfigBuilder {
                     .append(",").append(force.getFlags().getSharedControl())
                     .append(",").append(force.getFlags().getSharedControlAdvanced())
                     .append("players:");
-                    for (int id : force.getPlayerIds()) {
-                        sb.append(id).append(",");
-                    }
-                    sb.append("\n");
+                for (int id : force.getPlayerIds()) {
+                    sb.append(id).append(",");
+                }
+                sb.append("\n");
             }
 
             // Option flags
@@ -175,20 +175,22 @@ public class ProjectConfigBuilder {
         prepareW3I(projectConfig, w3I);
         result.script = new File(buildDir, "war3mapj_with_config.j.txt");
 
-        FileInputStream inputStream = new FileInputStream(mapScript);
-        StringWriter sw = new StringWriter();
+        try (FileInputStream inputStream = new FileInputStream(mapScript)) {
+            StringWriter sw = new StringWriter();
 
-        if (w3data.getWc3PatchVersion().isPresent()) {
-            w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
-        } else {
-            GameVersion version = GameVersion.VERSION_1_32;
-            WLogger.info(
-                "Failed to determine installed game version. Falling back to " + version
-            );
-            w3I.injectConfigsInJassScript(inputStream, sw, version);
+            if (w3data.getWc3PatchVersion().isPresent()) {
+                w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
+            } else {
+                GameVersion version = GameVersion.VERSION_1_32;
+                WLogger.info(
+                    "Failed to determine installed game version. Falling back to " + version
+                );
+                w3I.injectConfigsInJassScript(inputStream, sw, version);
+            }
+
+            byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
+            Files.write(scriptBytes, result.script);
         }
-        byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
-        Files.write(scriptBytes, result.script);
     }
 
 
