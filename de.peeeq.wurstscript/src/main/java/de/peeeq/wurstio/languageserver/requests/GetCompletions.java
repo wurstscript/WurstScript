@@ -145,6 +145,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             WurstType leftType = e.getLeft().attrTyp();
 
+            addArrayLengthCompletion(completions, e, leftType);
+
             if (leftType instanceof WurstTypeNamedScope) {
                 WurstTypeNamedScope ct = (WurstTypeNamedScope) leftType;
                 for (DefLink nameLink : ct.nameLinks().values()) {
@@ -227,6 +229,28 @@ public class GetCompletions extends UserRequest<CompletionList> {
             addKeywordCompletions(completions);
         }
 
+    }
+
+    private void addArrayLengthCompletion(List<CompletionItem> completions, ExprMember member, WurstType leftType) {
+        boolean hasConstArrayInitializer = false;
+        if (member.getLeft() instanceof NameRef) {
+            NameDef nameDef = ((NameRef) member.getLeft()).tryGetNameDef();
+            if (nameDef instanceof GlobalOrLocalVarDef) {
+                GlobalOrLocalVarDef varDef = (GlobalOrLocalVarDef) nameDef;
+                hasConstArrayInitializer = varDef.getInitialExpr() instanceof ArrayInitializer;
+            }
+        }
+
+        if (!hasConstArrayInitializer || !isSuitableCompletion("length")) {
+            return;
+        }
+
+        CompletionItem completion = new CompletionItem("length");
+        completion.setKind(CompletionItemKind.Property);
+        completion.setDetail("int length");
+        completion.setInsertText("length");
+        completion.setSortText(ratingToString(calculateRating("length", WurstTypeInt.instance())));
+        completions.add(completion);
     }
 
     private void addKeywordCompletions(List<CompletionItem> completions) {

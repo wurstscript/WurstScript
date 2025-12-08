@@ -14,8 +14,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.*;
 
 /**
  * tests the autocomplete functionality.
@@ -414,6 +413,42 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         );
 
         testCompletions(testData, "Banana", "Blue", "Boris");
+    }
+
+    @Test
+    public void constantArrayLengthCompletion() {
+        CompletionTestData testData = input(
+            "package test",
+            "const ints = [1, 2, 3]",
+            "init",
+            "    ints.|",
+            "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+
+        assertTrue(
+            completions.getItems().stream().anyMatch(c -> "length".equals(c.getLabel())),
+            "Expected to suggest the synthetic array length property"
+        );
+    }
+
+    @Test
+    public void nonConstantArrayDoesNotSuggestLength() {
+        CompletionTestData testData = input(
+            "package test",
+            "int array ints",
+            "init",
+            "    ints.|",
+            "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+
+        assertFalse(
+            completions.getItems().stream().anyMatch(c -> "length".equals(c.getLabel())),
+            "Did not expect to suggest length for non-constant arrays"
+        );
     }
 
 	private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
