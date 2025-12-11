@@ -208,6 +208,15 @@ public class EliminateGenerics {
         for (ImClass c : prog.getClasses()) {
             c.getFields().removeIf(f -> isGenericType(f.getType()));
         }
+
+        // NEW: Remove original generic global variables
+        prog.getGlobals().removeIf(v -> {
+            if (globalToClass.containsKey(v)) {
+                WLogger.info("Removing generic global variable: " + v.getName() + " with type " + v.getType());
+                return true;
+            }
+            return false;
+        });
     }
 
     private void eliminateGenericUses() {
