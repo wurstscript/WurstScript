@@ -1843,5 +1843,39 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericClassWithModule() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "module M",
+            "    static thistype first = null",
+            "    static thistype last = null",
+            "    static int size = 0",
+            "    thistype prev",
+            "    thistype next",
+            "    construct()",
+            "        size++",
+            "        if size == 1",
+            "            first = this",
+            "            prev = null",
+            "        else",
+            "            last.next = this",
+            "class Box<T:>",
+            "    use M",
+            "    private T value",
+            "    function setValue(T v)",
+            "        value = v",
+            "    function getValue() returns T",
+            "        return value",
+            "init",
+            "    let b = new Box<int>",
+            "    b.setValue(42)",
+            "    if b.getValue() == 42 and b.prev == null",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
 
 }
