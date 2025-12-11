@@ -36,7 +36,7 @@ public class InterpreterException extends RuntimeException {
         String res = super.getMessage();
         if (trace != null) {
             WPos pos = trace.attrSource();
-            res = res + "\n  at " + pos.getFile() + " line " + pos.getLine();
+            res = res + "\n  at " + pos.getFile() + ":" + pos.getLine();
         }
         return res;
     }

@@ -8,7 +8,9 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -256,7 +258,7 @@ public class EvaluateExpr {
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
         if (receiver == null) {
-            throw new InterpreterException(ma.getTrace(), "Null pointer dereference");
+            throw new InterpreterException(ma.getTrace(), "Null pointer dereference: " + ImPrinter.asString(ma.getReceiver()));
         }
         List<Integer> indexes = new ArrayList<>();
         for (ImExpr i : ma.getIndexes()) {
@@ -411,7 +413,7 @@ public class EvaluateExpr {
             }
         }
         if (receiver == null) {
-            throw new InterpreterException(va.attrTrace(), "Null pointer dereference");
+            throw new InterpreterException(va.attrTrace(), "Null pointer dereference: " + ImPrinter.asString(va.getReceiver()));
         }
         ILconstObject receiverFinal = receiver;
         List<Integer> indexes =
