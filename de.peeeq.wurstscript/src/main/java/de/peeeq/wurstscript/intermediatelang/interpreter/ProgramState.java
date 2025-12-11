@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -106,7 +107,7 @@ public class ProgramState extends State {
 
     public void assertAllocated(ILconstObject obj, Element trace) {
         if (obj == null) {
-            throw new InterpreterException(trace, "Null pointer dereference");
+            throw new InterpreterException(trace, "Null pointer dereference. The interpreter expected an object here, but found null.");
         }
         if (obj.isDestroyed()) {
             throw new InterpreterException(trace, "Object already destroyed");
