@@ -24,6 +24,9 @@ public class EliminateGenerics {
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
+    // Track concrete generic arguments for specialized functions to simplify later lookups
+    private final Map<ImFunction, GenericTypes> specializedFunctionGenerics = new IdentityHashMap<>();
+
     // NEW: Track specialized global variables for generic static fields
     // Key: (original generic global var, concrete type instantiation) -> specialized var
     private final Table<ImVar, GenericTypes, ImVar> specializedGlobals = HashBasedTable.create();
@@ -205,15 +208,6 @@ public class EliminateGenerics {
         for (ImClass c : prog.getClasses()) {
             c.getFields().removeIf(f -> isGenericType(f.getType()));
         }
-
-        // NEW: Remove original generic global variables
-        prog.getGlobals().removeIf(v -> {
-            if (globalToClass.containsKey(v)) {
-                WLogger.info("Removing generic global variable: " + v.getName() + " with type " + v.getType());
-                return true;
-            }
-            return false;
-        });
     }
 
     private void eliminateGenericUses() {
@@ -283,6 +277,7 @@ public class EliminateGenerics {
 
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
+        specializedFunctionGenerics.put(newF, generics);
         prog.getFunctions().add(newF);
         newF.getTypeVariables().removeAll();
         List<ImTypeVar> typeVars = f.getTypeVariables();
@@ -442,7 +437,7 @@ public class EliminateGenerics {
             return specialized;
         }
         if (generics.containsTypeVariable()) {
-            throw new CompileError(c, "Generics should not contain type variables.");
+            throw new CompileError(c, "Generics should not contain type variables (" + c.getName() + " ⟪" + generics.makeName() + "⟫).");
         }
         ImClass newC = c.copyWithRefs();
         newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
@@ -816,6 +811,22 @@ public class EliminateGenerics {
             ImVar f = ma.getVar();
             ImClass owningClass = (ImClass) f.getParent().getParent();
             GenericTypes generics = new GenericTypes(specializeTypeArgs(ma.getTypeArguments()));
+            // If the access still carries type variables, defer specialization until a concrete
+            // instantiation is created (e.g. when the surrounding generic function/class is
+            // specialized). If the receiver type is already concrete we can directly resolve the
+            // target field using that type information.
+            if (generics.containsTypeVariable()) {
+                ImType receiverType = specializeType(ma.getReceiver().attrTyp());
+                if (receiverType instanceof ImClassType) {
+                    ImClass specializedClass = ((ImClassType) receiverType).getClassDef();
+                    int fieldIndex = owningClass.getFields().indexOf(f);
+                    ImVar newVar = specializedClass.getFields().get(fieldIndex);
+                    ma.setVar(newVar);
+                    ma.getTypeArguments().removeAll();
+                    newVar.setType(specializeType(newVar.getType()));
+                }
+                return;
+            }
             ImClass specializedClass = specializeClass(owningClass, generics);
             int fieldIndex = owningClass.getFields().indexOf(f);
             ImVar newVar = specializedClass.getFields().get(fieldIndex);
@@ -924,6 +935,11 @@ public class EliminateGenerics {
         while (current != null) {
             if (current instanceof ImFunction) {
                 ImFunction func = (ImFunction) current;
+
+                GenericTypes specialized = specializedFunctionGenerics.get(func);
+                if (specialized != null) {
+                    return specialized;
+                }
 
                 // If function is still generic, we can't decide yet.
                 if (!func.getTypeVariables().isEmpty()) {
@@ -1073,7 +1089,22 @@ public class EliminateGenerics {
             public ImType case_ImClassType(ImClassType t) {
                 ImTypeArguments typeArgs = t.getTypeArguments();
                 List<ImTypeArgument> newTypeArgs = specializeTypeArgs(typeArgs);
-                ImClass specializedClass = specializeClass(t.getClassDef(), new GenericTypes(newTypeArgs));
+                GenericTypes generics = new GenericTypes(newTypeArgs);
+
+                if (generics.containsTypeVariable()) {
+                    Map<GenericTypes, ImClass> specialized = specializedClasses.row(t.getClassDef());
+
+                    if (!specialized.isEmpty()) {
+                        ImClass firstSpecialization = specialized.values().iterator().next();
+                        return JassIm.ImClassType(firstSpecialization, JassIm.ImTypeArguments());
+                    }
+
+                    ImTypeArguments copiedArgs = JassIm.ImTypeArguments();
+                    copiedArgs.addAll(newTypeArgs);
+                    return JassIm.ImClassType(t.getClassDef(), copiedArgs);
+                }
+
+                ImClass specializedClass = specializeClass(t.getClassDef(), generics);
                 return JassIm.ImClassType(specializedClass, JassIm.ImTypeArguments());
             }
 
@@ -1099,7 +1130,27 @@ public class EliminateGenerics {
 
         @Override
         public void eliminate() {
-            mc.setReturnType(specializeType(mc.getReturnType()));
+            ImType returnType = mc.getReturnType();
+
+            if (containsTypeVariable(returnType) && returnType instanceof ImClassType && !mc.getParameters().isEmpty()) {
+                ImClassType retClassType = (ImClassType) returnType;
+                ImType receiverType = mc.getParameters().get(0).getType();
+
+                if (receiverType instanceof ImClassType) {
+                    ImClassType receiverClassType = (ImClassType) receiverType;
+                    ImClassType adapted = adaptToSuperclass(receiverClassType, retClassType.getClassDef());
+
+                    if (adapted != null) {
+                        GenericTypes concrete = new GenericTypes(specializeTypeArgs(adapted.getTypeArguments()));
+                        ImType specialized = ImAttrType.substituteType(returnType, concrete.getTypeArguments(), retClassType.getClassDef().getTypeVariables());
+
+                        mc.setReturnType(specializeType(specialized));
+                        return;
+                    }
+                }
+            }
+
+            mc.setReturnType(specializeType(returnType));
         }
     }
 
