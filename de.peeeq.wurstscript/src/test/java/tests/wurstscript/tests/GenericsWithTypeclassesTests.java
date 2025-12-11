@@ -1843,5 +1843,85 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void linkedListModule() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "module LinkedListModule",
+            "    static thistype first = null",
+            "    static thistype last = null",
+            "    static int size = 0",
+            "    thistype prev",
+            "    thistype next",
+            "    construct()",
+            "        size++",
+            "        if size == 1",
+            "            first = this",
+            "            prev = null",
+            "        else",
+            "            prev = last",
+            "            last.next = this",
+            "            first.prev = this",
+            "        next = null",
+            "        last = this",
+            "    static function getFirst() returns thistype",
+            "        return first",
+            "    function getNext() returns thistype",
+            "        if next == null",
+            "            return first",
+            "        return next",
+            "    function getPrev() returns thistype",
+            "        if prev == null",
+            "            return last",
+            "        return prev",
+            "    function remove()",
+            "        size--",
+            "        if this != first",
+            "            prev.next = next",
+            "        else",
+            "            first = next",
+            "        if this != last",
+            "            next.prev = prev",
+            "        else",
+            "            last = prev",
+            "    ondestroy",
+            "        remove()",
+            "class Node<T:>",
+            "    use LinkedListModule",
+            "init",
+            "    let a = new Node<int>",
+            "    let b = new Node<int>",
+            "    let c = new Node<int>",
+            "    // simple sanity check: circular next traversal should loop",
+            "    if a.getNext() != null and a.getPrev() != null",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+
+    @Test
+    public void genericClassWithLLModule() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import LinkedListModule",
+            "class Box<T:>",
+            "    use LinkedListModule",
+            "    private T value",
+            "    function setValue(T v)",
+            "        value = v",
+            "    function getValue() returns T",
+            "        return value",
+            "init",
+            "    let b = new Box<int>",
+            "    b.setValue(42)",
+            "    if b.getValue() == 42 and b.prev == null",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+
 
 }
