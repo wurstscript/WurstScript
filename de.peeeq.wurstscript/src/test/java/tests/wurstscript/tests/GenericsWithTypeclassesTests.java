@@ -1922,6 +1922,113 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericClassWithLLModuleBig() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import LinkedListModule",
+            "",
+            "class Box<T:>",
+            "    use LinkedListModule",
+            "    private T value",
+            "    function setValue(T v)",
+            "        value = v",
+            "    function getValue() returns T",
+            "        return value",
+            "",
+            "class OtherBox<U:>",
+            "    use LinkedListModule",
+            "    private U v",
+            "    construct(U x)",
+            "        v = x",
+            "    function get() returns U",
+            "        return v",
+            "init",
+            "   foo()",
+            "function foo()",
+            "    // Basic sanity",
+            "    let b0 = new Box<int>",
+            "    b0.setValue(42)",
+            "    if b0.getValue() != 42 or b0.prev != null",
+            "        return",
+            "    b0.remove()",
+            "",
+            "    // Build a 3-element list",
+            "    let b1 = new Box<int>",
+            "    let b2 = new Box<int>",
+            "    let b3 = new Box<int>",
+            "    b1.setValue(1)",
+            "    b2.setValue(2)",
+            "    b3.setValue(3)",
+            "",
+            "    // Circular next()",
+            "    if b1.getNext() != b2 or b2.getNext() != b3 or b3.getNext() != b1",
+            "        return",
+            "",
+            "    // Circular prev()",
+            "    if b1.getPrev() != b3 or b2.getPrev() != b1 or b3.getPrev() != b2",
+            "        return",
+            "",
+            "    // Removal in the middle",
+            "    b2.remove()",
+            "    if b1.getNext() != b3 or b3.getPrev() != b1",
+            "        return",
+            "",
+            "    // Destroy remaining list",
+            "    destroy b1",
+            "    destroy b3",
+            "",
+            "    // NEW: Generic OtherBox<T> list",
+            "    let o1 = new OtherBox<int>(10)",
+            "    let o2 = new OtherBox<int>(20)",
+            "    let o3 = new OtherBox<int>(30)",
+            "",
+            "    if o1.getPrev() != o3 or o3.getNext() != o1",
+            "        return",
+            "",
+            "    // Removal test in OtherBox list",
+            "    o2.remove()",
+            "    if o1.getNext() != o3 or o3.getPrev() != o1",
+            "        return",
+            "",
+            "    destroy o1",
+            "    destroy o3",
+            "",
+            "    testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassWithLLModule1() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import LinkedListModule",
+            "class Box<T:>",
+            "    use LinkedListModule",
+            "class Box2<T>",
+            "    use LinkedListModule",
+            "init",
+            "    let b = new Box<int>",
+            "    let b2 = new Box2<int>",
+            "    testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassStaticAttribute() {
+        testAssertOkLines(true,
+            "package test",
+            "class Box<T:>",
+            "    static int count = 1",
+            "init",
+            "    if Box<int>.count == 1 and Box<real>.count == 1",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
 
 
 }
