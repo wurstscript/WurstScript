@@ -117,7 +117,7 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType.getFullName(), GlobalCaches.LookupType.MEMBER_FUNC);
             @SuppressWarnings("unchecked")
             ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
@@ -155,7 +155,7 @@ public class NameResolution {
         ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
 
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType.getFullName(), GlobalCaches.LookupType.MEMBER_FUNC);
             GlobalCaches.lookupCache.put(key, immutableResult);
         }
 
@@ -252,7 +252,7 @@ public class NameResolution {
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType.getFullName(), GlobalCaches.LookupType.MEMBER_VAR);
             NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
@@ -286,7 +286,7 @@ public class NameResolution {
 
         if (bestMatch != null) {
             if (!showErrors) {
-                GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+                GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType.getFullName(), GlobalCaches.LookupType.MEMBER_VAR);
                 GlobalCaches.lookupCache.put(key, bestMatch.link);
             }
             return bestMatch.link;
@@ -413,13 +413,30 @@ public class NameResolution {
 
     public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
         WurstType n_receiverType = n.getReceiverType();
-        if (n_receiverType == null) {
-            return null;
+        if (n_receiverType == null) return null;
+
+        VariableBinding vb = VariableBinding.emptyMapping();
+
+        // 1) include type params from the receiver type (class/interface/module instantiation)
+        if (n_receiverType instanceof WurstTypeClassOrInterface wtc) {
+            if (wtc.getDef() instanceof AstElementWithTypeParameters tpOwner) {
+                vb = vb.withTypeVariables(tpOwner.getTypeParameters());
+            }
+        } else if (n_receiverType instanceof WurstTypeModuleInstanciation mins) {
+            ClassDef cd = mins.getDef().attrNearestClassDef();
+            if (cd != null) {
+                vb = vb.withTypeVariables(cd.getTypeParameters());
+            }
         }
-        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(n.getTypeParams()), VariablePosition.RIGHT);
-        if (mapping == null) {
-            return null;
-        }
+
+        // 2) include function/extension type params as before
+        vb = vb.withTypeVariables(n.getTypeParams());
+
+        VariableBinding mapping =
+            receiverType.matchAgainstSupertype(n_receiverType, node, vb, VariablePosition.RIGHT);
+
+        if (mapping == null) return null;
+
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
                 node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
