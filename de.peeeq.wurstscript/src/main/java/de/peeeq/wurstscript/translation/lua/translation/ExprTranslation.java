@@ -158,6 +158,11 @@ public class ExprTranslation {
         throw new Error("not implemented: " + e);
     }
 
+    public static LuaExpr translate(ImTypeRef imTypeRef, LuaTranslator tr) {
+        throw new RuntimeException("ImTypeRef must be eliminated before Lua translation: "
+            + imTypeRef.attrTrace());
+    }
+
     static class TupleFunc {
         final ImTupleType tupleType;
         final LuaFunction func;

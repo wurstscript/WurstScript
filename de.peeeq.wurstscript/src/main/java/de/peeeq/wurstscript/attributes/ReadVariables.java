@@ -205,4 +205,8 @@ public class ReadVariables {
     public static ImmutableList<NameDef> calculate(ExprArrayLength exprArrayLength) {
         return ImmutableList.emptyList();
     }
+
+    public static ImmutableList<NameDef> calculate(ExprTypeRef exprTypeRef) {
+        return ImmutableList.emptyList();
+    }
 }

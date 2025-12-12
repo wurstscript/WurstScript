@@ -425,4 +425,8 @@ public class DescriptionHtml {
     public static String description(ExprArrayLength exprArrayLength) {
         return "Get the length of an array.";
     }
+
+    public static String description(ExprTypeRef exprTypeRef) {
+        return null;
+    }
 }

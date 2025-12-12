@@ -66,6 +66,24 @@ public class ImTranslator {
     private final Set<WPackage> translatedPackages = new ObjectLinkedOpenHashSet<>();
     private final Set<ClassDef> translatedClasses = new ObjectLinkedOpenHashSet<>();
 
+    private static final class StaticSpecKey {
+        final VarDef varDef;
+        final List<ImType> typeArgs; // already translated
+        StaticSpecKey(VarDef varDef, List<ImType> typeArgs) {
+            this.varDef = varDef;
+            this.typeArgs = typeArgs;
+        }
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof StaticSpecKey k)) return false;
+            return varDef == k.varDef && Objects.equals(typeArgs, k.typeArgs);
+        }
+        @Override public int hashCode() {
+            return System.identityHashCode(varDef) * 31 + typeArgs.hashCode();
+        }
+    }
+
+    private final Map<StaticSpecKey, ImVar> specializedStaticVars = new Object2ObjectLinkedOpenHashMap<>();
 
     private final Map<VarDef, ImVar> varMap = new Object2ObjectLinkedOpenHashMap<>();
 
@@ -173,6 +191,82 @@ public class ImTranslator {
         for (WPackage p : packages) {
             calculateCompiletimeOrder_walk(p, visited);
         }
+    }
+
+    public ImVar getSpecializedStaticVar(VarDef staticVar, WurstTypeClassOrInterface staticRefType) {
+        // base im var (type, bj, etc.)
+        ImVar base = getVarFor(staticVar);
+
+        // translate type args of the *static ref* (Box<int> / Box<real>)
+        List<ImType> args = new ArrayList<>();
+        for (WurstType a : staticRefType.getTypeParameters()) { // adjust if your API name differs
+            args.add(a.imTranslateType(this));
+        }
+
+        StaticSpecKey key = new StaticSpecKey(staticVar, args);
+        ImVar existing = specializedStaticVars.get(key);
+        if (existing != null) {
+            return existing;
+        }
+
+        // name: <qualifiedStaticFieldName>__T_<mangled args>
+        String mangled = args.stream()
+            .map(ImType::translateType)          // or your own stable mangle
+            .map(s -> s.replaceAll("[^A-Za-z0-9_]", "_"))
+            .collect(Collectors.joining("_"));
+        String newName = base.getName() + "__" + mangled;
+
+        ImVar g = JassIm.ImVar(staticVar, base.getType(), newName, base.getIsBJ());
+        addGlobal(g);
+
+        cloneGlobalInits(base, g);
+
+        specializedStaticVars.put(key, g);
+        return g;
+    }
+
+    private void cloneGlobalInits(ImVar from, ImVar to) {
+        List<ImSet> base = imProg.getGlobalInits().get(from);
+        if (base == null || base.isEmpty()) {
+            return;
+        }
+
+        List<ImSet> cloned = new ArrayList<>(base.size());
+        for (ImSet s : base) {
+            ImLExpr left = s.getLeft();
+            ImLExpr newLeft;
+
+            if (left instanceof ImVarAccess va && va.getVar() == from) {
+                newLeft = JassIm.ImVarAccess(to);
+
+            } else if (left instanceof ImVarArrayAccess aa && aa.getVar() == from) {
+                // copy indexes (avoid re-parenting issues)
+                ImExprs idx = JassIm.ImExprs();
+                for (ImExpr e : aa.getIndexes()) {
+                    idx.add((ImExpr) e.copy());
+                }
+                newLeft = JassIm.ImVarArrayAccess(s.getTrace(), to, idx);
+
+            } else {
+                // unexpected pattern; skip
+                continue;
+            }
+
+            ImExpr newRight = (ImExpr) s.getRight().copy();
+            ImSet ns = JassIm.ImSet(s.getTrace(), newLeft, newRight);
+            cloned.add(ns);
+
+            // insert into same statement list right after original init
+            if (s.getParent() instanceof ImStmts stmts) {
+                int i = stmts.indexOf(s);
+                stmts.add(i + 1, ns);
+            } else {
+                // fallback: if no parent, put into global init (keeps correctness, maybe different order)
+                getGlobalInitFunc().getBody().add(ns);
+            }
+        }
+
+        imProg.getGlobalInits().put(to, cloned);
     }
 
     private void calculateCompiletimeOrder_walk(WPackage p, Set<WPackage> visited) {

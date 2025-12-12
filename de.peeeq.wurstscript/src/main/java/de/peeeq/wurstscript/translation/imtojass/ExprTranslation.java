@@ -167,4 +167,9 @@ public class ExprTranslation {
     public static JassExpr translate(ImCast imCast, ImToJassTranslator translator) {
         return imCast.getExpr().translate(translator);
     }
+
+    public static JassExpr translate(ImTypeRef imTypeRef, ImToJassTranslator translator) {
+        throw new RuntimeException("ImTypeRef must be eliminated before JASS translation: "
+            + imTypeRef.attrTrace());
+    }
 }

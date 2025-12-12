@@ -202,8 +202,11 @@ public class ImToJassTranslator {
                 result = JassAst.JassArrayVar(type, name);
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
-                    JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
-                    result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
+                    JassExpr init = tryGetScalarGlobalInit(v);
+                    if (init == null) {
+                        init = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
+                    }
+                    result = JassAst.JassInitializedVar(type, name, init, v.getIsBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
                 }
@@ -214,6 +217,32 @@ public class ImToJassTranslator {
             jassVars.put(v, result);
         }
         return result;
+    }
+
+    private @Nullable JassExpr tryGetScalarGlobalInit(ImVar v) {
+        List<ImSet> inits = imProg.getGlobalInits().get(v);
+        if (inits == null || inits.isEmpty()) return null;
+        if (inits.size() != 1) return null;
+
+        ImSet s = inits.get(0);
+
+        // Must be: set <global> = <expr>
+        if (!(s.getLeft() instanceof ImVarAccess)) return null;
+        ImVarAccess va = (ImVarAccess) s.getLeft();
+        if (va.getVar() != v) return null;
+
+        ImExpr rhs = s.getRight();
+
+        // Only allow JASS-legal constant initializers
+        if (rhs instanceof ImIntVal ||
+            rhs instanceof ImRealVal ||
+            rhs instanceof ImStringVal ||
+            rhs instanceof ImBoolVal ||
+            rhs instanceof ImNull) {
+            return rhs.translate(this);
+        }
+
+        return null;
     }
 
     private String jassifyName(String name) {

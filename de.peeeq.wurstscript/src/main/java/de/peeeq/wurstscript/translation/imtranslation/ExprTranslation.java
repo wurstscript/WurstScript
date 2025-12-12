@@ -113,7 +113,7 @@ public class ExprTranslation {
                     ensureType = t.ensureRealFunc;
                     break;
             }
-            if(ensureType != null) {
+            if (ensureType != null) {
                 return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
         }
@@ -148,7 +148,7 @@ public class ExprTranslation {
             return wrapLua(trace, t, translated, actualType);
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            if(t.isLuaTarget()) {
+            if (t.isLuaTarget()) {
                 translated = ImFunctionCall(trace, t.ensureIntFunc, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
             // no ensure type necessary here, because the fromIndex function is already type safe
@@ -172,14 +172,14 @@ public class ExprTranslation {
         if (op == WurstOperator.DIV_REAL) {
             if (Utils.isJassCode(e)) {
                 if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
-                        && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
+                    && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
                     // in jass when we have int1 / int2 this actually means int1
                     // div int2
                     op = WurstOperator.DIV_INT;
                 }
             } else {
                 if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
-                        && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
+                    && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
                     // we want a real division but have 2 ints so we need to
                     // multiply with 1.0
                     // TODO is this really needed or handled in IM->Jass
@@ -261,7 +261,21 @@ public class ExprTranslation {
             if (e.attrImplicitParameter() instanceof Expr) {
                 // we have implicit parameter
                 // e.g. "someObject.someField"
+
                 Expr implicitParam = (Expr) e.attrImplicitParameter();
+                if (implicitParam instanceof ExprTypeRef) {
+                    WurstType tpe = ((ExprTypeRef) implicitParam).attrTyp();
+                    if (tpe instanceof WurstTypeClassOrInterface wtc && wtc.isStaticRef()) {
+                        ImVar spec = t.getSpecializedStaticVar(varDef, wtc);
+                        // handle array index the same way as direct var access:
+                        if (e instanceof AstElementWithIndexes) {
+                            ImExpr index = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                            return ImVarArrayAccess(e, spec, ImExprs(index));
+                        }
+                        return ImVarAccess(spec);
+                    }
+                }
+
 
                 if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
                     WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
@@ -322,10 +336,10 @@ public class ExprTranslation {
             ImVar v = ImVar(left.attrTrace(), left.attrTyp(), "temp_tuple", false);
             f.getLocals().add(v);
             return JassIm.ImStatementExpr(
-                    JassIm.ImStmts(
-                            ImSet(left.attrTrace(), ImVarAccess(v), left)
-                    ),
-                    ImTupleSelection(ImVarAccess(v), tupleIndex)
+                JassIm.ImStmts(
+                    ImSet(left.attrTrace(), ImVarAccess(v), left)
+                ),
+                ImTupleSelection(ImVarAccess(v), tupleIndex)
             );
         }
     }
@@ -440,7 +454,7 @@ public class ExprTranslation {
     private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver) {
 
         if (e.getFuncName().equals("getStackTraceString") && e.attrImplicitParameter() instanceof NoExpr
-                && e.getArgs().size() == 0) {
+            && e.getArgs().size() == 0) {
             // special built-in error function
             return JassIm.ImGetStackTrace();
         }
@@ -454,8 +468,8 @@ public class ExprTranslation {
         }
 
         if (e.getFuncName().equals("compiletime")
-                && e.attrImplicitParameter() instanceof NoExpr
-                && e.getArgs().size() == 1) {
+            && e.attrImplicitParameter() instanceof NoExpr
+            && e.getArgs().size() == 1) {
             // special compiletime-expression
             return JassIm.ImCompiletimeExpr(e, e.getArgs().get(0).imTranslateExpr(t, f), t.getCompiletimeExpressionsOrder(e));
         }
@@ -508,7 +522,13 @@ public class ExprTranslation {
             dynamicDispatch = false;
         }
 
-        ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
+        // IMPORTANT: ExprTypeRef must never become a runtime receiver.
+        // We still keep it in attrFunctionSignature() / type binding, but it produces no ImExpr.
+        ImExpr receiver = null;
+        if (leftExpr != null && !(leftExpr instanceof ExprTypeRef)) {
+            receiver = leftExpr.imTranslateExpr(t, f);
+        }
+
         ImExprs imArgs = translateExprs(arguments, t, f);
 
         if (calledFunc instanceof TupleDef) {
@@ -521,25 +541,31 @@ public class ExprTranslation {
         if (returnReveiver) {
             if (leftExpr == null)
                 throw new Error("impossible");
+
+            if (leftExpr instanceof ExprTypeRef) {
+                // cannot "return receiver" for type-only receivers
+                throw new CompileError(e, "Cannot return receiver for static type reference call.");
+            }
+
             tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
             f.getLocals().add(tempVar);
             stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
         }
 
-
-
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            ImTypeArguments typeArguments =
+                getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            ImTypeArguments typeArguments =
+                getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
             call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
@@ -724,6 +750,19 @@ public class ExprTranslation {
                 // e.g. "someObject.someField"
                 Expr implicitParam = (Expr) e.attrImplicitParameter();
 
+                if (implicitParam instanceof ExprTypeRef) {
+                    WurstType tpe = ((ExprTypeRef) implicitParam).attrTyp();
+                    if (tpe instanceof WurstTypeClassOrInterface wtc && wtc.isStaticRef()) {
+                        ImVar spec = t.getSpecializedStaticVar(varDef, wtc);
+                        // handle array index the same way as direct var access:
+                        if (e instanceof AstElementWithIndexes) {
+                            ImExpr index = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                            return ImVarArrayAccess(e, spec, ImExprs(index));
+                        }
+                        return ImVarAccess(spec);
+                    }
+                }
+
                 if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
                     WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
                     if (e instanceof ExprMemberVar && ((ExprMemberVar) e).getLeft() instanceof LExpr) {
@@ -774,6 +813,14 @@ public class ExprTranslation {
         // if you ever support dynamic length, translate accordingly (otherwise error)
         exprArrayLength.addError("length is only available for arrays with known size.");
         return JassIm.ImIntVal(0);
+    }
+
+    public static ImExpr translate(ExprTypeRef e, ImTranslator translator, ImFunction f) {
+        // This must never be evaluated as a value.
+        throw new CompileError(
+            e.attrSource(),
+            "Type references cannot be used as runtime expressions."
+        );
     }
 
 //    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {

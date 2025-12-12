@@ -48,4 +48,11 @@ public class Equality {
         return false;
     }
 
+    public static boolean equalValue(ImTypeRef imTypeRef, ImConst other) {
+        if (!(other instanceof ImTypeRef)) {
+            return false;
+        }
+        ImTypeRef o = (ImTypeRef) other;
+        return imTypeRef.getClazz().equalsType(o.getClazz());
+    }
 }

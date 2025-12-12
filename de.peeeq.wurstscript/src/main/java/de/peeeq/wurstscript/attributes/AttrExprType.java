@@ -591,4 +591,8 @@ public class AttrExprType {
         exprArrayLength.addError(".length is only valid on arrays.");
         return de.peeeq.wurstscript.types.WurstTypeUnknown.instance();
     }
+
+    public static WurstType calculate(ExprTypeRef e) {
+        return e.getTyp().attrTyp();
+    }
 }

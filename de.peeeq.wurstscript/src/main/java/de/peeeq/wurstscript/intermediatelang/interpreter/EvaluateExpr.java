@@ -490,4 +490,10 @@ public class EvaluateExpr {
         }
         return res;
     }
+
+    public static ILconst eval(ImTypeRef imTypeRef, ProgramState globalState, LocalState localState) {
+        // Resolve any type vars based on current substitutions:
+        ImType resolved = globalState.resolveType(imTypeRef.attrTyp());
+        return new ILconstTypeRef((ImClassType) resolved);
+    }
 }
