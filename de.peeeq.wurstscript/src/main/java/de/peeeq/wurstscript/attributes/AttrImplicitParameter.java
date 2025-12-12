@@ -9,7 +9,7 @@ import org.eclipse.jdt.annotation.Nullable;
 public class AttrImplicitParameter {
 
     public static OptExpr getImplicitParameter(ExprMemberVar e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        Expr result = getImplicitParameterUsingLeft(e, true); // keep static refs
         if (result == null) {
             return getImplicitParamterCaseNormalVar(e);
         } else {
@@ -18,7 +18,7 @@ public class AttrImplicitParameter {
     }
 
     public static OptExpr getImplicitParameter(ExprMemberArrayVar e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        Expr result = getImplicitParameterUsingLeft(e, true); // keep static refs
         if (result == null) {
             return getImplicitParamterCaseNormalVar(e);
         } else {
@@ -40,7 +40,7 @@ public class AttrImplicitParameter {
     }
 
     public static OptExpr getImplicitParameter(ExprMemberMethod e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        Expr result = getImplicitParameterUsingLeft(e, false);
         if (result == null) {
             return getImplicitParameterCaseNormalFunctionCall(e);
         } else {
@@ -55,14 +55,19 @@ public class AttrImplicitParameter {
         }
     }
 
-    private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e) {
-        if (e.getLeft().attrTyp().isStaticRef()) {
-            // we have a static ref like Math.sqrt()
-            // this will be handled like if we just have sqrt()
-            // if we have an implicit parameter depends on whether sqrt is static or not
+    private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e, boolean keepStaticRef) {
+        Expr left = e.getLeft();
+
+        if (left.attrTyp().isStaticRef()) {
+            // Only keep typed refs like Box<int> so we can specialize generics.
+            // Plain identifiers like BoxInt must NOT become runtime receivers.
+            if (keepStaticRef && left instanceof ExprTypeRef) {
+                return left;
+            }
             return null;
         }
-        return e.getLeft();
+
+        return left;
     }
 
     private static OptExpr getImplicitParameterCaseNormalFunctionCall(FunctionCall e) {
@@ -71,12 +76,19 @@ public class AttrImplicitParameter {
     }
 
     static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
-        if (e instanceof HasReceiver) {
-            HasReceiver hasReceiver = (HasReceiver) e;
-            Expr res = getImplicitParameterUsingLeft(hasReceiver);
-            if (res != null) {
-                return res;
+        if (e instanceof HasReceiver hasReceiver) {
+            Expr left = hasReceiver.getLeft();
+
+            if (left.attrTyp().isStaticRef()) {
+                // Keep ONLY typed static refs to propagate type args (Box<int>.foo()).
+                if (left instanceof ExprTypeRef) {
+                    return left; // type-only receiver
+                }
+                return Ast.NoExpr(); // plain BoxInt.foo() has no receiver
             }
+
+            // normal dynamic receiver
+            return left;
         }
         if (calledFunc == null) {
             return Ast.NoExpr();

@@ -405,6 +405,65 @@ public class ProgramState extends State {
     }
 
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticVals = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+
+    private final Object2ObjectOpenHashMap<String, ImClass> genericStaticOwnerCache = new Object2ObjectOpenHashMap<>();
+
+
+    private @Nullable ImClass tryGetGenericOwnerClassForGlobal(ImVar v) {
+        if (!v.isGlobal()) return null;
+
+        String name = v.getName();
+        int underscore = name.indexOf('_');
+        if (underscore <= 0) return null;
+
+        String className = name.substring(0, underscore);
+
+        ImClass cached = genericStaticOwnerCache.get(className);
+        if (cached != null) {
+            // could be non-generic too; we store it anyway and check below
+            return cached.getTypeVariables().isEmpty() ? null : cached;
+        }
+
+        // lookup class by name (fast enough; cached afterwards)
+        for (ImClass c : prog.getClasses()) {
+            if (c.getName().equals(className)) {
+                genericStaticOwnerCache.put(className, c);
+                return c.getTypeVariables().isEmpty() ? null : c;
+            }
+        }
+
+        // remember "not found" as null by storing a dummy? keep simple: don't cache misses
+        return null;
+    }
+
+    private @Nullable ILStackFrame topFrameWithReceiver() {
+        ILStackFrame top = stackFrames.peek();
+        return (top != null && top.receiver != null) ? top : null;
+    }
+
+    private @Nullable String genericStaticKey(ImVar v) {
+        // Old behavior: also treat "static T ..." lowered to global of ImTypeVarRef as generic
+        boolean isTypeVarStatic = v.getType() instanceof ImTypeVarRef;
+
+        // New behavior: treat ANY global that belongs to a generic class as generic-static
+        ImClass genericOwner = tryGetGenericOwnerClassForGlobal(v);
+
+        if (!isTypeVarStatic && genericOwner == null) {
+            return null;
+        }
+
+        ILStackFrame top = topFrameWithReceiver();
+        if (top == null) {
+            // No receiver context => cannot pick instantiation; fall back to shared global semantics
+            return null;
+        }
+
+        // Use the receiver's *concrete* type (already concrete for objects)
+        ImClassType recvType = top.receiver.getType();
+        return v.getName() + "@" + instantiationKey(recvType);
+    }
+
 
 
     public String instantiationKey(ImClassType ct) {
@@ -425,29 +484,21 @@ public class ProgramState extends State {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
-        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
-            ILStackFrame top = stackFrames.peek();
-            if (top != null && top.receiver != null) {
-                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
-                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
-                String s = v.getName() + resolved;
-                genericStaticVals.put(s, val);
-                return;
-            }
+        String key = genericStaticKey(v);
+        if (key != null) {
+            genericStaticVals.put(key, val);
+            return;
         }
         super.setVal(v, val);
     }
 
+    @Override
     public @Nullable ILconst getVal(ImVar v) {
-        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
-            System.out.println("looking for generic static var " + v);
-            ILStackFrame top = stackFrames.peek();
-            if (top != null && top.receiver != null) {
-                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
-                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
-                String s = v.getName() + resolved;
-                return genericStaticVals.get(s);
-            }
+        String key = genericStaticKey(v);
+        if (key != null) {
+            ILconst r = genericStaticVals.get(key);
+            if (r != null) return r;
+            // If never written, fall through to default global storage (which might have init/defaults)
         }
         return super.getVal(v);
     }
@@ -461,6 +512,27 @@ public class ProgramState extends State {
 
     @Override
     protected ILconstArray getArray(ImVar v) {
+        String key = genericStaticKey(v);
+        if (key != null) {
+            ILconstArray r = genericStaticArrays.get(key);
+            if (r != null) return r;
+
+            r = createArrayConstantFromType(v.getType());
+            genericStaticArrays.put(key, r);
+
+            // Initialize from globalInits only once per instantiation
+            List<ImSet> inits = prog.getGlobalInits().get(v);
+            if (inits != null && !inits.isEmpty()) {
+                final LocalState ls = EMPTY_LOCAL_STATE;
+                for (int i = 0; i < inits.size(); i++) {
+                    ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                    r.set(i, val);
+                }
+            }
+            return r;
+        }
+
+        // old behavior for non-generic statics
         Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues = ensureArrayValues();
         ILconstArray r = arrayValues.get(v);
         if (r != null) return r;
@@ -468,10 +540,8 @@ public class ProgramState extends State {
         r = createArrayConstantFromType(v.getType());
         arrayValues.put(v, r);
 
-        // Initialize from globalInits only once
         List<ImSet> inits = prog.getGlobalInits().get(v);
         if (inits != null && !inits.isEmpty()) {
-            // evaluate with a reusable local state to avoid per-init allocations
             final LocalState ls = EMPTY_LOCAL_STATE;
             for (int i = 0; i < inits.size(); i++) {
                 ILconst val = inits.get(i).getRight().evaluate(this, ls);

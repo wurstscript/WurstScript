@@ -347,6 +347,9 @@ indexes:
 		   '[' expr ']'
 	   ;
 
+exprTypeRef
+    : typeName=ID typeArgsNonEmpty
+    ;
 
 expr:
 		exprPrimary	
@@ -368,12 +371,14 @@ expr:
 	;
 
 
+
 exprPrimary:
 	    exprFunctionCall
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
 	  | exprDestroy
+	  | exprTypeRef
       | varname=ID indexes?
       | atom=(INT
       | REAL
@@ -438,6 +443,9 @@ stmtBreak:'break';
 stmtSkip:'skip';
 
 
+typeArgsNonEmpty
+    : '<' (args+=typeExpr (',' args+=typeExpr)*)? '>'
+    ;
 
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 

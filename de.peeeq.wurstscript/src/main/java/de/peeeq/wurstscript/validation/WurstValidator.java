@@ -369,6 +369,8 @@ public class WurstValidator {
 
     private void check(Element e) {
         try {
+            if (e instanceof ExprTypeRef)
+                checkExprTypeRef((ExprTypeRef) e);
             if (e instanceof Annotation)
                 checkAnnotation((Annotation) e);
             if (e instanceof AstElementWithTypeParameters)
@@ -1676,6 +1678,12 @@ public class WurstValidator {
         return actual.isSubtypeOf(expected, site);
     }
 
+    private void checkExprTypeRef(ExprTypeRef e) {
+        if (!isUsedAsReceiverInExprMember(e)) {
+            e.addError("Type reference cannot be used as an expression.");
+        }
+    }
+
     private void checkAnnotation(Annotation a) {
         FuncLink fl = a.attrFuncLink();
         if (fl == null) return;
@@ -1789,12 +1797,37 @@ public class WurstValidator {
     }
 
     private void visit(ExprBinary expr) {
-        FuncLink def = expr.attrFuncLink();
-        if (def != null) {
-            FunctionSignature sig = FunctionSignature.fromNameLink(def);
-            CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
-            callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
+        FuncLink link = expr.attrFuncLink();
+        if (link == null) {
+            return;
         }
+
+        FunctionSignature baseSig = FunctionSignature.fromNameLink(link);
+
+        // Build call shape matching the signature shape:
+        // - extension-style overloads: receiverType != null, and usually one param (rhs)
+        // - plain overloads: receiverType == null, two params (lhs, rhs)
+        CallSignature callSig;
+        List<WurstType> argTypes;
+
+        if (baseSig.getReceiverType() != null) {
+            // receiver is lhs, args contains rhs
+            callSig = new CallSignature(expr.getLeft(), /*hint*/ null, Collections.singletonList(expr.getRight()));
+            argTypes = Collections.singletonList(expr.getRight().attrTyp());
+        } else {
+            // no receiver, args contains lhs+rhs
+            callSig = new CallSignature((Expr) null, /*hint*/ null, Lists.newArrayList(expr.getLeft(), expr.getRight()));
+            argTypes = Lists.newArrayList(expr.getLeft().attrTyp(), expr.getRight().attrTyp());
+        }
+
+        // IMPORTANT: specialize the signature using the operand types
+        FunctionSignature sig = baseSig.matchAgainstArgs(argTypes, expr);
+        if (sig == null) {
+            // keep baseSig so we still report something sensible
+            sig = baseSig;
+        }
+
+        callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
     }
 
     private void visit(ExprMemberMethod stmtCall) {

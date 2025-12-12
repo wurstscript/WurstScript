@@ -783,6 +783,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ExprTypeRef(ExprTypeRef exprTypeRef) {
+            return List.of();
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_TopLevelDeclarations(TopLevelDeclarations topLevelDeclarations) {
             return string("A list of declarations.");
         }

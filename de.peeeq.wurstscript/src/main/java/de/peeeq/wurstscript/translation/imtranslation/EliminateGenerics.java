@@ -187,12 +187,9 @@ public class EliminateGenerics {
                 ImClass owningClass = classMap.get(potentialClassName);
 
                 if (owningClass != null && !owningClass.getTypeVariables().isEmpty()) {
-                    // This global belongs to a generic class
-                    if (containsTypeVariable(global.getType())) {
-                        globalToClass.put(global, owningClass);
-                        WLogger.info("Identified generic global: " + varName + " of type " + global.getType() +
-                            " belonging to class " + owningClass.getName());
-                    }
+                    globalToClass.put(global, owningClass);
+                    WLogger.info("Identified generic global: " + varName + " of type " + global.getType() +
+                        " belonging to class " + owningClass.getName());
                 }
             }
         }
@@ -209,14 +206,16 @@ public class EliminateGenerics {
             c.getFields().removeIf(f -> isGenericType(f.getType()));
         }
 
-        // NEW: Remove original generic global variables
-        prog.getGlobals().removeIf(v -> {
-            if (globalToClass.containsKey(v)) {
-                WLogger.info("Removing generic global variable: " + v.getName() + " with type " + v.getType());
-                return true;
-            }
-            return false;
-        });
+//         NEW: Remove original generic global variables
+//        prog.getGlobals().removeIf(v -> {
+//            if (globalToClass.containsKey(v)) {
+//                WLogger.info("Removing generic global variable: " + v.getName() + " with type " + v.getType());
+//                prog.getGlobalInits().remove(v);
+//                return true;
+//            }
+//            return false;
+//        });
+        prog.clearAttributes();
     }
 
     private void eliminateGenericUses() {
@@ -500,6 +499,32 @@ public class EliminateGenerics {
             // Add to program globals
             prog.getGlobals().add(specializedGlobal);
 
+            List<ImSet> inits = prog.getGlobalInits().get(originalGlobal);
+            if (inits != null && !inits.isEmpty()) {
+                List<ImSet> newInits = new ArrayList<>(inits.size());
+                for (ImSet s : inits) {
+                    ImSet c = s.copy();
+
+                    // retarget left side to the specialized global
+                    if (c.getLeft() instanceof ImVarAccess) {
+                        ImVarAccess va = (ImVarAccess) c.getLeft();
+                        if (va.getVar() == originalGlobal) {
+                            va.setVar(specializedGlobal);
+                        }
+                    } else if (c.getLeft() instanceof ImVarArrayAccess) {
+                        ImVarArrayAccess vaa = (ImVarArrayAccess) c.getLeft();
+                        if (vaa.getVar() == originalGlobal) {
+                            vaa.setVar(specializedGlobal);
+                        }
+                    }
+
+                    // specialize any types inside the init statement (right side, indices, null types, etc.)
+                    rewriteGenerics(c, generics, typeVars);
+
+                    newInits.add(c);
+                }
+                prog.getGlobalInits().put(specializedGlobal, newInits);
+            }
             // Track the specialization
             specializedGlobals.put(originalGlobal, generics, specializedGlobal);
 

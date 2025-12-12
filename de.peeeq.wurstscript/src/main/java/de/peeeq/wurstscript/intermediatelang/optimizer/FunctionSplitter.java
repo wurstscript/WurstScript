@@ -110,6 +110,11 @@ public class FunctionSplitter {
             }
 
             @Override
+            public Integer case_ImTypeRef(ImTypeRef imTypeRef) {
+                return 0;
+            }
+
+            @Override
             public Integer case_ImBoolVal(ImBoolVal s) {
                 return 1;
             }

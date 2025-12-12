@@ -1432,4 +1432,8 @@ public class PrettyPrinter {
         exprArrayLength.getArray().prettyPrint(spacer, sb, indent);
         sb.append(".length");
     }
+
+    public static void prettyPrint(ExprTypeRef exprTypeRef, Spacer spacer, StringBuilder sb, int indent) {
+
+    }
 }

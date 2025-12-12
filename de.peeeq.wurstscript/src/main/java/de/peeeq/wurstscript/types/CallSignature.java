@@ -9,36 +9,33 @@ import java.util.List;
 
 public class CallSignature {
     private final @Nullable Expr receiver;
+    private final @Nullable WurstType receiverTypeHint; // <-- NEW
     private final List<Expr> arguments;
 
-    public CallSignature(@Nullable OptExpr optExpr, List<Expr> arguments) {
-        if (optExpr instanceof Expr) {
-            this.receiver = (Expr) optExpr;
-        } else {
-            this.receiver = null;
-        }
+    public CallSignature(@Nullable Expr receiver, @Nullable WurstType receiverTypeHint, List<Expr> arguments) {
+        this.receiver = receiver;
+        this.receiverTypeHint = receiverTypeHint;
         this.arguments = arguments;
     }
 
-    public List<Expr> getArguments() {
-        return arguments;
+    public CallSignature(@Nullable OptExpr optExpr, @Nullable WurstType receiverTypeHint, List<Expr> arguments) {
+        this((optExpr instanceof Expr) ? (Expr) optExpr : null, receiverTypeHint, arguments);
     }
 
-    public @Nullable Expr getReceiver() {
-        return receiver;
-    }
+    public @Nullable Expr getReceiver() { return receiver; }
+    public @Nullable WurstType getReceiverTypeHint() { return receiverTypeHint; } // <-- NEW
+    public List<Expr> getArguments() { return arguments; }
 
     public void checkSignatureCompatibility(FunctionSignature sig, String funcName, Element pos) {
-        if (sig.isEmpty()) {
-            return;
-        }
+        if (sig.isEmpty()) return;
+
         Expr l_receiver = receiver;
         if (l_receiver != null) {
             if (sig.getReceiverType() == null) {
                 l_receiver.addError("No receiver expected for function " + funcName + ".");
             } else if (!l_receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), l_receiver)) {
                 l_receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
-                        "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
+                    "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
             }
         }
         if (getArguments().size() > sig.getMaxNumParams()) {

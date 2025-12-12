@@ -142,6 +142,7 @@ ImConst =
 	| ImBoolVal(boolean valB)
 	| ImFuncRef(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func)
 	| ImNull(ref ImType type)
+	| ImTypeRef(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz)
 
 ImTypeArguments * ImTypeArgument
 

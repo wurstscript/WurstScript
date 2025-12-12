@@ -789,6 +789,22 @@ public class AntlrWurstParseTreeTransformer {
         return Ast.ExprDestroy(source(e), transformExpr(e.expr()));
     }
 
+    private ExprTypeRef transformExprTypeRef(ExprTypeRefContext e) {
+        WPos src = source(e);
+
+        // Build TypeExprSimple("Box", <int>)
+        String typeName = rawText(e.typeName);
+
+        TypeExprList typeArgs = Ast.TypeExprList();
+        for (TypeExprContext t : e.typeArgsNonEmpty().args) {
+            typeArgs.add(transformTypeExpr(t));
+        }
+
+        TypeExpr typ = Ast.TypeExprSimple(src, Ast.NoTypeExpr(), typeName, typeArgs);
+        return Ast.ExprTypeRef(src, typ);
+    }
+
+
     private StmtReturn transformReturn(StmtReturnContext s) {
         OptExpr r = transformOptionalExpr(s.expr());
         if (r instanceof ExprEmpty) {
@@ -1221,6 +1237,8 @@ public class AntlrWurstParseTreeTransformer {
             return transformExprFuncRef(e.exprFuncRef());
         } else if (e.exprDestroy() != null) {
             return transformExprDestroy(e.exprDestroy());
+        } else if (e.exprTypeRef() != null) {
+            return transformExprTypeRef(e.exprTypeRef());
         }
         // TODO Auto-generated method stub
         throw error(e, "not implemented " + text(e));

@@ -112,7 +112,9 @@ public class WurstParser {
             parser.removeErrorListeners();
             parser.addErrorListener(l);
 
+            parser.setBuildParseTree(true);
             CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
+            System.out.println(cu.toStringTree(parser));
 
             if (lexer.getTabWarning() != null) {
                 CompileError warning = lexer.getTabWarning();

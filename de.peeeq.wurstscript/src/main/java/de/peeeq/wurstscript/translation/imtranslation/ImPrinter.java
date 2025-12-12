@@ -593,4 +593,8 @@ public class ImPrinter {
     public static void print(ImAnyType at, Appendable sb, int indent) {
         append(sb, "any");
     }
+
+    public static void print(ImTypeRef imTypeRef, Appendable sb, int indent) {
+        // TODO
+    }
 }

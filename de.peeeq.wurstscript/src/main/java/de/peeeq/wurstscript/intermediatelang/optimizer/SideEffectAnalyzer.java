@@ -77,6 +77,11 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImTypeRef(ImTypeRef imTypeRef) {
+                return false;
+            }
+
+            @Override
             public Boolean case_ImMemberAccess(ImMemberAccess e) {
                 return quickcheckHasSideeffects(e.getReceiver());
             }
