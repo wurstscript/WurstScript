@@ -43,16 +43,18 @@ jacoco {
     toolVersion = "0.8.13"
 }
 
-jacocoTestReport {
-    dependsOn test
+tasks.named("jacocoTestReport", JacocoReport) {
+    dependsOn(tasks.named("test"))
+
     reports { xml.required.set(true) }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                    '**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'
-            ])
-        }))
-    }
+
+    def excluded = ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**']
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect { dir ->
+                fileTree(dir: dir, exclude: excluded)
+            })
+    )
 }
 
 def genDir = "$projectDir/src-gen"
