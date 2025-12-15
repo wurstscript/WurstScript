@@ -120,67 +120,81 @@ def parseqFiles = fileTree(dir: 'parserspec', include: '*.parseq')
 
 def pkgPattern = Pattern.compile(/package\s+(\S+)\s*;/)
 
-tasks.register('genAst') {
-    // make it incremental/cacheable
-    inputs.files(parseqFiles)
-    outputs.dir(genDir)
+// resolve once at configuration time
+def genDirFile = file(genDir)
+def astgenCp = configurations.astgen
+def pkgPatternLocal = pkgPattern
 
-    doLast {
-        // fetch ExecOperations from Gradle services (no @Inject needed)
-        ExecOperations execOps = project.services.get(ExecOperations)
+def perFileTasks = []
 
-        parseqFiles.files.each { File f ->
-            String contents = f.getText('UTF-8')
-            def m = pkgPattern.matcher(contents)
-            String pkg = m.find() ? m.group(1) : ""
-            File targetDir = file("$genDir/${pkg.replace('.', '/')}")
+parseqFiles.files.each { File f ->
+    // determine package at configuration time (same logic you had)
+    String contents = f.getText('UTF-8')
+    def m = pkgPatternLocal.matcher(contents)
+    String pkg = m.find() ? m.group(1) : ""
+    File targetDir = new File(genDirFile, pkg.replace('.', '/'))
 
-            targetDir.mkdirs()
+    def t = tasks.register("genAst_${f.name.replaceAll(/[^A-Za-z0-9_]/, '_')}", JavaExec) {
+        // incremental + cache correctness for the generator
+        inputs.file(f)
+        inputs.files(astgenCp).withPropertyName("astgenClasspath")
+        outputs.dir(targetDir)
 
-            // run: asg.Main <file> <targetDir>  using isolated classpath
-            execOps.javaexec {
-                classpath = configurations.astgen
-                mainClass.set('asg.Main')
-                args(f.absolutePath, targetDir.absolutePath)
-            }
-        }
+        classpath = astgenCp
+        mainClass.set("asg.Main")
+        args(f.absolutePath, targetDir.absolutePath)
+
+        // optional: ensure target dir exists
+        doFirst { targetDir.mkdirs() }
     }
+
+    perFileTasks << t
 }
+
+tasks.register("genAst") {
+    inputs.files(parseqFiles)
+    outputs.dir(genDirFile)
+    dependsOn(perFileTasks)
+}
+
+
 
 /** -------- Version info file generation -------- */
 
 tasks.register('versionInfoFile') {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
-    // resolve git info at configuration time
-    Git git = Git.open(new File(rootProject.projectDir, '..'))
-    ObjectId head = git.getRepository().resolve(Constants.HEAD)
-    String gitRevision = head.abbreviate(8).name()
-    String gitRevisionlong = head.getName()
-    String tag = git.describe().setTarget(head).setAlways(true).setTags(true).call()
-    String wurstVersion = "${version}-${tag}"
-
-    inputs.property("wurstVersion", wurstVersion)
+    def repoDir = new File(rootProject.projectDir, '..')
 
     def dir = new File("$genDir/de/peeeq/wurstscript/")
     def out = new File(dir, 'CompileTimeInfo.java')
     outputs.file(out)
 
-    doLast {
-        dir.mkdirs()
-        String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
-        out.text = """
-        package de.peeeq.wurstscript;
+    // capture at configuration time (no Task.project usage later)
+    def versionString = project.version.toString()
 
-        public class CompileTimeInfo {
-            public static final String time="${currentTime}";
-            public static final String revision="${gitRevision}";
-            public static final String revisionLong="${gitRevisionlong}";
-            public static final String version="${wurstVersion}";
-        }
-        """
+    doLast {
+        def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()
+        def revLong = ["git", "rev-parse", "HEAD"].execute(null, repoDir).text.trim()
+        def tag = ["git", "describe", "--tags", "--always", "--dirty"].execute(null, repoDir).text.trim()
+
+        def wurstVersion = "${versionString}-${tag}"
+        def currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
+
+        dir.mkdirs()
+        out.text = """
+package de.peeeq.wurstscript;
+
+public class CompileTimeInfo {
+    public static final String time="${currentTime}";
+    public static final String revision="${rev8}";
+    public static final String revisionLong="${revLong}";
+    public static final String version="${wurstVersion}";
+}
+"""
     }
 }
+
 
 /** -------- Aggregate generation + wiring into compile -------- */
 
