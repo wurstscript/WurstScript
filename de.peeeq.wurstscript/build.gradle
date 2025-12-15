@@ -3,6 +3,7 @@ buildscript {
     dependencies {
         // used at configuration-time for version info
         classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
+        classpath "javax.inject:javax.inject:1"
     }
 }
 
@@ -20,9 +21,6 @@ plugins {
 
 
 import de.undercouch.gradle.tasks.download.Download
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.Constants
-import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Pattern
 
@@ -36,22 +34,31 @@ java {
     }
 }
 
+def toolchainSvc = extensions.getByType(JavaToolchainService)
+def j25Launcher = toolchainSvc.launcherFor(java.toolchain)
+
+tasks.withType(JavaExec).configureEach {
+    javaLauncher.set(j25Launcher)
+}
+
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
 
 jacoco {
     toolVersion = "0.8.13"
 }
 
-jacocoTestReport {
-    dependsOn test
+tasks.named("jacocoTestReport", JacocoReport) {
+    dependsOn(tasks.named("test"))
+
     reports { xml.required.set(true) }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                    '**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'
-            ])
-        }))
-    }
+
+    def excluded = ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**']
+
+    classDirectories.setFrom(
+            files(classDirectories.files.collect { dir ->
+                fileTree(dir: dir, exclude: excluded)
+            })
+    )
 }
 
 def genDir = "$projectDir/src-gen"
@@ -120,67 +127,92 @@ def parseqFiles = fileTree(dir: 'parserspec', include: '*.parseq')
 
 def pkgPattern = Pattern.compile(/package\s+(\S+)\s*;/)
 
-tasks.register('genAst') {
-    // make it incremental/cacheable
-    inputs.files(parseqFiles)
-    outputs.dir(genDir)
+// resolve once at configuration time
+def genDirFile = file(genDir)
+def astgenCp = configurations.astgen
+def pkgPatternLocal = pkgPattern
 
-    doLast {
-        // fetch ExecOperations from Gradle services (no @Inject needed)
-        ExecOperations execOps = project.services.get(ExecOperations)
+def perFileTasks = []
 
-        parseqFiles.files.each { File f ->
-            String contents = f.getText('UTF-8')
-            def m = pkgPattern.matcher(contents)
-            String pkg = m.find() ? m.group(1) : ""
-            File targetDir = file("$genDir/${pkg.replace('.', '/')}")
+parseqFiles.files.each { File f ->
+    // determine package at configuration time (same logic you had)
+    String contents = f.getText('UTF-8')
+    def m = pkgPatternLocal.matcher(contents)
+    String pkg = m.find() ? m.group(1) : ""
+    File targetDir = new File(genDirFile, pkg.replace('.', '/'))
 
-            targetDir.mkdirs()
+    def t = tasks.register("genAst_${f.name.replaceAll(/[^A-Za-z0-9_]/, '_')}", JavaExec) {
+        // incremental + cache correctness for the generator
+        inputs.file(f)
+        inputs.files(astgenCp).withPropertyName("astgenClasspath")
+        outputs.dir(targetDir)
 
-            // run: asg.Main <file> <targetDir>  using isolated classpath
-            execOps.javaexec {
-                classpath = configurations.astgen
-                mainClass.set('asg.Main')
-                args(f.absolutePath, targetDir.absolutePath)
-            }
-        }
+        classpath = astgenCp
+        mainClass.set("asg.Main")
+        args(f.absolutePath, targetDir.absolutePath)
+
+        // optional: ensure target dir exists
+        doFirst { targetDir.mkdirs() }
     }
+
+    perFileTasks << t
 }
+
+tasks.register("genAst") {
+    inputs.files(parseqFiles)
+    outputs.dir(genDirFile)
+    dependsOn(perFileTasks)
+}
+
+
 
 /** -------- Version info file generation -------- */
 
 tasks.register('versionInfoFile') {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
-    // resolve git info at configuration time
-    Git git = Git.open(new File(rootProject.projectDir, '..'))
-    ObjectId head = git.getRepository().resolve(Constants.HEAD)
-    String gitRevision = head.abbreviate(8).name()
-    String gitRevisionlong = head.getName()
-    String tag = git.describe().setTarget(head).setAlways(true).setTags(true).call()
-    String wurstVersion = "${version}-${tag}"
-
-    inputs.property("wurstVersion", wurstVersion)
+    def repoDir = new File(rootProject.projectDir, '..')
 
     def dir = new File("$genDir/de/peeeq/wurstscript/")
     def out = new File(dir, 'CompileTimeInfo.java')
     outputs.file(out)
 
-    doLast {
-        dir.mkdirs()
-        String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
-        out.text = """
-        package de.peeeq.wurstscript;
+    // capture at configuration time (no Task.project usage later)
+    def versionString = project.version.toString()
 
-        public class CompileTimeInfo {
-            public static final String time="${currentTime}";
-            public static final String revision="${gitRevision}";
-            public static final String revisionLong="${gitRevisionlong}";
-            public static final String version="${wurstVersion}";
-        }
-        """
+    // Inputs so the task reruns when metadata changes:
+    // - project version changes
+    inputs.property("projectVersion", versionString)
+    // - HEAD changes (branch updates)
+    inputs.file(new File(repoDir, ".git/HEAD")).withPropertyName("gitHeadRef")
+    // - branch ref changes (only for branch-based HEAD; harmless if missing)
+    inputs.files(fileTree(new File(repoDir, ".git/refs"))).withPropertyName("gitRefs")
+    // - tags move / new tags (for git describe --tags)
+    inputs.files(fileTree(new File(repoDir, ".git/refs/tags"))).withPropertyName("gitTags")
+    // - working tree dirtiness affects "--dirty"
+    inputs.file(new File(repoDir, ".git/index")).optional().withPropertyName("gitIndex")
+
+    doLast {
+        def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()
+        def revLong = ["git", "rev-parse", "HEAD"].execute(null, repoDir).text.trim()
+        def tag = ["git", "describe", "--tags", "--always", "--dirty"].execute(null, repoDir).text.trim()
+
+        def wurstVersion = "${versionString}-${tag}"
+
+        dir.mkdirs()
+        out.text = """
+package de.peeeq.wurstscript;
+
+public class CompileTimeInfo {
+    public static final String revision="${rev8}";
+    public static final String revisionLong="${revLong}";
+    public static final String version="${wurstVersion}";
+}
+"""
     }
 }
+
+
 
 /** -------- Aggregate generation + wiring into compile -------- */
 
@@ -306,6 +338,10 @@ tasks.register('generate_hotdoc') {
             args("--hotdoc", "./build/deps/", "../downloads/hotdoc")
         }
     }
+}
+
+tasks.named("coveralls") {
+    notCompatibleWithConfigurationCache("coveralls plugin task uses Project at execution time")
 }
 
 /** -------- Apply deployment settings -------- */
