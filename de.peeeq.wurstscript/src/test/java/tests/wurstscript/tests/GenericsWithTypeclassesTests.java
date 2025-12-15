@@ -1922,6 +1922,30 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericModuleThistypeSmall() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "    module LLM",
+            "        static thistype t",
+            "        construct()",
+            "             t = this",
+            "        function iterator() returns Iterator",
+            "            return new Iterator()",
+            "        static class Iterator",
+            "            function next() returns LLM.thistype",
+            "                return t",
+            "	class A<T:>",
+            "        use LLM",
+            "	init",
+            "		let a = new A<int>",
+            "		if a.iterator().next() == a",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
+
 
 
 }
