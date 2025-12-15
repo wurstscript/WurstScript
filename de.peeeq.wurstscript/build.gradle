@@ -173,20 +173,32 @@ tasks.register('versionInfoFile') {
     // capture at configuration time (no Task.project usage later)
     def versionString = project.version.toString()
 
+    // Inputs so the task reruns when metadata changes:
+    // - project version changes
+    inputs.property("projectVersion", versionString)
+    // - HEAD changes (branch updates)
+    inputs.file(new File(repoDir, ".git/HEAD")).withPropertyName("gitHeadRef")
+    // - branch ref changes (only for branch-based HEAD; harmless if missing)
+    inputs.files(fileTree(new File(repoDir, ".git/refs"))).withPropertyName("gitRefs")
+    // - tags move / new tags (for git describe --tags)
+    inputs.files(fileTree(new File(repoDir, ".git/refs/tags"))).withPropertyName("gitTags")
+    // - packed refs can contain tags/refs
+    inputs.file(new File(repoDir, ".git/packed-refs")).optional().withPropertyName("gitPackedRefs")
+    // - working tree dirtiness affects "--dirty"
+    inputs.file(new File(repoDir, ".git/index")).optional().withPropertyName("gitIndex")
+
     doLast {
         def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()
         def revLong = ["git", "rev-parse", "HEAD"].execute(null, repoDir).text.trim()
         def tag = ["git", "describe", "--tags", "--always", "--dirty"].execute(null, repoDir).text.trim()
 
         def wurstVersion = "${versionString}-${tag}"
-        def currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
 
         dir.mkdirs()
         out.text = """
 package de.peeeq.wurstscript;
 
 public class CompileTimeInfo {
-    public static final String time="${currentTime}";
     public static final String revision="${rev8}";
     public static final String revisionLong="${revLong}";
     public static final String version="${wurstVersion}";
@@ -194,6 +206,7 @@ public class CompileTimeInfo {
 """
     }
 }
+
 
 
 /** -------- Aggregate generation + wiring into compile -------- */
