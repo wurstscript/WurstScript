@@ -3,6 +3,7 @@ buildscript {
     dependencies {
         // used at configuration-time for version info
         classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
+        classpath "javax.inject:javax.inject:1"
     }
 }
 

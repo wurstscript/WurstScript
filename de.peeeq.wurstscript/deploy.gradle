@@ -1,4 +1,5 @@
 import org.gradle.internal.os.OperatingSystem
+import javax.inject.Inject
 
 // ----------------------- Publishing (kept from your original) -----------------------
 publishing {
@@ -17,146 +18,170 @@ publishing {
     }
 }
 
-
-def toolJavaHome = {
-    def svc = project.extensions.getByType(JavaToolchainService)
-    def launcher = svc.launcherFor(project.java.toolchain)
-    launcher.get().metadata.installationPath.asFile
-}
-
-def toolExecutable = { String toolName ->
-    def javaHome = System.getenv('JAVA_HOME') ? new File(System.getenv('JAVA_HOME')) : toolJavaHome()
-    def ext = OperatingSystem.current().isWindows() ? ".exe" : ""
-    new File(javaHome, "bin/${toolName}${ext}").absolutePath
-}
-
-
 // ----------------------- Common providers/locations ---------------------------------
-def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
-
-// Allow adding modules if reflection/ServiceLoader pulls them in:
-//   ./gradlew jlinkRuntime25 -PextraJdkModules=java.desktop,jdk.crypto.ec
-def extraJdkModules = (project.findProperty("extraJdkModules") ?: "").toString().trim()
-
-def jlinkWorkDir  = layout.buildDirectory.dir("jlink")
-def modulesTxt    = jlinkWorkDir.map { it.file("modules.txt") }
-def jreImageDir   = layout.buildDirectory.dir("jre-wurst-25")
-
-def os   = OperatingSystem.current()
+def os = OperatingSystem.current()
 def arch = System.getProperty("os.arch") // "amd64"/"x86_64"/"aarch64"
+
 def plat = os.isWindows() ? "win-x64"
         : os.isMacOsX() ? (arch == "aarch64" ? "macos-arm64" : "macos-x64")
         : "linux-x64"
 
+// Capture project version at configuration time (avoid Task.project at execution)
+def versionString = project.version.toString()
+
+// Allow adding modules if reflection/ServiceLoader pulls them in:
+//   ./gradlew jlinkRuntime25 -PextraJdkModules=java.desktop,jdk.crypto.ec
+def extraJdkModulesProvider = providers.gradleProperty("extraJdkModules").orElse("")
+
+def fatJar = tasks.named('shadowJar').flatMap { it.archiveFile }
+
+def jlinkWorkDir  = layout.buildDirectory.dir("jlink")
+def modulesRawTxt  = jlinkWorkDir.map { it.file("modules.raw.txt") }
+def modulesTxt     = jlinkWorkDir.map { it.file("modules.txt") }
+def jreImageDir    = layout.buildDirectory.dir("jre-wurst-25")
+
 def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
 def releasesDir = layout.buildDirectory.dir("releases")
 
+// ----------------------- Toolchain / tool paths (providers) -------------------------
+def toolchainSvc = extensions.getByType(JavaToolchainService)
+def launcherProvider = toolchainSvc.launcherFor(java.toolchain)
+
+// Prefer JAVA_HOME if set, otherwise toolchain
+def javaHomeProvider =
+        providers.environmentVariable("JAVA_HOME")
+                .map { new File(it) }   // <-- no file()
+                .orElse(launcherProvider.map { it.metadata.installationPath.asFile })
+
+def jdepsPathProvider = javaHomeProvider.map { home ->
+    new File(home, "bin/jdeps${os.isWindows() ? '.exe' : ''}").absolutePath
+}
+def jlinkPathProvider = javaHomeProvider.map { home ->
+    new File(home, "bin/jlink${os.isWindows() ? '.exe' : ''}").absolutePath
+}
+def jmodsDirProvider = javaHomeProvider.map { home ->
+    new File(home, "jmods").absolutePath
+}
+
 // ----------------------- Tasks: jdeps → jlink → assemble → package ------------------
 
-// 1) Detect JDK modules via jdeps (from the fat jar)
+// 1) Run jdeps and capture raw module deps
+
+abstract class JdepsRawTask extends DefaultTask {
+    @Inject abstract ExecOperations getExecOps()
+
+    @InputFile
+    abstract RegularFileProperty getInputJar()
+
+    @Input
+    abstract Property<String> getJdepsPath()
+
+    @OutputFile
+    abstract RegularFileProperty getOutFile()
+
+    @TaskAction
+    void runJdeps() {
+        outFile.get().asFile.parentFile.mkdirs()
+
+        def outBuf = new ByteArrayOutputStream()
+        execOps.exec {
+            executable = jdepsPath.get()
+            args "--multi-release", "25",
+                    "--ignore-missing-deps",
+                    "--print-module-deps",
+                    "--ignore-missing-deps",
+                    inputJar.get().asFile.absolutePath
+            standardOutput = outBuf
+        }
+        outFile.get().asFile.text = outBuf.toString("UTF-8").trim() + "\n"
+    }
+}
+
+def fatJarProvider = tasks.named("shadowJar").flatMap { it.archiveFile } // Provider<RegularFile>
+
+tasks.register("jdepsRaw", JdepsRawTask) {
+    group = "distribution"
+    description = "Runs jdeps and writes raw module deps to a file."
+    dependsOn("shadowJar")
+
+    // IMPORTANT: RegularFileProperty expects a Provider<RegularFile>
+    inputJar.set(fatJarProvider)
+
+    jdepsPath.set(jdepsPathProvider) // Provider<String>
+    outFile.set(modulesRawTxt)       // Provider<RegularFile>
+}
+
+
+// 1b) Normalize jdeps output into modules.txt (add jdwp + extra modules)
 tasks.register("jdepsModules") {
     description = "Detects required JDK modules for the fat compiler.jar via jdeps"
     group = "distribution"
 
-    inputs.file(fatJar)
+    dependsOn("jdepsRaw")
+
+    inputs.file(modulesRawTxt)
+    inputs.property("extraJdkModules", extraJdkModulesProvider)
     outputs.file(modulesTxt)
 
+    // capture provider values at configuration time (avoid Task.project at execution)
+    def extraMods = extraJdkModulesProvider.get().toString().trim()
+
     doLast {
-        ExecOperations execOps = project.services.get(ExecOperations)
-        def jdeps = toolExecutable("jdeps")
-        def outBuf = new ByteArrayOutputStream()
-
-        modulesTxt.get().asFile.parentFile.mkdirs()
-
-        execOps.exec {
-            commandLine jdeps,
-                    "--multi-release", "25",
-                    "--ignore-missing-deps",
-                    "--print-module-deps",
-                    fatJar.get().asFile.absolutePath
-            standardOutput = outBuf
-        }
-
-        def detected = outBuf.toString().trim()
-        if (detected.isEmpty()) detected = "java.base"
+        def raw = modulesRawTxt.get().asFile.text.trim()
+        def detected = raw.isEmpty() ? "java.base" : raw
 
         def jdwpModule = "jdk.jdwp.agent"
         if (!detected.split(",").contains(jdwpModule)) {
             detected = detected + "," + jdwpModule
         }
+        if (!extraMods.isEmpty()) {
+            detected = detected + "," + extraMods
+        }
 
-        if (!extraJdkModules.isEmpty()) detected = detected + "," + extraJdkModules
-
+        modulesTxt.get().asFile.parentFile.mkdirs()
         modulesTxt.get().asFile.text = detected
         logger.lifecycle("[jdeps] Using modules: ${detected}")
     }
 }
 
-// 2) Build slim runtime with jlink (overwrite if exists)
-// 2) Build slim runtime with jlink (overwrite if exists)
-tasks.register("jlinkRuntime25") {
+// 2) Build slim runtime with jlink (output dir must not exist)
+tasks.register("jlinkRuntime25", Exec) {
     description = "Builds a slim Java 25 runtime image containing only the needed modules"
     group = "distribution"
-    dependsOn("shadowJar", "jdepsModules")
+
+    dependsOn("jdepsModules")
 
     inputs.file(modulesTxt)
+    inputs.property("javaHome", javaHomeProvider)
+    inputs.property("jmodsDir", jmodsDirProvider)
     outputs.dir(jreImageDir)
 
-    doLast {
-        ExecOperations execOps = project.services.get(ExecOperations)
-
-        // Resolve Java home from toolchain (fallback to JAVA_HOME if set)
-        def svc = project.extensions.getByType(JavaToolchainService)
-        def launcher = svc.launcherFor(project.java.toolchain)
-        File javaHome = System.getenv('JAVA_HOME') ? new File(System.getenv('JAVA_HOME')) : launcher.get().metadata.installationPath.asFile
-
-        def jlink    = new File(javaHome, "bin/${OperatingSystem.current().isWindows() ? 'jlink.exe' : 'jlink'}").absolutePath
-        def jmodsDir = new File(javaHome, "jmods").absolutePath
-        def mods     = modulesTxt.get().asFile.text.trim()
-        def outDir   = jreImageDir.get().asFile
-
+    doFirst {
+        def mods = modulesTxt.get().asFile.text.trim()
         if (!mods) throw new GradleException("No modules detected for jlink.")
 
-        // jlink requires the output dir to NOT exist
+        def outDir = jreImageDir.get().asFile
         if (outDir.exists()) {
-            project.delete(outDir)
+            outDir.deleteDir() // no project access
         }
         outDir.parentFile.mkdirs()
 
-        logger.lifecycle("[jlink] Using: ${jlink}")
-        logger.lifecycle("[jlink] JAVA_HOME: ${javaHome}")
-        logger.lifecycle("[jlink] jmods: ${jmodsDir}")
+        logger.lifecycle("[jlink] Using: ${jlinkPathProvider.get()}")
+        logger.lifecycle("[jlink] JAVA_HOME: ${javaHomeProvider.get()}")
+        logger.lifecycle("[jlink] jmods: ${jmodsDirProvider.get()}")
         logger.lifecycle("[jlink] Modules: ${mods}")
 
-        def errBuf = new ByteArrayOutputStream()
-        def outBuf = new ByteArrayOutputStream()
-
-        def result = execOps.exec {
-            commandLine jlink,
-                    "--verbose",
-                    "--module-path", jmodsDir,
-                    "--add-modules", mods,
-                    "--no-header-files",
-                    "--no-man-pages",
-                    "--strip-debug",
-                    "--compress=zip-6",
-                    "--output", outDir.absolutePath
-            errorOutput = errBuf
-            standardOutput = outBuf
-            ignoreExitValue = true
-        }
-
-        if (result.exitValue != 0) {
-            logger.lifecycle("[jlink][stdout]\n${outBuf.toString()}")
-            logger.error("[jlink][stderr]\n${errBuf.toString()}")
-            throw new GradleException("jlink failed with exit ${result.exitValue}")
-        }
-
-        logger.lifecycle("[jlink] Runtime created at: ${outDir}")
+        executable = jlinkPathProvider.get()
+        args "--verbose",
+                "--module-path", jmodsDirProvider.get(),
+                "--add-modules", mods,
+                "--no-header-files",
+                "--no-man-pages",
+                "--strip-debug",
+                "--compress=zip-6",
+                "--output", outDir.absolutePath
     }
 }
-
-
 
 // 3) Assemble folder layout: jre + compiler.jar (no manifest)
 tasks.register("assembleSlimCompilerDist", Copy) {
@@ -173,16 +198,15 @@ tasks.register("assembleSlimCompilerDist", Copy) {
     }
 }
 
+// Add launch scripts
 tasks.named("assembleSlimCompilerDist", Copy) { t ->
     if (os.isWindows()) {
         from("../Wurstpack/wurstscript/wurstscript.cmd") { into(".") }
-        from("../Wurstpack/wurstscript/wurstscript") { into(".") }
-        from("../Wurstpack/wurstscript/grill.cmd") { into(".") }
-        from("../Wurstpack/wurstscript/grill") { into(".") }
+        from("../Wurstpack/wurstscript/wurstscript")     { into(".") }
+        from("../Wurstpack/wurstscript/grill.cmd")       { into(".") }
+        from("../Wurstpack/wurstscript/grill")           { into(".") }
     } else {
-        from("../Wurstpack/wurstscript/wurstscript") {
-            into(".")
-        }
+        from("../Wurstpack/wurstscript/wurstscript") { into(".") }
     }
 }
 
@@ -190,12 +214,11 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
 tasks.register("packageSlimCompilerDistZip", Zip) {
     description = "Packages slim dist as a ZIP archive (all platforms)."
     group = "distribution"
-    enabled = true
     dependsOn("assembleSlimCompilerDist")
 
     from(distRoot)
     destinationDirectory.set(releasesDir)
-    archiveFileName.set("wurst-compiler-${project.version}-${plat}.zip")
+    archiveFileName.set("wurst-compiler-${versionString}-${plat}.zip")
 }
 
 // OS-aware convenience wrapper now just points to ZIP
@@ -204,6 +227,3 @@ tasks.register("packageSlimCompilerDist") {
     group = "distribution"
     dependsOn("packageSlimCompilerDistZip")
 }
-
-
-
