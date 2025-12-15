@@ -182,8 +182,6 @@ tasks.register('versionInfoFile') {
     inputs.files(fileTree(new File(repoDir, ".git/refs"))).withPropertyName("gitRefs")
     // - tags move / new tags (for git describe --tags)
     inputs.files(fileTree(new File(repoDir, ".git/refs/tags"))).withPropertyName("gitTags")
-    // - packed refs can contain tags/refs
-    inputs.file(new File(repoDir, ".git/packed-refs")).optional().withPropertyName("gitPackedRefs")
     // - working tree dirtiness affects "--dirty"
     inputs.file(new File(repoDir, ".git/index")).optional().withPropertyName("gitIndex")
 
