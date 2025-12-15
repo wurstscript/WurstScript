@@ -21,9 +21,6 @@ plugins {
 
 
 import de.undercouch.gradle.tasks.download.Download
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.Constants
-import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Pattern
 
@@ -323,6 +320,10 @@ tasks.register('generate_hotdoc') {
             args("--hotdoc", "./build/deps/", "../downloads/hotdoc")
         }
     }
+}
+
+tasks.named("coveralls") {
+    notCompatibleWithConfigurationCache("coveralls plugin task uses Project at execution time")
 }
 
 /** -------- Apply deployment settings -------- */
