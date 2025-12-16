@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
@@ -10,7 +8,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -35,11 +33,40 @@ public class ProgramState extends State {
     private final Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private final boolean isCompiletime;
 
+    private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
+
+    private final Object2ObjectOpenHashMap<String, ILconst> genericStaticVals = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
         this.gui = gui;
         this.prog = prog;
         this.isCompiletime = isCompiletime;
+
+        identifyGenericStaticGlobals();
+    }
+
+    private void identifyGenericStaticGlobals() {
+        Map<String, ImClass> classMap = new HashMap<>();
+        for (ImClass c : prog.getClasses()) {
+            classMap.put(c.getName(), c);
+        }
+
+        for (ImVar global : prog.getGlobals()) {
+            String n = global.getName();
+            int underscore = n.indexOf('_');
+            if (underscore <= 0) continue;
+
+            String className = n.substring(0, underscore);
+            ImClass owner = classMap.get(className);
+            if (owner == null) continue;
+
+            // Only generic classes need per-instantiation statics:
+            if (owner.getTypeVariables().isEmpty()) continue;
+
+            genericStaticOwner.put(global, owner);
+        }
     }
 
     public void setLastStatement(ImStmt s) {
@@ -162,9 +189,51 @@ public class ProgramState extends State {
         lastStatements.push(stmt);
     }
 
+    private @Nullable String genericStaticKey(ImVar v) {
+        ImClass owner = genericStaticOwner.get(v);
+        if (owner == null) return null;
 
-    // NEW: Resolve a generic type using current stack frame's type substitutions
-// Replace both resolveType(...) and substituteTypeVars(...) with this:
+        ImClassType inst = currentReceiverInstantiationFor(owner);
+        if (inst == null) {
+            // Happens if accessed without a receiver context (static-only code path).
+            // You can refine later; for now keep a stable bucket.
+            return v.getName() + "|<no-receiver>";
+        }
+        return v.getName() + "|" + instantiationKey(inst);
+    }
+
+    private @Nullable ImClassType currentReceiverInstantiationFor(ImClass owner) {
+        ILStackFrame top = stackFrames.peek();
+        if (top == null || top.receiver == null) return null;
+
+        ImClassType rt = top.receiver.getType();
+        // resolve possible type vars inside type args
+        ImType resolved = resolveType(rt);
+        if (resolved instanceof ImClassType) {
+            rt = (ImClassType) resolved;
+        }
+
+        ImClassType adapted = adaptToSuperclass(rt, owner);
+        return adapted != null ? adapted : rt;
+    }
+
+    private @Nullable ImClassType adaptToSuperclass(ImClassType ct, ImClass owner) {
+        if (ct.getClassDef() == owner) return ct;
+
+        // Walk super types, substituting this ct's type args into the superclass types
+        List<ImTypeVar> tvs = ct.getClassDef().getTypeVariables();
+        ImTypeArguments tas = ct.getTypeArguments();
+
+        for (ImClassType scRaw : ct.getClassDef().getSuperClasses()) {
+            ImType scSubst = ImAttrType.substituteType(scRaw, tas, tvs);
+            scSubst = resolveType(scSubst);
+            if (scSubst instanceof ImClassType) {
+                ImClassType r = adaptToSuperclass((ImClassType) scSubst, owner);
+                if (r != null) return r;
+            }
+        }
+        return null;
+    }
 
     public ImType resolveType(ImType t) {
         return resolveTypeDeep(t, 32); // small budget to avoid cycles
@@ -404,9 +473,6 @@ public class ProgramState extends State {
         }
     }
 
-    private final Object2ObjectOpenHashMap<String, ILconst> genericStaticVals = new Object2ObjectOpenHashMap<>();
-
-
     public String instantiationKey(ImClassType ct) {
         StringBuilder sb = new StringBuilder();
         sb.append(ct.getClassDef().getName());
@@ -425,32 +491,31 @@ public class ProgramState extends State {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
-        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
-            ILStackFrame top = stackFrames.peek();
-            if (top != null && top.receiver != null) {
-                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
-                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
-                String s = v.getName() + resolved;
-                genericStaticVals.put(s, val);
-                return;
-            }
+        String key = genericStaticKey(v);
+        if (key != null) {
+            genericStaticVals.put(key, val);
+            return;
         }
         super.setVal(v, val);
     }
 
+    @Override
     public @Nullable ILconst getVal(ImVar v) {
-        if (v.isGlobal() && v.getType() instanceof ImTypeVarRef) {
-            System.out.println("looking for generic static var " + v);
-            ILStackFrame top = stackFrames.peek();
-            if (top != null && top.receiver != null) {
-                ImTypeArguments tas = top.receiver.getType().getTypeArguments();
-                ImType resolved = resolveType(tas.get(0).getType()); // <<< resolve
-                String s = v.getName() + resolved;
-                return genericStaticVals.get(s);
+        String key = genericStaticKey(v);
+        if (key != null) {
+            ILconst existing = genericStaticVals.get(key);
+            if (existing != null) return existing;
+
+            // Initialize from the normal global init machinery once, then copy into this instantiation bucket:
+            ILconst init = super.getVal(v);
+            if (init != null) {
+                genericStaticVals.put(key, init);
             }
+            return init;
         }
         return super.getVal(v);
     }
+
 
     public boolean isCompiletime() {
         return isCompiletime;
@@ -461,6 +526,26 @@ public class ProgramState extends State {
 
     @Override
     protected ILconstArray getArray(ImVar v) {
+        String key = genericStaticKey(v);
+        if (key != null) {
+            ILconstArray arr = genericStaticArrays.get(key);
+            if (arr != null) return arr;
+
+            ILconstArray r = createArrayConstantFromType(v.getType());
+            genericStaticArrays.put(key, r);
+
+            List<ImSet> inits = prog.getGlobalInits().get(v);
+            if (inits != null && !inits.isEmpty()) {
+                final LocalState ls = EMPTY_LOCAL_STATE;
+                for (int i = 0; i < inits.size(); i++) {
+                    ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                    r.set(i, val);
+                }
+            }
+            return r;
+        }
+
+        // non-generic case = your existing logic
         Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues = ensureArrayValues();
         ILconstArray r = arrayValues.get(v);
         if (r != null) return r;
@@ -468,10 +553,8 @@ public class ProgramState extends State {
         r = createArrayConstantFromType(v.getType());
         arrayValues.put(v, r);
 
-        // Initialize from globalInits only once
         List<ImSet> inits = prog.getGlobalInits().get(v);
         if (inits != null && !inits.isEmpty()) {
-            // evaluate with a reusable local state to avoid per-init allocations
             final LocalState ls = EMPTY_LOCAL_STATE;
             for (int i = 0; i < inits.size(); i++) {
                 ILconst val = inits.get(i).getRight().evaluate(this, ls);
