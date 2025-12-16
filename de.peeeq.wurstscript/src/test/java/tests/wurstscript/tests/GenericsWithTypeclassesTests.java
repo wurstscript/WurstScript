@@ -1926,26 +1926,46 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void genericModuleThistypeSmall() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "    module LLM",
-            "        static thistype t",
-            "        construct()",
-            "             t = this",
-            "        function iterator() returns Iterator",
-            "            return new Iterator()",
-            "        static class Iterator",
-            "            function next() returns LLM.thistype",
-            "                return t",
-            "	class A<T:>",
-            "        use LLM",
-            "	init",
-            "		let a = new A<int>",
-            "		if a.iterator().next() == a",
-            "			testSuccess()",
+            "   native testSuccess()",
+            "   module LLM",
+            "      static thistype t",
+            "      construct()",
+            "         t = this",
+            "      function iterator() returns Iterator",
+            "         return new Iterator()",
+            "      static class Iterator",
+            "         function next() returns LLM.thistype",
+            "            return t",
+            "   class A<T:>",
+            "      use LLM",
+            "   init",
+            "      let a = new A<int>",
+            "      if a.iterator().next() == a",
+            "         testSuccess()",
             "endpackage"
         );
     }
 
+    @Test
+    public void genericClassWithStaticMember() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A<T:>",
+            "		 static int foo = 1",
+            "        function setFoo(int v)",
+            "            foo = v",
+            "        function getFoo() returns int",
+            "            return foo",
+            "	init",
+            "		let a = new A<int>",
+            "		let b = new A<string>",
+            "		a.setFoo(3)",
+            "		if a.getFoo() == 3 and b.getFoo() == 1",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
 
 
 }

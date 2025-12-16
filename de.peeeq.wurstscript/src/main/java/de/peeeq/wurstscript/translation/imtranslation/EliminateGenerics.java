@@ -188,11 +188,9 @@ public class EliminateGenerics {
 
                 if (owningClass != null && !owningClass.getTypeVariables().isEmpty()) {
                     // This global belongs to a generic class
-                    if (containsTypeVariable(global.getType())) {
-                        globalToClass.put(global, owningClass);
-                        WLogger.info("Identified generic global: " + varName + " of type " + global.getType() +
-                            " belonging to class " + owningClass.getName());
-                    }
+                    globalToClass.put(global, owningClass);
+                    WLogger.info("Identified generic global: " + varName + " of type " + global.getType() +
+                        " belonging to class " + owningClass.getName());
                 }
             }
         }

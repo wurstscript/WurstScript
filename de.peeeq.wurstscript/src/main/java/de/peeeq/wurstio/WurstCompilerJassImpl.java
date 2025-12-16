@@ -288,21 +288,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     public static void addDependenciesFromFolder(File projectFolder, Collection<File> dependencies) {
         File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
         File[] depProjects = dependencyFolder.listFiles();
-        if (depProjects != null) {
-            for (File depFile : depProjects) {
-                if (depFile.isDirectory()) {
-                    boolean b = true;
-                    for (File f : dependencies) {
-                        if (FileUtils.sameFile(f, depFile)) {
-                            b = false;
-                            break;
-                        }
-                    }
-                    if (b) {
-                        dependencies.add(depFile);
-                    }
+        if (depProjects == null) return;
+
+        // keep behavior (FileUtils.sameFile), but avoid O(n*m) scanning
+        List<File> existing = new ArrayList<>(dependencies);
+
+        outer:
+        for (File depFile : depProjects) {
+            if (!depFile.isDirectory()) continue;
+
+            for (File f : existing) {
+                if (FileUtils.sameFile(f, depFile)) {
+                    continue outer;
                 }
             }
+            dependencies.add(depFile);
+            existing.add(depFile);
         }
     }
 
@@ -615,34 +616,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     @NotNull
-    private ImFunction findNative(String funcName, WPos trace) {
+    private ImFunction findFunctionInternal(String funcName, WPos trace, boolean mustBeNative) {
+        Preconditions.checkNotNull(imProg);
         for (ImFunction func : imProg.getFunctions()) {
-            if (func.isNative()) {
-                if (func.getName().equals(funcName)) {
-                    return Optional.of(func)
-                        .orElseGet(() -> {
-                            throw new CompileError(trace, "Could not find native " + funcName);
-                        });
-                }
+            if (func.getName().equals(funcName) && (!mustBeNative || func.isNative())) {
+                return func;
             }
         }
-        return Optional.<ImFunction>empty()
-            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
+        throw new CompileError(trace, "Could not find " + (mustBeNative ? "native " : "") + funcName);
+    }
+
+    @NotNull
+    private ImFunction findNative(String funcName, WPos trace) {
+        return findFunctionInternal(funcName, trace, true);
     }
 
     @NotNull
     private ImFunction findFunction(String funcName, WPos trace) {
-        for (ImFunction func : imProg.getFunctions()) {
-            if (func.getName().equals(funcName)) {
-                return Optional.of(func)
-                    .orElseGet(() -> {
-                        throw new CompileError(trace, "Could not find native " + funcName);
-                    });
-            }
-        }
-        return Optional.<ImFunction>empty()
-            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
+        return findFunctionInternal(funcName, trace, false);
     }
+
 
     @NotNull
     private ImFunctionCall callExtern(Element trace, CallType callType, String functionName, ImExpr... arguments) {

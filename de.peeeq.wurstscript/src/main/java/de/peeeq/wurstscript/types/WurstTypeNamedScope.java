@@ -21,23 +21,32 @@ public abstract class WurstTypeNamedScope extends WurstType {
     private final boolean isStaticRef;
     // TODO change this to a list of TypeParamDef and add typeMapping?
     private final List<WurstTypeBoundTypeParam> typeParameters;
+    private final VariableBinding capturedBinding;
 
-
-
-    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef, VariableBinding capturedBinding) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = typeParameters;
+        this.capturedBinding = capturedBinding;
+    }
+
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
+        this(typeParameters, isStaticRef, VariableBinding.emptyMapping());
+    }
+
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, VariableBinding capturedBinding) {
+        this(typeParameters, false, capturedBinding);
     }
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters) {
-        this.isStaticRef = false;
-        this.typeParameters = typeParameters;
+        this(typeParameters, false, VariableBinding.emptyMapping());
     }
 
+    public WurstTypeNamedScope(boolean isStaticRef, VariableBinding capturedBinding) {
+        this(Collections.emptyList(), isStaticRef, capturedBinding);
+    }
 
     public WurstTypeNamedScope(boolean isStaticRef) {
-        this.isStaticRef = isStaticRef;
-        this.typeParameters = Collections.emptyList();
+        this(Collections.emptyList(), isStaticRef, VariableBinding.emptyMapping());
     }
 
     @Override
@@ -99,7 +108,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (WurstTypeBoundTypeParam tp : typeParameters) {
             res = res.set(tp.getTypeParamDef(), tp);
         }
-        return res;
+        return res.union(capturedBinding);
     }
 
     @Override
@@ -108,8 +117,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (WurstTypeBoundTypeParam t : typeParameters) {
             newTypes.add(t.setTypeArgs(typeParamBounds));
         }
-        return replaceTypeVars(newTypes);
+        VariableBinding newCaptured = capturedBinding.union(typeParamBounds);
+        return replaceTypeVarsWithCaptured(newTypes, newCaptured);
     }
+
+    abstract public WurstType replaceTypeVarsWithCaptured(
+        List<WurstTypeBoundTypeParam> newTypes,
+        VariableBinding newCaptured
+    );
 
     abstract public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes);
 

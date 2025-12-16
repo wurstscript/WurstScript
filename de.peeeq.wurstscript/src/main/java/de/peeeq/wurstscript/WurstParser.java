@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript;
 
 import de.peeeq.wurstscript.antlr.JassParser;
-import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -14,16 +13,14 @@ import de.peeeq.wurstscript.jass.ExtendedJassLexer;
 import de.peeeq.wurstscript.jurst.AntlrJurstParseTreeTransformer;
 import de.peeeq.wurstscript.jurst.ExtendedJurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
-import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.parser.AntlrTokenPipeline;
+import de.peeeq.wurstscript.parser.WurstAntlrErrorListener;
 import de.peeeq.wurstscript.parser.antlr.AntlrWurstParseTreeTransformer;
 import de.peeeq.wurstscript.parser.antlr.ExtendedWurstLexer;
-import de.peeeq.wurstscript.utils.LineOffsets;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.Interval;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WurstParser {
@@ -45,86 +42,68 @@ public class WurstParser {
         return parseWithAntlr(reader, source, hasCommonJ);
     }
 
-    private static final Pattern pattern = Pattern.compile("\\s*");
-
     private CompilationUnit parseWithAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
-            CharStream input = CharStreams.fromReader(reader);
-            // create a lexer that feeds off of input CharStream
-            final ExtendedWurstLexer lexer = new ExtendedWurstLexer(input);
-            // create a buffer of tokens pulled from the lexer
-            TokenStream tokens = new CommonTokenStream(lexer);
-            // create a parser that feeds off the tokens buffer
-            de.peeeq.wurstscript.antlr.WurstParser parser = new de.peeeq.wurstscript.antlr.WurstParser(tokens);
-            ANTLRErrorListener l = new BaseErrorListener() {
+            final ExtendedWurstLexer[] lexerRef = new ExtendedWurstLexer[1];
+            final CharStream[] inputRef = new CharStream[1];
 
-                int errorCount = 0;
-
-
-
-                @Override
-                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
-                                        int charPositionInLine,
-                                        @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
-
-                    // try to improve error message
-                    if (e instanceof NoViableAltException) {
-                        NoViableAltException ne = (NoViableAltException) e;
-                        if (ne.getStartToken().getType() == WurstLexer.HOTDOC_COMMENT) {
-                            msg = "Hotdoc comment is in invalid position, it can " +
-                                    "only appear before function definitions, classes, and " +
-                                    "other elements that can be documented.";
-                            offendingSymbol = ne.getStartToken();
-                        }
-                    }
-
-                    LineOffsets offsets = lexer.getLineOffsets();
-                    int pos;
-                    int posStop;
-                    if (offendingSymbol instanceof Token) {
-                        Token token = (Token) offendingSymbol;
-                        pos = token.getStartIndex();
-                        posStop = token.getStopIndex() + 1;
-                    } else {
-                        pos = offsets.get(line) + charPositionInLine;
-                        posStop = pos + 1;
-                    }
-
-                    if (posStop >= input.size()) {
-                        posStop = input.size() - 1;
-                    }
-
-                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
-                    while (pos > 0 && matcher.matches()){
-                        pos--;
-                    }
-                    CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
-                    gui.sendError(err);
-
-                    errorCount++;
-                    if (errorCount > MAX_SYNTAX_ERRORS) {
-                        throw new TooManyErrorsException();
+            WurstAntlrErrorListener.MessageRewriter rewriter = in -> {
+                if (in.exception instanceof NoViableAltException) {
+                    NoViableAltException ne = (NoViableAltException) in.exception;
+                    if (ne.getStartToken().getType() == de.peeeq.wurstscript.antlr.WurstLexer.HOTDOC_COMMENT) {
+                        return new WurstAntlrErrorListener.RewriteResult(
+                            ne.getStartToken(),
+                            "Hotdoc comment is in invalid position, it can " +
+                                "only appear before function definitions, classes, and " +
+                                "other elements that can be documented."
+                        );
                     }
                 }
-
+                return WurstAntlrErrorListener.RewriteResult.unchanged(in.offendingSymbol, in.msg);
             };
-            lexer.setErrorListener(l);
-            parser.removeErrorListeners();
-            parser.addErrorListener(l);
 
-            CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
+            WurstAntlrErrorListener listener = new WurstAntlrErrorListener(
+                MAX_SYNTAX_ERRORS,
+                source,
+                () -> lexerRef[0].getLineOffsets(),
+                () -> inputRef[0],
+                gui,
+                rewriter
+            );
 
-            if (lexer.getTabWarning() != null) {
-                CompileError warning = lexer.getTabWarning();
+            AntlrTokenPipeline.Result<ExtendedWurstLexer, de.peeeq.wurstscript.antlr.WurstParser, CompilationUnitContext> res =
+                AntlrTokenPipeline.run(
+                    reader,
+                    in -> {
+                        inputRef[0] = in;
+                        ExtendedWurstLexer lx = new ExtendedWurstLexer(in);
+                        lexerRef[0] = lx;
+                        return lx;
+                    },
+                    de.peeeq.wurstscript.antlr.WurstParser::new,
+                    de.peeeq.wurstscript.antlr.WurstParser::compilationUnit,
+                    listener,
+                    (lx, l) -> lx.setErrorListener(l) // <-- keep your existing API
+                );
+
+            if (lexerRef[0].getTabWarning() != null) {
+                CompileError warning = lexerRef[0].getTabWarning();
                 warning = new CompileError(warning.getSource().withFile(source), warning.getMessage(), CompileError.ErrorType.WARNING);
                 gui.sendError(warning);
             }
 
-            CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets(), lexer.getCommentTokens(), true).transform(cu);
+            CompilationUnit root = new AntlrWurstParseTreeTransformer(
+                source,
+                errorHandler,
+                lexerRef[0].getLineOffsets(),
+                lexerRef[0].getCommentTokens(),
+                true
+            ).transform(res.parseTree);
+
             if (this.removeSugar) {
                 removeSyntacticSugar(root, hasCommonJ);
             }
-            root.getCuInfo().setIndentationMode(lexer.getIndentationMode());
+            root.getCuInfo().setIndentationMode(lexerRef[0].getIndentationMode());
             return root;
 
         } catch (IOException e) {
@@ -143,57 +122,42 @@ public class WurstParser {
 
     private CompilationUnit parseJurstWithAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
-            CharStream input = CharStreams.fromReader(reader);
-            // create a lexer that feeds off of input CharStream
-            final ExtendedJurstLexer lexer = new ExtendedJurstLexer(input);
-            // create a buffer of tokens pulled from the lexer
-            TokenStream tokens = new CommonTokenStream(lexer);
-            // create a parser that feeds off the tokens buffer
-            JurstParser parser = new JurstParser(tokens);
-            ANTLRErrorListener l = new BaseErrorListener() {
+            final ExtendedJurstLexer[] lexerRef = new ExtendedJurstLexer[1];
+            final CharStream[] inputRef = new CharStream[1];
 
-                int errorCount = 0;
+            WurstAntlrErrorListener.MessageRewriter rewriter =
+                in -> new WurstAntlrErrorListener.RewriteResult(in.offendingSymbol, "line " + in.line + ": " + in.msg);
 
-                @Override
-                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
-                                        int charPositionInLine,
-                                        @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
+            WurstAntlrErrorListener listener = new WurstAntlrErrorListener(
+                MAX_SYNTAX_ERRORS,
+                source,
+                () -> lexerRef[0].getLineOffsets(),
+                () -> inputRef[0],
+                gui,
+                rewriter
+            );
 
-                    LineOffsets offsets = lexer.getLineOffsets();
-                    int pos;
-                    int posStop;
-                    if (offendingSymbol instanceof Token) {
-                        Token token = (Token) offendingSymbol;
-                        pos = token.getStartIndex();
-                        posStop = token.getStopIndex() + 1;
-                    } else {
-                        pos = offsets.get(line) + charPositionInLine;
-                        posStop = pos + 1;
-                    }
+            AntlrTokenPipeline.Result<ExtendedJurstLexer, JurstParser, de.peeeq.wurstscript.jurst.antlr.JurstParser.CompilationUnitContext> res =
+                AntlrTokenPipeline.run(
+                    reader,
+                    in -> {
+                        inputRef[0] = in;
+                        ExtendedJurstLexer lx = new ExtendedJurstLexer(in);
+                        lexerRef[0] = lx;
+                        return lx;
+                    },
+                    JurstParser::new,
+                    JurstParser::compilationUnit,
+                    listener,
+                    (lx, l) -> lx.addErrorListener(l)
+                );
 
-                    msg = "line " + line + ": " + msg;
+            CompilationUnit root = new AntlrJurstParseTreeTransformer(
+                source,
+                errorHandler,
+                lexerRef[0].getLineOffsets()
+            ).transform(res.parseTree);
 
-                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
-                    while (pos > 0 && matcher.matches()) {
-                        pos--;
-                    }
-                    CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
-                    gui.sendError(err);
-
-
-                    errorCount++;
-                    if (errorCount > MAX_SYNTAX_ERRORS) {
-                        throw new TooManyErrorsException();
-                    }
-                }
-
-            };
-            lexer.addErrorListener(l);
-            parser.removeErrorListeners();
-            parser.addErrorListener(l);
-
-            de.peeeq.wurstscript.jurst.antlr.JurstParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
-            CompilationUnit root = new AntlrJurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
             if (this.removeSugar) {
                 removeSyntacticSugar(root, hasCommonJ);
             }
@@ -214,57 +178,42 @@ public class WurstParser {
 
     private CompilationUnit parseJassAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
-            CharStream input = CharStreams.fromReader(reader);
-            // create a lexer that feeds off of input CharStream
-            final ExtendedJassLexer lexer = new ExtendedJassLexer(input);
-            // create a buffer of tokens pulled from the lexer
-            TokenStream tokens = new CommonTokenStream(lexer);
-            // create a parser that feeds off the tokens buffer
-            JassParser parser = new JassParser(tokens);
-            ANTLRErrorListener l = new BaseErrorListener() {
+            final ExtendedJassLexer[] lexerRef = new ExtendedJassLexer[1];
+            final CharStream[] inputRef = new CharStream[1];
 
-                int errorCount = 0;
+            WurstAntlrErrorListener.MessageRewriter rewriter =
+                in -> new WurstAntlrErrorListener.RewriteResult(in.offendingSymbol, "line " + in.line + ": " + in.msg);
 
-                @Override
-                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
-                                        int charPositionInLine,
-                                        @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
+            WurstAntlrErrorListener listener = new WurstAntlrErrorListener(
+                MAX_SYNTAX_ERRORS,
+                source,
+                () -> lexerRef[0].getLineOffsets(),
+                () -> inputRef[0],
+                gui,
+                rewriter
+            );
 
-                    LineOffsets offsets = lexer.getLineOffsets();
-                    int pos;
-                    int posStop;
-                    if (offendingSymbol instanceof Token) {
-                        Token token = (Token) offendingSymbol;
-                        pos = token.getStartIndex();
-                        posStop = token.getStopIndex() + 1;
-                    } else {
-                        pos = offsets.get(line) + charPositionInLine;
-                        posStop = pos + 1;
-                    }
+            AntlrTokenPipeline.Result<ExtendedJassLexer, JassParser, JassParser.CompilationUnitContext> res =
+                AntlrTokenPipeline.run(
+                    reader,
+                    in -> {
+                        inputRef[0] = in;
+                        ExtendedJassLexer lx = new ExtendedJassLexer(in);
+                        lexerRef[0] = lx;
+                        return lx;
+                    },
+                    JassParser::new,
+                    JassParser::compilationUnit,
+                    listener,
+                    (lx, l) -> lx.addErrorListener(l)
+                );
 
-                    msg = "line " + line + ": " + msg;
+            CompilationUnit root = new AntlrJassParseTreeTransformer(
+                source,
+                errorHandler,
+                lexerRef[0].getLineOffsets()
+            ).transform(res.parseTree);
 
-                    Matcher matcher = pattern.matcher(input.getText(new Interval(pos, posStop)));
-                    while (pos > 0 && matcher.matches()) {
-                        pos--;
-                    }
-                    CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
-                    gui.sendError(err);
-
-
-                    errorCount++;
-                    if (errorCount > MAX_SYNTAX_ERRORS) {
-                        throw new TooManyErrorsException();
-                    }
-                }
-
-            };
-            lexer.addErrorListener(l);
-            parser.removeErrorListeners();
-            parser.addErrorListener(l);
-
-            JassParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
-            CompilationUnit root = new AntlrJassParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
             removeSyntacticSugar(root, hasCommonJ);
             return root;
 
@@ -286,6 +235,6 @@ public class WurstParser {
         new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
     }
 
-    static class TooManyErrorsException extends RuntimeException {
+    public static class TooManyErrorsException extends RuntimeException {
     }
 }
