@@ -34,43 +34,12 @@ public class EvaluateExpr {
         ImFunction f = e.getFunc();
         ImExprs arguments = e.getArguments();
 
-
-        // Evaluate arguments
         ILconst[] args = new ILconst[arguments.size()];
         for (int i = 0; i < arguments.size(); i++) {
             args[i] = arguments.get(i).evaluate(globalState, localState);
         }
 
-        Map<ImTypeVar, ImType> typeSubstitutions = new HashMap<>();
-        @Nullable ILconstObject receiver = null;
-        if (e.getFunc().getParent() != null) {
-            Element parent = e.getFunc().getParent().getParent();
-            if (parent instanceof ImClass) {
-                ImTypeVars typeParams = ((ImClass) parent).getTypeVariables();  // The T74 parameters
-                ImTypeArguments typeArgs = e.getTypeArguments(); // The <integer> arguments
-
-                // Create mapping: T74 -> integer
-                for (int i = 0; i < typeParams.size() && i < typeArgs.size(); i++) {
-                    ImTypeVar genericParam = typeParams.get(i);
-                    ImType concreteArg = typeArgs.get(i).getType();
-                    typeSubstitutions.put(genericParam, concreteArg);
-                }
-
-                if (args.length > 0 && args[0] instanceof ILconstObject) {
-                    receiver = (ILconstObject) args[0];
-                }
-
-            }
-        }
-
-        globalState.pushStackframeWithTypes(f, receiver, args, e.attrTrace().attrErrorPos(), typeSubstitutions);
-
-
-        try {
-            return ILInterpreter.runFunc(globalState, f, e, args).getReturnVal();
-        } finally {
-            globalState.popStackframe();
-        }
+        return ILInterpreter.runFunc(globalState, f, e, args).getReturnVal();
     }
 
     public static @Nullable ILconst evaluateFunc(ProgramState globalState,
@@ -246,12 +215,7 @@ public class EvaluateExpr {
             typeSubstitutions.put(typeParams.get(i), typeArgs.get(i).getType());
         }
 
-        globalState.pushStackframeWithTypes(impl, receiver, eargs, mc.attrTrace().attrErrorPos(), typeSubstitutions);
-        try {
-            return evaluateFunc(globalState, impl, mc, eargs);
-        } finally {
-            globalState.popStackframe();
-        }
+        return evaluateFunc(globalState, impl, mc, eargs);
     }
 
 

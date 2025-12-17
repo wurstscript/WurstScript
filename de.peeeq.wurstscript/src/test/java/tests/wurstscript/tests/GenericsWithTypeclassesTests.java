@@ -1928,7 +1928,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "   native testSuccess()",
             "   module LLM",
-            "      static thistype t",
+            "      static thistype t = null",
             "      construct()",
             "         t = this",
             "      function iterator() returns Iterator",
@@ -1961,6 +1961,28 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "		let a = new A<int>",
             "		let b = new A<string>",
             "		a.setFoo(3)",
+            "		if a.getFoo() == 3 and b.getFoo() == 1",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassWithStaticMemberArray() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A<T:>",
+            "		 static int array foo",
+            "        function setFoo(int v)",
+            "            foo[1] = v",
+            "        function getFoo() returns int",
+            "            return foo[1]",
+            "	init",
+            "		let a = new A<int>",
+            "		let b = new A<string>",
+            "		a.setFoo(3)",
+            "		b.setFoo(1)",
             "		if a.getFoo() == 3 and b.getFoo() == 1",
             "			testSuccess()",
             "endpackage"

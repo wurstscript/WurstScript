@@ -399,6 +399,7 @@ public class WurstScriptTest {
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
                                                   WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
+        currentTestEnv = "With Inlining and Optimizations";
         compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations"));
         translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -406,6 +407,7 @@ public class WurstScriptTest {
     private void testWithInliningAndOptimizationsAndStacktraces(String name, boolean executeProg, boolean executeTests, WurstGui gui,
                                                   WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
+        currentTestEnv = "With Inlining, Optimizations and Stacktraces";
         compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations", "-stacktraces"));
         translateAndTest(name + "_stacktraceinlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -414,6 +416,7 @@ public class WurstScriptTest {
             , WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms
             , RunArgs runArgs) throws Error {
         // test with inlining
+        currentTestEnv = "With Inlining";
         compiler.setRunArgs(runArgs.with("-inline"));
         translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -421,6 +424,7 @@ public class WurstScriptTest {
     private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
                                             WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with local optimization
+        currentTestEnv = "With Local Optimizations";
         compiler.setRunArgs(runArgs.with("-localOptimizations"));
         translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -430,7 +434,8 @@ public class WurstScriptTest {
             throws Error {
         compiler.setRunArgs(runArgs);
         // test without inlining and optimization
-        translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+        currentTestEnv = "No opts";
+        translateAndTest(name + "_no_opts", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler) {
@@ -489,7 +494,7 @@ public class WurstScriptTest {
                     }
                 }
                 if (!success) {
-                    throw new Error("Succeed function not called");
+                    throw new Error(currentTestEnv + ": Succeed function not called");
                 }
             }
 
@@ -520,7 +525,10 @@ public class WurstScriptTest {
             }
             if (executeProg) {
                 WLogger.info("Executing imProg before jass transformation");
+                String currentEnv = currentTestEnv;
+                currentTestEnv = "ImProg before jass transformation";
                 executeImProg(gui, imProg);
+                currentTestEnv = currentEnv;
             }
         }
 
@@ -536,7 +544,10 @@ public class WurstScriptTest {
         }
         if (executeProg) {
             WLogger.info("Executing imProg after jass transformation");
+            String currentEnv = currentTestEnv;
+            currentTestEnv += "-ImProg";
             executeImProg(gui, imProg);
+            currentTestEnv = currentEnv;
         }
 
 
@@ -551,7 +562,10 @@ public class WurstScriptTest {
         runPjass(outputFile);
 
         if (executeProg) {
+            String currentEnv = currentTestEnv;
+            currentTestEnv += "-JassProg";
             executeJassProg(prog);
+            currentTestEnv = currentEnv;
         }
     }
 
@@ -599,6 +613,8 @@ public class WurstScriptTest {
         }
     }
 
+    public static String currentTestEnv = "";
+
     private void executeImProg(WurstGui gui, ImProg imProg) throws TestFailException {
         try {
             // run the interpreter on the intermediate language
@@ -606,10 +622,10 @@ public class WurstScriptTest {
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
-            System.out.println("Suceed function called!");
+            System.out.println(currentTestEnv + ": Suceed function called!");
             return;
         }
-        throw new Error("Succeed function not called");
+        throw new Error(currentTestEnv + ": Succeed function not called");
     }
 
     private void executeJassProg(JassProg prog)
@@ -623,7 +639,7 @@ public class WurstScriptTest {
         } catch (TestSuccessException e) {
             return;
         }
-        throw new Error("Succeed function not called");
+        throw new Error(currentTestEnv + ": Succeed function not called");
     }
 
     private void executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {

@@ -47,15 +47,23 @@ public class EliminateGenerics {
 
         addMemberTypeArguments();
 
-        // NEW: Identify generic globals before collecting usages
         identifyGenericGlobals();
 
         collectGenericUsages();
 
         eliminateGenericUses();
 
+        removeNonSpecializedGlobals();
+
         removeGenericConstructs();
 
+    }
+
+    private void removeNonSpecializedGlobals() {
+        for (ImVar imVar : specializedGlobals.rowKeySet()) {
+            prog.getGlobals().remove(imVar);
+            prog.getGlobalInits().remove(imVar);
+        }
     }
 
     private void onSpecializeClass(ImClass orig, BiConsumer<GenericTypes, ImClass> action) {
@@ -451,6 +459,7 @@ public class EliminateGenerics {
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
 
+
         onSpecializedClassTriggers.get(c).forEach(consumer ->
             consumer.accept(generics, newC));
         return newC;
@@ -486,8 +495,12 @@ public class EliminateGenerics {
                 originalGlobal.getIsBJ()
             );
 
-            // Add to program globals
-            prog.getGlobals().add(specializedGlobal);
+            List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
+            if (originalInits != null && !originalInits.isEmpty()) {
+                translator.addGlobalWithInitalizer(specializedGlobal, originalInits.getFirst().getRight().copy());
+            } else {
+                translator.addGlobal(specializedGlobal);
+            }
 
             // Track the specialization
             specializedGlobals.put(originalGlobal, generics, specializedGlobal);
@@ -496,8 +509,8 @@ public class EliminateGenerics {
                 " with type " + specializedType +
                 " for generics " + generics);
         }
-    }
 
+    }
 
     /**
      * Collects all usages from non-generic functions
