@@ -29,11 +29,19 @@ public class EliminateGenerics {
 
     // NEW: Track specialized global variables for generic static fields
     // Key: (original generic global var, concrete type instantiation) -> specialized var
-    private final Table<ImVar, GenericTypes, ImVar> specializedGlobals = HashBasedTable.create();
+    private final Table<ImVar, String, ImVar> specializedGlobals = HashBasedTable.create();
+
+    private static String gKey(GenericTypes g) {
+        return g.makeName();
+    }
 
     // NEW: Track which global vars belong to which generic class
     // This helps us know which globals need specialization
     private final Map<ImVar, ImClass> globalToClass = new HashMap<>();
+
+    // NEW: which functions touch generic globals (identity-based)
+    private final Map<ImFunction, Set<ImClass>> functionToGenericGlobalOwners = new IdentityHashMap<>();
+
 
     public EliminateGenerics(ImTranslator tr, ImProg prog) {
         translator = tr;
@@ -42,22 +50,175 @@ public class EliminateGenerics {
 
 
     public void transform() {
+        dbg(summary("start"));
 
         simplifyClasses();
+        dbg(summary("after simplifyClasses"));
 
         addMemberTypeArguments();
+        dbg(summary("after addMemberTypeArguments"));
 
         identifyGenericGlobals();
+        dbg(summary("after identifyGenericGlobals"));
 
         collectGenericUsages();
+        dbg(summary("after collectGenericUsages"));
 
         eliminateGenericUses();
+        dbg(summary("after eliminateGenericUses"));
+
+        dbgMethodsByName("after eliminateGenericUses");
+
+        makeNullAssignmentsSafe();
 
         removeNonSpecializedGlobals();
+        dbg(summary("after removeNonSpecializedGlobals"));
 
         removeGenericConstructs();
+        dbg(summary("after removeGenericConstructs"));
 
+        dbg(checkDanglingMethodRefs("end"));
     }
+
+    private void makeNullAssignmentsSafe() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImSet s) {
+                super.visit(s);
+
+                ImExpr rhs = s.getRight();
+                if (!(rhs instanceof ImNull)) return;
+
+                // determine expected type from the LHS (already typechecked in IM)
+                ImType lhsType = s.getLeft().attrTyp();
+                if (lhsType == null) return;
+
+                // after generic elimination, ensure we use the specialized concrete type
+                ImType expected = specializeType(lhsType);
+
+                ImExpr safe = specializeNullInitializer(rhs, expected);
+                if (safe != rhs) {
+                    s.setRight(safe);
+                } else {
+                    // keep IM consistent: null<T> should have the correct concrete type
+                    ((ImNull) rhs).setType(expected);
+                }
+            }
+        });
+    }
+
+
+    private @NotNull Set<ImClass> ownersOf(ImFunction f) {
+        return functionToGenericGlobalOwners.computeIfAbsent(f, k -> Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean needsGlobalSpecialization(ImFunction f) {
+        Set<ImClass> o = functionToGenericGlobalOwners.get(f);
+        return o != null && !o.isEmpty();
+    }
+
+    private ImFunction enclosingFunction(Element e) {
+        Element cur = e;
+        while (cur != null) {
+            if (cur instanceof ImFunction) return (ImFunction) cur;
+            cur = cur.getParent();
+        }
+        return null;
+    }
+
+    private void recordGenericGlobalUse(Element site, ImVar global) {
+        ImClass owner = globalToClass.get(global);
+        if (owner == null) return;
+        ImFunction f = enclosingFunction(site);
+        if (f == null) return;
+        ownersOf(f).add(owner);
+    }
+
+    private void dbgMethodsByName(String phase) {
+        Map<String, Integer> counts = new HashMap<>();
+        for (ImMethod m : prog.getMethods()) {
+            counts.merge(m.getName(), 1, Integer::sum);
+        }
+        dbg(phase + " methodsByName=" + counts);
+    }
+
+    private String checkDanglingMethodRefs(String phase) {
+        IdentityHashMap<ImMethod, Boolean> inProg = new IdentityHashMap<>();
+        for (ImMethod m : prog.getMethods()) inProg.put(m, Boolean.TRUE);
+
+        final int[] dangling = {0};
+
+        prog.accept(new Element.DefaultVisitor() {
+            @Override public void visit(ImMethodCall mc) {
+                ImMethod m = mc.getMethod();
+                if (m != null && !inProg.containsKey(m)) {
+                    dangling[0]++;
+                    dbg("DANGLING methodCall: method=" + m.getName() + " " + id(m)
+                        + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
+                        + " owningClass=" + (m.attrClass() == null ? "null" : (m.attrClass().getName() + " " + id(m.attrClass())))
+                        + " receiverType=" + shortType(mc.getReceiver().attrTyp())
+                        + " callTypeArgs=" + shortTypeArgs(mc.getTypeArguments()));
+                }
+                super.visit(mc);
+            }
+        });
+
+        return phase + " danglingMethodCalls=" + dangling[0];
+    }
+
+    private String summary(String phase) {
+        final int[] nGenericClasses = {0};
+        final int[] nGenericMethods = {0};
+        final int[] nGenericFunctions = {0};
+        final int[] nMethodCallsWithTA = {0};
+        final int[] nAllMethodCalls = {0};
+        final int[] nAllAllocs = {0};
+        final int[] nGenericAllocs = {0};
+        final int[] nTypeVarRefs = {0};
+
+        prog.accept(new Element.DefaultVisitor() {
+            @Override public void visit(ImClass c) {
+                if (!c.getTypeVariables().isEmpty()) nGenericClasses[0]++;
+                super.visit(c);
+            }
+            @Override public void visit(ImMethod m) {
+                if (!m.getImplementation().getTypeVariables().isEmpty()) nGenericMethods[0]++;
+                super.visit(m);
+            }
+            @Override public void visit(ImFunction f) {
+                if (!f.getTypeVariables().isEmpty()) nGenericFunctions[0]++;
+                super.visit(f);
+            }
+            @Override public void visit(ImMethodCall mc) {
+                nAllMethodCalls[0]++;
+                if (!mc.getTypeArguments().isEmpty()) nMethodCallsWithTA[0]++;
+                super.visit(mc);
+            }
+            @Override public void visit(ImAlloc a) {
+                nAllAllocs[0]++;
+                if (isGenericType(a.getClazz())) nGenericAllocs[0]++;
+                super.visit(a);
+            }
+            @Override public void visit(ImTypeVarRef t) {
+                nTypeVarRefs[0]++;
+                super.visit(t);
+            }
+        });
+
+        return phase
+            + " classes=" + prog.getClasses().size()
+            + " funcs=" + prog.getFunctions().size()
+            + " methods=" + prog.getMethods().size()
+            + " genericClasses=" + nGenericClasses[0]
+            + " genericFuncs=" + nGenericFunctions[0]
+            + " genericMethods=" + nGenericMethods[0]
+            + " methodCalls=" + nAllMethodCalls[0]
+            + " methodCallsWithTA=" + nMethodCallsWithTA[0]
+            + " allocs=" + nAllAllocs[0]
+            + " genericAllocs=" + nGenericAllocs[0]
+            + " typeVarRefs=" + nTypeVarRefs[0];
+    }
+
 
     private void removeNonSpecializedGlobals() {
         for (ImVar imVar : specializedGlobals.rowKeySet()) {
@@ -87,21 +248,29 @@ public class EliminateGenerics {
 
             private void handle(ImMemberOrMethodAccess ma, ImClass owningClass) {
                 ImType receiverType = ma.getReceiver().attrTyp();
-                if (!(receiverType instanceof ImClassType)) {
-                    // using old generics
-                    return;
-                }
+                if (!(receiverType instanceof ImClassType)) return;
+
                 ImClassType rt = (ImClassType) receiverType;
                 ImClassType ct = adaptToSuperclass(rt, owningClass);
                 if (ct == null) {
+//                    dbg("addMemberTA FAIL: owning=" + owningClass.getName() + " recv=" + rt + " in " + ma);
                     throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass + " in member access " + ma);
                 }
+
+//                dbg("addMemberTA: kind=" + ma.getClass().getSimpleName()
+//                    + " owning=" + owningClass.getName() + " " + id(owningClass)
+//                    + " recvType=" + rt
+//                    + " adapted=" + ct
+//                    + " beforeTA=" + shortTypeArgs(ma.getTypeArguments()));
+
+                // existing code...
                 List<ImTypeArgument> typeArgs = new ArrayList<>();
                 for (ImTypeArgument imTypeArgument : ct.getTypeArguments()) {
-                    ImTypeArgument copy = imTypeArgument.copy();
-                    typeArgs.add(copy);
+                    typeArgs.add(imTypeArgument.copy());
                 }
                 ma.getTypeArguments().addAll(0, typeArgs);
+
+//                dbg("addMemberTA: afterTA=" + shortTypeArgs(ma.getTypeArguments()));
             }
 
         });
@@ -137,7 +306,7 @@ public class EliminateGenerics {
      * main program.
      */
     private void simplifyClasses() {
-        for (ImClass c : prog.getClasses()) {
+        for (ImClass c : new ArrayList<>(prog.getClasses())) {
             simplifyClass(c);
         }
     }
@@ -165,12 +334,27 @@ public class EliminateGenerics {
                 newTypeVars.add(copy);
             }
             f.getTypeVariables().addAll(0, newTypeVars);
+
             List<ImTypeArgument> typeArgs = new ArrayList<>();
             for (ImTypeVar ta : newTypeVars) {
-                ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap());
-                typeArgs.add(imTypeArgument);
+                typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()));
             }
             rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
+
+            // NEW: fill implicit type args for captured generics (Inner -> Inner<T>)
+            Map<String, ImTypeVar> scope = new HashMap<>();
+            for (ImTypeVar tv : f.getTypeVariables()) {
+                scope.put(tv.getName(), tv);
+            }
+
+            f.setReturnType(fillMissingTypeArgsFromScope(f.getReturnType(), scope));
+
+            for (ImVar p : f.getParameters()) {
+                p.setType(fillMissingTypeArgsFromScope(p.getType(), scope));
+            }
+            for (ImVar l : f.getLocals()) {
+                l.setType(fillMissingTypeArgsFromScope(l.getType(), scope));
+            }
         }
     }
 
@@ -197,7 +381,7 @@ public class EliminateGenerics {
                 if (owningClass != null && !owningClass.getTypeVariables().isEmpty()) {
                     // This global belongs to a generic class
                     globalToClass.put(global, owningClass);
-                    WLogger.info("Identified generic global: " + varName + " of type " + global.getType() +
+                    WLogger.trace("Identified generic global: " + varName + " of type " + global.getType() +
                         " belonging to class " + owningClass.getName());
                 }
             }
@@ -233,8 +417,11 @@ public class EliminateGenerics {
                 ImFunction callee = fc.getFunc();
                 if (callee == null) return;
 
-                // Only interesting if callee itself is generic
-                if (callee.getTypeVariables().isEmpty()) {
+                boolean calleeIsGeneric = !callee.getTypeVariables().isEmpty();
+                boolean calleeNeedsGlobals = needsGlobalSpecialization(callee);
+
+                // If it is neither generic nor touches generic globals, ignore it
+                if (!calleeIsGeneric && !calleeNeedsGlobals) {
                     return;
                 }
 
@@ -271,10 +458,12 @@ public class EliminateGenerics {
      */
     private ImFunction specializeFunction(ImFunction f, GenericTypes generics) {
         ImFunction specialized = specializedFunctions.get(f, generics);
-        if (specialized != null) {
-            return specialized;
-        }
-        if (f.getTypeVariables().isEmpty()) {
+        if (specialized != null) return specialized;
+
+        boolean isGeneric = !f.getTypeVariables().isEmpty();
+        boolean needsGlobals = needsGlobalSpecialization(f);
+
+        if (!isGeneric && !needsGlobals) {
             return f;
         }
         if (generics.containsTypeVariable()) {
@@ -285,16 +474,22 @@ public class EliminateGenerics {
         specializedFunctions.put(f, generics, newF);
         specializedFunctionGenerics.put(newF, generics);
         prog.getFunctions().add(newF);
+
+        // concrete clone => no type vars
         newF.getTypeVariables().removeAll();
-        List<ImTypeVar> typeVars = f.getTypeVariables();
 
         newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
-        rewriteGenerics(newF, generics, typeVars);
 
-        // fix calls inside this specialized function so they also point to specialized callees
+        // Only rewrite type variables if the function actually has them
+        if (isGeneric) {
+            List<ImTypeVar> typeVars = f.getTypeVariables();
+            rewriteGenerics(newF, generics, typeVars);
+        }
+
+        // Fix calls inside this specialized function so they also point to specialized callees
         fixCalleesInSpecializedFunction(newF, generics);
 
-        // Then collect further generic uses inside the now-specialized body
+        // Then collect further generic uses inside the now-specialized body (incl. generic globals)
         collectGenericUsages(newF);
 
         return newF;
@@ -304,6 +499,11 @@ public class EliminateGenerics {
      * creates a specialized version of this method
      */
     private ImMethod specializeMethod(ImMethod m, GenericTypes generics) {
+
+        dbg("specializeMethod ENTER: " + m.getName() + " " + id(m)
+            + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
+            + " methodClass=" + m.getMethodClass()
+            + " generics=" + generics);
 
         ImMethod specialized = specializedMethods.get(m, generics);
         if (specialized != null) {
@@ -378,7 +578,14 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImNull e) {
-                e.setType(transformType(e.getType(), generics, typeVars));
+                ImType newT = transformType(e.getType(), generics, typeVars);
+                newT = specializeType(newT);
+                e.setType(newT);
+
+                ImExpr safe = specializeNullInitializer(e, newT);
+                if (safe != e) {
+                    e.replaceBy(safe);
+                }
                 super.visit(e);
             }
 
@@ -465,29 +672,21 @@ public class EliminateGenerics {
         return newC;
     }
 
-    /**
-     * NEW: Create specialized global variables for each generic static field
-     */
     private void createSpecializedGlobals(ImClass originalClass, GenericTypes generics, List<ImTypeVar> typeVars) {
-        // Find all global variables that belong to this class
+        String key = gKey(generics);
+
         for (Map.Entry<ImVar, ImClass> entry : globalToClass.entrySet()) {
             ImVar originalGlobal = entry.getKey();
             ImClass owningClass = entry.getValue();
 
-            if (owningClass != originalClass) {
-                continue;
-            }
+            // be robust: sometimes class objects differ; name match is good enough here
+            if (owningClass != originalClass && !owningClass.getName().equals(originalClass.getName())) continue;
 
-            // Check if we already created this specialized version
-            if (specializedGlobals.contains(originalGlobal, generics)) {
-                continue;
-            }
+            if (specializedGlobals.contains(originalGlobal, key)) continue;
 
-            // Transform the type using the concrete generics
             ImType specializedType = transformType(originalGlobal.getType(), generics, typeVars);
 
-            // Create new global variable with specialized type
-            String specializedName = originalGlobal.getName() + "⟪" + generics.makeName() + "⟫";
+            String specializedName = originalGlobal.getName() + "⟪" + key + "⟫";
             ImVar specializedGlobal = JassIm.ImVar(
                 originalGlobal.getTrace(),
                 specializedType,
@@ -497,19 +696,44 @@ public class EliminateGenerics {
 
             List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
             if (originalInits != null && !originalInits.isEmpty()) {
-                translator.addGlobalWithInitalizer(specializedGlobal, originalInits.getFirst().getRight().copy());
+                ImExpr initRhs = originalInits.getFirst().getRight().copy();
+                initRhs = specializeNullInitializer(initRhs, specializedType);
+                translator.addGlobalWithInitalizer(specializedGlobal, initRhs);
             } else {
                 translator.addGlobal(specializedGlobal);
             }
 
-            // Track the specialization
-            specializedGlobals.put(originalGlobal, generics, specializedGlobal);
+            specializedGlobals.put(originalGlobal, key, specializedGlobal);
+            dbg("Created specialized global: " + specializedName + " type=" + specializedType);
+        }
+    }
 
-            WLogger.info("Created specialized global: " + specializedName +
-                " with type " + specializedType +
-                " for generics " + generics);
+    private ImExpr specializeNullInitializer(ImExpr rhs, ImType specializedType) {
+        if (!(rhs instanceof ImNull)) {
+            return rhs;
         }
 
+        // IMPORTANT: for concrete primitives, pjass forbids setting to null.
+        if (specializedType instanceof ImSimpleType) {
+            String n = ((ImSimpleType) specializedType).getTypename();
+            switch (n) {
+                case "integer":
+                    return JassIm.ImIntVal(0);
+                case "real":
+                    // if your JassIm has a different overload, adjust accordingly:
+                    return JassIm.ImRealVal("0.0");
+                case "boolean":
+                    return JassIm.ImBoolVal(false);
+                default:
+                    // string/handle-like types can stay null
+                    ((ImNull) rhs).setType(specializedType);
+                    return rhs;
+            }
+        }
+
+        // For everything else, keep null but correct the type (so later passes are consistent).
+        ((ImNull) rhs).setType(specializedType);
+        return rhs;
     }
 
     /**
@@ -533,6 +757,11 @@ public class EliminateGenerics {
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
                 if (!mc.getTypeArguments().isEmpty()) {
+                    dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
+                        + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
+                        + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
+                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
+                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -545,40 +774,42 @@ public class EliminateGenerics {
                 }
             }
 
-            // NEW: Collect variable accesses to generic globals
             @Override
             public void visit(ImVarAccess va) {
                 super.visit(va);
                 if (globalToClass.containsKey(va.getVar())) {
+                    recordGenericGlobalUse(va, va.getVar());
                     genericsUses.add(new GenericGlobalAccess(va));
                 }
             }
 
-            // NEW: Collect array accesses to generic globals
             @Override
             public void visit(ImVarArrayAccess vaa) {
                 super.visit(vaa);
                 if (globalToClass.containsKey(vaa.getVar())) {
+                    recordGenericGlobalUse(vaa, vaa.getVar());
                     genericsUses.add(new GenericGlobalArrayAccess(vaa));
                 }
             }
 
-            // NEW: Collect assignments to generic globals
             @Override
             public void visit(ImSet set) {
                 super.visit(set);
                 if (set.getLeft() instanceof ImVarAccess) {
                     ImVarAccess va = (ImVarAccess) set.getLeft();
                     if (globalToClass.containsKey(va.getVar())) {
+                        recordGenericGlobalUse(set, va.getVar());
                         genericsUses.add(new GenericGlobalAccess(va));
                     }
                 } else if (set.getLeft() instanceof ImVarArrayAccess) {
                     ImVarArrayAccess vaa = (ImVarArrayAccess) set.getLeft();
                     if (globalToClass.containsKey(vaa.getVar())) {
+                        recordGenericGlobalUse(set, vaa.getVar());
                         genericsUses.add(new GenericGlobalArrayAccess(vaa));
                     }
                 }
             }
+
             @Override
             public void visit(ImVar v) {
                 super.visit(v);
@@ -802,9 +1033,20 @@ public class EliminateGenerics {
         @Override
         public void eliminate() {
             ImMethod f = mc.getMethod();
-
             GenericTypes generics = new GenericTypes(specializeTypeArgs(mc.getTypeArguments()));
+
+            dbg("ELIM GenericMethodCall: method=" + f.getName() + " " + id(f)
+                + " impl=" + (f.getImplementation() == null ? "null" : (f.getImplementation().getName() + " " + id(f.getImplementation())))
+                + " owningClass=" + (f.attrClass() == null ? "null" : (f.attrClass().getName() + " " + id(f.attrClass())))
+                + " callTA=" + shortTypeArgs(mc.getTypeArguments())
+                + " concrete=" + generics);
+
             ImMethod specializedMethod = specializeMethod(f, generics);
+
+            dbg("ELIM -> specializedMethod=" + specializedMethod.getName() + " " + id(specializedMethod)
+                + " impl=" + (specializedMethod.getImplementation() == null ? "null" : (specializedMethod.getImplementation().getName() + " " + id(specializedMethod.getImplementation())))
+                + " methodClass=" + specializedMethod.getMethodClass());
+
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
         }
@@ -847,93 +1089,64 @@ public class EliminateGenerics {
         }
     }
 
+    private ImVar ensureSpecializedGlobal(ImVar originalGlobal, ImClass owningClass, GenericTypes concreteGenerics) {
+        String key = gKey(concreteGenerics);
+        ImVar sg = specializedGlobals.get(originalGlobal, key);
+        if (sg != null) return sg;
+
+        // Ensure class specialization exists (this should also call createSpecializedGlobals)
+        specializeClass(owningClass, concreteGenerics);
+
+        sg = specializedGlobals.get(originalGlobal, key);
+        if (sg != null) return sg;
+
+        // Absolute fallback: force-create (in case specializeClass was short-circuited)
+        createSpecializedGlobals(owningClass, concreteGenerics, owningClass.getTypeVariables());
+        return specializedGlobals.get(originalGlobal, key);
+    }
+
     /**
      * NEW: Handle accesses to generic global variables (static fields)
      */
     class GenericGlobalAccess implements GenericUse {
         private final ImVarAccess va;
+        GenericGlobalAccess(ImVarAccess va) { this.va = va; }
 
-        GenericGlobalAccess(ImVarAccess va) {
-            this.va = va;
-        }
-
-        @Override
-        public void eliminate() {
+        @Override public void eliminate() {
             ImVar originalGlobal = va.getVar();
             ImClass owningClass = globalToClass.get(originalGlobal);
+            if (owningClass == null) return;
 
-            if (owningClass == null) {
-                WLogger.info("Warning: No owning class found for global " + originalGlobal.getName());
+            GenericTypes concrete = inferGenericsFromFunction(va, owningClass);
+            if (concrete == null || concrete.containsTypeVariable()) return;
+
+            ImVar sg = ensureSpecializedGlobal(originalGlobal, owningClass, concrete);
+            if (sg == null) {
+                dbg("WARNING: could not specialize global " + originalGlobal.getName() + " for " + concrete);
                 return;
             }
-
-            // Infer the concrete type from the enclosing function
-            GenericTypes concreteGenerics = inferGenericsFromFunction(va, owningClass);
-
-            if (concreteGenerics == null) {
-                WLogger.info("Warning: Could not infer generics for global access: " + originalGlobal.getName());
-                return;
-            }
-
-            // Get the specialized global variable
-            ImVar specializedGlobal = specializedGlobals.get(originalGlobal, concreteGenerics);
-
-            if (specializedGlobal == null) {
-                WLogger.info("Warning: No specialized global found for " + originalGlobal.getName() +
-                    " with generics " + concreteGenerics);
-                return;
-            }
-
-            WLogger.info("Redirecting access from " + originalGlobal.getName() +
-                " to " + specializedGlobal.getName());
-
-            // Redirect to the specialized variable
-            va.setVar(specializedGlobal);
+            va.setVar(sg);
         }
     }
 
-    /**
-     * NEW: Handle array accesses to generic global variables (static arrays)
-     */
     class GenericGlobalArrayAccess implements GenericUse {
         private final ImVarArrayAccess vaa;
+        GenericGlobalArrayAccess(ImVarArrayAccess vaa) { this.vaa = vaa; }
 
-        GenericGlobalArrayAccess(ImVarArrayAccess vaa) {
-            this.vaa = vaa;
-        }
-
-        @Override
-        public void eliminate() {
+        @Override public void eliminate() {
             ImVar originalGlobal = vaa.getVar();
             ImClass owningClass = globalToClass.get(originalGlobal);
+            if (owningClass == null) return;
 
-            if (owningClass == null) {
-                WLogger.info("Warning: No owning class found for global " + originalGlobal.getName());
+            GenericTypes concrete = inferGenericsFromFunction(vaa, owningClass);
+            if (concrete == null || concrete.containsTypeVariable()) return;
+
+            ImVar sg = ensureSpecializedGlobal(originalGlobal, owningClass, concrete);
+            if (sg == null) {
+                dbg("WARNING: could not specialize global array " + originalGlobal.getName() + " for " + concrete);
                 return;
             }
-
-            // Infer the concrete type from the enclosing function
-            GenericTypes concreteGenerics = inferGenericsFromFunction(vaa, owningClass);
-
-            if (concreteGenerics == null) {
-                WLogger.info("Warning: Could not infer generics for global array access: " + originalGlobal.getName());
-                return;
-            }
-
-            // Get the specialized global variable
-            ImVar specializedGlobal = specializedGlobals.get(originalGlobal, concreteGenerics);
-
-            if (specializedGlobal == null) {
-                WLogger.info("Warning: No specialized global found for " + originalGlobal.getName() +
-                    " with generics " + concreteGenerics);
-                return;
-            }
-
-            WLogger.info("Redirecting array access from " + originalGlobal.getName() +
-                " to " + specializedGlobal.getName());
-
-            // Redirect to the specialized variable
-            vaa.setVar(specializedGlobal);
+            vaa.setVar(sg);
         }
     }
 
@@ -988,6 +1201,12 @@ public class EliminateGenerics {
                         }
                     }
                 }
+
+                Map<GenericTypes, ImClass> specs = specializedClasses.row(owningClass);
+                if (specs.size() == 1) {
+                    return specs.keySet().iterator().next();
+                }
+
                 return null;
             }
             current = current.getParent();
@@ -1103,6 +1322,10 @@ public class EliminateGenerics {
                 GenericTypes generics = new GenericTypes(newTypeArgs);
 
                 if (generics.containsTypeVariable()) {
+                    dbg("specializeType VAR-CONTAINS: class=" + t.getClassDef().getName() + " " + id(t.getClassDef())
+                        + " typeArgs=" + shortTypeArgs(t.getTypeArguments())
+                        + " generics=" + generics
+                        + " knownSpecializations=" + specializedClasses.row(t.getClassDef()).size());
                     Map<GenericTypes, ImClass> specialized = specializedClasses.row(t.getClassDef());
 
                     if (!specialized.isEmpty()) {
@@ -1177,6 +1400,87 @@ public class EliminateGenerics {
         public void eliminate() {
             f.setClazz(specializeType(f.getClazz()));
         }
+    }
+
+    private ImType fillMissingTypeArgsFromScope(ImType t, Map<String, ImTypeVar> scope) {
+        return t.match(new ImType.Matcher<ImType>() {
+
+            @Override
+            public ImType case_ImClassType(ImClassType ct) {
+                int need = ct.getClassDef().getTypeVariables().size();
+                int have = ct.getTypeArguments().size();
+                if (need == 0 || have >= need) {
+                    return ct;
+                }
+
+                ImTypeArguments newArgs = JassIm.ImTypeArguments();
+                // keep existing args
+                for (ImTypeArgument a : ct.getTypeArguments()) {
+                    newArgs.add(a.copy());
+                }
+
+                // fill missing args by name from scope
+                for (int i = have; i < need; i++) {
+                    ImTypeVar tv = ct.getClassDef().getTypeVariables().get(i);
+                    ImTypeVar inScope = scope.get(tv.getName());
+                    if (inScope == null) {
+                        // no suitable type var in scope -> cannot fill
+                        return ct;
+                    }
+                    newArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(inScope), Collections.emptyMap()));
+                }
+
+                return JassIm.ImClassType(ct.getClassDef(), newArgs);
+            }
+
+            @Override
+            public ImType case_ImArrayType(ImArrayType at) {
+                return JassIm.ImArrayType(fillMissingTypeArgsFromScope(at.getEntryType(), scope));
+            }
+
+            @Override
+            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti at) {
+                return JassIm.ImArrayTypeMulti(fillMissingTypeArgsFromScope(at.getEntryType(), scope), at.getArraySize());
+            }
+
+            @Override
+            public ImType case_ImTupleType(ImTupleType tt) {
+                List<ImType> ts = new ArrayList<>();
+                for (ImType x : tt.getTypes()) {
+                    ts.add(fillMissingTypeArgsFromScope(x, scope));
+                }
+                return JassIm.ImTupleType(ts, tt.getNames());
+            }
+
+            @Override public ImType case_ImVoid(ImVoid v) { return v; }
+            @Override public ImType case_ImAnyType(ImAnyType a) { return a; }
+            @Override public ImType case_ImSimpleType(ImSimpleType s) { return s; }
+            @Override public ImType case_ImTypeVarRef(ImTypeVarRef r) { return r; }
+        });
+    }
+
+    private static String id(Object o) {
+        return o == null ? "null" : (o.getClass().getSimpleName() + "@" + System.identityHashCode(o));
+    }
+
+    private static String shortType(ImType t) {
+        return t == null ? "null" : t.toString();
+    }
+
+    private static String shortTypeArgs(ImTypeArguments tas) {
+        if (tas == null) return "null";
+        if (tas.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < tas.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(tas.get(i).getType());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private void dbg(String msg) {
+        WLogger.trace("[ELIMGEN] " + msg);
     }
 
 }

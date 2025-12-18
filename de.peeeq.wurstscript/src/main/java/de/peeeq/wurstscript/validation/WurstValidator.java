@@ -2120,7 +2120,7 @@ public class WurstValidator {
         }
     }
 
-    private static boolean isTypeParamNewGeneric(TypeParamDef tp) {
+    public static boolean isTypeParamNewGeneric(TypeParamDef tp) {
         return tp.getTypeParamConstraints() instanceof TypeExprList;
     }
 

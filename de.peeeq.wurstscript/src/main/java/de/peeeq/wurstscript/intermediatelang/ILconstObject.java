@@ -3,12 +3,9 @@ package de.peeeq.wurstscript.intermediatelang;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
-import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class ILconstObject extends ILconstAbstract {
     private final ImClassType classType;
@@ -16,6 +13,19 @@ public class ILconstObject extends ILconstAbstract {
     private final Table<ImVar, List<Integer>, ILconst> attributes = HashBasedTable.create();
     private boolean destroyed = false;
     private final Element trace;
+    private Map<ImTypeVar, ImType> capturedTypeSubstitutions = Collections.emptyMap();
+
+    public Map<ImTypeVar, ImType> getCapturedTypeSubstitutions() {
+        return capturedTypeSubstitutions;
+    }
+
+    public void captureTypeSubstitutions(Map<ImTypeVar, ImType> subst) {
+        if (subst == null || subst.isEmpty()) {
+            capturedTypeSubstitutions = Collections.emptyMap();
+        } else {
+            capturedTypeSubstitutions = Collections.unmodifiableMap(new HashMap<>(subst));
+        }
+    }
 
     public ILconstObject(ImClassType classType, int objectId, Element trace) {
         this.classType = classType;

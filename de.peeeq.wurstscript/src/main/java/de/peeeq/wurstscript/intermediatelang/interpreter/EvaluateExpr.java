@@ -126,10 +126,14 @@ public class EvaluateExpr {
             if (isMagicCompiletimeConstant(var)) {
                 return ILconstBool.instance(globalState.isCompiletime());
             }
-
+            WLogger.trace("VarAccess global " + var.getName() + "@" + System.identityHashCode(var)
+                + " type=" + var.getType());
             ILconst r = globalState.getVal(var);
             if (r == null) {
                 List<ImSet> initExpr = globalState.getProg().getGlobalInits().get(var);
+                WLogger.trace("  -> was null, using globalInits key="
+                    + var.getName() + "@" + System.identityHashCode(var)
+                    + " initExpr=" + (initExpr == null ? "null" : initExpr.size()));
                 if (initExpr != null) {
                     r = initExpr.get(0).getRight().evaluate(globalState, localState);
                 } else {
@@ -233,14 +237,12 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImAlloc e, ProgramState globalState, LocalState localState) {
-        // Get the generic type from the allocation instruction
-        ImClassType genericType = e.getClazz(); // This is Box<T74>
+        ImClassType genericType = e.getClazz();
+        ImClassType concreteType = (ImClassType) globalState.resolveType(genericType);
 
-        // NEW: Resolve it using current stack frame's type substitutions
-        ImClassType concreteType = (ImClassType) globalState.resolveType(genericType); // This becomes Box<integer>
-
-        // Allocate with the concrete type
-        return globalState.allocate(concreteType, e.attrTrace());
+        ILconstObject obj = globalState.allocate(concreteType, e.attrTrace());
+        obj.captureTypeSubstitutions(globalState.snapshotResolvedTypeSubstitutions());
+        return obj;
     }
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.VariableBinding;
@@ -17,7 +18,23 @@ public class AttrFunctionSignature {
 
     public static FunctionSignature calculate(StmtCall fc) {
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
-        FunctionSignature sig = filterSigs(sigs, argTypes(fc), fc);
+        List<WurstType> at = argTypes(fc);
+
+        FunctionSignature sig = filterSigs(sigs, at, fc);
+
+        // ---- DEBUG: what did we pick, and what did we bind? ----
+        if (fc instanceof FunctionCall) {
+            WLogger.trace("[IMPLCONV] call=" + name(fc) + " args=" + at);
+//            WLogger.trace("[IMPLCONV] pickedSig=" + sig);
+            WLogger.trace("[IMPLCONV] mapping=" + sig.getMapping()
+                + " unbound=" + sig.getMapping().printUnboundTypeVars());
+            if (fc instanceof ExprMemberMethodDot emmd) {
+                WLogger.trace("[IMPLCONV] receiver=" + emmd.getLeft().attrTyp()
+                    + " raw=" + emmd.getLeft().attrTypRaw()
+                    + " member=" + emmd.getFuncName());
+            }
+        }
+        // --------------------------------------------------------
 
         VariableBinding mapping = sig.getMapping();
         for (CompileError error : mapping.getErrors()) {
@@ -48,6 +65,12 @@ public class AttrFunctionSignature {
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
             if (!isInitTrigFunc(location)) {
+                if (location instanceof ExprMemberMethodDot) {
+                    ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
+                    WLogger.trace("[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
+                        + " typ=" + emmd.getLeft().attrTyp()
+                        + " for call ." + emmd.getFuncName());
+                }
                 location.addError("Could not find " + name(location) + ".");
             }
             return FunctionSignature.empty;
@@ -119,12 +142,21 @@ public class AttrFunctionSignature {
     }
 
     @NotNull
-    private static List<FunctionSignature> filterByArgumentTypes(Collection<FunctionSignature> sigs, List<WurstType> argTypes, StmtCall location) {
+    private static List<FunctionSignature> filterByArgumentTypes(
+        Collection<FunctionSignature> sigs, List<WurstType> argTypes, StmtCall location) {
+
         List<FunctionSignature> candidates = new ArrayList<>();
         for (FunctionSignature sig : sigs) {
-            sig = sig.matchAgainstArgs(argTypes, location);
-            if (sig != null) {
-                candidates.add(sig);
+            WLogger.trace("[IMPLCONV] trySig=" + sig + " argTypes=" + argTypes);
+
+            FunctionSignature matched = sig.matchAgainstArgs(argTypes, location);
+
+            if (matched != null) {
+                WLogger.trace("[IMPLCONV]   -> matched, mapping=" + matched.getMapping()
+                    + " unbound=" + matched.getMapping().printUnboundTypeVars());
+                candidates.add(matched);
+            } else {
+                WLogger.trace("[IMPLCONV]   -> no match");
             }
         }
         return candidates;

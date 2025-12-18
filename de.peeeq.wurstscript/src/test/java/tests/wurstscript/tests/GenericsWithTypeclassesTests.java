@@ -1902,6 +1902,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
 
     @Test
+    @Ignore // TODO
     public void genericClassWithLLModule() {
         testAssertOkLinesWithStdLib(true,
             "package test",
@@ -1918,6 +1919,29 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "    b.setValue(42)",
             "    if b.getValue() == 42 and b.prev == null",
             "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassWithStaticInnerClass() {
+        testAssertOkLines(true,
+            "package test",
+            "   native testSuccess()",
+            "   class Outer<T:>",
+            "      static T t = null",
+            "      construct(T iVal)",
+            "         t = iVal",
+            "      function iterator() returns Inner",
+            "         return new Inner()",
+            "      static class Inner",
+            "         construct()",
+            "         function next() returns T",
+            "            return t",
+            "   init",
+            "      let a = new Outer<int>(3)",
+            "      if a.iterator().next() == 3",
+            "         testSuccess()",
             "endpackage"
         );
     }

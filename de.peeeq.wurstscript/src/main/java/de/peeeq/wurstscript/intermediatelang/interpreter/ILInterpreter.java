@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -115,6 +116,10 @@ public class ILInterpreter implements AbstractInterpreter {
 
             Map<ImTypeVar, ImType> subst = new HashMap<>();
 
+            if (receiverObj != null) {
+                subst.putAll(receiverObj.getCapturedTypeSubstitutions()); // <-- implement/get this map (empty for normal objects)
+            }
+
             // A) Bind class type vars from receiver (for instance methods / funcs with this as first param)
             if (receiverObj != null && !f.getParameters().isEmpty()) {
                 ImType p0t = f.getParameters().get(0).getType();
@@ -131,15 +136,31 @@ public class ILInterpreter implements AbstractInterpreter {
                 }
             }
 
-            // B) Bind function type vars from explicit call type arguments (generic free functions / constructors etc.)
+            // B) Bind type vars from explicit call type arguments.
+            // IMPORTANT: In IM, type args on a call often correspond to the *owning class* type vars, not f.getTypeVariables().
             if (caller instanceof ImFunctionCall) {
                 ImFunctionCall fc = (ImFunctionCall) caller;
-                ImTypeVars fvars = f.getTypeVariables();
                 ImTypeArguments targs = fc.getTypeArguments();
 
-                int n = Math.min(fvars.size(), targs.size());
-                for (int i2 = 0; i2 < n; i2++) {
+                // 1) If the function itself is generic, bind those first
+                ImTypeVars fvars = f.getTypeVariables();
+                int n1 = Math.min(fvars.size(), targs.size());
+                for (int i2 = 0; i2 < n1; i2++) {
                     subst.put(fvars.get(i2), targs.get(i2).getType());
+                }
+
+                // 2) If the function is inside a class, also bind the class type vars using the same call type args
+                Element owner = f.getParent();
+                while (owner != null && !(owner instanceof ImClass)) {
+                    owner = owner.getParent();
+                }
+                if (owner instanceof ImClass) {
+                    ImClass cls = (ImClass) owner;
+                    ImTypeVars cvars = cls.getTypeVariables();
+                    int n2 = Math.min(cvars.size(), targs.size());
+                    for (int i2 = 0; i2 < n2; i2++) {
+                        subst.put(cvars.get(i2), targs.get(i2).getType());
+                    }
                 }
             }
 
@@ -163,6 +184,10 @@ public class ILInterpreter implements AbstractInterpreter {
             try {
                 f.getBody().runStatements(globalState, localState);
             } catch (ReturnException e) {
+                ILconst retVal2 = e.getVal();
+                WLogger.trace("RETURN " + f.getName()
+                        + " expected=" + f.getReturnType()
+                        + " got=" + retVal + " (" + (retVal == null ? "null" : retVal2.getClass().getSimpleName()) + ")");
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;
             } finally {

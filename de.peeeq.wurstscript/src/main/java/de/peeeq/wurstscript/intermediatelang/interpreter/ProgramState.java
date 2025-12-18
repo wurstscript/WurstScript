@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -35,8 +36,50 @@ public class ProgramState extends State {
 
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
-    private final Object2ObjectOpenHashMap<String, ILconst> genericStaticVals = new Object2ObjectOpenHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+    private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
+    private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
+
+    private static boolean containsTypeVariable(ImType type) {
+        return type.match(new ImType.Matcher<Boolean>() {
+            @Override public Boolean case_ImTypeVarRef(ImTypeVarRef t) { return true; }
+            @Override public Boolean case_ImArrayType(ImArrayType t) { return containsTypeVariable(t.getEntryType()); }
+            @Override public Boolean case_ImArrayTypeMulti(ImArrayTypeMulti t) { return containsTypeVariable(t.getEntryType()); }
+            @Override public Boolean case_ImClassType(ImClassType t) {
+                for (ImTypeArgument a : t.getTypeArguments()) {
+                    if (containsTypeVariable(a.getType())) return true;
+                }
+                return false;
+            }
+            @Override public Boolean case_ImTupleType(ImTupleType t) {
+                for (ImType x : t.getTypes()) if (containsTypeVariable(x)) return true;
+                return false;
+            }
+            @Override public Boolean case_ImSimpleType(ImSimpleType t) { return false; }
+            @Override public Boolean case_ImVoid(ImVoid t) { return false; }
+            @Override public Boolean case_ImAnyType(ImAnyType t) { return false; }
+        });
+    }
+
+    private String instantiationKey(ImType t) {
+        if (t instanceof ImClassType) {
+            ImClassType ct = (ImClassType) t;
+            StringBuilder sb = new StringBuilder();
+            sb.append(ct.getClassDef().getName());
+            if (!ct.getTypeArguments().isEmpty()) {
+                sb.append('<');
+                boolean first = true;
+                for (ImTypeArgument ta : ct.getTypeArguments()) {
+                    if (!first) sb.append(',');
+                    first = false;
+                    sb.append(ta.getType().toString());
+                }
+                sb.append('>');
+            }
+            return sb.toString();
+        }
+        return t.toString();
+    }
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -55,17 +98,23 @@ public class ProgramState extends State {
 
         for (ImVar global : prog.getGlobals()) {
             String n = global.getName();
-            int underscore = n.indexOf('_');
-            if (underscore <= 0) continue;
 
-            String className = n.substring(0, underscore);
-            ImClass owner = classMap.get(className);
-            if (owner == null) continue;
+            // longest prefix ending at an underscore that matches a class name
+            int pos = n.lastIndexOf('_');
+            while (pos > 0) {
+                String className = n.substring(0, pos);
+                ImClass owner = classMap.get(className);
+                if (owner != null && !owner.getTypeVariables().isEmpty()) {
+                    genericStaticOwner.put(global, owner);
+                    break;
+                }
+                pos = n.lastIndexOf('_', pos - 1);
+            }
+        }
 
-            // Only generic classes need per-instantiation statics:
-            if (owner.getTypeVariables().isEmpty()) continue;
-
-            genericStaticOwner.put(global, owner);
+        WLogger.trace("[GENSTATIC] owners detected: " + genericStaticOwner.size());
+        for (var e : genericStaticOwner.entrySet()) {
+            WLogger.trace("[GENSTATIC] " + e.getKey().getName() + " -> " + e.getValue().getName());
         }
     }
 
@@ -119,6 +168,7 @@ public class ProgramState extends State {
         objectIdCounter++;
         ILconstObject res = new ILconstObject(clazz, objectIdCounter, trace);
         indexToObject.put(objectIdCounter, res);
+        System.out.println("alloc objId=" + objectIdCounter + " type=" + clazz + " trace=" + trace);
         return res;
     }
 
@@ -180,7 +230,7 @@ public class ProgramState extends State {
             normalized.put(e.getKey(), rhs);
         }
 
-        System.out.println("pushStackframe " + f + " with receiver " + receiver
+        WLogger.trace("pushStackframe " + f + " with receiver " + receiver
             + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
 
 //        new Exception().printStackTrace(System.out);
@@ -191,17 +241,58 @@ public class ProgramState extends State {
         lastStatements.push(stmt);
     }
 
+    private @Nullable String ownerInstantiationKeyFromTypeSubst(ImClass owner) {
+        if (owner.getTypeVariables().isEmpty()) return owner.getName();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(owner.getName()).append('<');
+
+        boolean first = true;
+        boolean anyConcrete = false;
+
+        for (ImTypeVar tv : owner.getTypeVariables()) {
+            if (!first) sb.append(',');
+            first = false;
+
+            // resolve T -> concrete type using current stack substitutions
+            ImType resolved = resolveType(JassIm.ImTypeVarRef(tv));
+            sb.append(resolved.toString());
+
+            if (!(resolved instanceof ImTypeVarRef)) {
+                anyConcrete = true;
+            }
+        }
+
+        sb.append('>');
+
+        // If nothing was resolved (still just type vars), let caller fallback.
+        return anyConcrete ? sb.toString() : null;
+    }
+
     private @Nullable String genericStaticKey(ImVar v) {
         ImClass owner = genericStaticOwner.get(v);
         if (owner == null) return null;
 
-        ImClassType inst = currentReceiverInstantiationFor(owner);
-        if (inst == null) {
-            // Happens if accessed without a receiver context (static-only code path).
-            // You can refine later; for now keep a stable bucket.
-            return v.getName() + "|<no-receiver>";
+        String ownerInst = ownerInstantiationKeyFromTypeSubst(owner);
+        WLogger.trace("[GENSTATIC] key for " + v.getName()
+            + " owner=" + owner.getName()
+            + " ownerInstFromSubst=" + ownerInst
+            + " receiver=" + (stackFrames.peek() == null ? null : stackFrames.peek().receiver));
+        if (ownerInst != null) {
+            return v.getName() + "|" + ownerInst;
         }
-        return v.getName() + "|" + instantiationKey(inst);
+
+        // fallback: previous receiver-based logic
+        ImClassType inst = currentReceiverInstantiationFor(owner);
+        WLogger.trace("[GENSTATIC] key for " + v.getName()
+            + " owner=" + owner.getName()
+            + " ownerInstFromSubst=" + ownerInst
+            + " receiver=" + (stackFrames.peek() == null ? null : stackFrames.peek().receiver));
+        if (inst != null) {
+            return v.getName() + "|" + instantiationKey(inst);
+        }
+
+        return v.getName() + "|<no-receiver>";
     }
 
     private @Nullable ImClassType currentReceiverInstantiationFor(ImClass owner) {
@@ -361,7 +452,7 @@ public class ProgramState extends State {
     }
 
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
-        System.out.println("pushStackframe compiletime expr " + f);
+        WLogger.trace("pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -372,7 +463,7 @@ public class ProgramState extends State {
 
     public void popStackframe() {
 //        new Exception().printStackTrace(System.out);
-        System.out.println("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
+        WLogger.trace("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
@@ -492,14 +583,16 @@ public class ProgramState extends State {
         return sb.toString();
     }
 
+    private static String vid(ImVar v) {
+        return v.getName() + "@" + System.identityHashCode(v);
+    }
+
     @Override
     public void setVal(ImVar v, ILconst val) {
-        if (v.isGlobal() && v.getName().contains("A_LLM_t")) {
-            System.out.println("set " + v.getName() + " @" + System.identityHashCode(v));
-        }
         String key = genericStaticKey(v);
         if (key != null) {
-            genericStaticVals.put(key, val);
+            WLogger.trace("[GENSTATIC] set " + key + " = " + val);
+            genericStaticScalarVals.put(key, val);
             return;
         }
         super.setVal(v, val);
@@ -507,21 +600,28 @@ public class ProgramState extends State {
 
     @Override
     public @Nullable ILconst getVal(ImVar v) {
-        if (v.isGlobal() && v.getName().contains("A_LLM_t")) {
-            System.out.println("get " + v.getName() + " @" + System.identityHashCode(v));
-        }
         String key = genericStaticKey(v);
         if (key != null) {
-            ILconst existing = genericStaticVals.get(key);
-            if (existing != null) return existing;
-
-            // Initialize from the normal global init machinery once, then copy into this instantiation bucket:
-            ILconst init = super.getVal(v);
-            if (init != null) {
-                genericStaticVals.put(key, init);
+            ILconst existing = genericStaticScalarVals.get(key);
+            if (existing != null) {
+                WLogger.trace("[GENSTATIC] get " + key + " -> (cached) " + existing);
+                return existing;
             }
-            return init;
+
+            // lazy init from global inits (e.g. foo = 1)
+            List<ImSet> inits = prog.getGlobalInits().get(v);
+            if (inits != null && !inits.isEmpty()) {
+                ILconst initVal = inits.get(inits.size() - 1).getRight().evaluate(this, EMPTY_LOCAL_STATE);
+                genericStaticScalarVals.put(key, initVal);
+                System.out.println("[GENSTATIC] get " + key + " -> (init) " + initVal);
+                return initVal;
+            }
+
+            // fallback: default semantics (if your interpreter expects “unset = null/0”)
+            System.out.println("[GENSTATIC] get " + key + " -> (unset) null");
+            return null;
         }
+
         return super.getVal(v);
     }
 
@@ -576,6 +676,16 @@ public class ProgramState extends State {
 
     public Collection<ILconstObject> getAllObjects() {
         return indexToObject.values();
+    }
+
+    public Map<ImTypeVar, ImType> snapshotResolvedTypeSubstitutions() {
+        Map<ImTypeVar, ImType> res = new HashMap<>();
+        for (ILStackFrame sf : stackFrames) { // top-first
+            for (Map.Entry<ImTypeVar, ImType> e : sf.typeSubstitutions.entrySet()) {
+                res.putIfAbsent(e.getKey(), resolveType(e.getValue()));
+            }
+        }
+        return res;
     }
 
 }

@@ -54,21 +54,25 @@ public class ClassTranslator {
      * translates the given classDef
      */
     private void translate() {
-        imClass = translator.getClassFor(classDef);
-        prog.getClasses().add(imClass);
+        Map<TypeParamDef, ImTypeVar> ov = translator.getTypeVarOverridesForClass(classDef);
+        translator.pushTypeVarOverrides(ov);
+        try {
+            imClass = translator.getClassFor(classDef);
+            prog.getClasses().add(imClass);
 
-        addSuperClasses();
+            addSuperClasses();
 
-        List<ClassDef> subClasses = translator.getSubClasses(classDef);
+            List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
-        // order is important here
-        translateMethods(classDef, subClasses);
-        translateVars(classDef);
-        translateClassInitFunc();
-        translateConstructors();
-        createOnDestroyMethod();
-        createDestroyMethod(subClasses);
-
+            translateMethods(classDef, subClasses);
+            translateVars(classDef);
+            translateClassInitFunc();
+            translateConstructors();
+            createOnDestroyMethod();
+            createDestroyMethod(subClasses);
+        } finally {
+            translator.popTypeVarOverrides(ov);
+        }
     }
 
 

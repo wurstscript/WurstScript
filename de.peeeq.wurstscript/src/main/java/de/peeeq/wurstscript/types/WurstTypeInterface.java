@@ -39,7 +39,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 
     @Override
     public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
-        return new WurstTypeInterface(interfaceDef, newTypes, true, newCaptured);
+        return new WurstTypeInterface(interfaceDef, newTypes, isStaticRef(), newCaptured);
     }
 
     @Override
