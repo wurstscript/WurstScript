@@ -20,9 +20,20 @@ public class WurstTypePackage extends WurstTypeNamedScope {
         this.pack = pack;
     }
 
+    public WurstTypePackage(WPackage pack, VariableBinding captured) {
+        super(true, captured);
+        if (pack == null) throw new IllegalArgumentException();
+        this.pack = pack;
+    }
+
     @Override
     public NamedScope getDef() {
         return pack;
+    }
+
+    @Override
+    public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
+        return new WurstTypePackage(pack, newCaptured);
     }
 
     @Override

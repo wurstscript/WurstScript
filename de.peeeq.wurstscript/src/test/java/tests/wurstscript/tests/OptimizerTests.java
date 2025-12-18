@@ -905,7 +905,7 @@ public class OptimizerTests extends WurstScriptTest {
             "	if foo(7531) == 7",
             "		testSuccess()"
         );
-        String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
+        String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover_no_opts.j"), Charsets.UTF_8);
         assertFalse(compiled.contains("cyc_cyc"));
     }
 

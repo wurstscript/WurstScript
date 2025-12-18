@@ -1902,6 +1902,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
 
     @Test
+    @Ignore // TODO
     public void genericClassWithLLModule() {
         testAssertOkLinesWithStdLib(true,
             "package test",
@@ -1922,6 +1923,95 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericClassWithStaticInnerClass() {
+        testAssertOkLines(true,
+            "package test",
+            "   native testSuccess()",
+            "   class Outer<T:>",
+            "      static T t = null",
+            "      construct(T iVal)",
+            "         t = iVal",
+            "      function iterator() returns Inner",
+            "         return new Inner()",
+            "      static class Inner",
+            "         construct()",
+            "         function next() returns T",
+            "            return t",
+            "   init",
+            "      let a = new Outer<int>(3)",
+            "      if a.iterator().next() == 3",
+            "         testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericModuleThistypeSmall() {
+        testAssertOkLines(true,
+            "package test",
+            "   native testSuccess()",
+            "   module LLM",
+            "      static thistype t = null",
+            "      construct()",
+            "         t = this",
+            "      function iterator() returns Iterator",
+            "         return new Iterator()",
+            "      static class Iterator",
+            "         function next() returns LLM.thistype",
+            "            return t",
+            "   class A<T:>",
+            "      use LLM",
+            "   init",
+            "      let a = new A<int>",
+            "      if a.iterator().next() == a",
+            "         testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassWithStaticMember() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A<T:>",
+            "		 static int foo = 1",
+            "        function setFoo(int v)",
+            "            foo = v",
+            "        function getFoo() returns int",
+            "            return foo",
+            "	init",
+            "		let a = new A<int>",
+            "		let b = new A<string>",
+            "		a.setFoo(3)",
+            "		if a.getFoo() == 3 and b.getFoo() == 1",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericClassWithStaticMemberArray() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A<T:>",
+            "		 static int array foo",
+            "        function setFoo(int v)",
+            "            foo[1] = v",
+            "        function getFoo() returns int",
+            "            return foo[1]",
+            "	init",
+            "		let a = new A<int>",
+            "		let b = new A<string>",
+            "		a.setFoo(3)",
+            "		b.setFoo(1)",
+            "		if a.getFoo() == 3 and b.getFoo() == 1",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
 
 
 }

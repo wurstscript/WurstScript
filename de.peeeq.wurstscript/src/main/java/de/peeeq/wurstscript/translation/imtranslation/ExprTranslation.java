@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+import static de.peeeq.wurstscript.validation.WurstValidator.isTypeParamNewGeneric;
 
 public class ExprTranslation {
 
@@ -440,7 +442,7 @@ public class ExprTranslation {
     private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver) {
 
         if (e.getFuncName().equals("getStackTraceString") && e.attrImplicitParameter() instanceof NoExpr
-                && e.getArgs().size() == 0) {
+            && e.getArgs().size() == 0) {
             // special built-in error function
             return JassIm.ImGetStackTrace();
         }
@@ -454,25 +456,19 @@ public class ExprTranslation {
         }
 
         if (e.getFuncName().equals("compiletime")
-                && e.attrImplicitParameter() instanceof NoExpr
-                && e.getArgs().size() == 1) {
+            && e.attrImplicitParameter() instanceof NoExpr
+            && e.getArgs().size() == 1) {
             // special compiletime-expression
             return JassIm.ImCompiletimeExpr(e, e.getArgs().get(0).imTranslateExpr(t, f), t.getCompiletimeExpressionsOrder(e));
         }
 
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
-        boolean dynamicDispatch = false;
 
         FunctionDefinition calledFunc = e.attrFuncDef();
 
         if (e.attrImplicitParameter() instanceof Expr) {
-            if (isCalledOnDynamicRef(e) && calledFunc instanceof FuncDef) {
-                dynamicDispatch = true;
-            }
-            // add implicit parameter to front
-            // TODO why would I add the implicit parameter here, if it is
-            // not a dynamic dispatch?
+            // keep implicit parameter
             leftExpr = (Expr) e.attrImplicitParameter();
         }
 
@@ -497,15 +493,32 @@ public class ExprTranslation {
             calledFunc = calledFunc.attrRealFuncDef();
         }
 
+        boolean dynamicDispatch = false;
+
         if (leftExpr instanceof ExprThis && calledFunc == e.attrNearestFuncDef()) {
             // recursive self calls are bound statically
-            // this is different to other objectoriented languages but it is
-            // necessary
-            // because jass does not allow mutually recursive calls
-            // The only situation where this would make a difference is with
-            // super-calls
-            // (or other statically bound calls)
+            // (necessary because jass does not allow mutually recursive calls)
             dynamicDispatch = false;
+        } else if (leftExpr != null
+            && isCalledOnDynamicRef(e)
+            && calledFunc instanceof FuncDef
+            && !((FuncDef) calledFunc).attrIsStatic()) {
+            // only instance methods participate in dispatch
+            dynamicDispatch = true;
+        }
+
+        // logging
+        if (calledFunc instanceof FuncDef) {
+            FuncDef fd = (FuncDef) calledFunc;
+            WLogger.trace("[DISPATCH] call " + fd.getName()
+                + " isStatic=" + fd.attrIsStatic()
+                + " dynCtx=" + isCalledOnDynamicRef(e)
+                + " -> dynamicDispatch=" + dynamicDispatch);
+        } else {
+            WLogger.trace("[DISPATCH] call " + calledFunc.getName()
+                + " (non-FuncDef)"
+                + " dynCtx=" + isCalledOnDynamicRef(e)
+                + " -> dynamicDispatch=" + dynamicDispatch);
         }
 
         ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
@@ -519,33 +532,35 @@ public class ExprTranslation {
         ImStmts stmts = null;
         ImVar tempVar = null;
         if (returnReveiver) {
-            if (leftExpr == null)
+            if (leftExpr == null) {
                 throw new Error("impossible");
+            }
             tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
             f.getLocals().add(tempVar);
             stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
         }
 
-
-
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(
+                t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(
+                t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
             call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
         if (returnReveiver) {
-            if (stmts == null)
+            if (stmts == null) {
                 throw new Error("impossible");
+            }
             stmts.add(call);
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(tempVar));
         } else {
@@ -556,23 +571,42 @@ public class ExprTranslation {
     private static ImTypeArguments getFunctionCallTypeArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables) {
         ImTypeArguments res = ImTypeArguments();
         VariableBinding mapping = sig.getMapping();
+
         for (ImTypeVar tv : typeVariables) {
             TypeParamDef tp = tr.getTypeParamDef(tv);
+            if (tp == null) {
+                // Should not happen, but be defensive: if we cannot map back, just pass through
+                Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+                res.add(ImTypeArgument(JassIm.ImTypeVarRef(tv), typeClassBinding));
+                continue;
+            }
+
             Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
+
             if (to.isEmpty()) {
+                if (isTypeParamNewGeneric(tp)) {
+                    ImType tvType = JassIm.ImTypeVarRef(tr.getTypeVar(tp));
+                    res.add(ImTypeArgument(tvType, new HashMap<>()));
+                    continue;
+                }
                 throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
             }
+
             WurstTypeBoundTypeParam t = to.get();
+
             if (!t.isTemplateTypeParameter()) {
                 continue;
             }
+
             ImType type = t.imTranslateType(tr);
             // TODO handle constraints
             Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
             res.add(ImTypeArgument(type, typeClassBinding));
         }
+
         return res;
     }
+
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
         if (e instanceof ExprMemberMethod) {
@@ -775,35 +809,5 @@ public class ExprTranslation {
         exprArrayLength.addError("length is only available for arrays with known size.");
         return JassIm.ImIntVal(0);
     }
-
-//    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {
-//        NameDef nameDef = e.tryGetNameDef();
-//        if (nameDef instanceof VarDef) {
-//            VarDef varDef = (VarDef) nameDef;
-//            ImVar v = translator.getVarFor(varDef);
-//            ImExprs indexes = e.getIndexes().stream()
-//                    .map(ie -> ie.imTranslateExpr(translator, f))
-//                    .collect(Collectors.toCollection(JassIm::ImExprs));
-//            return JassIm.ImVarArrayAccess(v, indexes);
-//        }
-//        throw new RuntimeException("TODO");
-//
-//    }
-//
-//    public static ImLExpr translateLvalue(ExprMemberVar e, ImTranslator translator, ImFunction f) {
-//        ImExpr receiver = e.getLeft().imTranslateExpr(translator, f);
-//        NameDef nameDef = e.tryGetNameDef();
-//        if (nameDef instanceof VarDef) {
-//            VarDef v = (VarDef) nameDef;
-//            ImVar imVar = translator.getVarFor(v);
-//            return JassIm.ImMemberAccess(receiver, imVar);
-//        }
-//        throw new RuntimeException("TODO");
-//    }
-//
-//    public static ImLExpr translateLvalue(ExprMemberArrayVar e, ImTranslator translator, ImFunction f) {
-//        throw new RuntimeException("TODO");
-//    }
-
 
 }

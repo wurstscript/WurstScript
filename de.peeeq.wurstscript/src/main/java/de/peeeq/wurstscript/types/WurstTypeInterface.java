@@ -14,11 +14,11 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 
     private final InterfaceDef interfaceDef;
 
-//	public PscriptTypeInterface(InterfaceDef interfaceDef, boolean staticRef) {
-//		super(staticRef);
-//		if (interfaceDef == null) throw new IllegalArgumentException();
-//		this.interfaceDef = interfaceDef;
-//	}
+    public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes, boolean isStaticRef, VariableBinding captured) {
+        super(newTypes, isStaticRef, captured);
+        if (interfaceDef == null) throw new IllegalArgumentException();
+        this.interfaceDef = interfaceDef;
+    }
 
     public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes, boolean isStaticRef) {
         super(newTypes, isStaticRef);
@@ -35,6 +35,11 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
     @Override
     public InterfaceDef getDef() {
         return interfaceDef;
+    }
+
+    @Override
+    public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
+        return new WurstTypeInterface(interfaceDef, newTypes, isStaticRef(), newCaptured);
     }
 
     @Override

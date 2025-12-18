@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -219,6 +220,13 @@ public class FunctionSignature {
     }
 
     public @Nullable FunctionSignature matchAgainstArgs(List<WurstType> argTypes, Element location) {
+        WLogger.trace("[IMPLCONV] matchAgainstArgs sigId=" + System.identityHashCode(this)
+            + " vbId=" + System.identityHashCode(this.mapping)
+            + " name=" + name
+            + " recv=" + receiverType
+            + " params=" + paramTypes
+            + " ret=" + returnType
+            + " vb=" + this.mapping);
         if (!isValidParameterNumber(argTypes.size())) {
             return null;
         }
@@ -227,9 +235,14 @@ public class FunctionSignature {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
             mapping = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
-            if (mapping == null) {
-                return null;
-            }
+            VariableBinding before = mapping;
+            VariableBinding after = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
+            WLogger.trace("[IMPLCONV]   vb " + System.identityHashCode(before)
+                + " -> " + (after == null ? "null" : System.identityHashCode(after))
+                + " sameObj=" + (before == after)
+                + " pt=" + pt + " at=" + at);
+            mapping = after;
+            if (mapping == null) return null;
 
         }
 

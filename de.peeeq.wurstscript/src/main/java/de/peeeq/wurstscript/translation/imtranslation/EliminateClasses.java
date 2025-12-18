@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
@@ -247,6 +248,10 @@ public class EliminateClasses {
         prog.getFunctions().add(df);
         dispatchFuncs.put(m, df);
 
+        WLogger.trace("[DISPATCH] register method=" + m.getName() + "@" + System.identityHashCode(m)
+            + " impl=" + m.getImplementation().getName() + "@" + System.identityHashCode(m.getImplementation())
+            + " sig=" + m.toString()
+            + " df=" + df.getName());
 
         ImType returnType = df.getReturnType();
         if (ranges.isEmpty()) {

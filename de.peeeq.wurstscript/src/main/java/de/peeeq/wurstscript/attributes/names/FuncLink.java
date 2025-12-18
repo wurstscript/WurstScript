@@ -32,26 +32,49 @@ public class FuncLink extends DefLink {
     }
 
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
-        Visibility visibiliy = calcVisibility(definedIn, func);
-        List<TypeParamDef> typeParams = typeParams(func).collect(Collectors.toList());
-        List<String> lParameterNames = new ArrayList<>();
-        for (WParameter wParameter : func.getParameters()) {
-            String name = wParameter.getName();
-            lParameterNames.add(name);
+        Visibility visibility = calcVisibility(definedIn, func);
+
+        // Collect all type params visible at this function:
+        // 1) function's own type params
+        // 2) enclosing/owning structure type params (class/module/inner class chain)
+        java.util.ArrayList<TypeParamDef> typeParams = new java.util.ArrayList<>();
+        typeParams.addAll(typeParams(func).collect(Collectors.toList()));
+
+        Element cur = definedIn;
+        while (cur != null) {
+            if (cur instanceof AstElementWithTypeParameters) {
+                typeParams.addAll(((AstElementWithTypeParameters) cur).getTypeParameters());
+            }
+            if (cur instanceof WPackage || cur instanceof CompilationUnit) {
+                break;
+            }
+            cur = cur.getParent();
         }
-        List<WurstType> lParameterTypes = new ArrayList<>();
-        for (WParameter wParameter : func.getParameters()) {
-            WurstType attrTyp = wParameter.attrTyp();
-            lParameterTypes.add(attrTyp);
+
+        // De-dup by identity (same TypeParamDef object may appear more than once)
+        java.util.Set<TypeParamDef> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        typeParams.removeIf(tp -> !seen.add(tp));
+
+        // Parameter names/types
+        java.util.ArrayList<String> paramNames = new java.util.ArrayList<>();
+        for (WParameter p : func.getParameters()) {
+            paramNames.add(p.getName());
         }
-        WurstType lreturnType = func.attrReturnTyp();
-        WurstType lreceiverType = calcReceiverType(definedIn, func);
-        VariableBinding mapping = VariableBinding.emptyMapping();
-        if (func instanceof AstElementWithTypeParameters) {
-            mapping = mapping.withTypeVariables(((AstElementWithTypeParameters) func).getTypeParameters());
+
+        java.util.ArrayList<WurstType> paramTypes = new java.util.ArrayList<>();
+        for (WParameter p : func.getParameters()) {
+            paramTypes.add(p.attrTyp());
         }
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, mapping);
+
+        WurstType returnType = func.attrReturnTyp();
+        WurstType receiverType = calcReceiverType(definedIn, func);
+
+        // Seed mapping with ALL visible type vars (not just the function's)
+        VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(typeParams);
+
+        return new FuncLink(visibility, definedIn, typeParams, receiverType, func, paramNames, paramTypes, returnType, mapping);
     }
+
 
 
     private static @Nullable WurstType calcReceiverType(WScope definedIn, NameDef nameDef) {

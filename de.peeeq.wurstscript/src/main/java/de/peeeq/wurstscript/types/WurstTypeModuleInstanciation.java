@@ -28,6 +28,12 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
         moduleInst = moduleInst2;
     }
 
+    public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<WurstTypeBoundTypeParam> newTypes, VariableBinding capturedBinding) {
+        super(newTypes, capturedBinding);
+        if (moduleInst2 == null) throw new IllegalArgumentException();
+        moduleInst = moduleInst2;
+    }
+
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
@@ -41,6 +47,11 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
             }
         }
         return null;
+    }
+
+    @Override
+    public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
+        return new WurstTypeModuleInstanciation(moduleInst, newTypes, newCaptured);
     }
 
     /**

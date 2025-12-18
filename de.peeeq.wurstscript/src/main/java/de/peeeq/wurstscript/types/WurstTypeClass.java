@@ -23,6 +23,12 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         this.classDef = classDef;
     }
 
+    public WurstTypeClass(ClassDef classDef, List<WurstTypeBoundTypeParam> typeParameters, boolean staticRef, VariableBinding captured) {
+        super(typeParameters, staticRef, captured);
+        if (classDef == null) throw new IllegalArgumentException();
+        this.classDef = classDef;
+    }
+
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
@@ -40,6 +46,11 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         return null;
 
 
+    }
+
+    @Override
+    public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
+        return new WurstTypeClass(classDef, newTypes, isStaticRef(), newCaptured);
     }
 
     private VariableBinding extendMapping(VariableBinding m1, VariableBinding m2, Element location) {
