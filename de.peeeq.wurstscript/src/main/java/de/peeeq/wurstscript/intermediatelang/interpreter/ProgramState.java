@@ -168,7 +168,7 @@ public class ProgramState extends State {
         objectIdCounter++;
         ILconstObject res = new ILconstObject(clazz, objectIdCounter, trace);
         indexToObject.put(objectIdCounter, res);
-        System.out.println("alloc objId=" + objectIdCounter + " type=" + clazz + " trace=" + trace);
+        WLogger.trace("alloc objId=" + objectIdCounter + " type=" + clazz + " trace=" + trace);
         return res;
     }
 
