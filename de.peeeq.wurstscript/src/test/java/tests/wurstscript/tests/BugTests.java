@@ -13,7 +13,7 @@ import java.io.IOException;
 import static de.peeeq.wurstscript.utils.Utils.string;
 
 public class BugTests extends WurstScriptTest {
-    private static final String TEST_DIR = "./testscripts/concept/";
+    public static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
     public void localsInOndestroy() throws IOException {

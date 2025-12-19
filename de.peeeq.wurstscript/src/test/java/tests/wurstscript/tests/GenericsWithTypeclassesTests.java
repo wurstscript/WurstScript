@@ -3,6 +3,11 @@ package tests.wurstscript.tests;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
+
+import static tests.wurstscript.tests.BugTests.TEST_DIR;
+
 public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
 
@@ -2011,6 +2016,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "			testSuccess()",
             "endpackage"
         );
+    }
+
+    @Test
+    public void fullArrayListTest() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "arrayList.wurst"), true);
     }
 
 
