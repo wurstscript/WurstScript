@@ -195,7 +195,7 @@ package Entity
 		function setTarget( vec3 tpos, real speed )
 			var t = pos.distanceTo2d(tpos) / speed
 			let tangle = pos.angleTo2d(tpos)
-			let e = getTerrainZ(tpos.x,tpos.y)
+			let e = getTerrainZ2(tpos.x,tpos.y)
 			
 			if t < 1.
 				t = 1./speed
@@ -237,7 +237,7 @@ package Entity
 		override function setPos(vec3 tpos)
 			pos = tpos
 			actor.setPos(tpos.x,tpos.y)
-			actor.setFlyHeight(tpos.z - getTerrainZ(tpos.x, tpos.y), 0)
+			actor.setFlyHeight(tpos.z - getTerrainZ2(tpos.x, tpos.y), 0)
 			
 		function setXY(vec3 tpos)
 			pos = tpos
@@ -462,16 +462,16 @@ public function getTerrainZ(vec2 v) returns real
 	return GetLocationZ( tempLoc )
 
 public function vec2.withTerrainZ() returns vec3
-	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
+	return vec3(this.x, this.y, getTerrainZ2(this.x, this.y))
 
 public function vec2.withTerrainZ(real zoffset) returns vec3
-	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+	return vec3(this.x, this.y, getTerrainZ2(this.x, this.y) + zoffset)
 
 public function vec3.withTerrainZ() returns vec3
-	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
+	return vec3(this.x, this.y, getTerrainZ2(this.x, this.y))
 
 public function vec3.withTerrainZ(real zoffset) returns vec3
-	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+	return vec3(this.x, this.y, getTerrainZ2(this.x, this.y) + zoffset)
 
 public function isTerrainDeepWater(real x, real y) returns boolean
 	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)

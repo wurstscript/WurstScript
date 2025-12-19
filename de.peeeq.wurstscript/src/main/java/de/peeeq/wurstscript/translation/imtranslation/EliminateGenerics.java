@@ -2,10 +2,13 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -675,6 +678,10 @@ public class EliminateGenerics {
     private void createSpecializedGlobals(ImClass originalClass, GenericTypes generics, List<ImTypeVar> typeVars) {
         String key = gKey(generics);
 
+        // Collect "insert specialized init right after original init" operations per parent ImStmts
+        // Using identity maps because IM nodes use identity semantics for parent/ownership.
+        Map<ImStmts, IdentityHashMap<ImStmt, List<ImStmt>>> insertsByParent = new IdentityHashMap<>();
+
         for (Map.Entry<ImVar, ImClass> entry : globalToClass.entrySet()) {
             ImVar originalGlobal = entry.getKey();
             ImClass owningClass = entry.getValue();
@@ -694,17 +701,89 @@ public class EliminateGenerics {
                 originalGlobal.getIsBJ()
             );
 
-            List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
-            if (originalInits != null && !originalInits.isEmpty()) {
-                ImExpr initRhs = originalInits.getFirst().getRight().copy();
-                initRhs = specializeNullInitializer(initRhs, specializedType);
-                translator.addGlobalWithInitalizer(specializedGlobal, initRhs);
-            } else {
-                translator.addGlobal(specializedGlobal);
-            }
-
+            // Create + register global
+            translator.addGlobal(specializedGlobal);
             specializedGlobals.put(originalGlobal, key, specializedGlobal);
             dbg("Created specialized global: " + specializedName + " type=" + specializedType);
+
+            // If original has init(s), create corresponding specialized init(s) and schedule insertion
+            List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
+            if (originalInits != null && !originalInits.isEmpty()) {
+
+                ImSet firstOrig = originalInits.getFirst();
+                if (!(firstOrig.getParent() instanceof ImStmts parentStmts)) {
+                    throw new CompileError(originalGlobal,
+                        "Initializer for global " + originalGlobal.getName() + " is not inside ImStmts.");
+                }
+                // ensure all original init sets share the same parent statement list
+                for (ImSet s : originalInits) {
+                    if (s.getParent() != parentStmts) {
+                        throw new CompileError(originalGlobal,
+                            "Initializer statements for global " + originalGlobal.getName() + " are not in the same ImStmts.");
+                    }
+                }
+
+                // Helper: rebuild LHS as ImLExpr for specialized global
+                java.util.function.Function<ImLExpr, ImLExpr> specializeLhs = (ImLExpr lhs) -> {
+                    if (lhs instanceof ImVarAccess va) {
+                        if (va.getVar() == originalGlobal) {
+                            return JassIm.ImVarAccess(specializedGlobal);
+                        }
+                        return (ImLExpr) va.copy();
+                    }
+                    if (lhs instanceof ImVarArrayAccess aa) {
+                        if (aa.getVar() == originalGlobal) {
+                            return JassIm.ImVarArrayAccess(
+                                aa.getTrace(),
+                                specializedGlobal,
+                                aa.getIndexes().copy()
+                            );
+                        }
+                        return (ImLExpr) aa.copy();
+                    }
+                    throw new CompileError(originalGlobal,
+                        "Unsupported initializer LHS for global " + originalGlobal.getName() + ": " + lhs.getClass().getSimpleName());
+                };
+
+                List<ImSet> specializedInitsForMap = new ArrayList<>(originalInits.size());
+
+                // Create specialized init sets and schedule: insert each right after its corresponding original init set
+                for (ImSet origSet : originalInits) {
+                    ImExpr rhs = origSet.getRight().copy();
+                    rhs = specializeNullInitializer(rhs, specializedType);
+
+                    ImLExpr newLeft = specializeLhs.apply(origSet.getLeft());
+                    ImSet specSet = JassIm.ImSet(originalGlobal.attrTrace(), newLeft, rhs);
+
+                    // schedule insertion right after origSet in its parent ImStmts
+                    IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
+                        insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
+                    byStmt.computeIfAbsent(origSet, k -> new ArrayList<>(1)).add(specSet);
+
+                    // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
+                    specializedInitsForMap.add((ImSet) specSet.copy());
+                }
+
+                prog.getGlobalInits().put(specializedGlobal, specializedInitsForMap);
+            }
+        }
+
+        // Perform insertions after the loop (so indices/state remain stable during collection)
+        for (Map.Entry<ImStmts, IdentityHashMap<ImStmt, List<ImStmt>>> e : insertsByParent.entrySet()) {
+            ImStmts parent = e.getKey();
+            IdentityHashMap<ImStmt, List<ImStmt>> toInsertAfter = e.getValue();
+
+            ListIterator<ImStmt> it = parent.listIterator();
+            while (it.hasNext()) {
+                ImStmt curr = it.next();
+                List<ImStmt> ins = toInsertAfter.get(curr);
+                if (ins != null) {
+                    // add in order, immediately after the original init
+                    for (ImStmt s : ins) {
+                        it.add(s);
+                    }
+                }
+            }
         }
     }
 
