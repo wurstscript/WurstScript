@@ -195,7 +195,7 @@ tasks.register('versionInfoFile') {
     doLast {
         def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()
         def revLong = ["git", "rev-parse", "HEAD"].execute(null, repoDir).text.trim()
-        def tag = ["git", "describe", "--tags", "--always", "--dirty"].execute(null, repoDir).text.trim()
+        def tag = ["git", "describe", "--tags", "--always"].execute(null, repoDir).text.trim()
 
         def wurstVersion = "${versionString}-${tag}"
 
