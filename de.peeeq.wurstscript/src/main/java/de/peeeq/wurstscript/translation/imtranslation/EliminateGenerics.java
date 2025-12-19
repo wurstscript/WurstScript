@@ -582,12 +582,12 @@ public class EliminateGenerics {
             @Override
             public void visit(ImNull e) {
                 ImType newT = transformType(e.getType(), generics, typeVars);
-                newT = specializeType(newT);
                 e.setType(newT);
 
                 ImExpr safe = specializeNullInitializer(e, newT);
                 if (safe != e) {
                     e.replaceBy(safe);
+                    return;
                 }
                 super.visit(e);
             }

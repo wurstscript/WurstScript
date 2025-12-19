@@ -2023,5 +2023,35 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkFileWithStdLib(new File(TEST_DIR + "arrayList.wurst"), true);
     }
 
+    @Test
+    public void genericNullComparison() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import NoWurst",
+            "import ClosureTimers",
+            "native testSuccess()",
+            "public class Reference<T:>",
+            "    T val",
+            "    construct(T val)",
+            "        this.val = val",
+            "    function into() returns T",
+            "        let rval = val",
+            "        destroy this",
+            "        return rval",
+            "",
+            "var r = new Reference(0.0)",
+            "",
+            "init",
+            "    // force member access on the global",
+            "    doAfter(.1) ->",
+            "       r.val = 1.0",
+            "       if r != null and not r == null and r.into() == 1.0",
+            "           testSuccess()",
+            "    testSuccess() // to make compiler happy",
+            "endpackage"
+        );
+    }
+
+
 
 }
