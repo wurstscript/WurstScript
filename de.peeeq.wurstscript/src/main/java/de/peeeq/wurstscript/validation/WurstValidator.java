@@ -1976,6 +1976,14 @@ public class WurstValidator {
         if (e.attrTyp() instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope wtns = (WurstTypeNamedScope) e.attrTyp();
             if (wtns.isStaticRef()) {
+                if (isUsedAsReceiverInExprMember(e) && isNewGenericTypeDef(def)) {
+                    Element parent = e.getParent();
+                    parent.addError(
+                        "Cannot access members via generic type '" + def.getName() + "' without specialization.\n"
+                            + "New generics (<T:>) require a concrete specialization; use an instance receiver instead."
+                    );
+                    return;
+                }
                 if (!isUsedAsReceiverInExprMember(e)) {
                     e.addError("Reference to " + e.getVarName() + " cannot be used as an expression.");
                 } else if (e.getParent() instanceof ExprMemberMethodDotDot) {
@@ -2866,5 +2874,23 @@ public class WurstValidator {
         if (param.attrTyp() instanceof WurstTypeArray) {
             param.addError("Cannot use arrays as parameters.");
         }
+    }
+
+    private static boolean isNewGenericTypeDef(@Nullable NameDef def) {
+        if (!(def instanceof AstElementWithTypeParameters)) {
+            return false;
+        }
+        AstElementWithTypeParameters g = (AstElementWithTypeParameters) def;
+        TypeParamDefs tps = g.getTypeParameters();
+        if (tps == null || tps.size() == 0) {
+            return false;
+        }
+        // Treat "any new TP" as new-generic. Mixed is already diagnosed elsewhere.
+        for (TypeParamDef tp : tps) {
+            if (isTypeParamNewGeneric(tp)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -2052,6 +2052,46 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericStaticAccessor_asClassInstanceMethods() {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "import NoWurst",
+            "native testSuccess()",
 
+            "public class Box<T:>",
+            "    static int count",
+            "    function setCount(int v)",
+            "        count = v",
+            "    function getCount() returns int",
+            "        return count",
+            "init",
+            "    let a = new Box<int>",
+            "    let b = new Box<string>",
+            "    a.setCount(3)",
+            "    b.setCount(1)",
+            "    if a.getCount() == 3 and b.getCount() == 1",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void genericStaticRawAccessIsRejected() {
+        testAssertErrorsLines(false,
+            // If your helper expects an error substring, keep it specific and stable:
+            "Cannot access members via generic type",
+
+            "package test",
+
+            "public class Box<T:>",
+            "    static int count",
+
+            "init",
+            "    // Raw generic class static access must be rejected (undefined specialization)",
+            "    Box.count = 1",
+            "endpackage"
+        );
+    }
 
 }
