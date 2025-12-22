@@ -152,17 +152,50 @@ public class EliminateGenerics {
         final int[] dangling = {0};
 
         prog.accept(new Element.DefaultVisitor() {
-            @Override public void visit(ImMethodCall mc) {
+            @Override
+            public void visit(ImMethodCall mc) {
+                super.visit(mc);
+
                 ImMethod m = mc.getMethod();
-                if (m != null && !inProg.containsKey(m)) {
-                    dangling[0]++;
-                    dbg("DANGLING methodCall: method=" + m.getName() + " " + id(m)
+                if (m == null) return;
+
+                boolean methodIsGeneric = m.getImplementation() != null && !m.getImplementation().getTypeVariables().isEmpty();
+
+                // If method is generic but call carries no type args, try to infer from receiver type and patch them in.
+                if (methodIsGeneric && mc.getTypeArguments().isEmpty()) {
+                    ImClass owning = m.attrClass();
+                    ImType rt = mc.getReceiver().attrTyp();
+                    if (owning != null && rt instanceof ImClassType) {
+                        ImClassType adapted = adaptToSuperclass((ImClassType) rt, owning);
+                        if (adapted != null && !adapted.getTypeArguments().isEmpty()) {
+                            List<ImTypeArgument> copied = new ArrayList<>(adapted.getTypeArguments().size());
+                            for (ImTypeArgument ta : adapted.getTypeArguments()) copied.add(ta.copy());
+                            mc.getTypeArguments().addAll(0, copied);
+
+                            dbg("Backfilled missing methodCall typeArgs: method=" + m.getName() + " " + id(m)
+                                + " owning=" + owning.getName()
+                                + " recvType=" + rt
+                                + " inferredTA=" + shortTypeArgs(mc.getTypeArguments()));
+                        } else {
+                            dbg("MISSING methodCall typeArgs (cannot infer): method=" + m.getName() + " " + id(m)
+                                + " owning=" + (owning == null ? "null" : owning.getName())
+                                + " recvType=" + rt);
+                        }
+                    } else {
+                        dbg("MISSING methodCall typeArgs (no owning/receiverClassType): method=" + m.getName() + " " + id(m)
+                            + " owning=" + (owning == null ? "null" : owning.getName())
+                            + " recvType=" + shortType(rt));
+                    }
+                }
+
+                if (!mc.getTypeArguments().isEmpty()) {
+                    dbg("COLLECT GenericMethodCall: method=" + m.getName() + " " + id(m)
                         + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
                         + " owningClass=" + (m.attrClass() == null ? "null" : (m.attrClass().getName() + " " + id(m.attrClass())))
-                        + " receiverType=" + shortType(mc.getReceiver().attrTyp())
-                        + " callTypeArgs=" + shortTypeArgs(mc.getTypeArguments()));
+                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
+                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
+                    genericsUses.add(new GenericMethodCall(mc));
                 }
-                super.visit(mc);
             }
         });
 
@@ -503,10 +536,10 @@ public class EliminateGenerics {
      */
     private ImMethod specializeMethod(ImMethod m, GenericTypes generics) {
 
-        dbg("specializeMethod ENTER: " + m.getName() + " " + id(m)
-            + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
-            + " methodClass=" + m.getMethodClass()
-            + " generics=" + generics);
+//        dbg("specializeMethod ENTER: " + m.getName() + " " + id(m)
+//            + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
+//            + " methodClass=" + m.getMethodClass()
+//            + " generics=" + generics);
 
         ImMethod specialized = specializedMethods.get(m, generics);
         if (specialized != null) {
@@ -836,11 +869,11 @@ public class EliminateGenerics {
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
                 if (!mc.getTypeArguments().isEmpty()) {
-                    dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
-                        + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
-                        + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
-                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
-                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
+//                    dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
+//                        + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
+//                        + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
+//                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
+//                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -1114,17 +1147,17 @@ public class EliminateGenerics {
             ImMethod f = mc.getMethod();
             GenericTypes generics = new GenericTypes(specializeTypeArgs(mc.getTypeArguments()));
 
-            dbg("ELIM GenericMethodCall: method=" + f.getName() + " " + id(f)
-                + " impl=" + (f.getImplementation() == null ? "null" : (f.getImplementation().getName() + " " + id(f.getImplementation())))
-                + " owningClass=" + (f.attrClass() == null ? "null" : (f.attrClass().getName() + " " + id(f.attrClass())))
-                + " callTA=" + shortTypeArgs(mc.getTypeArguments())
-                + " concrete=" + generics);
+//            dbg("ELIM GenericMethodCall: method=" + f.getName() + " " + id(f)
+//                + " impl=" + (f.getImplementation() == null ? "null" : (f.getImplementation().getName() + " " + id(f.getImplementation())))
+//                + " owningClass=" + (f.attrClass() == null ? "null" : (f.attrClass().getName() + " " + id(f.attrClass())))
+//                + " callTA=" + shortTypeArgs(mc.getTypeArguments())
+//                + " concrete=" + generics);
 
             ImMethod specializedMethod = specializeMethod(f, generics);
 
-            dbg("ELIM -> specializedMethod=" + specializedMethod.getName() + " " + id(specializedMethod)
-                + " impl=" + (specializedMethod.getImplementation() == null ? "null" : (specializedMethod.getImplementation().getName() + " " + id(specializedMethod.getImplementation())))
-                + " methodClass=" + specializedMethod.getMethodClass());
+//            dbg("ELIM -> specializedMethod=" + specializedMethod.getName() + " " + id(specializedMethod)
+//                + " impl=" + (specializedMethod.getImplementation() == null ? "null" : (specializedMethod.getImplementation().getName() + " " + id(specializedMethod.getImplementation())))
+//                + " methodClass=" + specializedMethod.getMethodClass());
 
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
@@ -1169,6 +1202,9 @@ public class EliminateGenerics {
     }
 
     private ImVar ensureSpecializedGlobal(ImVar originalGlobal, ImClass owningClass, GenericTypes concreteGenerics) {
+        concreteGenerics = normalizeToClassArity(concreteGenerics, owningClass, "ensureSpecializedGlobal:" + originalGlobal.getName());
+        if (concreteGenerics == null) return null;
+
         String key = gKey(concreteGenerics);
         ImVar sg = specializedGlobals.get(originalGlobal, key);
         if (sg != null) return sg;
@@ -1229,6 +1265,29 @@ public class EliminateGenerics {
         }
     }
 
+    private @Nullable GenericTypes normalizeToClassArity(GenericTypes g, ImClass owningClass, String why) {
+        int need = owningClass.getTypeVariables().size();
+        int have = g.getTypeArguments().size();
+
+        if (have == need) return g;
+
+        if (have < need) {
+            dbg("GEN-ARITY FAIL (" + why + "): class=" + owningClass.getName()
+                + " need=" + need + " have=" + have + " g=" + g);
+            return null;
+        }
+
+        // have > need: take the prefix; this is the common case when the function-context has extra type args.
+        List<ImTypeArgument> cut = new ArrayList<>(need);
+        for (int i = 0; i < need; i++) {
+            cut.add(g.getTypeArguments().get(i).copy());
+        }
+        GenericTypes r = new GenericTypes(cut);
+        dbg("GEN-ARITY TRUNC (" + why + "): class=" + owningClass.getName()
+            + " need=" + need + " have=" + have + " g=" + g + " -> " + r);
+        return r;
+    }
+
     /**
      * NEW: Infer generic types from the enclosing function context
      * For specialized functions, the name contains the type information
@@ -1241,18 +1300,15 @@ public class EliminateGenerics {
 
                 GenericTypes specialized = specializedFunctionGenerics.get(func);
                 if (specialized != null) {
-                    return specialized;
+                    return normalizeToClassArity(specialized, owningClass, "specializedFunctionGenerics:" + func.getName());
                 }
 
-                // If function is still generic, we can't decide yet.
                 if (!func.getTypeVariables().isEmpty()) {
                     return null;
                 }
 
                 if (!func.getParameters().isEmpty()) {
-                    ImVar receiver = func.getParameters().get(0);
-                    ImType rt = receiver.getType();
-
+                    ImType rt = func.getParameters().get(0).getType();
                     if (rt instanceof ImClassType) {
                         ImClassType ct = (ImClassType) rt;
                         ImClass raw = ct.getClassDef();
@@ -1263,19 +1319,17 @@ public class EliminateGenerics {
                                 raw.isSubclassOf(owningClass);
 
                         if (matches) {
-                            // PRIMARY: use actual type args if present
                             if (!ct.getTypeArguments().isEmpty()) {
                                 List<ImTypeArgument> copied = new ArrayList<>(ct.getTypeArguments().size());
                                 for (ImTypeArgument ta : ct.getTypeArguments()) {
                                     copied.add(JassIm.ImTypeArgument(ta.getType().copy(), ta.getTypeClassBinding()));
                                 }
-                                return new GenericTypes(copied);
+                                return normalizeToClassArity(new GenericTypes(copied), owningClass, "receiverTypeArgs:" + func.getName());
                             }
 
-                            // FALLBACK: parse from specialized class name: Box⟪...⟫
                             GenericTypes fromName = extractGenericsFromClassName(raw.getName());
                             if (fromName != null && !fromName.getTypeArguments().isEmpty()) {
-                                return fromName;
+                                return normalizeToClassArity(fromName, owningClass, "className:" + raw.getName());
                             }
                         }
                     }
@@ -1283,7 +1337,8 @@ public class EliminateGenerics {
 
                 Map<GenericTypes, ImClass> specs = specializedClasses.row(owningClass);
                 if (specs.size() == 1) {
-                    return specs.keySet().iterator().next();
+                    GenericTypes only = specs.keySet().iterator().next();
+                    return normalizeToClassArity(only, owningClass, "singleSpecializationFallback");
                 }
 
                 return null;
@@ -1292,6 +1347,7 @@ public class EliminateGenerics {
         }
         return null;
     }
+
 
 
     /**

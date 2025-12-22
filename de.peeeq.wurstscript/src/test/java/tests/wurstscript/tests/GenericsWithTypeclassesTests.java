@@ -2020,7 +2020,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void fullArrayListTest() throws IOException {
-        testAssertOkFileWithStdLib(new File(TEST_DIR + "arrayList.wurst"), true);
+        test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
     }
 
     @Test
