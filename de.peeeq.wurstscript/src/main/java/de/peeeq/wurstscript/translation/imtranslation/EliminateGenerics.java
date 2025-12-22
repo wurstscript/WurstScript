@@ -536,10 +536,10 @@ public class EliminateGenerics {
      */
     private ImMethod specializeMethod(ImMethod m, GenericTypes generics) {
 
-//        dbg("specializeMethod ENTER: " + m.getName() + " " + id(m)
-//            + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
-//            + " methodClass=" + m.getMethodClass()
-//            + " generics=" + generics);
+        dbg("specializeMethod ENTER: " + m.getName() + " " + id(m)
+            + " impl=" + (m.getImplementation() == null ? "null" : (m.getImplementation().getName() + " " + id(m.getImplementation())))
+            + " methodClass=" + m.getMethodClass()
+            + " generics=" + generics);
 
         ImMethod specialized = specializedMethods.get(m, generics);
         if (specialized != null) {
@@ -869,11 +869,11 @@ public class EliminateGenerics {
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
                 if (!mc.getTypeArguments().isEmpty()) {
-//                    dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
-//                        + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
-//                        + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
-//                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
-//                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
+                    dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
+                        + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
+                        + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
+                        + " recvType=" + shortType(mc.getReceiver().attrTyp())
+                        + " callTA=" + shortTypeArgs(mc.getTypeArguments()));
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -1147,17 +1147,17 @@ public class EliminateGenerics {
             ImMethod f = mc.getMethod();
             GenericTypes generics = new GenericTypes(specializeTypeArgs(mc.getTypeArguments()));
 
-//            dbg("ELIM GenericMethodCall: method=" + f.getName() + " " + id(f)
-//                + " impl=" + (f.getImplementation() == null ? "null" : (f.getImplementation().getName() + " " + id(f.getImplementation())))
-//                + " owningClass=" + (f.attrClass() == null ? "null" : (f.attrClass().getName() + " " + id(f.attrClass())))
-//                + " callTA=" + shortTypeArgs(mc.getTypeArguments())
-//                + " concrete=" + generics);
+            dbg("ELIM GenericMethodCall: method=" + f.getName() + " " + id(f)
+                + " impl=" + (f.getImplementation() == null ? "null" : (f.getImplementation().getName() + " " + id(f.getImplementation())))
+                + " owningClass=" + (f.attrClass() == null ? "null" : (f.attrClass().getName() + " " + id(f.attrClass())))
+                + " callTA=" + shortTypeArgs(mc.getTypeArguments())
+                + " concrete=" + generics);
 
             ImMethod specializedMethod = specializeMethod(f, generics);
 
-//            dbg("ELIM -> specializedMethod=" + specializedMethod.getName() + " " + id(specializedMethod)
-//                + " impl=" + (specializedMethod.getImplementation() == null ? "null" : (specializedMethod.getImplementation().getName() + " " + id(specializedMethod.getImplementation())))
-//                + " methodClass=" + specializedMethod.getMethodClass());
+            dbg("ELIM -> specializedMethod=" + specializedMethod.getName() + " " + id(specializedMethod)
+                + " impl=" + (specializedMethod.getImplementation() == null ? "null" : (specializedMethod.getImplementation().getName() + " " + id(specializedMethod.getImplementation())))
+                + " methodClass=" + specializedMethod.getMethodClass());
 
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
