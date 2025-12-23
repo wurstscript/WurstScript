@@ -41,7 +41,7 @@ import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
 
-    private static final String TEST_OUTPUT_PATH = "./test-output/";
+    public static final String TEST_OUTPUT_PATH = "./test-output/";
 
     protected boolean testOptimizer() {
         return true;

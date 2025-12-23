@@ -2026,7 +2026,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void fullArrayListTest() throws IOException {
         test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
 
-        String compiled = Files.toString(new File("test-output/im 2_genericsEliminated.im"), Charsets.UTF_8);
+        String compiled = Files.toString(new File(TEST_OUTPUT_PATH + "im 2_genericsEliminated.im"), Charsets.UTF_8);
         // Count 2 occurences of integer ArrayList_MAX_ARRAY_SIZE
         String target = "integer ArrayList_MAX_ARRAY_SIZE";
         int count = 0;
@@ -2038,7 +2038,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
        assertEquals(count, 2);
 
-        String compiled2 = Files.toString(new File("test-output/im 5_afterinline.im"), Charsets.UTF_8);
+        String compiled2 = Files.toString(new File(TEST_OUTPUT_PATH + "im 5_afterinline.im"), Charsets.UTF_8);
 
         assertFalse(compiled2.contains("ArrayList_nextFreeIndex_"));
 
