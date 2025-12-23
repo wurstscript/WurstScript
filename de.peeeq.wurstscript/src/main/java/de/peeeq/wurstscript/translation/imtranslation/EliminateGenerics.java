@@ -453,30 +453,11 @@ public class EliminateGenerics {
         IdentityHashMap<ImClass, Boolean> memo = new IdentityHashMap<>();
 
         for (ImClass c : prog.getClasses()) {
-            if (isNewGenericOrExtendsNewGeneric(c, memo)) {
+            if (!c.getTypeVariables().isEmpty()) {
                 m.put(c.getName(), c);
             }
         }
         return m;
-    }
-
-    private boolean isNewGenericOrExtendsNewGeneric(ImClass c, IdentityHashMap<ImClass, Boolean> memo) {
-        Boolean cached = memo.get(c);
-        if (cached != null) return cached;
-
-        boolean res = !c.getTypeVariables().isEmpty();
-        if (!res) {
-            for (ImClassType sc : c.getSuperClasses()) {
-                ImClass sup = sc.getClassDef();
-                if (sup != null && isNewGenericOrExtendsNewGeneric(sup, memo)) {
-                    res = true;
-                    break;
-                }
-            }
-        }
-
-        memo.put(c, res);
-        return res;
     }
 
     /**
