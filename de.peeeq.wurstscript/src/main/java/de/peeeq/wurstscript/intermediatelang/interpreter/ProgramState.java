@@ -613,12 +613,12 @@ public class ProgramState extends State {
             if (inits != null && !inits.isEmpty()) {
                 ILconst initVal = inits.get(inits.size() - 1).getRight().evaluate(this, EMPTY_LOCAL_STATE);
                 genericStaticScalarVals.put(key, initVal);
-                System.out.println("[GENSTATIC] get " + key + " -> (init) " + initVal);
+                WLogger.trace("[GENSTATIC] get " + key + " -> (init) " + initVal);
                 return initVal;
             }
 
             // fallback: default semantics (if your interpreter expects “unset = null/0”)
-            System.out.println("[GENSTATIC] get " + key + " -> (unset) null");
+            WLogger.trace("[GENSTATIC] get " + key + " -> (unset) null");
             return null;
         }
 

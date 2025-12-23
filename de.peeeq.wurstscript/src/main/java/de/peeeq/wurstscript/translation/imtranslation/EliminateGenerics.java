@@ -2,12 +2,14 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,6 +83,26 @@ public class EliminateGenerics {
         dbg(summary("after removeGenericConstructs"));
 
         dbg(checkDanglingMethodRefs("end"));
+
+        // TODO fix or remove this check
+//        assertNoUnspecializedGenericGlobals();
+    }
+
+    private void assertNoUnspecializedGenericGlobals() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override public void visit(ImVarAccess va) {
+                super.visit(va);
+                if (globalToClass.containsKey(va.getVar())) {
+                    throw new CompileError(va, "Unspecialized generic global still used: " + va.getVar().getName());
+                }
+            }
+            @Override public void visit(ImVarArrayAccess vaa) {
+                super.visit(vaa);
+                if (globalToClass.containsKey(vaa.getVar())) {
+                    throw new CompileError(vaa, "Unspecialized generic global array still used: " + vaa.getVar().getName());
+                }
+            }
+        });
     }
 
     private void makeNullAssignmentsSafe() {
@@ -259,7 +281,12 @@ public class EliminateGenerics {
     private void removeNonSpecializedGlobals() {
         for (ImVar imVar : specializedGlobals.rowKeySet()) {
             prog.getGlobals().remove(imVar);
-            prog.getGlobalInits().remove(imVar);
+            List<ImSet> inits = prog.getGlobalInits().remove(imVar);
+            if (inits != null) {
+                for (ImSet init : inits) {
+                    init.replaceBy(ImHelper.nullExpr());
+                }
+            }
         }
     }
 
@@ -399,29 +426,79 @@ public class EliminateGenerics {
      * These are the "static" fields that need specialization
      */
     private void identifyGenericGlobals() {
-        // Build a map of class name to class for quick lookup
-        Map<String, ImClass> classMap = new HashMap<>();
-        for (ImClass c : prog.getClasses()) {
-            classMap.put(c.getName(), c);
-        }
+        // Only include "relevant" classes: new-generic or subclass of new-generic.
+        Map<String, ImClass> relevantClassMap = buildRelevantClassMap();
 
-        // Check each global variable to see if it belongs to a generic class
         for (ImVar global : prog.getGlobals()) {
-            // Global variable names for static fields follow the pattern: ClassName_fieldName
-            String varName = global.getName();
-            int underscoreIdx = varName.indexOf('_');
-            if (underscoreIdx > 0) {
-                String potentialClassName = varName.substring(0, underscoreIdx);
-                ImClass owningClass = classMap.get(potentialClassName);
+            ImClass owner = resolveOwningClassFromTrace(global, relevantClassMap);
+            if (owner == null) {
+                continue; // not defined inside a class (package/global constant, etc.)
+            }
 
-                if (owningClass != null && !owningClass.getTypeVariables().isEmpty()) {
-                    // This global belongs to a generic class
-                    globalToClass.put(global, owningClass);
-                    WLogger.trace("Identified generic global: " + varName + " of type " + global.getType() +
-                        " belonging to class " + owningClass.getName());
+            // This global belongs to a relevant (new-generic or inheriting) class:
+            globalToClass.put(global, owner);
+            WLogger.trace("Identified generic static-field global: " + global.getName()
+                + " of type " + global.getType()
+                + " belonging to class " + owner.getName());
+        }
+    }
+
+    /**
+     * Build a map of class-name -> ImClass, but only for "relevant" classes:
+     * - the class is new-generic (has typeVariables)
+     * - OR any of its superclasses is new-generic (transitively)
+     */
+    private Map<String, ImClass> buildRelevantClassMap() {
+        Map<String, ImClass> m = new HashMap<>();
+        IdentityHashMap<ImClass, Boolean> memo = new IdentityHashMap<>();
+
+        for (ImClass c : prog.getClasses()) {
+            if (isNewGenericOrExtendsNewGeneric(c, memo)) {
+                m.put(c.getName(), c);
+            }
+        }
+        return m;
+    }
+
+    private boolean isNewGenericOrExtendsNewGeneric(ImClass c, IdentityHashMap<ImClass, Boolean> memo) {
+        Boolean cached = memo.get(c);
+        if (cached != null) return cached;
+
+        boolean res = !c.getTypeVariables().isEmpty();
+        if (!res) {
+            for (ImClassType sc : c.getSuperClasses()) {
+                ImClass sup = sc.getClassDef();
+                if (sup != null && isNewGenericOrExtendsNewGeneric(sup, memo)) {
+                    res = true;
+                    break;
                 }
             }
         }
+
+        memo.put(c, res);
+        return res;
+    }
+
+    /**
+     * Resolve owning class for a global via trace:
+     * - if the global's trace source is inside a class, return the matching ImClass (if relevant)
+     * - otherwise return null
+     */
+    private @Nullable ImClass resolveOwningClassFromTrace(ImVar global, Map<String, ImClass> relevantClassMap) {
+        if (global.getTrace() == null) return null;
+
+        // This is the only assumption you may need to adapt if your ImTrace API differs:
+        de.peeeq.wurstscript.ast.Element srcObj = global.getTrace(); // expected to be a wurst AST Element
+        if (srcObj == null) return null;
+
+        @Nullable ClassDef classDef = srcObj.attrNearestClassDef();
+        if (classDef == null) return null;
+
+        // Get the class name from the AST (no global-name parsing).
+        String className = classDef.getNameId().getName();
+
+        // Only accept if it is one of the relevant classes (new-generic or inherits new-generic).
+        return relevantClassMap.get(className);
     }
 
     /**

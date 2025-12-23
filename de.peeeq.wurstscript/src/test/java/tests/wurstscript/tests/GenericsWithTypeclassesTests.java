@@ -1,11 +1,15 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
 
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static tests.wurstscript.tests.BugTests.TEST_DIR;
 
 public class GenericsWithTypeclassesTests extends WurstScriptTest {
@@ -2021,6 +2025,24 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     @Test
     public void fullArrayListTest() throws IOException {
         test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
+
+        String compiled = Files.toString(new File("test-output/im 2_genericsEliminated.im"), Charsets.UTF_8);
+        // Count 2 occurences of integer ArrayList_MAX_ARRAY_SIZE
+        String target = "integer ArrayList_MAX_ARRAY_SIZE";
+        int count = 0;
+        int idx = 0;
+        while ((idx = compiled.indexOf(target, idx)) != -1) {
+            count++;
+            idx += target.length();
+        }
+
+       assertEquals(count, 2);
+
+        String compiled2 = Files.toString(new File("test-output/im 5_afterinline.im"), Charsets.UTF_8);
+
+        assertFalse(compiled2.contains("ArrayList_nextFreeIndex_"));
+
+
     }
 
     @Test
