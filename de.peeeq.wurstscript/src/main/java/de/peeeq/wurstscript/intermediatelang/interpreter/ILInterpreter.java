@@ -228,7 +228,7 @@ public class ILInterpreter implements AbstractInterpreter {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
-            err.append("at : ").append(new File(src.getFile()).getName()).append(", line ").append(src.getLine()).append("\n");
+            err.append("Trace : ").append(new File(src.getFile()).getName()).append(":").append(src.getLine()).append("\n");
         } catch (Exception _e) {
             // ignore
         }
