@@ -97,6 +97,9 @@ public class ILInterpreter implements AbstractInterpreter {
                 if (args.length > 0 && args[0] instanceof ILconstObject) {
                     receiverObj = (ILconstObject) args[0];
                 }
+                if (caller != null) {
+                    globalState.setLastElement(caller);
+                }
                 WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
                 globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
                 try {
@@ -174,7 +177,9 @@ public class ILInterpreter implements AbstractInterpreter {
                 normalized.put(e.getKey(), rhs);
             }
 
-            // --- single push/pop responsibility ---
+            if (caller != null) {
+                globalState.setLastElement(caller);
+            }
             WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
             globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
 
@@ -226,15 +231,35 @@ public class ILInterpreter implements AbstractInterpreter {
 
     public static String buildStacktrace(ProgramState globalState, Throwable e) {
         StringBuilder err = new StringBuilder();
+
         try {
-            WPos src = globalState.getLastStatement().attrTrace().attrSource();
-            err.append("Trace : ").append(new File(src.getFile()).getName()).append(":").append(src.getLine()).append("\n");
-        } catch (Exception _e) {
+            ILStackFrame top = globalState.getStackFrames().getStackFrames().isEmpty()
+                ? null
+                : globalState.getStackFrames().getStackFrames().get(0);
+
+            WPos src = null;
+            if (top != null) {
+                src = top.getCurrentSourcePos();
+            }
+            if (src == null && globalState.getLastStatement() != null) {
+                src = globalState.getLastStatement().attrTrace().attrSource();
+            }
+
+            if (src != null) {
+                err.append("Trace : ")
+                    .append(new File(src.getFile()).getName())
+                    .append(":")
+                    .append(src.getLine())
+                    .append("\n");
+            }
+        } catch (Exception ignored) {
             // ignore
         }
+
         globalState.getStackFrames().appendTo(err);
         return err.toString();
     }
+
 
     @SuppressWarnings("null")
     private static ILconst adjustTypeOfConstant(@Nullable ILconst retVal, ImType expectedType) {

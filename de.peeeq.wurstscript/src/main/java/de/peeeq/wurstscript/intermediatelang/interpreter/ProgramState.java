@@ -118,8 +118,18 @@ public class ProgramState extends State {
         }
     }
 
+    public void setLastElement(de.peeeq.wurstscript.jassIm.Element e) {
+        lastStatement = e;
+
+        ILStackFrame top = stackFrames.peek();
+        if (top != null) {
+            top.currentElement = e;
+        }
+    }
+
+    // keep old API, delegate:
     public void setLastStatement(ImStmt s) {
-        lastStatement = s;
+        setLastElement(s);
     }
 
     public de.peeeq.wurstscript.jassIm.Element getLastStatement() {
