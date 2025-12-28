@@ -38,8 +38,12 @@ public class ILStackFrame {
 
     public String getMessage() {
         StringBuilder sb = new StringBuilder();
+        if (trace != null && !trace.isArtificial()) {
+            String file = new File(trace.getFile()).getName();
+            sb.append("    ╚ ").append(file).append(":").append(trace.getLine());
+        }
         if (f.isLeft()) {
-            sb.append("... when calling ").append(f.getLeft().getName()).append("(");
+            sb.append(" calling ").append(f.getLeft().getName()).append("(");
             boolean first = true;
             for (ILconst arg : args) {
                 if (!first) {
@@ -51,11 +55,6 @@ public class ILStackFrame {
             sb.append(")");
         } else {
             sb.append("... when executing compiletime expression ");
-        }
-
-        if (trace != null && !trace.isArtificial()) {
-            String file = new File(trace.getFile()).getName();
-            sb.append(" in ").append(file).append(":").append(trace.getLine());
         }
 
         return sb.toString();
