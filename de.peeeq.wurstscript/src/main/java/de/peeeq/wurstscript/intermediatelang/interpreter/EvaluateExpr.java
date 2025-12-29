@@ -22,6 +22,10 @@ import java.util.stream.Collectors;
 
 public class EvaluateExpr {
 
+    private static void mark(Element e, ProgramState globalState) {
+        globalState.setLastElement(e);
+    }
+
     public static ILconst eval(ImBoolVal e, ProgramState globalState, LocalState localState) {
         return ILconstBool.instance(e.getValB());
     }
@@ -31,6 +35,8 @@ public class EvaluateExpr {
     }
 
     public static @Nullable ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
+        mark(e, globalState);
+
         ImFunction f = e.getFunc();
         ImExprs arguments = e.getArguments();
 
@@ -191,6 +197,7 @@ public class EvaluateExpr {
                                          ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState));
         globalState.assertAllocated(receiver, mc.attrTrace());
+        mark(mc, globalState);
 
         List<ImExpr> args = mc.getArguments();
 
