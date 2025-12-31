@@ -766,6 +766,37 @@ public class EliminateGenerics {
         return newC;
     }
 
+    private ImExpr rewriteGenericGlobalsInExpr(ImExpr e, ImClass owningClass, GenericTypes generics) {
+        e.accept(new Element.DefaultVisitor() {
+            @Override public void visit(ImVarAccess va) {
+                super.visit(va);
+                ImVar v = va.getVar();
+                ImClass owner = globalToClass.get(v);
+                if (owner == null) return;
+
+                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                if (g == null || g.containsTypeVariable()) return;
+
+                ImVar sg = ensureSpecializedGlobal(v, owner, g);
+                if (sg != null) va.setVar(sg);
+            }
+
+            @Override public void visit(ImVarArrayAccess aa) {
+                super.visit(aa);
+                ImVar v = aa.getVar();
+                ImClass owner = globalToClass.get(v);
+                if (owner == null) return;
+
+                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                if (g == null || g.containsTypeVariable()) return;
+
+                ImVar sg = ensureSpecializedGlobal(v, owner, g);
+                if (sg != null) aa.setVar(sg);
+            }
+        });
+        return e;
+    }
+
     private void createSpecializedGlobals(ImClass originalClass, GenericTypes generics, List<ImTypeVar> typeVars) {
         String key = gKey(generics);
 
@@ -841,6 +872,7 @@ public class EliminateGenerics {
                 // Create specialized init sets and schedule: insert each right after its corresponding original init set
                 for (ImSet origSet : originalInits) {
                     ImExpr rhs = origSet.getRight().copy();
+                    rhs = rewriteGenericGlobalsInExpr(rhs, originalClass, generics);
                     rhs = specializeNullInitializer(rhs, specializedType);
 
                     ImLExpr newLeft = specializeLhs.apply(origSet.getLeft());
@@ -913,6 +945,15 @@ public class EliminateGenerics {
         collectGenericUsages(prog);
     }
 
+    private boolean isGlobalInitStmt(ImSet s, ImVar v) {
+        List<ImSet> inits = prog.getGlobalInits().get(v);
+        if (inits == null) return false;
+        for (ImSet x : inits) {
+            if (x == s) return true; // identity
+        }
+        return false;
+    }
+
     private void collectGenericUsages(Element element) {
         element.accept(new Element.DefaultVisitor() {
             @Override
@@ -965,19 +1006,23 @@ public class EliminateGenerics {
             @Override
             public void visit(ImSet set) {
                 super.visit(set);
-                if (set.getLeft() instanceof ImVarAccess) {
-                    ImVarAccess va = (ImVarAccess) set.getLeft();
-                    if (globalToClass.containsKey(va.getVar())) {
-                        recordGenericGlobalUse(set, va.getVar());
-                        genericsUses.add(new GenericGlobalAccess(va));
-                    }
-                } else if (set.getLeft() instanceof ImVarArrayAccess) {
-                    ImVarArrayAccess vaa = (ImVarArrayAccess) set.getLeft();
-                    if (globalToClass.containsKey(vaa.getVar())) {
-                        recordGenericGlobalUse(set, vaa.getVar());
-                        genericsUses.add(new GenericGlobalArrayAccess(vaa));
-                    }
+
+                ImVar v = null;
+                if (set.getLeft() instanceof ImVarAccess va) v = va.getVar();
+                else if (set.getLeft() instanceof ImVarArrayAccess aa) v = aa.getVar();
+                else return;
+
+                if (!globalToClass.containsKey(v)) return;
+
+                // IMPORTANT: do not treat global-init statements as “generic global accesses”
+                if (isGlobalInitStmt(set, v)) {
+                    return;
                 }
+
+                recordGenericGlobalUse(set, v);
+                genericsUses.add(set.getLeft() instanceof ImVarAccess
+                    ? new GenericGlobalAccess((ImVarAccess) set.getLeft())
+                    : new GenericGlobalArrayAccess((ImVarArrayAccess) set.getLeft()));
             }
 
             @Override
@@ -1391,12 +1436,6 @@ public class EliminateGenerics {
                             }
                         }
                     }
-                }
-
-                Map<GenericTypes, ImClass> specs = specializedClasses.row(owningClass);
-                if (specs.size() == 1) {
-                    GenericTypes only = specs.keySet().iterator().next();
-                    return normalizeToClassArity(only, owningClass, "singleSpecializationFallback");
                 }
 
                 return null;

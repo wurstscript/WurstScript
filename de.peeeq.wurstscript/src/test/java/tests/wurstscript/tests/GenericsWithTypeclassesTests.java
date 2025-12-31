@@ -2,14 +2,17 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.utils.Utils;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.*;
 import static tests.wurstscript.tests.BugTests.TEST_DIR;
 
 public class GenericsWithTypeclassesTests extends WurstScriptTest {
@@ -2022,6 +2025,55 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void genericStaticGlobalsSpecializedInJassInit() throws IOException {
+        test().executeProg(false).lines(
+            "package test",
+            "   public class Box<T:>",
+            "       static int INITIAL = 16",
+            "       static int MAX = 256",
+            "       construct()",
+            "       function total() returns int",
+            "           return INITIAL + MAX",
+            "   init",
+            "       let a = new Box<int>()",
+            "       let b = new Box<string>()",
+            "       let c = new Box<real>()",
+            "       var initSum = a.total() + b.total() + c.total()",
+            "       if initSum == 3 * (16 + 256)",
+            "           initSum = initSum + 1",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_genericStaticGlobalsSpecializedInJassInit_no_opts.j");
+        String compiled = Files.toString(output, Charsets.UTF_8);
+
+        Set<String> initTargets = new HashSet<>();
+        for (String line : compiled.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("set Box_INITIAL")) {
+                String[] parts = trimmed.split("\s+");
+                if (parts.length > 1) {
+                    initTargets.add(parts[1]);
+                }
+            }
+        }
+        assertEquals(initTargets.size(), 3);
+
+        Set<String> maxTargets = new HashSet<>();
+        for (String line : compiled.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("set Box_MAX")) {
+                String[] parts = trimmed.split("\s+");
+                if (parts.length > 1) {
+                    maxTargets.add(parts[1]);
+                }
+            }
+        }
+        assertEquals(maxTargets.size(), 3);
+    }
+
     @Test
     public void fullArrayListTest() throws IOException {
         test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
@@ -2110,6 +2162,106 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "    Box.count = 1",
             "endpackage"
         );
+    }
+
+    @Test
+    public void staticInitAppliedToAllSpecializations_rawJassNoOpts() throws IOException {
+        // Compile a tiny inline program (no external files) and then inspect the *no_opts* Jass output.
+        testAssertOkLines( true,
+                "package test",
+                "native testSuccess()",
+                "",
+                "class Box<T:>",
+                "    private static constant cap = 16",
+                "    private static constant cappy = cap + 3",
+                "    function getCap() returns int",
+                "        return cap",
+                "    function getCappy() returns int",
+                "        return cappy",
+                "",
+                "tuple tt(real p, string s)",
+                "init",
+                "    let bi = new Box<int>",
+                "    let br = new Box<real>",
+                "    let sr = new Box<string>",
+                "    let tr = new Box<tt>",
+                "    if bi.getCap() == 16 and br.getCap() == 16 and sr.getCap() == 16 and tr.getCap() == 16 and bi.getCappy() == 19 and br.getCappy() == 19 and sr.getCappy() == 19 and tr.getCappy() == 19",
+                "        testSuccess()",
+                "endpackage",
+                ""
+            );
+
+        // Read raw output (prefer .j, fallback .jim if that’s what the harness writes)
+        String out = readNoOptsOutput("GenericsWithTypeclassesTests_staticInitAppliedToAllSpecializations_rawJassNoOpts");
+
+        // Core assertion: both specializations must be initialized to 16 in the init function(s)
+        assertTrue(out.contains("set Box_cap_integer_u = 16"),
+            "Missing init for int specialization (expected: set Box_cap_integer_u = 16)");
+        assertTrue(out.contains("set Box_cap_real_u = 16"),
+            "Missing init for real specialization (expected: set Box_cap_real_u = 16)");
+
+        // Guard against the observed collapse where everything becomes one specialization:
+        int intSets  = countLinesContaining(out, "set Box_cap_integer_u = 16");
+        int realSets = countLinesContaining(out, "set Box_cap_real_u = 16");
+        assertTrue(intSets >= 1 && realSets >= 1, "Specialization init collapsed.");
+    }
+
+    private static String readNoOptsOutput(String baseName) throws IOException {
+        // Most runs produce .j; some configs dump IM/Jass into .jim. Pick whichever exists.
+        File j = new File(TEST_OUTPUT_PATH + baseName + "_no_opts.j");
+        if (j.exists()) return com.google.common.io.Files.toString(j, Charsets.UTF_8);
+
+        File jim = new File(TEST_OUTPUT_PATH + baseName + "_no_opts.jim");
+        if (jim.exists()) return com.google.common.io.Files.toString(jim, Charsets.UTF_8);
+
+        throw new IOException("No no_opts output found for " + baseName + " (tried .j and .jim)");
+    }
+
+    private static int countLinesContaining(String text, String needle) {
+        int c = 0;
+        for (String line : text.split("\\R")) {
+            if (line.contains(needle)) c++;
+        }
+        return c;
+    }
+
+    @Test
+    public void genericStaticInit() throws IOException {
+        test().executeProg(false)
+            .executeTests(false)
+            .withStdLib(false)
+            .withInputs(Map.of("test.wurst", Utils.string(
+                "package test",
+                "public class Box<T:>",
+                "    static int cap = 16",
+                "    function getCap() returns int",
+                "        return cap"
+            ),
+                "usage.wurst", Utils.string(
+                    "package usage",
+                    "import test",
+                    "native testSuccess()",
+                    "native print(int i)",
+                    "function useInt()",
+                    "    let b = new Box<int>",
+                    "    print(b.getCap())",
+                    "function useReal()",
+                    "    let b = new Box<Box<real>>",
+                    "    print(b.getCap())",
+                    "init",
+                    "    useInt()",
+                    "    useReal()",
+                    "    testSuccess()"
+                )))
+            .run();
+
+        String jass = com.google.common.io.Files.toString(
+            new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_genericStaticInit_no_opts.j"),
+            Charsets.UTF_8
+        );
+
+        assertTrue(jass.contains("set Box_cap_integer_u = 16"));
+        assertTrue(jass.contains("set Box_cap_Box_real__u = 16"));
     }
 
 }
