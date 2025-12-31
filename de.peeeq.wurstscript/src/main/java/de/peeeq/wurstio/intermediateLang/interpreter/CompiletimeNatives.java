@@ -137,7 +137,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         for (ObjMod.Obj.Mod m : od.getMods()) {
             if (m instanceof ObjMod.Obj.ExtendedMod) {
                 ObjMod.Obj.ExtendedMod extMod = (ObjMod.Obj.ExtendedMod) m;
-                if (extMod.getId().getVal().equals(modificationId) && extMod.getLevel() == level) {
+                if (extMod.getId().getVal().equals(modificationId) && extMod.getLevel() == level && extMod.getDataPt() == datapointer) {
                     // How to set data???
                     foundMod = extMod;
                     break;
