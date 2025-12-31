@@ -39,12 +39,6 @@ public class WurstChecker {
 
         if (errorHandler.getErrorCount() > 0) return;
 
-        // compute the flow attributes
-        for (CompilationUnit cu : toCheck) {
-            WurstValidator.computeFlowAttributes(cu);
-        }
-
-
         // validate the resource:
         WurstValidator validator = new WurstValidator(root);
         validator.validate(toCheck);
