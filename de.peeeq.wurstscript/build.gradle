@@ -86,6 +86,8 @@ dependencies {
     // Antlr
     antlr "org.antlr:antlr4:4.13.1"
 
+    implementation "org.antlr:antlr4-runtime:4.13.1"
+
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
     compileOnly 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
     astgen 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
@@ -114,6 +116,12 @@ dependencies {
 
     // Smallcheck
     testImplementation 'com.github.peterzeller:java-smallcheck:3f6a178ba7'
+}
+
+configurations {
+    runtimeClasspath {
+        exclude group: "org.antlr", module: "antlr4"
+    }
 }
 
 configurations.configureEach {
@@ -261,6 +269,18 @@ shadowJar {
     manifest {
         attributes 'Main-Class': mainClassName
     }
+    exclude 'OSGI-INF/**'
+    exclude '**/DefaultListfile.txt'
+
+    // exclude fastutil type-specialized packages (keep objects + refs)
+    exclude 'it/unimi/dsi/fastutil/doubles/**'
+    exclude 'it/unimi/dsi/fastutil/floats/**'
+    exclude 'it/unimi/dsi/fastutil/longs/**'
+    exclude 'it/unimi/dsi/fastutil/shorts/**'
+    exclude 'it/unimi/dsi/fastutil/chars/**'
+    exclude 'it/unimi/dsi/fastutil/bytes/**'
+    exclude 'it/unimi/dsi/fastutil/booleans/**'
+    exclude 'it/unimi/dsi/fastutil/io/**'
 }
 
 def fatJar = shadowJar.archiveFile.map { it.asFile }
