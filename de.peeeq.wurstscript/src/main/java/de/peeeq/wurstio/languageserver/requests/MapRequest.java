@@ -68,6 +68,11 @@ public abstract class MapRequest extends UserRequest<Object> {
     private static Long lastMapModified = 0L;
     private static String lastMapPath = "";
 
+    public static final String BUILD_CONFIGURED_SCRIPT_NAME = "01_war3mapj_with_config.j.txt";
+    public static final String BUILD_COMPILED_JASS_NAME = "02_compiled.j.txt";
+    public static final String BUILD_COMPILED_LUA_NAME = "02_compiled.lua";
+    public static final String BUILD_JHCR_SCRIPT_NAME = "03_jhcr_war3map.j";
+
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
@@ -160,7 +165,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 String compiledMapScript = sb.toString();
                 File buildDir = getBuildDir();
-                File outFile = new File(buildDir, "compiled.lua");
+                File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
                 return outFile;
 
@@ -178,7 +183,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg.get());
                 String compiledMapScript = printer.printProg();
                 File buildDir = getBuildDir();
-                File outFile = new File(buildDir, "compiled.j.txt");
+                File outFile = new File(buildDir, BUILD_COMPILED_JASS_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
 
                 if (!runArgs.isDisablePjass()) {
@@ -208,7 +213,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    private File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
+    protected File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
         File buildDir = getBuildDir();
         File commonJ = new File(buildDir, "common.j");
         File blizzardJ = new File(buildDir, "blizzard.j");
@@ -224,7 +229,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(buildDir);
         Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
-        return new File(buildDir, "jhcr_war3map.j");
+        return renameJhcrOutput(buildDir);
     }
 
     /**
@@ -410,7 +415,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         if (runArgs.isHotReload()) {
             result = new CompilationResult();
-            result.script = new File(buildDir, "war3mapj_with_config.j.txt");
+            result.script = new File(buildDir, BUILD_CONFIGURED_SCRIPT_NAME);
             if (!result.script.exists()) {
                 result.script = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
             }
@@ -419,9 +424,9 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
         } else {
             timeTaker.beginPhase("load map script");
-            File scriptFile = loadMapScript(testMap, modelManager, gui);
+            File scriptFile = loadMapScript(getMapForScriptExtraction(testMap), modelManager, gui);
             timeTaker.endPhase();
-            result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile);
+            result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile, BUILD_CONFIGURED_SCRIPT_NAME);
         }
 
         // Compile the script
@@ -526,7 +531,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         return true;
     }
 
-    private File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
+    protected File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
         File scriptFile = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
@@ -548,12 +553,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             lastMapModified = MapRequest.mapLastModified;
             lastMapPath = MapRequest.mapPath;
             System.out.println("Map not cached yet, extracting script");
-            byte[] extractedScript = null;
-            try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
-                if (mpqEditor.hasFile("war3map.j")) {
-                    extractedScript = mpqEditor.extractFile("war3map.j");
-                }
-            }
+            byte[] extractedScript = extractMapScript(mapCopy);
             if (extractedScript == null) {
                 if (scriptFile.exists()) {
                     String msg = "No war3map.j in map file, using old extracted file";
@@ -589,17 +589,47 @@ public abstract class MapRequest extends UserRequest<Object> {
         return scriptFile;
     }
 
-    private CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile) {
+    protected CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile,
+                                                   String outputScriptName) {
         AtomicReference<CompilationResult> result = new AtomicReference<>();
         gui.sendProgress("Applying Map Config...");
         timeTaker.measure("Applying Map Config", () -> {
             try {
-                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), scriptFile, buildDir, runArgs, w3data));
+                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), scriptFile, buildDir, runArgs, w3data, outputScriptName));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
         return result.get();
+    }
+
+    protected Optional<File> getMapForScriptExtraction(Optional<File> mapCopy) {
+        if (map.isPresent()) {
+            return map;
+        }
+        return mapCopy;
+    }
+
+    protected byte[] extractMapScript(Optional<File> mapCopy) throws Exception {
+        if (!mapCopy.isPresent()) {
+            return null;
+        }
+        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
+            if (mpqEditor.hasFile("war3map.j")) {
+                return mpqEditor.extractFile("war3map.j");
+            }
+        }
+        return null;
+    }
+
+    protected File renameJhcrOutput(File buildDir) throws IOException {
+        File rawJhcrScript = new File(buildDir, "jhcr_war3map.j");
+        if (!rawJhcrScript.exists()) {
+            throw new IOException("Could not find file " + rawJhcrScript.getAbsolutePath());
+        }
+        File renamedJhcrScript = new File(buildDir, BUILD_JHCR_SCRIPT_NAME);
+        java.nio.file.Files.move(rawJhcrScript.toPath(), renamedJhcrScript.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        return renamedJhcrScript;
     }
 
     private W3InstallationData getBestW3InstallationData() throws RequestFailedException {

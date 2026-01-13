@@ -36,6 +36,13 @@ public class ProjectConfigBuilder {
     public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap,
                                                      File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data) throws IOException {
+        return apply(projectConfig, targetMap, mapScript, buildDir, runArgs, w3data, MapRequest.BUILD_CONFIGURED_SCRIPT_NAME);
+    }
+
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap,
+                                                     File mapScript, File buildDir,
+                                                     RunArgs runArgs, W3InstallationData w3data,
+                                                     String outputScriptName) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
@@ -72,7 +79,7 @@ public class ProjectConfigBuilder {
         // Only apply buildMapData if config changed or name is present
         if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.getName())) {
             WLogger.info("Applying buildMapData config");
-            applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash);
+            applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
         } else if (!configNeedsApplying) {
             WLogger.info("Using cached w3i configuration");
             // Still need to set the result.script correctly
@@ -170,10 +177,10 @@ public class ProjectConfigBuilder {
 
     private static void applyBuildMapData(WurstProjectConfigData projectConfig, File mapScript, File buildDir,
                                           W3InstallationData w3data, W3I w3I, MapRequest.CompilationResult result,
-                                          String configHash) throws IOException {
+                                          String configHash, String outputScriptName) throws IOException {
         // Apply w3i config values
         prepareW3I(projectConfig, w3I);
-        result.script = new File(buildDir, "war3mapj_with_config.j.txt");
+        result.script = new File(buildDir, outputScriptName);
 
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
             StringWriter sw = new StringWriter();
