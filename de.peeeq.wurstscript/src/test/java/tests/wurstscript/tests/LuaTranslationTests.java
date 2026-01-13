@@ -215,20 +215,24 @@ public class LuaTranslationTests extends WurstScriptTest {
     public void mainAndConfigNamesFixed() throws IOException {
         test().testLua(true).lines(
             "package Test",
-            "int main = 1",
-            "int config = 2",
+            "native takesInt(int i)",
+            "function helper()",
+            "    let main = 1",
+            "    let config = 2",
+            "    takesInt(main)",
+            "    takesInt(config)",
             "init",
-            "    if main > 0 and config > 0",
-            "        skip"
+            "    helper()"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_mainAndConfigNamesFixed.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "helper", "local main1", true);
+        assertFunctionBodyContains(compiled, "helper", "local config1", true);
         assertTrue(compiled.contains("function main("));
         assertTrue(compiled.contains("function config("));
         assertFalse(compiled.contains("function main2("));
         assertFalse(compiled.contains("function config2("));
-        assertFalse(compiled.contains("local main ="));
-        assertFalse(compiled.contains("local config ="));
     }
+
 
     @Test
     public void intCasting() throws IOException {

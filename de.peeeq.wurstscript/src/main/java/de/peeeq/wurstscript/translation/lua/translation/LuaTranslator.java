@@ -75,9 +75,9 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(name)) {
+            if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
                 name = uniqueName(name);
-            } else if (isFixedEntryPoint(name)) {
+            } else if (isFixedEntryPoint(a)) {
                 usedNames.add(name);
             }
 
@@ -218,8 +218,8 @@ public class LuaTranslator {
         return luaModel;
     }
 
-    private boolean isFixedEntryPoint(String name) {
-        return "main".equals(name) || "config".equals(name);
+    private boolean isFixedEntryPoint(ImFunction function) {
+        return function == imTr.getMainFunc() || function == imTr.getConfFunc();
     }
 
     private void collectPredefinedNames() {
