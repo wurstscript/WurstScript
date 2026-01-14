@@ -1,6 +1,12 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
 
 public class PackageTests extends WurstScriptTest {
 
@@ -19,6 +25,55 @@ public class PackageTests extends WurstScriptTest {
                 "		if Blub.b == 2",
                 "			testSuccess()",
                 "endpackage");
+    }
+
+    @Test
+    public void emptyPackageInitNotEmitted() throws IOException {
+        test().withStdLib().executeProg(false).lines(
+                "package LightningEmptyInit",
+                "    public function ping() returns int",
+                "        return 7",
+                "endpackage",
+                "package Test",
+                "    import LightningEmptyInit",
+                "    init",
+                "        let value = ping()",
+                "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "PackageTests_emptyPackageInitNotEmitted_no_opts.j");
+        String compiled = Files.toString(output, Charsets.UTF_8);
+        Assert.assertFalse(compiled.contains("init_Lightning"));
+        Assert.assertFalse(compiled.contains("init_LightningEmptyInit"));
+    }
+
+    @Test
+    public void tupleTempsNotEmittedForConstInits() throws IOException {
+        test().withStdLib().executeProg(false).lines(
+                "package Hello",
+                "init",
+                "    print(\"hello world\")",
+                "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "PackageTests_tupleTempsNotEmittedForConstInits_no_opts.j");
+        String compiled = Files.toString(output, Charsets.UTF_8);
+        Assert.assertFalse(compiled.contains("tuple_temp"));
+        Assert.assertFalse(compiled.contains("init_Matrices"));
+    }
+
+    @Test
+    public void unusedPureAssignmentsAreRemoved() throws IOException {
+        test().withStdLib().executeProg(false).lines(
+                "package Hello",
+                "init",
+                "    print(\"hello world\")",
+                "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "PackageTests_unusedPureAssignmentsAreRemoved_no_opts.j");
+        String compiled = Files.toString(output, Charsets.UTF_8);
+        Assert.assertFalse(compiled.contains("call colorA_toColorString"));
     }
 
     @Test
