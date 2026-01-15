@@ -455,29 +455,6 @@ public class EliminateTuples {
                 + "\nLHS=" + left + "\nRHS=" + right);
         }
 
-        boolean allLiteral = true;
-        for (ImExpr r : rhsLeaves) {
-            if (!isSimpleLiteral(r)) {
-                allLiteral = false;
-                break;
-            }
-        }
-
-        if (allLiteral) {
-            for (int i = 0; i < lhsLeaves.size(); i++) {
-                ImLExpr l = lhsLeaves.get(i);
-                ImType targetT = l.attrTyp();
-                ImExpr r = rhsLeaves.get(i);
-                if (r instanceof ImNull) {
-                    r = ImHelper.defaultValueForComplexType(targetT);
-                }
-                l.setParent(null);
-                r.setParent(null);
-                stmts.add(JassIm.ImSet(imSet.getTrace(), l, r));
-            }
-            return ImHelper.statementExprVoid(stmts);
-        }
-
         // 4) Evaluate RHS leaves first into temps (preserve side-effect order & alias safety)
         List<ImVar> temps = new ArrayList<>(rhsLeaves.size());
         for (int i = 0; i < rhsLeaves.size(); i++) {
@@ -506,14 +483,6 @@ public class EliminateTuples {
         }
 
         return ImHelper.statementExprVoid(stmts);
-    }
-
-    private static boolean isSimpleLiteral(ImExpr expr) {
-        return expr instanceof ImBoolVal
-            || expr instanceof ImIntVal
-            || expr instanceof ImRealVal
-            || expr instanceof ImStringVal
-            || expr instanceof ImNull;
     }
 
     /** Flatten LHS recursively into addressable leaves (ImLExpr), hoisting side-effects */

@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -98,9 +97,6 @@ public class ImOptimizer {
         while (changes && iterations++ < 10) {
             ImProg prog = trans.imProg();
             trans.calculateCallRelationsAndUsedVariables();
-            SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
-            Map<ImFunction, Boolean> sideEffectCache = new HashMap<>();
-            Set<ImFunction> sideEffectInProgress = new HashSet<>();
 
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
@@ -141,30 +137,25 @@ public class ImOptimizer {
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer, sideEffectCache, sideEffectInProgress);
-                                replacements.add(Pair.create(e, sideEffects));
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                List<ImExpr> exprs = new ArrayList<>();
-                                for (ImExpr index : va.getIndexes()) {
-                                    exprs.addAll(collectSideEffects(index, sideEffectAnalyzer, sideEffectCache, sideEffectInProgress));
-                                }
-                                exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer, sideEffectCache, sideEffectInProgress));
+                                // IMPORTANT: removeAll() clears parent references
+                                List<ImExpr> exprs = va.getIndexes().removeAll();
+                                exprs.add(e.getRight());
                                 replacements.add(Pair.create(e, exprs));
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
                             if(var != null && !trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer, sideEffectCache, sideEffectInProgress);
-                                replacements.add(Pair.create(e, sideEffects));
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
                             ImMemberAccess va = ((ImMemberAccess) e.getLeft());
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer, sideEffectCache, sideEffectInProgress);
-                                replacements.add(Pair.create(e, sideEffects));
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         }
                     }
@@ -174,9 +165,7 @@ public class ImOptimizer {
                 for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
                     ImExpr r;
-                    if (pair.getB().isEmpty()) {
-                        r = ImHelper.statementExprVoid(JassIm.ImStmts());
-                    } else if (pair.getB().size() == 1) {
+                    if (pair.getB().size() == 1) {
                         r = pair.getB().get(0);
                         // CRITICAL: Clear parent before reusing the node
                         r.setParent(null);
@@ -197,84 +186,5 @@ public class ImOptimizer {
                 changes |= f.getLocals().retainAll(trans.getReadVariables());
             }
         }
-    }
-
-    private List<ImExpr> collectSideEffects(ImExpr expr, SideEffectAnalyzer analyzer, Map<ImFunction, Boolean> cache,
-                                            Set<ImFunction> inProgress) {
-        if (expr == null) {
-            return Collections.emptyList();
-        }
-        if (hasSideEffects(expr, analyzer, cache, inProgress)) {
-            return Collections.singletonList(expr);
-        }
-        return Collections.emptyList();
-    }
-
-    private boolean hasSideEffects(ImExpr expr, SideEffectAnalyzer analyzer, Map<ImFunction, Boolean> cache,
-                                   Set<ImFunction> inProgress) {
-        if (expr instanceof ImDealloc || expr instanceof ImGetStackTrace || expr instanceof ImTypeVarDispatch) {
-            return true;
-        }
-        if (!SideEffectAnalyzer.quickcheckHasSideeffects(expr)) {
-            return false;
-        }
-        for (ImVar var : analyzer.directlySetVariables(expr)) {
-            if (var.isGlobal()) {
-                return true;
-            }
-        }
-        for (ImFunction nativeFunc : analyzer.calledNatives(expr)) {
-            if (!UselessFunctionCallsRemover.isFunctionWithoutSideEffect(nativeFunc.getName())) {
-                return true;
-            }
-        }
-        for (ImFunction called : analyzer.calledFunctions(expr)) {
-            if (functionHasSideEffects(called, analyzer, cache, inProgress)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean functionHasSideEffects(ImFunction func, SideEffectAnalyzer analyzer, Map<ImFunction, Boolean> cache,
-                                           Set<ImFunction> inProgress) {
-        Boolean cached = cache.get(func);
-        if (cached != null) {
-            return cached;
-        }
-        if (func.isNative()) {
-            boolean sideEffect = !UselessFunctionCallsRemover.isFunctionWithoutSideEffect(func.getName());
-            cache.put(func, sideEffect);
-            return sideEffect;
-        }
-        if (!inProgress.add(func)) {
-            return true;
-        }
-        boolean sideEffect = false;
-        for (ImVar var : analyzer.directlySetVariables(func.getBody())) {
-            if (var.isGlobal()) {
-                sideEffect = true;
-                break;
-            }
-        }
-        if (!sideEffect) {
-            for (ImFunction nativeFunc : analyzer.calledNatives(func.getBody())) {
-                if (!UselessFunctionCallsRemover.isFunctionWithoutSideEffect(nativeFunc.getName())) {
-                    sideEffect = true;
-                    break;
-                }
-            }
-        }
-        if (!sideEffect) {
-            for (ImFunction called : analyzer.calledFunctions(func.getBody())) {
-                if (functionHasSideEffects(called, analyzer, cache, inProgress)) {
-                    sideEffect = true;
-                    break;
-                }
-            }
-        }
-        inProgress.remove(func);
-        cache.put(func, sideEffect);
-        return sideEffect;
     }
 }
