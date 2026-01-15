@@ -110,7 +110,7 @@ public class HotReloadPipelineTests {
             new WurstProjectConfigData()
         );
 
-        assertEquals(result.script.getAbsolutePath(), war3mapJ.getAbsolutePath());
+        assertEquals(result.script.getCanonicalFile(), war3mapJ.getCanonicalFile());
     }
 
     private void newCleanFolder(File f) throws Exception {
@@ -120,7 +120,7 @@ public class HotReloadPipelineTests {
 
     private static final class HotReloadNoMapRequest extends MapRequest {
         private HotReloadNoMapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs,
-                                       WFile workspaceRoot) {
+                                      WFile workspaceRoot) {
             super(langServer, map, compileArgs, workspaceRoot, Optional.empty(), Optional.empty());
         }
 
