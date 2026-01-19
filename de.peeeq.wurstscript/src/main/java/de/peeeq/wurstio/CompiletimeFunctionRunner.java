@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.ClassManagementVars;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
@@ -51,6 +52,7 @@ public class CompiletimeFunctionRunner {
     private final ImTranslator translator;
     private boolean injectObjects;
     private final Deque<Runnable> delayedActions = new ArrayDeque<>();
+    private final Map<ClassManagementVars, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -110,6 +112,7 @@ public class CompiletimeFunctionRunner {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
             runDelayedActions();
+            emitCompiletimeObjectAllocs();
 
             partitionCompiletimeStateInitFunction();
 
@@ -272,9 +275,9 @@ public class CompiletimeFunctionRunner {
 
             ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
             imProg.getGlobals().add(res);
-            ImAlloc alloc = JassIm.ImAlloc(obj.getTrace(), obj.getType());
-            addCompiletimeStateInitAlloc(alloc.getTrace(), res, alloc);
             globalState.setVal(res, obj);
+
+            registerCompiletimeObject(obj, res);
 
 
             Element trace = obj.getTrace();
@@ -368,6 +371,67 @@ public class CompiletimeFunctionRunner {
         }
         throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
 
+    }
+
+    private void registerCompiletimeObject(ILconstObject obj, ImVar targetVar) {
+        ClassManagementVars mVars = translator.getClassManagementVarsFor(obj.getType().getClassDef());
+        compiletimeObjects.computeIfAbsent(mVars, k -> new ArrayList<>())
+            .add(new CompiletimeObjectInit(obj, targetVar));
+    }
+
+    private void emitCompiletimeObjectAllocs() {
+        if (compiletimeObjects.isEmpty()) {
+            return;
+        }
+
+        List<ImStmt> objectInits = new ArrayList<>();
+
+        for (Map.Entry<ClassManagementVars, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
+            List<CompiletimeObjectInit> objs = entry.getValue();
+            if (objs.isEmpty()) {
+                continue;
+            }
+
+            objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
+
+            ClassManagementVars mVars = entry.getKey();
+            int currentMax = 0;
+            int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
+
+            for (CompiletimeObjectInit init : objs) {
+                int desiredId = init.object.getObjectId();
+                int targetMax = desiredId - 1;
+                if (targetMax > currentMax) {
+                    objectInits.add(JassIm.ImSet(init.object.getTrace(),
+                        JassIm.ImVarAccess(mVars.maxIndex),
+                        JassIm.ImIntVal(targetMax)));
+                    currentMax = targetMax;
+                }
+
+                ImAlloc alloc = JassIm.ImAlloc(init.object.getTrace(), init.object.getType());
+                ImSet assign = JassIm.ImSet(init.object.getTrace(), JassIm.ImVarAccess(init.targetVar), alloc);
+                objectInits.add(assign);
+                imProg.getGlobalInits().put(init.targetVar, Collections.singletonList(assign));
+                currentMax = desiredId;
+            }
+
+            if (finalMax > currentMax) {
+                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                    JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(finalMax)));
+            }
+        }
+
+        getCompiletimeStateInitFunction().getBody().addAll(0, objectInits);
+    }
+
+    private static class CompiletimeObjectInit {
+        private final ILconstObject object;
+        private final ImVar targetVar;
+
+        private CompiletimeObjectInit(ILconstObject object, ImVar targetVar) {
+            this.object = object;
+            this.targetVar = targetVar;
+        }
     }
 
     private ImFunction compiletimeStateInitFunction = null;
