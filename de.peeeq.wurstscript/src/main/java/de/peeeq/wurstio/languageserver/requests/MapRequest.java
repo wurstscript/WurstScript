@@ -562,9 +562,10 @@ public abstract class MapRequest extends UserRequest<Object> {
                     WLogger.info(msg);
                 } else {
                     CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
-                        "No war3map.j found in map file.");
+                        "No war3map.j found in map file. Please extract it first or provide it in the wurst directory.");
                     gui.showInfoMessage(err.getMessage());
                     WLogger.severe(err);
+                    throw err;
                 }
             } else if (startsWith(extractedScript, JassPrinter.WURST_COMMENT_RAW.getBytes(StandardCharsets.UTF_8))) {
                 WLogger.info("map has already been compiled with wurst");
@@ -577,16 +578,25 @@ public abstract class MapRequest extends UserRequest<Object> {
                         "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Please add war3map.j to the wurst directory.");
                     gui.showInfoMessage(err.getMessage());
                     WLogger.severe(err);
+                    throw err;
                 }
             } else {
                 WLogger.info("new map, use extracted");
                 // write mapfile from map to workspace
                 Files.write(extractedScript, scriptFile);
+                modelManager.syncCompilationUnit(WFile.create(scriptFile));
             }
         } else {
             System.out.println("Map not modified, not extracting script");
         }
 
+        if (!scriptFile.exists()) {
+            CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                "No war3map.j available. Please extract it from the map or add it to the wurst directory.");
+            gui.showInfoMessage(err.getMessage());
+            WLogger.severe(err);
+            throw err;
+        }
 
         return scriptFile;
     }

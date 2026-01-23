@@ -9,6 +9,7 @@ import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.attributes.CompileError;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,6 +22,7 @@ import java.util.Optional;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertThrows;
 
 public class HotReloadPipelineTests {
 
@@ -111,6 +113,34 @@ public class HotReloadPipelineTests {
         );
 
         assertEquals(result.script.getCanonicalFile(), war3mapJ.getCanonicalFile());
+    }
+
+    @Test
+    public void extractionFailsWithoutExistingWar3map() throws Exception {
+        File projectFolder = new File("./temp/testProject_extract_missing/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File sourceMap = new File(projectFolder, "source_map.w3x");
+        Files.write(sourceMap.toPath(), new byte[] {0x01});
+
+        WurstLanguageServer langServer = new WurstLanguageServer();
+        TestMapRequest request = new TestMapRequest(
+            langServer,
+            Optional.of(sourceMap),
+            List.of(),
+            WFile.create(projectFolder),
+            Map.of()
+        );
+
+        MapRequest.mapLastModified = System.currentTimeMillis();
+        MapRequest.mapPath = sourceMap.getAbsolutePath();
+
+        assertThrows(CompileError.class, () -> request.loadMapScriptForTest(
+            Optional.of(sourceMap),
+            new ModelManagerImpl(projectFolder, new BufferManager()),
+            new WurstGuiLogger()
+        ));
     }
 
     private void newCleanFolder(File f) throws Exception {
