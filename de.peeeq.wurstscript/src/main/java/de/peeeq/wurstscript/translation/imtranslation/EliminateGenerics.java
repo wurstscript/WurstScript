@@ -967,7 +967,13 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                if (!mc.getTypeArguments().isEmpty()) {
+                ImMethod method = mc.getMethod();
+                boolean hasTypeArgs = !mc.getTypeArguments().isEmpty();
+                // Interface/base dispatch methods can be non-generic but still require specialization
+                // when they dispatch to generic implementors.
+                boolean needsDispatchSpecialization =
+                    methodImplementationIsGeneric(method) || hasGenericSubmethodImplementation(method);
+                if (hasTypeArgs || needsDispatchSpecialization) {
                     dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
                         + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
                         + " owningClass=" + (mc.getMethod().attrClass() == null ? "null" : (mc.getMethod().attrClass().getName() + " " + id(mc.getMethod().attrClass())))
@@ -1107,6 +1113,30 @@ public class EliminateGenerics {
             }
 
         });
+    }
+
+    private boolean methodImplementationIsGeneric(ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        return implementation != null && !implementation.getTypeVariables().isEmpty();
+    }
+
+    private boolean hasGenericSubmethodImplementation(ImMethod method) {
+        return hasGenericSubmethodImplementation(method, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean hasGenericSubmethodImplementation(ImMethod method, Set<ImMethod> visited) {
+        if (!visited.add(method)) {
+            return false;
+        }
+        for (ImMethod subMethod : method.getSubMethods()) {
+            if (methodImplementationIsGeneric(subMethod)) {
+                return true;
+            }
+            if (hasGenericSubmethodImplementation(subMethod, visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static boolean isGenericType(ImType type) {

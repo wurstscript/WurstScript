@@ -2094,6 +2094,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void fullReactiveGenericDispatchTest() throws IOException {
+        test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
+    }
+
+    @Test
     public void genericNullComparison() {
         testAssertOkLinesWithStdLib(true,
             "package test",
