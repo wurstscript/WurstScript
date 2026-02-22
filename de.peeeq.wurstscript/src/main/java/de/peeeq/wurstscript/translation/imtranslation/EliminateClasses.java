@@ -628,9 +628,25 @@ public class EliminateClasses {
         ImExprs arguments = JassIm.ImExprs(receiver);
         arguments.addAll(mc.getArguments().removeAll());
 
-        ImFunction dispatch = dispatchFuncs.get(mc.getMethod());
+        ImMethod method = mc.getMethod();
+        // Fast path: with unchecked dispatch, a monomorphic method call can be lowered
+        // directly to its implementation function.
+        if (!checkedDispatch
+            && !method.getIsAbstract()
+            && method.getSubMethods().isEmpty()) {
+            mc.replaceBy(JassIm.ImFunctionCall(
+                mc.getTrace(),
+                method.getImplementation(),
+                JassIm.ImTypeArguments(),
+                arguments,
+                false,
+                CallType.NORMAL));
+            return;
+        }
+
+        ImFunction dispatch = dispatchFuncs.get(method);
         if (dispatch == null) {
-            throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + mc.getMethod().getName());
+            throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + method.getName());
         }
         mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(), dispatch, JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL));
 
