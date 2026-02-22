@@ -955,6 +955,8 @@ public class EliminateGenerics {
     }
 
     private void collectGenericUsages(Element element) {
+        // Cache expensive recursive submethod checks within this traversal.
+        Map<ImMethod, Boolean> hasGenericSubmethodCache = new IdentityHashMap<>();
         element.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall f) {
@@ -969,10 +971,19 @@ public class EliminateGenerics {
                 super.visit(mc);
                 ImMethod method = mc.getMethod();
                 boolean hasTypeArgs = !mc.getTypeArguments().isEmpty();
-                // Interface/base dispatch methods can be non-generic but still require specialization
-                // when they dispatch to generic implementors.
-                boolean needsDispatchSpecialization =
-                    methodImplementationIsGeneric(method) || hasGenericSubmethodImplementation(method);
+                boolean needsDispatchSpecialization = false;
+                // If type args are present, specialization is unconditional, so avoid extra checks.
+                if (!hasTypeArgs) {
+                    // Interface/base dispatch methods can be non-generic but still require specialization
+                    // when they dispatch to generic implementors.
+                    needsDispatchSpecialization = methodImplementationIsGeneric(method);
+                    if (!needsDispatchSpecialization) {
+                        needsDispatchSpecialization = hasGenericSubmethodCache.computeIfAbsent(
+                            method,
+                            EliminateGenerics.this::hasGenericSubmethodImplementation
+                        );
+                    }
+                }
                 if (hasTypeArgs || needsDispatchSpecialization) {
                     dbg("COLLECT GenericMethodCall: method=" + mc.getMethod().getName() + " " + id(mc.getMethod())
                         + " impl=" + (mc.getMethod().getImplementation() == null ? "null" : (mc.getMethod().getImplementation().getName() + " " + id(mc.getMethod().getImplementation())))
