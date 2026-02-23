@@ -1465,7 +1465,7 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
-    public void executeFuncBridgeRestoresStackDepth() {
+    public void executeFuncBridgeKeepsCallerStackFrames() {
         test().executeProg(false).executeTests(false).lines(
             "package Test",
             "@extern native ExecuteFunc(string f)",
@@ -1483,13 +1483,13 @@ public class BugTests extends WurstScriptTest {
 
         try {
             String jass = Files.toString(
-                new File(TEST_OUTPUT_PATH + "BugTests_executeFuncBridgeRestoresStackDepth_stacktraceinlopt.j"),
+                new File(TEST_OUTPUT_PATH + "BugTests_executeFuncBridgeKeepsCallerStackFrames_stacktraceinlopt.j"),
                 Charsets.UTF_8
             );
             Assert.assertTrue(jass.contains("function bridge_foo"));
-            Assert.assertTrue(jass.contains("bridge_oldStackDepth"));
-            Assert.assertTrue(jass.contains("set wurst_stack_depth = 0"));
-            Assert.assertTrue(jass.contains("set wurst_stack_depth = bridge_oldStackDepth"));
+            Assert.assertFalse(jass.contains("bridge_oldStackDepth"));
+            Assert.assertFalse(jass.contains("set wurst_stack_depth = 0"));
+            Assert.assertTrue(jass.contains("via ExecuteFunc"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

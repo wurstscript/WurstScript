@@ -380,21 +380,14 @@ public class StackTraceInjector2 {
             ImExprs args = JassIm.ImExprs(str);
             ImStmts body = bridgeFunc.getBody();
             de.peeeq.wurstscript.ast.Element trace = frTrace;
-            ImVar savedStackDepth = JassIm.ImVar(trace, TypesHelper.imInt(), "bridge_oldStackDepth", false);
-            bridgeFunc.getLocals().add(savedStackDepth);
-            body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(savedStackDepth), JassIm.ImVarAccess(stackSize)));
-            // reset stack and add information for callback:
-            body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0)));
 
             ImFunctionCall call = JassIm.ImFunctionCall(frTrace, f, JassIm.ImTypeArguments(), args, true, CallType.NORMAL);
             if (bridgeFunc.getReturnType() instanceof ImVoid) {
-                body.add(call);
-                stmt = JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImVarAccess(savedStackDepth));
+                stmt = call;
             } else {
                 ImVar bridgeReturn = JassIm.ImVar(trace, bridgeFunc.getReturnType().copy(), "bridge_return", false);
                 bridgeFunc.getLocals().add(bridgeReturn);
                 body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(bridgeReturn), call));
-                body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImVarAccess(savedStackDepth)));
                 stmt = JassIm.ImReturn(frTrace, JassIm.ImVarAccess(bridgeReturn));
             }
             body.add(stmt);
