@@ -380,14 +380,15 @@ public class StackTraceInjector2 {
             ImExprs args = JassIm.ImExprs(str);
             ImStmts body = bridgeFunc.getBody();
             de.peeeq.wurstscript.ast.Element trace = frTrace;
-            // reset stack and add information for callback:
-            body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0)));
 
             ImFunctionCall call = JassIm.ImFunctionCall(frTrace, f, JassIm.ImTypeArguments(), args, true, CallType.NORMAL);
             if (bridgeFunc.getReturnType() instanceof ImVoid) {
                 stmt = call;
             } else {
-                stmt = JassIm.ImReturn(frTrace, call);
+                ImVar bridgeReturn = JassIm.ImVar(trace, bridgeFunc.getReturnType().copy(), "bridge_return", false);
+                bridgeFunc.getLocals().add(bridgeReturn);
+                body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(bridgeReturn), call));
+                stmt = JassIm.ImReturn(frTrace, JassIm.ImVarAccess(bridgeReturn));
             }
             body.add(stmt);
 
@@ -426,7 +427,7 @@ public class StackTraceInjector2 {
             ImVar traceLimit = JassIm.ImVar(trace, TypesHelper.imInt(), "stacktraceLimit", false);
             f.getLocals().add(traceLimit);
             ImStmts stmts = JassIm.ImStmts();
-            stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal("")));
+            stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal(" Stacktrace:")));
             stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceI), JassIm.ImVarAccess(stackSize)));
             stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceLimit), JassIm.ImIntVal(0)));
             ImStmts loopBody = JassIm.ImStmts();
@@ -446,6 +447,12 @@ public class StackTraceInjector2 {
                 JassIm.ImExprs(JassIm.ImVarAccess(traceStr),
                     JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("\n   "),
                         JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs(JassIm.ImVarAccess(traceI)))))))));
+
+            // Make empty traces explicit instead of returning an empty string.
+            stmts.add(JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.EQ,
+                    JassIm.ImExprs(JassIm.ImVarAccess(traceStr), JassIm.ImStringVal(" Stacktrace:"))),
+                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal(" Stacktrace: <none>"))),
+                JassIm.ImStmts()));
 
             s.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
         }
