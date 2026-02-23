@@ -457,8 +457,8 @@ public class StackTraceInjector2 {
 
             // Make empty traces explicit instead of returning an empty string.
             stmts.add(JassIm.ImIf(trace, JassIm.ImOperatorCall(WurstOperator.EQ,
-                    JassIm.ImExprs(JassIm.ImVarAccess(traceStr), JassIm.ImStringVal("Stacktrace:"))),
-                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal("Stacktrace: <none>"))),
+                    JassIm.ImExprs(JassIm.ImVarAccess(traceStr), JassIm.ImStringVal(" Stacktrace:"))),
+                JassIm.ImStmts(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal(" Stacktrace: <none>"))),
                 JassIm.ImStmts()));
 
             s.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
