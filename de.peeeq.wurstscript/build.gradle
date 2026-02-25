@@ -103,15 +103,18 @@ dependencies {
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.24.0'
     implementation 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.0'
     implementation 'com.google.code.gson:gson:2.10.1'
-    implementation 'org.apache.velocity:velocity:1.7'
+    implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'com.github.inwc3:jmpq3:29b55f2c32'
     implementation 'com.github.inwc3:wc3libs:bab65b961b'
-    implementation 'com.github.wurstscript:wurstsetup:393cf5ea39'
+    implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
+        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
+        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit.ssh.apache'
+    }
     implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.20'
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
-    implementation 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:6.7.0.202309050840-r'
+    testImplementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
+    testImplementation 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:6.7.0.202309050840-r'
     implementation 'it.unimi.dsi:fastutil:8.5.16'
 
     // Smallcheck
@@ -339,27 +342,7 @@ tasks.register('create_zips') {
     }
 }
 
-/** -------- Hotdoc generation -------- */
-
-tasks.register('generate_hotdoc') {
-    dependsOn 'compileJava', 'downloadAndUnzipFile'
-
-    doLast {
-        ExecOperations execOps = project.services.get(ExecOperations)
-
-        copy {
-            from("src/main/resources/")
-            // Gradle 9 output classes dir
-            into("build/classes/java/main/")
-        }
-        execOps.javaexec {
-            classpath = sourceSets.main.runtimeClasspath
-            mainClass.set('de.peeeq.wurstio.Main')
-            args("--hotdoc", "./build/deps/", "../downloads/hotdoc")
-        }
-    }
-}
-
+// TODO add a modern documentation generator replacement for the removed legacy hotdoc pipeline.
 tasks.named("coveralls") {
     notCompatibleWithConfigurationCache("coveralls plugin task uses Project at execution time")
 }

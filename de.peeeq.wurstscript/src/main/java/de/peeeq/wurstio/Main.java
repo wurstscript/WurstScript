@@ -7,7 +7,6 @@ import config.WurstProjectConfigData;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -94,12 +93,6 @@ public class Main {
             if (runArgs.isExtractImports()) {
                 File mapFile = new File(runArgs.getMapFile());
                 ImportFile.extractImportsFromMap(mapFile, runArgs);
-                return;
-            }
-
-            if (runArgs.createHotDoc()) {
-                HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
-                hg.generateDoc();
                 return;
             }
 
