@@ -1,8 +1,8 @@
 @echo off
-setlocal
+setlocal EnableExtensions DisableDelayedExpansion
 
-rem Save current code page
-for /f "tokens=2 delims=: " %%A in ('chcp') do set "_OLDCP=%%A"
+rem Save current code page (extract number after ':')
+for /f "tokens=2 delims=:" %%A in ('chcp') do for /f "tokens=1" %%B in ("%%A") do set "_OLDCP=%%B"
 
 rem Switch to UTF-8
 chcp 65001 >NUL
@@ -34,3 +34,4 @@ if not exist "%JAVA%" (
 :restore
 if defined _OLDCP chcp %_OLDCP% >NUL
 endlocal
+exit /b %ERRORLEVEL%

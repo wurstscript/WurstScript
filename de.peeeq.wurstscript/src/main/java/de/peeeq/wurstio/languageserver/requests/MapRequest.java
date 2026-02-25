@@ -405,11 +405,13 @@ public abstract class MapRequest extends UserRequest<Object> {
                                               WurstProjectConfigData projectConfigData, File buildDir,
                                               boolean isProd) throws Exception {
 
-        // Ensure we're working with the cached map
-        File cachedMap = ensureCachedMap(gui);
+        if (!runArgs.isHotReload()) {
+            // Ensure we're working with the cached map
+            File cachedMap = ensureCachedMap(gui);
 
-        // Update testMap to point to cached map
-        testMap = Optional.of(cachedMap);
+            // Update testMap to point to cached map
+            testMap = Optional.of(cachedMap);
+        }
 
         CompilationResult result;
 

@@ -1,0 +1,92 @@
+package ReactiveGenericDispatchRegression
+import NoWurst
+import Integer
+import Wurstunit
+
+interface ReactiveSource
+    function subscribe(Observer observer)
+    function unsubscribe(Observer observer)
+
+class Observer
+    int dependencyChanges = 0
+
+    function trackSource(ReactiveSource source)
+        source.subscribe(this)
+
+    function untrackSource(ReactiveSource source)
+        source.unsubscribe(this)
+
+    function onDependencyChanged()
+        dependencyChanges += 1
+
+
+class Signal<T:> implements ReactiveSource
+    private T value
+    private Observer subscriber = null
+
+    construct(T initial)
+        value = initial
+
+    function set(T newValue)
+        value = newValue
+        if subscriber != null
+            subscriber.onDependencyChanged()
+
+    function subscriberCount() returns int
+        return subscriber == null ? 0 : 1
+
+    override function subscribe(Observer observer)
+        subscriber = observer
+
+    override function unsubscribe(Observer observer)
+        if subscriber == observer
+            subscriber = null
+
+
+class PlainSource implements ReactiveSource
+    private Observer subscriber = null
+
+    function fire()
+        if subscriber != null
+            subscriber.onDependencyChanged()
+
+    function subscriberCount() returns int
+        return subscriber == null ? 0 : 1
+
+    override function subscribe(Observer observer)
+        subscriber = observer
+
+    override function unsubscribe(Observer observer)
+        if subscriber == observer
+            subscriber = null
+
+init
+    let genericObserver = new Observer()
+    let genericSignal = new Signal<int>(0)
+    genericObserver.trackSource(genericSignal)
+    if genericSignal.subscriberCount() != 1
+        testFail("generic subscribe dispatch failed")
+    genericSignal.set(1)
+    if genericObserver.dependencyChanges != 1
+        testFail("generic notify dispatch failed")
+    genericObserver.untrackSource(genericSignal)
+    if genericSignal.subscriberCount() != 0
+        testFail("generic unsubscribe dispatch failed")
+
+    let plainObserver = new Observer()
+    let plainSource = new PlainSource()
+    plainObserver.trackSource(plainSource)
+    if plainSource.subscriberCount() != 1
+        testFail("plain subscribe dispatch failed")
+    plainSource.fire()
+    if plainObserver.dependencyChanges != 1
+        testFail("plain notify dispatch failed")
+    plainObserver.untrackSource(plainSource)
+    if plainSource.subscriberCount() != 0
+        testFail("plain unsubscribe dispatch failed")
+
+    destroy genericSignal
+    destroy genericObserver
+    destroy plainSource
+    destroy plainObserver
+    testSuccess()

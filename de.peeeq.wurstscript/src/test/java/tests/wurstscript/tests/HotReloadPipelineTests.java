@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -85,9 +86,67 @@ public class HotReloadPipelineTests {
         assertEquals(renamed.getName(), MapRequest.BUILD_JHCR_SCRIPT_NAME);
     }
 
+    @Test
+    public void hotReloadDoesNotRequireSourceMap() throws Exception {
+        File projectFolder = new File("./temp/testProject_hotreload_nomap/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File war3mapJ = new File(wurstFolder, "war3map.j");
+        Files.writeString(war3mapJ.toPath(), "function main takes nothing returns nothing\nendfunction");
+
+        WurstLanguageServer langServer = new WurstLanguageServer();
+        HotReloadNoMapRequest request = new HotReloadNoMapRequest(
+            langServer,
+            Optional.empty(),
+            List.of("-hotreload"),
+            WFile.create(projectFolder)
+        );
+
+        MapRequest.CompilationResult result = request.compileScriptForTest(
+            new ModelManagerImpl(projectFolder, new BufferManager()),
+            new WurstGuiLogger(),
+            Optional.empty(),
+            new WurstProjectConfigData()
+        );
+
+        assertEquals(result.script.getCanonicalFile(), war3mapJ.getCanonicalFile());
+    }
+
     private void newCleanFolder(File f) throws Exception {
         FileUtils.deleteRecursively(f);
         Files.createDirectories(f.toPath());
+    }
+
+    private static final class HotReloadNoMapRequest extends MapRequest {
+        private HotReloadNoMapRequest(WurstLanguageServer langServer, Optional<File> map, List<String> compileArgs,
+                                      WFile workspaceRoot) {
+            super(langServer, map, compileArgs, workspaceRoot, Optional.empty(), Optional.empty());
+        }
+
+        @Override
+        public Object execute(de.peeeq.wurstio.languageserver.ModelManager modelManager) {
+            return null;
+        }
+
+        @Override
+        protected File ensureCachedMap(WurstGui gui) {
+            throw new AssertionError("ensureCachedMap should not be called for hotreload without a map.");
+        }
+
+        @Override
+        protected File compileScript(WurstGui gui, de.peeeq.wurstio.languageserver.ModelManager modelManager,
+                                     List<String> compileArgs, Optional<File> mapCopy,
+                                     WurstProjectConfigData projectConfigData, boolean isProd, File scriptFile) {
+            return scriptFile;
+        }
+
+        private CompilationResult compileScriptForTest(de.peeeq.wurstio.languageserver.ModelManager modelManager,
+                                                       WurstGui gui,
+                                                       Optional<File> testMap,
+                                                       WurstProjectConfigData projectConfigData) throws Exception {
+            return compileScript(modelManager, gui, testMap, projectConfigData, getBuildDir(), false);
+        }
     }
 
     private static final class TestMapRequest extends MapRequest {
