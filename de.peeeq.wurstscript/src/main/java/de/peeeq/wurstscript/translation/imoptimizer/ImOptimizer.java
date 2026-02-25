@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
@@ -201,10 +202,34 @@ public class ImOptimizer {
         if (expr == null) {
             return Collections.emptyList();
         }
+        if (mayTrapAtRuntime(expr)) {
+            return Collections.singletonList(expr);
+        }
         if (analyzer.hasObservableSideEffects(expr, func -> func.isNative()
             && UselessFunctionCallsRemover.isFunctionWithoutSideEffect(func.getName()))) {
             return Collections.singletonList(expr);
         }
         return Collections.emptyList();
+    }
+
+    private boolean mayTrapAtRuntime(Element elem) {
+        if (elem instanceof ImOperatorCall) {
+            ImOperatorCall opCall = (ImOperatorCall) elem;
+            WurstOperator op = opCall.getOp();
+            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT) && opCall.getArguments().size() >= 2) {
+                ImExpr denominator = opCall.getArguments().get(1);
+                // Preserve integer div/mod unless denominator is provably non-zero.
+                if (!(denominator instanceof ImIntVal) || ((ImIntVal) denominator).getValI() == 0) {
+                    return true;
+                }
+            }
+        }
+        for (int i = 0; i < elem.size(); i++) {
+            Element child = elem.get(i);
+            if (mayTrapAtRuntime(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
