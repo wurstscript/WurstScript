@@ -514,7 +514,8 @@ public class SideEffectAnalyzer {
 
         private boolean hasGlobalSideEffects(Element elem) {
             for (ImVar var : directlySetVariables(elem)) {
-                if (var.isGlobal()) {
+                // Some optimization passes temporarily detach vars; in that state isGlobal() throws.
+                if (isAttachedGlobal(var)) {
                     return true;
                 }
             }
@@ -529,6 +530,11 @@ public class SideEffectAnalyzer {
                 }
             }
             return false;
+        }
+
+        private boolean isAttachedGlobal(ImVar var) {
+            Element parent = var.getParent();
+            return parent != null && parent.getParent() instanceof ImProg;
         }
     }
 }
