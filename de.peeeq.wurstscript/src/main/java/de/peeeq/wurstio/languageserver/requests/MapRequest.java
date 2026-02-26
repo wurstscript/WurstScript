@@ -101,7 +101,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
-            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.of(GameVersion.VERSION_1_29));
+            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.empty());
         } else {
             this.w3data = getBestW3InstallationData();
         }

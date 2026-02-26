@@ -34,6 +34,14 @@ public class W3InstallationData {
         this.languageServer = null;
         this.gameExe = gameExe;
         this.version = version;
+        if (!this.version.isPresent() && this.gameExe.isPresent()) {
+            try {
+                this.version = Optional.ofNullable(GameExe.getVersion(this.gameExe.get()));
+                WLogger.info("Parsed game version from configured executable: " + this.version);
+            } catch (IOException e) {
+                WLogger.warning("Could not parse game version from configured executable", e);
+            }
+        }
     }
 
     /** Evaluates the game path and version by discovering the system environment. */
