@@ -38,9 +38,11 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -67,6 +69,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private static Long lastMapModified = 0L;
     private static String lastMapPath = "";
+    protected String cachedMapFileName = "cached_map.w3x";
 
     public static final String BUILD_CONFIGURED_SCRIPT_NAME = "01_war3mapj_with_config.j.txt";
     public static final String BUILD_COMPILED_JASS_NAME = "02_compiled.j.txt";
@@ -376,7 +379,69 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (!cacheDir.exists()) {
             UtilsIO.mkdirs(cacheDir);
         }
-        return new File(cacheDir, "cached_map.w3x");
+        return new File(cacheDir, cachedMapFileName);
+    }
+
+    protected File ensureWritableTargetFile(File targetFile, String dialogTitle, String lockMessage,
+                                            String cancelMessage) {
+        File currentTarget = targetFile;
+        while (isLocked(currentTarget)) {
+            int choice = showTargetLockedDialog(dialogTitle, lockMessage);
+            if (choice == 0 || choice == JOptionPane.CLOSED_OPTION) {
+                throw new RequestFailedException(MessageType.Warning, cancelMessage);
+            } else if (choice == 1) {
+                continue;
+            } else if (choice == 2) {
+                currentTarget = createTemporaryTargetFile(currentTarget);
+            }
+        }
+        return currentTarget;
+    }
+
+    private int showTargetLockedDialog(String dialogTitle, String message) {
+        JFrame frame = new JFrame();
+        frame.setAlwaysOnTop(true);
+        Object[] options = { "Cancel", "Retry", "Rename" };
+        return JOptionPane.showOptionDialog(
+            frame,
+            message,
+            dialogTitle,
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+    }
+
+    private File createTemporaryTargetFile(File currentTarget) {
+        String currentName = currentTarget.getName();
+        String baseName = currentName.endsWith(".w3x")
+            ? currentName.substring(0, currentName.length() - 4)
+            : currentName;
+        try {
+            File parent = currentTarget.getParentFile();
+            if (parent == null) {
+                parent = getBuildDir();
+            }
+            File tempTarget = java.nio.file.Files.createTempFile(parent.toPath(), baseName + "_", ".w3x").toFile();
+            tempTarget.deleteOnExit();
+            WLogger.info("Using temporary map target due to locked file: " + tempTarget.getAbsolutePath());
+            return tempTarget;
+        } catch (IOException e) {
+            throw new RequestFailedException(MessageType.Error, "Could not create temporary map target file.", e);
+        }
+    }
+
+    private boolean isLocked(File targetMap) {
+        if (!targetMap.exists()) {
+            return false;
+        }
+        try (FileChannel ignored = FileChannel.open(targetMap.toPath(), StandardOpenOption.WRITE)) {
+            return false;
+        } catch (IOException e) {
+            return true;
+        }
     }
 
     /**
@@ -541,10 +606,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             System.out.println("No extract map script enabled - not extracting.");
             if (scriptFile.exists()) {
                 System.out.println("war3map.j exists at wurst root.");
-                CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
-                if (compilationUnit == null) {
-                    modelManager.syncCompilationUnit(WFile.create(scriptFile));
-                }
+                ensureScriptIsSynced(modelManager, scriptFile);
                 return scriptFile;
             } else {
                 throw new CompileError(new WPos("", new LineOffsets(), 0, 0),
@@ -582,13 +644,23 @@ public abstract class MapRequest extends UserRequest<Object> {
                 WLogger.info("new map, use extracted");
                 // write mapfile from map to workspace
                 Files.write(extractedScript, scriptFile);
+                ensureScriptIsSynced(modelManager, scriptFile);
             }
         } else {
             System.out.println("Map not modified, not extracting script");
         }
-
+        if (scriptFile.exists()) {
+            ensureScriptIsSynced(modelManager, scriptFile);
+        }
 
         return scriptFile;
+    }
+
+    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
+        CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
+        if (compilationUnit == null) {
+            modelManager.syncCompilationUnit(WFile.create(scriptFile));
+        }
     }
 
     protected CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile,

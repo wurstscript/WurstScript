@@ -102,6 +102,15 @@ public class RunMap extends MapRequest {
             mapLastModified = map.get().lastModified();
             mapPath = map.get().getAbsolutePath();
         }
+        if (!runArgs.isHotReload()) {
+            File cacheTarget = ensureWritableTargetFile(
+                getCachedMapFile(),
+                "Run Map",
+                "The cached run map file is in use and cannot be updated.\nClose Warcraft III and click Retry, choose Rename to use a temporary file name, or Cancel.",
+                "Run canceled because the cached map file is in use."
+            );
+            cachedMapFileName = cacheTarget.getName();
+        }
         Optional<File> testMap = map.map($ -> new File(buildDir, "WurstRunMap.w3x"));
         CompilationResult result = compileScript(modelManager, gui, testMap, projectConfig, buildDir, false);
 
