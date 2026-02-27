@@ -244,21 +244,36 @@ public abstract class MapRequest extends UserRequest<Object> {
     private void purgeUnimportedFiles(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
-            .filter(cu -> isInWurstFolder(cu.getCuInfo().getFile()) || cu.getCuInfo().getFile().endsWith(".j")).collect(Collectors.toSet());
+            .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile()) || isProjectWar3MapScript(cu.getCuInfo().getFile()))
+            .collect(Collectors.toSet());
         addImports(imported, imported);
 
         model.removeIf(cu -> !imported.contains(cu));
     }
 
-    private boolean isInWurstFolder(String file) {
-        Path p = Paths.get(file);
-        Path w;
+    private boolean isProjectWar3MapScript(String file) {
+        if (!file.endsWith("war3map.j")) {
+            return false;
+        }
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path projectWurstFolder;
         try {
-            w = workspaceRoot.getPath();
+            projectWurstFolder = workspaceRoot.getPath().resolve("wurst").toAbsolutePath().normalize();
         } catch (FileNotFoundException e) {
             return false;
         }
-        return p.startsWith(w)
+        return p.startsWith(projectWurstFolder) && java.nio.file.Files.exists(p);
+    }
+
+    private boolean isInProjectWurstFolder(String file) {
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path projectWurstFolder;
+        try {
+            projectWurstFolder = workspaceRoot.getPath().resolve("wurst").toAbsolutePath().normalize();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+        return p.startsWith(projectWurstFolder)
             && java.nio.file.Files.exists(p)
             && Utils.isWurstFile(file);
     }

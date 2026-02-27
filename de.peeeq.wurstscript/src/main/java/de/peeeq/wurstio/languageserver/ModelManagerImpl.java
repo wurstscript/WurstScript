@@ -87,25 +87,30 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public Changes removeCompilationUnit(WFile resource) {
-        parseErrors.remove(resource);
         WurstModel model2 = model;
-        if (model2 == null) {
-            return Changes.empty();
+        List<CompilationUnit> toRemove = new ArrayList<>();
+        if (model2 != null) {
+            for (CompilationUnit compilationUnit : model2) {
+                if (wFile(compilationUnit).equals(resource)) {
+                    toRemove.add(compilationUnit);
+                }
+            }
+            model2.removeAll(toRemove);
         }
 
-        syncCompilationUnitContent(resource, "");
-        List<CompilationUnit> toRemove = new ArrayList<>();
-        for (CompilationUnit compilationUnit : model2) {
-            if (wFile(compilationUnit).equals(resource)) {
-                toRemove.add(compilationUnit);
-            }
-        }
-        model2.removeAll(toRemove);
-        return new Changes(toRemove.stream()
-            .map(this::wFile),
+        // Always clear state and diagnostics for removed files.
+        clearFileState(resource);
+        reportErrors("remove cu ", resource, Collections.emptyList());
+
+        toRemove.forEach(compilationunitFile::remove);
+
+        return new Changes(
+            java.util.Collections.singletonList(resource),
             toRemove.stream()
                 .flatMap(cu -> cu.getPackages().stream())
-                .map(WPackage::getName));
+                .map(WPackage::getName)
+                .collect(Collectors.toList())
+        );
     }
 
     @Override
@@ -526,9 +531,14 @@ public class ModelManagerImpl implements ModelManager {
         if (fileHashcodes.containsKey(filename)) {
             int oldHash = fileHashcodes.get(filename);
             if (oldHash == contents.hashCode()) {
-                // no change
-                WLogger.trace("CU " + filename + " was unchanged.");
-                return getCompilationUnit(filename);
+                CompilationUnit existing = getCompilationUnit(filename);
+                if (existing != null) {
+                    // no change
+                    WLogger.trace("CU " + filename + " was unchanged.");
+                    return existing;
+                }
+                // Stale hash cache after remove/move; CU is gone, so reparse.
+                WLogger.info("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
             } else {
                 WLogger.info("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
             }
@@ -555,6 +565,12 @@ public class ModelManagerImpl implements ModelManager {
             reportErrors("sync cu " + filename, filename, errors.build());
         }
         return cu;
+    }
+
+    private void clearFileState(WFile file) {
+        parseErrors.remove(file);
+        otherErrors.remove(file);
+        fileHashcodes.remove(file);
     }
 
     @Override
