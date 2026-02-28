@@ -73,7 +73,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void bug61_break() {
-        testAssertErrorsLines(false, "inside a loop",
+        testAssertErrorsLines(false, "not allowed outside of loop",
                 "package test",
                 "	init",
                 "		break",

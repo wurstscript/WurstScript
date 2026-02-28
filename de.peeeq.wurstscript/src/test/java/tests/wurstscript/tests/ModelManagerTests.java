@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.*;
 
 public class ModelManagerTests {
 
@@ -345,6 +344,116 @@ public class ModelManagerTests {
         return results;
     }
 
+    private CacheFixture setupCacheFixture(String projectName) throws IOException {
+        GlobalCaches.clearAll();
+
+        File projectFolder = new File("./temp/" + projectName + "/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        String packageA = string(
+            "package A",
+            "import B",
+            "public function a() returns int",
+            "    return b()"
+        );
+
+        String packageB = string(
+            "package B",
+            "import C",
+            "public function b() returns int",
+            "    return c()"
+        );
+
+        String packageC = string(
+            "package C",
+            "public function c() returns int",
+            "    return 1"
+        );
+
+        String packageD = string(
+            "package D",
+            "public function d() returns int",
+            "    return 2"
+        );
+
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        WFile fileC = WFile.create(new File(wurstFolder, "C.wurst"));
+        WFile fileD = WFile.create(new File(wurstFolder, "D.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+        writeFile(fileA, packageA);
+        writeFile(fileB, packageB);
+        writeFile(fileC, packageC);
+        writeFile(fileD, packageD);
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> results = keepErrorsInMap(manager);
+        manager.buildProject();
+
+        CompilationUnit cuA = manager.getCompilationUnit(fileA);
+        CompilationUnit cuB = manager.getCompilationUnit(fileB);
+        CompilationUnit cuC = manager.getCompilationUnit(fileC);
+        CompilationUnit cuD = manager.getCompilationUnit(fileD);
+
+        assertNotNull(cuA);
+        assertNotNull(cuB);
+        assertNotNull(cuC);
+        assertNotNull(cuD);
+
+        WPackage pkgA = cuA.getPackages().get(0);
+        WPackage pkgB = cuB.getPackages().get(0);
+        WPackage pkgC = cuC.getPackages().get(0);
+        WPackage pkgD = cuD.getPackages().get(0);
+
+        GlobalCaches.CacheKey keyA = new GlobalCaches.CacheKey(pkgA, "markerA", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.CacheKey keyB = new GlobalCaches.CacheKey(pkgB, "markerB", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.CacheKey keyC = new GlobalCaches.CacheKey(pkgC, "markerC", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.CacheKey keyD = new GlobalCaches.CacheKey(pkgD, "markerD", GlobalCaches.LookupType.FUNC);
+
+        GlobalCaches.lookupCache.put(keyA, Boolean.TRUE);
+        GlobalCaches.lookupCache.put(keyB, Boolean.TRUE);
+        GlobalCaches.lookupCache.put(keyC, Boolean.TRUE);
+        GlobalCaches.lookupCache.put(keyD, Boolean.TRUE);
+
+        assertTrue(GlobalCaches.lookupCache.containsKey(keyA));
+        assertTrue(GlobalCaches.lookupCache.containsKey(keyB));
+        assertTrue(GlobalCaches.lookupCache.containsKey(keyC));
+        assertTrue(GlobalCaches.lookupCache.containsKey(keyD));
+
+        return new CacheFixture(manager, results, fileA, fileB, fileC, fileD, keyA, keyB, keyC, keyD);
+    }
+
+    private static final class CacheFixture {
+        final ModelManagerImpl manager;
+        final Map<WFile, String> results;
+        final WFile fileA;
+        final WFile fileB;
+        final WFile fileC;
+        final WFile fileD;
+        final GlobalCaches.CacheKey keyA;
+        final GlobalCaches.CacheKey keyB;
+        final GlobalCaches.CacheKey keyC;
+        final GlobalCaches.CacheKey keyD;
+
+        CacheFixture(ModelManagerImpl manager, Map<WFile, String> results, WFile fileA, WFile fileB,
+                     WFile fileC, WFile fileD, GlobalCaches.CacheKey keyA, GlobalCaches.CacheKey keyB,
+                     GlobalCaches.CacheKey keyC, GlobalCaches.CacheKey keyD) {
+            this.manager = manager;
+            this.results = results;
+            this.fileA = fileA;
+            this.fileB = fileB;
+            this.fileC = fileC;
+            this.fileD = fileD;
+            this.keyA = keyA;
+            this.keyB = keyB;
+            this.keyC = keyC;
+            this.keyD = keyD;
+        }
+    }
+
     private void newCleanFolder(File f) throws IOException {
         FileUtils.deleteRecursively(f);
         Files.createDirectories(f.toPath());
@@ -433,6 +542,49 @@ public class ModelManagerTests {
             }
         });
 
+    }
+
+    @Test
+    public void selectiveCacheInvalidationSkipsUnaffectedUnits() throws IOException {
+        CacheFixture fixture = setupCacheFixture("cacheInvalidationProject1");
+        fixture.results.clear();
+
+        String packageBUpdated = string(
+            "package B",
+            "import C",
+            "public function b() returns int",
+            "    return c() + 1"
+        );
+
+        ModelManager.Changes changes = fixture.manager.syncCompilationUnitContent(fixture.fileB, packageBUpdated);
+        fixture.manager.reconcile(changes);
+
+        assertEquals(fixture.results.keySet(), ImmutableSet.of(fixture.fileA, fixture.fileB));
+        assertFalse(GlobalCaches.lookupCache.containsKey(fixture.keyA));
+        assertFalse(GlobalCaches.lookupCache.containsKey(fixture.keyB));
+        assertTrue(GlobalCaches.lookupCache.containsKey(fixture.keyC));
+        assertTrue(GlobalCaches.lookupCache.containsKey(fixture.keyD));
+    }
+
+    @Test
+    public void selectiveCacheInvalidationCoversTransitiveDependents() throws IOException {
+        CacheFixture fixture = setupCacheFixture("cacheInvalidationProject2");
+        fixture.results.clear();
+
+        String packageCUpdated = string(
+            "package C",
+            "public function c() returns int",
+            "    return 2"
+        );
+
+        ModelManager.Changes changes = fixture.manager.syncCompilationUnitContent(fixture.fileC, packageCUpdated);
+        fixture.manager.reconcile(changes);
+
+        assertEquals(fixture.results.keySet(), ImmutableSet.of(fixture.fileA, fixture.fileB, fixture.fileC));
+        assertFalse(GlobalCaches.lookupCache.containsKey(fixture.keyA));
+        assertFalse(GlobalCaches.lookupCache.containsKey(fixture.keyB));
+        assertFalse(GlobalCaches.lookupCache.containsKey(fixture.keyC));
+        assertTrue(GlobalCaches.lookupCache.containsKey(fixture.keyD));
     }
 
     @Test
