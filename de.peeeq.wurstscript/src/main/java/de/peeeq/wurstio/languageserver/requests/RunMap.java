@@ -25,8 +25,10 @@ import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -130,7 +132,15 @@ public class RunMap extends MapRequest {
         gui.sendProgress("Starting Warcraft 3...");
 
         File mapCopy = cachedMapFile.get();
-        if (w3data.getWc3PatchVersion().isPresent()) {
+
+        String mapDocumentPath = langServer.getConfigProvider().getConfig("mapDocumentPath", "");
+        if (!mapDocumentPath.isEmpty()) {
+            Path parent = Paths.get(mapDocumentPath);
+            parent.toFile().mkdirs();
+            Path path = parent.resolve(cachedMapFile.get().getName());
+            mapCopy = path.toFile();
+            java.nio.file.Files.copy(cachedMapFile.get().toPath(), path, StandardCopyOption.REPLACE_EXISTING);
+        } else if (w3data.getWc3PatchVersion().isPresent()) {
             GameVersion gameVersion = w3data.getWc3PatchVersion().get();
             if (gameVersion.compareTo(GameVersion.VERSION_1_32) < 0) {
                 mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
