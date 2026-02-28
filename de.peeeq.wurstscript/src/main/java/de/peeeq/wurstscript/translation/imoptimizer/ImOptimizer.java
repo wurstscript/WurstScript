@@ -213,6 +213,22 @@ public class ImOptimizer {
     }
 
     private boolean mayTrapAtRuntime(Element elem) {
+        return mayTrapAtRuntime(elem, new HashMap<>(), new LinkedHashSet<>());
+    }
+
+    private boolean mayTrapAtRuntime(Element elem, Map<ImFunction, Boolean> functionCache, Set<ImFunction> inProgress) {
+        if (elem instanceof ImFunctionCall) {
+            ImFunction calledFunc = ((ImFunctionCall) elem).getFunc();
+            if (functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
+                return true;
+            }
+        } else if (elem instanceof ImMethodCall) {
+            ImFunction calledFunc = ((ImMethodCall) elem).getMethod().getImplementation();
+            if (calledFunc == null || functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
+                return true;
+            }
+        }
+
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opCall = (ImOperatorCall) elem;
             WurstOperator op = opCall.getOp();
@@ -226,10 +242,31 @@ public class ImOptimizer {
         }
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);
-            if (mayTrapAtRuntime(child)) {
+            if (mayTrapAtRuntime(child, functionCache, inProgress)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean functionMayTrapAtRuntime(ImFunction function, Map<ImFunction, Boolean> functionCache, Set<ImFunction> inProgress) {
+        if (function.isNative()) {
+            return false;
+        }
+
+        Boolean cachedResult = functionCache.get(function);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        if (!inProgress.add(function)) {
+            // Recursive cycles are conservatively treated as potentially trapping.
+            return true;
+        }
+
+        boolean mayTrap = mayTrapAtRuntime(function.getBody(), functionCache, inProgress);
+        inProgress.remove(function);
+        functionCache.put(function, mayTrap);
+        return mayTrap;
     }
 }
