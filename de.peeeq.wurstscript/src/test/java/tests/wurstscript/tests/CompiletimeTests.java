@@ -227,6 +227,81 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeObjectIdMigration() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    int storedId",
+                        "tuple BuildResult(A obj, int maxId)",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns BuildResult",
+                        "    let keep = new A",
+                        "    keep.storedId = keep castTo int",
+                        "    let temp1 = new A",
+                        "    let temp2 = new A",
+                        "    let maxId = temp2 castTo int",
+                        "    destroy temp1",
+                        "    destroy temp2",
+                        "    return BuildResult(keep, maxId)",
+                        "let result = compiletime(build())",
+                        "init",
+                        "    let newA = new A",
+                        "    if result.obj castTo int == result.obj.storedId",
+                        "        and newA castTo int == result.maxId + 1",
+                        "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectIdMigrationStress() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    int idSnapshot",
+                        "class B",
+                        "    int idSnapshot",
+                        "tuple BuildResult(A keepA, B keepB, int maxA, int maxB)",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "@compiletime function build() returns BuildResult",
+                        "    A keepA = null",
+                        "    B keepB = null",
+                        "    int maxA = 0",
+                        "    int maxB = 0",
+                        "    for i = 1 to 200",
+                        "        let a = new A",
+                        "        a.idSnapshot = a castTo int",
+                        "        maxA = a castTo int",
+                        "        if i % 25 == 0",
+                        "            keepA = a",
+                        "        else",
+                        "            destroy a",
+                        "        let b = new B",
+                        "        b.idSnapshot = b castTo int",
+                        "        maxB = b castTo int",
+                        "        if i % 30 == 0",
+                        "            keepB = b",
+                        "        else",
+                        "            destroy b",
+                        "    return BuildResult(keepA, keepB, maxA, maxB)",
+                        "let result = compiletime(build())",
+                        "init",
+                        "    let newA = new A",
+                        "    let newB = new B",
+                        "    if result.keepA.idSnapshot == result.keepA castTo int",
+                        "        and result.keepB.idSnapshot == result.keepB castTo int",
+                        "        and newA castTo int == result.maxA + 1",
+                        "        and newB castTo int == result.maxB + 1",
+                        "        testSuccess()");
+    }
+
+    @Test
     public void checkCompiletimeAnnotation1() {
         testAssertErrorsLines(false, "Functions annotated '@compiletime' may not take parameters.",
                 "package test",

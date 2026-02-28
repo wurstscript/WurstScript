@@ -195,7 +195,11 @@ public class EvaluateExpr {
 
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
-        ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState));
+        ImType receiverType = globalState.resolveType(mc.getReceiver().attrTyp());
+        ImClassType receiverClassType = receiverType instanceof ImClassType
+            ? (ImClassType) receiverType
+            : mc.getMethod().getMethodClass();
+        ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState), receiverClassType);
         globalState.assertAllocated(receiver, mc.attrTrace());
         mark(mc, globalState);
 
@@ -231,7 +235,19 @@ public class EvaluateExpr {
 
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
-        ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
+        ImType receiverType = globalState.resolveType(ma.getReceiver().attrTyp());
+        ImClassType receiverClassType = receiverType instanceof ImClassType ? (ImClassType) receiverType : null;
+        if (receiverClassType == null) {
+            de.peeeq.wurstscript.jassIm.Element parent = ma.getVar().getParent();
+            while (parent != null && !(parent instanceof ImClass)) {
+                parent = parent.getParent();
+            }
+            if (parent instanceof ImClass) {
+                receiverClassType = JassIm.ImClassType((ImClass) parent, JassIm.ImTypeArguments());
+            }
+        }
+
+        ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState), receiverClassType);
         if (receiver == null) {
             throw new InterpreterException(ma.getTrace(), "Null pointer dereference: " + ImPrinter.asString(ma.getReceiver()));
         }
@@ -254,14 +270,14 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
                                LocalState localState) {
-        ILconstObject obj = globalState.toObject(imDealloc.getObj().evaluate(globalState, localState));
+        ILconstObject obj = globalState.toObject(imDealloc.getObj().evaluate(globalState, localState), imDealloc.getClazz());
         globalState.deallocate(obj, imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
         return ILconstNull.instance();
     }
 
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
-        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState));
+        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState), e.getClazz());
         return ILconstBool.instance(globalState.isInstanceOf(obj, e.getClazz().getClassDef(), e.attrTrace()));
     }
 
@@ -272,7 +288,7 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTypeIdOfObj e,
                                ProgramState globalState, LocalState localState) {
-        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState));
+        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState), e.getClazz());
         return new ILconstInt(globalState.getTypeId(obj, e.attrTrace()));
     }
 
@@ -376,13 +392,14 @@ public class EvaluateExpr {
 
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
+        ImType receiverType = globalState.resolveType(va.getReceiver().attrTyp());
+        ImClassType receiverClassType = receiverType instanceof ImClassType ? (ImClassType) receiverType : null;
         ILconst receiverVal = va.getReceiver().evaluate(globalState, localState);
-        ILconstObject receiver = globalState.toObject(receiverVal);
-        if (receiver == null && receiverVal instanceof ILconstInt && va.getReceiver().attrTyp() instanceof ImClassType) {
+        ILconstObject receiver = globalState.toObject(receiverVal, receiverClassType);
+        if (receiver == null && receiverVal instanceof ILconstInt && receiverClassType != null) {
             int objectId = ((ILconstInt) receiverVal).getVal();
             if (objectId != 0) {
-                receiver = globalState.ensureObject((ImClassType) va.getReceiver().attrTyp(),
-                    objectId, va.attrTrace());
+                receiver = globalState.ensureObject(receiverClassType, objectId, va.attrTrace());
             }
         }
         if (receiver == null) {
@@ -443,7 +460,9 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
         ILconst res = imCast.getExpr().evaluate(globalState, localState);
-        if (TypesHelper.isIntType(imCast.getToType())) {
+        ImType targetType = globalState.resolveType(imCast.getToType());
+
+        if (TypesHelper.isIntType(targetType)) {
             if (res instanceof ILconstObject) {
                 return ILconstInt.create(((ILconstObject) res).getObjectId());
             }
@@ -454,10 +473,10 @@ public class EvaluateExpr {
             }
         }
         if (res instanceof ILconstInt) {
-            if (imCast.getToType() instanceof ImClassType) {
-                return globalState.getObjectByIndex(((ILconstInt) res).getVal());
+            if (targetType instanceof ImClassType) {
+                return globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
             }
-            if (imCast.getToType() instanceof IlConstHandle) {
+            if (targetType instanceof IlConstHandle) {
                 return globalState.getHandleByIndex(((ILconstInt) res).getVal());
             }
         }

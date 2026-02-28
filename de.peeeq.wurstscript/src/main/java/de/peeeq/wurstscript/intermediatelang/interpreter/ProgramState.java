@@ -5,6 +5,7 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -27,8 +28,8 @@ public class ProgramState extends State {
     private PrintStream outStream = System.err;
     private final List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
-    private int objectIdCounter;
-    private final Int2ObjectOpenHashMap<ILconstObject> indexToObject = new Int2ObjectOpenHashMap<>();
+    private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
+    private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private final Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
@@ -87,7 +88,22 @@ public class ProgramState extends State {
         this.prog = prog;
         this.isCompiletime = isCompiletime;
 
+        buildClassKeyLookup();
         identifyGenericStaticGlobals();
+    }
+
+    private void buildClassKeyLookup() {
+        Partitions<ImClass> partitions = new Partitions<>();
+        for (ImClass clazz : prog.getClasses()) {
+            partitions.add(clazz);
+            for (ImClassType superClass : clazz.getSuperClasses()) {
+                partitions.union(clazz, superClass.getClassDef());
+            }
+        }
+
+        for (ImClass clazz : prog.getClasses()) {
+            classKeyLookup.put(clazz, partitions.getRep(clazz));
+        }
     }
 
     private void identifyGenericStaticGlobals() {
@@ -167,6 +183,9 @@ public class ProgramState extends State {
 
     public ProgramState setProg(ImProg p) {
         prog = p;
+        classKeyLookup.clear();
+        objectIdSpaces.clear();
+        buildClassKeyLookup();
         return this;
     }
 
@@ -175,21 +194,24 @@ public class ProgramState extends State {
     }
 
     public ILconstObject allocate(ImClassType clazz, Element trace) {
-        objectIdCounter++;
-        ILconstObject res = new ILconstObject(clazz, objectIdCounter, trace);
-        indexToObject.put(objectIdCounter, res);
-        WLogger.trace("alloc objId=" + objectIdCounter + " type=" + clazz + " trace=" + trace);
+        Object key = classKey(clazz.getClassDef());
+        ObjectIdSpace idSpace = getIdSpace(key);
+        int objId = !idSpace.freeObjectIds.isEmpty() ? idSpace.freeObjectIds.pop() : ++idSpace.objectIdCounter;
+        ILconstObject res = new ILconstObject(clazz, objId, trace);
+        idSpace.indexToObject.put(objId, res);
+        WLogger.trace("alloc objId=" + objId + " type=" + clazz + " trace=" + trace);
         return res;
     }
 
     protected Object classKey(ImClass clazz) {
-        return clazz;
+        return classKeyLookup.getOrDefault(clazz, clazz);
     }
 
     public void deallocate(ILconstObject obj, ImClass clazz, Element trace) {
         assertAllocated(obj, trace);
         obj.destroy();
-        // TODO recycle ids
+        ObjectIdSpace idSpace = getIdSpace(classKey(clazz));
+        idSpace.freeObjectIds.push(obj.getObjectId());
     }
 
     public void assertAllocated(ILconstObject obj, Element trace) {
@@ -213,16 +235,6 @@ public class ProgramState extends State {
         assertAllocated(obj, trace);
         return obj.getImClass().attrTypeId();
     }
-
-    private ImClass findClazz(Object key) {
-        for (ImClass c : prog.getClasses()) {
-            if (classKey(c).equals(key)) {
-                return c;
-            }
-        }
-        throw new Error("no class found for key " + key);
-    }
-
 
     public void pushStackframeWithTypes(ImFunction f, @Nullable ILconstObject receiver,
                                         ILconst[] args, WPos trace,
@@ -504,8 +516,30 @@ public class ProgramState extends State {
         }
     }
 
-    public ILconst getObjectByIndex(int val) {
-        return indexToObject.get(val);
+    public ILconstObject getObjectByIndex(int val) {
+        return getObjectByIndex(val, null);
+    }
+
+    public ILconstObject getObjectByIndex(int val, @Nullable ImClassType expectedType) {
+        if (expectedType != null) {
+            ObjectIdSpace idSpace = objectIdSpaces.get(classKey(expectedType.getClassDef()));
+            if (idSpace == null) {
+                return null;
+            }
+            return idSpace.indexToObject.get(val);
+        }
+
+        ILconstObject found = null;
+        for (ObjectIdSpace idSpace : objectIdSpaces.values()) {
+            ILconstObject candidate = idSpace.indexToObject.get(val);
+            if (candidate != null) {
+                if (found != null && candidate != found) {
+                    throw new InterpreterException(this, "Ambiguous object id " + val + " in multiple id spaces.");
+                }
+                found = candidate;
+            }
+        }
+        return found;
     }
 
     public Map<Integer, IlConstHandle> getHandleMap() {
@@ -517,20 +551,31 @@ public class ProgramState extends State {
     }
 
     public ILconstObject ensureObject(ImClassType clazz, int objectId, Element trace) {
-        ILconstObject existing = indexToObject.get(objectId);
+        ObjectIdSpace idSpace = getIdSpace(classKey(clazz.getClassDef()));
+        ILconstObject existing = idSpace.indexToObject.get(objectId);
         if (existing != null) {
             return existing;
         }
         ILconstObject res = new ILconstObject(clazz, objectId, trace);
-        indexToObject.put(objectId, res);
+        idSpace.indexToObject.put(objectId, res);
         return res;
     }
 
     public ILconstObject toObject(ILconst val) {
+        return toObject(val, null);
+    }
+
+    public ILconstObject toObject(ILconst val, @Nullable ImType expectedType) {
+        ImType resolved = expectedType == null ? null : resolveType(expectedType);
+        ImClassType expectedClass = resolved instanceof ImClassType ? (ImClassType) resolved : null;
+
         if (val instanceof ILconstObject) {
             return (ILconstObject) val;
         } else if (val instanceof ILconstInt) {
-            return indexToObject.get(((ILconstInt) val).getVal());
+            int objectId = ((ILconstInt) val).getVal();
+            return expectedClass != null
+                ? getObjectByIndex(objectId, expectedClass)
+                : getObjectByIndex(objectId);
         }
         throw new InterpreterException(this, "Value " + val + " (" + val.getClass().getSimpleName() + ") cannot be cast to object.");
     }
@@ -685,7 +730,25 @@ public class ProgramState extends State {
 
 
     public Collection<ILconstObject> getAllObjects() {
-        return indexToObject.values();
+        List<ILconstObject> values = new ArrayList<>();
+        for (ObjectIdSpace idSpace : objectIdSpaces.values()) {
+            values.addAll(idSpace.indexToObject.values());
+        }
+        return values;
+    }
+
+    private ObjectIdSpace getIdSpace(Object key) {
+        return objectIdSpaces.computeIfAbsent(key, k -> new ObjectIdSpace());
+    }
+
+    public int getMaxAllocatedId(ImClass clazz) {
+        return getIdSpace(classKey(clazz)).objectIdCounter;
+    }
+
+    private static class ObjectIdSpace {
+        private int objectIdCounter;
+        private final Deque<Integer> freeObjectIds = new ArrayDeque<>();
+        private final Int2ObjectOpenHashMap<ILconstObject> indexToObject = new Int2ObjectOpenHashMap<>();
     }
 
     public Map<ImTypeVar, ImType> snapshotResolvedTypeSubstitutions() {
