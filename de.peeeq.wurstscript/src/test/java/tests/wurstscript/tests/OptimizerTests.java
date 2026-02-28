@@ -600,6 +600,36 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void deadStoreKeepsPotentialDivisionTrap() throws IOException {
+        test().executeProg(false).lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native getY() returns int",
+            "	init",
+            "		int y = getY()",
+            "		string x = I2S(1 div y)",
+            "endpackage");
+        String compiledNoOpt = Files.toString(new File("test-output/OptimizerTests_deadStoreKeepsPotentialDivisionTrap_no_opts.j"), Charsets.UTF_8);
+        assertTrue(compiledNoOpt.contains("1 /"), "potential division trap should be preserved");
+    }
+
+    @Test
+    public void deadStoreKeepsPotentialDivisionTrapInCallee() throws IOException {
+        test().executeProg(false).lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native getY() returns int",
+            "	function wrap(int y) returns int",
+            "		return 1 div y",
+            "	init",
+            "		int y = getY()",
+            "		string x = I2S(wrap(y))",
+            "endpackage");
+        String compiledNoOpt = Files.toString(new File("test-output/OptimizerTests_deadStoreKeepsPotentialDivisionTrapInCallee_no_opts.j"), Charsets.UTF_8);
+        assertTrue(compiledNoOpt.contains("1 /"), "potential division trap in callee should be preserved");
+    }
+
+    @Test
     public void test_unreachableCodeRemover() throws IOException {
         test().withStdLib().lines(
             "package test",

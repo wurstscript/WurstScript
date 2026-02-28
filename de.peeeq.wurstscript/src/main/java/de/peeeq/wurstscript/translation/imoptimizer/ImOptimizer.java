@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -97,6 +99,7 @@ public class ImOptimizer {
         while (changes && iterations++ < 10) {
             ImProg prog = trans.imProg();
             trans.calculateCallRelationsAndUsedVariables();
+            SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
 
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
@@ -137,25 +140,30 @@ public class ImOptimizer {
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                                replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                // IMPORTANT: removeAll() clears parent references
-                                List<ImExpr> exprs = va.getIndexes().removeAll();
-                                exprs.add(e.getRight());
+                                List<ImExpr> exprs = new ArrayList<>();
+                                for (ImExpr index : va.getIndexes()) {
+                                    exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
+                                }
+                                exprs.addAll(collectSideEffects(e.getRight(), sideEffectAnalyzer));
                                 replacements.add(Pair.create(e, exprs));
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
                             if(var != null && !trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
-                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                                replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
                             ImMemberAccess va = ((ImMemberAccess) e.getLeft());
                             if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
-                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                                List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
+                                replacements.add(Pair.create(e, sideEffects));
                             }
                         }
                     }
@@ -165,7 +173,9 @@ public class ImOptimizer {
                 for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
                     ImExpr r;
-                    if (pair.getB().size() == 1) {
+                    if (pair.getB().isEmpty()) {
+                        r = ImHelper.statementExprVoid(JassIm.ImStmts());
+                    } else if (pair.getB().size() == 1) {
                         r = pair.getB().get(0);
                         // CRITICAL: Clear parent before reusing the node
                         r.setParent(null);
@@ -186,5 +196,77 @@ public class ImOptimizer {
                 changes |= f.getLocals().retainAll(trans.getReadVariables());
             }
         }
+    }
+
+    private List<ImExpr> collectSideEffects(ImExpr expr, SideEffectAnalyzer analyzer) {
+        if (expr == null) {
+            return Collections.emptyList();
+        }
+        if (mayTrapAtRuntime(expr)) {
+            return Collections.singletonList(expr);
+        }
+        if (analyzer.hasObservableSideEffects(expr, func -> func.isNative()
+            && UselessFunctionCallsRemover.isFunctionWithoutSideEffect(func.getName()))) {
+            return Collections.singletonList(expr);
+        }
+        return Collections.emptyList();
+    }
+
+    private boolean mayTrapAtRuntime(Element elem) {
+        return mayTrapAtRuntime(elem, new HashMap<>(), new LinkedHashSet<>());
+    }
+
+    private boolean mayTrapAtRuntime(Element elem, Map<ImFunction, Boolean> functionCache, Set<ImFunction> inProgress) {
+        if (elem instanceof ImFunctionCall) {
+            ImFunction calledFunc = ((ImFunctionCall) elem).getFunc();
+            if (functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
+                return true;
+            }
+        } else if (elem instanceof ImMethodCall) {
+            ImFunction calledFunc = ((ImMethodCall) elem).getMethod().getImplementation();
+            if (calledFunc == null || functionMayTrapAtRuntime(calledFunc, functionCache, inProgress)) {
+                return true;
+            }
+        }
+
+        if (elem instanceof ImOperatorCall) {
+            ImOperatorCall opCall = (ImOperatorCall) elem;
+            WurstOperator op = opCall.getOp();
+            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT) && opCall.getArguments().size() >= 2) {
+                ImExpr denominator = opCall.getArguments().get(1);
+                // Preserve integer div/mod unless denominator is provably non-zero.
+                if (!(denominator instanceof ImIntVal) || ((ImIntVal) denominator).getValI() == 0) {
+                    return true;
+                }
+            }
+        }
+        for (int i = 0; i < elem.size(); i++) {
+            Element child = elem.get(i);
+            if (mayTrapAtRuntime(child, functionCache, inProgress)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean functionMayTrapAtRuntime(ImFunction function, Map<ImFunction, Boolean> functionCache, Set<ImFunction> inProgress) {
+        if (function.isNative()) {
+            return false;
+        }
+
+        Boolean cachedResult = functionCache.get(function);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        if (!inProgress.add(function)) {
+            // Recursive cycles are conservatively treated as potentially trapping.
+            return true;
+        }
+
+        boolean mayTrap = mayTrapAtRuntime(function.getBody(), functionCache, inProgress);
+        inProgress.remove(function);
+        functionCache.put(function, mayTrap);
+        return mayTrap;
     }
 }
