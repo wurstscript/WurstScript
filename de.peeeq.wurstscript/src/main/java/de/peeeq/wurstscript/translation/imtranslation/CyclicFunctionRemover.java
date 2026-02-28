@@ -41,7 +41,8 @@ public class CyclicFunctionRemover {
         for (List<ImFunction> component : components) {
             if (component.size() > 1) {
                 // keep list for order; set for O(1) membership
-                Set<ImFunction> funcSet = new HashSet<>(component);
+                Set<ImFunction> funcSet = Collections.newSetFromMap(new IdentityHashMap<>());
+                funcSet.addAll(component);
                 removeCycle(component, funcSet);
             }
         }
@@ -49,7 +50,7 @@ public class CyclicFunctionRemover {
 
     private void removeCycle(List<ImFunction> funcs, Set<ImFunction> funcSet) {
         List<ImVar> newParameters = Lists.newArrayList();
-        Map<ImVar, ImVar> oldToNewVar = Maps.newLinkedHashMap();
+        Map<ImVar, ImVar> oldToNewVar = new IdentityHashMap<>();
 
         calculateNewParameters(funcs, newParameters, oldToNewVar);
 
@@ -90,11 +91,11 @@ public class CyclicFunctionRemover {
             stmts = elseBlock;
         }
 
-        Map<ImFunction, Integer> funcToIndex = new HashMap<>();
+        Map<ImFunction, Integer> funcToIndex = new IdentityHashMap<>();
         for (int i = 0; i < funcs.size(); i++) {
             funcToIndex.put(funcs.get(i), i);
         }
-        Map<ImFunction, ImFunction> proxyByOriginal = new HashMap<>();
+        Map<ImFunction, ImFunction> proxyByOriginal = new IdentityHashMap<>();
         // Rewrite only affected roots:
         // - merged cycle body (contains moved bodies from all old funcs)
         // - callers that directly call any removed function
@@ -107,8 +108,8 @@ public class CyclicFunctionRemover {
         }
         for (ImFunction caller : new ArrayList<>(tr.getCalledFunctions().keySet())) {
             Collection<ImFunction> called = tr.getCalledFunctions().get(caller);
-            for (ImFunction removed : funcSet) {
-                if (called.contains(removed)) {
+            for (ImFunction c : called) {
+                if (funcSet.contains(c)) {
                     rewriteRoots.add(caller.getBody());
                     break;
                 }

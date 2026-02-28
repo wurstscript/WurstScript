@@ -69,7 +69,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private static Long lastMapModified = 0L;
     private static String lastMapPath = "";
-    protected String cachedMapFileName = "cached_map.w3x";
+    protected String cachedMapFileName = "";
 
     public static final String BUILD_CONFIGURED_SCRIPT_NAME = "01_war3mapj_with_config.j.txt";
     public static final String BUILD_COMPILED_JASS_NAME = "02_compiled.j.txt";
@@ -411,7 +411,24 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (!cacheDir.exists()) {
             UtilsIO.mkdirs(cacheDir);
         }
-        return new File(cacheDir, cachedMapFileName);
+        return new File(cacheDir, resolveCachedMapFileName());
+    }
+
+    private String resolveCachedMapFileName() {
+        if (!cachedMapFileName.isEmpty()) {
+            return cachedMapFileName;
+        }
+        if (!map.isPresent()) {
+            return "cached_map.w3x";
+        }
+        File inputMap = map.get();
+        String inputName = inputMap.getName();
+        int dot = inputName.lastIndexOf('.');
+        String baseName = dot > 0 ? inputName.substring(0, dot) : inputName;
+        // Keep only filesystem-safe characters and avoid collisions for same basename from different folders.
+        String safeBase = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String pathHash = Integer.toUnsignedString(inputMap.getAbsolutePath().hashCode(), 36);
+        return safeBase + "_" + pathHash + "_cached.w3x";
     }
 
     protected File ensureWritableTargetFile(File targetFile, String dialogTitle, String lockMessage,
