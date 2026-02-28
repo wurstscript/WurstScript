@@ -1058,7 +1058,7 @@ public class ImTranslator {
 
     public Multimap<ImFunction, ImFunction> getCalledFunctions() {
         if (callRelations == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return callRelations;
     }
@@ -1066,6 +1066,14 @@ public class ImTranslator {
 
 
     public void calculateCallRelationsAndUsedVariables() {
+        calculateCallRelationsAndVariables(true);
+    }
+
+    public void calculateCallRelationsAndReadVariables() {
+        calculateCallRelationsAndVariables(false);
+    }
+
+    private void calculateCallRelationsAndVariables(boolean includeUsedVariables) {
         // estimate sizes to reduce rehashing
         final int funcEstimate = Math.max(16, imProg.getFunctions().size());
         final int varEstimate  = Math.max(32, imProg.getGlobals().size());
@@ -1073,14 +1081,14 @@ public class ImTranslator {
         callRelations = com.google.common.collect.LinkedHashMultimap.create(); // keep Guava type externally
 
         usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
-        usedVariables = new ObjectOpenHashSet<>(varEstimate);
+        usedVariables = includeUsedVariables ? new ObjectOpenHashSet<>(varEstimate) : null;
         readVariables = new ObjectOpenHashSet<>(varEstimate);
 
         final ImFunction main = getMainFunc();
-        if (main != null) calculateCallRelations(main);
+        if (main != null) calculateCallRelations(main, includeUsedVariables);
 
         final ImFunction conf = getConfFunc();
-        if (conf != null && conf != main) calculateCallRelations(conf);
+        if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
         // mark protected globals as read
         // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
@@ -1091,7 +1099,7 @@ public class ImTranslator {
         }
     }
 
-    private void calculateCallRelations(ImFunction rootFunction) {
+    private void calculateCallRelations(ImFunction rootFunction, boolean includeUsedVariables) {
         // nothing to do
         if (rootFunction == null) return;
 
@@ -1110,7 +1118,9 @@ public class ImTranslator {
             }
 
             // Only computed once per function thanks to usedFunctions.add() gate
-            usedVariables.addAll(f.calcUsedVariables());
+            if (includeUsedVariables) {
+                usedVariables.addAll(f.calcUsedVariables());
+            }
             readVariables.addAll(f.calcReadVariables());
 
             final Set<ImFunction> called = f.calcUsedFunctions();
@@ -1673,14 +1683,14 @@ public class ImTranslator {
 
     public Set<ImVar> getReadVariables() {
         if (readVariables == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return readVariables;
     }
 
     public Set<ImFunction> getUsedFunctions() {
         if (usedFunctions == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return usedFunctions;
     }
@@ -1704,19 +1714,19 @@ public class ImTranslator {
 
     private void addCapturedTypeVarsFromOwningGeneric(ImTypeVars typeVariables, ClassOrInterface s) {
         if (isIteratorLike(s)) {
-            WLogger.trace("[GENCAP] addCaptured enter: " + s.getClass().getSimpleName()
+            WLogger.trace(() -> "[GENCAP] addCaptured enter: " + s.getClass().getSimpleName()
                 + " name=" + ((NamedScope) s).getName()
                 + " parent=" + (s.getParent() == null ? "null" : s.getParent().getClass().getSimpleName()));
         }
 
         if (!(s instanceof ClassDef)) {
-            if (isIteratorLike(s)) WLogger.trace("[GENCAP] not a ClassDef -> skip");
+            if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] not a ClassDef -> skip");
             return;
         }
         ClassDef cd = (ClassDef) s;
 
         boolean isStatic = cd.attrIsStatic();
-        if (isIteratorLike(s)) WLogger.trace("[GENCAP] isStatic=" + isStatic);
+        if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] isStatic=" + isStatic);
         if (!isStatic) return;
 
         de.peeeq.wurstscript.ast.Element parent = cd.getParent();
@@ -1739,11 +1749,11 @@ public class ImTranslator {
             owner = o;
             ownerInfo = "outerInterface=" + o.getName();
         } else {
-            if (isIteratorLike(s)) WLogger.trace("[GENCAP] parent2 not ModuleInstanciation/ClassDef/InterfaceDef -> skip");
+            if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] parent2 not ModuleInstanciation/ClassDef/InterfaceDef -> skip");
             return;
         }
 
-        if (isIteratorLike(s)) WLogger.trace("[GENCAP] " + ownerInfo);
+        if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] " + ownerInfo);
 
         if (owner == null) return;
         if (owner == cd) return;
@@ -1778,13 +1788,13 @@ public class ImTranslator {
 
                 override.put(tp, captured);
 
-                if (isIteratorLike(s)) WLogger.trace("[GENCAP] created captured owner tvar: " + captured.getName());
+                if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] created captured owner tvar: " + captured.getName());
             }
 
             // Add to inner class' ImTypeVars if not already present by name
             if (!hasTypeVarNamed(typeVariables, captured.getName())) {
                 typeVariables.add(captured);
-                if (isIteratorLike(s)) WLogger.trace("[GENCAP] captured owner tvar added: " + captured.getName());
+                if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] captured owner tvar added: " + captured.getName());
             }
         }
     }
@@ -1837,7 +1847,7 @@ public class ImTranslator {
             // IMPORTANT: method name must match implementation function name,
             // otherwise EliminateClasses dispatch lookup can fail.
             String methodName = imFunc.getName();
-            WLogger.trace("[GENCAP] getMethodFor " + elementNameWithPath(f) + " -> methodName=" + methodName);
+            WLogger.trace(() -> "[GENCAP] getMethodFor " + elementNameWithPath(f) + " -> methodName=" + methodName);
             m = JassIm.ImMethod(f, selfType(f), methodName, imFunc, Lists.newArrayList(), false);
             methodForFuncDef.put(f, m);
         }

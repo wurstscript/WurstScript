@@ -371,7 +371,6 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void updateModel(CompilationUnit cu, WurstGui gui) {
-        WLogger.trace("update model with " + cu.getCuInfo().getFile());
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -534,7 +533,7 @@ public class ModelManagerImpl implements ModelManager {
                 CompilationUnit existing = getCompilationUnit(filename);
                 if (existing != null) {
                     // no change
-                    WLogger.trace("CU " + filename + " was unchanged.");
+                    WLogger.trace(() -> "CU " + filename + " was unchanged.");
                     return existing;
                 }
                 // Stale hash cache after remove/move; CU is gone, so reparse.
@@ -544,7 +543,7 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        WLogger.trace("replace CU " + filename);
+        WLogger.trace(() -> "replace CU " + filename);
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));

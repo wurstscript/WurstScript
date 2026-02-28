@@ -106,7 +106,7 @@ dependencies {
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'com.github.inwc3:jmpq3:29b55f2c32'
-    implementation 'com.github.inwc3:wc3libs:bab65b961b'
+    implementation 'com.github.inwc3:wc3libs:cc49c8e63c'
     implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit.ssh.apache'

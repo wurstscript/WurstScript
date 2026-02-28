@@ -140,13 +140,13 @@ public class AttrPossibleFunctionSignatures {
         final ImmutableCollection<FuncLink> raw =
             mm.lookupMemberFuncs(leftType, name, /*showErrors*/ false);
 
-        WLogger.trace("[IMPLCONV] lookupMemberFuncs name=" + name
+        WLogger.trace(() -> "[IMPLCONV] lookupMemberFuncs name=" + name
             + " leftType=" + leftType
             + " leftRaw=" + left.attrTypRaw()
             + " raw.size=" + raw.size());
 
         for (FuncLink f : raw) {
-            WLogger.trace("[IMPLCONV] rawLink name=" + f.getName()
+            WLogger.trace(() -> "[IMPLCONV] rawLink name=" + f.getName()
                 + " def=" + f.getDef()
                 + " recv=" + f.getReceiverType()
                 + " typeParams=" + f.getTypeParams()
@@ -188,7 +188,7 @@ public class AttrPossibleFunctionSignatures {
         for (FuncLink f : visible) {
             FunctionSignature sig = FunctionSignature.fromNameLink(f);
 
-            WLogger.trace("[IMPLCONV] fromNameLink -> sig=" + sig
+            if (WLogger.isTraceEnabled()) WLogger.trace("[IMPLCONV] fromNameLink -> sig=" + sig
                 + " sig.recv=" + sig.getReceiverType()
                 + " sig.map=" + sig.getMapping());
 
@@ -208,9 +208,9 @@ public class AttrPossibleFunctionSignatures {
                     String rs = String.valueOf(recv);
                     boolean synthetic = rs.contains("thistype") || rs.contains("module"); // refine later if you have a proper predicate
                     if (!synthetic) {
-                        WLogger.trace("[IMPLCONV] drop candidate: receiver mismatch left=" + leftType + " recv=" + recv
+                        WLogger.trace(() -> "[IMPLCONV] drop candidate: receiver mismatch left=" + leftType + " recv=" + recv
                             + " def=" + f.getDef() + " linkBinding=" + f.getVariableBinding());
-                        WLogger.trace("[IMPLCONV] receiver mismatch: leftType=" + leftType
+                        WLogger.trace(() -> "[IMPLCONV] receiver mismatch: leftType=" + leftType
                             + " recv=" + recv
                             + " func=" + f.getName()
                             + " def=" + f.getDef()

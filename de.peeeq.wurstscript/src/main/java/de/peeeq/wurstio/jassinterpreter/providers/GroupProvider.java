@@ -52,11 +52,9 @@ public class GroupProvider extends Provider {
     }
 
     public void ForGroup(IlConstHandle group, ILconstFuncRef funcRef) {
-        WLogger.trace("for group call");
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         groupList.forEach((IlConstHandle u) -> {
             enumUnitStack.push(u);
-            WLogger.trace("for group call itr: " + funcRef.getFuncName());
             interpreter.runFuncRef(funcRef, null);
             enumUnitStack.pop();
         });

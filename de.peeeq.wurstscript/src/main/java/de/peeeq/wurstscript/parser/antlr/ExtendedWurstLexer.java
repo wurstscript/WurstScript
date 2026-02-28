@@ -101,7 +101,7 @@ public class ExtendedWurstLexer implements TokenSource {
         Token t = nextTokenIntern();
         lastToken = t;
 
-        if (debug) WLogger.trace("		new token: " + t);
+        if (debug) WLogger.trace(() -> "		new token: " + t);
         return t;
     }
 

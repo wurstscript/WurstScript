@@ -30,7 +30,7 @@ public class CyclicFunctionRemover {
     }
 
     public void work() {
-        tr.calculateCallRelationsAndUsedVariables();
+        tr.calculateCallRelationsAndReadVariables();
         List<List<ImFunction>> components = timeTaker.measure("finding cycles",
             () -> graph.findStronglyConnectedComponents(prog.getFunctions())
         );

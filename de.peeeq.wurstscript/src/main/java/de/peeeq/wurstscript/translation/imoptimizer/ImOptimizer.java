@@ -75,8 +75,10 @@ public class ImOptimizer {
                 totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
             }
 
-            removeGarbage();
-            trans.getImProg().flatten(trans);
+            if (optCount > 0) {
+                removeGarbage();
+                trans.getImProg().flatten(trans);
+            }
 
             finalItr = i;
             WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
@@ -91,23 +93,26 @@ public class ImOptimizer {
         trans.assertProperties();
     }
 
-    public void removeGarbage() {
+    public boolean removeGarbage() {
         boolean changes = true;
+        boolean anyChanges = false;
         int iterations = 0;
         while (changes && iterations++ < 10) {
             ImProg prog = trans.imProg();
-            trans.calculateCallRelationsAndUsedVariables();
+            trans.calculateCallRelationsAndReadVariables();
+            final Set<ImVar> readVars = trans.getReadVariables();
+            final Set<ImFunction> usedFuncs = trans.getUsedFunctions();
 
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
-            changes = prog.getGlobals().retainAll(trans.getReadVariables());
+            changes = prog.getGlobals().retainAll(readVars);
             int globalsAfter = prog.getGlobals().size();
             int globalsRemoved = globalsBefore - globalsAfter;
             totalGlobalsRemoved += globalsRemoved;
 
             // keep only functions reachable from main and config
             int functionsBefore = prog.getFunctions().size();
-            changes |= prog.getFunctions().retainAll(trans.getUsedFunctions());
+            changes |= prog.getFunctions().retainAll(usedFuncs);
             int functionsAfter = prog.getFunctions().size();
             int functionsRemoved = functionsBefore - functionsAfter;
             totalFunctionsRemoved += functionsRemoved;
@@ -116,13 +121,13 @@ public class ImOptimizer {
             Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
             for (ImClass c : prog.getClasses()) {
                 int classFunctionsBefore = c.getFunctions().size();
-                changes |= c.getFunctions().retainAll(trans.getUsedFunctions());
+                changes |= c.getFunctions().retainAll(usedFuncs);
                 int classFunctionsAfter = c.getFunctions().size();
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
 
                 int classFieldsBefore = c.getFields().size();
-                changes |= c.getFields().retainAll(trans.getReadVariables());
+                changes |= c.getFields().retainAll(readVars);
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
@@ -136,12 +141,12 @@ public class ImOptimizer {
                         super.visit(e);
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
-                            if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
                                 replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
-                            if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
                                 // IMPORTANT: removeAll() clears parent references
                                 List<ImExpr> exprs = va.getIndexes().removeAll();
                                 exprs.add(e.getRight());
@@ -149,12 +154,12 @@ public class ImOptimizer {
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                            if(var != null && !trans.getReadVariables().contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
+                            if(var != null && !readVars.contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
                                 replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
                             ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                            if (!trans.getReadVariables().contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
                                 replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
                             }
                         }
@@ -183,8 +188,10 @@ public class ImOptimizer {
                 }
 
                 // keep only read local variables
-                changes |= f.getLocals().retainAll(trans.getReadVariables());
+                changes |= f.getLocals().retainAll(readVars);
             }
+            anyChanges |= changes;
         }
+        return anyChanges;
     }
 }
