@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Removes cyclic functions from a program
@@ -32,15 +31,14 @@ public class CyclicFunctionRemover {
 
     public void work() {
         tr.calculateCallRelationsAndUsedVariables();
-        AtomicReference<List<List<ImFunction>>> components = new AtomicReference<>();
-        timeTaker.measure("finding cycles",
-            () -> components.set(graph.findStronglyConnectedComponents(prog.getFunctions()))
+        List<List<ImFunction>> components = timeTaker.measure("finding cycles",
+            () -> graph.findStronglyConnectedComponents(prog.getFunctions())
         );
         timeTaker.measure("removing cycles", () -> removeCycles(components));
     }
 
-    private void removeCycles(AtomicReference<List<List<ImFunction>>> componentsRef) {
-        for (List<ImFunction> component : componentsRef.get()) {
+    private void removeCycles(List<List<ImFunction>> components) {
+        for (List<ImFunction> component : components) {
             if (component.size() > 1) {
                 // keep list for order; set for O(1) membership
                 Set<ImFunction> funcSet = new HashSet<>(component);
@@ -96,11 +94,28 @@ public class CyclicFunctionRemover {
         for (int i = 0; i < funcs.size(); i++) {
             funcToIndex.put(funcs.get(i), i);
         }
-        replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, prog);
+        Map<ImFunction, ImFunction> proxyByOriginal = new HashMap<>();
+        // Rewrite only affected roots:
+        // - merged cycle body (contains moved bodies from all old funcs)
+        // - callers that directly call any removed function
+        Set<Element> rewriteRoots = new LinkedHashSet<>();
+        rewriteRoots.add(newFunc.getBody());
+        for (ImFunction caller : new ArrayList<>(tr.getCalledFunctions().keySet())) {
+            Collection<ImFunction> called = tr.getCalledFunctions().get(caller);
+            for (ImFunction removed : funcSet) {
+                if (called.contains(removed)) {
+                    rewriteRoots.add(caller.getBody());
+                    break;
+                }
+            }
+        }
+        for (Element root : rewriteRoots) {
+            replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, proxyByOriginal, root);
+        }
 
-        for (ImFunction e : Lists.newArrayList(tr.getCalledFunctions().keys())) {
-            Collection<ImFunction> called = tr.getCalledFunctions().get(e);
-            called.removeAll(funcs);
+        // Iterate over a snapshot: removing values may remove keys from the live keySet.
+        for (ImFunction caller : new ArrayList<>(tr.getCalledFunctions().keySet())) {
+            tr.getCalledFunctions().get(caller).removeAll(funcSet);
         }
 
         // remove the old funcs
@@ -126,53 +141,51 @@ public class CyclicFunctionRemover {
     }
 
 
-    private void replaceCalls(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
-        List<Element> relevant = new ArrayList<>();
-        e.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImFuncRef imFuncRef) {
-                super.visit(imFuncRef);
-                relevant.add(imFuncRef);
+    private void replaceCalls(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc,
+                              Map<ImVar, ImVar> oldToNewVar, Map<ImFunction, ImFunction> proxyByOriginal, Element e) {
+        ArrayDeque<Element> stack = new ArrayDeque<>();
+        stack.push(e);
+        while (!stack.isEmpty()) {
+            Element current = stack.pop();
+            if (current instanceof ImFuncRef) {
+                replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, proxyByOriginal, (ImFuncRef) current);
+            } else if (current instanceof ImFunctionCall) {
+                replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) current);
             }
-
-            @Override
-            public void visit(ImFunctionCall imFunctionCall) {
-                super.visit(imFunctionCall);
-                relevant.add(imFunctionCall);
-            }
-        });
-        for (Element relevantElem : relevant) {
-            if (relevantElem instanceof ImFuncRef) {
-                replaceImFuncRef(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFuncRef) relevantElem);
-            } else if (relevantElem instanceof ImFunctionCall) {
-                replaceImFunctionCall(funcSet, funcToIndex, newFunc, oldToNewVar, (ImFunctionCall) relevantElem);
+            for (int i = current.size() - 1; i >= 0; i--) {
+                stack.push(current.get(i));
             }
         }
     }
 
-    private void replaceImFuncRef(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, ImFuncRef e) {
+    private void replaceImFuncRef(Set<ImFunction> funcSet, Map<ImFunction, Integer> funcToIndex, ImFunction newFunc,
+                                  Map<ImVar, ImVar> oldToNewVar, Map<ImFunction, ImFunction> proxyByOriginal,
+                                  ImFuncRef e) {
         ImFuncRef fr = e;
         ImFunction f = fr.getFunc();
         if (funcSet.contains(f)) {
+            ImFunction proxyFunc = proxyByOriginal.get(f);
+            if (proxyFunc == null) {
+                proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+                prog.getFunctions().add(proxyFunc);
+                proxyByOriginal.put(f, proxyFunc);
 
-            ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
-            prog.getFunctions().add(proxyFunc);
+                ImExprs arguments = JassIm.ImExprs();
+                for (ImVar p : proxyFunc.getParameters()) {
+                    arguments.add(JassIm.ImVarAccess(p));
+                }
 
-            ImExprs arguments = JassIm.ImExprs();
-            for (ImVar p : proxyFunc.getParameters()) {
-                arguments.add(JassIm.ImVarAccess(p));
+                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
+
+                if (f.getReturnType() instanceof ImVoid) {
+                    proxyFunc.getBody().add(call);
+                } else {
+                    proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
+                }
+                // rewrite the proxy call once per function:
+                replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, proxyByOriginal, call);
             }
-
-            ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
-
-            if (f.getReturnType() instanceof ImVoid) {
-                proxyFunc.getBody().add(call);
-            } else {
-                proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
-            }
-            // rewrite the proxy call:
-            replaceCalls(funcSet, funcToIndex, newFunc, oldToNewVar, call);
-            // change the funcref to use the proxy
+            // change the funcref to use the shared proxy
             fr.setFunc(proxyFunc);
         }
     }
@@ -289,5 +302,3 @@ public class CyclicFunctionRemover {
 
 
 }
-
-

@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover.isFunctionPure;
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
+import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_NOARG_CACHE;
 
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
@@ -294,12 +295,18 @@ public class ILInterpreter implements AbstractInterpreter {
         final String fname = f.getName();
         final boolean pure = isFunctionPure(fname);
 
+        if (pure && args.length == 0) {
+            LocalState cachedNoArg = LOCAL_STATE_NOARG_CACHE.get(f);
+            if (cachedNoArg != null) {
+                return cachedNoArg;
+            }
+        }
+
         GlobalCaches.ArgumentKey key = null;
+        Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn = null;
         if (pure) {
             key = GlobalCaches.ArgumentKey.forLookup(args);
-
-            final Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
-                LOCAL_STATE_CACHE.get(f);
+            perFn = LOCAL_STATE_CACHE.get(f);
             if (perFn != null) {
                 final LocalState cached = perFn.get(key);
                 if (cached != null) {
@@ -317,9 +324,11 @@ public class ILInterpreter implements AbstractInterpreter {
                 final LocalState localState = new LocalState(natives.invoke(fname, args));
 
                 if (pure) {
+                    if (args.length == 0) {
+                        LOCAL_STATE_NOARG_CACHE.put(f, localState);
+                        return localState;
+                    }
                     // insert into per-function cache with bounded size
-                    Object2ObjectOpenHashMap<GlobalCaches.ArgumentKey, LocalState> perFn =
-                        LOCAL_STATE_CACHE.get(f);
                     if (perFn == null) {
                         perFn = new Object2ObjectOpenHashMap<>(16);
                         LOCAL_STATE_CACHE.put(f, perFn);

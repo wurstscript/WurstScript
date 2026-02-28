@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 // Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
 public final class GlobalCaches {
+    // Stats are useful for diagnostics but expensive on very hot cache paths.
+    private static final boolean ENABLE_CACHE_STATS = false;
 
     // Statistics tracking
     public static class CacheStats {
@@ -24,14 +26,17 @@ public final class GlobalCaches {
         }
 
         void recordHit() {
+            if (!ENABLE_CACHE_STATS) return;
             hits.incrementAndGet();
         }
 
         void recordMiss() {
+            if (!ENABLE_CACHE_STATS) return;
             misses.incrementAndGet();
         }
 
         void recordEviction(int count) {
+            if (!ENABLE_CACHE_STATS) return;
             evictions.addAndGet(count);
         }
 
@@ -56,6 +61,7 @@ public final class GlobalCaches {
     public static final class ArgumentKey {
         private final ILconst[] args;
         private final int hash;
+        private static final ArgumentKey EMPTY = new ArgumentKey(new ILconst[0]);
 
         // Reuse instances when possible via a small pool for common sizes
         private static final ThreadLocal<ArgumentKey[]> POOL =
@@ -68,6 +74,9 @@ public final class GlobalCaches {
 
         // Factory method that reuses instances for lookup
         public static ArgumentKey forLookup(ILconst[] args) {
+            if (args.length == 0) {
+                return EMPTY;
+            }
             return new ArgumentKey(args);
         }
 
@@ -121,12 +130,17 @@ public final class GlobalCaches {
             }
         };
 
+    // Fast path for pure builtin calls without arguments: avoid ArgumentKey hashing entirely.
+    public static final Object2ObjectOpenHashMap<Object, LocalState> LOCAL_STATE_NOARG_CACHE =
+        new Object2ObjectOpenHashMap<>();
+
 
     /**
      * Call this between tests (and after each compile)
      */
     public static void clearAll() {
         LOCAL_STATE_CACHE.clear();
+        LOCAL_STATE_NOARG_CACHE.clear();
         lookupCache.clear();
     }
 

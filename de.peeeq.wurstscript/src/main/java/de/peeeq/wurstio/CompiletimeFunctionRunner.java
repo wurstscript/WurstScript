@@ -51,6 +51,8 @@ public class CompiletimeFunctionRunner {
     private final ImTranslator translator;
     private boolean injectObjects;
     private final Deque<Runnable> delayedActions = new ArrayDeque<>();
+    private final Map<String, Long> compiletimeFunctionNanos = new LinkedHashMap<>();
+    private long compiletimeExprNanos = 0L;
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -97,21 +99,29 @@ public class CompiletimeFunctionRunner {
 
     public void run() {
         try {
+            long t0 = System.nanoTime();
             List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
             collectCompiletimeExpressions(toExecute);
             collectCompiletimeFunctions(toExecute);
+            long tCollected = System.nanoTime();
 
             toExecute.sort(Comparator.comparing(this::getOrderIndex));
+            long tSorted = System.nanoTime();
 
             execute(toExecute);
+            long tExecuted = System.nanoTime();
 
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
+            long tWriteback = System.nanoTime();
             runDelayedActions();
+            long tDelayed = System.nanoTime();
 
             partitionCompiletimeStateInitFunction();
+            long tPartitioned = System.nanoTime();
+            logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
 
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
@@ -134,6 +144,48 @@ public class CompiletimeFunctionRunner {
             }
         }
 
+    }
+
+    private void logCompiletimeTiming(List<Either<ImCompiletimeExpr, ImFunction>> toExecute,
+                                      long t0, long tCollected, long tSorted, long tExecuted,
+                                      long tWriteback, long tDelayed, long tPartitioned) {
+        int exprCount = 0;
+        int funcCount = 0;
+        for (Either<ImCompiletimeExpr, ImFunction> e : toExecute) {
+            if (e.isLeft()) {
+                exprCount++;
+            } else {
+                funcCount++;
+            }
+        }
+        WLogger.info(String.format(
+            "Compiletime breakdown: total=%dms collect=%dms sort=%dms execute=%dms writeback=%dms delayed=%dms partition=%dms funcs=%d exprs=%d exprEval=%dms",
+            ms(tPartitioned - t0),
+            ms(tCollected - t0),
+            ms(tSorted - tCollected),
+            ms(tExecuted - tSorted),
+            ms(tWriteback - tExecuted),
+            ms(tDelayed - tWriteback),
+            ms(tPartitioned - tDelayed),
+            funcCount,
+            exprCount,
+            ms(compiletimeExprNanos)
+        ));
+        if (!compiletimeFunctionNanos.isEmpty()) {
+            List<Map.Entry<String, Long>> top = compiletimeFunctionNanos.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(10)
+                .collect(Collectors.toList());
+            StringBuilder sb = new StringBuilder("Top compiletime functions:");
+            for (Map.Entry<String, Long> e : top) {
+                sb.append("\n  ").append(e.getKey()).append(": ").append(ms(e.getValue())).append("ms");
+            }
+            WLogger.info(sb.toString());
+        }
+    }
+
+    private static long ms(long nanos) {
+        return nanos / 1_000_000L;
     }
 
     private void partitionCompiletimeStateInitFunction() {
@@ -220,6 +272,7 @@ public class CompiletimeFunctionRunner {
 
 
     private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
+        long t0 = System.nanoTime();
         try {
             ProgramState globalState = interpreter.getGlobalState();
             globalState.setLastStatement(cte);
@@ -261,6 +314,8 @@ public class CompiletimeFunctionRunner {
             e.setStacktrace(msg);
             e.setTrace(cte.attrTrace());
             throw e;
+        } finally {
+            compiletimeExprNanos += System.nanoTime() - t0;
         }
     }
 
@@ -491,6 +546,7 @@ public class CompiletimeFunctionRunner {
 
     private void executeCompiletimeFunction(ImFunction f) {
         if (functionFlag.matches(f)) {
+            long t0 = System.nanoTime();
             try {
                 if (!f.getBody().isEmpty()) {
                     interpreter.getGlobalState().setLastStatement(f.getBody().get(0));
@@ -505,6 +561,8 @@ public class CompiletimeFunctionRunner {
             } catch (Throwable e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
                 throw e;
+            } finally {
+                compiletimeFunctionNanos.merge(f.getName(), System.nanoTime() - t0, Long::sum);
             }
         }
     }
