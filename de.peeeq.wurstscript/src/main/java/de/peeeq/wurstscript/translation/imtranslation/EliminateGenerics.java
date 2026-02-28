@@ -437,7 +437,7 @@ public class EliminateGenerics {
 
             // This global belongs to a relevant (new-generic or inheriting) class:
             globalToClass.put(global, owner);
-            WLogger.trace("Identified generic static-field global: " + global.getName()
+            WLogger.trace(() -> "Identified generic static-field global: " + global.getName()
                 + " of type " + global.getType()
                 + " belonging to class " + owner.getName());
         }
@@ -1753,7 +1753,7 @@ public class EliminateGenerics {
     }
 
     private void dbg(String msg) {
-        WLogger.trace("[ELIMGEN] " + msg);
+        WLogger.trace(() -> "[ELIMGEN] " + msg);
     }
 
 }

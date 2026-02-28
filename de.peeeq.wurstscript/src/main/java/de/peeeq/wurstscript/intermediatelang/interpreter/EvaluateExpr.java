@@ -132,14 +132,9 @@ public class EvaluateExpr {
             if (isMagicCompiletimeConstant(var)) {
                 return ILconstBool.instance(globalState.isCompiletime());
             }
-            WLogger.trace("VarAccess global " + var.getName() + "@" + System.identityHashCode(var)
-                + " type=" + var.getType());
             ILconst r = globalState.getVal(var);
             if (r == null) {
                 List<ImSet> initExpr = globalState.getProg().getGlobalInits().get(var);
-                WLogger.trace("  -> was null, using globalInits key="
-                    + var.getName() + "@" + System.identityHashCode(var)
-                    + " initExpr=" + (initExpr == null ? "null" : initExpr.size()));
                 if (initExpr != null) {
                     r = initExpr.get(0).getRight().evaluate(globalState, localState);
                 } else {

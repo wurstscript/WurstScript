@@ -510,12 +510,12 @@ public class ExprTranslation {
         // logging
         if (calledFunc instanceof FuncDef) {
             FuncDef fd = (FuncDef) calledFunc;
-            WLogger.trace("[DISPATCH] call " + fd.getName()
+            if (WLogger.isTraceEnabled()) WLogger.trace("[DISPATCH] call " + fd.getName()
                 + " isStatic=" + fd.attrIsStatic()
                 + " dynCtx=" + isCalledOnDynamicRef(e)
                 + " -> dynamicDispatch=" + dynamicDispatch);
         } else {
-            WLogger.trace("[DISPATCH] call " + calledFunc.getName()
+            if (WLogger.isTraceEnabled()) WLogger.trace("[DISPATCH] call " + calledFunc.getName()
                 + " (non-FuncDef)"
                 + " dynCtx=" + isCalledOnDynamicRef(e)
                 + " -> dynamicDispatch=" + dynamicDispatch);

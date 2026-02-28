@@ -143,7 +143,7 @@ public class ConfigProvider {
                 }
             })
             .exceptionally(e -> {
-                WLogger.trace("Background config refresh failed (this is normal if client is busy): " + e.getMessage());
+                WLogger.trace(() -> "Background config refresh failed (this is normal if client is busy): " + e.getMessage());
                 return null;
             });
     }

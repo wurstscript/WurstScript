@@ -7,7 +7,11 @@ public interface WLoggerI {
 
     void trace(String msg);
 
+    void trace(String format, Object... args);
+
     void debug(String s);
+
+    void debug(String format, Object... args);
 
     void info(String msg);
 
@@ -22,4 +26,8 @@ public interface WLoggerI {
     void setLevel(Level level);
 
     void warning(String msg, Throwable e);
+
+    boolean isTraceEnabled();
+
+    boolean isDebugEnabled();
 }

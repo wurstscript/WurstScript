@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 
 public abstract class WLogger {
@@ -28,12 +29,40 @@ public abstract class WLogger {
         instance.trace(msg);
     }
 
+    public static void trace(String format, Object... args) {
+        instance.trace(format, args);
+    }
+
+    public static void trace(Supplier<String> msgSupplier) {
+        if (instance.isTraceEnabled()) {
+            instance.trace(msgSupplier.get());
+        }
+    }
+
     public static void info(String msg) {
         instance.info(msg);
     }
 
     public static void debug(String s) {
         instance.debug(s);
+    }
+
+    public static void debug(String format, Object... args) {
+        instance.debug(format, args);
+    }
+
+    public static void debug(Supplier<String> msgSupplier) {
+        if (instance.isDebugEnabled()) {
+            instance.debug(msgSupplier.get());
+        }
+    }
+
+    public static boolean isTraceEnabled() {
+        return instance.isTraceEnabled();
+    }
+
+    public static boolean isDebugEnabled() {
+        return instance.isDebugEnabled();
     }
 
     public static void setLevel(Level level) {

@@ -23,8 +23,18 @@ public class WLoggerDefault implements WLoggerI {
     }
 
     @Override
+    public void trace(String format, Object... args) {
+        logger.trace(format, args);
+    }
+
+    @Override
     public void debug(String s) {
         logger.debug(s);
+    }
+
+    @Override
+    public void debug(String format, Object... args) {
+        logger.debug(format, args);
     }
 
     /**
@@ -107,6 +117,16 @@ public class WLoggerDefault implements WLoggerI {
         if (logger instanceof Logger) {
             ((Logger) logger).setLevel(level);
         }
+    }
+
+    @Override
+    public boolean isTraceEnabled() {
+        return logger.isTraceEnabled();
+    }
+
+    @Override
+    public boolean isDebugEnabled() {
+        return logger.isDebugEnabled();
     }
 
 }

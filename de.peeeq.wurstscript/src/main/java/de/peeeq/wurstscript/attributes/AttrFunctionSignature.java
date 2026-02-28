@@ -24,12 +24,12 @@ public class AttrFunctionSignature {
 
         // ---- DEBUG: what did we pick, and what did we bind? ----
         if (fc instanceof FunctionCall) {
-            WLogger.trace("[IMPLCONV] call=" + name(fc) + " args=" + at);
+            WLogger.trace(() -> "[IMPLCONV] call=" + name(fc) + " args=" + at);
 //            WLogger.trace("[IMPLCONV] pickedSig=" + sig);
-            WLogger.trace("[IMPLCONV] mapping=" + sig.getMapping()
+            WLogger.trace(() -> "[IMPLCONV] mapping=" + sig.getMapping()
                 + " unbound=" + sig.getMapping().printUnboundTypeVars());
             if (fc instanceof ExprMemberMethodDot emmd) {
-                WLogger.trace("[IMPLCONV] receiver=" + emmd.getLeft().attrTyp()
+                WLogger.trace(() -> "[IMPLCONV] receiver=" + emmd.getLeft().attrTyp()
                     + " raw=" + emmd.getLeft().attrTypRaw()
                     + " member=" + emmd.getFuncName());
             }
@@ -67,7 +67,7 @@ public class AttrFunctionSignature {
             if (!isInitTrigFunc(location)) {
                 if (location instanceof ExprMemberMethodDot) {
                     ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
-                    WLogger.trace("[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
+                    WLogger.trace(() -> "[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
                         + " typ=" + emmd.getLeft().attrTyp()
                         + " for call ." + emmd.getFuncName());
                 }
@@ -147,12 +147,12 @@ public class AttrFunctionSignature {
 
         List<FunctionSignature> candidates = new ArrayList<>();
         for (FunctionSignature sig : sigs) {
-            WLogger.trace("[IMPLCONV] trySig=" + sig + " argTypes=" + argTypes);
+            WLogger.trace(() -> "[IMPLCONV] trySig=" + sig + " argTypes=" + argTypes);
 
             FunctionSignature matched = sig.matchAgainstArgs(argTypes, location);
 
             if (matched != null) {
-                WLogger.trace("[IMPLCONV]   -> matched, mapping=" + matched.getMapping()
+                WLogger.trace(() -> "[IMPLCONV]   -> matched, mapping=" + matched.getMapping()
                     + " unbound=" + matched.getMapping().printUnboundTypeVars());
                 candidates.add(matched);
             } else {
