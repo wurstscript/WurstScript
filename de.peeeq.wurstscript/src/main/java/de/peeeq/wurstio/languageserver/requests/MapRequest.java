@@ -340,7 +340,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         gui.sendProgress("Compiling Script");
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
-            WLogger.info("dep: " + dep.getPath());
+            WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
         if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {

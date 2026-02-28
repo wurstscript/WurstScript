@@ -551,7 +551,7 @@ public class CompiletimeFunctionRunner {
                 if (!f.getBody().isEmpty()) {
                     interpreter.getGlobalState().setLastStatement(f.getBody().get(0));
                 }
-                WLogger.debug(() -> "running " + functionFlag + " function " + f.getName());
+                WLogger.trace(() -> "running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
                 successTests.add(f);
             } catch (TestSuccessException e) {

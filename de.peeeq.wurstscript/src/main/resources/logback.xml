@@ -44,7 +44,7 @@
         </triggeringPolicy>
     </appender>
 
-    <logger name="languageServer" level="debug" additivity="false">
+    <logger name="languageServer" level="info" additivity="false">
         <appender-ref ref="lang_server_log"/>
     </logger>
     <logger name="default" level="info">

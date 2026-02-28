@@ -170,7 +170,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void processWurstFile(WFile f) {
-        WLogger.info("processing file " + f);
+        WLogger.debug("processing file " + f);
         replaceCompilationUnit(f);
     }
 
