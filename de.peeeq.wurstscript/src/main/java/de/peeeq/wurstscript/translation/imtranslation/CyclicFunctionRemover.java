@@ -98,8 +98,13 @@ public class CyclicFunctionRemover {
         // Rewrite only affected roots:
         // - merged cycle body (contains moved bodies from all old funcs)
         // - callers that directly call any removed function
+        // - global inits / other program-level roots that may contain ImFuncRef
         Set<Element> rewriteRoots = new LinkedHashSet<>();
         rewriteRoots.add(newFunc.getBody());
+        rewriteRoots.add(prog);
+        for (List<ImSet> initStmts : prog.getGlobalInits().values()) {
+            rewriteRoots.addAll(initStmts);
+        }
         for (ImFunction caller : new ArrayList<>(tr.getCalledFunctions().keySet())) {
             Collection<ImFunction> called = tr.getCalledFunctions().get(caller);
             for (ImFunction removed : funcSet) {

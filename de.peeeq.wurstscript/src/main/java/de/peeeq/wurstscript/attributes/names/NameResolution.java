@@ -12,9 +12,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 
 public class NameResolution {
-    private static final String PACKAGE_NAME_LOOKUP_PREFIX = "__pkg_name__";
-    private static final String PACKAGE_TYPE_LOOKUP_PREFIX = "__pkg_type__";
-
     private static String memberFuncCacheName(String name, WurstType receiverType) {
         return name
             + "@"
@@ -24,68 +21,11 @@ public class NameResolution {
     }
 
     private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
-        if (scope instanceof WPackage) {
-            return packageNameLinks((WPackage) scope, name);
-        }
         return scope.attrNameLinks().get(name);
     }
 
     private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
-        if (scope instanceof WPackage) {
-            return packageTypeLinks((WPackage) scope, name);
-        }
         return scope.attrTypeNameLinks().get(name);
-    }
-
-    private static ImmutableCollection<DefLink> packageNameLinks(WPackage p, String name) {
-        GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(p, PACKAGE_NAME_LOOKUP_PREFIX + name, GlobalCaches.LookupType.PACKAGE);
-        @SuppressWarnings("unchecked")
-        ImmutableCollection<DefLink> cached = (ImmutableCollection<DefLink>) GlobalCaches.lookupCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
-        LinkedHashSet<DefLink> result = new LinkedHashSet<>();
-        boolean repl = p.getName().equals("WurstREPL");
-        for (WImport imp : p.getImports()) {
-            if (imp.getPackagename().equals("NoWurst")) {
-                continue;
-            }
-            WPackage importedPackage = imp.attrImportedPackage();
-            if (importedPackage == null) {
-                continue;
-            }
-            if (repl) {
-                result.addAll(importedPackage.getElements().attrNameLinks().get(name));
-                result.addAll(importedPackage.attrNameLinks().get(name));
-            } else {
-                result.addAll(importedPackage.attrExportedNameLinks().get(name));
-            }
-        }
-        ImmutableCollection<DefLink> links = ImmutableList.copyOf(result);
-        GlobalCaches.lookupCache.put(key, links);
-        return links;
-    }
-
-    private static ImmutableCollection<TypeLink> packageTypeLinks(WPackage p, String name) {
-        GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(p, PACKAGE_TYPE_LOOKUP_PREFIX + name, GlobalCaches.LookupType.PACKAGE);
-        @SuppressWarnings("unchecked")
-        ImmutableCollection<TypeLink> cached = (ImmutableCollection<TypeLink>) GlobalCaches.lookupCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
-        LinkedHashSet<TypeLink> result = new LinkedHashSet<>();
-        for (WImport imp : p.getImports()) {
-            WPackage importedPackage = imp.attrImportedPackage();
-            if (importedPackage == null) {
-                continue;
-            }
-            result.addAll(importedPackage.attrExportedTypeNameLinks().get(name));
-        }
-        ImmutableCollection<TypeLink> links = ImmutableList.copyOf(result);
-        GlobalCaches.lookupCache.put(key, links);
-        return links;
     }
 
     public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
