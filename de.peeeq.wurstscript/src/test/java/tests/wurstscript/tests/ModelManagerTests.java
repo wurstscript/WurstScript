@@ -885,7 +885,8 @@ public class ModelManagerTests {
     private void purgeUnimportedFiles_likeRunMap(WurstModel model, ModelManagerImpl manager) {
         java.util.Set<CompilationUnit> keep = model.stream()
             .filter(cu -> isInProjectWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager)
-                || isProjectWar3Map_likeRunMap(cu.getCuInfo().getFile(), manager))
+                || isProjectWar3Map_likeRunMap(cu.getCuInfo().getFile(), manager)
+                || isRequiredBuildJass_likeRunMap(cu.getCuInfo().getFile(), manager))
             .collect(java.util.stream.Collectors.toSet());
 
         // Recursively add imported packages’ CUs (uses attrImportedPackage like RunMap)
@@ -908,6 +909,16 @@ public class ModelManagerTests {
         java.nio.file.Path p = java.nio.file.Paths.get(file).toAbsolutePath().normalize();
         java.nio.file.Path w = manager.getProjectPath().toPath().resolve("wurst").toAbsolutePath().normalize();
         return p.startsWith(w) && java.nio.file.Files.exists(p);
+    }
+
+    private boolean isRequiredBuildJass_likeRunMap(String file, ModelManagerImpl manager) {
+        java.nio.file.Path p = java.nio.file.Paths.get(file).toAbsolutePath().normalize();
+        java.nio.file.Path buildDir = manager.getProjectPath().toPath().resolve("_build").toAbsolutePath().normalize();
+        if (!p.startsWith(buildDir) || !java.nio.file.Files.exists(p)) {
+            return false;
+        }
+        String name = p.getFileName().toString();
+        return name.equals("common.j") || name.equals("blizzard.j");
     }
 
     private void addImports_likeRunMap(java.util.Set<CompilationUnit> result, java.util.Set<CompilationUnit> toAdd) {

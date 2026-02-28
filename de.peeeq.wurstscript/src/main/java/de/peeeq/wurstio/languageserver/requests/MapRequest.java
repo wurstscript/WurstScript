@@ -244,7 +244,9 @@ public abstract class MapRequest extends UserRequest<Object> {
     private void purgeUnimportedFiles(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
-            .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile()) || isProjectWar3MapScript(cu.getCuInfo().getFile()))
+            .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile())
+                || isProjectWar3MapScript(cu.getCuInfo().getFile())
+                || isRequiredBuildJass(cu.getCuInfo().getFile()))
             .collect(Collectors.toSet());
         addImports(imported, imported);
 
@@ -276,6 +278,21 @@ public abstract class MapRequest extends UserRequest<Object> {
         return p.startsWith(projectWurstFolder)
             && java.nio.file.Files.exists(p)
             && Utils.isWurstFile(file);
+    }
+
+    private boolean isRequiredBuildJass(String file) {
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path buildDir;
+        try {
+            buildDir = workspaceRoot.getPath().resolve("_build").toAbsolutePath().normalize();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+        if (!p.startsWith(buildDir)) {
+            return false;
+        }
+        String name = p.getFileName().toString();
+        return name.equals("common.j") || name.equals("blizzard.j");
     }
 
     protected File getBuildDir() {
