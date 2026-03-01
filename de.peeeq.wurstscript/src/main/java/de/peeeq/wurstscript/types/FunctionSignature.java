@@ -220,7 +220,7 @@ public class FunctionSignature {
     }
 
     public @Nullable FunctionSignature matchAgainstArgs(List<WurstType> argTypes, Element location) {
-        WLogger.trace("[IMPLCONV] matchAgainstArgs sigId=" + System.identityHashCode(this)
+        WLogger.trace(() -> "[IMPLCONV] matchAgainstArgs sigId=" + System.identityHashCode(this)
             + " vbId=" + System.identityHashCode(this.mapping)
             + " name=" + name
             + " recv=" + receiverType
@@ -237,7 +237,7 @@ public class FunctionSignature {
             mapping = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             VariableBinding before = mapping;
             VariableBinding after = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
-            WLogger.trace("[IMPLCONV]   vb " + System.identityHashCode(before)
+            WLogger.trace(() -> "[IMPLCONV]   vb " + System.identityHashCode(before)
                 + " -> " + (after == null ? "null" : System.identityHashCode(after))
                 + " sameObj=" + (before == after)
                 + " pt=" + pt + " at=" + at);

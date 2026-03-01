@@ -43,7 +43,9 @@ public class LuaTranslationTests extends WurstScriptTest {
     private void assertFunctionBodyContains(String output, String functionName, String search, boolean mustContain) {
         Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
         Matcher matcher = pattern.matcher(output);
+        boolean found = false;
         while (matcher.find()) {
+            found = true;
             String body = matcher.group(1);
             if(!body.contains(search) && mustContain) {
                 fail("Function " + functionName + " must contain " + search + ".");
@@ -52,6 +54,7 @@ public class LuaTranslationTests extends WurstScriptTest {
                 fail("Function " + functionName + " must not contain " + search + ".");
             }
         }
+        assertTrue("Function " + functionName + " was not found.", found);
     }
 
     @Test
@@ -192,6 +195,46 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void methodFieldNameCollision() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class Foo",
+            "    int size = 3",
+            "    function size() returns int",
+            "        return size",
+            "init",
+            "    let f = new Foo()",
+            "    f.size()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_methodFieldNameCollision.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "Foo_Foo_size", "Foo_size_field", true);
+        assertFunctionBodyContains(compiled, "Foo_Foo_size", "return this.Foo_size\n", false);
+    }
+
+    @Test
+    public void mainAndConfigNamesFixed() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native takesInt(int i)",
+            "function helper()",
+            "    let main = 1",
+            "    let config = 2",
+            "    takesInt(main)",
+            "    takesInt(config)",
+            "init",
+            "    helper()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_mainAndConfigNamesFixed.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "helper", "local main1", true);
+        assertFunctionBodyContains(compiled, "helper", "local config1", true);
+        assertTrue(compiled.contains("function main("));
+        assertTrue(compiled.contains("function config("));
+        assertFalse(compiled.contains("function main2("));
+        assertFalse(compiled.contains("function config2("));
+    }
+
+
+    @Test
     public void intCasting() throws IOException {
         // Use local variables to test if it works even when local types are eliminated.
         test().testLua(true).lines(
@@ -234,4 +277,3 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
 }
-

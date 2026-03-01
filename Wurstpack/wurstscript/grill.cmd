@@ -1,8 +1,8 @@
 @echo off
-setlocal
+setlocal EnableExtensions DisableDelayedExpansion
 
-rem Save current code page
-for /f "tokens=2 delims=: " %%A in ('chcp') do set "_OLDCP=%%A"
+rem Save current code page (extract number after ':')
+for /f "tokens=2 delims=:" %%A in ('chcp') do for /f "tokens=1" %%B in ("%%A") do set "_OLDCP=%%B"
 
 rem Switch to UTF-8 for this session
 chcp 65001 >NUL
@@ -38,3 +38,4 @@ rem Restore previous code page if we captured it
 if defined _OLDCP chcp %_OLDCP% >NUL
 
 endlocal
+exit /b %ERRORLEVEL%

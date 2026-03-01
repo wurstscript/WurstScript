@@ -61,17 +61,28 @@ public class BuildMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             String fileName = projectConfig.getBuildMapData().getFileName();
-            Optional<File> targetMap = Optional.of(
-                new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x"));
-            CompilationResult result = compileScript(modelManager, gui, targetMap, projectConfig, buildDir, true);
+            File targetMapFile = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
+            targetMapFile = ensureWritableTargetFile(
+                targetMapFile,
+                "Build Map",
+                "The output map file is in use and cannot be replaced.\nClose Warcraft III and click Retry, choose Rename to use a temporary file name, or Cancel.",
+                "Build canceled because output map target is in use."
+            );
+            CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, true);
 
-            injectMapData(gui, targetMap, result);
+            injectMapData(gui, Optional.of(targetMapFile), result);
 
-            Files.copy(getCachedMapFile().toPath(), targetMap.get().toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            targetMapFile = ensureWritableTargetFile(
+                targetMapFile,
+                "Build Map",
+                "The output map file is still in use and cannot be replaced.\nClick Retry, choose Rename to use a temporary file name, or Cancel.",
+                "Build canceled because output map target is in use."
+            );
+            Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
             gui.sendProgress("Finalizing map");
 
-            try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
                 if (mpq != null) {
                     mpq.closeWithCompression();
                 }

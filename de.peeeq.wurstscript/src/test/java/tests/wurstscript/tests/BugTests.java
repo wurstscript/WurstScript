@@ -1,5 +1,7 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -1070,6 +1072,18 @@ public class BugTests extends WurstScriptTest {
                 "    if foo(bar(1), bar(2))",
                 "        testSuccess()"
         );
+
+        try {
+            String jass = Files.toString(
+                new File(TEST_OUTPUT_PATH + "BugTests_testStacktrace_stacktraceinlopt.j"),
+                Charsets.UTF_8
+            );
+            Assert.assertTrue(jass.contains("wurst_stack_depth"));
+            Assert.assertTrue(jass.contains("wurst_stack"));
+            Assert.assertFalse(jass.contains("return \"\""));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -1448,6 +1462,37 @@ public class BugTests extends WurstScriptTest {
             "init",
             "    ExecuteFunc(\"foo\")"
         );
+    }
+
+    @Test
+    public void executeFuncBridgeKeepsCallerStackFrames() {
+        test().executeProg(false).executeTests(false).lines(
+            "package Test",
+            "@extern native ExecuteFunc(string f)",
+            "function getStackTraceString() returns string",
+            "    return \"\"",
+            "function foo()",
+            "    getStackTraceString()",
+            "function caller()",
+            "    getStackTraceString()",
+            "    ExecuteFunc(\"foo\")",
+            "    getStackTraceString()",
+            "init",
+            "    caller()"
+        );
+
+        try {
+            String jass = Files.toString(
+                new File(TEST_OUTPUT_PATH + "BugTests_executeFuncBridgeKeepsCallerStackFrames_stacktraceinlopt.j"),
+                Charsets.UTF_8
+            );
+            Assert.assertTrue(jass.contains("function bridge_foo"));
+            Assert.assertFalse(jass.contains("bridge_oldStackDepth"));
+            Assert.assertFalse(jass.contains("set wurst_stack_depth = 0"));
+            Assert.assertTrue(jass.contains("via ExecuteFunc"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

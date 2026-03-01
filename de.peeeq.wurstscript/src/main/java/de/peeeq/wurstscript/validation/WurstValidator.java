@@ -483,7 +483,7 @@ public class WurstValidator {
             }
             if (e instanceof WScope)
                 checkForDuplicateNames((WScope) e);
-            if (e instanceof WStatement)
+            if (isHeavy() && e instanceof WStatement)
                 checkReachability((WStatement) e);
             if (e instanceof WurstModel)
                 checkForDuplicatePackages((WurstModel) e);
@@ -1573,6 +1573,12 @@ public class WurstValidator {
     }
 
     private void checkUninitializedVars(FunctionLike f) {
+        if (!isHeavy()) {
+            // Phase-1: collect only. Avoid triggering extra attributes in light validation.
+            heavyFunctions.add(f);
+            return;
+        }
+
         boolean isAbstract = false;
         if (f instanceof FuncDef) {
             FuncDef func = (FuncDef) f;
@@ -1585,12 +1591,6 @@ public class WurstValidator {
             }
         }
         if (isAbstract) return;
-
-        if (!isHeavy()) {
-            // Phase-1: collect, but do not analyze.
-            heavyFunctions.add(f);
-            return;
-        }
 
         // Phase-2: actually run heavy analyses:
         checkReturn(f);
@@ -2735,6 +2735,9 @@ public class WurstValidator {
     }
 
     private void checkForDuplicateNames(WScope scope) {
+        if (scope instanceof WPackage) {
+            return;
+        }
         ImmutableMultimap<String, DefLink> links = scope.attrNameLinks();
         for (String name : links.keySet()) {
             ImmutableCollection<DefLink> nameLinks = links.get(name);

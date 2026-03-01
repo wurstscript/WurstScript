@@ -27,6 +27,7 @@ public class LuaTranslator {
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
         "print", "tostring", "error",
+        "main", "config",
         // keywords:
         "and",
         "break",
@@ -74,8 +75,10 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative()) {
+            if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
                 name = uniqueName(name);
+            } else if (isFixedEntryPoint(a)) {
+                usedNames.add(name);
             }
 
             LuaFunction lf = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -178,6 +181,7 @@ public class LuaTranslator {
 
 
         normalizeMethodNames();
+        normalizeFieldNames();
 
 //        NormalizeNames.normalizeNames(prog);
 
@@ -212,6 +216,10 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    private boolean isFixedEntryPoint(ImFunction function) {
+        return function == imTr.getMainFunc() || function == imTr.getConfFunc();
     }
 
     private void collectPredefinedNames() {
@@ -255,6 +263,42 @@ public class LuaTranslator {
             for (ImMethod method : entry.getValue()) {
                 method.setName(name);
             }
+        }
+    }
+
+    private void normalizeFieldNames() {
+        for (ImClass c : prog.getClasses()) {
+            Set<String> methodNames = new HashSet<>();
+            collectMethodNames(c, methodNames, new HashSet<>());
+            if (methodNames.isEmpty()) {
+                continue;
+            }
+            Set<String> reserved = new HashSet<>(methodNames);
+            for (ImVar field : c.getFields()) {
+                if (reserved.contains(field.getName())) {
+                    String base = field.getName() + "_field";
+                    String candidate = base;
+                    int i = 1;
+                    while (reserved.contains(candidate)) {
+                        candidate = base + i++;
+                    }
+                    field.setName(candidate);
+                }
+                reserved.add(field.getName());
+            }
+        }
+    }
+
+    private void collectMethodNames(ImClass c, Set<String> methodNames, Set<ImClass> visited) {
+        if (visited.contains(c)) {
+            return;
+        }
+        visited.add(c);
+        for (ImMethod method : c.getMethods()) {
+            methodNames.add(method.getName());
+        }
+        for (ImClassType sc : c.getSuperClasses()) {
+            collectMethodNames(sc.getClassDef(), methodNames, visited);
         }
     }
 

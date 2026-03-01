@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
@@ -12,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -196,7 +193,9 @@ public class Flatten {
     public static class MultiResultL extends MultiResult {
 
         public MultiResultL(List<ImStmt> stmts, List<ImLExpr> exprs) {
-            super(stmts, ImmutableList.copyOf(exprs));
+            // Reuse list directly to avoid extra copy on this hot path.
+            //noinspection unchecked,rawtypes
+            super(stmts, (List) exprs);
         }
 
         public ImLExpr expr(int i) {
@@ -271,7 +270,8 @@ public class Flatten {
 
     public static Result flatten(ImExitwhen s, ImTranslator t, ImFunction f) {
         Result cond = s.getCondition().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(cond.stmts);
+        List<ImStmt> stmts = new ArrayList<>(cond.stmts.size() + 1);
+        stmts.addAll(cond.stmts);
         stmts.add(ImExitwhen(s.getTrace(), cond.expr));
         return new Result(stmts);
     }
@@ -279,7 +279,8 @@ public class Flatten {
 
     public static Result flatten(ImIf s, ImTranslator t, ImFunction f) {
         Result cond = s.getCondition().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(cond.stmts);
+        List<ImStmt> stmts = new ArrayList<>(cond.stmts.size() + 1);
+        stmts.addAll(cond.stmts);
         stmts.add(
             JassIm.ImIf(s.getTrace(), cond.expr,
                 flattenStatements(s.getThenBlock(), t, f),
@@ -297,7 +298,8 @@ public class Flatten {
         if (s.getReturnValue() instanceof ImExpr) {
             ImExpr ret = (ImExpr) s.getReturnValue();
             Result result = ret.flatten(t, f);
-            List<ImStmt> stmts = Lists.newArrayList(result.stmts);
+            List<ImStmt> stmts = new ArrayList<>(result.stmts.size() + 1);
+            stmts.addAll(result.stmts);
             stmts.add(ImReturn(s.getTrace(), result.expr));
             return new Result(stmts);
         } else {
@@ -310,7 +312,8 @@ public class Flatten {
     public static Result flatten(ImSet s, ImTranslator t, ImFunction f) {
         Result l = s.getLeft().flatten(t, f);
         Result r = s.getRight().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(l.stmts);
+        List<ImStmt> stmts = new ArrayList<>(l.stmts.size() + r.stmts.size() + 1);
+        stmts.addAll(l.stmts);
         stmts.addAll(r.stmts);
         stmts.add(JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr));
         return new Result(stmts);
@@ -340,7 +343,8 @@ public class Flatten {
                 if (right.stmts.isEmpty()) {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
                 } else {
-                    ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+                    ArrayList<ImStmt> stmts = new ArrayList<>(left.stmts.size() + 1);
+                    stmts.addAll(left.stmts);
                     ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
                     f.getLocals().add(tempVar);
                     ImStmts thenBlock = JassIm.ImStmts();
@@ -360,7 +364,8 @@ public class Flatten {
                 if (right.stmts.isEmpty()) {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
                 } else {
-                    ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+                    ArrayList<ImStmt> stmts = new ArrayList<>(left.stmts.size() + 1);
+                    stmts.addAll(left.stmts);
                     ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), getAndLeftVarName(), false);
                     f.getLocals().add(tempVar);
                     // if left is true then result is true
@@ -387,7 +392,7 @@ public class Flatten {
 
 
     public static Result flatten(ImStatementExpr e, ImTranslator t, ImFunction f) {
-        List<ImStmt> stmts = Lists.newArrayList();
+        List<ImStmt> stmts = new ArrayList<>();
         flattenStatementsInto(stmts, e.getStatements(), t, f);
         Result r = e.getExpr().flatten(t, f);
         stmts.addAll(r.stmts);
@@ -395,7 +400,7 @@ public class Flatten {
     }
 
     public static ResultL flattenL(ImStatementExpr e, ImTranslator t, ImFunction f) {
-        List<ImStmt> stmts = Lists.newArrayList();
+        List<ImStmt> stmts = new ArrayList<>();
         flattenStatementsInto(stmts, e.getStatements(), t, f);
         ResultL r = ((ImLExpr) e.getExpr()).flattenL(t, f);
         stmts.addAll(r.stmts);
@@ -463,20 +468,40 @@ public class Flatten {
     }
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {
-        // Collect all functions
-        List<ImFunction> allFunctions = new ArrayList<>();
-        allFunctions.addAll(imProg.getFunctions());
-        for (ImClass c : imProg.getClasses()) {
-            allFunctions.addAll(c.getFunctions());
-        }
-
         // Choose execution strategy based on flags and size
-        if (USE_PARALLEL_EXECUTION && allFunctions.size() >= PARALLEL_THRESHOLD) {
-            // Use parallel stream directly - no wrapper needed
-            allFunctions.parallelStream().forEach(f -> f.flatten(translator));
+        if (USE_PARALLEL_EXECUTION) {
+            int total = imProg.getFunctions().size();
+            for (ImClass c : imProg.getClasses()) {
+                total += c.getFunctions().size();
+            }
+            if (total >= PARALLEL_THRESHOLD) {
+                // Collect once for parallel traversal.
+                List<ImFunction> allFunctions = new ArrayList<>(total);
+                allFunctions.addAll(imProg.getFunctions());
+                for (ImClass c : imProg.getClasses()) {
+                    allFunctions.addAll(c.getFunctions());
+                }
+                allFunctions.parallelStream().forEach(f -> f.flatten(translator));
+            } else {
+                for (ImFunction f : imProg.getFunctions()) {
+                    f.flatten(translator);
+                }
+                for (ImClass c : imProg.getClasses()) {
+                    for (ImFunction f : c.getFunctions()) {
+                        f.flatten(translator);
+                    }
+                }
+            }
         } else {
-            // Sequential processing for small programs or when parallel is disabled
-            allFunctions.forEach(f -> f.flatten(translator));
+            // Sequential processing avoids intermediate list/lambda overhead.
+            for (ImFunction f : imProg.getFunctions()) {
+                f.flatten(translator);
+            }
+            for (ImClass c : imProg.getClasses()) {
+                for (ImFunction f : c.getFunctions()) {
+                    f.flatten(translator);
+                }
+            }
         }
 
         translator.assertProperties(AssertProperty.FLAT);
@@ -493,25 +518,28 @@ public class Flatten {
     }
 
     private static MultiResult flattenExprs(ImTranslator t, ImFunction f, List<ImExpr> exprs) {
-        // TODO optimize this function to use less temporary variables
-        List<ImStmt> stmts = Lists.newArrayList();
-        List<ImExpr> newExprs = Lists.newArrayList();
-        List<Result> results = Lists.newArrayList();
+        int n = exprs.size();
+        if (n == 0) {
+            return new MultiResult(Collections.emptyList(), Collections.emptyList());
+        }
+        List<ImStmt> stmts = new ArrayList<>(n * 2);
+        List<ImExpr> newExprs = new ArrayList<>(n);
+        Result[] results = new Result[n];
         int withStmts = -1;
-        for (int i = 0; i < exprs.size(); i++) {
-            Result r = exprs.get(i).flatten(t, f);
-            results.add(r);
+        for (int i = 0; i < n; i++) {
+            Result r = flattenExprFast(exprs.get(i), t, f);
+            results[i] = r;
             if (!r.stmts.isEmpty()) {
                 withStmts = i;
             }
         }
-        for (int i = 0; i < exprs.size(); i++) {
+        for (int i = 0; i < n; i++) {
             ImExpr e = exprs.get(i);
-            Result r = results.get(i);
+            Result r = results[i];
 
             stmts.addAll(r.stmts);
-            if (r.expr.attrPurity() instanceof Pure
-                || i >= withStmts) {
+            // Check index first to avoid expensive purity attribute lookups on tail args.
+            if (i >= withStmts || r.expr.attrPurity() instanceof Pure) {
                 newExprs.add(r.expr);
             } else {
                 ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
@@ -524,25 +552,28 @@ public class Flatten {
     }
 
     private static MultiResultL flattenExprsL(ImTranslator t, ImFunction f, List<ImLExpr> exprs) {
-        // TODO optimize this function to use less temporary variables
-        List<ImStmt> stmts = Lists.newArrayList();
-        List<ImLExpr> newExprs = Lists.newArrayList();
-        List<ResultL> results = Lists.newArrayList();
+        int n = exprs.size();
+        if (n == 0) {
+            return new MultiResultL(Collections.emptyList(), Collections.emptyList());
+        }
+        List<ImStmt> stmts = new ArrayList<>(n * 2);
+        List<ImLExpr> newExprs = new ArrayList<>(n);
+        ResultL[] results = new ResultL[n];
         int withStmts = -1;
-        for (int i = 0; i < exprs.size(); i++) {
-            ResultL r = exprs.get(i).flattenL(t, f);
-            results.add(r);
+        for (int i = 0; i < n; i++) {
+            ResultL r = flattenExprLFast(exprs.get(i), t, f);
+            results[i] = r;
             if (!r.stmts.isEmpty()) {
                 withStmts = i;
             }
         }
-        for (int i = 0; i < exprs.size(); i++) {
+        for (int i = 0; i < n; i++) {
             ImExpr e = exprs.get(i);
-            ResultL r = results.get(i);
+            ResultL r = results[i];
 
             stmts.addAll(r.stmts);
-            if (r.expr.attrPurity() instanceof Pure
-                || i >= withStmts) {
+            // Check index first to avoid expensive purity attribute lookups on tail args.
+            if (i >= withStmts || r.expr.attrPurity() instanceof Pure) {
                 newExprs.add(r.getExpr());
             } else {
                 ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), getTempVarName(), false);
@@ -552,6 +583,29 @@ public class Flatten {
             }
         }
         return new MultiResultL(stmts, newExprs);
+    }
+
+    private static Result flattenExprFast(ImExpr e, ImTranslator t, ImFunction f) {
+        // Fast-path trivial nodes that flatten to themselves without extra statements.
+        if (e instanceof ImConst
+            || e instanceof ImVarAccess
+            || e instanceof ImAlloc
+            || e instanceof ImTypeIdOfClass
+            || e instanceof ImGetStackTrace
+            || e instanceof ImCompiletimeExpr) {
+            e.setParent(null);
+            return new Result(e);
+        }
+        return e.flatten(t, f);
+    }
+
+    private static ResultL flattenExprLFast(ImLExpr e, ImTranslator t, ImFunction f) {
+        // Most common LExpr fast-path.
+        if (e instanceof ImVarAccess) {
+            e.setParent(null);
+            return new ResultL(e);
+        }
+        return e.flattenL(t, f);
     }
 
 

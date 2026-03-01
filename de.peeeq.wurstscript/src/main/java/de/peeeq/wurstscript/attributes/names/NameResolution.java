@@ -20,6 +20,14 @@ public class NameResolution {
             + System.identityHashCode(receiverType);
     }
 
+    private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
+        return scope.attrNameLinks().get(name);
+    }
+
+    private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
+        return scope.attrTypeNameLinks().get(name);
+    }
+
     public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
         if (!showErrors) {
             GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name, GlobalCaches.LookupType.FUNC);
@@ -51,7 +59,7 @@ public class NameResolution {
         Set<NameDef> seen = new HashSet<>();
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -129,7 +137,7 @@ public class NameResolution {
             @SuppressWarnings("unchecked")
             ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
-                WLogger.trace("[LOOKUPCACHE] HIT MEMBER_FUNC node=" + System.identityHashCode(node)
+                WLogger.trace(() -> "[LOOKUPCACHE] HIT MEMBER_FUNC node=" + System.identityHashCode(node)
                     + " name=" + name
                     + " recv=" + receiverType
                     + " recvId=" + System.identityHashCode(receiverType)
@@ -139,7 +147,7 @@ public class NameResolution {
         }
 
         List<FuncLink> result = new ArrayList<>(4);
-        WLogger.trace("[LMF] addMemberMethods recv=" + receiverType
+        WLogger.trace(() -> "[LMF] addMemberMethods recv=" + receiverType
             + " recvId=" + System.identityHashCode(receiverType)
             + " name=" + name
             + " node=" + System.identityHashCode(node));
@@ -154,7 +162,7 @@ public class NameResolution {
         }
 
         for (FuncLink f : result) {
-            WLogger.trace("[LMF]  addMemberMethods -> " + f
+            WLogger.trace(() -> "[LMF]  addMemberMethods -> " + f
                 + " recv=" + f.getReceiverType()
                 + " recvId=" + System.identityHashCode(f.getReceiverType())
                 + " linkVB=" + f.getVariableBinding()
@@ -170,7 +178,7 @@ public class NameResolution {
         }
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -189,7 +197,7 @@ public class NameResolution {
 
         if (!showErrors) {
             GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_FUNC);
-            WLogger.trace("[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
+            WLogger.trace(() -> "[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
                 + " name=" + name
                 + " recv=" + receiverType
                 + " recvId=" + System.identityHashCode(receiverType)
@@ -245,7 +253,7 @@ public class NameResolution {
                 }
             }
 
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -308,7 +316,7 @@ public class NameResolution {
         DefLinkMatch bestMatch = null;
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             DefLinkMatch candidate = findBestMemberVarMatch(links, receiverType, node, showErrors);
@@ -325,7 +333,7 @@ public class NameResolution {
         if (bestMatch != null) {
             if (!showErrors) {
                 GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_VAR);
-                WLogger.trace("[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
+                WLogger.trace(() -> "[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
                     + " name=" + name
                     + " recv=" + receiverType
                     + " recvId=" + System.identityHashCode(receiverType));
@@ -461,7 +469,7 @@ public class NameResolution {
         VariableBinding mapping = receiverType.matchAgainstSupertype(candRecv, node, seed, VariablePosition.RIGHT);
         if (mapping == null) return null;
 
-        WLogger.trace("[MATCHRECV] def=" + ((n instanceof FuncLink) ? ((FuncLink) n).getDef().getName() : n.getDef().getName())
+        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink) ? ((FuncLink) n).getDef().getName() : n.getDef().getName())
             + " left=" + receiverType
             + " candRecv=" + candRecv
             + " linkTypeParams=" + n.getTypeParams()
@@ -513,7 +521,7 @@ public class NameResolution {
 
 
         for (WScope s : scopes) {
-            ImmutableCollection<TypeLink> links = s.attrTypeNameLinks().get(name);
+            ImmutableCollection<TypeLink> links = scopeTypeLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (NameLink n : links) {
@@ -556,7 +564,7 @@ public class NameResolution {
     public static PackageLink lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            for (NameLink n : scopeNameLinks(scope, name)) {
                 if (n instanceof PackageLink) {
                     return (PackageLink) n;
                 }

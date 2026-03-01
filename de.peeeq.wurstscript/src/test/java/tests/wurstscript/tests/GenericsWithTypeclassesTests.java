@@ -2091,6 +2091,49 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
        assertEquals(count, 2);
 
         assertFalse(compiled.contains("ArrayList_nextFreeIndex_"));
+        // In checked mode, virtual method calls should go through dispatch.
+        assertTrue(compiled.contains("dispatch_ArrayList"));
+    }
+
+    @Test
+    public void fullArrayListTestUncheckedDispatch() throws IOException {
+        test().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "arrayList.wurst"));
+
+        String compiled = Files.toString(
+            new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullArrayListTestUncheckedDispatch_no_opts.jim"),
+            Charsets.UTF_8);
+
+        // In unchecked dispatch mode, monomorphic ArrayList<T>.get should be lowered directly.
+        assertTrue(compiled.contains("ArrayList_get"));
+        assertFalse(compiled.contains("dispatch_ArrayList"));
+    }
+
+    @Test
+    public void fullReactiveGenericDispatchTest() throws IOException {
+        test().withStdLib().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
+
+        String compiled = Files.toString(
+            new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullReactiveGenericDispatchTest_no_opts.jim"),
+            Charsets.UTF_8);
+
+        // In checked mode, polymorphic interface calls are dispatched and guarded.
+        assertTrue(compiled.contains("dispatch_ReactiveSource_ReactiveSource_subscribe"));
+        assertTrue(compiled.contains("Nullpointer exception when calling ReactiveSource.subscribe"));
+        assertTrue(compiled.contains("Called ReactiveSource.subscribe on invalid object."));
+    }
+
+    @Test
+    public void fullReactiveGenericDispatchTestUncheckedDispatch() throws IOException {
+        test().withStdLib().uncheckedDispatch().executeProg().executeTests().file(new File(TEST_DIR + "reactiveGenericsDispatch.wurst"));
+
+        String compiled = Files.toString(
+            new File(TEST_OUTPUT_PATH + "GenericsWithTypeclassesTests_fullReactiveGenericDispatchTestUncheckedDispatch_no_opts.jim"),
+            Charsets.UTF_8);
+
+        // ReactiveSource is polymorphic, so dispatch remains, but safety checks should be removed.
+        assertTrue(compiled.contains("dispatch_ReactiveSource_ReactiveSource_subscribe"));
+        assertFalse(compiled.contains("Nullpointer exception when calling ReactiveSource.subscribe"));
+        assertFalse(compiled.contains("Called ReactiveSource.subscribe on invalid object."));
     }
 
     @Test

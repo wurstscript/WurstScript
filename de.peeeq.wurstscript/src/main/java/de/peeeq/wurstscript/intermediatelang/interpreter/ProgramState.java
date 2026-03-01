@@ -27,6 +27,8 @@ public class ProgramState extends State {
     protected WurstGui gui;
     private PrintStream outStream = System.err;
     private final List<NativesProvider> nativeProviders = Lists.newArrayList();
+    private final Object2ObjectOpenHashMap<String, NativesProvider> nativeProviderByFunc = new Object2ObjectOpenHashMap<>();
+    private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
@@ -128,9 +130,9 @@ public class ProgramState extends State {
             }
         }
 
-        WLogger.trace("[GENSTATIC] owners detected: " + genericStaticOwner.size());
+        WLogger.trace(() -> "[GENSTATIC] owners detected: " + genericStaticOwner.size());
         for (var e : genericStaticOwner.entrySet()) {
-            WLogger.trace("[GENSTATIC] " + e.getKey().getName() + " -> " + e.getValue().getName());
+            WLogger.trace(() -> "[GENSTATIC] " + e.getKey().getName() + " -> " + e.getValue().getName());
         }
     }
 
@@ -175,10 +177,28 @@ public class ProgramState extends State {
     public void addNativeProvider(NativesProvider np) {
         np.setOutStream(outStream);
         nativeProviders.add(np);
+        nativeProviderByFunc.clear();
+        missingNativeFuncs.clear();
     }
 
     public Iterable<NativesProvider> getNativeProviders() {
         return nativeProviders;
+    }
+
+    public @Nullable NativesProvider getCachedNativeProvider(String funcName) {
+        return nativeProviderByFunc.get(funcName);
+    }
+
+    public boolean isKnownMissingNative(String funcName) {
+        return missingNativeFuncs.contains(funcName);
+    }
+
+    public void cacheNativeProvider(String funcName, NativesProvider provider) {
+        nativeProviderByFunc.put(funcName, provider);
+    }
+
+    public void markMissingNative(String funcName) {
+        missingNativeFuncs.add(funcName);
     }
 
     public ProgramState setProg(ImProg p) {
@@ -252,7 +272,7 @@ public class ProgramState extends State {
             normalized.put(e.getKey(), rhs);
         }
 
-        WLogger.trace("pushStackframe " + f + " with receiver " + receiver
+        WLogger.trace(() -> "pushStackframe " + f + " with receiver " + receiver
             + " and args " + Arrays.toString(args) + " and typesubst " + normalized);
 
 //        new Exception().printStackTrace(System.out);
@@ -296,7 +316,7 @@ public class ProgramState extends State {
         if (owner == null) return null;
 
         String ownerInst = ownerInstantiationKeyFromTypeSubst(owner);
-        WLogger.trace("[GENSTATIC] key for " + v.getName()
+        WLogger.trace(() -> "[GENSTATIC] key for " + v.getName()
             + " owner=" + owner.getName()
             + " ownerInstFromSubst=" + ownerInst
             + " receiver=" + (stackFrames.peek() == null ? null : stackFrames.peek().receiver));
@@ -306,7 +326,7 @@ public class ProgramState extends State {
 
         // fallback: previous receiver-based logic
         ImClassType inst = currentReceiverInstantiationFor(owner);
-        WLogger.trace("[GENSTATIC] key for " + v.getName()
+        WLogger.trace(() -> "[GENSTATIC] key for " + v.getName()
             + " owner=" + owner.getName()
             + " ownerInstFromSubst=" + ownerInst
             + " receiver=" + (stackFrames.peek() == null ? null : stackFrames.peek().receiver));
@@ -474,7 +494,7 @@ public class ProgramState extends State {
     }
 
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
-        WLogger.trace("pushStackframe compiletime expr " + f);
+        WLogger.trace(() -> "pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
         de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
         if (stmt == null) {
@@ -485,7 +505,7 @@ public class ProgramState extends State {
 
     public void popStackframe() {
 //        new Exception().printStackTrace(System.out);
-        WLogger.trace("popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
+        WLogger.trace(() -> "popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
@@ -646,7 +666,7 @@ public class ProgramState extends State {
     public void setVal(ImVar v, ILconst val) {
         String key = genericStaticKey(v);
         if (key != null) {
-            WLogger.trace("[GENSTATIC] set " + key + " = " + val);
+            WLogger.trace(() -> "[GENSTATIC] set " + key + " = " + val);
             genericStaticScalarVals.put(key, val);
             return;
         }
@@ -659,7 +679,7 @@ public class ProgramState extends State {
         if (key != null) {
             ILconst existing = genericStaticScalarVals.get(key);
             if (existing != null) {
-                WLogger.trace("[GENSTATIC] get " + key + " -> (cached) " + existing);
+                WLogger.trace(() -> "[GENSTATIC] get " + key + " -> (cached) " + existing);
                 return existing;
             }
 
@@ -668,12 +688,12 @@ public class ProgramState extends State {
             if (inits != null && !inits.isEmpty()) {
                 ILconst initVal = inits.get(inits.size() - 1).getRight().evaluate(this, EMPTY_LOCAL_STATE);
                 genericStaticScalarVals.put(key, initVal);
-                WLogger.trace("[GENSTATIC] get " + key + " -> (init) " + initVal);
+                WLogger.trace(() -> "[GENSTATIC] get " + key + " -> (init) " + initVal);
                 return initVal;
             }
 
             // fallback: default semantics (if your interpreter expects “unset = null/0”)
-            WLogger.trace("[GENSTATIC] get " + key + " -> (unset) null");
+            WLogger.trace(() -> "[GENSTATIC] get " + key + " -> (unset) null");
             return null;
         }
 
@@ -762,4 +782,3 @@ public class ProgramState extends State {
     }
 
 }
-

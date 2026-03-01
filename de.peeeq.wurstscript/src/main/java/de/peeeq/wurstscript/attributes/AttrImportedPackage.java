@@ -42,9 +42,8 @@ public class AttrImportedPackage {
                 WPackage old = result.put(p.getName(), p);
                 if (old != null) {
                     if (!p.getName().equals("Wurst")) {
-                        // TODO should this really error?
-                        p.addError("Package " + p.getName() + " is already defined in " + Utils.printPos(old.getSource()));
-                        old.addError("Package " + p.getName() + " is already defined in " + Utils.printPos(p.getSource()));
+                        p.addError("Package '" + p.getName() + "' is defined multiple times. "
+                            + "This is currently not supported. First definition: " + Utils.printPos(old.getSource()));
                     }
                 }
             }
