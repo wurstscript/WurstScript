@@ -535,12 +535,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         beginPhase(13, "flatten");
-        optimizer.removeGarbage();
+        boolean garbageChanged = optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
         // Re-run to avoid #883
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        if (garbageChanged) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+        }
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
         timeTaker.endPhase();
@@ -566,7 +568,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imTranslator.removeEmptyPackageInits();
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
-        getImTranslator().calculateCallRelationsAndUsedVariables();
+        getImTranslator().calculateCallRelationsAndReadVariables();
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
         prog = translator.translate();
@@ -957,12 +959,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
-        optimizer.removeGarbage();
+        boolean garbageChanged = optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
         // Re-run to avoid #883
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        if (garbageChanged) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+        }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
 

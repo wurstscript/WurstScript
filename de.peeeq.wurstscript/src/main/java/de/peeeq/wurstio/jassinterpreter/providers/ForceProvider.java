@@ -44,7 +44,6 @@ public class ForceProvider extends Provider {
     public void ForForce(IlConstHandle force, ILconstFuncRef funcRef) {
         // TODO take force param into account
         // For now this simply executes the supplied function.
-        WLogger.trace("for force call");
         interpreter.runFuncRef(funcRef, null);
     }
 }

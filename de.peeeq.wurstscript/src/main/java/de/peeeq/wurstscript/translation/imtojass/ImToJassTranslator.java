@@ -58,24 +58,50 @@ public class ImToJassTranslator {
      * makes names unique in a consistent way
      */
     private <T extends JassImElementWithName> void makeNamesUnique(List<T> list) {
-        List<T> sorted = new ArrayList<>();
-        for (T t : list) {
-            sorted.add(t);
-        }
+        List<T> sorted = new ArrayList<>(list);
         sorted.sort(Comparator.comparing(JassImElementWithName::getName)
             .thenComparing(v -> v.getTrace().attrSource().getFile())
             .thenComparing(v -> v.getTrace().attrSource().getLine())
             .thenComparing(v -> v.getTrace().attrSource().getStartColumn()));
 
-        for (int i = 0; i < sorted.size(); i++) {
-            T vi = sorted.get(i);
-            for (int j = i + 1; j < sorted.size(); j++) {
-                T vj = sorted.get(j);
-                if (vi.getName().equals(vj.getName())) {
-                    vj.setName(vi.getName() + "_" + j);
+        Set<String> used = new HashSet<>(sorted.size() * 2);
+        Map<String, Integer> nextSuffix = new HashMap<>();
+
+        for (T v : sorted) {
+            String base = v.getName();
+            if (used.add(base)) {
+                nextSuffix.putIfAbsent(base, 1);
+                continue;
+            }
+
+            int suffix = nextSuffix.getOrDefault(base, 1);
+            String candidate;
+            do {
+                candidate = base + "_" + suffix;
+                suffix++;
+            } while (used.contains(candidate));
+
+            v.setName(candidate);
+            used.add(candidate);
+            nextSuffix.put(base, suffix);
+            nextSuffix.putIfAbsent(candidate, 1);
+        }
+    }
+
+    private static final Pattern jassValidName = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
+
+    private static de.peeeq.wurstscript.ast.Element getTrace(@Nullable Element elem) {
+        while (elem != null) {
+            if (elem instanceof ElementWithTrace) {
+                ElementWithTrace ElementWithTrace = (ElementWithTrace) elem;
+                de.peeeq.wurstscript.ast.Element t = ElementWithTrace.getTrace();
+                if (t != null) {
+                    return t;
                 }
             }
+            elem = elem.getParent();
         }
+        throw new Error("Could not get trace to original program.");
     }
 
     private void collectGlobalVars() {
@@ -128,20 +154,6 @@ public class ImToJassTranslator {
         List<ImFunction> r = Lists.newArrayList(collection);
         r.sort(Comparator.comparing(ImFunction::getName));
         return r;
-    }
-
-    private static de.peeeq.wurstscript.ast.Element getTrace(@Nullable Element elem) {
-        while (elem != null) {
-            if (elem instanceof ElementWithTrace) {
-                ElementWithTrace ElementWithTrace = (ElementWithTrace) elem;
-                de.peeeq.wurstscript.ast.Element t = ElementWithTrace.getTrace();
-                if (t != null) {
-                    return t;
-                }
-            }
-            elem = elem.getParent();
-        }
-        throw new Error("Could not get trace to original program.");
     }
 
     private void translateFunction(ImFunction imFunc) {
@@ -229,8 +241,6 @@ public class ImToJassTranslator {
         }
         return name;
     }
-
-    private final Pattern jassValidName = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
 
     /**
      * replaces all invalid characters with underscores

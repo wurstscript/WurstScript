@@ -248,7 +248,7 @@ public class EliminateClasses {
         prog.getFunctions().add(df);
         dispatchFuncs.put(m, df);
 
-        WLogger.trace("[DISPATCH] register method=" + m.getName() + "@" + System.identityHashCode(m)
+        WLogger.trace(() -> "[DISPATCH] register method=" + m.getName() + "@" + System.identityHashCode(m)
             + " impl=" + m.getImplementation().getName() + "@" + System.identityHashCode(m.getImplementation())
             + " sig=" + m.toString()
             + " df=" + df.getName());

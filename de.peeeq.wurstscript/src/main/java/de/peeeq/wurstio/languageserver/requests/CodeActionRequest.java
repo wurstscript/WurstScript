@@ -22,10 +22,14 @@ import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstio.languageserver.WurstCommands.WURST_PERFORM_CODE_ACTION;
@@ -113,7 +117,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
     private List<Either<Command, CodeAction>> handleMissingName(ModelManager modelManager, NameRef nr) {
         String funcName = nr.getVarName();
         WurstModel model = modelManager.getModel();
-        List<String> possibleImports = new ArrayList<>();
+        Set<String> possibleImports = new LinkedHashSet<>();
         WurstType receiverType = null;
         if (nr instanceof ExprMember) {
             ExprMember m = (ExprMember) nr;
@@ -136,6 +140,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 }
             }
         }
+        addDependencyPackageFallback(modelManager, possibleImports, funcName);
 
         return makeImportCommands(possibleImports);
 
@@ -157,7 +162,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             receiverType = m.getLeft().attrTyp();
         }
         WurstModel model = modelManager.getModel();
-        List<String> possibleImports = new ArrayList<>();
+        Set<String> possibleImports = new LinkedHashSet<>();
         for (CompilationUnit cu : model) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
@@ -171,6 +176,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 }
             }
         }
+        addDependencyPackageFallback(modelManager, possibleImports, funcName);
 
         return Utils.concatLists(makeImportCommands(possibleImports), makeCreateFunctionQuickfix(fr));
     }
@@ -342,7 +348,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
     private List<Either<Command, CodeAction>> handleMissingType(ModelManager modelManager, String typeName) {
         WurstModel model = modelManager.getModel();
-        List<String> possibleImports = new ArrayList<>();
+        Set<String> possibleImports = new LinkedHashSet<>();
         for (CompilationUnit cu : model) {
             for (WPackage wPackage : cu.getPackages()) {
                 if (!wPackage.attrExportedTypeNameLinks().get(typeName).isEmpty()) {
@@ -350,6 +356,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 }
             }
         }
+        addDependencyPackageFallback(modelManager, possibleImports, typeName);
 
         return makeImportCommands(possibleImports);
     }
@@ -361,7 +368,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         // that are not yet imported into the project.
 
         WurstModel model = modelManager.getModel();
-        List<String> possibleImports = new ArrayList<>();
+        Set<String> possibleImports = new LinkedHashSet<>();
         for (CompilationUnit cu : model) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
@@ -373,6 +380,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 }
             }
         }
+        addDependencyPackageFallback(modelManager, possibleImports, typeName);
 
         return makeImportCommands(possibleImports);
     }
@@ -380,7 +388,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
     private List<Either<Command, CodeAction>> handleMissingModule(ModelManager modelManager, String moduleName) {
 
         WurstModel model = modelManager.getModel();
-        List<String> possibleImports = new ArrayList<>();
+        Set<String> possibleImports = new LinkedHashSet<>();
         for (CompilationUnit cu : model) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
@@ -392,13 +400,23 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 }
             }
         }
+        addDependencyPackageFallback(modelManager, possibleImports, moduleName);
 
         return makeImportCommands(possibleImports);
     }
 
 
 
-    private List<Either<Command, CodeAction>> makeImportCommands(List<String> possibleImports) {
+    private void addDependencyPackageFallback(ModelManager modelManager, Set<String> possibleImports, String unresolvedName) {
+        for (File dep : modelManager.getDependencyWurstFiles()) {
+            String libName = Utils.getLibName(dep);
+            if (libName.equals(unresolvedName)) {
+                possibleImports.add(libName);
+            }
+        }
+    }
+
+    private List<Either<Command, CodeAction>> makeImportCommands(Collection<String> possibleImports) {
         return possibleImports.stream()
                 .map(this::makeImportCommand)
                 .collect(Collectors.toList());

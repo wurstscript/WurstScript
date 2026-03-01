@@ -60,7 +60,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
     public ILconst executeFunction(String name, ILconst... arguments) {
         if (trace) {
-            WLogger.trace(name + "( " + Utils.join(arguments, ", ") + ")");
+            WLogger.trace(() -> name + "( " + Utils.join(arguments, ", ") + ")");
         }
 
         ExecutableJassFunction func = searchFunction(name);
@@ -99,13 +99,13 @@ public class JassInterpreter implements AbstractInterpreter {
             this.executeStatements(localVarMap, body);
         } catch (ReturnException e) {
             if (trace) {
-                WLogger.trace("end function " + func.getName() + " returns " + e.getVal());
+                WLogger.trace(() -> "end function " + func.getName() + " returns " + e.getVal());
             }
             return e.getVal();
         }
 
         if (trace) {
-            WLogger.trace("end function " + func.getName());
+            WLogger.trace(() -> "end function " + func.getName());
         }
         return null;
     }
