@@ -630,6 +630,37 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void deadStoreKeepsObservableMemberMutationInCallee() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class C",
+            "    int x",
+            "function mutate(C c) returns int",
+            "    c.x = 7",
+            "    return 1",
+            "init",
+            "    let c = new C",
+            "    int unused = mutate(c)",
+            "    if c.x == 7",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void removeEmptyPackageInitsDoesNotPruneUserInitPrefixedFunctions() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function init_user() returns bool",
+            "    return true",
+            "init",
+            "    if init_user()",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void test_unreachableCodeRemover() throws IOException {
         test().withStdLib().lines(
             "package test",

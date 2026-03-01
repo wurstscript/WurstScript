@@ -185,8 +185,8 @@ public class ImTranslator {
 
     public void removeEmptyPackageInits() {
         Set<ImFunction> emptyInitFunctions = new HashSet<>();
-        for (ImFunction initFunc : imProg.getFunctions()) {
-            if (initFunc.getName().startsWith("init_") && isTrivialInitFunction(initFunc)) {
+        for (ImFunction initFunc : new LinkedHashSet<>(initFuncMap.values())) {
+            if (isTrivialInitFunction(initFunc)) {
                 emptyInitFunctions.add(initFunc);
             }
         }

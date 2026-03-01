@@ -513,6 +513,9 @@ public class SideEffectAnalyzer {
         }
 
         private boolean hasGlobalSideEffects(Element elem) {
+            if (hasMemberWrites(elem)) {
+                return true;
+            }
             for (ImVar var : directlySetVariables(elem)) {
                 // Some optimization passes temporarily detach vars; in that state isGlobal() throws.
                 if (isAttachedGlobal(var)) {
@@ -530,6 +533,38 @@ public class SideEffectAnalyzer {
                 }
             }
             return false;
+        }
+
+        private boolean hasMemberWrites(Element elem) {
+            final boolean[] foundMemberWrite = {false};
+            elem.accept(new ImStmt.DefaultVisitor() {
+                @Override
+                public void visit(ImSet set) {
+                    super.visit(set);
+                    if (isMemberWrite(set.getLeft())) {
+                        foundMemberWrite[0] = true;
+                    }
+                }
+
+                private boolean isMemberWrite(ImLExpr left) {
+                    if (left instanceof ImMemberAccess) {
+                        return true;
+                    }
+                    if (left instanceof ImTupleSelection) {
+                        ImExpr tupleExpr = ((ImTupleSelection) left).getTupleExpr();
+                        return tupleExpr instanceof ImLExpr && isMemberWrite((ImLExpr) tupleExpr);
+                    }
+                    if (left instanceof ImTupleExpr) {
+                        for (ImExpr expr : ((ImTupleExpr) left).getExprs()) {
+                            if (expr instanceof ImLExpr && isMemberWrite((ImLExpr) expr)) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            });
+            return foundMemberWrite[0];
         }
 
         private boolean isAttachedGlobal(ImVar var) {
