@@ -563,6 +563,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // translate flattened intermediate lang to jass:
 
         beginPhase(14, "translate to jass");
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+        imTranslator.removeEmptyPackageInits();
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
         getImTranslator().calculateCallRelationsAndReadVariables();
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());

@@ -8,8 +8,11 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -454,5 +457,124 @@ public class SideEffectAnalyzer {
         Set<ImFunction> directFuncs = calledFunctions(elem);
         Set<ImVar> imVars = directlySetVariables(elem);
         return natives.size() + directFuncs.size() + imVars.size() > 0;
+    }
+
+    /**
+     * Checks if the given element has observable side effects.
+     * Pure natives can be configured via the predicate.
+     */
+    public boolean hasObservableSideEffects(Element elem, Predicate<ImFunction> isNativeWithoutSideEffects) {
+        return new ObservableSideEffectChecker(isNativeWithoutSideEffects).hasSideEffects(elem);
+    }
+
+    private final class ObservableSideEffectChecker {
+        private final Predicate<ImFunction> isNativeWithoutSideEffects;
+        private final Map<ImFunction, Boolean> cache = new HashMap<>();
+        private final Set<ImFunction> inProgress = new LinkedHashSet<>();
+
+        private ObservableSideEffectChecker(Predicate<ImFunction> isNativeWithoutSideEffects) {
+            this.isNativeWithoutSideEffects = isNativeWithoutSideEffects;
+        }
+
+        private boolean hasSideEffects(Element elem) {
+            if (!directlySetVariables(elem).isEmpty()) {
+                return true;
+            }
+            for (ImFunction nativeFunc : calledNatives(elem)) {
+                if (!isNativeWithoutSideEffects.test(nativeFunc)) {
+                    return true;
+                }
+            }
+            for (ImFunction called : calledFunctions(elem)) {
+                if (functionHasSideEffects(called)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean functionHasSideEffects(ImFunction func) {
+            Boolean cached = cache.get(func);
+            if (cached != null) {
+                return cached;
+            }
+            if (func.isNative()) {
+                boolean sideEffect = !isNativeWithoutSideEffects.test(func);
+                cache.put(func, sideEffect);
+                return sideEffect;
+            }
+            if (func.isExtern()) {
+                // Extern implementations are not represented in IM and may have runtime effects.
+                cache.put(func, true);
+                return true;
+            }
+            if (!inProgress.add(func)) {
+                return true;
+            }
+            boolean sideEffect = hasGlobalSideEffects(func.getBody());
+            inProgress.remove(func);
+            cache.put(func, sideEffect);
+            return sideEffect;
+        }
+
+        private boolean hasGlobalSideEffects(Element elem) {
+            if (hasMemberWrites(elem)) {
+                return true;
+            }
+            for (ImVar var : directlySetVariables(elem)) {
+                // Some optimization passes temporarily detach vars; in that state isGlobal() throws.
+                if (isAttachedGlobal(var)) {
+                    return true;
+                }
+            }
+            for (ImFunction nativeFunc : calledNatives(elem)) {
+                if (!isNativeWithoutSideEffects.test(nativeFunc)) {
+                    return true;
+                }
+            }
+            for (ImFunction called : calledFunctions(elem)) {
+                if (functionHasSideEffects(called)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean hasMemberWrites(Element elem) {
+            final boolean[] foundMemberWrite = {false};
+            elem.accept(new ImStmt.DefaultVisitor() {
+                @Override
+                public void visit(ImSet set) {
+                    super.visit(set);
+                    if (isMemberWrite(set.getLeft())) {
+                        foundMemberWrite[0] = true;
+                    }
+                }
+
+                private boolean isMemberWrite(ImLExpr left) {
+                    if (left instanceof ImMemberAccess) {
+                        return true;
+                    }
+                    if (left instanceof ImTupleSelection) {
+                        ImExpr tupleExpr = ((ImTupleSelection) left).getTupleExpr();
+                        return tupleExpr instanceof ImLExpr && isMemberWrite((ImLExpr) tupleExpr);
+                    }
+                    if (left instanceof ImTupleExpr) {
+                        for (ImExpr expr : ((ImTupleExpr) left).getExprs()) {
+                            if (expr instanceof ImLExpr && isMemberWrite((ImLExpr) expr)) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            });
+            return foundMemberWrite[0];
+        }
+
+        private boolean isAttachedGlobal(ImVar var) {
+            Element parent = var.getParent();
+            return parent != null && parent.getParent() instanceof ImProg;
+        }
     }
 }

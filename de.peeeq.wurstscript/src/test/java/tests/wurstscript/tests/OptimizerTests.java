@@ -9,8 +9,10 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
@@ -600,6 +602,67 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void deadStoreKeepsPotentialDivisionTrap() throws IOException {
+        test().executeProg(false).lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native getY() returns int",
+            "	init",
+            "		int y = getY()",
+            "		string x = I2S(1 div y)",
+            "endpackage");
+        String compiledNoOpt = Files.toString(new File("test-output/OptimizerTests_deadStoreKeepsPotentialDivisionTrap_no_opts.j"), Charsets.UTF_8);
+        assertTrue(compiledNoOpt.contains("1 /"), "potential division trap should be preserved");
+    }
+
+    @Test
+    public void deadStoreKeepsPotentialDivisionTrapInCallee() throws IOException {
+        test().executeProg(false).lines(
+            "package test",
+            "	@extern native I2S(int i) returns string",
+            "	native getY() returns int",
+            "	function wrap(int y) returns int",
+            "		return 1 div y",
+            "	init",
+            "		int y = getY()",
+            "		string x = I2S(wrap(y))",
+            "endpackage");
+        String compiledNoOpt = Files.toString(new File("test-output/OptimizerTests_deadStoreKeepsPotentialDivisionTrapInCallee_no_opts.j"), Charsets.UTF_8);
+        assertTrue(compiledNoOpt.contains("1 /"), "potential division trap in callee should be preserved");
+    }
+
+    @Test
+    public void deadStoreKeepsObservableMemberMutationInCallee() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class C",
+            "    int x",
+            "function mutate(C c) returns int",
+            "    c.x = 7",
+            "    return 1",
+            "init",
+            "    let c = new C",
+            "    int unused = mutate(c)",
+            "    if c.x == 7",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void removeEmptyPackageInitsDoesNotPruneUserInitPrefixedFunctions() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function init_user() returns bool",
+            "    return true",
+            "init",
+            "    if init_user()",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void test_unreachableCodeRemover() throws IOException {
         test().withStdLib().lines(
             "package test",
@@ -1093,6 +1156,39 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(prog.getFunctions().size() >= 2);
 
 
+    }
+
+    @Test
+    public void externCallIsObservableSideEffectEvenWithEmptyBody() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator tr = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = tr.getImProg();
+        Element trace = Ast.NoExpr();
+
+        ImFunction externFunc = JassIm.ImFunction(
+            trace,
+            "someExternCall",
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            TypesHelper.imInt(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_EXTERN)
+        );
+        prog.getFunctions().add(externFunc);
+
+        ImFunctionCall externCall = JassIm.ImFunctionCall(
+            trace,
+            externFunc,
+            JassIm.ImTypeArguments(),
+            JassIm.ImExprs(),
+            false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL
+        );
+
+        SideEffectAnalyzer analyzer = new SideEffectAnalyzer(prog);
+        assertTrue(analyzer.hasObservableSideEffects(externCall, f -> false),
+            "extern calls must be treated as observable side effects");
     }
 
     @Test
