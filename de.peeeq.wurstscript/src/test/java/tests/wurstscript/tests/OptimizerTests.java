@@ -9,8 +9,10 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
@@ -1154,6 +1156,39 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(prog.getFunctions().size() >= 2);
 
 
+    }
+
+    @Test
+    public void externCallIsObservableSideEffectEvenWithEmptyBody() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator tr = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = tr.getImProg();
+        Element trace = Ast.NoExpr();
+
+        ImFunction externFunc = JassIm.ImFunction(
+            trace,
+            "someExternCall",
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            TypesHelper.imInt(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_EXTERN)
+        );
+        prog.getFunctions().add(externFunc);
+
+        ImFunctionCall externCall = JassIm.ImFunctionCall(
+            trace,
+            externFunc,
+            JassIm.ImTypeArguments(),
+            JassIm.ImExprs(),
+            false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL
+        );
+
+        SideEffectAnalyzer analyzer = new SideEffectAnalyzer(prog);
+        assertTrue(analyzer.hasObservableSideEffects(externCall, f -> false),
+            "extern calls must be treated as observable side effects");
     }
 
     @Test

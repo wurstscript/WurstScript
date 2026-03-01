@@ -503,6 +503,11 @@ public class SideEffectAnalyzer {
                 cache.put(func, sideEffect);
                 return sideEffect;
             }
+            if (func.isExtern()) {
+                // Extern implementations are not represented in IM and may have runtime effects.
+                cache.put(func, true);
+                return true;
+            }
             if (!inProgress.add(func)) {
                 return true;
             }
