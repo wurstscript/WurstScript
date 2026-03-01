@@ -450,6 +450,10 @@ public class CompiletimeFunctionRunner {
             objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
 
             ClassManagementVars mVars = entry.getKey();
+            // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
+            objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+
             int currentMax = 0;
             int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
 
