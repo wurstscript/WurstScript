@@ -903,6 +903,28 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(inlined.contains("function noot"));
     }
 
+    @Test
+    public void inlinerSupportsMultiReturn() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function absLike(int x) returns int",
+            "    if x >= 0",
+            "        return x",
+            "    return 0 - x",
+            "init",
+            "    let a = absLike(-4)",
+            "    let b = absLike(3)",
+            "    if a == 4 and b == 3",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        String inlined = Files.toString(new File("test-output/OptimizerTests_inlinerSupportsMultiReturn_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("call absLike"),
+            "Expected multi-return function calls to be inlined in _inl output.");
+    }
+
 
     @Test
     public void moveTowardsBug() { // see #737
