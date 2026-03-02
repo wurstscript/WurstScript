@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
+import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
@@ -32,6 +33,7 @@ public class ImOptimizer {
         localPasses.add(new ConstantAndCopyPropagation());
         localPasses.add(new UselessFunctionCallsRemover());
         localPasses.add(new GlobalsInliner());
+        localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());
     }
 

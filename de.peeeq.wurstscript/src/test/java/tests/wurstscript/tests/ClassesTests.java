@@ -6,6 +6,11 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ClassesTests extends WurstScriptTest {
 
@@ -40,6 +45,110 @@ public class ClassesTests extends WurstScriptTest {
     @Test
     public void classes_method() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_method.wurst"), true);
+    }
+
+    @Test
+    public void dispatchNarrowingUsesStaticReceiverTypeInJass() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    class B extends A",
+            "        override function bar() returns int",
+            "            return 2",
+            "",
+            "    class C extends A",
+            "",
+            "    function useC(C c) returns int",
+            "        return c.bar()",
+            "",
+            "    init",
+            "        let c = new C",
+            "        if useC(c) == 1",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingUsesStaticReceiverTypeInJass_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("dispatch_narrow_C_A_A_bar"),
+            "Expected narrowed dispatch function for receiver type C.");
+        assertTrue(jass.contains("return dispatch_narrow_C_A_A_bar(c)")
+                || jass.contains("call dispatch_narrow_C_A_A_bar"),
+            "Expected call site to use narrowed dispatch.");
+        assertFalse(jass.contains("return dispatch_A_A_bar(") && jass.contains("function useC"),
+            "Call site should not use full A dispatch for static receiver type C.");
+        assertFalse(jass.contains("call dispatch_A_A_bar"),
+            "Call site should not use full A dispatch for static receiver type C.");
+    }
+
+    @Test
+    public void repeatedCallsOnSameReceiverAreNotDispatchCachedYet() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    native println(string s)",
+            "    @extern native I2S(int x) returns string",
+            "    function print(int x)",
+            "        println(I2S(x))",
+            "    class A",
+            "        function bar() returns int",
+            "            println(\"helo\")",
+            "            return 1",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        println(\"helo\")",
+            "        r += a.bar()",
+            "        println(\"helo\")",
+            "        r += a.bar()",
+            "        println(\"helo\")",
+            "        println(I2S(3))",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        let ua = useA(a)",
+            "        if ua == 3",
+            "            print(ua)",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File noOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_no_opts.j");
+        File optOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_opt.j");
+        String noOpt = Files.readString(noOptOut.toPath(), StandardCharsets.UTF_8);
+        String opt = Files.readString(optOut.toPath(), StandardCharsets.UTF_8);
+
+        int noOptDispatchCalls = countOccurrences(noOpt, "dispatch_A_A_bar(");
+        int optDispatchCalls = countOccurrences(opt, "dispatch_A_A_bar(");
+
+        assertTrue(noOptDispatchCalls >= 3,
+            "Expected at least three dispatch calls in no_opts output, found " + noOptDispatchCalls);
+        assertTrue(optDispatchCalls >= 3,
+            "Expected at least three dispatch calls in opt output, found " + optDispatchCalls);
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount == 1,
+            "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int c = 0;
+        int i = 0;
+        while ((i = text.indexOf(needle, i)) >= 0) {
+            c++;
+            i += needle.length();
+        }
+        return c;
     }
 
     @Test
