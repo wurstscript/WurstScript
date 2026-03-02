@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -20,6 +21,7 @@ public class ImInliner {
     private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
+    private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
     private final ImTranslator translator;
     private final ImProg prog;
     private final Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
@@ -71,7 +73,14 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            if (f != called && shouldInline(call, called)) {
+            boolean canInline = f != called && shouldInline(call, called);
+            if (LOG_INLINER) {
+                String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
+                    (canInline ? "" : " reason=" + skipReason(call, called));
+                WLogger.info(msg);
+                System.out.println(msg);
+            }
+            if (canInline) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
                     inlineCall(f, parent, parentI, call);
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
@@ -98,6 +107,33 @@ public class ImInliner {
             }
         }
         return null;
+    }
+
+    private String skipReason(ImFunctionCall call, ImFunction f) {
+        if (f.isNative()) {
+            return "native";
+        }
+        if (call.getCallType() == CallType.EXECUTE) {
+            return "execute_call";
+        }
+        if (!inlinableFunctions.contains(f)) {
+            return "not_in_inlinable_set";
+        }
+        if (isRecursive(f)) {
+            return "recursive";
+        }
+        double threshold = inlineTreshold;
+        for (ImExpr arg : call.getArguments()) {
+            if (arg instanceof ImConst) {
+                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
+                break;
+            }
+        }
+        double rating = getRating(f);
+        if (rating >= threshold) {
+            return "rating_too_high(" + rating + ">=" + threshold + ")";
+        }
+        return "unknown";
     }
 
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
@@ -229,7 +265,8 @@ public class ImInliner {
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
             return JassIm.ImVarargLoop(l.getTrace(), loopBody, l.getLoopVar());
         }
-        return s;
+        // Keep tree ownership valid when rewrapping statements into new blocks.
+        return s.copy();
     }
 
     private void rateInlinableFunctions() {
@@ -346,20 +383,32 @@ public class ImInliner {
 
     private void collectInlinableFunctions() {
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
-            if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
-                // do not inline natives
-                continue;
+            if (isInlineCandidate(f)) {
+                inlinableFunctions.add(f);
             }
-            if (f == translator.getGlobalInitFunc()) {
-                continue;
-            }
-            if (f.hasFlag(IS_VARARG)) {
-                // do not inline vararg functions
-                // this is only relevant for lua, because in JASS they are eliminated before inlining
-                continue;
-            }
-            inlinableFunctions.add(f);
         }
+        // Some call targets can survive in the call graph but not in prog/classes lists.
+        for (ImFunction f : translator.getCalledFunctions().values()) {
+            if (isInlineCandidate(f)) {
+                inlinableFunctions.add(f);
+            }
+        }
+    }
+
+    private boolean isInlineCandidate(ImFunction f) {
+        if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
+            // do not inline natives
+            return false;
+        }
+        if (f == translator.getGlobalInitFunc()) {
+            return false;
+        }
+        if (f.hasFlag(IS_VARARG)) {
+            // do not inline vararg functions
+            // this is only relevant for lua, because in JASS they are eliminated before inlining
+            return false;
+        }
+        return true;
     }
 
     private boolean maxOneReturn(ImFunction f) {
