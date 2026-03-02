@@ -270,8 +270,10 @@ public class ImInliner {
     }
 
     private void rateInlinableFunctions() {
-        for (Map.Entry<ImFunction, ImFunction> f : translator.getCalledFunctions().entries()) {
-            incCallCount(f.getKey());
+        for (Map.Entry<ImFunction, ImFunction> edge : translator.getCalledFunctions().entries()) {
+            // For bloat control we need how often a function is used (incoming edges),
+            // not how many calls it performs itself (outgoing edges).
+            incCallCount(edge.getValue());
         }
         for (ImFunction f : inlinableFunctions) {
             int size = estimateSize(f);
