@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.Set;
@@ -21,12 +23,14 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
 
     private int rewrites;
     private final IdentityHashMap<ImFunction, IdentityHashMap<ImVar, Boolean>> mayWriteTypeIdMemo = new IdentityHashMap<>();
+    private SideEffectAnalyzer sideEffectAnalyzer;
 
     @Override
     public int optimize(ImTranslator trans) {
         rewrites = 0;
         mayWriteTypeIdMemo.clear();
         ImProg prog = trans.getImProg();
+        sideEffectAnalyzer = new SideEffectAnalyzer(prog);
         for (ImFunction f : prog.getFunctions()) {
             optimizeStmts(f.getBody());
         }
@@ -107,9 +111,6 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         }
         if (s instanceof ImFunctionCall) {
             ImFunction f = ((ImFunctionCall) s).getFunc();
-            if (isKnownNonMutatingFunction(f)) {
-                return false;
-            }
             return mayWriteTypeId(f, guard.failedCond.typeIdVar);
         }
         if (s instanceof ImMethodCall) {
@@ -130,72 +131,44 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         if (f == null) {
             return true;
         }
+        if (f.isNative()) {
+            return !UselessFunctionCallsRemover.isFunctionWithoutSideEffect(f.getName());
+        }
+        if (f.isExtern()) {
+            return true;
+        }
         IdentityHashMap<ImVar, Boolean> byTypeId = mayWriteTypeIdMemo.computeIfAbsent(f, k -> new IdentityHashMap<>());
         Boolean memo = byTypeId.get(typeIdVar);
         if (memo != null) {
             return memo;
         }
-        boolean result = mayWriteTypeIdImpl(f, typeIdVar, java.util.Collections.newSetFromMap(new IdentityHashMap<>()));
+        boolean result = mayWriteTypeIdUsingAnalysis(f, typeIdVar);
         byTypeId.put(typeIdVar, result);
         return result;
     }
 
-    private boolean isKnownNonMutatingFunction(ImFunction f) {
-        if (f == null) return false;
-        String n = f.getName();
-        return "println".equals(n)
-            || "print".equals(n)
-            || "I2S".equals(n)
-            || "R2S".equals(n)
-            || "BJDebugMsg".equals(n);
-    }
-
-    private boolean mayWriteTypeIdImpl(ImFunction f, ImVar typeIdVar, Set<ImFunction> visiting) {
-        if (f.isNative()) {
-            return true;
+    private boolean mayWriteTypeIdUsingAnalysis(ImFunction f, ImVar typeIdVar) {
+        Set<ImFunction> reachable = new HashSet<>();
+        reachable.add(f);
+        reachable.addAll(sideEffectAnalyzer.calledFunctions(f.getBody()));
+        for (ImFunction g : reachable) {
+            if (g == null) {
+                return true;
+            }
+            if (g.isExtern()) {
+                return true;
+            }
+            if (g.isNative()) {
+                if (!UselessFunctionCallsRemover.isFunctionWithoutSideEffect(g.getName())) {
+                    return true;
+                }
+                continue;
+            }
+            if (sideEffectAnalyzer.directlySetVariables(g.getBody()).contains(typeIdVar)) {
+                return true;
+            }
         }
-        if (!visiting.add(f)) {
-            return true;
-        }
-        final boolean[] writes = {false};
-        f.accept(new ImFunction.DefaultVisitor() {
-            @Override
-            public void visit(ImSet e) {
-                super.visit(e);
-                ImLExpr left = e.getLeft();
-                if (left instanceof ImVarArrayAccess && ((ImVarArrayAccess) left).getVar() == typeIdVar) {
-                    writes[0] = true;
-                } else if (left instanceof ImVarAccess && ((ImVarAccess) left).getVar() == typeIdVar) {
-                    writes[0] = true;
-                } else if (left instanceof ImMemberAccess && ((ImMemberAccess) left).getVar() == typeIdVar) {
-                    writes[0] = true;
-                }
-            }
-
-            @Override
-            public void visit(ImFunctionCall e) {
-                super.visit(e);
-                if (!writes[0] && mayWriteTypeIdImpl(e.getFunc(), typeIdVar, visiting)) {
-                    writes[0] = true;
-                }
-            }
-
-            @Override
-            public void visit(ImMethodCall e) {
-                super.visit(e);
-                if (!writes[0] && mayWriteTypeIdImpl(e.getMethod().getImplementation(), typeIdVar, visiting)) {
-                    writes[0] = true;
-                }
-            }
-
-            @Override
-            public void visit(ImDealloc e) {
-                super.visit(e);
-                writes[0] = true;
-            }
-        });
-        visiting.remove(f);
-        return writes[0];
+        return false;
     }
 
     private GuardPattern extractDispatchGuard(ImStmt stmt) {
