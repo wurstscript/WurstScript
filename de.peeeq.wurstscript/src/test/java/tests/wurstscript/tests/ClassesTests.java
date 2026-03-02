@@ -136,6 +136,40 @@ public class ClassesTests extends WurstScriptTest {
             "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
     }
 
+    @Test
+    public void dispatchGuardNotDedupedAcrossRhsSideEffects() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        r = mutatingRhs(a)",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossRhsSideEffects_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across mutating RHS call, found " + inlOptGuardCount);
+    }
+
     private static int countOccurrences(String text, String needle) {
         int c = 0;
         int i = 0;

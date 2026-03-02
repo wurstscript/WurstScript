@@ -95,6 +95,9 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         if (s instanceof ImSet) {
             ImSet set = (ImSet) s;
             ImLExpr left = set.getLeft();
+            if (mayWriteTypeIdFromElement(set.getRight(), guard.failedCond.typeIdVar)) {
+                return true;
+            }
             if (left instanceof ImVarAccess) {
                 ImVar v = ((ImVarAccess) left).getVar();
                 return v == guard.failedCond.receiverVar || v == guard.failedCond.typeIdVar;
@@ -123,6 +126,21 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
         if (s instanceof ImIf || s instanceof ImLoop || s instanceof ImVarargLoop
             || s instanceof ImReturn || s instanceof ImExitwhen) {
             return true;
+        }
+        return false;
+    }
+
+    private boolean mayWriteTypeIdFromElement(Element elem, ImVar typeIdVar) {
+        if (elem == null) {
+            return false;
+        }
+        if (sideEffectAnalyzer.directlySetVariables(elem).contains(typeIdVar)) {
+            return true;
+        }
+        for (ImFunction called : sideEffectAnalyzer.calledFunctions(elem)) {
+            if (mayWriteTypeId(called, typeIdVar)) {
+                return true;
+            }
         }
         return false;
     }
