@@ -524,7 +524,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        if (!isInWurstFolder(filename)) {
+        if (!isInWurstFolder(filename) && !isAlreadyLoaded(filename)) {
             return null;
         }
         if (fileHashcodes.containsKey(filename)) {
@@ -812,12 +812,26 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * checks if the given file is in the wurst folder or inside a dependency
+     * checks if the given file is in the wurst folder, inside a dependency,
+     * or a CU that has already been loaded into the model.
      */
     private boolean isInWurstFolder(WFile file) {
         return Stream.concat(Stream.of(projectPath), dependencies.stream()).anyMatch(p ->
                 FileUtils.isInDirectoryTrans(file, WFile.create(new File(p, "wurst"))));
 
+    }
+
+    private boolean isAlreadyLoaded(WFile file) {
+        WurstModel model2 = model;
+        if (model2 == null) {
+            return false;
+        }
+        for (CompilationUnit cu : model2) {
+            if (wFile(cu).equals(file)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

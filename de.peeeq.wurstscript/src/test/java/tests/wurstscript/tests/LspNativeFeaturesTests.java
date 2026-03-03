@@ -1,10 +1,12 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.CodeActionRequest;
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
+import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.InlayHintsRequest;
 import de.peeeq.wurstio.languageserver.requests.PrepareRenameRequest;
 import de.peeeq.wurstio.languageserver.requests.RenameRequest;
@@ -14,7 +16,9 @@ import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CodeActionContext;
 import org.eclipse.lsp4j.CodeActionKind;
 import org.eclipse.lsp4j.CodeActionParams;
+import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.InlayHint;
 import org.eclipse.lsp4j.InlayHintParams;
 import org.eclipse.lsp4j.Position;
@@ -40,6 +44,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -336,6 +341,178 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         assertTrue(result.isLeft());
         assertFalse(result.getLeft().isEmpty());
         assertEquals(result.getLeft().get(0).getRange().getStart().getLine(), 1);
+    }
+
+    @Test
+    public void hoverUsesJassDocFallbackForBuiltinFunction() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "    DisplayTextToPl|ayer(null, 0., 0., \"x\")",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        JassDocService.setTestLookup(k ->
+            Objects.equals(k.symbolName(), "DisplayTextToPlayer")
+                && k.symbolKind() == JassDocService.SymbolKind.FUNCTION
+                ? "Shows text to a specific player."
+                : null
+        );
+        JassDocService.getInstance().clearCacheForTests();
+        try {
+            Hover hover = new HoverInfo(
+                new TextDocumentPositionParams(new TextDocumentIdentifier(ctx.uri), new Position(data.line, data.column)),
+                ctx.bufferManager
+            ).execute(ctx.modelManager);
+
+            List<String> text = hover.getContents().getLeft().stream()
+                .map(e -> e.isLeft() ? e.getLeft() : e.getRight().getValue())
+                .collect(Collectors.toList());
+            assertTrue(text.stream().anyMatch(t -> t.contains("Shows text to a specific player.")), "hover text = " + text);
+        } finally {
+            JassDocService.setTestLookup(null);
+            JassDocService.getInstance().clearCacheForTests();
+        }
+    }
+
+    @Test
+    public void hoverUsesJassDocFromSingleNativeWrapperCall() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "function mySin(real x) returns real",
+            "    return Sin(x)",
+            "init",
+            "    myS|in(1.0)",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        JassDocService.setTestLookup(k ->
+            Objects.equals(k.symbolName(), "Sin")
+                && k.symbolKind() == JassDocService.SymbolKind.FUNCTION
+                ? "Returns the sine of x."
+                : null
+        );
+        JassDocService.getInstance().clearCacheForTests();
+        try {
+            Hover hover = new HoverInfo(
+                new TextDocumentPositionParams(new TextDocumentIdentifier(ctx.uri), new Position(data.line, data.column)),
+                ctx.bufferManager
+            ).execute(ctx.modelManager);
+
+            List<String> text = hover.getContents().getLeft().stream()
+                .map(e -> e.isLeft() ? e.getLeft() : e.getRight().getValue())
+                .collect(Collectors.toList());
+            assertTrue(text.stream().anyMatch(t -> t.contains("_JassDoc_")), "hover text = " + text);
+            assertTrue(text.stream().anyMatch(t -> t.contains("Returns the sine of x.")), "hover text = " + text);
+        } finally {
+            JassDocService.setTestLookup(null);
+            JassDocService.getInstance().clearCacheForTests();
+        }
+    }
+
+    @Test
+    public void hoverUsesJassDocFromSingleExtensionWrapperCall() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "function real.nativeSin() returns real",
+            "    return Sin(this)",
+            "init",
+            "    1.0.nativeS|in()",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        JassDocService.setTestLookup(k ->
+            Objects.equals(k.symbolName(), "Sin")
+                && k.symbolKind() == JassDocService.SymbolKind.FUNCTION
+                ? "Returns the sine of x."
+                : null
+        );
+        JassDocService.getInstance().clearCacheForTests();
+        try {
+            Hover hover = new HoverInfo(
+                new TextDocumentPositionParams(new TextDocumentIdentifier(ctx.uri), new Position(data.line, data.column)),
+                ctx.bufferManager
+            ).execute(ctx.modelManager);
+
+            List<String> text = hover.getContents().getLeft().stream()
+                .map(e -> e.isLeft() ? e.getLeft() : e.getRight().getValue())
+                .collect(Collectors.toList());
+            assertTrue(text.stream().anyMatch(t -> t.contains("_JassDoc_")), "hover text = " + text);
+            assertTrue(text.stream().anyMatch(t -> t.contains("Returns the sine of x.")), "hover text = " + text);
+        } finally {
+            JassDocService.setTestLookup(null);
+            JassDocService.getInstance().clearCacheForTests();
+        }
+    }
+
+    @Test
+    public void completionUsesJassDocFallbackForBuiltinFunction() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "    DisplayTextToPl|",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        JassDocService.setTestLookup(k ->
+            Objects.equals(k.symbolName(), "DisplayTextToPlayer")
+                && k.symbolKind() == JassDocService.SymbolKind.FUNCTION
+                ? "Shows text to a specific player."
+                : null
+        );
+        JassDocService.getInstance().clearCacheForTests();
+        try {
+            CompletionList completions = new de.peeeq.wurstio.languageserver.requests.GetCompletions(
+                new org.eclipse.lsp4j.CompletionParams(new TextDocumentIdentifier(ctx.uri), new Position(data.line, data.column)),
+                ctx.bufferManager
+            ).execute(ctx.modelManager);
+            assertNotNull(completions);
+            String doc = completions.getItems().stream()
+                .filter(i -> "DisplayTextToPlayer".equals(i.getLabel()))
+                .map(i -> i.getDocumentation() != null ? i.getDocumentation().getLeft() : null)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("");
+            assertTrue(doc.contains("Shows text to a specific player."), "completion doc = " + doc);
+        } finally {
+            JassDocService.setTestLookup(null);
+            JassDocService.getInstance().clearCacheForTests();
+        }
+    }
+
+    @Test
+    public void signatureHelpUsesJassDocFallbackForBuiltinFunction() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "    DisplayTextToPlayer(nu|ll, 0., 0., \"x\")",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        JassDocService.setTestLookup(k ->
+            Objects.equals(k.symbolName(), "DisplayTextToPlayer")
+                && k.symbolKind() == JassDocService.SymbolKind.FUNCTION
+                ? "Shows text to a specific player."
+                : null
+        );
+        JassDocService.getInstance().clearCacheForTests();
+        try {
+            SignatureHelp help = new SignatureInfo(
+                new TextDocumentPositionParams(new TextDocumentIdentifier(ctx.uri), new Position(data.line, data.column)),
+                ctx.bufferManager
+            ).execute(ctx.modelManager);
+            assertFalse(help.getSignatures().isEmpty());
+            String doc = help.getSignatures().get(0).getDocumentation().getLeft();
+            assertTrue(doc.contains("Shows text to a specific player."), "signature doc = " + doc);
+        } finally {
+            JassDocService.setTestLookup(null);
+            JassDocService.getInstance().clearCacheForTests();
+        }
     }
 
     private List<TextEdit> allTextEdits(WorkspaceEdit edit) {

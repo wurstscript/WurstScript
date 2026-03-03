@@ -1,9 +1,11 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
@@ -74,7 +76,16 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 		FunctionSignature sig = call.attrFunctionSignature();
 		SignatureHelp help = new SignatureHelp();
 		SignatureInformation info = new SignatureInformation();
-		info.setDocumentation("(" + sig.getParameterDescription() + ")");
+		String docs = null;
+		if (call instanceof FunctionCall) {
+			FunctionCall fc = (FunctionCall) call;
+			FuncLink funcLink = fc.attrFuncLink();
+			if (funcLink != null) {
+				docs = JassDocService.getInstance().documentationForFunction(funcLink.getDef());
+			}
+		}
+		String signatureDoc = "(" + sig.getParameterDescription() + ")";
+		info.setDocumentation(docs == null || docs.isEmpty() ? signatureDoc : docs + "\n" + signatureDoc);
 		if (call instanceof FunctionCall) {
 			FunctionCall fc = (FunctionCall) call;
 			info.setLabel(fc.getFuncName());
