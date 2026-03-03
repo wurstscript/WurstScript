@@ -1,5 +1,9 @@
 package de.peeeq.wurstio.languageserver;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -23,7 +27,6 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,7 +91,9 @@ public final class JassDocService {
 
     private static final JassDocService INSTANCE = new JassDocService();
     private static final Duration DEFAULT_LATEST_MAX_AGE = Duration.ofHours(24);
-    private static final List<String> DEFAULT_DB_URLS = Arrays.asList();
+    private static final String RELEASES_LATEST_API = "https://api.github.com/repos/wurstscript/wurst-jassdoc-build/releases/latest";
+    private static final String RELEASES_API = "https://api.github.com/repos/wurstscript/wurst-jassdoc-build/releases?per_page=20";
+    private static final String RELEASES_DOWNLOAD_BASE = "https://github.com/wurstscript/wurst-jassdoc-build/releases";
 
     private final Map<LookupKey, Optional<String>> lookupCache = new ConcurrentHashMap<>();
     private volatile @Nullable CachedDb cachedDb;
@@ -412,7 +417,7 @@ public final class JassDocService {
         Files.createDirectories(dbDir);
 
         String revision = sanitizeRevision(Utils.getEnvOrConfig("WURST_JASSDOC_DB_REV").orElse("latest"));
-        Path dbPath = dbDir.resolve("jassdoc-" + revision + ".sqlite");
+        Path dbPath = dbDir.resolve("jassdoc-" + revision + ".db");
         if (!Files.exists(dbPath)) {
             Optional<Path> fallback = findFirstExisting(dbDir,
                 "jassdoc-" + revision + ".db",
@@ -436,31 +441,149 @@ public final class JassDocService {
 
         List<String> urls = Utils.getEnvOrConfig("WURST_JASSDOC_DB_URL")
             .map(List::of)
-            .orElse(DEFAULT_DB_URLS);
+            .orElseGet(() -> defaultDbUrlsForRevision(revision));
 
         if (urls.isEmpty()) {
             showMissingSourceWarning();
             return Optional.empty();
         }
 
-        IOException lastError = null;
+        List<String> errors = new ArrayList<>();
         for (String url : urls) {
             try {
                 download(url, dbPath);
                 WLogger.info("Downloaded JassDoc DB from " + url + " to " + dbPath);
                 return Optional.of(dbPath);
             } catch (IOException e) {
-                lastError = e;
+                errors.add(url + " -> " + e.getMessage());
             }
         }
 
         if (Files.exists(dbPath)) {
             return Optional.of(dbPath);
         }
-        if (lastError != null) {
-            throw lastError;
+        if (!errors.isEmpty()) {
+            throw new IOException("Could not download JassDoc DB. Tried: " + String.join("; ", errors));
         }
         return Optional.empty();
+    }
+
+    private List<String> defaultDbUrlsForRevision(String revision) {
+        List<String> urls = new ArrayList<>();
+        if ("latest".equals(revision)) {
+            urls.addAll(resolveLatestReleaseAssetUrls());
+            urls.add(RELEASES_DOWNLOAD_BASE + "/latest/download/jass.db");
+        } else {
+            urls.add(RELEASES_DOWNLOAD_BASE + "/download/" + revision + "/jass.db");
+            urls.add(RELEASES_DOWNLOAD_BASE + "/download/" + revision + "/jassdoc.db");
+            urls.add(RELEASES_DOWNLOAD_BASE + "/download/" + revision + "/jassdoc.sqlite");
+        }
+        return urls;
+    }
+
+    private List<String> resolveLatestReleaseAssetUrls() {
+        List<String> urls = new ArrayList<>();
+        urls.addAll(readReleaseAssetUrls(RELEASES_LATEST_API));
+        if (!urls.isEmpty()) {
+            return urls;
+        }
+        urls.addAll(readNewestReleaseAssetUrlsFromList());
+        return urls;
+    }
+
+    private List<String> readNewestReleaseAssetUrlsFromList() {
+        List<String> urls = new ArrayList<>();
+        try {
+            HttpURLConnection con = (HttpURLConnection) new URL(RELEASES_API).openConnection();
+            con.setConnectTimeout(10_000);
+            con.setReadTimeout(20_000);
+            con.setRequestMethod("GET");
+            con.setRequestProperty("Accept", "application/vnd.github+json");
+            con.setRequestProperty("User-Agent", "WurstScript-LSP");
+            int code = con.getResponseCode();
+            if (code >= 200 && code < 300) {
+                String body;
+                try (InputStream in = con.getInputStream()) {
+                    body = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                }
+                JsonArray releases = JsonParser.parseString(body).getAsJsonArray();
+                for (JsonElement e : releases) {
+                    if (!e.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject rel = e.getAsJsonObject();
+                    List<String> relUrls = extractDbAssetUrls(rel);
+                    if (!relUrls.isEmpty()) {
+                        urls.addAll(relUrls);
+                        break;
+                    }
+                }
+            }
+            con.disconnect();
+        } catch (Exception e) {
+            WLogger.info("Could not query releases list for JassDoc DB: " + e.getMessage());
+        }
+        return urls;
+    }
+
+    private List<String> readReleaseAssetUrls(String apiUrl) {
+        List<String> urls = new ArrayList<>();
+        try {
+            HttpURLConnection con = (HttpURLConnection) new URL(apiUrl).openConnection();
+            con.setConnectTimeout(10_000);
+            con.setReadTimeout(20_000);
+            con.setRequestMethod("GET");
+            con.setRequestProperty("Accept", "application/vnd.github+json");
+            con.setRequestProperty("User-Agent", "WurstScript-LSP");
+            int code = con.getResponseCode();
+            if (code >= 200 && code < 300) {
+                String body;
+                try (InputStream in = con.getInputStream()) {
+                    body = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                }
+                JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                urls.addAll(extractDbAssetUrls(obj));
+            }
+            con.disconnect();
+        } catch (Exception e) {
+            WLogger.info("Could not query latest JassDoc release API: " + e.getMessage());
+        }
+        return urls;
+    }
+
+    private List<String> extractDbAssetUrls(JsonObject releaseObj) {
+        List<String> urls = new ArrayList<>();
+        JsonArray assets = releaseObj.getAsJsonArray("assets");
+        if (assets == null) {
+            return urls;
+        }
+        for (JsonElement e : assets) {
+            if (!e.isJsonObject()) {
+                continue;
+            }
+            JsonObject asset = e.getAsJsonObject();
+            String name = getString(asset, "name");
+            String browserDownload = getString(asset, "browser_download_url");
+            if (browserDownload == null || name == null) {
+                continue;
+            }
+            String n = name.toLowerCase(Locale.ROOT);
+            if (n.endsWith(".db") || n.endsWith(".sqlite")) {
+                urls.add(browserDownload);
+            }
+        }
+        return urls;
+    }
+
+    private @Nullable String getString(JsonObject obj, String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        try {
+            return obj.get(key).getAsString();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void showMissingSourceWarning() {
