@@ -2,7 +2,6 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,7 +40,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -148,47 +146,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadWurstFilesInDir(f);
             } else if (Utils.isWurstFile(f)) {
                 loadFile(f);
-            } else if (f.getName().equals("wurst.dependencies")) {
-                dependencies.addAll(checkDependencyFile(f, gui));
             } else if ((!mapFile.isPresent() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
                 loadFile(f);
             }
         }
-    }
-
-    public static ImmutableList<File> checkDependencyFile(File depFile, WurstGui gui) {
-        List<String> lines;
-        try {
-            lines = Files.readLines(depFile, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new Error(e);
-        }
-        LineOffsets offsets = new LineOffsets();
-        int lineNr = 0;
-        int offset = 0;
-        for (String line : lines) {
-            offsets.set(lineNr, offset);
-            lineNr++;
-            offset += line.length() + 1;
-        }
-        offsets.set(lineNr, offset);
-        lineNr = 0;
-        ImmutableList.Builder<File> dependencies = ImmutableList.builder();
-        for (String line : lines) {
-            int lineOffset = offsets.get(lineNr);
-            WPos pos = new WPos(depFile.getAbsolutePath(), offsets, lineOffset + 1, lineOffset + line.length() + 1);
-            File folder = new File(line);
-            if (!folder.exists()) {
-                gui.sendError(new CompileError(pos, "Folder " + line + " not found."));
-            } else if (!folder.isDirectory()) {
-                gui.sendError(new CompileError(pos, line + " is not a folder."));
-            } else {
-                dependencies.add(folder);
-            }
-            lineNr++;
-        }
-        return dependencies.build();
     }
 
     @Override
@@ -219,10 +180,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadWurstFilesInDir(relativeWurstDir);
             } else {
                 WLogger.info("No wurst folder found in " + relativeWurstDir);
-            }
-            File dependencyFile = new File(projectFolder, "wurst.dependencies");
-            if (dependencyFile.exists()) {
-                dependencies.addAll(checkDependencyFile(dependencyFile, gui));
             }
             addDependenciesFromFolder(projectFolder, dependencies);
         }
@@ -373,7 +330,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private CompilationUnit loadLibPackage(Function<File, CompilationUnit> addCompilationUnit, String imp) {
         File file = getLibs().get(imp);
         if (file == null) {
-            gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
+            gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Is your dependency present in _build/dependencies?"));
             return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
             return addCompilationUnit.apply(file);

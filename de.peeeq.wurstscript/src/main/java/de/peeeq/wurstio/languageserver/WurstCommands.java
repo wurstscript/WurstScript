@@ -37,9 +37,9 @@ public class WurstCommands {
     public static final String WURST_PERFORM_CODE_ACTION = "wurst.perform_code_action";
 
     static List<String> providedCommands() {
-        return List.of(
-                WURST_CLEAN
-        );
+        // Commands are registered by the VS Code extension itself.
+        // Advertising them here causes duplicate command registration in vscode-languageclient.
+        return List.of();
     }
 
     public static CompletableFuture<Object> execute(WurstLanguageServer server, ExecuteCommandParams params) {
@@ -53,6 +53,8 @@ public class WurstCommands {
             case WURST_HOTRELOAD:
                 return startMap(server, params, "-hotreload");
             case WURST_TESTS:
+            case WURST_TESTS_FILE:
+            case WURST_TESTS_FUNC:
                 return testMap(server, params);
             case WURST_PERFORM_CODE_ACTION:
                 return server.worker().handle(new PerformCodeActionRequest(server, params));

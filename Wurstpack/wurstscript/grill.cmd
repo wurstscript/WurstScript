@@ -11,13 +11,13 @@ rem Resolve script dir
 set "DIR=%~dp0"
 
 set "JAVA=%DIR%wurst-runtime\bin\java.exe"
-set "GRILL_JAR=%DIR%grill\grill.jar"
+set "GRILL_JAR=%DIR%grill-cli\grill.jar"
 
 if not exist "%GRILL_JAR%" (
     echo [grill] ERROR: Missing jar. Searched:
     echo   %GRILL_JAR%
     rem fallback to ../grill if you want:
-    set "GRILL_JAR=%DIR%..\grill\grill.jar"
+    set "GRILL_JAR=%DIR%..\grill-cli\grill.jar"
     if not exist "%GRILL_JAR%" (
         echo   %GRILL_JAR%
         goto :restore

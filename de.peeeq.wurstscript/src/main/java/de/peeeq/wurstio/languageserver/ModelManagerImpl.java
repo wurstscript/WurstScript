@@ -35,7 +35,7 @@ public class ModelManagerImpl implements ModelManager {
     private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private final File projectPath;
-    // dependency folders (folders mentioned in wurst.dependencies)
+    // dependency project folders discovered in _build/dependencies
     private final Set<File> dependencies = Sets.newLinkedHashSet();
     // private WurstGui gui = new WurstGuiLogger();
     private final List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
@@ -129,7 +129,7 @@ public class ModelManagerImpl implements ModelManager {
     public void buildProject() {
         try {
             WurstGui gui = new WurstGuiLogger();
-            readDependencies(gui);
+            readDependencies();
 
             if (!projectPath.exists()) {
                 throw new RuntimeException("Folder " + projectPath + " does not exist!");
@@ -145,7 +145,7 @@ public class ModelManagerImpl implements ModelManager {
             resolveImports(gui);
 
             doTypeCheck(gui);
-        } catch (IOException e) {
+        } catch (Exception e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
         }
@@ -174,14 +174,8 @@ public class ModelManagerImpl implements ModelManager {
         replaceCompilationUnit(f);
     }
 
-    private void readDependencies(WurstGui gui) throws IOException {
+    private void readDependencies() {
         dependencies.clear();
-        File depFile = new File(projectPath, "wurst.dependencies");
-        if (!depFile.exists()) {
-            WLogger.info("no dependency file found.");
-            return;
-        }
-        dependencies.addAll(WurstCompilerJassImpl.checkDependencyFile(depFile, gui));
         WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 
@@ -482,7 +476,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public Changes syncCompilationUnitContent(WFile filename, String contents) {
-        WLogger.info("sync contents for " + filename);
+        WLogger.debug("sync contents for " + filename);
         Set<String> oldPackages = declaredPackages(filename);
         replaceCompilationUnit(filename, contents, false);
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
@@ -514,17 +508,17 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public Changes syncCompilationUnit(WFile f) {
-        WLogger.info("syncCompilationUnit File " + f);
+        WLogger.debug("syncCompilationUnit File " + f);
         Set<String> oldPackages = declaredPackages(f);
         replaceCompilationUnit(f);
-        WLogger.info("replaced file " + f);
+        WLogger.debug("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
         return new Changes(io.vavr.collection.HashSet.of(f), oldPackages);
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        if (!isInWurstFolder(filename)) {
+        if (!isInWurstFolder(filename) && !isAlreadyLoaded(filename)) {
             return null;
         }
         if (fileHashcodes.containsKey(filename)) {
@@ -537,9 +531,9 @@ public class ModelManagerImpl implements ModelManager {
                     return existing;
                 }
                 // Stale hash cache after remove/move; CU is gone, so reparse.
-                WLogger.info("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
+                WLogger.debug("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
             } else {
-                WLogger.info("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
+                WLogger.debug("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
             }
         }
 
@@ -552,7 +546,7 @@ public class ModelManagerImpl implements ModelManager {
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
             if (gui.getErrorCount() > 0) {
-                WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
+                WLogger.debug("found " + gui.getErrorCount() + " errors in file " + filename);
             }
             ImmutableList.Builder<CompileError> errors = ImmutableList.<CompileError>builder()
                 .addAll(gui.getErrorsAndWarnings());
@@ -576,7 +570,7 @@ public class ModelManagerImpl implements ModelManager {
     public CompilationUnit getCompilationUnit(WFile filename) {
         List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
         if (matches.isEmpty()) {
-            WLogger.info("compilation unit not found: " + filename);
+            WLogger.trace("compilation unit not found: " + filename);
             return null;
         }
         return matches.get(0);
@@ -628,7 +622,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames, Set<String> oldPackages) {
-        WLogger.info("do typecheck partial of " + toCheckFilenames);
+        WLogger.debug("do typecheck partial of " + toCheckFilenames);
         WurstCompilerJassImpl comp = getCompiler(gui);
         List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
 
@@ -812,12 +806,26 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     /**
-     * checks if the given file is in the wurst folder or inside a dependency
+     * checks if the given file is in the wurst folder, inside a dependency,
+     * or a CU that has already been loaded into the model.
      */
     private boolean isInWurstFolder(WFile file) {
         return Stream.concat(Stream.of(projectPath), dependencies.stream()).anyMatch(p ->
                 FileUtils.isInDirectoryTrans(file, WFile.create(new File(p, "wurst"))));
 
+    }
+
+    private boolean isAlreadyLoaded(WFile file) {
+        WurstModel model2 = model;
+        if (model2 == null) {
+            return false;
+        }
+        for (CompilationUnit cu : model2) {
+            if (wFile(cu).equals(file)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

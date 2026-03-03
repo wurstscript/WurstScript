@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
@@ -521,7 +522,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
         CompletionItem completion = new CompletionItem(n.getName());
 
         completion.setDetail(HoverInfo.descriptionString(n.getDef()));
-        completion.setDocumentation(n.getDef().attrComment());
+        String documentation = n.getDef().attrComment();
+        if (documentation == null || documentation.isEmpty()) {
+            documentation = JassDocService.getInstance().documentationForVariable(n.getDef());
+        }
+        completion.setDocumentation(documentation);
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
         String newText = n.getName();

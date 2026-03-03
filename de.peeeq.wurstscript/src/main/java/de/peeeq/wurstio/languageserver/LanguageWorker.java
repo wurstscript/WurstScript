@@ -223,7 +223,8 @@ public class LanguageWorker implements Runnable {
     }
 
     private boolean isWurstDependencyFile(PendingChange change) {
-        return change.getFilename().getUriString().endsWith("wurst.dependencies");
+        String uri = change.getFilename().getUriString().replace('\\', '/');
+        return uri.contains("/_build/dependencies/");
     }
 
     private PendingChange removeFirst(Map<WFile, PendingChange> changes) {
@@ -280,6 +281,32 @@ public class LanguageWorker implements Runnable {
             WFile file = WFile.create(params.getTextDocument().getUri());
 
             changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleOpen(DidOpenTextDocumentParams params) {
+        synchronized (lock) {
+            bufferManager.handleOpen(params);
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(file)));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleClose(DidCloseTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            bufferManager.handleClose(params);
+            changes.put(file, new FileUpdated(file));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleSave(DidSaveTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            changes.put(file, new FileUpdated(file));
             lock.notifyAll();
         }
     }

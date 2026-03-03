@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
@@ -16,11 +17,15 @@ import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Created by peter on 24.04.16.
@@ -139,9 +144,21 @@ public class HoverInfo extends UserRequest<Hover> {
         public List<Either<String, MarkedString>> description(FunctionDefinition f) {
             List<Either<String, MarkedString>> result = new ArrayList<>();
             String comment = f.attrComment();
+            boolean docsFromJassdoc = false;
+            if (comment == null || comment.isEmpty()) {
+                comment = JassDocService.getInstance().documentationForFunction(f);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
+            if ((comment == null || comment.isEmpty()) && f instanceof FunctionImplementation) {
+                comment = inferWrappedNativeDoc(f);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
 
             // TODO parse comment
             if (comment != null && !comment.isEmpty()) {
+                if (docsFromJassdoc) {
+                    result.add(Either.forLeft("_JassDoc_"));
+                }
                 result.add(Either.forLeft(comment));
             }
 
@@ -159,8 +176,55 @@ public class HoverInfo extends UserRequest<Hover> {
                 functionDescription += "returns " + returnTypeHtml;
             }
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
-            result.add(Either.forLeft("defined in " + nearestScopeName(f)));
+            result.add(Either.forLeft(definedInText(f)));
             return result;
+        }
+
+        private @Nullable String inferWrappedNativeDoc(FunctionDefinition f) {
+            return inferWrappedNativeDoc(f, new LinkedHashSet<>());
+        }
+
+        private @Nullable String inferWrappedNativeDoc(FunctionDefinition f, Set<FunctionDefinition> visited) {
+            if (!visited.add(f)) {
+                return null;
+            }
+            String directDoc = JassDocService.getInstance().documentationForFunction(f);
+            if (directDoc != null && !directDoc.isEmpty()) {
+                return directDoc;
+            }
+            if (!(f instanceof FunctionImplementation)) {
+                return null;
+            }
+            Set<FunctionDefinition> callees = new LinkedHashSet<>();
+            ((FunctionImplementation) f).getBody().accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ExprFunctionCall exprFunctionCall) {
+                    addCallee(exprFunctionCall.attrFuncDef());
+                    super.visit(exprFunctionCall);
+                }
+
+                @Override
+                public void visit(ExprMemberMethodDot exprMemberMethodDot) {
+                    addCallee(exprMemberMethodDot.attrFuncDef());
+                    super.visit(exprMemberMethodDot);
+                }
+
+                @Override
+                public void visit(ExprMemberMethodDotDot exprMemberMethodDotDot) {
+                    addCallee(exprMemberMethodDotDot.attrFuncDef());
+                    super.visit(exprMemberMethodDotDot);
+                }
+
+                private void addCallee(FunctionDefinition def) {
+                    if (def != null && def != f) {
+                        callees.add(def);
+                    }
+                }
+            });
+            if (callees.size() != 1) {
+                return null;
+            }
+            return inferWrappedNativeDoc(callees.iterator().next(), visited);
         }
 
         private static String nearestScopeName(Element n) {
@@ -177,7 +241,15 @@ public class HoverInfo extends UserRequest<Hover> {
             }
             List<Either<String, MarkedString>> result = new ArrayList<>();
             String comment = n.attrComment();
+            boolean docsFromJassdoc = false;
+            if (comment == null || comment.isEmpty()) {
+                comment = JassDocService.getInstance().documentationForVariable(n);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
             if (comment != null && !comment.isEmpty()) {
+                if (docsFromJassdoc) {
+                    result.add(Either.forLeft("_JassDoc_"));
+                }
                 result.add(Either.forLeft(comment));
             }
 
@@ -195,7 +267,7 @@ public class HoverInfo extends UserRequest<Hover> {
             } else {
                 result.add(Either.forRight(new MarkedString("wurst", type(n.attrTyp()) + " " + n.getName() + initializer)));
             }
-            result.add(Either.forLeft("defined in " + nearestScopeName(n)));
+            result.add(Either.forLeft(definedInText(n)));
             return result;
         }
 
@@ -218,8 +290,19 @@ public class HoverInfo extends UserRequest<Hover> {
             }
             functionDescription += "(" + params + ") ";
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
-            result.add(Either.forLeft("defined in " + nearestScopeName(f)));
+            result.add(Either.forLeft(definedInText(f)));
             return result;
+        }
+
+        private static String definedInText(Element n) {
+            String file = n.attrSource().getFile();
+            if (file == null || file.isEmpty()) {
+                return "defined in " + nearestScopeName(n);
+            }
+            File f = new File(file);
+            String label = f.getName();
+            String uri = f.toURI().toString();
+            return "defined in [" + label + "](" + uri + ")";
         }
 
         public List<Either<String, MarkedString>> description(NameRef nr) {
