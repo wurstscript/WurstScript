@@ -92,12 +92,12 @@ public class DispatchCheckDeduplicator implements OptimizerPass {
     }
 
     private boolean invalidatesGuard(ImStmt s, GuardPattern guard) {
+        if (mayWriteTypeIdFromElement(s, guard.failedCond.typeIdVar)) {
+            return true;
+        }
         if (s instanceof ImSet) {
             ImSet set = (ImSet) s;
             ImLExpr left = set.getLeft();
-            if (mayWriteTypeIdFromElement(set.getRight(), guard.failedCond.typeIdVar)) {
-                return true;
-            }
             if (left instanceof ImVarAccess) {
                 ImVar v = ((ImVarAccess) left).getVar();
                 return v == guard.failedCond.receiverVar || v == guard.failedCond.typeIdVar;

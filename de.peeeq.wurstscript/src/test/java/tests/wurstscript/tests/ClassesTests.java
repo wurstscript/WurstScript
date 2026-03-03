@@ -170,6 +170,40 @@ public class ClassesTests extends WurstScriptTest {
             "Expected inlopt output to keep separate guards across mutating RHS call, found " + inlOptGuardCount);
     }
 
+    @Test
+    public void dispatchGuardNotDedupedAcrossNestedMutatingExprStatement() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        int unused = mutatingRhs(a) + 0",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossNestedMutatingExprStatement_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across nested mutating expr statement, found " + inlOptGuardCount);
+    }
+
     private static int countOccurrences(String text, String needle) {
         int c = 0;
         int i = 0;
