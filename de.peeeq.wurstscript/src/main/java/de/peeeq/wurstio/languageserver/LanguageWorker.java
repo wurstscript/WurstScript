@@ -223,7 +223,8 @@ public class LanguageWorker implements Runnable {
     }
 
     private boolean isWurstDependencyFile(PendingChange change) {
-        return change.getFilename().getUriString().endsWith("wurst.dependencies");
+        String uri = change.getFilename().getUriString().replace('\\', '/');
+        return uri.contains("/_build/dependencies/");
     }
 
     private PendingChange removeFirst(Map<WFile, PendingChange> changes) {

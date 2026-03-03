@@ -35,7 +35,7 @@ public class ModelManagerImpl implements ModelManager {
     private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private final File projectPath;
-    // dependency folders (folders mentioned in wurst.dependencies)
+    // dependency project folders discovered in _build/dependencies
     private final Set<File> dependencies = Sets.newLinkedHashSet();
     // private WurstGui gui = new WurstGuiLogger();
     private final List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
@@ -129,7 +129,7 @@ public class ModelManagerImpl implements ModelManager {
     public void buildProject() {
         try {
             WurstGui gui = new WurstGuiLogger();
-            readDependencies(gui);
+            readDependencies();
 
             if (!projectPath.exists()) {
                 throw new RuntimeException("Folder " + projectPath + " does not exist!");
@@ -145,7 +145,7 @@ public class ModelManagerImpl implements ModelManager {
             resolveImports(gui);
 
             doTypeCheck(gui);
-        } catch (IOException e) {
+        } catch (Exception e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
         }
@@ -174,14 +174,8 @@ public class ModelManagerImpl implements ModelManager {
         replaceCompilationUnit(f);
     }
 
-    private void readDependencies(WurstGui gui) throws IOException {
+    private void readDependencies() {
         dependencies.clear();
-        File depFile = new File(projectPath, "wurst.dependencies");
-        if (!depFile.exists()) {
-            WLogger.info("no dependency file found.");
-            return;
-        }
-        dependencies.addAll(WurstCompilerJassImpl.checkDependencyFile(depFile, gui));
         WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 

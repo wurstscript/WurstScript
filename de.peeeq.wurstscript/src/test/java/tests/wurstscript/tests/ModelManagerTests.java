@@ -875,7 +875,7 @@ public class ModelManagerTests {
     public void runmapPurge_keepsProjectWar3MapAndPurgesUnimportedDependency() throws Exception {
         File projectFolder = new File("./temp/testProject_runmap_purge_dep/");
         File wurstFolder = new File(projectFolder, "wurst");
-        File dependencyRoot = new File(projectFolder, "depA");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depA");
         File dependencyWurst = new File(dependencyRoot, "wurst");
         newCleanFolder(wurstFolder);
         newCleanFolder(dependencyWurst);
@@ -897,7 +897,6 @@ public class ModelManagerTests {
             "init",
             "    skip"
         ));
-        Files.writeString(new File(projectFolder, "wurst.dependencies").toPath(), dependencyRoot.getAbsolutePath() + "\n");
 
         ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
         manager.buildProject();
@@ -915,7 +914,7 @@ public class ModelManagerTests {
     public void runmapPurge_onlyKeepsWar3MapFromProjectWurstFolder() throws Exception {
         File projectFolder = new File("./temp/testProject_runmap_purge_war3map_scope/");
         File wurstFolder = new File(projectFolder, "wurst");
-        File dependencyRoot = new File(projectFolder, "depB");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depB");
         File dependencyWurst = new File(dependencyRoot, "wurst");
         newCleanFolder(wurstFolder);
         newCleanFolder(dependencyWurst);
@@ -929,7 +928,6 @@ public class ModelManagerTests {
         writeFile(fileMain, "package Main\n");
         writeFile(fileProjectWar3Map, "globals\nendglobals\n");
         writeFile(fileDependencyWar3Map, "globals\nendglobals\n");
-        Files.writeString(new File(projectFolder, "wurst.dependencies").toPath(), dependencyRoot.getAbsolutePath() + "\n");
 
         ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
         manager.buildProject();
