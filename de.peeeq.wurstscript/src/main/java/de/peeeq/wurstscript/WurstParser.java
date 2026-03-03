@@ -22,6 +22,8 @@ import org.antlr.v4.runtime.*;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.regex.Pattern;
 
 public class WurstParser {
@@ -93,11 +95,12 @@ public class WurstParser {
                 gui.sendError(warning);
             }
 
+            Deque<Token> commentTokens = new ArrayDeque<>(lexerRef[0].getCommentTokens());
             CompilationUnit root = new AntlrWurstParseTreeTransformer(
                 source,
                 errorHandler,
                 lexerRef[0].getLineOffsets(),
-                lexerRef[0].getCommentTokens(),
+                new ArrayDeque<>(commentTokens),
                 true
             ).transform(res.parseTree);
 
@@ -105,7 +108,7 @@ public class WurstParser {
                 removeSyntacticSugar(root, hasCommonJ);
             }
             root.getCuInfo().setIndentationMode(lexerRef[0].getIndentationMode());
-            root.getCuInfo().setTriviaIndex(TriviaIndex.fromTokens(res.tokens.getTokens()));
+            root.getCuInfo().setTriviaIndex(TriviaIndex.fromTokens(res.tokens.getTokens(), commentTokens));
             return root;
 
         } catch (IOException e) {

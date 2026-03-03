@@ -6,7 +6,9 @@ import org.antlr.v4.runtime.Token;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
+import java.util.Optional;
 
 public final class TriviaIndex {
 
@@ -29,6 +31,27 @@ public final class TriviaIndex {
         return new TriviaIndex(new ArrayList<>(tokens));
     }
 
+    public static TriviaIndex fromTokens(List<Token> tokens, Deque<Token> hiddenCommentTokens) {
+        if ((tokens == null || tokens.isEmpty()) && (hiddenCommentTokens == null || hiddenCommentTokens.isEmpty())) {
+            return EMPTY;
+        }
+        List<Token> allTokens = new ArrayList<>();
+        if (tokens != null) {
+            allTokens.addAll(tokens);
+        }
+        if (hiddenCommentTokens != null) {
+            allTokens.addAll(hiddenCommentTokens);
+        }
+        allTokens.sort((a, b) -> {
+            int byStart = Integer.compare(a.getStartIndex(), b.getStartIndex());
+            if (byStart != 0) {
+                return byStart;
+            }
+            return Integer.compare(a.getStopIndex(), b.getStopIndex());
+        });
+        return new TriviaIndex(allTokens);
+    }
+
     public String findLeadingHotdoc(int declarationStartOffset) {
         int targetTokenIndex = firstNonTriviaTokenAtOrAfter(declarationStartOffset);
         if (targetTokenIndex < 0) {
@@ -45,6 +68,15 @@ public final class TriviaIndex {
             }
         }
         return "";
+    }
+
+    public Optional<CommentTrivia> findCommentAtOffset(int offset) {
+        for (Token token : tokens) {
+            if (token.getStartIndex() <= offset && offset <= token.getStopIndex() && isCommentToken(token.getType())) {
+                return Optional.of(new CommentTrivia(token.getType(), token.getText()));
+            }
+        }
+        return Optional.empty();
     }
 
     private int firstNonTriviaTokenAtOrAfter(int offset) {
@@ -71,5 +103,29 @@ public final class TriviaIndex {
             return true;
         }
         return token.getChannel() != Token.DEFAULT_CHANNEL;
+    }
+
+    private boolean isCommentToken(int type) {
+        return type == WurstParser.HOTDOC_COMMENT
+            || type == WurstParser.LINE_COMMENT
+            || type == WurstParser.ML_COMMENT;
+    }
+
+    public static final class CommentTrivia {
+        private final int tokenType;
+        private final String rawText;
+
+        public CommentTrivia(int tokenType, String rawText) {
+            this.tokenType = tokenType;
+            this.rawText = rawText;
+        }
+
+        public int getTokenType() {
+            return tokenType;
+        }
+
+        public String getRawText() {
+            return rawText;
+        }
     }
 }
