@@ -6,6 +6,11 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ClassesTests extends WurstScriptTest {
 
@@ -40,6 +45,274 @@ public class ClassesTests extends WurstScriptTest {
     @Test
     public void classes_method() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_method.wurst"), true);
+    }
+
+    @Test
+    public void dispatchNarrowingUsesStaticReceiverTypeInJass() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    class B extends A",
+            "        override function bar() returns int",
+            "            return 2",
+            "",
+            "    class C extends A",
+            "",
+            "    function useC(C c) returns int",
+            "        return c.bar()",
+            "",
+            "    init",
+            "        let c = new C",
+            "        if useC(c) == 1",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingUsesStaticReceiverTypeInJass_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("dispatch_narrow_C_A_A_bar"),
+            "Expected narrowed dispatch function for receiver type C.");
+        assertTrue(jass.contains("return dispatch_narrow_C_A_A_bar(c)")
+                || jass.contains("call dispatch_narrow_C_A_A_bar"),
+            "Expected call site to use narrowed dispatch.");
+        assertFalse(jass.contains("return dispatch_A_A_bar(") && jass.contains("function useC"),
+            "Call site should not use full A dispatch for static receiver type C.");
+        assertFalse(jass.contains("call dispatch_A_A_bar"),
+            "Call site should not use full A dispatch for static receiver type C.");
+    }
+
+    @Test
+    public void dispatchNarrowingOnInterfaceSubtypeKeepsSemantics() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    interface A",
+            "        function f1() returns int",
+            "",
+            "    interface B extends A",
+            "        function f2() returns int",
+            "",
+            "    class C implements B",
+            "        override function f1() returns int",
+            "            return 3",
+            "        override function f2() returns int",
+            "            return 4",
+            "",
+            "    function useB(B b) returns int",
+            "        return b.f1()",
+            "",
+            "    function useA(A a) returns int",
+            "        return a.f1()",
+            "",
+            "    init",
+            "        B b = new C()",
+            "        A a = b",
+            "        if useB(b) == 3 and useA(a) == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingOnInterfaceSubtypeKeepsSemantics_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("function useB takes integer b returns integer"),
+            "Expected useB helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_narrow_B_A_A_f1(b)"),
+            "Expected B-typed call site to use narrowed dispatch.");
+        assertTrue(jass.contains("function useA takes integer a returns integer"),
+            "Expected useA helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_A_A_f1(a)"),
+            "Expected A-typed call site to use regular A dispatch.");
+    }
+
+    @Test
+    public void repeatedCallsOnSameReceiverAreNotDispatchCachedYet() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    @extern native I2S(int x) returns string",
+            "    @extern native S2I(string x) returns int",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        let ua = useA(a)",
+            "        if ua == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File noOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_no_opts.j");
+        File optOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_opt.j");
+        String noOpt = Files.readString(noOptOut.toPath(), StandardCharsets.UTF_8);
+        String opt = Files.readString(optOut.toPath(), StandardCharsets.UTF_8);
+
+        int noOptDispatchCalls = countOccurrences(noOpt, "dispatch_A_A_bar(");
+        int optDispatchCalls = countOccurrences(opt, "dispatch_A_A_bar(");
+
+        assertTrue(noOptDispatchCalls >= 3,
+            "Expected at least three dispatch calls in no_opts output, found " + noOptDispatchCalls);
+        assertTrue(optDispatchCalls >= 3,
+            "Expected at least three dispatch calls in opt output, found " + optDispatchCalls);
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount == 1,
+            "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
+    }
+
+    @Test
+    public void dispatchGuardNotDedupedAcrossRhsSideEffects() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        r = mutatingRhs(a)",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossRhsSideEffects_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across mutating RHS call, found " + inlOptGuardCount);
+    }
+
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossRhsSideEffectsStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        r = mutatingRhs(a)",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void dispatchGuardNotDedupedAcrossNestedMutatingExprStatement() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        int unused = mutatingRhs(a) + 0",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossNestedMutatingExprStatement_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across nested mutating expr statement, found " + inlOptGuardCount);
+    }
+
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossNestedMutatingExprStatementStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        int unused = mutatingRhs(a) + 0",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int c = 0;
+        int i = 0;
+        while ((i = text.indexOf(needle, i)) >= 0) {
+            c++;
+            i += needle.length();
+        }
+        return c;
     }
 
     @Test
