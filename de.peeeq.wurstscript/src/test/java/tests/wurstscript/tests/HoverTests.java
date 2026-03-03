@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 /**
  * tests the get definition functionality.
@@ -33,6 +34,19 @@ public class HoverTests extends WurstLanguageServerTest {
 
         List<String> text = testHoverText(testData);
         assertEquals(Collections.emptyList(), text);
+    }
+
+    @Test
+    public void hoverUsesHotdocComment() {
+        CompletionTestData testData = input(
+                "package test",
+                "/** this is hover doc */",
+                "function fo|o()",
+                "endpackage"
+        );
+
+        List<String> text = testHoverText(testData);
+        assertTrue(text.stream().anyMatch(s -> s.contains("this is hover doc")), "hover text = " + text);
     }
 
 

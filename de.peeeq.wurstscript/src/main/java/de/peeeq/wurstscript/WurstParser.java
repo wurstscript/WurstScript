@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jurst.AntlrJurstParseTreeTransformer;
 import de.peeeq.wurstscript.jurst.ExtendedJurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.parser.AntlrTokenPipeline;
+import de.peeeq.wurstscript.parser.TriviaIndex;
 import de.peeeq.wurstscript.parser.WurstAntlrErrorListener;
 import de.peeeq.wurstscript.parser.antlr.AntlrWurstParseTreeTransformer;
 import de.peeeq.wurstscript.parser.antlr.ExtendedWurstLexer;
@@ -104,6 +105,7 @@ public class WurstParser {
                 removeSyntacticSugar(root, hasCommonJ);
             }
             root.getCuInfo().setIndentationMode(lexerRef[0].getIndentationMode());
+            root.getCuInfo().setTriviaIndex(TriviaIndex.fromTokens(res.tokens.getTokens()));
             return root;
 
         } catch (IOException e) {
