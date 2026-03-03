@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
@@ -18,21 +19,29 @@ import java.util.Optional;
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 
 	private final WFile filename;
+	private final String buffer;
 	private final int line;
 	private final int column;
 
 
-	public SignatureInfo(TextDocumentPositionParams position) {
+	public SignatureInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
 		this.filename = WFile.create(position.getTextDocument().getUri());
+		this.buffer = bufferManager.getBuffer(position.getTextDocument());
 		this.line = position.getPosition().getLine() + 1;
 		this.column = position.getPosition().getCharacter() + 1;
 	}
 
 
-    @Override
+	@Override
 	public SignatureHelp execute(ModelManager modelManager) {
-		CompilationUnit cu = modelManager.getCompilationUnit(filename);
+		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+		if (cu == null) {
+			return new SignatureHelp(Collections.emptyList(), 0, 0);
+		}
 		Optional<Element> e = Utils.getAstElementAtPos(cu, line, column, false);
+		if (!e.isPresent()) {
+			return new SignatureHelp(Collections.emptyList(), 0, 0);
+		}
 		if (e.get() instanceof StmtCall) {
 			StmtCall call = (StmtCall) e.get();
 			// TODO only when we are in parentheses
@@ -44,12 +53,12 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 			Optional<Element> parent = e.flatMap(el -> Optional.ofNullable(el.getParent()));
 			if (parent.isPresent() && parent.get() instanceof Arguments) {
 				Arguments args = (Arguments) parent.get();
-				if (parent.get().getParent() instanceof StmtCall) {
-					StmtCall call = (StmtCall) parent.get().getParent();
-					SignatureHelp info = forCall(call);
-					info.setActiveParameter(args.indexOf(e));
-					return info;
-				}
+                if (parent.get().getParent() instanceof StmtCall) {
+                    StmtCall call = (StmtCall) parent.get().getParent();
+                    SignatureHelp info = forCall(call);
+                    info.setActiveParameter(args.indexOf(e.get()));
+                    return info;
+                }
 				break;
 			} else if (parent.isPresent() && parent.get() instanceof StmtCall) {
 				StmtCall call = (StmtCall) parent.get();

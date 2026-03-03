@@ -17,22 +17,28 @@ import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.CodeAction;
+import org.eclipse.lsp4j.CodeActionKind;
 import org.eclipse.lsp4j.CodeActionParams;
 import org.eclipse.lsp4j.Command;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static de.peeeq.wurstio.languageserver.WurstCommands.WURST_PERFORM_CODE_ACTION;
 
 /**
  *
@@ -43,6 +49,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
     private final String buffer;
     private final int line;
     private final int column;
+    private final List<Diagnostic> diagnostics;
 
     public CodeActionRequest(CodeActionParams params, BufferManager bufferManager) {
         this.params = params;
@@ -52,11 +59,14 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         this.buffer = bufferManager.getBuffer(textDocument);
         this.line = params.getRange().getStart().getLine() + 1;
         this.column = params.getRange().getStart().getCharacter() + 1;
+        this.diagnostics = params.getContext() == null
+                ? Collections.emptyList()
+                : params.getContext().getDiagnostics();
     }
 
     @Override
     public List<Either<Command, CodeAction>> execute(ModelManager modelManager) {
-        if (params.getContext().getDiagnostics().isEmpty()) {
+        if (diagnostics.isEmpty()) {
             // if there are no compilation errors in this line,
             // we don't have to compute possible code actions
             return Collections.emptyList();
@@ -142,7 +152,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
         addDependencyPackageFallback(modelManager, possibleImports, funcName);
 
-        return makeImportCommands(possibleImports);
+        return makeImportCommands(possibleImports, modelManager);
 
     }
 
@@ -178,7 +188,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
         addDependencyPackageFallback(modelManager, possibleImports, funcName);
 
-        return Utils.concatLists(makeImportCommands(possibleImports), makeCreateFunctionQuickfix(fr));
+        return Utils.concatLists(makeImportCommands(possibleImports, modelManager), makeCreateFunctionQuickfix(fr));
     }
 
     private List<Either<Command, CodeAction>> makeCreateFunctionQuickfix(FuncRef fr) {
@@ -336,13 +346,12 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         code.append("\n");
 
 
-        List<Object> arguments = Collections.singletonList(
-                PerformCodeActionRequest.insertCodeAction(
-                        m.targetFile.getUriString(),
-                        m.line,
-                        code.toString())
-        );
-        return Collections.singletonList(Either.forLeft(new Command(title, WURST_PERFORM_CODE_ACTION, arguments)));
+        Range range = new Range(new Position(m.line, 0), new Position(m.line, 0));
+        TextEdit textEdit = new TextEdit(range, code.toString());
+        WorkspaceEdit edit = workspaceEdit(m.targetFile.getUriString(), textEdit);
+        CodeAction action = makeQuickFix(title, edit);
+        action.setIsPreferred(true);
+        return Collections.singletonList(Either.forRight(action));
     }
 
 
@@ -358,7 +367,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
         addDependencyPackageFallback(modelManager, possibleImports, typeName);
 
-        return makeImportCommands(possibleImports);
+        return makeImportCommands(possibleImports, modelManager);
     }
 
     private List<Either<Command, CodeAction>> handleMissingClass(ModelManager modelManager, String typeName) {
@@ -382,7 +391,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
         addDependencyPackageFallback(modelManager, possibleImports, typeName);
 
-        return makeImportCommands(possibleImports);
+        return makeImportCommands(possibleImports, modelManager);
     }
 
     private List<Either<Command, CodeAction>> handleMissingModule(ModelManager modelManager, String moduleName) {
@@ -402,7 +411,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
         addDependencyPackageFallback(modelManager, possibleImports, moduleName);
 
-        return makeImportCommands(possibleImports);
+        return makeImportCommands(possibleImports, modelManager);
     }
 
 
@@ -416,20 +425,40 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
     }
 
-    private List<Either<Command, CodeAction>> makeImportCommands(Collection<String> possibleImports) {
+    private List<Either<Command, CodeAction>> makeImportCommands(Collection<String> possibleImports, ModelManager modelManager) {
         return possibleImports.stream()
-                .map(this::makeImportCommand)
+                .map(imp -> makeImportAction(imp, modelManager))
                 .collect(Collectors.toList());
     }
 
-
-    private Either<Command, CodeAction> makeImportCommand(String imp) {
+    private Either<Command, CodeAction> makeImportAction(String imp, ModelManager modelManager) {
         String title = "Import package " + imp;
-        List<Object> arguments = Collections.singletonList(
-                PerformCodeActionRequest.importPackageAction(
-                        filename.getUriString(),
-                        imp)
-        );
-        return Either.forLeft(new Command(title, WURST_PERFORM_CODE_ACTION, arguments));
+        CompilationUnit cu = modelManager.getCompilationUnit(filename);
+        Position pos = new Position(0, 0);
+        if (cu != null && !cu.getPackages().isEmpty()) {
+            WPackage p = cu.getPackages().get(0);
+            int line = p.getNameId().getSource().getLine();
+            for (WImport importStatement : p.getImports()) {
+                line = Math.max(line, importStatement.getPackagenameId().getSource().getLine());
+            }
+            pos.setLine(line);
+        }
+        TextEdit textEdit = new TextEdit(new Range(pos, pos), "import " + imp + "\n");
+        WorkspaceEdit edit = workspaceEdit(filename.getUriString(), textEdit);
+        return Either.forRight(makeQuickFix(title, edit));
+    }
+
+    private WorkspaceEdit workspaceEdit(String uri, TextEdit textEdit) {
+        Map<String, List<TextEdit>> changes = new LinkedHashMap<>();
+        changes.put(uri, Collections.singletonList(textEdit));
+        return new WorkspaceEdit(changes);
+    }
+
+    private CodeAction makeQuickFix(String title, WorkspaceEdit edit) {
+        CodeAction action = new CodeAction(title);
+        action.setKind(CodeActionKind.QuickFix);
+        action.setEdit(edit);
+        action.setDiagnostics(diagnostics);
+        return action;
     }
 }

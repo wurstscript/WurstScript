@@ -4,13 +4,14 @@ import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyUtils;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either3;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -32,7 +33,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<CompletionItem> resolveCompletionItem(CompletionItem unresolved) {
         WLogger.info("resolveCompletionItem");
-        return null;
+        return CompletableFuture.completedFuture(unresolved);
     }
 
     @Override
@@ -43,13 +44,31 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<SignatureHelp> signatureHelp(SignatureHelpParams helpParams) {
         WLogger.info("signatureHelp");
-        return worker.handle(new SignatureInfo(helpParams));
+        return worker.handle(new SignatureInfo(helpParams, worker.getBufferManager()));
     }
 
     @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(DefinitionParams definitionParams) {
         WLogger.info("definition");
-        return worker.handle(new GetDefinition(definitionParams, worker.getBufferManager()));
+        return worker.handle(new GetDefinition(definitionParams, worker.getBufferManager(), GetDefinition.LookupType.DEFINITION));
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> declaration(DeclarationParams params) {
+        WLogger.info("declaration");
+        return worker.handle(new GetDefinition(params, worker.getBufferManager(), GetDefinition.LookupType.DECLARATION));
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> typeDefinition(TypeDefinitionParams params) {
+        WLogger.info("typeDefinition");
+        return worker.handle(new GetDefinition(params, worker.getBufferManager(), GetDefinition.LookupType.TYPE_DEFINITION));
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> implementation(ImplementationParams params) {
+        WLogger.info("implementation");
+        return worker.handle(new GetDefinition(params, worker.getBufferManager(), GetDefinition.LookupType.IMPLEMENTATION));
     }
 
     @Override
@@ -127,13 +146,13 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<? extends TextEdit>> rangeFormatting(DocumentRangeFormattingParams params) {
         WLogger.info("rangeFormatting");
-        return null;
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 
     @Override
     public CompletableFuture<List<? extends TextEdit>> onTypeFormatting(DocumentOnTypeFormattingParams params) {
         WLogger.info("onTypeFormatting");
-        return null;
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 
     @Override
@@ -145,7 +164,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
         WLogger.info("didOpen");
-
+        worker.handleOpen(params);
     }
 
     @Override
@@ -158,13 +177,13 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public void didClose(DidCloseTextDocumentParams params) {
         WLogger.info("didClose");
-
+        worker.handleClose(params);
     }
 
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
         WLogger.info("didSave");
-
+        worker.handleSave(params);
     }
 
     @Override
@@ -180,5 +199,25 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
         return worker.handle(new FoldingRangeRequest(params));
+    }
+
+    @Override
+    public CompletableFuture<Either3<Range, PrepareRenameResult, PrepareRenameDefaultBehavior>> prepareRename(PrepareRenameParams params) {
+        return worker.handle(new PrepareRenameRequest(params, worker.getBufferManager()));
+    }
+
+    @Override
+    public CompletableFuture<SemanticTokens> semanticTokensFull(SemanticTokensParams params) {
+        return worker.handle(new SemanticTokensRequest(params, worker.getBufferManager()));
+    }
+
+    @Override
+    public CompletableFuture<List<InlayHint>> inlayHint(InlayHintParams params) {
+        return worker.handle(new InlayHintsRequest(params, worker.getBufferManager()));
+    }
+
+    @Override
+    public CompletableFuture<InlayHint> resolveInlayHint(InlayHint unresolved) {
+        return CompletableFuture.completedFuture(unresolved);
     }
 }

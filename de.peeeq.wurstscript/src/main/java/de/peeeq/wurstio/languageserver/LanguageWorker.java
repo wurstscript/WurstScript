@@ -284,6 +284,32 @@ public class LanguageWorker implements Runnable {
         }
     }
 
+    public void handleOpen(DidOpenTextDocumentParams params) {
+        synchronized (lock) {
+            bufferManager.handleOpen(params);
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(file)));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleClose(DidCloseTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            bufferManager.handleClose(params);
+            changes.put(file, new FileUpdated(file));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleSave(DidSaveTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            changes.put(file, new FileUpdated(file));
+            lock.notifyAll();
+        }
+    }
+
     public <Res> CompletableFuture<Res> handle(UserRequest<Res> request) {
         synchronized (lock) {
             if (!request.keepDuplicateRequests()) {

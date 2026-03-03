@@ -1,10 +1,10 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.SemanticTokensRequest;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.RemoteEndpoint;
-import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.*;
 
 import java.io.FileDescriptor;
@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -38,24 +39,44 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
         languageWorker.setRootPath(rootUri);
 
         ServerCapabilities capabilities = new ServerCapabilities();
-        capabilities.setCompletionProvider(new CompletionOptions(false, Collections.singletonList(".")));
+        capabilities.setCompletionProvider(new CompletionOptions(true, Collections.singletonList(".")));
         capabilities.setHoverProvider(true);
         capabilities.setDefinitionProvider(true);
+        capabilities.setDeclarationProvider(true);
+        capabilities.setTypeDefinitionProvider(true);
+        capabilities.setImplementationProvider(true);
         capabilities.setSignatureHelpProvider(new SignatureHelpOptions(Arrays.asList("(", ".")));
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setReferencesProvider(true);
         capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(WurstCommands.providedCommands()));
-        capabilities.setRenameProvider(true);
+        capabilities.setRenameProvider(new RenameOptions(true));
 
+        TextDocumentSyncOptions textSync = new TextDocumentSyncOptions();
+        textSync.setOpenClose(true);
+        textSync.setChange(TextDocumentSyncKind.Incremental);
+        textSync.setSave(true);
+        capabilities.setTextDocumentSync(textSync);
 
-        capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));
-        capabilities.setCodeActionProvider(true);
+        CodeActionOptions codeActionOptions = new CodeActionOptions(List.of(
+                CodeActionKind.QuickFix,
+                CodeActionKind.Refactor,
+                CodeActionKind.RefactorExtract
+        ));
+        capabilities.setCodeActionProvider(codeActionOptions);
         capabilities.setDocumentSymbolProvider(true);
         capabilities.setWorkspaceSymbolProvider(true);
         capabilities.setDocumentFormattingProvider(true);
         capabilities.setColorProvider(true);
         capabilities.setCodeLensProvider(new CodeLensOptions(true));
         capabilities.setFoldingRangeProvider(true);
+        SemanticTokensLegend semanticLegend = new SemanticTokensLegend(
+                SemanticTokensRequest.TOKEN_TYPES,
+                SemanticTokensRequest.TOKEN_MODIFIERS
+        );
+        SemanticTokensWithRegistrationOptions semanticTokensOptions =
+                new SemanticTokensWithRegistrationOptions(semanticLegend, true, false);
+        capabilities.setSemanticTokensProvider(semanticTokensOptions);
+        capabilities.setInlayHintProvider(new InlayHintRegistrationOptions());
 
 
         InitializeResult res = new InitializeResult(capabilities);
