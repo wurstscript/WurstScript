@@ -88,6 +88,51 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void dispatchNarrowingOnInterfaceSubtypeKeepsSemantics() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    interface A",
+            "        function f1() returns int",
+            "",
+            "    interface B extends A",
+            "        function f2() returns int",
+            "",
+            "    class C implements B",
+            "        override function f1() returns int",
+            "            return 3",
+            "        override function f2() returns int",
+            "            return 4",
+            "",
+            "    function useB(B b) returns int",
+            "        return b.f1()",
+            "",
+            "    function useA(A a) returns int",
+            "        return a.f1()",
+            "",
+            "    init",
+            "        B b = new C()",
+            "        A a = b",
+            "        if useB(b) == 3 and useA(a) == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingOnInterfaceSubtypeKeepsSemantics_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("function useB takes integer b returns integer"),
+            "Expected useB helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_narrow_B_A_A_f1(b)"),
+            "Expected B-typed call site to use narrowed dispatch.");
+        assertTrue(jass.contains("function useA takes integer a returns integer"),
+            "Expected useA helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_A_A_f1(a)"),
+            "Expected A-typed call site to use regular A dispatch.");
+    }
+
+    @Test
     public void repeatedCallsOnSameReceiverAreNotDispatchCachedYet() throws IOException {
         testAssertOkLines(true,
             "package test",
@@ -170,6 +215,34 @@ public class ClassesTests extends WurstScriptTest {
             "Expected inlopt output to keep separate guards across mutating RHS call, found " + inlOptGuardCount);
     }
 
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossRhsSideEffectsStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        r = mutatingRhs(a)",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
+    }
+
     @Test
     public void dispatchGuardNotDedupedAcrossNestedMutatingExprStatement() throws IOException {
         testAssertOkLines(false,
@@ -202,6 +275,34 @@ public class ClassesTests extends WurstScriptTest {
         int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
         assertTrue(inlOptGuardCount >= 2,
             "Expected inlopt output to keep separate guards across nested mutating expr statement, found " + inlOptGuardCount);
+    }
+
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossNestedMutatingExprStatementStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        int unused = mutatingRhs(a) + 0",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
     }
 
     private static int countOccurrences(String text, String needle) {
