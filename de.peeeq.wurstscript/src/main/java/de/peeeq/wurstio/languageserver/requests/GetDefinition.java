@@ -6,6 +6,8 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
@@ -45,6 +47,13 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
         }
         Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
+        NameDef configuredDecl = getConfiguredDeclarationAtPos(e);
+        if (configuredDecl != null) {
+            NameDef originalDecl = getOriginalConfigDeclaration(configuredDecl);
+            if (originalDecl != null) {
+                return linkTo(originalDecl);
+            }
+        }
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
             FunctionDefinition decl = funcRef.attrFuncDef();
@@ -83,6 +92,40 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
             return linkTo(superConstructor);
         }
         return Collections.emptyList();
+    }
+
+    private NameDef getConfiguredDeclarationAtPos(Element e) {
+        if (e instanceof NameDef) {
+            return (NameDef) e;
+        }
+        Element current = e;
+        while (current != null) {
+            if (current instanceof NameDef) {
+                return (NameDef) current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private NameDef getOriginalConfigDeclaration(NameDef nameDef) {
+        if (!(nameDef instanceof GlobalVarDef) || !nameDef.hasAnnotation("@config")) {
+            return null;
+        }
+        PackageOrGlobal nearestPackage = nameDef.attrNearestPackage();
+        if (!(nearestPackage instanceof WPackage)) {
+            return null;
+        }
+        WPackage configPackage = (WPackage) nearestPackage;
+        if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+            return null;
+        }
+        WPackage originalPackage = CofigOverridePackages.getOriginalPackage(configPackage);
+        if (originalPackage == null) {
+            return null;
+        }
+        NameLink originalVar = originalPackage.getElements().lookupVarNoConfig(nameDef.getName(), false);
+        return originalVar == null ? null : originalVar.getDef();
     }
 
     private List<? extends Location> linkTo(AstElementWithSource decl) {

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.parser.TriviaIndex;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -9,6 +10,7 @@ public class CompilationUnitInfo {
     private String file = "";
     private de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler;
     private IndentationMode indentationMode = IndentationMode.spaces(4);
+    private TriviaIndex triviaIndex = TriviaIndex.empty();
 
     public CompilationUnitInfo(ErrorHandler cuErrorHandler) {
         this.cuErrorHandler = cuErrorHandler;
@@ -36,6 +38,14 @@ public class CompilationUnitInfo {
 
     public void setIndentationMode(IndentationMode indentationMode) {
         this.indentationMode = indentationMode;
+    }
+
+    public TriviaIndex getTriviaIndex() {
+        return triviaIndex;
+    }
+
+    public void setTriviaIndex(TriviaIndex triviaIndex) {
+        this.triviaIndex = triviaIndex == null ? TriviaIndex.empty() : triviaIndex;
     }
 
     public interface IndentationMode {

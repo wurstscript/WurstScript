@@ -67,6 +67,34 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
         testGetDef(testData, Collections.emptyList());
     }
 
+    @Test
+    public void configVarDefinitionJumpsToConfigurableVar() {
+        CompletionTestData testData = input(
+                "package SoundUtils",
+                "    @configurable int DEFAULT_SOUND_VOLUME = 127",
+                "endpackage",
+                "package SoundUtils_config",
+                "    @config int DEFAULT_SOUND_VOLUME| = 42",
+                "endpackage"
+        );
+
+        testGetDef(testData, "1:22-1:42");
+    }
+
+    @Test
+    public void configAnnotationJumpsToConfigurableVar() {
+        CompletionTestData testData = input(
+                "package SoundUtils",
+                "    @configurable int DEFAULT_SOUND_VOLUME = 127",
+                "endpackage",
+                "package SoundUtils_config",
+                "    @co|nfig int DEFAULT_SOUND_VOLUME = 42",
+                "endpackage"
+        );
+
+        testGetDef(testData, "1:22-1:42");
+    }
+
 
     private void testGetDef(CompletionTestData testData, String... expectedPositions) {
         testGetDef(testData, Arrays.asList(expectedPositions));

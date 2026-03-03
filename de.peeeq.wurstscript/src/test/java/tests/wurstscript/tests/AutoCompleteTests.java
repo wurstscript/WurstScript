@@ -451,6 +451,29 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         );
     }
 
+    @Test
+    public void completionUsesHotdocComment() {
+        CompletionTestData testData = input(
+                "package test",
+                "/** docs for foo */",
+                "function fooBar()",
+                "init",
+                "    foo|",
+                "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        CompletionItem completion = completions.getItems().stream()
+                .filter(c -> "fooBar".equals(c.getLabel()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("fooBar completion not found"));
+
+        assertTrue(
+                completion.getDocumentation() != null && completion.getDocumentation().getLeft().contains("docs for foo"),
+                "completion documentation = " + completion.getDocumentation()
+        );
+    }
+
 	private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
     }
