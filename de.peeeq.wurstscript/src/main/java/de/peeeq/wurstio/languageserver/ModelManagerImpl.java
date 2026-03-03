@@ -482,7 +482,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public Changes syncCompilationUnitContent(WFile filename, String contents) {
-        WLogger.info("sync contents for " + filename);
+        WLogger.debug("sync contents for " + filename);
         Set<String> oldPackages = declaredPackages(filename);
         replaceCompilationUnit(filename, contents, false);
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
@@ -514,10 +514,10 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public Changes syncCompilationUnit(WFile f) {
-        WLogger.info("syncCompilationUnit File " + f);
+        WLogger.debug("syncCompilationUnit File " + f);
         Set<String> oldPackages = declaredPackages(f);
         replaceCompilationUnit(f);
-        WLogger.info("replaced file " + f);
+        WLogger.debug("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
         return new Changes(io.vavr.collection.HashSet.of(f), oldPackages);
@@ -537,9 +537,9 @@ public class ModelManagerImpl implements ModelManager {
                     return existing;
                 }
                 // Stale hash cache after remove/move; CU is gone, so reparse.
-                WLogger.info("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
+                WLogger.debug("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
             } else {
-                WLogger.info("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
+                WLogger.debug("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
             }
         }
 
@@ -552,7 +552,7 @@ public class ModelManagerImpl implements ModelManager {
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
             if (gui.getErrorCount() > 0) {
-                WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
+                WLogger.debug("found " + gui.getErrorCount() + " errors in file " + filename);
             }
             ImmutableList.Builder<CompileError> errors = ImmutableList.<CompileError>builder()
                 .addAll(gui.getErrorsAndWarnings());
@@ -576,7 +576,7 @@ public class ModelManagerImpl implements ModelManager {
     public CompilationUnit getCompilationUnit(WFile filename) {
         List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
         if (matches.isEmpty()) {
-            WLogger.info("compilation unit not found: " + filename);
+            WLogger.trace("compilation unit not found: " + filename);
             return null;
         }
         return matches.get(0);
@@ -628,7 +628,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames, Set<String> oldPackages) {
-        WLogger.info("do typecheck partial of " + toCheckFilenames);
+        WLogger.debug("do typecheck partial of " + toCheckFilenames);
         WurstCompilerJassImpl comp = getCompiler(gui);
         List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
 

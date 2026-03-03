@@ -9,12 +9,16 @@ import org.eclipse.lsp4j.services.*;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -29,7 +33,7 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         System.err.println("Loading Wurst version " + CompileTimeInfo.version);
         setupLogger();
-        System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8));
+        System.setErr(createFilteredErr());
         if (params.getRootUri() == null) {
             System.err.println("Workspace null. Make sure to open a valid project root using File->Open Folder, before opening code files.");
             return CompletableFuture.completedFuture(null);
@@ -85,6 +89,53 @@ public class WurstLanguageServer implements LanguageServer, LanguageClientAware 
     }
     private void setupLogger() {
         WLogger.setLogger("languageServer");
+        Logger.getLogger(RemoteEndpoint.class.getName()).setLevel(Level.SEVERE);
+        Logger.getLogger("org.eclipse.lsp4j.jsonrpc.RemoteEndpoint").setLevel(Level.SEVERE);
+    }
+
+    private PrintStream createFilteredErr() {
+        PrintStream rawErr = new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8);
+        OutputStream filteringOutput = new OutputStream() {
+            private final StringBuilder lineBuffer = new StringBuilder();
+
+            @Override
+            public void write(int b) throws IOException {
+                char c = (char) b;
+                if (c == '\n') {
+                    flushLine();
+                    rawErr.write('\n');
+                    rawErr.flush();
+                } else if (c != '\r') {
+                    lineBuffer.append(c);
+                }
+            }
+
+            @Override
+            public void flush() throws IOException {
+                flushLine();
+                rawErr.flush();
+            }
+
+            private void flushLine() throws IOException {
+                if (lineBuffer.isEmpty()) {
+                    return;
+                }
+                String line = lineBuffer.toString();
+                lineBuffer.setLength(0);
+                if (shouldSuppressErrLine(line)) {
+                    return;
+                }
+                rawErr.write(line.getBytes(StandardCharsets.UTF_8));
+            }
+        };
+        return new PrintStream(filteringOutput, true, StandardCharsets.UTF_8);
+    }
+
+    private boolean shouldSuppressErrLine(String line) {
+        return line.startsWith("WARNING: A restricted method in java.lang.System has been called")
+            || line.startsWith("WARNING: java.lang.System::load has been called by org.sqlite.SQLiteJDBCLoader")
+            || line.startsWith("WARNING: Use --enable-native-access=ALL-UNNAMED")
+            || line.startsWith("WARNING: Restricted methods will be blocked in a future release");
     }
 
     @Override
