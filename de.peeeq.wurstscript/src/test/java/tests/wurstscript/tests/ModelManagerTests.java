@@ -247,6 +247,67 @@ public class ModelManagerTests {
     }
 
     @Test
+    public void unresolvedImportsAreAllReported() throws IOException {
+        File projectFolder = new File("./temp/testProject_all_import_errors/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileMainA = WFile.create(new File(wurstFolder, "MainA.wurst"));
+        WFile fileMainB = WFile.create(new File(wurstFolder, "MainB.wurst"));
+        WFile fileMainC = WFile.create(new File(wurstFolder, "MainC.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+        writeFile(fileMainA, string(
+            "package MainA",
+            "import DoesNotExistA",
+            "import DoesNotExistB",
+            "import DoesNotExistC",
+            "import DoesNotExistD",
+            "endpackage"
+        ));
+        writeFile(fileMainB, string(
+            "package MainB",
+            "import MissingPkg1",
+            "import MissingPkg2",
+            "import MissingPkg3",
+            "endpackage"
+        ));
+        writeFile(fileMainC, string(
+            "package MainC",
+            "import UnknownAlpha",
+            "import UnknownBeta",
+            "endpackage"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+
+        String errorsMainA = errors.getOrDefault(fileMainA, "");
+        assertImportMissing(errorsMainA, "DoesNotExistA");
+        assertImportMissing(errorsMainA, "DoesNotExistB");
+        assertImportMissing(errorsMainA, "DoesNotExistC");
+        assertImportMissing(errorsMainA, "DoesNotExistD");
+
+        String errorsMainB = errors.getOrDefault(fileMainB, "");
+        assertImportMissing(errorsMainB, "MissingPkg1");
+        assertImportMissing(errorsMainB, "MissingPkg2");
+        assertImportMissing(errorsMainB, "MissingPkg3");
+
+        String errorsMainC = errors.getOrDefault(fileMainC, "");
+        assertImportMissing(errorsMainC, "UnknownAlpha");
+        assertImportMissing(errorsMainC, "UnknownBeta");
+    }
+
+    private void assertImportMissing(String diagnostics, String packageName) {
+        boolean hasResolvedError = diagnostics.contains("The import '" + packageName + "' could not be resolved.");
+        boolean hasValidatorError = diagnostics.contains("Could not find imported package " + packageName);
+        assertEquals(hasResolvedError || hasValidatorError, true,
+            "Expected missing-import diagnostic for " + packageName + " in:\n" + diagnostics);
+    }
+
+    @Test
     public void deletingFileClearsErrorsFromModel() throws IOException {
         File projectFolder = new File("./temp/testProject_delete_clears_errors/");
         File wurstFolder = new File(projectFolder, "wurst");
