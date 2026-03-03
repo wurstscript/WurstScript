@@ -177,7 +177,55 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
                 .map(h -> h.getLabel().isLeft() ? h.getLabel().getLeft() : "")
                 .collect(Collectors.toList());
         assertTrue(labels.contains("amount:"));
-        assertTrue(labels.contains("name:"));
+        assertFalse(labels.contains("name:"), "Obvious string parameter hints should be suppressed.");
+    }
+
+    @Test
+    public void inlayHintsHideSelfDescribingArgumentNames() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "function send(string message)",
+                "init",
+                "    string message = \"x\"",
+                "    send(message)",
+                "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+        List<String> labels = hints.stream()
+                .map(h -> h.getLabel().isLeft() ? h.getLabel().getLeft() : "")
+                .collect(Collectors.toList());
+        assertFalse(labels.contains("message:"));
+    }
+
+    @Test
+    public void inlayHintsShowWhenParameterTypesAreRepeated() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "function setRange(int min, int max)",
+                "init",
+                "    int first = 1",
+                "    int second = 2",
+                "    setRange(first, second)",
+                "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+        List<String> labels = hints.stream()
+                .map(h -> h.getLabel().isLeft() ? h.getLabel().getLeft() : "")
+                .collect(Collectors.toList());
+        assertTrue(labels.contains("min:"));
+        assertTrue(labels.contains("max:"));
     }
 
     @Test
