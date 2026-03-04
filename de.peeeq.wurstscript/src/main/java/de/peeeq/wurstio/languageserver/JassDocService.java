@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -100,6 +101,9 @@ public final class JassDocService {
     private volatile boolean triedInit;
     private volatile boolean initFailed;
     private volatile boolean missingSourceWarningShown;
+    private final AtomicBoolean initRequested = new AtomicBoolean(false);
+    private volatile @Nullable Connection sharedConnection;
+    private volatile @Nullable Path sharedConnectionPath;
     private static volatile @Nullable Function<LookupKey, @Nullable String> testLookup;
 
     private static final class CachedDb {
@@ -140,8 +144,16 @@ public final class JassDocService {
         return documentationFor(f.getName(), SymbolKind.FUNCTION, f.getSource().getFile());
     }
 
+    public @Nullable String documentationForFunctionQuick(FunctionDefinition f) {
+        return documentationForQuick(f.getName(), SymbolKind.FUNCTION, f.getSource().getFile());
+    }
+
     public @Nullable String documentationForVariable(NameDef n) {
         return documentationFor(n.getName(), SymbolKind.VARIABLE, n.getSource().getFile());
+    }
+
+    public @Nullable String documentationForVariableQuick(NameDef n) {
+        return documentationForQuick(n.getName(), SymbolKind.VARIABLE, n.getSource().getFile());
     }
 
     public @Nullable String documentationFor(String symbolName, SymbolKind symbolKind, String sourceFile) {
@@ -153,12 +165,37 @@ public final class JassDocService {
         return cached.orElse(null);
     }
 
+    /**
+     * Non-blocking lookup for latency-sensitive paths (autocomplete):
+     * if DB is not ready, triggers async init and returns null immediately.
+     */
+    public @Nullable String documentationForQuick(String symbolName, SymbolKind symbolKind, String sourceFile) {
+        if (!isJassBuiltinSource(sourceFile)) {
+            return null;
+        }
+        LookupKey key = new LookupKey(symbolName, symbolKind, sourceFile);
+        Optional<String> cached = lookupCache.get(key);
+        if (cached != null) {
+            return cached.orElse(null);
+        }
+        CachedDb db = cachedDb;
+        if (db == null) {
+            triggerAsyncInit();
+            return null;
+        }
+        Optional<String> computed = Optional.ofNullable(lookupFromDb(db, key));
+        Optional<String> prev = lookupCache.putIfAbsent(key, computed);
+        return (prev != null ? prev : computed).orElse(null);
+    }
+
     public void clearCacheForTests() {
         lookupCache.clear();
+        closeSharedConnection();
         cachedDb = null;
         triedInit = false;
         initFailed = false;
         missingSourceWarningShown = false;
+        initRequested.set(false);
     }
 
     private Optional<String> lookupDocumentation(LookupKey key) {
@@ -216,7 +253,8 @@ public final class JassDocService {
     }
 
     private @Nullable String lookupFromDb(CachedDb db, LookupKey key) {
-        try (Connection conn = open(db.dbPath)) {
+        try {
+            Connection conn = getSharedConnection(db.dbPath);
             String legacyDoc = lookupFromLegacyJassdocTables(conn, key);
             if (legacyDoc != null) {
                 return legacyDoc;
@@ -256,6 +294,52 @@ public final class JassDocService {
             WLogger.warning("JassDoc lookup failed for '" + key.symbolName() + "': " + e.getMessage());
             return null;
         }
+    }
+
+    private Connection getSharedConnection(Path dbPath) throws SQLException {
+        synchronized (this) {
+            if (sharedConnection != null) {
+                try {
+                    if (!sharedConnection.isClosed() && dbPath.equals(sharedConnectionPath)) {
+                        return sharedConnection;
+                    }
+                } catch (SQLException ignored) {
+                    // reconnect below
+                }
+                closeSharedConnection();
+            }
+            sharedConnection = open(dbPath);
+            sharedConnectionPath = dbPath;
+            return sharedConnection;
+        }
+    }
+
+    private void closeSharedConnection() {
+        synchronized (this) {
+            if (sharedConnection != null) {
+                try {
+                    sharedConnection.close();
+                } catch (SQLException ignored) {
+                }
+            }
+            sharedConnection = null;
+            sharedConnectionPath = null;
+        }
+    }
+
+    private void triggerAsyncInit() {
+        if (!initRequested.compareAndSet(false, true)) {
+            return;
+        }
+        Thread t = new Thread(() -> {
+            try {
+                getOrInitDb();
+            } finally {
+                initRequested.set(false);
+            }
+        }, "JassDocInit");
+        t.setDaemon(true);
+        t.start();
     }
 
     private @Nullable String lookupFromLegacyJassdocTables(Connection conn, LookupKey key) throws SQLException {
