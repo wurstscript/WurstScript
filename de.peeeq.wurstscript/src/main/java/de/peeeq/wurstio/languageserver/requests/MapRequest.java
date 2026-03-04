@@ -781,32 +781,49 @@ public abstract class MapRequest extends UserRequest<Object> {
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot get build dir", e);
         }
-        if (luaDir.exists()) {
-            File[] children = luaDir.listFiles();
-            if (children != null) {
-                Arrays.stream(children).forEach(child -> {
-                    try {
-                        byte[] bytes = java.nio.file.Files.readAllBytes(child.toPath());
-                        if (child.getName().startsWith("pre_")) {
-                            byte[] existingBytes = java.nio.file.Files.readAllBytes(script.toPath());
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                bytes);
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                existingBytes,
-                                StandardOpenOption.APPEND);
-                        } else {
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                bytes,
-                                StandardOpenOption.APPEND);
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        if (!luaDir.exists()) {
+            return;
+        }
+
+        try (var fileStream = java.nio.file.Files.walk(luaDir.toPath())) {
+            List<Path> luaFiles = fileStream
+                .filter(java.nio.file.Files::isRegularFile)
+                .sorted(Comparator.comparing(path -> {
+                    Path relative = luaDir.toPath().relativize(path);
+                    return relative.toString().replace('\\', '/').toLowerCase(Locale.ROOT);
+                }))
+                .collect(Collectors.toList());
+
+            if (luaFiles.isEmpty()) {
+                return;
             }
+
+            List<byte[]> preChunks = new ArrayList<>();
+            List<byte[]> postChunks = new ArrayList<>();
+            for (Path luaFile : luaFiles) {
+                byte[] bytes = java.nio.file.Files.readAllBytes(luaFile);
+                String fileName = luaFile.getFileName().toString();
+                if (fileName.startsWith("pre_")) {
+                    preChunks.add(bytes);
+                } else {
+                    postChunks.add(bytes);
+                }
+            }
+
+            if (!preChunks.isEmpty()) {
+                byte[] existingBytes = java.nio.file.Files.readAllBytes(script.toPath());
+                java.nio.file.Files.write(script.toPath(), new byte[0]);
+                for (byte[] preChunk : preChunks) {
+                    java.nio.file.Files.write(script.toPath(), preChunk, StandardOpenOption.APPEND);
+                }
+                java.nio.file.Files.write(script.toPath(), existingBytes, StandardOpenOption.APPEND);
+            }
+
+            for (byte[] postChunk : postChunks) {
+                java.nio.file.Files.write(script.toPath(), postChunk, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
