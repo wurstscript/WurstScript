@@ -157,10 +157,16 @@ public final class JassDocService {
     }
 
     public @Nullable String documentationFor(String symbolName, SymbolKind symbolKind, String sourceFile) {
+        Function<LookupKey, @Nullable String> override = testLookup;
+        LookupKey key = new LookupKey(symbolName, symbolKind, sourceFile);
+        if (override != null) {
+            Optional<String> computed = Optional.ofNullable(trimToNull(override.apply(key)));
+            Optional<String> prev = lookupCache.putIfAbsent(key, computed);
+            return (prev != null ? prev : computed).orElse(null);
+        }
         if (!isJassBuiltinSource(sourceFile)) {
             return null;
         }
-        LookupKey key = new LookupKey(symbolName, symbolKind, sourceFile);
         Optional<String> cached = lookupCache.computeIfAbsent(key, this::lookupDocumentation);
         return cached.orElse(null);
     }
@@ -170,10 +176,16 @@ public final class JassDocService {
      * if DB is not ready, triggers async init and returns null immediately.
      */
     public @Nullable String documentationForQuick(String symbolName, SymbolKind symbolKind, String sourceFile) {
+        LookupKey key = new LookupKey(symbolName, symbolKind, sourceFile);
+        Function<LookupKey, @Nullable String> override = testLookup;
+        if (override != null) {
+            Optional<String> computed = Optional.ofNullable(trimToNull(override.apply(key)));
+            Optional<String> prev = lookupCache.putIfAbsent(key, computed);
+            return (prev != null ? prev : computed).orElse(null);
+        }
         if (!isJassBuiltinSource(sourceFile)) {
             return null;
         }
-        LookupKey key = new LookupKey(symbolName, symbolKind, sourceFile);
         Optional<String> cached = lookupCache.get(key);
         if (cached != null) {
             return cached.orElse(null);

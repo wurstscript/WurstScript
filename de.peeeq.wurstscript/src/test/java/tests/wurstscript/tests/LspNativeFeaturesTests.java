@@ -473,7 +473,14 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
             assertNotNull(completions);
             String doc = completions.getItems().stream()
                 .filter(i -> "DisplayTextToPlayer".equals(i.getLabel()))
-                .map(i -> i.getDocumentation() != null ? i.getDocumentation().getLeft() : null)
+                .map(i -> {
+                    if (i.getDocumentation() == null) {
+                        return null;
+                    }
+                    return i.getDocumentation().isLeft()
+                        ? i.getDocumentation().getLeft()
+                        : i.getDocumentation().getRight().getValue();
+                })
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse("");

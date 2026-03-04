@@ -217,18 +217,18 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
             String comment = null;
             boolean jassDoc = false;
-            if (target instanceof NameDef) {
-                NameDef n = (NameDef) target;
-                comment = n.attrComment();
-                if (comment == null || comment.isEmpty()) {
-                    comment = JassDocService.getInstance().documentationForVariableQuick(n);
-                    jassDoc = comment != null && !comment.isEmpty();
-                }
-            } else if (target instanceof FunctionDefinition) {
+            if (target instanceof FunctionDefinition) {
                 FunctionDefinition f = (FunctionDefinition) target;
                 comment = f.attrComment();
                 if (comment == null || comment.isEmpty()) {
                     comment = JassDocService.getInstance().documentationForFunctionQuick(f);
+                    jassDoc = comment != null && !comment.isEmpty();
+                }
+            } else if (target instanceof NameDef) {
+                NameDef n = (NameDef) target;
+                comment = n.attrComment();
+                if (comment == null || comment.isEmpty()) {
+                    comment = JassDocService.getInstance().documentationForVariableQuick(n);
                     jassDoc = comment != null && !comment.isEmpty();
                 }
             }
