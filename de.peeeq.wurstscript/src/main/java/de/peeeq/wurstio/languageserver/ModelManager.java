@@ -29,6 +29,11 @@ public interface ModelManager {
 
     void buildProject();
 
+    /**
+     * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
+     */
+    void refreshDependencies();
+
     Changes syncCompilationUnit(WFile changedFilePath);
 
     Changes syncCompilationUnitContent(WFile filename, String contents);
