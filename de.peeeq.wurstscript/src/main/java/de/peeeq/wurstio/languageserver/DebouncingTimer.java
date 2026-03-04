@@ -41,6 +41,13 @@ public class DebouncingTimer {
         }, d.toMillis(), TimeUnit.MILLISECONDS);
     }
 
+    /** marks timer as ready immediately and triggers action */
+    public synchronized void triggerNow() {
+        stop();
+        isReady = true;
+        action.run();
+    }
+
 
 
 

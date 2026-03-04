@@ -179,6 +179,11 @@ public class ModelManagerImpl implements ModelManager {
         WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 
+    @Override
+    public void refreshDependencies() {
+        readDependencies();
+    }
+
     private String getCanonicalPath(File f) {
         try {
             return f.getCanonicalPath();
@@ -477,6 +482,13 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public Changes syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.debug("sync contents for " + filename);
+        int newHash = contentHash(contents);
+        Integer oldHash = fileHashcodes.get(filename);
+        CompilationUnit existing = getCompilationUnit(filename);
+        if (oldHash != null && oldHash == newHash && existing != null) {
+            // No content change and CU still present -> skip expensive reconcile/typecheck work.
+            return Changes.empty();
+        }
         Set<String> oldPackages = declaredPackages(filename);
         replaceCompilationUnit(filename, contents, false);
         return new Changes(io.vavr.collection.HashSet.of(filename), oldPackages);
@@ -509,8 +521,28 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public Changes syncCompilationUnit(WFile f) {
         WLogger.debug("syncCompilationUnit File " + f);
+        String contents;
+        try {
+            File file = f.getFile();
+            if (!file.exists()) {
+                removeCompilationUnit(f);
+                return Changes.empty();
+            }
+            contents = Files.toString(file, Charsets.UTF_8);
+            bufferManager.updateFile(WFile.create(file), contents);
+        } catch (IOException e) {
+            WLogger.severe(e);
+            throw new ModelManagerException(e);
+        }
+        int newHash = contentHash(contents);
+        Integer oldHash = fileHashcodes.get(f);
+        CompilationUnit existing = getCompilationUnit(f);
+        if (oldHash != null && oldHash == newHash && existing != null) {
+            WLogger.trace(() -> "syncCompilationUnit no-op for " + f);
+            return Changes.empty();
+        }
         Set<String> oldPackages = declaredPackages(f);
-        replaceCompilationUnit(f);
+        replaceCompilationUnit(f, contents, true);
         WLogger.debug("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
@@ -521,9 +553,10 @@ public class ModelManagerImpl implements ModelManager {
         if (!isInWurstFolder(filename) && !isAlreadyLoaded(filename)) {
             return null;
         }
+        int newHash = contentHash(contents);
         if (fileHashcodes.containsKey(filename)) {
             int oldHash = fileHashcodes.get(filename);
-            if (oldHash == contents.hashCode()) {
+            if (oldHash == newHash) {
                 CompilationUnit existing = getCompilationUnit(filename);
                 if (existing != null) {
                     // no change
@@ -533,7 +566,7 @@ public class ModelManagerImpl implements ModelManager {
                 // Stale hash cache after remove/move; CU is gone, so reparse.
                 WLogger.debug("CU hash unchanged but model entry missing for " + filename + ", reparsing.");
             } else {
-                WLogger.debug("CU changed. oldHash = " + oldHash + " == " + contents.hashCode());
+                WLogger.debug("CU changed. oldHash = " + oldHash + " == " + newHash);
             }
         }
 
@@ -543,7 +576,7 @@ public class ModelManagerImpl implements ModelManager {
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
         cu.getCuInfo().setFile(filename.toString());
         updateModel(cu, gui);
-        fileHashcodes.put(filename, contents.hashCode());
+        fileHashcodes.put(filename, newHash);
         if (reportErrors) {
             if (gui.getErrorCount() > 0) {
                 WLogger.debug("found " + gui.getErrorCount() + " errors in file " + filename);
@@ -831,5 +864,11 @@ public class ModelManagerImpl implements ModelManager {
 
     public File getProjectPath() {
         return projectPath;
+    }
+
+    private int contentHash(String s) {
+        // Normalize line endings to avoid false "changed" signals between editor buffers and disk text.
+        String normalized = s.replace("\r\n", "\n").replace('\r', '\n');
+        return normalized.hashCode();
     }
 }

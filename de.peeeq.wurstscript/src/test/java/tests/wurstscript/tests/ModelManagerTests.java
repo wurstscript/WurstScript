@@ -941,6 +941,30 @@ public class ModelManagerTests {
         assertEquals(manager.getCompilationUnit(fileDependencyWar3Map), null, "dependency war3map.j must not be retained implicitly");
     }
 
+    @Test
+    public void syncCompilationUnitContent_noopContentProducesNoChanges() throws Exception {
+        File projectFolder = new File("./temp/testProject_sync_noop/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "init",
+            "    skip"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        String sameContent = Files.readString(fileMain.getFile().toPath());
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileMain, sameContent);
+        assertEquals(changes.isEmpty(), true, "unchanged sync should not trigger reconcile work");
+    }
+
     private void purgeUnimportedFiles_likeRunMap(WurstModel model, ModelManagerImpl manager) {
         java.util.Set<CompilationUnit> keep = model.stream()
             .filter(cu -> isInProjectWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager)
