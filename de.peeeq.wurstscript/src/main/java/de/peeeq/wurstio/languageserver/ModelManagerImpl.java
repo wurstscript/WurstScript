@@ -521,7 +521,19 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public Changes syncCompilationUnit(WFile f) {
         WLogger.debug("syncCompilationUnit File " + f);
-        String contents = bufferManager.getBuffer(f);
+        String contents;
+        try {
+            File file = f.getFile();
+            if (!file.exists()) {
+                removeCompilationUnit(f);
+                return Changes.empty();
+            }
+            contents = Files.toString(file, Charsets.UTF_8);
+            bufferManager.updateFile(WFile.create(file), contents);
+        } catch (IOException e) {
+            WLogger.severe(e);
+            throw new ModelManagerException(e);
+        }
         int newHash = contentHash(contents);
         Integer oldHash = fileHashcodes.get(f);
         CompilationUnit existing = getCompilationUnit(f);
