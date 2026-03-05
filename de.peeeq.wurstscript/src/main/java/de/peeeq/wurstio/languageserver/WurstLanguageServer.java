@@ -25,15 +25,19 @@ import java.util.logging.Logger;
  */
 public class WurstLanguageServer implements LanguageServer, LanguageClientAware {
     private WFile rootUri;
-    private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
+    private final de.peeeq.wurstio.languageserver.LanguageWorker languageWorker;
     private LanguageClient languageClient;
     private RemoteEndpoint remoteEndpoint;
+
+    public WurstLanguageServer() {
+        System.setErr(createFilteredErr());
+        this.languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
+    }
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         System.err.println("Loading Wurst version " + CompileTimeInfo.version);
         setupLogger();
-        System.setErr(createFilteredErr());
         if (params.getRootUri() == null) {
             System.err.println("Workspace null. Make sure to open a valid project root using File->Open Folder, before opening code files.");
             return CompletableFuture.completedFuture(null);
