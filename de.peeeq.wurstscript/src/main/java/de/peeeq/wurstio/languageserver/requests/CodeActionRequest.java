@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +48,9 @@ import java.util.stream.Collectors;
 public class CodeActionRequest extends UserRequest<List<Either<Command, CodeAction>>> {
     private static final String CONSTANT_LOCAL_LET_WARNING = "Constant local variables should be defined using 'let'.";
     private static final String UNUSED_IMPORT_WARNING_SUFFIX = " is never used";
+    private static final String REDUNDANT_IMPORT_MIDDLE = " can be removed, because it is already included in ";
+    private static final String MIXED_INDENT_WARNING = "Mixing tabs and spaces for indentation.";
+    private static final Pattern NEVER_READ_NAME = Pattern.compile("^The .*?\\b([A-Za-z_][A-Za-z0-9_]*) is never read\\.");
     private final WFile filename;
     private final String buffer;
     private final int line;
@@ -79,13 +84,12 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
 
         WLogger.info("Code action on element " + Utils.printElementWithSource(e));
+        List<Either<Command, CodeAction>> actions = new ArrayList<>();
+        actions.addAll(makeWarningQuickFixes(e));
         if (!e.isPresent()) {
             // TODO non simple TypeRef
-
-            return Collections.emptyList();
+            return actions;
         }
-        List<Either<Command, CodeAction>> actions = new ArrayList<>();
-        actions.addAll(makeWarningQuickFixes(e.get()));
 
         if (e.get() instanceof ExprNewObject) {
             ExprNewObject enew = (ExprNewObject) e.get();
@@ -130,11 +134,11 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         return actions;
     }
 
-    private List<Either<Command, CodeAction>> makeWarningQuickFixes(Element e) {
+    private List<Either<Command, CodeAction>> makeWarningQuickFixes(Optional<Element> e) {
         List<Either<Command, CodeAction>> result = new ArrayList<>();
 
-        if (hasDiagnosticMessage(msg -> msg.contains(CONSTANT_LOCAL_LET_WARNING))) {
-            findNearest(e, LocalVarDef.class).ifPresent(localVar -> {
+        if (e.isPresent() && hasDiagnosticMessage(msg -> msg.contains(CONSTANT_LOCAL_LET_WARNING))) {
+            findNearest(e.get(), LocalVarDef.class).ifPresent(localVar -> {
                 int line0 = localVar.attrSource().getLine() - 1;
                 int startChar = Math.max(0, localVar.attrSource().getStartColumn() - 1);
                 int varPos = findKeywordInLine(line0, startChar, "var");
@@ -152,17 +156,122 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         }
 
         if (hasDiagnosticMessage(msg -> msg.startsWith("The import ") && msg.endsWith(UNUSED_IMPORT_WARNING_SUFFIX))) {
-            findNearest(e, WImport.class).ifPresent(imp -> {
-                int line0 = imp.attrSource().getLine() - 1;
-                TextEdit edit = new TextEdit(lineDeletionRange(line0), "");
+            int line0 = e.flatMap(elem -> findNearest(elem, WImport.class))
+                .map(imp -> imp.attrSource().getLine() - 1)
+                .orElseGet(() -> diagnostics.get(0).getRange().getStart().getLine());
+            String importName = e.flatMap(elem -> findNearest(elem, WImport.class))
+                .map(WImport::getPackagename)
+                .orElse("import");
+            TextEdit edit = new TextEdit(lineDeletionRange(line0), "");
+            result.add(Either.forRight(makeQuickFix(
+                "Remove unused import " + importName,
+                workspaceEdit(filename.getUriString(), edit)
+            )));
+        }
+
+        if (hasDiagnosticMessage(msg -> msg.startsWith("The import ") && msg.contains(REDUNDANT_IMPORT_MIDDLE))) {
+            int line0 = e.flatMap(elem -> findNearest(elem, WImport.class))
+                .map(imp -> imp.attrSource().getLine() - 1)
+                .orElseGet(() -> diagnostics.get(0).getRange().getStart().getLine());
+            String importName = firstDiagnosticMessage(msg -> msg.startsWith("The import ") && msg.contains(REDUNDANT_IMPORT_MIDDLE))
+                .map(msg -> {
+                    int start = "The import ".length();
+                    int end = msg.indexOf(REDUNDANT_IMPORT_MIDDLE);
+                    return end > start ? msg.substring(start, end) : "import";
+                })
+                .orElse("import");
+            TextEdit edit = new TextEdit(lineDeletionRange(line0), "");
+            result.add(Either.forRight(makeQuickFix(
+                "Remove redundant import " + importName,
+                workspaceEdit(filename.getUriString(), edit)
+            )));
+        }
+
+        firstDiagnosticMessage(msg -> msg.startsWith("The ") && msg.contains(" is never read. If intentional, prefix with \"_\""))
+            .ifPresent(msg -> {
+                Matcher m = NEVER_READ_NAME.matcher(msg);
+                if (!m.find()) {
+                    return;
+                }
+                String name = m.group(1);
+                Diagnostic d = firstDiagnostic(msg2 -> msg.equals(msg2));
+                if (d == null) {
+                    return;
+                }
+                int line0 = d.getRange().getStart().getLine();
+                int col0 = d.getRange().getStart().getCharacter();
+                String lineText = getLine(line0);
+                if (lineText == null) {
+                    return;
+                }
+                if (col0 < lineText.length() && lineText.charAt(col0) == '_') {
+                    return;
+                }
+                TextEdit edit = new TextEdit(new Range(new Position(line0, col0), new Position(line0, col0)), "_");
                 result.add(Either.forRight(makeQuickFix(
-                    "Remove unused import " + imp.getPackagename(),
+                    "Prefix '" + name + "' with '_'",
                     workspaceEdit(filename.getUriString(), edit)
                 )));
             });
-        }
+
+        firstDiagnosticMessage(msg -> msg.contains(MIXED_INDENT_WARNING)).ifPresent(msg -> {
+            Diagnostic d = firstDiagnostic(msg2 -> msg2.contains(MIXED_INDENT_WARNING));
+            if (d == null) {
+                return;
+            }
+            int line0 = d.getRange().getStart().getLine();
+            String lineText = getLine(line0);
+            if (lineText == null) {
+                return;
+            }
+            int end = 0;
+            while (end < lineText.length()) {
+                char c = lineText.charAt(end);
+                if (c == ' ' || c == '\t') {
+                    end++;
+                } else {
+                    break;
+                }
+            }
+            if (end == 0) {
+                return;
+            }
+            String indent = lineText.substring(0, end);
+            String normalized = indent.replace("\t", "    ");
+            if (indent.equals(normalized)) {
+                return;
+            }
+            TextEdit edit = new TextEdit(new Range(new Position(line0, 0), new Position(line0, end)), normalized);
+            result.add(Either.forRight(makeQuickFix(
+                "Normalize indentation on this line",
+                workspaceEdit(filename.getUriString(), edit)
+            )));
+        });
 
         return result;
+    }
+
+    private Optional<String> firstDiagnosticMessage(Predicate<String> matcher) {
+        return diagnostics.stream()
+            .map(Diagnostic::getMessage)
+            .filter(msg -> msg != null && !msg.isEmpty())
+            .filter(matcher)
+            .findFirst();
+    }
+
+    private Diagnostic firstDiagnostic(Predicate<String> matcher) {
+        return diagnostics.stream()
+            .filter(d -> d.getMessage() != null && matcher.test(d.getMessage()))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private String getLine(int line0) {
+        String[] lines = buffer.split("\\r?\\n", -1);
+        if (line0 < 0 || line0 >= lines.length) {
+            return null;
+        }
+        return lines[line0];
     }
 
     private boolean hasDiagnosticMessage(Predicate<String> matcher) {
