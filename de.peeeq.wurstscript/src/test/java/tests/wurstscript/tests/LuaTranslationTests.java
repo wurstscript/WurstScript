@@ -8,6 +8,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -347,6 +349,49 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
         assertFunctionBodyContains(compiled, "testCast", "__wurst_objectToIndex", true);
         assertFunctionBodyContains(compiled, "testCast", "__wurst_objectFromIndex", true);
+    }
+
+    @Test
+    public void newGenericsDoNotUseOldTypecastHelpersInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class C",
+            "function id<T>(T x) returns T",
+            "    return x",
+            "function testGeneric()",
+            "    let c = new C()",
+            "    let c2 = id<C>(c)",
+            "    if c2 == null",
+            "        skip",
+            "init",
+            "    testGeneric()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsDoNotUseOldTypecastHelpersInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectToIndex", false);
+        assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectFromIndex", false);
+    }
+
+    @Test
+    public void largeFunctionSpillsLocalsIntoTableInLua() throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("function huge()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 210; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    huge()");
+
+        test().testLua(true).lines(lines.toArray(new String[0]));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_largeFunctionSpillsLocalsIntoTableInLua.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("function huge("));
+        assertTrue(compiled.contains("__wurst_locals"));
+        assertFalse(compiled.contains("local v0"));
+        assertFalse(compiled.contains("local v209"));
     }
 
     @Test

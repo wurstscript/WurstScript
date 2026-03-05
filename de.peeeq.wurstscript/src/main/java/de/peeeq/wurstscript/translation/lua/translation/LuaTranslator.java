@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
+    private static final int LUA_LOCALS_LIMIT = 200;
     private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
         "InitHashtable",
         "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
@@ -508,14 +509,17 @@ public class LuaTranslator {
             }
 
             // translate local variables
+            List<LuaVariable> functionLocals = new ArrayList<>();
             for (ImVar local : f.getLocals()) {
                 LuaVariable luaLocal = luaVar.getFor(local);
                 luaLocal.setInitialValue(defaultValue(local.getType()));
                 lf.getBody().add(luaLocal);
+                functionLocals.add(luaLocal);
             }
 
             // translate body:
             translateStatements(lf.getBody(), f.getBody());
+            spillLocalsIntoTableIfNeeded(lf, functionLocals);
         }
 
         if (f.isExtern() || f.isNative()) {
@@ -533,6 +537,43 @@ public class LuaTranslator {
             ));
         } else {
             luaModel.add(lf);
+        }
+    }
+
+    private void spillLocalsIntoTableIfNeeded(LuaFunction lf, List<LuaVariable> functionLocals) {
+        if (functionLocals.size() <= LUA_LOCALS_LIMIT) {
+            return;
+        }
+
+        Set<LuaVariable> localSet = new HashSet<>(functionLocals);
+        LuaVariable localsTable = LuaAst.LuaVariable(uniqueName("__wurst_locals"),
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+
+        // Rewrite accesses first, then replace declarations with table init assignments.
+        lf.getBody().forEachElement(e -> {
+            if (e instanceof LuaExprVarAccess) {
+                LuaExprVarAccess va = (LuaExprVarAccess) e;
+                if (localSet.contains(va.getVar())) {
+                    LuaExpr tableRef = LuaAst.LuaExprVarAccess(localsTable);
+                    LuaExpr key = LuaAst.LuaExprStringVal(va.getVar().getName());
+                    va.replaceBy(LuaAst.LuaExprArrayAccess(tableRef, LuaAst.LuaExprlist(key)));
+                }
+            }
+        });
+
+        List<LuaStatement> oldBody = new ArrayList<>(lf.getBody());
+        lf.getBody().clear();
+        lf.getBody().add(localsTable);
+
+        for (LuaStatement stmt : oldBody) {
+            if (stmt instanceof LuaVariable && localSet.contains(stmt)) {
+                LuaVariable localDecl = (LuaVariable) stmt;
+                LuaExpr key = LuaAst.LuaExprStringVal(localDecl.getName());
+                LuaExpr left = LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(localsTable), LuaAst.LuaExprlist(key));
+                lf.getBody().add(LuaAst.LuaAssignment(left, ((LuaExpr) localDecl.getInitialValue()).copy()));
+            } else {
+                lf.getBody().add(stmt);
+            }
         }
     }
 
