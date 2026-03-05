@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
+import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -53,6 +54,7 @@ public class WurstValidator {
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
+    private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
 
     public WurstValidator(WurstModel root) {
         this.prog = root;
@@ -385,6 +387,7 @@ public class WurstValidator {
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef) {
                 checkConstructor((ConstructorDef) e);
+                checkThisConstructorCall((ConstructorDef) e);
                 checkConstructorSuperCall((ConstructorDef) e);
             }
             if (e instanceof ExprBinary)
@@ -1613,6 +1616,9 @@ public class WurstValidator {
 
 
     private void checkCall(StmtCall call) {
+        if (call instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) call)) {
+            return;
+        }
         String funcName;
         if (call instanceof FunctionCall) {
             FunctionCall fcall = (FunctionCall) call;
@@ -1725,6 +1731,9 @@ public class WurstValidator {
 
     private void visit(ExprFunctionCall stmtCall) {
         String funcName = stmtCall.getFuncName();
+        if (isConstructorThisCall(stmtCall)) {
+            return;
+        }
         // calculating the exprType should reveal most errors:
         stmtCall.attrTyp();
 
@@ -2051,6 +2060,9 @@ public class WurstValidator {
 
             @Override
             public VariableBinding case_ExprFunctionCall(ExprFunctionCall e) {
+                if (isConstructorThisCall(e)) {
+                    return null;
+                }
                 return e.attrTyp().getTypeArgBinding();
             }
 
@@ -2146,6 +2158,9 @@ public class WurstValidator {
     }
 
     private void checkFuncRef(FuncRef ref) {
+        if (isConstructorThisCall(ref)) {
+            return;
+        }
         if (ref.getFuncName().isEmpty()) {
             ref.addError("Missing function name.");
         }
@@ -2417,12 +2432,17 @@ public class WurstValidator {
                 d.getParameters().addError("Module constructors must not have parameters.");
             }
         }
+        FunctionCall thisCall = getFirstThisConstructorCall(d);
         StructureDef s = d.attrNearestStructureDef();
         if (s instanceof ClassDef) {
             ClassDef c = (ClassDef) s;
             WurstTypeClass ct = c.attrTypC();
             WurstTypeClass extendedClass = ct.extendedClass();
             if (extendedClass != null) {
+                if (thisCall != null) {
+                    // Delegating constructors call another constructor which then handles super().
+                    return;
+                }
                 // Use the *bound* super-constructor signature
                 ConstructorDef sc = d.attrSuperConstructor();
                 if (sc == null) {
@@ -2862,6 +2882,59 @@ public class WurstValidator {
             v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
+        if (v instanceof GlobalVarDef) {
+            checkClassMemberInitializerOrder((GlobalVarDef) v);
+        }
+
+    }
+
+    private void checkClassMemberInitializerOrder(GlobalVarDef v) {
+        if (!v.attrIsDynamicClassMember()) {
+            return;
+        }
+        if (!(v.getInitialExpr() instanceof Expr)) {
+            return;
+        }
+        ClassDef owner = v.attrNearestClassDef();
+        if (owner == null) {
+            return;
+        }
+        Map<GlobalVarDef, Integer> order = classVarInitOrder(owner);
+        Integer currentPos = order.get(v);
+        if (currentPos == null) {
+            return;
+        }
+        Expr initExpr = (Expr) v.getInitialExpr();
+        for (NameDef used : initExpr.attrReadVariables()) {
+            if (!(used instanceof GlobalVarDef)) {
+                continue;
+            }
+            GlobalVarDef usedVar = (GlobalVarDef) used;
+            if (usedVar == v || !usedVar.attrIsDynamicClassMember()) {
+                continue;
+            }
+            if (usedVar.attrNearestClassDef() != owner) {
+                continue;
+            }
+            Integer usedPos = order.get(usedVar);
+            if (usedPos != null && usedPos > currentPos) {
+                v.addError("Class variable <" + usedVar.getName() + "> is used before it is initialized.");
+                return;
+            }
+        }
+    }
+
+    private Map<GlobalVarDef, Integer> classVarInitOrder(ClassDef classDef) {
+        return classVarInitOrderCache.computeIfAbsent(classDef, cd -> {
+            Map<GlobalVarDef, Integer> order = new IdentityHashMap<>();
+            int index = 0;
+            for (GlobalVarDef var : cd.getVars()) {
+                if (var.attrIsDynamicClassMember()) {
+                    order.put(var, index++);
+                }
+            }
+            return order;
+        });
     }
 
     private void checkLocalShadowing(LocalVarDef v) {
@@ -2884,6 +2957,78 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    private void checkThisConstructorCall(ConstructorDef c) {
+        FunctionCall firstThisCall = getFirstThisConstructorCall(c);
+        int firstRelevantIndex = firstRelevantStatementIndex(c);
+        for (int i = 0; i < c.getBody().size(); i++) {
+            WStatement s = c.getBody().get(i);
+            if (s instanceof FunctionCall) {
+                FunctionCall call = (FunctionCall) s;
+                if (isConstructorThisCall(call) && i != firstRelevantIndex) {
+                    call.addError("Constructor call this(...) must be the first statement.");
+                }
+            }
+        }
+        if (firstThisCall == null) {
+            return;
+        }
+        if (c.getSuperConstructorCall() instanceof SomeSuperConstructorCall) {
+            c.addError("Cannot call super(...) and this(...) in the same constructor.");
+            return;
+        }
+        ClassOrModule owner = c.attrNearestClassOrModule();
+        if (owner == null) {
+            return;
+        }
+        ConstructorDef target = OverloadingResolver.resolveThisCall(owner.getConstructors(), firstThisCall);
+        if (target == c) {
+            firstThisCall.addError("Constructor cannot call itself using this(...).");
+        }
+    }
+
+    private @Nullable FunctionCall getFirstThisConstructorCall(ConstructorDef c) {
+        int i = firstRelevantStatementIndex(c);
+        if (i >= 0 && c.getBody().get(i) instanceof FunctionCall) {
+            FunctionCall call = (FunctionCall) c.getBody().get(i);
+            if (isConstructorThisCall(call)) {
+                return call;
+            }
+        }
+        return null;
+    }
+
+    private int firstRelevantStatementIndex(ConstructorDef c) {
+        for (int i = 0; i < c.getBody().size(); i++) {
+            WStatement s = c.getBody().get(i);
+            if (!(s instanceof StartFunctionStatement) && !(s instanceof EndFunctionStatement)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isConstructorThisCall(FunctionCall call) {
+        return call.getFuncName().equals("this") && nearestEnclosingConstructor(call) != null;
+    }
+
+    private boolean isConstructorThisCall(FuncRef ref) {
+        if (ref instanceof FunctionCall) {
+            return isConstructorThisCall((FunctionCall) ref);
+        }
+        return false;
+    }
+
+    private @Nullable ConstructorDef nearestEnclosingConstructor(Element e) {
+        Element current = e;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return (ConstructorDef) current;
+            }
+            current = current.getParent();
+        }
+        return null;
     }
 
     private void checkParameter(WParameter param) {

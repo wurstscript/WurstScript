@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
@@ -382,36 +383,75 @@ public class ClassTranslator {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructFunc(constr);
         ImVar thisVar = translator.getThisVar(constr);
-        ConstructorDef superConstr = constr.attrSuperConstructor();
-        if (superConstr != null) {
-            // call super constructor
-            ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
-            ImExprs arguments = ImExprs(ImVarAccess(thisVar));
-            for (Expr a : superArgs(constr)) {
-                arguments.add(a.imTranslateExpr(translator, f));
+        int firstRelevantIndex = firstRelevantStatementIndex(constr);
+        ExprFunctionCall thisCall = null;
+        if (firstRelevantIndex >= 0 && constr.getBody().get(firstRelevantIndex) instanceof ExprFunctionCall) {
+            ExprFunctionCall first = (ExprFunctionCall) constr.getBody().get(firstRelevantIndex);
+            if (first.getFuncName().equals("this")) {
+                thisCall = first;
             }
-            ImTypeArguments typeArgs = ImTypeArguments();
-            ClassDef classDef = constr.attrNearestClassDef();
-            assert classDef != null;
-            WurstType extendedType = classDef.getExtendedClass().attrTyp();
-            if (extendedType instanceof WurstTypeClass) {
-                WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
-                for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
-                    if (bt.isTemplateTypeParameter()) {
-                        typeArgs.add(bt.imTranslateToTypeArgument(translator));
+        }
+        int bodyStartIndex = 0;
+        if (thisCall != null) {
+            ConstructorDef calledConstr = OverloadingResolver.resolveThisCall(
+                constr.attrNearestClassOrModule().getConstructors(),
+                thisCall
+            );
+            if (calledConstr != null && calledConstr != constr) {
+                ImFunction calledConstrFunc = translator.getConstructFunc(calledConstr);
+                ImExprs arguments = ImExprs(ImVarAccess(thisVar));
+                for (Expr a : thisCall.getArgs()) {
+                    arguments.add(a.imTranslateExpr(translator, f));
+                }
+                f.getBody().add(ImFunctionCall(trace, calledConstrFunc, classTypeArgs(), arguments, false, CallType.NORMAL));
+                bodyStartIndex = firstRelevantIndex + 1;
+            }
+        } else {
+            ConstructorDef superConstr = constr.attrSuperConstructor();
+            if (superConstr != null) {
+                // call super constructor
+                ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
+                ImExprs arguments = ImExprs(ImVarAccess(thisVar));
+                for (Expr a : superArgs(constr)) {
+                    arguments.add(a.imTranslateExpr(translator, f));
+                }
+                ImTypeArguments typeArgs = ImTypeArguments();
+                ClassDef classDef = constr.attrNearestClassDef();
+                assert classDef != null;
+                WurstType extendedType = classDef.getExtendedClass().attrTyp();
+                if (extendedType instanceof WurstTypeClass) {
+                    WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
+                    for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
+                        if (bt.isTemplateTypeParameter()) {
+                            typeArgs.add(bt.imTranslateToTypeArgument(translator));
+                        }
                     }
                 }
+                f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
             }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
+            // call classInitFunc:
+            f.getBody().add(ImFunctionCall(trace, classInitFunc, classTypeArgs(), JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
         }
-        // call classInitFunc:
+        // constructor user code
+        f.getBody().addAll(translator.translateStatements(f, constr.getBody().subList(bodyStartIndex, constr.getBody().size())));
+    }
+
+    private int firstRelevantStatementIndex(ConstructorDef constr) {
+        for (int i = 0; i < constr.getBody().size(); i++) {
+            WStatement s = constr.getBody().get(i);
+            if (!(s instanceof StartFunctionStatement) && !(s instanceof EndFunctionStatement)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private ImTypeArguments classTypeArgs() {
         ImTypeArguments typeArguments = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
             typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
         }
-        f.getBody().add(ImFunctionCall(trace, classInitFunc, typeArguments, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
-        // constructor user code
-        f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
+        return typeArguments;
     }
 
     private void translateClassInitFunc() {

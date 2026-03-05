@@ -166,6 +166,9 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(final ExprFunctionCall node) {
+        if (isConstructorThisCall(node)) {
+            return null;
+        }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
         if (result == null) {
@@ -179,6 +182,20 @@ public class AttrFuncDef {
             }
         }
         return result;
+    }
+
+    private static boolean isConstructorThisCall(ExprFunctionCall node) {
+        if (!node.getFuncName().equals("this")) {
+            return false;
+        }
+        Element current = node;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private static @Nullable FuncLink getExtensionFunction(Expr left, Expr right, WurstOperator op) {

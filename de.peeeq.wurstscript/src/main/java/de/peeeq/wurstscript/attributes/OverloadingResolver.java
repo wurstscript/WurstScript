@@ -196,5 +196,35 @@ public abstract class OverloadingResolver<F extends Element, C> {
         }.resolve(constructors, node).orElse(null);
     }
 
+    public static @Nullable ConstructorDef resolveThisCall(List<ConstructorDef> constructors, final FunctionCall node) {
+        return new OverloadingResolver<ConstructorDef, FunctionCall>() {
+
+            @Override
+            int getParameterCount(ConstructorDef f) {
+                return f.getParameters().size();
+            }
+
+            @Override
+            WurstType getParameterType(ConstructorDef f, int i) {
+                return f.getParameters().get(i).attrTyp();
+            }
+
+            @Override
+            int getArgumentCount(FunctionCall c) {
+                return c.getArgs().size();
+            }
+
+            @Override
+            WurstType getArgumentType(FunctionCall c, int i) {
+                return c.getArgs().get(i).attrTyp();
+            }
+
+            @Override
+            void handleError(List<String> hints) {
+                node.addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+            }
+        }.resolve(constructors, node).orElse(null);
+    }
+
 
 }
