@@ -142,6 +142,51 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void overloadCodeVsClosureInterface_prefersClosureInterface() {
+        testAssertOkLines(false,
+                "package test",
+                "interface IntCallback",
+                "    function run(int p)",
+                "class Wrapper",
+                "    function forEach(code callback)",
+                "        skip",
+                "    function forEach(IntCallback callback)",
+                "        callback.run(1)",
+                "init",
+                "    let w = new Wrapper()",
+                "    var x = 0",
+                "    w.forEach() p ->",
+                "        x += p"
+        );
+    }
+
+    @Test
+    public void nestedCodeClosureCaptureIsValidationError() {
+        testAssertErrorsLines(false, "passed as code to .addAction() ->",
+                "package test",
+                "interface PerkApplyFunc",
+                "    function run(int p)",
+                "interface VoidCallback",
+                "    function run()",
+                "class TriggerWrap",
+                "    function addAction(code c)",
+                "        skip",
+                "native takesInt(int i)",
+                "function doAfter(real delay, VoidCallback cb)",
+                "    skip",
+                "function addPerk(PerkApplyFunc f)",
+                "    skip",
+                "init",
+                "    let roundStartTrigger = new TriggerWrap()",
+                "    addPerk((int plr) -> begin",
+                "        roundStartTrigger.addAction() ->",
+                "            doAfter(0.01) ->",
+                "                takesInt(plr)",
+                "    end)"
+        );
+    }
+
+    @Test
     public void captureThis() {
         testAssertOkLines(true,
                 "package test",

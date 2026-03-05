@@ -1012,10 +1012,11 @@ public class WurstValidator {
         if (expectedTyp instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
+                String codeLambdaContext = codeLambdaContext(e);
                 for (Map.Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
 
                     elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName()
-                        + "' in anonymous function. This is only possible with closures.");
+                        + "' in anonymous function" + codeLambdaContext + ". This is only possible with closures.");
                 }
             }
         } else if (expectedTyp instanceof WurstTypeUnknown || expectedTyp instanceof WurstTypeClosure) {
@@ -1060,6 +1061,21 @@ public class WurstValidator {
             }
         }
 
+    }
+
+    private static String codeLambdaContext(ExprClosure e) {
+        Element parent = e.getParent();
+        if (parent instanceof Arguments args) {
+            Element call = args.getParent();
+            if (call instanceof StmtCall stmtCall) {
+                String funcName = stmtCall instanceof FunctionCall fc ? fc.getFuncName() : "<unknown>";
+                if (stmtCall instanceof ExprMemberMethod) {
+                    return " passed as code to ." + funcName + "() ->";
+                }
+                return " passed as code to " + funcName + "() ->";
+            }
+        }
+        return "";
     }
 
     private void checkConstructorsUnique(ClassOrModule c) {
