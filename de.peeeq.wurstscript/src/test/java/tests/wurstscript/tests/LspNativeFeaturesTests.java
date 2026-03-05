@@ -137,6 +137,224 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void codeActionCanReplaceVarWithLetForConstantLocal() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "    va|r value = 1",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("Constant local variables should be defined using 'let'.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Use 'let' for constant local".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected let quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 2);
+        assertEquals(edit.getRange().getStart().getCharacter(), 4);
+        assertEquals(edit.getRange().getEnd().getCharacter(), 7);
+        assertEquals(edit.getNewText(), "let");
+    }
+
+    @Test
+    public void codeActionCanRemoveUnusedImport() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "import Wur|st",
+            "init",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("The import Wurst is never used");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Remove unused import Wurst".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected import removal quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 1);
+        assertEquals(edit.getRange().getStart().getCharacter(), 0);
+        assertEquals(edit.getRange().getEnd().getLine(), 2);
+        assertEquals(edit.getRange().getEnd().getCharacter(), 0);
+        assertEquals(edit.getNewText(), "");
+    }
+
+    @Test
+    public void codeActionCanRemoveRedundantImport() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "import BuildingCon|stants",
+            "init",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("The import BuildingConstants can be removed, because it is already included in CFBuilding.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Remove redundant import BuildingConstants".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected redundant import quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 1);
+        assertEquals(edit.getRange().getEnd().getLine(), 2);
+        assertEquals(edit.getNewText(), "");
+    }
+
+    @Test
+    public void codeActionCanPrefixUnreadVariableWithUnderscore() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "    int hu|P = 1",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("The variable huP is never read. If intentional, prefix with \"_\" to suppress this warning.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Prefix 'huP' with '_'".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected underscore quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 2);
+        assertEquals(edit.getRange().getStart().getCharacter(), data.column);
+        assertEquals(edit.getRange().getEnd().getCharacter(), data.column);
+        assertEquals(edit.getNewText(), "_");
+    }
+
+    @Test
+    public void codeActionCanNormalizeMixedIndentation() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "init",
+            "\t  sk|ip",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("Mixing tabs and spaces for indentation.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Normalize indentation on this line".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected indentation quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 2);
+        assertEquals(edit.getRange().getStart().getCharacter(), 0);
+        assertEquals(edit.getRange().getEnd().getCharacter(), 3);
+        assertEquals(edit.getNewText(), "      ");
+    }
+
+    @Test
+    public void createFunctionQuickfixInClassInsertsUsableMethod() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "class C",
+            "    function run()",
+            "        mis|sing(1)",
+            "init",
+            "    new C().run()",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("Could not find function missing.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Create function missing".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected create-function quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        assertEquals(edit.getRange().getStart().getLine(), 2);
+        assertTrue(edit.getNewText().contains("\n    function missing("), "inserted = " + edit.getNewText());
+        assertTrue(edit.getNewText().contains("\n        skip\n"), "inserted = " + edit.getNewText());
+    }
+
+    @Test
     public void semanticTokensAreProduced() throws IOException {
         CompletionTestData data = input(
                 "package test",
