@@ -467,4 +467,34 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bFlushChildHashtable\\(");
     }
 
+    @Test
+    public void i2sDivisionByZeroCrashTrapUsesAbortSentinelInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_i2sDivisionByZeroCrashTrapUsesAbortSentinelInLua.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "I2S\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "I2S\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
+        assertTrue(compiled.contains("__wurst_abort_thread"));
+        assertDoesNotContainRegex(compiled, "error\\s*\\(\\s*\"[^\"]*divide by zero[^\"]*\"");
+    }
+
+    @Test
+    public void luaErrorWrapperIgnoresAbortSentinel() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "function f()",
+            "    skip",
+            "init",
+            "    f()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaErrorWrapperIgnoresAbortSentinel.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("if err == \"__wurst_abort_thread\" then return end"));
+        assertTrue(compiled.contains("if err2 == \"__wurst_abort_thread\" then return end"));
+    }
+
 }

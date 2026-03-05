@@ -191,10 +191,6 @@ public class LuaTranslator {
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
 
-        RemoveGarbage.removeGarbage(prog);
-        prog.flatten(imTr);
-
-
         normalizeMethodNames();
         normalizeFieldNames();
 
