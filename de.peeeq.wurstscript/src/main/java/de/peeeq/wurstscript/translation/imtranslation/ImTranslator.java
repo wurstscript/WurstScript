@@ -1400,8 +1400,12 @@ public class ImTranslator {
             for (WParameter p : constr.getParameters()) {
                 params.add(getVarFor(p));
             }
-
-            f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), flags());
+            List<FunctionFlag> constructorFlags = flags();
+            if (!constr.getParameters().isEmpty()
+                && constr.getParameters().get(constr.getParameters().size() - 1).attrIsVararg()) {
+                constructorFlags.add(IS_VARARG);
+            }
+            f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), constructorFlags);
             addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
@@ -1433,8 +1437,12 @@ public class ImTranslator {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {
             String name = "new_" + constr.attrNearestClassDef().getName();
-
-            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), flags());
+            List<FunctionFlag> constructorFlags = flags();
+            if (!constr.getParameters().isEmpty()
+                && constr.getParameters().get(constr.getParameters().size() - 1).attrIsVararg()) {
+                constructorFlags.add(IS_VARARG);
+            }
+            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), constructorFlags);
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }

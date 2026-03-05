@@ -1419,7 +1419,13 @@ public class WurstValidator {
     private void visit(WParameter p) {
         checkVarName(p, false);
         if (p.attrIsVararg()) {
-            if (p.attrNearestFuncDef().getParameters().size() != 1) {
+            Element owner = p.getParent().getParent();
+            if (owner instanceof ConstructorDef) {
+                WParameters params = ((ConstructorDef) owner).getParameters();
+                if (params.get(params.size() - 1) != p) {
+                    p.addError("Vararg parameter in constructors must be last");
+                }
+            } else if (p.attrNearestFuncDef().getParameters().size() != 1) {
                 p.addError("Vararg functions may only have one parameter");
             }
         }
@@ -1769,17 +1775,24 @@ public class WurstValidator {
 
     @Deprecated
     private void checkParams(Element where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
-        if (args.size() > parameterTypes.size()) {
-            where.addError(preMsg + "Too many parameters.");
-
-        } else if (args.size() < parameterTypes.size()) {
+        boolean isVararg = !parameterTypes.isEmpty() && Utils.getLast(parameterTypes) instanceof WurstTypeVararg;
+        int minParameters = isVararg ? parameterTypes.size() - 1 : parameterTypes.size();
+        if (args.size() < minParameters) {
             where.addError(preMsg + "Missing parameters.");
+        } else if (!isVararg && args.size() > parameterTypes.size()) {
+            where.addError(preMsg + "Too many parameters.");
         } else {
+            WurstType varargBaseType = isVararg
+                    ? ((WurstTypeVararg) Utils.getLast(parameterTypes)).getBaseType()
+                    : null;
             for (int i = 0; i < args.size(); i++) {
-
                 WurstType actual = args.get(i).attrTyp();
-                WurstType expected = parameterTypes.get(i);
-                // if (expected instanceof AstElementWithTypeArgs)
+                WurstType expected;
+                if (isVararg && i >= parameterTypes.size() - 1) {
+                    expected = varargBaseType;
+                } else {
+                    expected = parameterTypes.get(i);
+                }
                 if (!actual.isSubtypeOf(expected, where)) {
                     args.get(i).addError(
                             preMsg + "Expected " + expected + " as parameter " + (i + 1) + " but found " + actual);
