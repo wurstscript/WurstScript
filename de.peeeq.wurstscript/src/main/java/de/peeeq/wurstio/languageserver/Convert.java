@@ -77,8 +77,8 @@ public class Convert {
                     break;
 
             }
-            Diagnostic diagnostic = new Diagnostic(range, message, severity, "Wurst");
-            diagnostic.setCode("WURST_" + err.getErrorType().name());
+            String source = severity == DiagnosticSeverity.Warning ? "Wurst warning" : "Wurst error";
+            Diagnostic diagnostic = new Diagnostic(range, message, severity, source);
             String messageLower = message.toLowerCase();
             if (messageLower.contains("deprecated")) {
                 diagnostic.setTags(Collections.singletonList(DiagnosticTag.Deprecated));
