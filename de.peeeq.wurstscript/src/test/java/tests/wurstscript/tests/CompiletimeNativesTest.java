@@ -1,9 +1,11 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
+import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import net.moonlightflower.wc3libs.bin.ObjMod;
 import net.moonlightflower.wc3libs.bin.app.objMod.W3A;
+import net.moonlightflower.wc3libs.bin.app.objMod.W3U;
 import net.moonlightflower.wc3libs.dataTypes.DataType;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Real;
 import net.moonlightflower.wc3libs.misc.MetaFieldId;
@@ -52,5 +54,54 @@ public class CompiletimeNativesTest {
                 .collect(Collectors.toSet());
         assertTrue(dataPointers.contains(0));
         assertTrue(dataPointers.contains(1));
+    }
+
+    @Test
+    public void sameIdObjectDefinitionUsesOriginalTable() throws Exception {
+        CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
+        W3U w3u = new W3U();
+
+        Method newDefFromFiletype = CompiletimeNatives.class.getDeclaredMethod(
+            "newDefFromFiletype",
+            ObjMod.class,
+            int.class,
+            int.class,
+            boolean.class
+        );
+        newDefFromFiletype.setAccessible(true);
+
+        int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
+        ObjMod.Obj obj = (ObjMod.Obj) newDefFromFiletype.invoke(natives, w3u, hfoo, hfoo, true);
+
+        assertEquals(obj.getId().getVal(), "hfoo");
+        assertEquals(obj.getBaseId(), null, "Melee overwrite should be written as original-table mod");
+        assertEquals(obj.getNewId(), null, "Melee overwrite should not create a custom/new id");
+        assertEquals(w3u.getOrigObjs().size(), 1);
+        assertEquals(w3u.getCustomObjs().size(), 0);
+    }
+
+    @Test
+    public void differentIdsObjectDefinitionUsesCustomTable() throws Exception {
+        CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
+        W3U w3u = new W3U();
+
+        Method newDefFromFiletype = CompiletimeNatives.class.getDeclaredMethod(
+            "newDefFromFiletype",
+            ObjMod.class,
+            int.class,
+            int.class,
+            boolean.class
+        );
+        newDefFromFiletype.setAccessible(true);
+
+        int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
+        int hf01 = ObjectHelper.objectIdStringToInt("hf01");
+        ObjMod.Obj obj = (ObjMod.Obj) newDefFromFiletype.invoke(natives, w3u, hfoo, hf01, false);
+
+        assertEquals(obj.getId().getVal(), "hf01");
+        assertEquals(obj.getBaseId().getVal(), "hfoo");
+        assertEquals(obj.getNewId().getVal(), "hf01");
+        assertEquals(w3u.getOrigObjs().size(), 0);
+        assertEquals(w3u.getCustomObjs().size(), 1);
     }
 }

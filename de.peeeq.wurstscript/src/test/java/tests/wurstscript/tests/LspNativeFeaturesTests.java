@@ -5,6 +5,7 @@ import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.CodeActionRequest;
+import de.peeeq.wurstio.languageserver.requests.DocumentSymbolRequest;
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.InlayHintsRequest;
@@ -18,6 +19,8 @@ import org.eclipse.lsp4j.CodeActionKind;
 import org.eclipse.lsp4j.CodeActionParams;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.InlayHint;
 import org.eclipse.lsp4j.InlayHintParams;
@@ -134,6 +137,32 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         assertFalse(codeActions.isEmpty(), "Expected at least one code action.");
         assertTrue(codeActions.stream().anyMatch(a -> CodeActionKind.QuickFix.equals(a.getKind())));
         assertTrue(codeActions.stream().anyMatch(a -> a.getEdit() != null));
+    }
+
+    @Test
+    public void documentSymbolsHaveSelectionInsideRange() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "class C",
+            "    int x = 1",
+            "    function f(int a)",
+            "init",
+            "    skip",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        DocumentSymbolParams params = new DocumentSymbolParams(new TextDocumentIdentifier(ctx.uri));
+        List<Either<org.eclipse.lsp4j.SymbolInformation, DocumentSymbol>> symbols =
+            new DocumentSymbolRequest(params).execute(ctx.modelManager);
+        List<DocumentSymbol> docs = symbols.stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+        assertFalse(docs.isEmpty());
+        for (DocumentSymbol s : docs) {
+            assertSelectionContainedRecursive(s);
+        }
     }
 
     @Test
@@ -751,6 +780,29 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
                 .filter(Either::isLeft)
                 .flatMap(dc -> dc.getLeft().getEdits().stream())
                 .collect(Collectors.toList());
+    }
+
+    private void assertSelectionContainedRecursive(DocumentSymbol s) {
+        assertTrue(rangeContains(s.getRange(), s.getSelectionRange()),
+            "selectionRange must be contained in range for symbol " + s.getName()
+                + " range=" + s.getRange() + " selection=" + s.getSelectionRange());
+        if (s.getChildren() != null) {
+            for (DocumentSymbol child : s.getChildren()) {
+                assertSelectionContainedRecursive(child);
+            }
+        }
+    }
+
+    private boolean rangeContains(Range outer, Range inner) {
+        return compare(inner.getStart(), outer.getStart()) >= 0
+            && compare(inner.getEnd(), outer.getEnd()) <= 0;
+    }
+
+    private int compare(Position a, Position b) {
+        if (a.getLine() != b.getLine()) {
+            return Integer.compare(a.getLine(), b.getLine());
+        }
+        return Integer.compare(a.getCharacter(), b.getCharacter());
     }
 
     private TestContext createContext(CompletionTestData data, String diskContent) throws IOException {
