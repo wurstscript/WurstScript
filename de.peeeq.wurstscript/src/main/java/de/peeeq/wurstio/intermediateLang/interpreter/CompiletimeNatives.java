@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import net.moonlightflower.wc3libs.bin.ObjMod;
-import net.moonlightflower.wc3libs.bin.app.objMod.W3U;
 import net.moonlightflower.wc3libs.dataTypes.DataType;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Int;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Real;
@@ -40,20 +39,28 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
         ObjMod<? extends ObjMod.Obj> dataStore = globalState.getDataStore(fileType.getVal());
         String objIdString = ObjectHelper.objectIdIntToString(newUnitId.getVal());
+        boolean isMeleeOverride = newUnitId.getVal() == deriveFrom.getVal();
 
-        if (dataStore.getObjs().containsKey(ObjId.valueOf(objIdString))) {
+        if (!isMeleeOverride && dataStore.getObjs().containsKey(ObjId.valueOf(objIdString))) {
             globalState.compilationError("Object definition with id " + objIdString + " already exists.");
         }
-        ObjMod.Obj objDef = newDefFromFiletype(dataStore, deriveFrom.getVal(), newUnitId.getVal());
-        // mark object with special field
-        ObjMod.Obj.Mod mod = new ObjMod.Obj.Mod(MetaFieldId.valueOf("wurs"), ObjMod.ValType.INT, War3Int.valueOf(ProgramState.GENERATED_BY_WURST));
-        objDef.addMod(mod);
+        ObjMod.Obj objDef = newDefFromFiletype(dataStore, deriveFrom.getVal(), newUnitId.getVal(), isMeleeOverride);
+        if (!isMeleeOverride) {
+            // mark object with special field
+            ObjMod.Obj.Mod mod = new ObjMod.Obj.Mod(MetaFieldId.valueOf("wurs"), ObjMod.ValType.INT, War3Int.valueOf(ProgramState.GENERATED_BY_WURST));
+            objDef.addMod(mod);
+        }
         String key = globalState.addObjectDefinition(objDef);
 
         return makeKey(key);
     }
 
-    private W3U.Obj newDefFromFiletype(ObjMod<? extends ObjMod.Obj> dataStore, int base, int newId) {
+    private ObjMod.Obj newDefFromFiletype(ObjMod<? extends ObjMod.Obj> dataStore, int base, int newId, boolean isMeleeOverride) {
+        if (isMeleeOverride) {
+            ObjId id = ObjId.valueOf(ObjectHelper.objectIdIntToString(newId));
+            // same id => modify melee/original definition table
+            return dataStore.addObj(id, null);
+        }
         ObjId baseIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(base));
         ObjId newIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(newId));
         return dataStore.addObj(newIdS, baseIdS);

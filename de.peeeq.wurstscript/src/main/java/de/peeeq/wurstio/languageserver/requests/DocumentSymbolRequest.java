@@ -62,7 +62,34 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
         if (p instanceof AstElementWithParameters) {
             detail = "(" + HoverInfo.getParameterString((AstElementWithParameters) p) + ")";
         }
-        return new DocumentSymbol(name, kind, Convert.range(p), Convert.errorRange(p), detail, children);
+        Range fullRange = Convert.range(p);
+        Range selectionRange = sanitizeSelectionRange(fullRange, Convert.errorRange(p));
+        return new DocumentSymbol(name, kind, fullRange, selectionRange, detail, children);
+    }
+
+    private Range sanitizeSelectionRange(Range fullRange, Range selectionRange) {
+        if (fullRange == null) {
+            return selectionRange;
+        }
+        if (selectionRange == null) {
+            return fullRange;
+        }
+        if (isRangeContained(fullRange, selectionRange)) {
+            return selectionRange;
+        }
+        return fullRange;
+    }
+
+    private boolean isRangeContained(Range outer, Range inner) {
+        return compare(inner.getStart(), outer.getStart()) >= 0
+            && compare(inner.getEnd(), outer.getEnd()) <= 0;
+    }
+
+    private int compare(Position a, Position b) {
+        if (a.getLine() != b.getLine()) {
+            return Integer.compare(a.getLine(), b.getLine());
+        }
+        return Integer.compare(a.getCharacter(), b.getCharacter());
     }
 
     private void addSymbolsForEntity(List<DocumentSymbol> result, WEntity e) {
