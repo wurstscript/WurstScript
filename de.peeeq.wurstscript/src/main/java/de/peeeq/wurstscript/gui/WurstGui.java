@@ -21,7 +21,20 @@ public abstract class WurstGui {
     public abstract void showInfoMessage(String message);
 
     public void sendError(CompileError err) {
+        if (shouldSuppressWarning(err)) {
+            return;
+        }
         errors.add(err);
+    }
+
+    private boolean shouldSuppressWarning(CompileError err) {
+        if (err.getErrorType() != ErrorType.WARNING) {
+            return false;
+        }
+        String file = err.getSource().getFile();
+        String normalized = file.replace('\\', '/').toLowerCase();
+        return normalized.contains("/_build/dependencies/")
+            || normalized.startsWith("_build/dependencies/");
     }
 
     public void clearErrors() {
