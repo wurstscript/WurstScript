@@ -69,36 +69,17 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     @Override
     public CompletionList execute(ModelManager modelManager) {
-        long tStart = System.nanoTime();
         this.modelManager = modelManager;
         cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
         if (cu == null) {
-            long ms = (System.nanoTime() - tStart) / 1_000_000;
-            System.out.println("[WLS-COMP] execute cu=null file=" + filename + " in " + ms + "ms");
             return new CompletionList(Collections.emptyList());
         }
-        long tCompute = System.nanoTime();
         List<CompletionItem> result = computeCompletionProposals(cu);
-        long computeMs = (System.nanoTime() - tCompute) / 1_000_000;
         // sort: highest rating first, then sort by label
         if (result != null) {
-            long tSort = System.nanoTime();
             result.sort(completionItemComparator());
-            long sortMs = (System.nanoTime() - tSort) / 1_000_000;
-            long totalMs = (System.nanoTime() - tStart) / 1_000_000;
-            if (totalMs >= 20 || computeMs >= 15 || sortMs >= 10) {
-                System.out.println("[WLS-COMP] execute file=" + filename
-                    + " items=" + result.size()
-                    + " compute=" + computeMs + "ms"
-                    + " sort=" + sortMs + "ms"
-                    + " total=" + totalMs + "ms");
-            }
             return new CompletionList(isIncomplete, result);
         } else {
-            long totalMs = (System.nanoTime() - tStart) / 1_000_000;
-            if (totalMs >= 20) {
-                System.out.println("[WLS-COMP] execute file=" + filename + " items=0 total=" + totalMs + "ms");
-            }
             return new CompletionList(isIncomplete, Collections.emptyList());
         }
     }
@@ -113,8 +94,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
      * computes completions at the current position
      */
     public List<CompletionItem> computeCompletionProposals(CompilationUnit cu) {
-        long tStart = System.nanoTime();
-
         if (isEnteringRealNumber()) {
             return null;
         }
@@ -154,34 +133,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
         WLogger.info("....expected type = " + expectedType);
 
         calculateCompletions(completions);
-        long tAfterCollect = System.nanoTime();
         removeDuplicates(completions);
-        long tAfterDedup = System.nanoTime();
         preferBestMatchTier(completions);
-        long tAfterTier = System.nanoTime();
         preferExpectedTypeForShortQueries(completions);
-        long tAfterTypePref = System.nanoTime();
         dropBadCompletions(completions);
         enrichTopDocumentation(completions);
-        long totalMs = (System.nanoTime() - tStart) / 1_000_000;
-        long collectMs = (tAfterCollect - tStart) / 1_000_000;
-        long dedupMs = (tAfterDedup - tAfterCollect) / 1_000_000;
-        long tierMs = (tAfterTier - tAfterDedup) / 1_000_000;
-        long typePrefMs = (tAfterTypePref - tAfterTier) / 1_000_000;
-        long pruneMs = (System.nanoTime() - tAfterTypePref) / 1_000_000;
-        if (totalMs >= 15 || completions.size() >= 150) {
-            System.out.println("[WLS-COMP] phases file=" + filename
-                + " elem=" + elem.getClass().getSimpleName()
-                + " expectedType=" + (hasExpectedType ? expectedType : "<none>")
-                + " entered='" + alreadyEntered + "'"
-                + " count=" + completions.size()
-                + " collect=" + collectMs + "ms"
-                + " dedup=" + dedupMs + "ms"
-                + " tier=" + tierMs + "ms"
-                + " typePref=" + typePrefMs + "ms"
-                + " prune=" + pruneMs + "ms"
-                + " total=" + totalMs + "ms");
-        }
         return completions;
     }
 
@@ -806,17 +762,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void removeDuplicates(List<CompletionItem> completions) {
-        long t0 = System.nanoTime();
         for (int i = 0; i < completions.size() - 1; i++) {
             for (int j = completions.size() - 1; j > i; j--) {
                 if (completions.get(i).equals(completions.get(j))) {
                     completions.remove(j);
                 }
             }
-        }
-        long ms = (System.nanoTime() - t0) / 1_000_000;
-        if (ms >= 10) {
-            System.out.println("[WLS-COMP] removeDuplicates took " + ms + "ms for " + completions.size() + " items");
         }
 
     }
