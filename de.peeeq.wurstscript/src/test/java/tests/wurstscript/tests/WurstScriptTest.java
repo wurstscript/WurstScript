@@ -473,10 +473,11 @@ public class WurstScriptTest {
             FileUtils.write(luaScript, luaFile);
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
+            String luaExecutable = getLuaExecutable();
+            checkLuaSyntax(luaExecutable, luaFile);
 
             if (executeProg) {
                 String line;
-                String luaExecutable = getLuaExecutable();
                 String[] args = {
                     luaExecutable,
                     "-l", luaFile.getPath().replace(".lua", ""),
@@ -518,6 +519,26 @@ public class WurstScriptTest {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private void checkLuaSyntax(String luaExecutable, File luaFile) throws IOException {
+        String[] args = {
+            luaExecutable,
+            "-e", "assert(loadfile(arg[1]))",
+            luaFile.getPath()
+        };
+        Process p = Runtime.getRuntime().exec(args);
+
+        StringBuilder errors = new StringBuilder();
+        String line;
+        try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+            while ((line = input.readLine()) != null) {
+                errors.append(line).append("\n");
+            }
+        }
+        if (errors.length() > 0) {
+            throw new Error("Lua syntax check failed for " + luaFile.getName() + ":\n" + errors);
+        }
     }
 
     private String getLuaExecutable() {
