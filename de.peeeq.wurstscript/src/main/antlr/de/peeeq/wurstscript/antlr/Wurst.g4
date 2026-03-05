@@ -398,7 +398,7 @@ argumentList:
     ;
 
 exprFunctionCall:
-					funcName=ID typeArgs argumentList
+					funcName=(ID|THIS) typeArgs argumentList
 				;
 	  
 exprNewObject:'new' className=ID typeArgs argumentList?;

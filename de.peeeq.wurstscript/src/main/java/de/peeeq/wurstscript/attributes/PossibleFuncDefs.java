@@ -50,7 +50,24 @@ public class PossibleFuncDefs {
     }
 
     public static ImmutableCollection<FuncLink> calculate(final ExprFunctionCall node) {
+        if (isConstructorThisCall(node)) {
+            return ImmutableList.of();
+        }
         return searchFunction(node.getFuncName(), node);
+    }
+
+    private static boolean isConstructorThisCall(ExprFunctionCall node) {
+        if (!node.getFuncName().equals("this")) {
+            return false;
+        }
+        Element current = node;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private static ImmutableCollection<FuncLink> getExtensionFunction(Expr left, Expr right, WurstOperator op) {

@@ -64,6 +64,9 @@ public class AttrFunctionSignature {
             Collection<FunctionSignature> sigs,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
+            if (location instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) location)) {
+                return FunctionSignature.empty;
+            }
             if (!isInitTrigFunc(location)) {
                 if (location instanceof ExprMemberMethodDot) {
                     ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
@@ -115,6 +118,20 @@ public class AttrFunctionSignature {
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
+    }
+
+    private static boolean isConstructorThisCall(ExprFunctionCall call) {
+        if (!call.getFuncName().equals("this")) {
+            return false;
+        }
+        Element current = call;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {

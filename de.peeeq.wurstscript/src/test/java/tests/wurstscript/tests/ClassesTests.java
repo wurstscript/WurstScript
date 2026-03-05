@@ -969,6 +969,216 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void constructor_chaining_basic() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct()",
+            "            this(3)",
+            "        construct(int i)",
+            "            x = i",
+            "    init",
+            "        let a = new A()",
+            "        if a.x == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_basic_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("function construct_A takes integer this returns nothing"),
+            "Expected delegating constructor function in generated jass.");
+        assertTrue(jass.contains("function construct_A2 takes integer this, integer i returns nothing"),
+            "Expected target constructor overload in generated jass.");
+        assertTrue(jass.contains("call construct_A2(this, 3)"),
+            "Expected delegating constructor to call target constructor.");
+        assertFalse(jass.contains("function construct_A takes integer this returns nothing\n\tcall A_init(this)"),
+            "Delegating constructor must not emit duplicate class init.");
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected class init to be emitted exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_vararg() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct()",
+            "            this(1, \"a\", \"b\")",
+            "        construct(int i, vararg string xs)",
+            "            x = i",
+            "            for s in xs",
+            "                x++",
+            "    init",
+            "        let a = new A()",
+            "        if a.x == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_vararg_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("call construct_A2_2(this, 1, \"a\", \"b\")"),
+            "Expected delegating constructor to pass concrete vararg arguments.");
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected vararg constructor chain to initialize class exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_must_be_first_statement() {
+        testAssertErrorsLines(false, "must be the first statement",
+            "package test",
+            "    class A",
+            "        construct()",
+            "            skip",
+            "            this(1)",
+            "        construct(int i)",
+            "            skip",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_self_call() {
+        testAssertErrorsLines(false, "cannot call itself",
+            "package test",
+            "    class A",
+            "        construct()",
+            "            this()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_and_super_conflict() {
+        testAssertErrorsLines(false, "Cannot call super(...) and this(...)",
+            "package test",
+            "    class A",
+            "        construct(int i)",
+            "            skip",
+            "    class B extends A",
+            "        construct()",
+            "            super(1)",
+            "            this(2)",
+            "        construct(int i)",
+            "            super(i)",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_extends_without_direct_super_call() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct(int i)",
+            "            x = i",
+            "    class B extends A",
+            "        construct()",
+            "            this(7)",
+            "        construct(int i)",
+            "            super(i)",
+            "    init",
+            "        let b = new B()",
+            "        if b.x == 7",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_extends_without_direct_super_call_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("call construct_B2(this, 7)"),
+            "Expected delegating constructor in subclass to call target constructor.");
+        assertTrue(jass.contains("call construct_A(this, i)"),
+            "Expected target constructor to emit super constructor call.");
+        assertTrue(jass.contains("call B_init(this)"),
+            "Expected subclass init call in target constructor.");
+        assertFalse(jass.contains("function construct_B takes integer this returns nothing\n\tcall B_init(this)"),
+            "Delegating subclass constructor must not emit duplicate subclass init.");
+        assertTrue(countOccurrences(jass, "call B_init(this)") == 1,
+            "Expected subclass init to be emitted exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_timing_and_sideeffects() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    int ticks = 0",
+            "    function tick() returns int",
+            "        ticks++",
+            "        return ticks",
+            "    class A",
+            "        int p = tick()",
+            "        int q = 0",
+            "        construct()",
+            "            this(7)",
+            "            q = tick()",
+            "            p += 100",
+            "        construct(int i)",
+            "            q = tick()",
+            "            p += i",
+            "    init",
+            "        let a = new A()",
+            "        if a.p == 108 and a.q == 3 and ticks == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_timing_and_sideeffects_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected class init to run exactly once in constructor chain.");
+        int idxDelegatingCall = jass.indexOf("call construct_A2(this, 7)");
+        int idxDelegatingBody = jass.indexOf("set A_q[this] = tick()", idxDelegatingCall);
+        assertTrue(idxDelegatingCall >= 0 && idxDelegatingBody > idxDelegatingCall,
+            "Expected delegating constructor body to run after this(...) target call.");
+    }
+
+    @Test
+    public void constructor_chaining_subclass_timing_and_order() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct(int i)",
+            "            x = i * 10",
+            "    class B extends A",
+            "        int y = 0",
+            "        construct()",
+            "            this(2)",
+            "            y += 1",
+            "            x += 1",
+            "        construct(int i)",
+            "            super(i)",
+            "            y += 10",
+            "            x += 2",
+            "    init",
+            "        let b = new B()",
+            "        if b.x == 23 and b.y == 11",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_subclass_timing_and_order_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(countOccurrences(jass, "call B_init(this)") == 1,
+            "Expected subclass init to run exactly once in constructor chain.");
+        int idxSuperCall = jass.indexOf("call construct_A(this, i)");
+        int idxBInitCall = jass.indexOf("call B_init(this)");
+        int idxYMutation = jass.indexOf("set B_y[this] = B_y[this] + 10");
+        assertTrue(idxSuperCall >= 0 && idxBInitCall > idxSuperCall && idxYMutation > idxBInitCall,
+            "Expected order super(...) -> B_init -> target constructor body in subclass constructor chain.");
+    }
+
+    @Test
     public void method_private() {
         testAssertErrorsLines(false, "foo is not visible here",
             "package test",
