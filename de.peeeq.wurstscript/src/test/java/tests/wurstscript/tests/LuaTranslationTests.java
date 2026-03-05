@@ -57,6 +57,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
+    private void assertDoesNotContainRegex(String output, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(output);
+        assertFalse("Pattern must not occur: " + regex, matcher.find());
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -322,6 +328,28 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void oldGenericsCastingDoesNotUseGetHandleId() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "class C",
+            "native takesInt(int i)",
+            "native takesC(C c)",
+            "function testCast()",
+            "    let cObj = new C()",
+            "    let cInt = cObj castTo int",
+            "    let cObj2 = cInt castTo C",
+            "    takesInt(cInt)",
+            "    takesC(cObj2)",
+            "init",
+            "    testCast()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_oldGenericsCastingDoesNotUseGetHandleId.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectToIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectFromIndex", true);
+    }
+
+    @Test
     public void reflectionNativesStubbedForLua() throws IOException {
         test().testLua(true).lines(
             "package Test",
@@ -403,6 +431,40 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesTriggerEvaluateGuardInMain.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("if not(TriggerEvaluate("));
         assertTrue(compiled.contains("TriggerClearConditions"));
+    }
+
+    @Test
+    public void stdLibDoesNotEmitTimerBjNatives() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibDoesNotEmitTimerBjNatives.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bCreateTimerBJ\\(");
+        assertDoesNotContainRegex(compiled, "\\bStartTimerBJ\\(");
+        assertDoesNotContainRegex(compiled, "\\bGetLastCreatedTimerBJ\\(");
+        assertFalse(compiled.contains("bj_lastStartedTimer"));
+    }
+
+    @Test
+    public void stdLibDoesNotEmitWar3HashtableNatives() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibDoesNotEmitWar3HashtableNatives.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bInitHashtable\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveInteger\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveBoolean\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveReal\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveStr\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadInteger\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadBoolean\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadReal\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadStr\\(");
+        assertDoesNotContainRegex(compiled, "\\bFlushChildHashtable\\(");
     }
 
 }

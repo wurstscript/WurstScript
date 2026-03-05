@@ -103,9 +103,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.modf(x)"));
         });
 
-        addNative("InitHashtable", f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
 
-        addNative(Arrays.asList("SaveInteger", "SaveBoolean", "SaveReal", "SaveStr", "SaveBoolean"), f -> {
+        addNative(Arrays.asList(
+            "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
+            "__wurst_SaveInteger", "__wurst_SaveBoolean", "__wurst_SaveReal", "__wurst_SaveStr"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
@@ -113,11 +115,42 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("if not h[p] then h[p] = {} end h[p][c] = i"));
         });
 
-        addNative(Arrays.asList("LoadInteger", "LoadBoolean", "LoadReal", "LoadStr", "LoadBoolean"), f -> {
+        addNative(Arrays.asList(
+            "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
+            "__wurst_LoadInteger", "__wurst_LoadBoolean", "__wurst_LoadReal", "__wurst_LoadStr"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return nil end return h[p][c]"));
+        });
+
+        addNative(Arrays.asList(
+            "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString",
+            "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return h[p] ~= nil and h[p][c] ~= nil"));
+        });
+
+        addNative(Arrays.asList("FlushChildHashtable", "__wurst_FlushChildHashtable"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("h[p] = nil"));
+        });
+
+        addNative(Arrays.asList("FlushParentHashtable", "__wurst_FlushParentHashtable"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("for k in pairs(h) do h[k] = nil end"));
+        });
+
+        addNative(Arrays.asList(
+            "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString",
+            "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if h[p] then h[p][c] = nil end"));
         });
 
         addNative("typeIdToTypeName", f -> {

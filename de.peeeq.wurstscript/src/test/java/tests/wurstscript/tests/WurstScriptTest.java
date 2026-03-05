@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -460,6 +461,7 @@ public class WurstScriptTest {
             compiler.runCompiletime(new WurstProjectConfigData(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);
 
@@ -543,14 +545,112 @@ public class WurstScriptTest {
 
     private String getLuaExecutable() {
         File bundledLuaWin = new File("src/test/resources/lua53.exe");
-        if (bundledLuaWin.exists()) {
-            return bundledLuaWin.getPath();
-        }
         File bundledLuaUnix = new File("src/test/resources/lua53");
-        if (bundledLuaUnix.exists()) {
-            return bundledLuaUnix.getPath();
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        boolean isWindows = osName.contains("win");
+
+        if (isWindows) {
+            if (bundledLuaWin.exists()) {
+                return bundledLuaWin.getPath();
+            }
+            if (bundledLuaUnix.exists()) {
+                return bundledLuaUnix.getPath();
+            }
+        } else {
+            if (bundledLuaUnix.exists()) {
+                // best effort in case execute bit was lost by checkout settings
+                // (e.g. core.filemode false on some environments)
+                bundledLuaUnix.setExecutable(true);
+                if (bundledLuaUnix.canExecute()) {
+                    return bundledLuaUnix.getPath();
+                }
+            }
+            if (bundledLuaWin.exists() && bundledLuaWin.canExecute()) {
+                return bundledLuaWin.getPath();
+            }
         }
         return "lua";
+    }
+
+    private void checkLuaRootPurity(LuaCompilationUnit luaCode) {
+        Set<String> forbiddenRootCalls = Set.of(
+            "CreateTrigger", "CreateTimer", "CreateUnit", "DestroyTrigger", "TimerStart",
+            "CreateTimerBJ", "StartTimerBJ", "GetLastCreatedTimerBJ",
+            "InitHashtable", "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
+            "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr", "FlushChildHashtable"
+        );
+
+        for (LuaStatement stmt : luaCode) {
+            if (stmt instanceof LuaVariable) {
+                LuaExprOpt initialValue = ((LuaVariable) stmt).getInitialValue();
+                if (initialValue instanceof LuaExpr) {
+                    assertNoForbiddenRootCall((LuaExpr) initialValue, forbiddenRootCalls);
+                }
+            } else if (stmt instanceof LuaAssignment) {
+                assertNoForbiddenRootCall(((LuaAssignment) stmt).getRight(), forbiddenRootCalls);
+            } else if (stmt instanceof LuaExprFunctionCallByName) {
+                String funcName = ((LuaExprFunctionCallByName) stmt).getFuncName();
+                if (forbiddenRootCalls.contains(funcName)) {
+                    throw new Error("Lua root purity violation: forbidden root call to " + funcName);
+                }
+            } else if (stmt instanceof LuaExprFunctionCall) {
+                String funcName = ((LuaExprFunctionCall) stmt).getFunc().getName();
+                if (forbiddenRootCalls.contains(funcName)) {
+                    throw new Error("Lua root purity violation: forbidden root call to " + funcName);
+                }
+            }
+        }
+    }
+
+    private void assertNoForbiddenRootCall(LuaExpr expr, Set<String> forbiddenRootCalls) {
+        if (expr instanceof LuaExprFunctionCallByName) {
+            String name = ((LuaExprFunctionCallByName) expr).getFuncName();
+            if (forbiddenRootCalls.contains(name)) {
+                throw new Error("Lua root purity violation: forbidden root call to " + name);
+            }
+            for (LuaExpr arg : ((LuaExprFunctionCallByName) expr).getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprFunctionCall) {
+            String name = ((LuaExprFunctionCall) expr).getFunc().getName();
+            if (forbiddenRootCalls.contains(name)) {
+                throw new Error("Lua root purity violation: forbidden root call to " + name);
+            }
+            for (LuaExpr arg : ((LuaExprFunctionCall) expr).getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprFunctionCallE) {
+            LuaExprFunctionCallE call = (LuaExprFunctionCallE) expr;
+            assertNoForbiddenRootCall(call.getFuncExpr(), forbiddenRootCalls);
+            for (LuaExpr arg : call.getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprArrayAccess) {
+            LuaExprArrayAccess a = (LuaExprArrayAccess) expr;
+            assertNoForbiddenRootCall(a.getLeft(), forbiddenRootCalls);
+            for (LuaExpr index : a.getIndexes()) {
+                assertNoForbiddenRootCall(index, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprBinary) {
+            LuaExprBinary b = (LuaExprBinary) expr;
+            assertNoForbiddenRootCall(b.getLeftExpr(), forbiddenRootCalls);
+            assertNoForbiddenRootCall(b.getRight(), forbiddenRootCalls);
+        } else if (expr instanceof LuaExprUnary) {
+            assertNoForbiddenRootCall(((LuaExprUnary) expr).getRight(), forbiddenRootCalls);
+        } else if (expr instanceof LuaExprFieldAccess) {
+            assertNoForbiddenRootCall(((LuaExprFieldAccess) expr).getReceiver(), forbiddenRootCalls);
+        } else if (expr instanceof LuaTableConstructor) {
+            for (LuaTableField field : ((LuaTableConstructor) expr).getTableFields()) {
+                if (field instanceof LuaTableNamedField) {
+                    assertNoForbiddenRootCall(((LuaTableNamedField) field).getVal(), forbiddenRootCalls);
+                } else if (field instanceof LuaTableExprField) {
+                    assertNoForbiddenRootCall(((LuaTableExprField) field).getFieldKey(), forbiddenRootCalls);
+                    assertNoForbiddenRootCall(((LuaTableExprField) field).getVal(), forbiddenRootCalls);
+                } else if (field instanceof LuaTableSingleField) {
+                    assertNoForbiddenRootCall(((LuaTableSingleField) field).getVal(), forbiddenRootCalls);
+                }
+            }
+        }
     }
 
     private void translateAndTest(String name, boolean executeProg,

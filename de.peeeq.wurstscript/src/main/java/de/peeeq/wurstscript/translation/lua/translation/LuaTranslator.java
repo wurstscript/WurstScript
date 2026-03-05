@@ -21,6 +21,14 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
+    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
+        "InitHashtable",
+        "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
+        "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
+        "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString",
+        "FlushChildHashtable", "FlushParentHashtable",
+        "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString"
+    ));
 
     final ImProg prog;
     final LuaCompilationUnit luaModel;
@@ -74,7 +82,7 @@ public class LuaTranslator {
 
         @Override
         public LuaFunction initFor(ImFunction a) {
-            String name = a.getName();
+            String name = remapNativeName(a.getName());
             if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
                 name = uniqueName(name);
             } else if (isFixedEntryPoint(a)) {
@@ -161,6 +169,13 @@ public class LuaTranslator {
         this.prog = prog;
         this.imTr = imTr;
         luaModel = LuaAst.LuaCompilationUnit();
+    }
+
+    private String remapNativeName(String name) {
+        if (HASHTABLE_NATIVE_NAMES.contains(name)) {
+            return "__wurst_" + name;
+        }
+        return name;
     }
 
     protected String uniqueName(String name) {
