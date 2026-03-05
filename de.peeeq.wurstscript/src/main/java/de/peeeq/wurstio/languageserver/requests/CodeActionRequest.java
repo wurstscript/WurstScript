@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.TypeLink;
-import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
@@ -38,13 +37,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
  *
  */
 public class CodeActionRequest extends UserRequest<List<Either<Command, CodeAction>>> {
-    private final CodeActionParams params;
+    private static final String CONSTANT_LOCAL_LET_WARNING = "Constant local variables should be defined using 'let'.";
+    private static final String UNUSED_IMPORT_WARNING_SUFFIX = " is never used";
     private final WFile filename;
     private final String buffer;
     private final int line;
@@ -52,8 +53,6 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
     private final List<Diagnostic> diagnostics;
 
     public CodeActionRequest(CodeActionParams params, BufferManager bufferManager) {
-        this.params = params;
-
         TextDocumentIdentifier textDocument = params.getTextDocument();
         this.filename = WFile.create(textDocument.getUri());
         this.buffer = bufferManager.getBuffer(textDocument);
@@ -85,43 +84,139 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
             return Collections.emptyList();
         }
+        List<Either<Command, CodeAction>> actions = new ArrayList<>();
+        actions.addAll(makeWarningQuickFixes(e.get()));
 
         if (e.get() instanceof ExprNewObject) {
             ExprNewObject enew = (ExprNewObject) e.get();
             ConstructorDef constructorDef = enew.attrConstructorDef();
             if (constructorDef == null) {
-                return handleMissingClass(modelManager, enew.getTypeName());
+                actions.addAll(handleMissingClass(modelManager, enew.getTypeName()));
+                return actions;
             }
         } else if (e.get() instanceof FuncRef) {
             FuncRef fr = (FuncRef) e.get();
             FuncLink fd = fr.attrFuncLink();
             if (fd == null) {
-                return handleMissingFunction(modelManager, fr);
+                actions.addAll(handleMissingFunction(modelManager, fr));
+                return actions;
             }
 
         } else if (e.get() instanceof NameRef) {
             NameRef nr = (NameRef) e.get();
             NameLink nd = nr.attrNameLink();
             if (nd == null) {
-                return handleMissingName(modelManager, nr);
+                actions.addAll(handleMissingName(modelManager, nr));
+                return actions;
             }
 
         } else if (e.get() instanceof TypeExprSimple) {
             TypeExprSimple nr = (TypeExprSimple) e.get();
             TypeDef nd = nr.attrTypeDef();
             if (nd == null) {
-                return handleMissingType(modelManager, nr.getTypeName());
+                actions.addAll(handleMissingType(modelManager, nr.getTypeName()));
+                return actions;
             }
 
         } else if (e.get() instanceof ModuleUse) {
             ModuleUse mu = (ModuleUse) e.get();
             ModuleDef def = mu.attrModuleDef();
             if (def == null) {
-                return handleMissingModule(modelManager, mu.getModuleNameId().getName());
+                actions.addAll(handleMissingModule(modelManager, mu.getModuleNameId().getName()));
+                return actions;
             }
         }
 
-        return Collections.emptyList();
+        return actions;
+    }
+
+    private List<Either<Command, CodeAction>> makeWarningQuickFixes(Element e) {
+        List<Either<Command, CodeAction>> result = new ArrayList<>();
+
+        if (hasDiagnosticMessage(msg -> msg.contains(CONSTANT_LOCAL_LET_WARNING))) {
+            findNearest(e, LocalVarDef.class).ifPresent(localVar -> {
+                int line0 = localVar.attrSource().getLine() - 1;
+                int startChar = Math.max(0, localVar.attrSource().getStartColumn() - 1);
+                int varPos = findKeywordInLine(line0, startChar, "var");
+                if (varPos >= 0) {
+                    TextEdit edit = new TextEdit(
+                        new Range(new Position(line0, varPos), new Position(line0, varPos + 3)),
+                        "let"
+                    );
+                    result.add(Either.forRight(makeQuickFix(
+                        "Use 'let' for constant local",
+                        workspaceEdit(filename.getUriString(), edit)
+                    )));
+                }
+            });
+        }
+
+        if (hasDiagnosticMessage(msg -> msg.startsWith("The import ") && msg.endsWith(UNUSED_IMPORT_WARNING_SUFFIX))) {
+            findNearest(e, WImport.class).ifPresent(imp -> {
+                int line0 = imp.attrSource().getLine() - 1;
+                TextEdit edit = new TextEdit(lineDeletionRange(line0), "");
+                result.add(Either.forRight(makeQuickFix(
+                    "Remove unused import " + imp.getPackagename(),
+                    workspaceEdit(filename.getUriString(), edit)
+                )));
+            });
+        }
+
+        return result;
+    }
+
+    private boolean hasDiagnosticMessage(Predicate<String> matcher) {
+        return diagnostics.stream()
+            .map(Diagnostic::getMessage)
+            .filter(msg -> msg != null && !msg.isEmpty())
+            .anyMatch(matcher);
+    }
+
+    private int findKeywordInLine(int line0, int startChar, String keyword) {
+        String[] lines = buffer.split("\\r?\\n", -1);
+        if (line0 < 0 || line0 >= lines.length) {
+            return -1;
+        }
+        String l = lines[line0];
+        if (startChar >= l.length()) {
+            return -1;
+        }
+        int idx = l.indexOf(keyword, startChar);
+        if (idx < 0) {
+            return -1;
+        }
+        if (idx > 0 && Character.isJavaIdentifierPart(l.charAt(idx - 1))) {
+            return -1;
+        }
+        int end = idx + keyword.length();
+        if (end < l.length() && Character.isJavaIdentifierPart(l.charAt(end))) {
+            return -1;
+        }
+        return idx;
+    }
+
+    private Range lineDeletionRange(int line0) {
+        String[] lines = buffer.split("\\r?\\n", -1);
+        if (line0 < 0 || line0 >= lines.length) {
+            Position p = new Position(Math.max(line0, 0), 0);
+            return new Range(p, p);
+        }
+        Position start = new Position(line0, 0);
+        if (line0 + 1 < lines.length) {
+            return new Range(start, new Position(line0 + 1, 0));
+        }
+        return new Range(start, new Position(line0, lines[line0].length()));
+    }
+
+    private <T extends Element> Optional<T> findNearest(Element e, Class<T> clazz) {
+        Element elem = e;
+        while (elem != null) {
+            if (clazz.isInstance(elem)) {
+                return Optional.of(clazz.cast(elem));
+            }
+            elem = elem.getParent();
+        }
+        return Optional.empty();
     }
 
     private List<Either<Command, CodeAction>> handleMissingName(ModelManager modelManager, NameRef nr) {
@@ -195,8 +290,8 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         class M implements FuncRef.MatcherVoid {
             private List<String> parameterTypes = Collections.emptyList();
             private List<String> parameterNames = Collections.emptyList();
-            private int line;
-            private int indent;
+            private int insertLine0;
+            private int declarationIndentLevels = 0;
             private final WFile targetFile = filename;
             private String receiverType = "";
             private WurstType returnType = WurstTypeVoid.instance();
@@ -205,44 +300,32 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
             @Override
             public void case_ExprFuncRef(ExprFuncRef e) {
-                getInsertPos(fr);
+                setPackageInsertPos(fr);
             }
 
             @Override
             public void case_Annotation(Annotation annotation) {
                 isAnnotation = true;
-                getInsertPos(fr);
+                setPackageInsertPos(fr);
             }
 
-            private void getInsertPos(Element fr) {
-                Element elem = fr;
-                while (elem != null) {
-                    if (elem instanceof FunctionLike) {
-                        WPos source = elem.attrSource();
-                        line = source.getEndLine();
-                        indent = source.getStartColumn() - 1;
-                        break;
-                    } else if (elem instanceof WPackage) {
-                        WPos source = elem.attrSource();
-                        line = source.getEndLine();
-                        indent = 0;
-                        break;
-                    } else if (elem instanceof FuncDefs) {
-                        FuncDefs funcDefs = (FuncDefs) elem;
-                        if (!funcDefs.isEmpty()) {
-                            WPos source = Utils.getLast(funcDefs).attrSource();
-                            line = source.getEndLine();
-                            indent = source.getStartColumn() - 1;
-                            break;
-                        }
-                    } else if (elem instanceof NamedScope) {
-                        WPos source = elem.attrSource();
-                        line = source.getEndLine();
-                        indent = source.getStartColumn() - 1 + 4;
-                        break;
-                    }
-                    elem = elem.getParent();
+            private void setPackageInsertPos(Element where) {
+                PackageOrGlobal p = where.attrNearestPackage();
+                if (p instanceof WPackage) {
+                    // Insert right before endpackage.
+                    insertLine0 = Math.max(0, p.attrSource().getEndLine() - 1);
+                } else {
+                    insertLine0 = 0;
                 }
+                declarationIndentLevels = 0;
+            }
+
+            private void setClassInsertPos(ClassOrInterface classDef) {
+                // Insert right after class declaration. This is stable and avoids placing the stub inside method bodies.
+                insertLine0 = classDef.attrSource().getLine();
+                int memberIndentColumns = Math.max(0, classDef.attrSource().getStartColumn() - 1) + 4;
+                CompilationUnitInfo.IndentationMode indentationMode = fr.attrCompilationUnit().getCuInfo().getIndentationMode();
+                declarationIndentLevels = indentationMode.countIndents(memberIndentColumns);
             }
 
             @Override
@@ -259,10 +342,10 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             private void case_Member(ExprMemberMethod e) {
                 WurstType leftType = e.getLeft().attrTyp();
                 if (leftType instanceof WurstTypeClassOrInterface) {
-                    getInsertPos(((WurstTypeClassOrInterface) leftType).getDef().getMethods());
+                    setClassInsertPos(((WurstTypeClassOrInterface) leftType).getDef());
                 } else {
-                    getInsertPos(e);
-                    receiverType = leftType + ".";
+                    setPackageInsertPos(e);
+                    receiverType = leftType.toPrettyString() + ".";
                 }
                 addParametertypes(e.getArgs());
                 returnType = e.attrExpectedTyp();
@@ -306,14 +389,24 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
             @Override
             public void case_ExprFunctionCall(ExprFunctionCall e) {
-                getInsertPos(fr);
+                Optional<ClassDef> classDef = findNearest(e, ClassDef.class);
+                if (classDef.isPresent()) {
+                    setClassInsertPos(classDef.get());
+                } else {
+                    setPackageInsertPos(fr);
+                }
                 addParametertypes(e.getArgs());
             }
 
 
-            public void indent(StringBuilder sb) {
+            public void appendDeclarationIndent(StringBuilder sb) {
                 CompilationUnitInfo.IndentationMode indentationMode = fr.attrCompilationUnit().getCuInfo().getIndentationMode();
-                indentationMode.appendIndent(sb, indentationMode.countIndents(indent) + 1);
+                indentationMode.appendIndent(sb, declarationIndentLevels);
+            }
+
+            public void appendBodyIndent(StringBuilder sb) {
+                CompilationUnitInfo.IndentationMode indentationMode = fr.attrCompilationUnit().getCuInfo().getIndentationMode();
+                indentationMode.appendIndent(sb, declarationIndentLevels + 1);
             }
         }
         M m = new M();
@@ -321,7 +414,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
         String title = "Create function " + fr.getFuncName();
         StringBuilder code = new StringBuilder("\n");
-        m.indent(code);
+        m.appendDeclarationIndent(code);
         if (m.isAnnotation) {
             code.append("@annotation ");
         }
@@ -344,9 +437,11 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             code.append(m.returnType);
         }
         code.append("\n");
+        m.appendBodyIndent(code);
+        code.append("skip\n");
 
 
-        Range range = new Range(new Position(m.line, 0), new Position(m.line, 0));
+        Range range = new Range(new Position(m.insertLine0, 0), new Position(m.insertLine0, 0));
         TextEdit textEdit = new TextEdit(range, code.toString());
         WorkspaceEdit edit = workspaceEdit(m.targetFile.getUriString(), textEdit);
         CodeAction action = makeQuickFix(title, edit);
