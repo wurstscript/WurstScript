@@ -12,6 +12,7 @@ public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
+    private static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
@@ -51,7 +52,7 @@ public class ExprTranslation {
                                     LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
                         ),
 //                        LuaAst.LuaLiteral("function(err) " + errorFuncName(tr) + "(tostring(err)) end")
-                        LuaAst.LuaLiteral("function(err) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end")
+                        LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end")
                         // unfortunately  BJDebugMsg(debug.traceback()) is not working
                     )
                 ),
@@ -73,12 +74,39 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
         LuaFunction f = tr.luaFunc.getFor(e.getFunc());
+        if ("I2S".equals(f.getName()) && isIntentionalThreadAbortCall(e)) {
+            return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
+                LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
+                LuaAst.LuaExprIntVal("0")
+            ));
+        }
         if (f.getName().equals(ImTranslator.$DEBUG_PRINT)) {
             f.setName("BJDebugMsg");
         } else if (f.getName().equals("I2S")) {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
+    }
+
+    private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
+        if (e.getArguments().size() != 1) {
+            return false;
+        }
+        ImExpr arg = e.getArguments().get(0);
+        if (!(arg instanceof ImOperatorCall)) {
+            return false;
+        }
+        ImOperatorCall op = (ImOperatorCall) arg;
+        if (op.getOp() != WurstOperator.DIV_INT) {
+            return false;
+        }
+        if (op.getArguments().size() != 2) {
+            return false;
+        }
+        ImExpr left = op.getArguments().get(0);
+        ImExpr right = op.getArguments().get(1);
+        return (left instanceof ImIntVal && ((ImIntVal) left).getValI() == 1)
+            && (right instanceof ImIntVal && ((ImIntVal) right).getValI() == 0);
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {

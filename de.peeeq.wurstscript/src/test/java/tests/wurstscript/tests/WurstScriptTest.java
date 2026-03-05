@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -32,9 +33,12 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.fail;
@@ -42,6 +46,12 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
+    private static volatile String resolvedLuaExecutable;
+    private static volatile String resolvedLuacExecutable;
+    private static volatile String extractedLuaWin;
+    private static volatile String extractedLuaUnix;
+    private static volatile String extractedLuacWin;
+    private static volatile String extractedLuacUnix;
 
     protected boolean testOptimizer() {
         return true;
@@ -70,6 +80,7 @@ public class WurstScriptTest {
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
         private boolean testLua = false;
+        private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
 
         TestConfig(String name) {
@@ -235,16 +246,18 @@ public class WurstScriptTest {
             }
 
 
-            // translate with different options:
-            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+            if (!(testLua && luaOnly)) {
+                // translate with different options:
+                testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+                testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+                testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+                testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+                testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+            }
 
             if (testLua) {
                 // test lua translation
@@ -302,6 +315,12 @@ public class WurstScriptTest {
 
         public TestConfig testLua(boolean b) {
             this.testLua = b;
+            this.luaOnly = b;
+            return this;
+        }
+
+        public TestConfig luaOnly(boolean b) {
+            this.luaOnly = b;
             return this;
         }
     }
@@ -460,6 +479,7 @@ public class WurstScriptTest {
             compiler.runCompiletime(new WurstProjectConfigData(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);
 
@@ -473,11 +493,14 @@ public class WurstScriptTest {
             FileUtils.write(luaScript, luaFile);
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
+            String luacExecutable = getLuacExecutable();
+            checkLuaSyntax(luacExecutable, luaFile);
 
             if (executeProg) {
+                String luaExecutable = getLuaExecutable();
                 String line;
                 String[] args = {
-                    "lua",
+                    luaExecutable,
                     "-l", luaFile.getPath().replace(".lua", ""),
                     "-e", "main()"
                 };
@@ -517,6 +540,333 @@ public class WurstScriptTest {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private void checkLuaSyntax(String luacExecutable, File luaFile) throws IOException {
+        Path outFile = java.nio.file.Files.createTempFile("wurst-luac-", ".out");
+        outFile.toFile().deleteOnExit();
+        ProcessBuilder pb = new ProcessBuilder(
+            luacExecutable,
+            "-o",
+            outFile.toAbsolutePath().toString(),
+            luaFile.getPath()
+        );
+        Process p = pb.start();
+        StringBuilder stdout = new StringBuilder();
+        StringBuilder stderr = new StringBuilder();
+        Thread outCollector = collectStreamAsync(p.getInputStream(), stdout);
+        Thread errCollector = collectStreamAsync(p.getErrorStream(), stderr);
+        boolean finished;
+        try {
+            finished = p.waitFor(20, TimeUnit.SECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                throw new IOException("Lua syntax check timed out for " + luaFile.getName());
+            }
+            outCollector.join();
+            errCollector.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted during Lua syntax check for " + luaFile.getName(), e);
+        }
+        if (p.exitValue() != 0 || stderr.length() > 0) {
+            throw new IOException("Lua syntax check failed for " + luaFile.getName() + " using '" + luacExecutable + "'.\n"
+                + "exit=" + p.exitValue() + "\n"
+                + (stderr.length() > 0 ? "stderr:\n" + stderr : "")
+                + (stdout.length() > 0 ? "\nstdout:\n" + stdout : ""));
+        }
+    }
+
+    private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
+        Thread t = new Thread(() -> {
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(stream))) {
+                String line;
+                while ((line = input.readLine()) != null) {
+                    out.append(line).append("\n");
+                }
+            } catch (IOException ignored) {
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+        return t;
+    }
+
+    private String getLuaExecutable() {
+        if (resolvedLuaExecutable != null) {
+            return resolvedLuaExecutable;
+        }
+
+        File bundledLuaWin = new File("src/test/resources/lua53.exe");
+        File bundledLuaUnix = new File("src/test/resources/lua53");
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        boolean isWindows = osName.contains("win");
+
+        List<String> candidates = new ArrayList<>();
+        if (isWindows) {
+            if (bundledLuaWin.exists()) {
+                candidates.add(bundledLuaWin.getPath());
+            }
+            String cpWin = getOrExtractBundledLuaFromClasspath("lua53.exe", true, false);
+            if (cpWin != null) {
+                candidates.add(cpWin);
+            }
+            if (bundledLuaUnix.exists()) {
+                candidates.add(bundledLuaUnix.getPath());
+            }
+            candidates.add("lua53.exe");
+            candidates.add("lua");
+        } else {
+            if (bundledLuaUnix.exists()) {
+                // best effort in case execute bit was lost by checkout settings
+                // (e.g. core.filemode false on some environments)
+                bundledLuaUnix.setExecutable(true);
+                if (bundledLuaUnix.canExecute()) {
+                    candidates.add(bundledLuaUnix.getPath());
+                }
+            }
+            String cpUnix = getOrExtractBundledLuaFromClasspath("lua53", false, false);
+            if (cpUnix != null) {
+                candidates.add(cpUnix);
+            }
+            candidates.add("lua53");
+            candidates.add("lua");
+        }
+
+        for (String candidate : candidates) {
+            if (isWorkingLuaExecutable(candidate)) {
+                resolvedLuaExecutable = candidate;
+                return candidate;
+            }
+        }
+
+        throw new IllegalStateException(
+            "No working Lua executable found. Tried: " + String.join(", ", candidates)
+        );
+    }
+
+    private String getLuacExecutable() {
+        if (resolvedLuacExecutable != null) {
+            return resolvedLuacExecutable;
+        }
+
+        File bundledLuacWin = new File("src/test/resources/luac53.exe");
+        File bundledLuacUnix = new File("src/test/resources/luac53");
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        boolean isWindows = osName.contains("win");
+
+        List<String> candidates = new ArrayList<>();
+        if (isWindows) {
+            if (bundledLuacWin.exists()) {
+                candidates.add(bundledLuacWin.getPath());
+            }
+            // allow legacy typo filename if present
+            File legacyWin = new File("src/test/resources/luac32.exe");
+            if (legacyWin.exists()) {
+                candidates.add(legacyWin.getPath());
+            }
+            String cpWin = getOrExtractBundledLuaFromClasspath("luac53.exe", true, true);
+            if (cpWin != null) {
+                candidates.add(cpWin);
+            }
+            String cpLegacyWin = getOrExtractBundledLuaFromClasspath("luac32.exe", true, true);
+            if (cpLegacyWin != null) {
+                candidates.add(cpLegacyWin);
+            }
+            candidates.add("luac53.exe");
+            candidates.add("luac.exe");
+            candidates.add("luac");
+        } else {
+            if (bundledLuacUnix.exists()) {
+                bundledLuacUnix.setExecutable(true);
+                if (bundledLuacUnix.canExecute()) {
+                    candidates.add(bundledLuacUnix.getPath());
+                }
+            }
+            String cpUnix = getOrExtractBundledLuaFromClasspath("luac53", false, true);
+            if (cpUnix != null) {
+                candidates.add(cpUnix);
+            }
+            candidates.add("luac53");
+            candidates.add("luac");
+        }
+
+        for (String candidate : candidates) {
+            if (isWorkingLuacExecutable(candidate)) {
+                resolvedLuacExecutable = candidate;
+                return candidate;
+            }
+        }
+
+        throw new IllegalStateException(
+            "No working luac executable found. Tried: " + String.join(", ", candidates)
+        );
+    }
+
+    private boolean isWorkingLuaExecutable(String executable) {
+        ProcessBuilder pb = new ProcessBuilder(executable, "-e", "os.exit(0)");
+        Process p;
+        try {
+            p = pb.start();
+        } catch (IOException e) {
+            return false;
+        }
+        try {
+            boolean finished = p.waitFor(5, TimeUnit.SECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                return false;
+            }
+            return p.exitValue() == 0;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    private boolean isWorkingLuacExecutable(String executable) {
+        ProcessBuilder pb = new ProcessBuilder(executable, "-v");
+        Process p;
+        try {
+            p = pb.start();
+        } catch (IOException e) {
+            return false;
+        }
+        try {
+            boolean finished = p.waitFor(5, TimeUnit.SECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                return false;
+            }
+            return p.exitValue() == 0;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    private String getOrExtractBundledLuaFromClasspath(String resourceName, boolean windowsBinary, boolean luacBinary) {
+        try {
+            if (windowsBinary && luacBinary && extractedLuacWin != null) {
+                return extractedLuacWin;
+            }
+            if (windowsBinary && !luacBinary && extractedLuaWin != null) {
+                return extractedLuaWin;
+            }
+            if (!windowsBinary && luacBinary && extractedLuacUnix != null) {
+                return extractedLuacUnix;
+            }
+            if (!windowsBinary && !luacBinary && extractedLuaUnix != null) {
+                return extractedLuaUnix;
+            }
+            InputStream in = WurstScriptTest.class.getClassLoader().getResourceAsStream(resourceName);
+            if (in == null) {
+                return null;
+            }
+            String suffix = windowsBinary ? ".exe" : "";
+            Path temp = java.nio.file.Files.createTempFile("wurst-lua53-", suffix);
+            temp.toFile().deleteOnExit();
+            try (InputStream src = in) {
+                java.nio.file.Files.copy(src, temp, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (!windowsBinary) {
+                temp.toFile().setExecutable(true);
+            }
+            String path = temp.toAbsolutePath().toString();
+            if (windowsBinary && luacBinary) {
+                extractedLuacWin = path;
+            } else if (windowsBinary) {
+                extractedLuaWin = path;
+            } else if (luacBinary) {
+                extractedLuacUnix = path;
+            } else {
+                extractedLuaUnix = path;
+            }
+            return path;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private void checkLuaRootPurity(LuaCompilationUnit luaCode) {
+        Set<String> forbiddenRootCalls = Set.of(
+            "CreateTrigger", "CreateTimer", "CreateUnit", "DestroyTrigger", "TimerStart",
+            "CreateTimerBJ", "StartTimerBJ", "GetLastCreatedTimerBJ",
+            "InitHashtable", "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
+            "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr", "FlushChildHashtable"
+        );
+
+        for (LuaStatement stmt : luaCode) {
+            if (stmt instanceof LuaVariable) {
+                LuaExprOpt initialValue = ((LuaVariable) stmt).getInitialValue();
+                if (initialValue instanceof LuaExpr) {
+                    assertNoForbiddenRootCall((LuaExpr) initialValue, forbiddenRootCalls);
+                }
+            } else if (stmt instanceof LuaAssignment) {
+                assertNoForbiddenRootCall(((LuaAssignment) stmt).getRight(), forbiddenRootCalls);
+            } else if (stmt instanceof LuaExprFunctionCallByName) {
+                String funcName = ((LuaExprFunctionCallByName) stmt).getFuncName();
+                if (forbiddenRootCalls.contains(funcName)) {
+                    throw new Error("Lua root purity violation: forbidden root call to " + funcName);
+                }
+            } else if (stmt instanceof LuaExprFunctionCall) {
+                String funcName = ((LuaExprFunctionCall) stmt).getFunc().getName();
+                if (forbiddenRootCalls.contains(funcName)) {
+                    throw new Error("Lua root purity violation: forbidden root call to " + funcName);
+                }
+            }
+        }
+    }
+
+    private void assertNoForbiddenRootCall(LuaExpr expr, Set<String> forbiddenRootCalls) {
+        if (expr instanceof LuaExprFunctionCallByName) {
+            String name = ((LuaExprFunctionCallByName) expr).getFuncName();
+            if (forbiddenRootCalls.contains(name)) {
+                throw new Error("Lua root purity violation: forbidden root call to " + name);
+            }
+            for (LuaExpr arg : ((LuaExprFunctionCallByName) expr).getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprFunctionCall) {
+            String name = ((LuaExprFunctionCall) expr).getFunc().getName();
+            if (forbiddenRootCalls.contains(name)) {
+                throw new Error("Lua root purity violation: forbidden root call to " + name);
+            }
+            for (LuaExpr arg : ((LuaExprFunctionCall) expr).getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprFunctionCallE) {
+            LuaExprFunctionCallE call = (LuaExprFunctionCallE) expr;
+            assertNoForbiddenRootCall(call.getFuncExpr(), forbiddenRootCalls);
+            for (LuaExpr arg : call.getArguments()) {
+                assertNoForbiddenRootCall(arg, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprArrayAccess) {
+            LuaExprArrayAccess a = (LuaExprArrayAccess) expr;
+            assertNoForbiddenRootCall(a.getLeft(), forbiddenRootCalls);
+            for (LuaExpr index : a.getIndexes()) {
+                assertNoForbiddenRootCall(index, forbiddenRootCalls);
+            }
+        } else if (expr instanceof LuaExprBinary) {
+            LuaExprBinary b = (LuaExprBinary) expr;
+            assertNoForbiddenRootCall(b.getLeftExpr(), forbiddenRootCalls);
+            assertNoForbiddenRootCall(b.getRight(), forbiddenRootCalls);
+        } else if (expr instanceof LuaExprUnary) {
+            assertNoForbiddenRootCall(((LuaExprUnary) expr).getRight(), forbiddenRootCalls);
+        } else if (expr instanceof LuaExprFieldAccess) {
+            assertNoForbiddenRootCall(((LuaExprFieldAccess) expr).getReceiver(), forbiddenRootCalls);
+        } else if (expr instanceof LuaTableConstructor) {
+            for (LuaTableField field : ((LuaTableConstructor) expr).getTableFields()) {
+                if (field instanceof LuaTableNamedField) {
+                    assertNoForbiddenRootCall(((LuaTableNamedField) field).getVal(), forbiddenRootCalls);
+                } else if (field instanceof LuaTableExprField) {
+                    assertNoForbiddenRootCall(((LuaTableExprField) field).getFieldKey(), forbiddenRootCalls);
+                    assertNoForbiddenRootCall(((LuaTableExprField) field).getVal(), forbiddenRootCalls);
+                } else if (field instanceof LuaTableSingleField) {
+                    assertNoForbiddenRootCall(((LuaTableSingleField) field).getVal(), forbiddenRootCalls);
+                }
+            }
+        }
     }
 
     private void translateAndTest(String name, boolean executeProg,

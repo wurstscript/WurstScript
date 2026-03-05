@@ -57,6 +57,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
+    private void assertDoesNotContainRegex(String output, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(output);
+        assertFalse("Pattern must not occur: " + regex, matcher.find());
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -271,9 +277,224 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testEnum", "zeroInt = zeroEnum", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum2 = zeroInt", true);
         // classes are cast with objectToIndex and objectFromIndex in lua
-        assertFunctionBodyContains(compiled, "testClass", "objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
         assertFunctionBodyContains(compiled, "testClass", "cInt = cObj", false);
         assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
+
+    @Test
+    public void configEntrypointNotRenamedWhenUserHasConfigFunction() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "function config()",
+            "    skip",
+            "init",
+            "    config()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_configEntrypointNotRenamedWhenUserHasConfigFunction.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("function config("));
+        assertFalse(compiled.contains("function config2("));
+        assertTrue(compiled.contains("function config1("));
+        assertTrue(compiled.contains("config1()"));
+    }
+
+    @Test
+    public void objectIndexFunctionsDoNotCollideWithUserFunctions() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "function objectToIndex(int i) returns int",
+            "    return i + 1",
+            "function objectFromIndex(int i) returns int",
+            "    return i - 1",
+            "native takesInt(int i)",
+            "class C",
+            "function testClass()",
+            "    let cObj = new C()",
+            "    let cInt = cObj castTo int",
+            "    let cObj2 = cInt castTo C",
+            "    takesInt(objectToIndex(3))",
+            "    takesInt(objectFromIndex(5))",
+            "    if cObj2 == null",
+            "        skip",
+            "init",
+            "    testClass()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_objectIndexFunctionsDoNotCollideWithUserFunctions.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("function objectToIndex("));
+        assertTrue(compiled.contains("function objectFromIndex("));
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
+    }
+
+    @Test
+    public void oldGenericsCastingDoesNotUseGetHandleId() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "class C",
+            "native takesInt(int i)",
+            "native takesC(C c)",
+            "function testCast()",
+            "    let cObj = new C()",
+            "    let cInt = cObj castTo int",
+            "    let cObj2 = cInt castTo C",
+            "    takesInt(cInt)",
+            "    takesC(cObj2)",
+            "init",
+            "    testCast()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_oldGenericsCastingDoesNotUseGetHandleId.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectToIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectFromIndex", true);
+    }
+
+    @Test
+    public void reflectionNativesStubbedForLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native typeIdToTypeName(int typeId) returns string",
+            "native maxTypeId() returns int",
+            "native instanceCount(int typeId) returns int",
+            "native maxInstanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "    let name = typeIdToTypeName(A.typeId)",
+            "    let m = maxTypeId()",
+            "    let c = instanceCount(A.typeId)",
+            "    let mc = maxInstanceCount(A.typeId)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativesStubbedForLua.lua"), Charsets.UTF_8);
+        assertFalse(compiled.contains("The native 'typeIdToTypeName' is not implemented."));
+        assertFalse(compiled.contains("The native 'maxTypeId' is not implemented."));
+        assertFalse(compiled.contains("The native 'instanceCount' is not implemented."));
+        assertFalse(compiled.contains("The native 'maxInstanceCount' is not implemented."));
+        assertTrue(compiled.contains("typeIdToTypeName = function"));
+        assertTrue(compiled.contains("maxTypeId = function"));
+        assertTrue(compiled.contains("instanceCount = function"));
+        assertTrue(compiled.contains("maxInstanceCount = function"));
+    }
+
+    @Test
+    public void reflectionNativeStubBodiesReturnDefaults() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native typeIdToTypeName(int typeId) returns string",
+            "native maxTypeId() returns int",
+            "native instanceCount(int typeId) returns int",
+            "native maxInstanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "    let _n = typeIdToTypeName(A.typeId)",
+            "    let _m = maxTypeId()",
+            "    let _c = instanceCount(A.typeId)",
+            "    let _mc = maxInstanceCount(A.typeId)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativeStubBodiesReturnDefaults.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("typeIdToTypeName = function"));
+        assertTrue(compiled.contains("return \"\""));
+        assertTrue(compiled.contains("maxTypeId = function"));
+        assertTrue(compiled.contains("instanceCount = function"));
+        assertTrue(compiled.contains("maxInstanceCount = function"));
+        assertTrue(compiled.contains("return 0"));
+    }
+
+    @Test
+    public void reflectionNativeStubsAreGuardedByExistingDefinitions() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native typeIdToTypeName(int typeId) returns string",
+            "native maxTypeId() returns int",
+            "native instanceCount(int typeId) returns int",
+            "native maxInstanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "    let _n = typeIdToTypeName(A.typeId)",
+            "    let _m = maxTypeId()",
+            "    let _c = instanceCount(A.typeId)",
+            "    let _mc = maxInstanceCount(A.typeId)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_reflectionNativeStubsAreGuardedByExistingDefinitions.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("if typeIdToTypeName then"));
+        assertTrue(compiled.contains("if maxTypeId then"));
+        assertTrue(compiled.contains("if instanceCount then"));
+        assertTrue(compiled.contains("if maxInstanceCount then"));
+    }
+
+    @Test
+    public void stdLibInitUsesTriggerEvaluateGuardInMain() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesTriggerEvaluateGuardInMain.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("if not(TriggerEvaluate("));
+        assertTrue(compiled.contains("TriggerClearConditions"));
+    }
+
+    @Test
+    public void stdLibDoesNotEmitTimerBjNatives() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibDoesNotEmitTimerBjNatives.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bCreateTimerBJ\\(");
+        assertDoesNotContainRegex(compiled, "\\bStartTimerBJ\\(");
+        assertDoesNotContainRegex(compiled, "\\bGetLastCreatedTimerBJ\\(");
+        assertFalse(compiled.contains("bj_lastStartedTimer"));
+    }
+
+    @Test
+    public void stdLibDoesNotEmitWar3HashtableNatives() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibDoesNotEmitWar3HashtableNatives.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bInitHashtable\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveInteger\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveBoolean\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveReal\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveStr\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadInteger\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadBoolean\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadReal\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadStr\\(");
+        assertDoesNotContainRegex(compiled, "\\bFlushChildHashtable\\(");
+    }
+
+    @Test
+    public void i2sDivisionByZeroCrashTrapUsesAbortSentinelInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_i2sDivisionByZeroCrashTrapUsesAbortSentinelInLua.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "I2S\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "I2S\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
+        assertTrue(compiled.contains("__wurst_abort_thread"));
+        assertDoesNotContainRegex(compiled, "error\\s*\\(\\s*\"[^\"]*divide by zero[^\"]*\"");
+    }
+
+    @Test
+    public void luaErrorWrapperIgnoresAbortSentinel() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "function f()",
+            "    skip",
+            "init",
+            "    f()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaErrorWrapperIgnoresAbortSentinel.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("if err == \"__wurst_abort_thread\" then return end"));
+        assertTrue(compiled.contains("if err2 == \"__wurst_abort_thread\" then return end"));
+    }
+
 }

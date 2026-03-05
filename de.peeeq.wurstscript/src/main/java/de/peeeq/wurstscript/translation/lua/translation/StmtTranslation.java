@@ -50,10 +50,11 @@ public class StmtTranslation {
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
         LuaVariable loopVar = tr.luaVar.getFor(loop.getLoopVar());
 //        res.add(loopVar);
+        String argsName = tr.uniqueName("__args");
         LuaVariable i = LuaAst.LuaVariable(tr.uniqueName("i"),  LuaAst.LuaExprIntVal("0"));
-        res.add(LuaAst.LuaLiteral("local __args = table.pack(...)"));
-        res.add(LuaAst.LuaLiteral("for " + i.getName() + "=1,__args.n do"));
-        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar), LuaAst.LuaExprArrayAccess(LuaAst.LuaLiteral("__args"), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        res.add(LuaAst.LuaLiteral("local " + argsName + " = table.pack(...)"));
+        res.add(LuaAst.LuaLiteral("for " + i.getName() + "=1," + argsName + ".n do"));
+        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar), LuaAst.LuaExprArrayAccess(LuaAst.LuaLiteral(argsName), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
         tr.translateStatements(res, loop.getBody());
         res.add(LuaAst.LuaLiteral("end"));
     }
