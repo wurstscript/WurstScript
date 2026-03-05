@@ -476,8 +476,9 @@ public class WurstScriptTest {
 
             if (executeProg) {
                 String line;
+                String luaExecutable = getLuaExecutable();
                 String[] args = {
-                    "lua",
+                    luaExecutable,
                     "-l", luaFile.getPath().replace(".lua", ""),
                     "-e", "main()"
                 };
@@ -517,6 +518,18 @@ public class WurstScriptTest {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private String getLuaExecutable() {
+        File bundledLuaWin = new File("src/test/resources/lua53.exe");
+        if (bundledLuaWin.exists()) {
+            return bundledLuaWin.getPath();
+        }
+        File bundledLuaUnix = new File("src/test/resources/lua53");
+        if (bundledLuaUnix.exists()) {
+            return bundledLuaUnix.getPath();
+        }
+        return "lua";
     }
 
     private void translateAndTest(String name, boolean executeProg,

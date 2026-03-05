@@ -50,7 +50,8 @@ public class LuaNatives {
 
         addNative(Collections.singletonList("S2I"), f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
+            f.getBody().add(LuaAst.LuaLiteral("local m = string.match(tostring(x), \"^[%+%-]?%d+\")"));
+            f.getBody().add(LuaAst.LuaLiteral("if m then return tonumber(m) else return 0 end"));
         });
 
         addNative("Player", f -> {
@@ -63,7 +64,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return x.id"));
         });
 
-        addNative("GetRandomReal", f -> f.getBody().add(LuaAst.LuaLiteral("return math.random")));
+        addNative("GetRandomReal", f -> {
+            f.getParams().add(LuaAst.LuaVariable("l", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return l + math.random() * (h - l)"));
+        });
 
         addNative("GetRandomInt", f -> {
             f.getParams().add(LuaAst.LuaVariable("l", LuaAst.LuaNoExpr()));
@@ -90,11 +95,12 @@ public class LuaNatives {
         addNative("TriggerEvaluate", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("for i,a in ipairs(t.actions) do a() end"));
+            f.getBody().add(LuaAst.LuaLiteral("return true"));
         });
 
         addNative("R2I", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.floor(x)"));
+            f.getBody().add(LuaAst.LuaLiteral("return math.modf(x)"));
         });
 
         addNative("InitHashtable", f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
@@ -112,6 +118,25 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return nil end return h[p][c]"));
+        });
+
+        addNative("typeIdToTypeName", f -> {
+            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return \"\""));
+        });
+
+        addNative("maxTypeId", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("return 0"));
+        });
+
+        addNative("instanceCount", f -> {
+            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return 0"));
+        });
+
+        addNative("maxInstanceCount", f -> {
+            f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return 0"));
         });
 
     }

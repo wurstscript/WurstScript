@@ -84,6 +84,14 @@ jobs:
         shell: bash
         run: ./gradlew packageSlimCompilerDist --no-daemon --stacktrace
 
+      - name: Prepare bundled Lua runtime (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if [[ -f src/test/resources/lua53 ]]; then
+            chmod +x src/test/resources/lua53
+          fi
+
       - name: Run tests
         shell: bash
         run: ./gradlew test --no-daemon --stacktrace

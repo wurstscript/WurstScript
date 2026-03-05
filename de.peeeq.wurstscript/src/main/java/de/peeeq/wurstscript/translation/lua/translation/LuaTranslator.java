@@ -126,9 +126,9 @@ public class LuaTranslator {
 
     LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
-    LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
-    LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
