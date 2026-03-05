@@ -188,5 +188,15 @@ public class LuaTypecastingTests extends WurstScriptTest {
         );
     }
 
-}
+    @Test
+    public void compiletimeHashMapStringPutInLua() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import HashMap",
+            "let map = compiletime(new HashMap<string, string>())",
+            "@compiletime function initialize()",
+            "    map.put(\"hello\", \"world\")"
+        );
+    }
 
+}

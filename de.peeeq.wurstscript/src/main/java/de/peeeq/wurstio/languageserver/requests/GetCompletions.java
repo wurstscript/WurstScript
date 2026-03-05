@@ -5,9 +5,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
@@ -16,14 +18,12 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +33,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
     private static final int MAX_COMPLETIONS = 100;
+    private static final int MAX_CANDIDATES = 2000;
     private final WFile filename;
     private final String buffer;
     private final String[] lines;
@@ -40,12 +41,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private final int column;
     private String alreadyEntered;
     private String alreadyEnteredLower;
-    private SearchMode searchMode;
     private Element elem;
     private WurstType expectedType;
+    private boolean hasExpectedType;
     private ModelManager modelManager;
     private boolean isIncomplete = false;
     private CompilationUnit cu;
+    private final IdentityHashMap<CompletionItem, AstElementWithSource> docTargets = new IdentityHashMap<>();
+    private final IdentityHashMap<CompletionItem, WurstType> completionTypes = new IdentityHashMap<>();
 
 
     public GetCompletions(CompletionParams position, BufferManager bufferManager) {
@@ -83,19 +86,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private Comparator<CompletionItem> completionItemComparator() {
         return Comparator
-                .comparing(CompletionItem::getSortText).reversed()
+                .comparing(CompletionItem::getSortText)
                 .thenComparing(CompletionItem::getLabel);
-    }
-
-    private enum SearchMode {
-        PREFIX, INFIX, SUBSEQENCE
     }
 
     /**
      * computes completions at the current position
      */
     public List<CompletionItem> computeCompletionProposals(CompilationUnit cu) {
-
         if (isEnteringRealNumber()) {
             return null;
         }
@@ -104,29 +102,230 @@ public class GetCompletions extends UserRequest<CompletionList> {
         alreadyEnteredLower = alreadyEntered.toLowerCase();
         WLogger.debug("already entered = " + alreadyEntered);
 
-        for (SearchMode mode : SearchMode.values()) {
-            searchMode = mode;
-            List<CompletionItem> completions = Lists.newArrayList();
-
-            elem = Utils.getAstElementAtPos(cu, line, column + 1, false).get();
-            WLogger.debug("get completions at " + Utils.printElement(elem));
-            expectedType = null;
-            if (elem instanceof Expr) {
-                Expr expr = (Expr) elem;
-                expectedType = expr.attrExpectedTyp();
-                WLogger.info("....expected type = " + expectedType);
-            }
-
-            calculateCompletions(completions);
-
-            dropBadCompletions(completions);
-            removeDuplicates(completions);
-
-            if (completions.size() > 0) {
-                return completions;
+        List<CompletionItem> completions = Lists.newArrayList();
+        elem = Utils.getAstElementAtPos(cu, line, column + 1, false).get();
+        WLogger.debug("get completions at " + Utils.printElement(elem));
+        expectedType = null;
+        hasExpectedType = false;
+        Element typeElem = elem;
+        if (!(typeElem instanceof Expr)) {
+            Optional<Element> leafElem = Utils.getAstElementAtPos(cu, line, column + 1, true);
+            if (leafElem.isPresent()) {
+                Expr nearestExpr = nearestEnclosingExpr(leafElem.get());
+                if (nearestExpr != null) {
+                    typeElem = nearestExpr;
+                }
             }
         }
+        if (typeElem instanceof Expr) {
+            Expr expr = (Expr) typeElem;
+            expectedType = expr.attrExpectedTyp();
+            if (expectedType instanceof WurstTypeUnknown) {
+                WurstType inferred = inferExpectedTypeFromContext(expr);
+                if (!(inferred instanceof WurstTypeUnknown)) {
+                    expectedType = inferred;
+                }
+            }
+        } else {
+            expectedType = inferExpectedTypeFromStatementContext(typeElem);
+        }
+        hasExpectedType = expectedType != null && !(expectedType instanceof WurstTypeUnknown);
+        WLogger.info("....expected type = " + expectedType);
+
+        calculateCompletions(completions);
+        removeDuplicates(completions);
+        preferBestMatchTier(completions);
+        preferExpectedTypeForShortQueries(completions);
+        dropBadCompletions(completions);
+        enrichTopDocumentation(completions);
+        return completions;
+    }
+
+    private void preferExpectedTypeForShortQueries(List<CompletionItem> completions) {
+        if (!hasExpectedType || alreadyEntered.length() > 2 || completions.isEmpty()) {
+            return;
+        }
+        List<CompletionItem> expectedTypeMatches = new ArrayList<>();
+        List<CompletionItem> others = new ArrayList<>();
+        for (CompletionItem item : completions) {
+            WurstType t = completionTypes.get(item);
+            if (t != null && t.isSubtypeOf(expectedType, elem)) {
+                expectedTypeMatches.add(item);
+            } else {
+                others.add(item);
+            }
+        }
+        if (!expectedTypeMatches.isEmpty()) {
+            completions.clear();
+            completions.addAll(expectedTypeMatches);
+            completions.addAll(others);
+        }
+    }
+
+    private void enrichTopDocumentation(List<CompletionItem> completions) {
+        // Keep completion responsive: enrich only visible/top results.
+        int limit = Math.min(completions.size(), 24);
+        for (int i = 0; i < limit; i++) {
+            CompletionItem ci = completions.get(i);
+            AstElementWithSource target = docTargets.get(ci);
+            if (target == null) {
+                continue;
+            }
+            String comment = null;
+            boolean jassDoc = false;
+            if (target instanceof FunctionDefinition) {
+                FunctionDefinition f = (FunctionDefinition) target;
+                comment = f.attrComment();
+                if (comment == null || comment.isEmpty()) {
+                    comment = JassDocService.getInstance().documentationForFunctionQuick(f);
+                    jassDoc = comment != null && !comment.isEmpty();
+                }
+            } else if (target instanceof NameDef) {
+                NameDef n = (NameDef) target;
+                comment = n.attrComment();
+                if (comment == null || comment.isEmpty()) {
+                    comment = JassDocService.getInstance().documentationForVariableQuick(n);
+                    jassDoc = comment != null && !comment.isEmpty();
+                }
+            }
+            if (comment == null || comment.isEmpty()) {
+                continue;
+            }
+            if (jassDoc) {
+                MarkupContent mc = new MarkupContent();
+                mc.setKind("markdown");
+                mc.setValue("*JassDoc*\n\n" + comment);
+                ci.setDocumentation(Either.forRight(mc));
+            } else {
+                ci.setDocumentation(comment);
+            }
+        }
+    }
+
+    private void preferBestMatchTier(List<CompletionItem> completions) {
+        if (alreadyEntered.length() < 2 || completions.isEmpty()) {
+            return;
+        }
+        int bestTier = Integer.MAX_VALUE;
+        for (CompletionItem item : completions) {
+            bestTier = Math.min(bestTier, matchTier(item.getLabel()));
+        }
+        // If we have a strong prefix-like match, keep the strong tier.
+        // For case-insensitive prefix matching we keep both exact/case-sensitive and case-insensitive tiers
+        // so typing lowercase still keeps uppercase constants (e.g. "t" -> "TEXT_*").
+        if (bestTier <= 2) {
+            int minTier = Math.max(0, bestTier - 1);
+            int maxTier = 2;
+            completions.removeIf(c -> {
+                if (alreadyEntered.length() <= 2 && isExpectedTypeMatch(c)) {
+                    return false;
+                }
+                if (alreadyEntered.length() >= 3 && shouldKeepAsExpectedTypeFallback(c)) {
+                    return false;
+                }
+                int t = matchTier(c.getLabel());
+                return t < minTier || t > maxTier;
+            });
+        }
+    }
+
+    private boolean isExpectedTypeMatch(CompletionItem item) {
+        if (!hasExpectedType) {
+            return false;
+        }
+        WurstType t = completionTypes.get(item);
+        return t != null && t.isSubtypeOf(expectedType, elem);
+    }
+
+    private boolean shouldKeepAsExpectedTypeFallback(CompletionItem item) {
+        if (!isExpectedTypeMatch(item)) {
+            return false;
+        }
+        int tier = matchTier(item.getLabel());
+        if (tier < 3 || tier > 6) {
+            return false;
+        }
+        String normalizedQuery = normalizedIdentifier(alreadyEntered);
+        if (normalizedQuery.isEmpty()) {
+            return false;
+        }
+        String normalizedName = normalizedIdentifier(item.getLabel());
+        int span = subsequenceSpan(normalizedQuery, normalizedName);
+        if (span < 0) {
+            return false;
+        }
+        // Keep compact expected-type subsequence matches (e.g. TEXTU -> TEXT_JUSTIFY_*),
+        // but reject very gappy matches that mostly add noise.
+        return span <= normalizedQuery.length() + 3;
+    }
+
+    private WurstType inferExpectedTypeFromContext(Expr expr) {
+        Element parent = expr.getParent();
+        if (parent instanceof ExprBinary) {
+            ExprBinary b = (ExprBinary) parent;
+            Expr other = b.getLeft() == expr ? b.getRight() : b.getLeft();
+            WurstType inferred = inferFromBinaryComparison(b, other);
+            if (!(inferred instanceof WurstTypeUnknown)) {
+                return inferred;
+            }
+        }
+        return WurstTypeUnknown.instance();
+    }
+
+    private @Nullable Expr nearestEnclosingExpr(Element e) {
+        Element current = e;
+        while (current != null) {
+            if (current instanceof Expr) {
+                return (Expr) current;
+            }
+            current = current.getParent();
+        }
         return null;
+    }
+
+    private WurstType inferExpectedTypeFromStatementContext(Element contextElem) {
+        if (contextElem instanceof StmtIf) {
+            return inferFromConditionalExpr(((StmtIf) contextElem).getCond());
+        }
+        if (contextElem instanceof StmtWhile) {
+            return inferFromConditionalExpr(((StmtWhile) contextElem).getCond());
+        }
+        return WurstTypeUnknown.instance();
+    }
+
+    private WurstType inferFromConditionalExpr(Expr cond) {
+        if (cond instanceof ExprBinary) {
+            ExprBinary b = (ExprBinary) cond;
+            if (b.getRight() instanceof ExprEmpty) {
+                WurstType inferred = inferFromBinaryComparison(b, b.getLeft());
+                if (!(inferred instanceof WurstTypeUnknown)) {
+                    return inferred;
+                }
+            }
+            if (b.getLeft() instanceof ExprEmpty) {
+                WurstType inferred = inferFromBinaryComparison(b, b.getRight());
+                if (!(inferred instanceof WurstTypeUnknown)) {
+                    return inferred;
+                }
+            }
+        }
+        return WurstTypeUnknown.instance();
+    }
+
+    private WurstType inferFromBinaryComparison(ExprBinary b, Expr otherSide) {
+        // For comparisons, mirror the opposite side type (e.g. p == | -> player).
+        if (b.getOp() == WurstOperator.EQ
+            || b.getOp() == WurstOperator.NOTEQ
+            || b.getOp() == WurstOperator.LESS
+            || b.getOp() == WurstOperator.LESS_EQ
+            || b.getOp() == WurstOperator.GREATER
+            || b.getOp() == WurstOperator.GREATER_EQ) {
+            WurstType otherType = otherSide.attrTyp();
+            if (!(otherType instanceof WurstTypeUnknown)) {
+                return otherType;
+            }
+        }
+        return WurstTypeUnknown.instance();
     }
 
     private void calculateCompletions(List<CompletionItem> completions) {
@@ -136,7 +335,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             if (elem instanceof ExprMemberMethod) {
                 ExprMemberMethod c = (ExprMemberMethod) elem;
-                if (isInParenthesis(c.getLeft().getSource().getEndColumn())) {
+                if (isInParenthesis(c.getLeft().getSource().getEndColumn()) || isInsideCallArguments(c.getFuncName(), c.getLeft().getSource().getEndColumn())) {
                     // cursor inside parenthesis
                     getCompletionsForExistingMemberCall(completions, c);
                     return;
@@ -154,7 +353,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                             && (nameLink.getReceiverType() != null || nameLink instanceof TypeDefLink)
                             && nameLink.getVisibility() == Visibility.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
-                        completions.add(completion);
+                        if (!addCompletionCandidate(completions, completion)) {
+                            isIncomplete = true;
+                            if (!hasExpectedType) {
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -217,6 +421,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
                         ExprNewObject c = (ExprNewObject) grandParent;
                         getCompletionsForExistingConstructorCall(completions, c);
                     }
+                    // Also provide value suggestions for the current argument context.
+                    addDefaultCompletions(completions, elem, false);
                     // TODO add overloaded funcs
                 }
             }
@@ -341,7 +547,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
             completions.add(ci);
+            preferExpectedTypeFromCall(funcDef, currentArgumentIndex(c.getFuncName(), c.getLeft().getSource().getEndColumn()));
+            // Also provide argument value suggestions at this call site.
+            addDefaultCompletions(completions, c, false);
+            return;
         }
+        // Fallback for incomplete/unresolved calls: infer expected parameter type from visible overloads.
+        inferExpectedTypeFromUnresolvedMemberCall(c);
+        addDefaultCompletions(completions, c, false);
     }
 
     private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
@@ -351,7 +564,144 @@ public class GetCompletions extends UserRequest<CompletionList> {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
             completions.add(ci);
+            preferExpectedTypeFromCall(funcDef, currentArgumentIndex(c.getFuncName(), c.getSource().getStartColumn()));
+            // Also provide argument value suggestions at this call site.
+            addDefaultCompletions(completions, c, false);
         }
+    }
+
+    private void preferExpectedTypeFromCall(FuncLink funcDef, int argIndex) {
+        if (argIndex < 0 || argIndex >= funcDef.getParameterTypes().size()) {
+            return;
+        }
+        WurstType paramType = funcDef.getParameterType(argIndex);
+        if (paramType instanceof WurstTypeUnknown) {
+            return;
+        }
+        if (!hasExpectedType || expectedType instanceof WurstTypeUnknown) {
+            expectedType = paramType;
+            hasExpectedType = true;
+        }
+    }
+
+    private int currentArgumentIndex(String funcName, int searchStartColumn) {
+        String lineText = currentLine();
+        int searchStart = Math.max(0, Math.min(lineText.length(), searchStartColumn));
+        int paren = lineText.indexOf(funcName + "(", searchStart);
+        if (paren >= 0) {
+            paren = paren + funcName.length();
+        } else {
+            paren = lineText.indexOf('(', searchStart);
+        }
+        return argumentIndexFromParen(lineText, paren);
+    }
+
+    private boolean isInsideCallArguments(String funcName, int searchStartColumn) {
+        String lineText = currentLine();
+        int searchStart = Math.max(0, Math.min(lineText.length(), searchStartColumn));
+        int funcPos = lineText.indexOf(funcName + "(", searchStart);
+        if (funcPos < 0) {
+            return false;
+        }
+        int paren = funcPos + funcName.length();
+        if (paren >= column) {
+            return false;
+        }
+        int depth = 0;
+        for (int i = paren; i < column && i < lineText.length(); i++) {
+            char ch = lineText.charAt(i);
+            if (ch == '(') {
+                depth++;
+            } else if (ch == ')') {
+                depth--;
+            }
+        }
+        return depth > 0;
+    }
+
+    private int argumentIndexFromParen(String lineText, int paren) {
+        if (paren < 0 || paren >= column) {
+            return 0;
+        }
+        int depth = 0;
+        int commas = 0;
+        for (int i = paren + 1; i < column && i < lineText.length(); i++) {
+            char ch = lineText.charAt(i);
+            if (ch == '(') {
+                depth++;
+            } else if (ch == ')') {
+                if (depth > 0) {
+                    depth--;
+                }
+            } else if (ch == ',' && depth == 0) {
+                commas++;
+            }
+        }
+        return commas;
+    }
+
+    private void inferExpectedTypeFromUnresolvedMemberCall(ExprMemberMethod c) {
+        int argIndex = currentArgumentIndex(c.getFuncName(), c.getLeft().getSource().getEndColumn());
+        WurstType candidate = WurstTypeUnknown.instance();
+        Collection<FunctionSignature> sigs = c.attrPossibleFunctionSignatures();
+        for (FunctionSignature sig : sigs) {
+            if (argIndex < sig.getMaxNumParams()) {
+                candidate = candidate.typeUnion(sig.getParamType(argIndex), c);
+            }
+        }
+        if (!(candidate instanceof WurstTypeUnknown)) {
+            expectedType = candidate;
+            hasExpectedType = true;
+            return;
+        }
+
+        WurstType leftType = c.getLeft().attrTyp();
+        if (leftType instanceof WurstTypeUnknown) {
+            return;
+        }
+        WScope scope = c.attrNearestScope();
+        while (scope != null) {
+            Collection<DefLink> defs = scope.attrNameLinks().get(c.getFuncName());
+            for (DefLink d : defs) {
+                if (!(d instanceof FuncLink)) {
+                    continue;
+                }
+                FuncLink f = (FuncLink) d;
+                FuncLink bound = f.adaptToReceiverType(leftType);
+                if (bound == null || argIndex >= bound.getParameterTypes().size()) {
+                    continue;
+                }
+                candidate = candidate.typeUnion(bound.getParameterType(argIndex), c);
+            }
+            scope = scope.attrNextScope();
+        }
+        if (!(candidate instanceof WurstTypeUnknown)) {
+            expectedType = candidate;
+            hasExpectedType = true;
+        }
+    }
+
+    private boolean addCompletionCandidate(List<CompletionItem> completions, CompletionItem candidate) {
+        if (completions.size() < MAX_CANDIDATES) {
+            completions.add(candidate);
+            return true;
+        }
+        if (!hasExpectedType || !isExpectedTypeMatch(candidate)) {
+            return false;
+        }
+        // Keep expected-type candidates even when the cap is reached by replacing
+        // a non-expected candidate if possible.
+        for (int i = completions.size() - 1; i >= 0; i--) {
+            CompletionItem existing = completions.get(i);
+            if (!isExpectedTypeMatch(existing)) {
+                completions.remove(i);
+                docTargets.remove(existing);
+                completionTypes.remove(existing);
+                completions.add(candidate);
+                return true;
+            }
+        }
+        return false;
     }
 
 	/*
@@ -365,34 +715,28 @@ public class GetCompletions extends UserRequest<CompletionList> {
 	}
 	*/
 
-    private boolean isSuitableCompletion(String name) {
-        if (name.endsWith("Tests")) {
-            return false;
-        }
-        switch (searchMode) {
-            case PREFIX:
-                return name.toLowerCase().startsWith(alreadyEnteredLower);
-            case INFIX:
-                return name.toLowerCase().contains(alreadyEnteredLower);
-            default:
-                return Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
-        }
-    }
-
-    private static final Pattern realPattern = Pattern.compile("[0-9]\\.");
-
     /**
      * checks if we are currently entering a real number
      * (autocomplete might have triggered because of the dot)
      */
     private boolean isEnteringRealNumber() {
-        try {
-            String currentLine = currentLine();
-            String before = currentLine.substring(column - 2, 2);
-            return realPattern.matcher(before).matches();
-        } catch (IndexOutOfBoundsException e) {
+        String line = currentLine();
+        if (column < 2 || column > line.length()) {
             return false;
         }
+        // cursor is expected directly after '.'
+        if (line.charAt(column - 1) != '.') {
+            return false;
+        }
+        int i = column - 2;
+        if (!Character.isDigit(line.charAt(i))) {
+            return false;
+        }
+        while (i >= 0 && Character.isDigit(line.charAt(i))) {
+            i--;
+        }
+        // avoid suppressing member access on identifiers ending with digits (e.g. foo2.)
+        return i < 0 || !Character.isJavaIdentifierPart(line.charAt(i));
     }
 
 
@@ -486,31 +830,30 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (defLink instanceof FuncLink) {
                 FuncLink funcLink = (FuncLink) defLink;
                 CompletionItem completion = makeFunctionCompletion(funcLink);
-                completions.add(completion);
+                if (!addCompletionCandidate(completions, completion)) {
+                    isIncomplete = true;
+                    if (!hasExpectedType) {
+                        return;
+                    }
+                    continue;
+                }
             } else {
-                completions.add(makeNameDefCompletion(defLink));
-            }
-            if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
-                // got enough completions
-                isIncomplete = true;
-                return;
+                CompletionItem completion = makeNameDefCompletion(defLink);
+                if (!addCompletionCandidate(completions, completion)) {
+                    isIncomplete = true;
+                    if (!hasExpectedType) {
+                        return;
+                    }
+                }
             }
         }
     }
 
     private void dropBadCompletions(List<CompletionItem> completions) {
         completions.sort(completionItemComparator());
-        NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.getDefault());
-        for (int i = completions.size() - 1; i >= MAX_COMPLETIONS; i--) {
-            try {
-                if (numberFormat.parse(completions.get(i).getSortText()).doubleValue() > 0.4) {
-                    // good enough
-                    return;
-                }
-            } catch (NumberFormatException | ParseException e) {
-                WLogger.severe(e);
-            }
-            completions.remove(i);
+        if (completions.size() > MAX_COMPLETIONS) {
+            completions.subList(MAX_COMPLETIONS, completions.size()).clear();
+            isIncomplete = true;
         }
     }
 
@@ -520,12 +863,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(HoverInfo.descriptionString(n.getDef()));
+        completion.setDetail(n.getTyp() + " [" + nearestScopeName(n.getDef()) + "]");
         completion.setDocumentation(n.getDef().attrComment());
+        docTargets.put(completion, n.getDef());
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
         String newText = n.getName();
         completion.setInsertText(newText);
+        completionTypes.put(completion, n.getTyp());
 
         return completion;
     }
@@ -543,14 +888,20 @@ public class GetCompletions extends UserRequest<CompletionList> {
         double rating = calculateRating(name, WurstTypeUnknown.instance());
         completion.setSortText(ratingToString(rating));
         completion.setInsertText(name);
+        completionTypes.put(completion, WurstTypeUnknown.instance());
 
         return completion;
     }
 
     private double calculateRating(String name, WurstType wurstType) {
         double r = calculateNameBasedRating(name);
-        if (expectedType != null && wurstType.isSubtypeOf(expectedType, elem)) {
-            r += 0.1;
+        if (hasExpectedType) {
+            if (wurstType.isSubtypeOf(expectedType, elem)) {
+                // Strongly prefer candidates that satisfy the expected type at cursor.
+                r += 1.0;
+            } else {
+                r -= 0.12;
+            }
         }
         if (name.contains("BJ") || name.contains("Swapped")) {
             // common.j functions that Frotty does not want to see
@@ -561,30 +912,147 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private double calculateNameBasedRating(String name) {
         if (alreadyEntered.isEmpty()) {
-            return 0.5;
-        }
-        if (name.startsWith(alreadyEntered)) {
-            // perfect match
-            return 1.23;
+            return 0.6;
         }
         String nameLower = name.toLowerCase();
-        if (nameLower.startsWith(alreadyEnteredLower)) {
-            // close to perfect
-            return 0.999;
+        switch (matchTier(name)) {
+            case 0:
+                return 1.8;
+            case 1:
+                return 1.65;
+            case 2:
+                return 1.55;
+            case 3:
+                return 1.45;
+            case 4:
+                return 1.35;
+            case 5:
+                return 1.25;
+            case 6:
+                int span = subsequenceSpan(alreadyEnteredLower, nameLower);
+                if (span > 0) {
+                    double compactness = 1.0 - ((double) span / Math.max(1, name.length()));
+                    return 0.75 + 0.4 * compactness;
+                }
+                return 0.75;
+            default:
+                return -1.0;
         }
+    }
 
-        int ssLen;
-        if (Utils.isSubsequence(alreadyEntered, name)) {
-            ssLen = Math.min(Utils.subsequenceLengthes(alreadyEntered, name).size(), Utils.subsequenceLengthes(alreadyEnteredLower, nameLower).size());
-        } else {
-            ssLen = Utils.subsequenceLengthes(alreadyEnteredLower, nameLower).size();
+    private boolean isCamelSubsequence(String query, String candidate) {
+        if (query.isEmpty()) {
+            return false;
         }
-        return 1 - ssLen * 1. / alreadyEntered.length();
+        StringBuilder caps = new StringBuilder();
+        for (int i = 0; i < candidate.length(); i++) {
+            char c = candidate.charAt(i);
+            if (Character.isUpperCase(c) || i == 0 || !Character.isLetterOrDigit(candidate.charAt(i - 1))) {
+                caps.append(Character.toLowerCase(c));
+            }
+        }
+        return Utils.isSubsequenceIgnoreCase(query, caps.toString());
+    }
+
+    private int subsequenceSpan(String queryLower, String candidateLower) {
+        int qi = 0;
+        int start = -1;
+        int end = -1;
+        for (int i = 0; i < candidateLower.length() && qi < queryLower.length(); i++) {
+            if (candidateLower.charAt(i) == queryLower.charAt(qi)) {
+                if (start < 0) {
+                    start = i;
+                }
+                end = i;
+                qi++;
+            }
+        }
+        if (qi < queryLower.length()) {
+            return -1;
+        }
+        return end - start + 1;
+    }
+
+    private boolean isPotentialMatch(String name) {
+        return matchTier(name) < 7;
+    }
+
+    private int matchTier(String name) {
+        if (alreadyEntered.isEmpty()) {
+            return 0;
+        }
+        int qLen = alreadyEntered.length();
+        String nameLower = name.toLowerCase();
+        String normalizedQuery = normalizedIdentifier(alreadyEntered);
+        String normalizedName = normalizedIdentifier(name);
+        if (name.equals(alreadyEntered)) {
+            return 0;
+        }
+        if (name.startsWith(alreadyEntered)) {
+            return 1;
+        }
+        if (nameLower.startsWith(alreadyEnteredLower)) {
+            return 2;
+        }
+        // treat '_' and other non-identifier separators as optional for matching
+        if (!normalizedQuery.isEmpty() && normalizedName.startsWith(normalizedQuery)) {
+            return 2;
+        }
+        // For short prefixes, keep matching intentionally tight to avoid noisy "dead-end" lists.
+        if (qLen == 1) {
+            return 7;
+        }
+        if (isCamelSubsequence(alreadyEntered, name)) {
+            return 3;
+        }
+        if (qLen == 2) {
+            // Avoid broad contains/subsequence for 2-char queries.
+            return 7;
+        }
+        if (name.contains(alreadyEntered)) {
+            return 4;
+        }
+        if (nameLower.contains(alreadyEnteredLower)) {
+            return 5;
+        }
+        if (!normalizedQuery.isEmpty() && normalizedName.contains(normalizedQuery)) {
+            return 5;
+        }
+        if (Utils.isSubsequenceIgnoreCase(alreadyEntered, name)) {
+            return 6;
+        }
+        return 7;
+    }
+
+    private String normalizedIdentifier(String s) {
+        StringBuilder b = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                b.append(Character.toLowerCase(c));
+            }
+        }
+        return b.toString();
+    }
+
+    private boolean isSuitableCompletion(String name) {
+        if (name.endsWith("Tests")) {
+            return false;
+        }
+        return isPotentialMatch(name);
     }
 
     private static String nearestScopeName(NameDef n) {
         if (n.attrNearestNamedScope() != null) {
             return Utils.printElement(n.attrNearestNamedScope());
+        } else {
+            return "Global";
+        }
+    }
+
+    private static String nearestScopeName(Element e) {
+        if (e.attrNearestNamedScope() != null) {
+            return Utils.printElement(e.attrNearestNamedScope());
         } else {
             return "Global";
         }
@@ -598,13 +1066,15 @@ public class GetCompletions extends UserRequest<CompletionList> {
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
         completion.setDetail(getFunctionDescriptionShort(f.getDef()));
-        completion.setDocumentation(HoverInfo.descriptionString(f.getDef()));
+        completion.setDocumentation(f.getDef().attrComment());
+        docTargets.put(completion, f.getDef());
         completion.setInsertText(replacementString);
 		double rating = calculateRating(f.getName(), f.getReturnType());
 		if (f.getDef().attrHasAnnotation("deprecated")) {
 			rating -= 0.05;
 		}
 		completion.setSortText(ratingToString(rating));
+        completionTypes.put(completion, f.getReturnType());
         // TODO use call signature instead for generics
 //        completion.set
 
@@ -692,10 +1162,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setKind(CompletionItemKind.Constructor);
         String params = Utils.getParameterListText(constr);
         completion.setDetail("(" + params + ")");
-        completion.setDocumentation(HoverInfo.descriptionString(constr));
+        completion.setDocumentation(constr.attrComment());
+        docTargets.put(completion, constr);
         completion.setInsertTextFormat(InsertTextFormat.Snippet);
         completion.setInsertText(replacementString);
         completion.setSortText(ratingToString(calculateRating(c.getName(), c.attrTyp().dynamic())));
+        completionTypes.put(completion, c.attrTyp().dynamic());
 
 
         List<String> parameterNames = constr.getParameters().stream().map(WParameter::getName).collect(Collectors.toList());
@@ -714,7 +1186,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 FuncLink ef = (FuncLink) e.getValue();
                 FuncLink ef2 = ef.adaptToReceiverType(leftType);
                 if (ef2 != null) {
-                    completions.add(makeFunctionCompletion(ef2));
+                    if (!addCompletionCandidate(completions, makeFunctionCompletion(ef2))) {
+                        isIncomplete = true;
+                        if (!hasExpectedType) {
+                            return;
+                        }
+                    }
                 }
             }
         }

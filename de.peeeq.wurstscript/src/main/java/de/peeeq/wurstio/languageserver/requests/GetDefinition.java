@@ -6,7 +6,11 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
@@ -15,20 +19,33 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class GetDefinition extends UserRequest<Either<List<? extends Location>, List<? extends LocationLink>>> {
+    public enum LookupType {
+        DEFINITION,
+        DECLARATION,
+        TYPE_DEFINITION,
+        IMPLEMENTATION
+    }
 
     private final WFile filename;
     private final String buffer;
     private final int line;
     private final int column;
+    private final LookupType lookupType;
 
 
     public GetDefinition(TextDocumentPositionParams position, BufferManager bufferManager) {
+        this(position, bufferManager, LookupType.DEFINITION);
+    }
+
+    public GetDefinition(TextDocumentPositionParams position, BufferManager bufferManager, LookupType lookupType) {
         this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter() + 1;
+        this.lookupType = lookupType;
     }
 
 
@@ -43,8 +60,23 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
         if (cu == null) {
             return Collections.emptyList();
         }
-        Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
+        Optional<Element> element = Utils.getAstElementAtPos(cu, line, column, false);
+        if (!element.isPresent()) {
+            return Collections.emptyList();
+        }
+        Element e = element.get();
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
+        if (lookupType == LookupType.TYPE_DEFINITION) {
+            return typeDefinitionFor(e);
+        }
+
+        NameDef configuredDecl = getConfiguredDeclarationAtPos(e);
+        if (configuredDecl != null) {
+            NameDef originalDecl = getOriginalConfigDeclaration(configuredDecl);
+            if (originalDecl != null) {
+                return linkTo(originalDecl);
+            }
+        }
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
             FunctionDefinition decl = funcRef.attrFuncDef();
@@ -83,6 +115,71 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
             return linkTo(superConstructor);
         }
         return Collections.emptyList();
+    }
+
+    private List<? extends Location> typeDefinitionFor(Element e) {
+        if (e instanceof TypeExpr) {
+            TypeExpr typeExpr = (TypeExpr) e;
+            return linkTo(typeExpr.attrTypeDef());
+        }
+        if (e instanceof NameRef) {
+            NameDef def = ((NameRef) e).attrNameDef();
+            if (def != null) {
+                return linkToType(def.attrTyp());
+            }
+        }
+        if (e instanceof FuncRef) {
+            FunctionDefinition def = ((FuncRef) e).attrFuncDef();
+            if (def != null) {
+                return linkToType(def.attrReturnTyp());
+            }
+        }
+        if (e instanceof Expr) {
+            return linkToType(((Expr) e).attrTyp());
+        }
+        return Collections.emptyList();
+    }
+
+    private List<? extends Location> linkToType(WurstType type) {
+        if (type instanceof WurstTypeNamedScope) {
+            AstElementWithSource def = ((WurstTypeNamedScope) type).getDef();
+            return linkTo(def);
+        }
+        return Collections.emptyList();
+    }
+
+    private NameDef getConfiguredDeclarationAtPos(Element e) {
+        if (e instanceof NameDef) {
+            return (NameDef) e;
+        }
+        Element current = e;
+        while (current != null) {
+            if (current instanceof NameDef) {
+                return (NameDef) current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private NameDef getOriginalConfigDeclaration(NameDef nameDef) {
+        if (!(nameDef instanceof GlobalVarDef) || !nameDef.hasAnnotation("@config")) {
+            return null;
+        }
+        PackageOrGlobal nearestPackage = nameDef.attrNearestPackage();
+        if (!(nearestPackage instanceof WPackage)) {
+            return null;
+        }
+        WPackage configPackage = (WPackage) nearestPackage;
+        if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+            return null;
+        }
+        WPackage originalPackage = CofigOverridePackages.getOriginalPackage(configPackage);
+        if (originalPackage == null) {
+            return null;
+        }
+        NameLink originalVar = originalPackage.getElements().lookupVarNoConfig(nameDef.getName(), false);
+        return originalVar == null ? null : originalVar.getDef();
     }
 
     private List<? extends Location> linkTo(AstElementWithSource decl) {

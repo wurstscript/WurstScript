@@ -451,6 +451,154 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         );
     }
 
+    @Test
+    public void completionUsesHotdocComment() {
+        CompletionTestData testData = input(
+                "package test",
+                "/** docs for foo */",
+                "function fooBar()",
+                "init",
+                "    foo|",
+                "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        CompletionItem completion = completions.getItems().stream()
+                .filter(c -> "fooBar".equals(c.getLabel()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("fooBar completion not found"));
+
+        assertTrue(
+                completion.getDocumentation() != null && completion.getDocumentation().getLeft().contains("docs for foo"),
+                "completion documentation = " + completion.getDocumentation()
+        );
+    }
+
+    @Test
+    public void noCompletionOnRealNumberDot() {
+        CompletionTestData testData = input(
+                "package test",
+                "init",
+                "    real x = 2.|",
+                "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        assertTrue(completions.getItems().isEmpty(), "completionLabels = " + sortedLabels(completions));
+    }
+
+    @Test
+    public void separatorInsensitiveMatchKeepsTypePreferredResultOnTop() {
+        CompletionTestData testData = input(
+                "package test",
+                "function MYXX_TEXT_JUSTIFY_CENTER() returns int",
+                "    return 1",
+                "function MYXX_TEXTURES() returns bool",
+                "    return true",
+                "init",
+                "    int x = MYXXTEXTU|",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("MYXX_TEXT_JUSTIFY_CENTER"), "labels = " + labels);
+        assertTrue(labels.contains("MYXX_TEXTURES"), "labels = " + labels);
+        assertLabelBefore(labels, "MYXX_TEXT_JUSTIFY_CENTER", "MYXX_TEXTURES");
+    }
+
+    @Test
+    public void shortPrefixExpectedTypeComesBeforeWrongType() {
+        CompletionTestData testData = input(
+                "package test",
+                "function QZGood() returns int",
+                "    return 1",
+                "function QZBad() returns bool",
+                "    return true",
+                "init",
+                "    int x = QZ|",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("QZGood"), "labels = " + labels);
+        assertTrue(labels.contains("QZBad"), "labels = " + labels);
+        assertLabelBefore(labels, "QZGood", "QZBad");
+    }
+
+    @Test
+    public void emptyComparisonRhsUsesExpectedTypeForRanking() {
+        CompletionTestData testData = input(
+                "package test",
+                "function CMP_PlayerCandidate() returns player",
+                "    return Player(0)",
+                "function CMP_BoolCandidate() returns bool",
+                "    return true",
+                "init",
+                "    player p = Player(0)",
+                "    if p == |",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("CMP_PlayerCandidate"), "labels = " + labels);
+        assertEquals(labels.get(0), "CMP_PlayerCandidate", "labels = " + labels);
+    }
+
+    @Test
+    public void emptyCallArgUsesExpectedTypeForRanking() {
+        CompletionTestData testData = input(
+                "package test",
+                "function player.getState(playerstate s) returns int",
+                "    return 0",
+                "function ARG_PlayerStateCandidate() returns playerstate",
+                "    return PLAYER_STATE_RESOURCE_GOLD",
+                "function ARG_BoolCandidate() returns bool",
+                "    return true",
+                "init",
+                "    player p = Player(0)",
+                "    p.getState(|)",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("ARG_PlayerStateCandidate"), "labels = " + labels);
+        assertTrue(labels.contains("ARG_BoolCandidate"), "labels = " + labels);
+        assertLabelBefore(labels, "ARG_PlayerStateCandidate", "ARG_BoolCandidate");
+    }
+
+    @Test
+    public void stdlibGetPlayerStateEmptyArgPrefersPlayerStateConstants() {
+        CompletionTestData testData = input(
+                "package test",
+                "init",
+                "    GetPlayerState(Player(0), |)",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("PLAYER_STATE_RESOURCE_GOLD"), "labels = " + labels);
+        assertTrue(labels.contains("AbilityId"), "labels = " + labels);
+        assertLabelBefore(labels, "PLAYER_STATE_RESOURCE_GOLD", "AbilityId");
+    }
+
+    @Test
+    public void extensionGetStateEmptyArgPrefersPlayerStateConstants() {
+        CompletionTestData testData = input(
+                "package test",
+                "function player.getState(playerstate whichState) returns int",
+                "    return GetPlayerState(this, whichState)",
+                "init",
+                "    player p = Player(0)",
+                "    p.getState(|)",
+                "endpackage"
+        );
+
+        List<String> labels = sortedLabels(calculateCompletions(testData));
+        assertTrue(labels.contains("PLAYER_STATE_RESOURCE_GOLD"), "labels = " + labels);
+        assertTrue(labels.contains("AbilityId"), "labels = " + labels);
+        assertLabelBefore(labels, "PLAYER_STATE_RESOURCE_GOLD", "AbilityId");
+    }
+
 	private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
     }
@@ -482,6 +630,21 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
         return getCompletions.execute(modelManager);
+    }
+
+    private List<String> sortedLabels(CompletionList result) {
+        return result.getItems().stream()
+                .sorted(Comparator.comparing(CompletionItem::getSortText))
+                .map(CompletionItem::getLabel)
+                .collect(Collectors.toList());
+    }
+
+    private void assertLabelBefore(List<String> labels, String first, String second) {
+        int iFirst = labels.indexOf(first);
+        int iSecond = labels.indexOf(second);
+        assertTrue(iFirst >= 0, "Missing label " + first + " in " + labels);
+        assertTrue(iSecond >= 0, "Missing label " + second + " in " + labels);
+        assertTrue(iFirst < iSecond, "Expected " + first + " before " + second + ", labels = " + labels);
     }
 
 
