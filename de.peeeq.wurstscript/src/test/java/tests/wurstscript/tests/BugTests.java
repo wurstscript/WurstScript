@@ -162,6 +162,20 @@ public class BugTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void classVarInitOrderShouldError_770() {
+        testAssertErrorsLines(false, "used before it is initialized",
+                "package test",
+                "class B",
+                "    var i = 0",
+                "    function get() returns int",
+                "        return i",
+                "class A",
+                "    private var foo = b.get()",
+                "    private var b = new B()",
+                "endpackage");
+    }
+
 
     @Test
     public void test_for_from() {

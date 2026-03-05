@@ -54,6 +54,7 @@ public class WurstValidator {
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
+    private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
 
     public WurstValidator(WurstModel root) {
         this.prog = root;
@@ -2881,6 +2882,59 @@ public class WurstValidator {
             v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
+        if (v instanceof GlobalVarDef) {
+            checkClassMemberInitializerOrder((GlobalVarDef) v);
+        }
+
+    }
+
+    private void checkClassMemberInitializerOrder(GlobalVarDef v) {
+        if (!v.attrIsDynamicClassMember()) {
+            return;
+        }
+        if (!(v.getInitialExpr() instanceof Expr)) {
+            return;
+        }
+        ClassDef owner = v.attrNearestClassDef();
+        if (owner == null) {
+            return;
+        }
+        Map<GlobalVarDef, Integer> order = classVarInitOrder(owner);
+        Integer currentPos = order.get(v);
+        if (currentPos == null) {
+            return;
+        }
+        Expr initExpr = (Expr) v.getInitialExpr();
+        for (NameDef used : initExpr.attrReadVariables()) {
+            if (!(used instanceof GlobalVarDef)) {
+                continue;
+            }
+            GlobalVarDef usedVar = (GlobalVarDef) used;
+            if (usedVar == v || !usedVar.attrIsDynamicClassMember()) {
+                continue;
+            }
+            if (usedVar.attrNearestClassDef() != owner) {
+                continue;
+            }
+            Integer usedPos = order.get(usedVar);
+            if (usedPos != null && usedPos > currentPos) {
+                v.addError("Class variable <" + usedVar.getName() + "> is used before it is initialized.");
+                return;
+            }
+        }
+    }
+
+    private Map<GlobalVarDef, Integer> classVarInitOrder(ClassDef classDef) {
+        return classVarInitOrderCache.computeIfAbsent(classDef, cd -> {
+            Map<GlobalVarDef, Integer> order = new IdentityHashMap<>();
+            int index = 0;
+            for (GlobalVarDef var : cd.getVars()) {
+                if (var.attrIsDynamicClassMember()) {
+                    order.put(var, index++);
+                }
+            }
+            return order;
+        });
     }
 
     private void checkLocalShadowing(LocalVarDef v) {
