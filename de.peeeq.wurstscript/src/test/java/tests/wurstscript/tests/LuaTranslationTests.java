@@ -75,6 +75,10 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_testStdLib.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
+        assertTrue(compiled.contains("function __wurst_InitHashtable("));
+        assertTrue(compiled.contains("function __wurst_SaveInteger("));
+        assertTrue(compiled.contains("function __wurst_LoadInteger("));
+        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "return 0", true);
     }
 
     @Ignore
@@ -200,6 +204,23 @@ public class LuaTranslationTests extends WurstScriptTest {
         // strings use the stringConcat function in lua instead of + operator
         assertFunctionBodyContains(compiled, "test", "+", false);
         assertFunctionBodyContains(compiled, "test", "stringConcat", true);
+    }
+
+    @Test
+    public void numericOpsAreGuardedWithEnsure() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "function cmp(int a, int b) returns boolean",
+            "    return a < b",
+            "function divi(int a, int b) returns int",
+            "    return a div b",
+            "init",
+            "    cmp(1, 2)",
+            "    divi(2, 1)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_numericOpsAreGuardedWithEnsure.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "cmp", "realEnsure", true);
+        assertFunctionBodyContains(compiled, "divi", "intEnsure", true);
     }
 
     @Test

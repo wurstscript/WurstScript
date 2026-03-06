@@ -22,6 +22,14 @@ import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.W
 
 public class LuaTranslator {
     private static final int LUA_LOCALS_LIMIT = 200;
+    private static final List<String> REQUIRED_WURST_HASHTABLE_HELPERS = Arrays.asList(
+        "__wurst_InitHashtable",
+        "__wurst_SaveInteger", "__wurst_SaveBoolean", "__wurst_SaveReal", "__wurst_SaveStr",
+        "__wurst_LoadInteger", "__wurst_LoadBoolean", "__wurst_LoadReal", "__wurst_LoadStr",
+        "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString",
+        "__wurst_FlushChildHashtable", "__wurst_FlushParentHashtable",
+        "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString"
+    );
     private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
         "InitHashtable",
         "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
@@ -202,6 +210,7 @@ public class LuaTranslator {
         createInstanceOfFunction();
         createObjectIndexFunctions();
         createEnsureTypeFunctions();
+        ensureWurstHashtableHelpers();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -228,6 +237,19 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    /**
+     * Always emit internal hashtable helper functions used by Lua lowering.
+     * This keeps compiletime migration data loading robust even if the
+     * corresponding Warcraft natives are unavailable or filtered out.
+     */
+    private void ensureWurstHashtableHelpers() {
+        for (String helper : REQUIRED_WURST_HASHTABLE_HELPERS) {
+            LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            LuaNatives.get(f);
+            luaModel.add(f);
+        }
     }
 
     private boolean isFixedEntryPoint(ImFunction function) {
@@ -444,24 +466,29 @@ public class LuaTranslator {
     }
 
     private void createEnsureTypeFunctions() {
-        LuaFunction[] ensureTypeFunctions = {ensureIntFunction, ensureBoolFunction, ensureRealFunction, ensureStrFunction};
-        String[] defaultValue = {"0", "false", "0.0", "\"\""};
-        for(int i = 0; i < ensureTypeFunctions.length; ++i) {
-            LuaFunction ensureTypeFunction = ensureTypeFunctions[i];
-            String[] code = {
-                "if x == nil then",
-                "    return " + defaultValue[i],
-                "else",
-                "    return " + (ensureTypeFunction == ensureIntFunction ? "math.tointeger(x)" : "x"),
-                "end"
-            };
+        ensureIntFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
+        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0 end"));
+        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local i = math.tointeger(n)"));
+        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if i == nil then return 0 end"));
+        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("return i"));
+        luaModel.add(ensureIntFunction);
 
-            ensureTypeFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            for (String c : code) {
-                ensureTypeFunction.getBody().add(LuaAst.LuaLiteral(c));
-            }
-            luaModel.add(ensureTypeFunction);
-        }
+        ensureBoolFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return false end"));
+        ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("return x"));
+        luaModel.add(ensureBoolFunction);
+
+        ensureRealFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
+        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0.0 end"));
+        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("return n"));
+        luaModel.add(ensureRealFunction);
+
+        ensureStrFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        ensureStrFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return \"\" end"));
+        ensureStrFunction.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
+        luaModel.add(ensureStrFunction);
     }
 
     private void cleanStatements() {
