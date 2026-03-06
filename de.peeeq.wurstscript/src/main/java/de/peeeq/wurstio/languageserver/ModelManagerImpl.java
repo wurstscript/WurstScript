@@ -19,6 +19,7 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
@@ -182,6 +183,39 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void refreshDependencies() {
         readDependencies();
+    }
+
+    @Override
+    public synchronized Changes syncDependencyCompilationUnits() {
+        readDependencies();
+
+        WurstModel model2 = model;
+        if (model2 == null) {
+            return Changes.empty();
+        }
+
+        Set<WFile> expectedDependencyFiles = getDependencyWurstFiles().stream()
+            .map(WFile::create)
+            .collect(Collectors.toSet());
+
+        List<WFile> loadedDependencyFiles = model2.stream()
+            .map(this::wFile)
+            .filter(this::isUnderDependenciesFolder)
+            .collect(Collectors.toList());
+
+        Changes changes = Changes.empty();
+
+        for (WFile loadedFile : loadedDependencyFiles) {
+            if (!expectedDependencyFiles.contains(loadedFile)) {
+                changes = changes.mergeWith(removeCompilationUnit(loadedFile));
+            }
+        }
+
+        for (WFile dependencyFile : expectedDependencyFiles) {
+            changes = changes.mergeWith(syncCompilationUnit(dependencyFile));
+        }
+
+        return changes;
     }
 
     private String getCanonicalPath(File f) {
@@ -859,6 +893,18 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
         return false;
+    }
+
+    private boolean isUnderDependenciesFolder(WFile file) {
+        try {
+            Path filePath = file.getPath().toAbsolutePath().normalize();
+            Path dependencyRoot = Paths.get(projectPath.getAbsolutePath(), "_build", "dependencies")
+                .toAbsolutePath()
+                .normalize();
+            return filePath.startsWith(dependencyRoot) && Utils.isWurstFile(filePath.toString());
+        } catch (FileNotFoundException e) {
+            return false;
+        }
     }
 
 

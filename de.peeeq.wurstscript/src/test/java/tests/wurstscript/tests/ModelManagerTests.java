@@ -965,6 +965,68 @@ public class ModelManagerTests {
         assertEquals(changes.isEmpty(), true, "unchanged sync should not trigger reconcile work");
     }
 
+    @Test
+    public void dependencySyncHandlesReplaceMoveRenameDelete() throws Exception {
+        File projectFolder = new File("./temp/testProject_dependency_sync_changes/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File depAWurst = new File(new File(new File(new File(projectFolder, "_build"), "dependencies"), "depA"), "wurst");
+        File depBWurst = new File(new File(new File(new File(projectFolder, "_build"), "dependencies"), "depB"), "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(depAWurst);
+        newCleanFolder(depBWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile depAFile = WFile.create(new File(depAWurst, "DummyDamage.wurst"));
+        WFile depBFile = WFile.create(new File(depBWurst, "DummyDamageNew.wurst"));
+        WFile depBRenamed = WFile.create(new File(depBWurst, "DummyDamageRenamed.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "import DummyDamage",
+            "init",
+            "    foo()"
+        ));
+        writeFile(depAFile, string(
+            "package DummyDamage",
+            "public function foo()"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(errors.get(fileMain), "", "baseline build with depA should be clean");
+        assertNotNull(manager.getCompilationUnit(depAFile), "depA CU should be loaded");
+
+        // replace: depA is removed and depB provides the same package
+        depAFile.getFile().delete();
+        writeFile(depBFile, string(
+            "package DummyDamage",
+            "public function foo()"
+        ));
+        ModelManager.Changes changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depAFile), null, "removed dependency CU must be dropped from model");
+        assertNotNull(manager.getCompilationUnit(depBFile), "replacement dependency CU should be loaded");
+        assertEquals(errors.get(fileMain), "", "replace should keep compilation clean");
+
+        // move/rename inside dependency folder
+        Files.move(depBFile.getFile().toPath(), depBRenamed.getFile().toPath());
+        changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depBFile), null, "moved dependency source should be removed");
+        assertNotNull(manager.getCompilationUnit(depBRenamed), "renamed dependency source should be loaded");
+        assertEquals(errors.get(fileMain), "", "move/rename should keep compilation clean");
+
+        // delete dependency entirely
+        depBRenamed.getFile().delete();
+        changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depBRenamed), null, "deleted dependency source should be removed");
+        assertImportMissing(errors.getOrDefault(fileMain, ""), "DummyDamage");
+    }
+
     private void purgeUnimportedFiles_likeRunMap(WurstModel model, ModelManagerImpl manager) {
         java.util.Set<CompilationUnit> keep = model.stream()
             .filter(cu -> isInProjectWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager)
