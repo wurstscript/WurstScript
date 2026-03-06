@@ -1,8 +1,15 @@
 package tests.wurstscript.tests;
 
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.regex.Pattern;
+
+import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
 
@@ -197,6 +204,62 @@ public class LuaTypecastingTests extends WurstScriptTest {
             "@compiletime function initialize()",
             "    map.put(\"hello\", \"world\")"
         );
+    }
+
+    @Test
+    public void compiletimeIterableMapStringPutInLua() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import HashMap",
+            "let modes = compiletime(new IterableMap<string, int>())",
+            "@compiletime function initialize()",
+            "    modes.put(\"r\", 1)",
+            "    modes.put(\"sr\", 2)"
+        );
+    }
+
+    @Test
+    public void luaTypeCastingStringIndexUsesLuaMapping() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "@compiletime function initialize()",
+            "    let s = stringFromIndex(stringToIndex(\"abc\"))",
+            "    if s == \"abc\"",
+            "        skip"
+        );
+    }
+
+    @Test
+    public void luaFramehandleFromIndexDoesNotUseFogstateHashtablePath() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "init",
+            "    let fh = framehandleFromIndex(1)",
+            "    let idx = framehandleToIndex(fh)",
+            "    let u = unitFromIndex(2)",
+            "    let ui = unitToIndex(u)",
+            "    if idx >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaFramehandleFromIndexDoesNotUseFogstateHashtablePath.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("__wurst_objectFromIndex("));
+        Pattern framehandleFromIndexUsesLuaHelper = Pattern.compile(
+            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        );
+        assertTrue(framehandleFromIndexUsesLuaHelper.matcher(compiled).find());
+        Pattern unitFromIndexUsesLuaHelper = Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        );
+        assertTrue(unitFromIndexUsesLuaHelper.matcher(compiled).find());
+        Pattern unitFromIndexSavesFog = Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?Table_saveFogState[\\s\\S]*?\\nend",
+            Pattern.MULTILINE
+        );
+        assertFalse(unitFromIndexSavesFog.matcher(compiled).find());
     }
 
 }

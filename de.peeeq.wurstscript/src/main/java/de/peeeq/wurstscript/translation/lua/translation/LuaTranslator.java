@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -38,6 +39,22 @@ public class LuaTranslator {
         "FlushChildHashtable", "FlushParentHashtable",
         "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString"
     ));
+    private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
+        "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
+        "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
+        "timerToIndex", "locationToIndex", "regionToIndex", "rectToIndex", "soundToIndex",
+        "effectToIndex", "dialogToIndex", "buttonToIndex", "questToIndex", "questitemToIndex",
+        "leaderboardToIndex", "multiboardToIndex", "trackableToIndex", "lightningToIndex",
+        "ubersplatToIndex", "framehandleToIndex", "oskeytypeToIndex"
+    );
+    private static final Set<String> LUA_HANDLE_FROM_INDEX = Set.of(
+        "widgetFromIndex", "unitFromIndex", "destructableFromIndex", "itemFromIndex", "abilityFromIndex",
+        "forceFromIndex", "groupFromIndex", "triggerFromIndex", "triggeractionFromIndex", "triggerconditionFromIndex",
+        "timerFromIndex", "locationFromIndex", "regionFromIndex", "rectFromIndex", "soundFromIndex",
+        "effectFromIndex", "dialogFromIndex", "buttonFromIndex", "questFromIndex", "questitemFromIndex",
+        "leaderboardFromIndex", "multiboardFromIndex", "trackableFromIndex", "lightningFromIndex",
+        "ubersplatFromIndex", "framehandleFromIndex", "oskeytypeFromIndex"
+    );
 
     final ImProg prog;
     final LuaCompilationUnit luaModel;
@@ -146,6 +163,8 @@ public class LuaTranslator {
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction stringToIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction stringFromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
@@ -171,7 +190,6 @@ public class LuaTranslator {
                 return Stream.empty();
             })
             .findFirst().orElse(null)));
-
     private final ImTranslator imTr;
 
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
@@ -209,6 +227,7 @@ public class LuaTranslator {
         createStringConcatFunction();
         createInstanceOfFunction();
         createObjectIndexFunctions();
+        createStringIndexFunctions();
         createEnsureTypeFunctions();
         ensureWurstHashtableHelpers();
 
@@ -434,6 +453,65 @@ public class LuaTranslator {
         }
     }
 
+    private void createStringIndexFunctions() {
+        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaTableNamedField("byString", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())),
+            LuaAst.LuaTableNamedField("byIndex", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()))
+        )));
+        luaModel.add(map);
+
+        {
+            String[] code = {
+                "if x == nil then",
+                "    return 0",
+                "end",
+                "if type(x) ~= \"string\" then",
+                "    x = tostring(x)",
+                "end",
+                "local id = __wurst_string_index_map.byString[x]",
+                "if id ~= nil then",
+                "    return id",
+                "end",
+                "id = __wurst_string_index_map.counter + 1",
+                "__wurst_string_index_map.counter = id",
+                "__wurst_string_index_map.byString[x] = id",
+                "__wurst_string_index_map.byIndex[id] = x",
+                "return id"
+            };
+
+            stringToIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                stringToIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(stringToIndexFunction);
+        }
+
+        {
+            String[] code = {
+                "local id = tonumber(x)",
+                "if id == nil then",
+                "    return \"\"",
+                "end",
+                "id = math.tointeger(id)",
+                "if id == nil then",
+                "    return \"\"",
+                "end",
+                "local s = __wurst_string_index_map.byIndex[id]",
+                "if s == nil then",
+                "    return \"\"",
+                "end",
+                "return s"
+            };
+
+            stringFromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                stringFromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(stringFromIndexFunction);
+        }
+    }
+
     private void createArrayInitFunction() {
         /*
         function defaultArray(d)
@@ -528,6 +606,10 @@ public class LuaTranslator {
         if (f.isNative()) {
             LuaNatives.get(lf);
         } else {
+            if (rewriteTypeCastingCompatFunction(f, lf)) {
+                luaModel.add(lf);
+                return;
+            }
 
 
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
@@ -565,6 +647,75 @@ public class LuaTranslator {
         } else {
             luaModel.add(lf);
         }
+    }
+
+    private boolean rewriteTypeCastingCompatFunction(ImFunction f, LuaFunction lf) {
+        if (f.getParameters().isEmpty()) {
+            return false;
+        }
+        String tcFunc = f.getName();
+        if (WLogger.isTraceEnabled()) {
+            WLogger.trace("[LUA-TYPECAST] inspect function " + tcFunc + " params=" + f.getParameters().size());
+        }
+        ImVar p = f.getParameters().get(0);
+        LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(p));
+
+        if ("stringToIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(stringToIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_stringToIndex");
+            }
+            return true;
+        }
+        if ("stringFromIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(stringFromIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_stringFromIndex");
+            }
+            return true;
+        }
+        // Keep semantic conversions for primitive/index-domain helpers intact.
+        if ("realToIndex".equals(tcFunc) || "realFromIndex".equals(tcFunc)
+            || "playerToIndex".equals(tcFunc) || "playerFromIndex".equals(tcFunc)
+            || "booleanToIndex".equals(tcFunc) || "booleanFromIndex".equals(tcFunc)) {
+            return false;
+        }
+        if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_objectToIndex");
+            }
+            return true;
+        }
+        if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_objectFromIndex");
+            }
+            return true;
+        }
+        // Final fallback for transformed/copied function names that may lose trace info:
+        if (tcFunc.endsWith("ToIndex")) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " via suffix -> __wurst_objectToIndex");
+            }
+            return true;
+        }
+        if (tcFunc.endsWith("FromIndex")) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
+            if (WLogger.isTraceEnabled()) {
+                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " via suffix -> __wurst_objectFromIndex");
+            }
+            return true;
+        }
+        return false;
     }
 
     private void spillLocalsIntoTableIfNeeded(LuaFunction lf, List<LuaVariable> functionLocals) {
@@ -837,5 +988,22 @@ public class LuaTranslator {
 
     public LuaFunction getErrorFunc() {
         return errorFunc.get();
+    }
+
+    public String getTypeCastingFunctionName(ImFunction f) {
+        Element trace = f.attrTrace();
+        if (trace instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p) {
+            if ("TypeCasting".equals(p.getName())) {
+                return fd.getName();
+            }
+        }
+        // Fallback: transformed/copied IM functions may lose package trace metadata.
+        // Keep Lua behavior stable by routing canonical *ToIndex/*FromIndex names anyway.
+        String name = f.getName();
+        if ("stringToIndex".equals(name) || "stringFromIndex".equals(name)
+            || name.endsWith("ToIndex") || name.endsWith("FromIndex")) {
+            return name;
+        }
+        return null;
     }
 }

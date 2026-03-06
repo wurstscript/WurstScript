@@ -7,12 +7,29 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
     private static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
+    private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
+        "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
+        "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
+        "timerToIndex", "locationToIndex", "regionToIndex", "rectToIndex", "soundToIndex",
+        "effectToIndex", "dialogToIndex", "buttonToIndex", "questToIndex", "questitemToIndex",
+        "leaderboardToIndex", "multiboardToIndex", "trackableToIndex", "lightningToIndex",
+        "ubersplatToIndex", "framehandleToIndex", "oskeytypeToIndex"
+    );
+    private static final Set<String> LUA_HANDLE_FROM_INDEX = Set.of(
+        "widgetFromIndex", "unitFromIndex", "destructableFromIndex", "itemFromIndex", "abilityFromIndex",
+        "forceFromIndex", "groupFromIndex", "triggerFromIndex", "triggeractionFromIndex", "triggerconditionFromIndex",
+        "timerFromIndex", "locationFromIndex", "regionFromIndex", "rectFromIndex", "soundFromIndex",
+        "effectFromIndex", "dialogFromIndex", "buttonFromIndex", "questFromIndex", "questitemFromIndex",
+        "leaderboardFromIndex", "multiboardFromIndex", "trackableFromIndex", "lightningFromIndex",
+        "ubersplatFromIndex", "framehandleFromIndex", "oskeytypeFromIndex"
+    );
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
@@ -73,6 +90,20 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
+        String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
+        if (tcFunc != null && !e.getArguments().isEmpty()) {
+            LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
+            if (tcFunc.equals("stringToIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("stringFromIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
+                return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
+                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
+            }
+        }
+
         LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         if ("I2S".equals(f.getName()) && isIntentionalThreadAbortCall(e)) {
             return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
@@ -395,6 +426,9 @@ public class ExprTranslation {
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
         if (TypesHelper.isIntType(imCast.getToType())) {
+            if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
+                return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
+            }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType
             || imCast.getToType() instanceof ImAnyType) {
