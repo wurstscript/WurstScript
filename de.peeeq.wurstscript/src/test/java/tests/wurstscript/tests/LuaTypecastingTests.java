@@ -262,4 +262,66 @@ public class LuaTypecastingTests extends WurstScriptTest {
         assertFalse(unitFromIndexSavesFog.matcher(compiled).find());
     }
 
+    @Test
+    public void luaTypeCastingCompatWrappersUseLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "init",
+            "    let u = unitFromIndex(1)",
+            "    let ui = unitToIndex(u)",
+            "    let w = widgetFromIndex(2)",
+            "    let wi = widgetToIndex(w)",
+            "    let fh = framehandleFromIndex(3)",
+            "    let fhi = framehandleToIndex(fh)",
+            "    let k = oskeytypeFromIndex(4)",
+            "    let ki = oskeytypeToIndex(k)",
+            "    let s = stringFromIndex(stringToIndex(\"abc\"))",
+            "    if ui + wi + fhi + ki >= 0 and s.length() >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaTypeCastingCompatWrappersUseLuaHelpers.lua"), Charsets.UTF_8);
+
+        assertTrue(Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+unitToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+widgetFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+widgetToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+framehandleToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+oskeytypeFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+oskeytypeToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+stringToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+stringFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+    }
+
 }

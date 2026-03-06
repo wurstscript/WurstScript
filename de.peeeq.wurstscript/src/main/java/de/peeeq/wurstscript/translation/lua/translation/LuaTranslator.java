@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -654,26 +653,17 @@ public class LuaTranslator {
             return false;
         }
         String tcFunc = f.getName();
-        if (WLogger.isTraceEnabled()) {
-            WLogger.trace("[LUA-TYPECAST] inspect function " + tcFunc + " params=" + f.getParameters().size());
-        }
         ImVar p = f.getParameters().get(0);
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(p));
 
         if ("stringToIndex".equals(tcFunc)) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(stringToIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_stringToIndex");
-            }
             return true;
         }
         if ("stringFromIndex".equals(tcFunc)) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(stringFromIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_stringFromIndex");
-            }
             return true;
         }
         // Keep semantic conversions for primitive/index-domain helpers intact.
@@ -685,34 +675,22 @@ public class LuaTranslator {
         if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_objectToIndex");
-            }
             return true;
         }
         if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " -> __wurst_objectFromIndex");
-            }
             return true;
         }
         // Final fallback for transformed/copied function names that may lose trace info:
         if (tcFunc.endsWith("ToIndex")) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " via suffix -> __wurst_objectToIndex");
-            }
             return true;
         }
         if (tcFunc.endsWith("FromIndex")) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
-            if (WLogger.isTraceEnabled()) {
-                WLogger.trace("[LUA-TYPECAST] rewrote body of " + tcFunc + " via suffix -> __wurst_objectFromIndex");
-            }
             return true;
         }
         return false;
