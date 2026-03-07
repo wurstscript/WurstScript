@@ -213,7 +213,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void numericOpsAreGuardedWithEnsure() throws IOException {
+    public void numericOpsDoNotUseGlobalEnsureWrapping() throws IOException {
         test().testLua(true).lines(
             "package Test",
             "function cmp(int a, int b) returns boolean",
@@ -227,10 +227,13 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    divi(2, 1)",
             "    addi(1, 2)"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_numericOpsAreGuardedWithEnsure.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "cmp", "intEnsure", true);
-        assertFunctionBodyContains(compiled, "divi", "intEnsure", true);
-        assertTrue(compiled.contains("function addi") && (compiled.contains("realEnsure(a2)") || compiled.contains("intEnsure(a2)")));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_numericOpsDoNotUseGlobalEnsureWrapping.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "cmp", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "cmp", "realEnsure", false);
+        assertFunctionBodyContains(compiled, "divi", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "divi", "realEnsure", false);
+        assertFunctionBodyContains(compiled, "addi", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "addi", "realEnsure", false);
     }
 
     @Test
