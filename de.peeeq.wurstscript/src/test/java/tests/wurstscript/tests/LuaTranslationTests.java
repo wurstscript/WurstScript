@@ -65,6 +65,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("Pattern must not occur: " + regex, matcher.find());
     }
 
+    private void assertContainsRegex(String output, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(output);
+        assertTrue("Pattern must occur: " + regex, matcher.find());
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -214,13 +220,56 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    return a < b",
             "function divi(int a, int b) returns int",
             "    return a div b",
+            "function addi(int a, int b) returns int",
+            "    return a + b",
             "init",
             "    cmp(1, 2)",
-            "    divi(2, 1)"
+            "    divi(2, 1)",
+            "    addi(1, 2)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_numericOpsAreGuardedWithEnsure.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "cmp", "realEnsure", true);
+        assertFunctionBodyContains(compiled, "cmp", "intEnsure", true);
         assertFunctionBodyContains(compiled, "divi", "intEnsure", true);
+        assertTrue(compiled.contains("function addi") && (compiled.contains("realEnsure(a2)") || compiled.contains("intEnsure(a2)")));
+    }
+
+    @Test
+    public void lazyGenericClosureDispatchWorksInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "public function lazy<T:>(Lazy<T> l) returns Lazy<T>",
+            "    return l",
+            "public abstract class Lazy<T:>",
+            "    T val = null",
+            "    var wasRetrieved = false",
+            "    abstract function retrieve() returns T",
+            "    function get() returns T",
+            "        if not wasRetrieved",
+            "            val = retrieve()",
+            "            wasRetrieved = true",
+            "        return val",
+            "init",
+            "    let l = lazy<int>(() -> 5)",
+            "    if l.get() == 5",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_lazyGenericClosureDispatchWorksInLua.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("Lazy_lazy_Test.Lazy_retrieve ="));
+        assertTrue(compiled.contains("l:Lazy_get()"));
+    }
+
+    @Test
+    public void stringArrayReadIsEnsured() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "string array playerName",
+            "init",
+            "    let i = 0",
+            "    SetPlayerName(Player(i), playerName[i])"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*stringEnsure\\(");
     }
 
     @Test
@@ -561,6 +610,25 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaErrorWrapperIgnoresAbortSentinel.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("if err == \"__wurst_abort_thread\" then return end"));
         assertTrue(compiled.contains("if err2 == \"__wurst_abort_thread\" then return end"));
+    }
+
+    @Test
+    public void removesUnusedClassesFromLuaOutput() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class Keep",
+            "    function ping()",
+            "        skip",
+            "class Drop",
+            "    function pong()",
+            "        skip",
+            "init",
+            "    let k = new Keep()",
+            "    k.ping()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_removesUnusedClassesFromLuaOutput.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("Keep"));
+        assertFalse(compiled.contains("Drop"));
     }
 
 }

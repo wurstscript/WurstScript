@@ -183,13 +183,6 @@ public class ExprTranslation {
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
             LuaOpBinary op;
-            if (isIntNumericOperator(e.getOp())) {
-                leftExpr = ensureInt(leftExpr, tr);
-                rightExpr = ensureInt(rightExpr, tr);
-            } else if (isRealNumericOperator(e.getOp())) {
-                leftExpr = ensureReal(leftExpr, tr);
-                rightExpr = ensureReal(rightExpr, tr);
-            }
             if (e.getOp() == WurstOperator.MOD_INT) {
                 op = LuaAst.LuaOpMod();
 
@@ -214,7 +207,6 @@ public class ExprTranslation {
                     break;
                 case UNARY_MINUS:
                     op = LuaAst.LuaOpMinus();
-                    argT = ensureReal(argT, tr);
                     break;
                 default:
                     throw new Error("not implemented: unary operator " + e.getOp());
@@ -223,29 +215,6 @@ public class ExprTranslation {
 
         }
         throw new Error("not implemented: " + e);
-    }
-
-    private static boolean isIntNumericOperator(WurstOperator op) {
-        return op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT;
-    }
-
-    private static boolean isRealNumericOperator(WurstOperator op) {
-        return op == WurstOperator.LESS
-            || op == WurstOperator.LESS_EQ
-            || op == WurstOperator.GREATER
-            || op == WurstOperator.GREATER_EQ
-            || op == WurstOperator.MINUS
-            || op == WurstOperator.MULT
-            || op == WurstOperator.DIV_REAL
-            || op == WurstOperator.MOD_REAL;
-    }
-
-    private static LuaExpr ensureInt(LuaExpr expr, LuaTranslator tr) {
-        return LuaAst.LuaExprFunctionCall(tr.ensureIntFunction, LuaAst.LuaExprlist(expr));
-    }
-
-    private static LuaExpr ensureReal(LuaExpr expr, LuaTranslator tr) {
-        return LuaAst.LuaExprFunctionCall(tr.ensureRealFunction, LuaAst.LuaExprlist(expr));
     }
 
     static class TupleFunc {
@@ -403,11 +372,32 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
+        LuaExpr access = translateArrayAccessRaw(e, tr);
+        return ensureByType(access, e.attrTyp(), tr);
+    }
+
+    public static LuaExpr translateArrayAccessRaw(ImVarArrayAccess e, LuaTranslator tr) {
         LuaExprlist indexes = LuaAst.LuaExprlist();
         for (ImExpr ie : e.getIndexes()) {
             indexes.add(ie.translateToLua(tr));
         }
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
+    }
+
+    private static LuaExpr ensureByType(LuaExpr expr, ImType type, LuaTranslator tr) {
+        if (TypesHelper.isStringType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureStrFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isIntType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureIntFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isBoolType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureBoolFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isRealType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureRealFunction, LuaAst.LuaExprlist(expr));
+        }
+        return expr;
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {

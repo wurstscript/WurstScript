@@ -918,6 +918,8 @@ public class LuaTranslator {
                     return LuaAst.LuaExprBoolVal(false);
                 } else if (TypesHelper.isRealType(st)) {
                     return LuaAst.LuaExprRealVal("0.");
+                } else if (TypesHelper.isStringType(st)) {
+                    return LuaAst.LuaExprStringVal("");
                 }
                 return LuaAst.LuaExprNull();
             }

@@ -288,6 +288,7 @@ public class ClosureTranslator {
      */
     private void transformTranslated(ImExpr t) {
         final List<ImVarAccess> vas = Lists.newArrayList();
+        final List<ImVarAccess> thisVarAccessesToRewrite = Lists.newArrayList();
         final List<ImMemberAccess> receiversToRewrite = Lists.newArrayList();
         ImVar closureThisVar = tr.getThisVar(e);
 
@@ -297,6 +298,14 @@ public class ClosureTranslator {
                 super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
                     vas.add(va);
+                    return;
+                }
+                if (capturedThisField != null && va.getVar() == closureThisVar) {
+                    // Explicit `this` used inside a closure (e.g. "var cur = this")
+                    // must refer to captured outer this, not the synthetic closure instance.
+                    if (!isReceiverInMemberAccess(va)) {
+                        thisVarAccessesToRewrite.add(va);
+                    }
                 }
             }
 
@@ -318,9 +327,20 @@ public class ClosureTranslator {
             va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
         }
 
+        for (ImVarAccess va : thisVarAccessesToRewrite) {
+            va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), capturedThisField, JassIm.ImExprs()));
+        }
+
         for (ImMemberAccess ma : receiversToRewrite) {
             ma.setReceiver(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), capturedThisField, JassIm.ImExprs()));
         }
+    }
+
+    private boolean isReceiverInMemberAccess(ImVarAccess va) {
+        if (va.getParent() instanceof ImMemberAccess ma) {
+            return ma.getReceiver() == va;
+        }
+        return false;
     }
 
     private void captureEnclosingThis() {

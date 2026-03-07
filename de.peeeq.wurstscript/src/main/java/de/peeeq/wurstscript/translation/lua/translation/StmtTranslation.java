@@ -34,7 +34,13 @@ public class StmtTranslation {
     }
 
     public static void translate(ImSet s, List<LuaStatement> res, LuaTranslator tr) {
-        LuaExpr left = s.getLeft().translateToLua(tr);
+        LuaExpr left;
+        if (s.getLeft() instanceof ImVarArrayAccess) {
+            // Assignment LHS must stay a writable table access, never an ensured r-value wrapper.
+            left = ExprTranslation.translateArrayAccessRaw((ImVarArrayAccess) s.getLeft(), tr);
+        } else {
+            left = s.getLeft().translateToLua(tr);
+        }
         LuaExpr right = s.getRight().translateToLua(tr);
         if (s.getRight().attrTyp() instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) s.getRight().attrTyp();

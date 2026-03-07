@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -937,7 +938,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
             timeTaker.endPhase();
         }
-        beginPhase(13, "translate to lua");
+        beginPhase(13, "lua remove garbage");
+        RemoveGarbage.removeGarbage(imProg);
+        imProg.flatten(imTranslator);
+        timeTaker.endPhase();
+
+        beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         ImAttrType.setWurstClassType(TypesHelper.imInt());
