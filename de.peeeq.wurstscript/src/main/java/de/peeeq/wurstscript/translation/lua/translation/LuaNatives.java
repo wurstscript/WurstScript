@@ -125,6 +125,118 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.modf(x)"));
         });
 
+        addNative("__wurst_GetEnumPlayer", f -> {
+            // Prefer the native enum player when inside an active native ForForce callback.
+            // This preserves Jass semantics for nested enumerations.
+            f.getBody().add(LuaAst.LuaLiteral("if GetEnumPlayer ~= nil then"));
+            f.getBody().add(LuaAst.LuaLiteral("    local p = GetEnumPlayer()"));
+            f.getBody().add(LuaAst.LuaLiteral("    if p ~= nil then return p end"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("if __wurst_enumPlayer_override ~= nil then return __wurst_enumPlayer_override end"));
+            f.getBody().add(LuaAst.LuaLiteral("return nil"));
+        });
+
+        addNative("__wurst_ForForce", f -> {
+            f.getParams().add(LuaAst.LuaVariable("whichForce", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("callback", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if ForForce == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local players = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("local count = 0"));
+            f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumPlayer_override"));
+            f.getBody().add(LuaAst.LuaLiteral("ForForce(whichForce, function()"));
+            f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
+            f.getBody().add(LuaAst.LuaLiteral("    players[count] = __wurst_GetEnumPlayer()"));
+            f.getBody().add(LuaAst.LuaLiteral("end)"));
+            f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
+            f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumPlayer_override = players[i]"));
+            f.getBody().add(LuaAst.LuaLiteral("    callback()"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("__wurst_enumPlayer_override = prev"));
+        });
+
+        addNative("__wurst_GetEnumUnit", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("if GetEnumUnit ~= nil then"));
+            f.getBody().add(LuaAst.LuaLiteral("    local u = GetEnumUnit()"));
+            f.getBody().add(LuaAst.LuaLiteral("    if u ~= nil then return u end"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("if __wurst_enumUnit_override ~= nil then return __wurst_enumUnit_override end"));
+            f.getBody().add(LuaAst.LuaLiteral("return nil"));
+        });
+
+        addNative("__wurst_ForGroup", f -> {
+            f.getParams().add(LuaAst.LuaVariable("whichGroup", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("callback", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if ForGroup == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local units = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("local count = 0"));
+            f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumUnit_override"));
+            f.getBody().add(LuaAst.LuaLiteral("ForGroup(whichGroup, function()"));
+            f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
+            f.getBody().add(LuaAst.LuaLiteral("    units[count] = __wurst_GetEnumUnit()"));
+            f.getBody().add(LuaAst.LuaLiteral("end)"));
+            f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
+            f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumUnit_override = units[i]"));
+            f.getBody().add(LuaAst.LuaLiteral("    callback()"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("__wurst_enumUnit_override = prev"));
+        });
+
+        addNative("__wurst_GetEnumItem", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("if GetEnumItem ~= nil then"));
+            f.getBody().add(LuaAst.LuaLiteral("    local it = GetEnumItem()"));
+            f.getBody().add(LuaAst.LuaLiteral("    if it ~= nil then return it end"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("if __wurst_enumItem_override ~= nil then return __wurst_enumItem_override end"));
+            f.getBody().add(LuaAst.LuaLiteral("return nil"));
+        });
+
+        addNative("__wurst_EnumItemsInRect", f -> {
+            f.getParams().add(LuaAst.LuaVariable("r", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("filter", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("actionFunc", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if EnumItemsInRect == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local items = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("local count = 0"));
+            f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumItem_override"));
+            f.getBody().add(LuaAst.LuaLiteral("EnumItemsInRect(r, filter, function()"));
+            f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
+            f.getBody().add(LuaAst.LuaLiteral("    items[count] = __wurst_GetEnumItem()"));
+            f.getBody().add(LuaAst.LuaLiteral("end)"));
+            f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
+            f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumItem_override = items[i]"));
+            f.getBody().add(LuaAst.LuaLiteral("    actionFunc()"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("__wurst_enumItem_override = prev"));
+        });
+
+        addNative("__wurst_GetEnumDestructable", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("if GetEnumDestructable ~= nil then"));
+            f.getBody().add(LuaAst.LuaLiteral("    local d = GetEnumDestructable()"));
+            f.getBody().add(LuaAst.LuaLiteral("    if d ~= nil then return d end"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("if __wurst_enumDestructable_override ~= nil then return __wurst_enumDestructable_override end"));
+            f.getBody().add(LuaAst.LuaLiteral("return nil"));
+        });
+
+        addNative("__wurst_EnumDestructablesInRect", f -> {
+            f.getParams().add(LuaAst.LuaVariable("r", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("filter", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("actionFunc", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if EnumDestructablesInRect == nil then return end"));
+            f.getBody().add(LuaAst.LuaLiteral("local dests = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("local count = 0"));
+            f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumDestructable_override"));
+            f.getBody().add(LuaAst.LuaLiteral("EnumDestructablesInRect(r, filter, function()"));
+            f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
+            f.getBody().add(LuaAst.LuaLiteral("    dests[count] = __wurst_GetEnumDestructable()"));
+            f.getBody().add(LuaAst.LuaLiteral("end)"));
+            f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
+            f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumDestructable_override = dests[i]"));
+            f.getBody().add(LuaAst.LuaLiteral("    actionFunc()"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("__wurst_enumDestructable_override = prev"));
+        });
+
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
 
         addNative(Arrays.asList(

@@ -61,6 +61,16 @@ public class LuaTranslator {
         "__wurst_FlushChildHashtable", "__wurst_FlushParentHashtable",
         "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString", "__wurst_RemoveSavedHandle"
     );
+    private static final List<String> REQUIRED_WURST_CONTEXT_CALLBACK_HELPERS = Arrays.asList(
+        "__wurst_ForForce",
+        "__wurst_GetEnumPlayer",
+        "__wurst_ForGroup",
+        "__wurst_GetEnumUnit",
+        "__wurst_EnumItemsInRect",
+        "__wurst_GetEnumItem",
+        "__wurst_EnumDestructablesInRect",
+        "__wurst_GetEnumDestructable"
+    );
     private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(allHashtableNativeNames());
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
@@ -222,6 +232,30 @@ public class LuaTranslator {
     }
 
     private String remapNativeName(String name) {
+        if ("ForForce".equals(name)) {
+            return "__wurst_ForForce";
+        }
+        if ("GetEnumPlayer".equals(name)) {
+            return "__wurst_GetEnumPlayer";
+        }
+        if ("ForGroup".equals(name)) {
+            return "__wurst_ForGroup";
+        }
+        if ("GetEnumUnit".equals(name)) {
+            return "__wurst_GetEnumUnit";
+        }
+        if ("EnumItemsInRect".equals(name)) {
+            return "__wurst_EnumItemsInRect";
+        }
+        if ("GetEnumItem".equals(name)) {
+            return "__wurst_GetEnumItem";
+        }
+        if ("EnumDestructablesInRect".equals(name)) {
+            return "__wurst_EnumDestructablesInRect";
+        }
+        if ("GetEnumDestructable".equals(name)) {
+            return "__wurst_GetEnumDestructable";
+        }
         if (HASHTABLE_NATIVE_NAMES.contains(name)) {
             return "__wurst_" + name;
         }
@@ -253,6 +287,7 @@ public class LuaTranslator {
         createStringIndexFunctions();
         createEnsureTypeFunctions();
         ensureWurstHashtableHelpers();
+        ensureWurstContextCallbackHelpers();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -292,6 +327,14 @@ public class LuaTranslator {
         requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_SAVE_NAMES));
         requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_LOAD_NAMES));
         for (String helper : requiredHelpers) {
+            LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            LuaNatives.get(f);
+            luaModel.add(f);
+        }
+    }
+
+    private void ensureWurstContextCallbackHelpers() {
+        for (String helper : REQUIRED_WURST_CONTEXT_CALLBACK_HELPERS) {
             LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
             LuaNatives.get(f);
             luaModel.add(f);

@@ -59,6 +59,40 @@ public class HotReloadPipelineTests {
     }
 
     @Test
+    public void cachedMapFileNameIsModeSpecific() throws Exception {
+        File projectFolder = new File("./temp/testProject_cache_mode_specific/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File sourceMap = new File(projectFolder, "source_map.w3x");
+        Files.write(sourceMap.toPath(), new byte[] {0x01});
+
+        WurstLanguageServer langServer = new WurstLanguageServer();
+        TestMapRequest luaRequest = new TestMapRequest(
+            langServer,
+            Optional.of(sourceMap),
+            List.of("-lua"),
+            WFile.create(projectFolder),
+            Map.of()
+        );
+        TestMapRequest jassRequest = new TestMapRequest(
+            langServer,
+            Optional.of(sourceMap),
+            List.of(),
+            WFile.create(projectFolder),
+            Map.of()
+        );
+
+        File luaCache = luaRequest.getCachedMapFileForTest();
+        File jassCache = jassRequest.getCachedMapFileForTest();
+        assertNotNull(luaCache);
+        assertNotNull(jassCache);
+        assertEquals(luaCache.equals(jassCache), false, "Lua/Jass modes must not share cached map filename");
+        assertEquals(luaCache.getName().contains("_lua_cached.w3x"), true);
+        assertEquals(jassCache.getName().contains("_jass_cached.w3x"), true);
+    }
+
+    @Test
     public void jhcrPipelineRenamesOutputScript() throws Exception {
         File projectFolder = new File("./temp/testProject_jhcr_output/");
         File wurstFolder = new File(projectFolder, "wurst");
@@ -191,6 +225,10 @@ public class HotReloadPipelineTests {
 
         private File renameJhcrOutputForTest(File buildDir) throws Exception {
             return renameJhcrOutput(buildDir);
+        }
+
+        private File getCachedMapFileForTest() {
+            return getCachedMapFile();
         }
     }
 }

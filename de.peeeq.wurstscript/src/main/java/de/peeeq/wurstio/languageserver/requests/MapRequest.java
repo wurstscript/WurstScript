@@ -420,8 +420,12 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (!cachedMapFileName.isEmpty()) {
             return cachedMapFileName;
         }
+        return resolveCachedMapFileName(runArgs.isLua());
+    }
+
+    private String resolveCachedMapFileName(boolean luaMode) {
         if (!map.isPresent()) {
-            return "cached_map.w3x";
+            return luaMode ? "cached_map_lua.w3x" : "cached_map_jass.w3x";
         }
         File inputMap = map.get();
         String inputName = inputMap.getName();
@@ -430,7 +434,8 @@ public abstract class MapRequest extends UserRequest<Object> {
         // Keep only filesystem-safe characters and avoid collisions for same basename from different folders.
         String safeBase = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
         String pathHash = Integer.toUnsignedString(inputMap.getAbsolutePath().hashCode(), 36);
-        return safeBase + "_" + pathHash + "_cached.w3x";
+        String modeSuffix = luaMode ? "lua" : "jass";
+        return safeBase + "_" + pathHash + "_" + modeSuffix + "_cached.w3x";
     }
 
     protected File ensureWritableTargetFile(File targetFile, String dialogTitle, String lockMessage,
@@ -500,6 +505,7 @@ public abstract class MapRequest extends UserRequest<Object> {
      */
     protected File ensureCachedMap(WurstGui gui) throws IOException {
         File cachedMap = getCachedMapFile();
+        cleanupOppositeModeCacheAndOutputs();
 
         if (!map.isPresent()) {
             throw new RequestFailedException(MessageType.Error, "No source map provided");
@@ -515,6 +521,29 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         return cachedMap;
+    }
+
+    private void cleanupOppositeModeCacheAndOutputs() {
+        if (cachedMapFileName.isEmpty()) {
+            File cacheDir = new File(getBuildDir(), "cache");
+            String oppositeModeCacheName = resolveCachedMapFileName(!runArgs.isLua());
+            java.nio.file.Path oppositeModeCache = new File(cacheDir, oppositeModeCacheName).toPath();
+            try {
+                java.nio.file.Files.deleteIfExists(oppositeModeCache);
+            } catch (IOException e) {
+                WLogger.warning("Could not delete opposite-mode cached map: " + oppositeModeCache + " (" + e.getMessage() + ")");
+            }
+        }
+
+        File buildDir = getBuildDir();
+        File oppositeCompiledOutput = runArgs.isLua()
+            ? new File(buildDir, BUILD_COMPILED_JASS_NAME)
+            : new File(buildDir, BUILD_COMPILED_LUA_NAME);
+        try {
+            java.nio.file.Files.deleteIfExists(oppositeCompiledOutput.toPath());
+        } catch (IOException e) {
+            WLogger.warning("Could not delete opposite-mode compiled output: " + oppositeCompiledOutput + " (" + e.getMessage() + ")");
+        }
     }
 
     protected CompilationResult compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap,

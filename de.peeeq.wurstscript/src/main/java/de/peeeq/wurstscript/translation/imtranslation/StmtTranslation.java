@@ -101,8 +101,7 @@ public class StmtTranslation {
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
 
             imBody.add(ImSet(s, ImVarAccess(t.getVarFor(s.getLoopVar())), nextCallWrapped));
-            ImVar continueFlag = createContinueFlagVar(s, f);
-            imBody.addAll(translateLoopBodyWithContinue(t, f, s.getBody(), continueFlag, s));
+            imBody.addAll(translateLoopBody(t, f, s.getBody(), s));
 
             result.add(ImLoop(s, imBody));
         }
@@ -207,8 +206,7 @@ public class StmtTranslation {
             imBody.add(ImSet(forIn, ImVarAccess(t.getVarFor(forIn.getLoopVar())), nextCallWrapped));
 
             // loop body
-            ImVar continueFlag = createContinueFlagVar(forIn, f);
-            imBody.addAll(translateLoopBodyWithContinue(t, f, forIn.getBody(), continueFlag, forIn));
+            imBody.addAll(translateLoopBody(t, f, forIn.getBody(), forIn));
 
             // optional close()<S>()
             Optional<FuncLink> closeFunc = forIn.attrCloseFunc();
@@ -296,8 +294,7 @@ public class StmtTranslation {
         // exitwhen imLoopVar > toExpr
         imBody.add(ImExitwhen(trace, ImOperatorCall(opCompare, ImExprs(ImVarAccess(imLoopVar), toExpr))));
         // loop body:
-        ImVar continueFlag = createContinueFlagVar(trace, f);
-        imBody.addAll(translateLoopBodyWithContinue(t, f, body, continueFlag, trace));
+        imBody.addAll(translateLoopBody(t, f, body, trace));
         // set imLoopVar = imLoopVar + stepExpr
         imBody.add(ImSet(trace, ImVarAccess(imLoopVar), ImOperatorCall(opStep, ImExprs(ImVarAccess(imLoopVar), stepExpr))));
         result.add(ImLoop(trace, imBody));
@@ -323,8 +320,7 @@ public class StmtTranslation {
 
 
     public static ImStmt translate(StmtLoop s, ImTranslator t, ImFunction f) {
-        ImVar continueFlag = createContinueFlagVar(s, f);
-        return ImLoop(s, ImStmts(translateLoopBodyWithContinue(t, f, s.getBody(), continueFlag, s)));
+        return ImLoop(s, ImStmts(translateLoopBody(t, f, s.getBody(), s)));
     }
 
 
@@ -344,8 +340,7 @@ public class StmtTranslation {
         List<ImStmt> body = Lists.newArrayList();
         // exitwhen not while_condition
         body.add(ImExitwhen(s.getCond(), ImOperatorCall(WurstOperator.NOT, ImExprs(s.getCond().imTranslateExpr(t, f)))));
-        ImVar continueFlag = createContinueFlagVar(s, f);
-        body.addAll(translateLoopBodyWithContinue(t, f, s.getBody(), continueFlag, s));
+        body.addAll(translateLoopBody(t, f, s.getBody(), s));
         return ImLoop(s, ImStmts(body));
     }
 
@@ -369,6 +364,55 @@ public class StmtTranslation {
             t.popContinueFlag();
         }
         return guardedBody;
+    }
+
+    private static List<ImStmt> translateLoopBody(ImTranslator t, ImFunction f, List<WStatement> body, Element trace) {
+        if (!hasContinueForCurrentLoop(body)) {
+            return t.translateStatements(f, body);
+        }
+        ImVar continueFlag = createContinueFlagVar(trace, f);
+        return translateLoopBodyWithContinue(t, f, body, continueFlag, trace);
+    }
+
+    private static boolean hasContinueForCurrentLoop(List<WStatement> body) {
+        for (WStatement statement : body) {
+            if (statement instanceof StmtContinue) {
+                return true;
+            }
+            if (statement instanceof StmtLoop
+                || statement instanceof StmtWhile
+                || statement instanceof StmtForIn
+                || statement instanceof StmtForFrom
+                || statement instanceof StmtForRangeUp
+                || statement instanceof StmtForRangeDown) {
+                // Continue inside nested loops should not trigger guarding for the outer loop.
+                continue;
+            }
+            if (statement instanceof WBlock && hasContinueForCurrentLoop(((WBlock) statement).getBody())) {
+                return true;
+            }
+            if (statement instanceof StmtIf) {
+                StmtIf stmtIf = (StmtIf) statement;
+                if (hasContinueForCurrentLoop(stmtIf.getThenBlock()) || hasContinueForCurrentLoop(stmtIf.getElseBlock())) {
+                    return true;
+                }
+            }
+            if (statement instanceof SwitchStmt) {
+                SwitchStmt switchStmt = (SwitchStmt) statement;
+                for (SwitchCase switchCase : switchStmt.getCases()) {
+                    if (hasContinueForCurrentLoop(switchCase.getStmts())) {
+                        return true;
+                    }
+                }
+                if (switchStmt.getSwitchDefault() instanceof SwitchDefaultCaseStatements) {
+                    SwitchDefaultCaseStatements defaultCase = (SwitchDefaultCaseStatements) switchStmt.getSwitchDefault();
+                    if (hasContinueForCurrentLoop(defaultCase.getStmts())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public static ImStmt translate(StmtSkip s, ImTranslator translator, ImFunction f) {
