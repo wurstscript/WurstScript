@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
@@ -167,6 +168,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 luaCode.get().print(sb, 0);
 
                 String compiledMapScript = sb.toString();
+                LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);

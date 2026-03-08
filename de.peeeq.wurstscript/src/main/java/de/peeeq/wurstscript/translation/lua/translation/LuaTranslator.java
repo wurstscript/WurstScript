@@ -16,28 +16,52 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
     private static final int LUA_LOCALS_LIMIT = 200;
+    private static final List<String> HASHTABLE_HANDLE_SAVE_NAMES = Arrays.asList(
+        "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle", "SaveItemHandle", "SaveUnitHandle",
+        "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
+        "SaveTriggerActionHandle", "SaveTriggerEventHandle", "SaveForceHandle", "SaveGroupHandle",
+        "SaveLocationHandle", "SaveRectHandle", "SaveBooleanExprHandle", "SaveSoundHandle", "SaveEffectHandle",
+        "SaveUnitPoolHandle", "SaveItemPoolHandle", "SaveQuestHandle", "SaveQuestItemHandle",
+        "SaveDefeatConditionHandle", "SaveTimerDialogHandle", "SaveLeaderboardHandle", "SaveMultiboardHandle",
+        "SaveMultiboardItemHandle", "SaveTrackableHandle", "SaveDialogHandle", "SaveButtonHandle",
+        "SaveTextTagHandle", "SaveLightningHandle", "SaveImageHandle", "SaveUbersplatHandle", "SaveRegionHandle",
+        "SaveFogStateHandle", "SaveFogModifierHandle", "SaveAgentHandle", "SaveHashtableHandle", "SaveFrameHandle"
+    );
+    private static final List<String> HASHTABLE_HANDLE_LOAD_NAMES = Arrays.asList(
+        "LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle",
+        "LoadAbilityHandle", "LoadTimerHandle", "LoadTriggerHandle", "LoadTriggerConditionHandle",
+        "LoadTriggerActionHandle", "LoadTriggerEventHandle", "LoadForceHandle", "LoadGroupHandle",
+        "LoadLocationHandle", "LoadRectHandle", "LoadBooleanExprHandle", "LoadSoundHandle", "LoadEffectHandle",
+        "LoadUnitPoolHandle", "LoadItemPoolHandle", "LoadQuestHandle", "LoadQuestItemHandle",
+        "LoadDefeatConditionHandle", "LoadTimerDialogHandle", "LoadLeaderboardHandle", "LoadMultiboardHandle",
+        "LoadMultiboardItemHandle", "LoadTrackableHandle", "LoadDialogHandle", "LoadButtonHandle",
+        "LoadTextTagHandle", "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle",
+        "LoadFogStateHandle", "LoadFogModifierHandle", "LoadHashtableHandle", "LoadFrameHandle"
+    );
+    private static final List<String> HASHTABLE_NATIVE_NAMES_RAW = Arrays.asList(
+        "InitHashtable",
+        "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
+        "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
+        "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString", "HaveSavedHandle",
+        "FlushChildHashtable", "FlushParentHashtable",
+        "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString", "RemoveSavedHandle"
+    );
     private static final List<String> REQUIRED_WURST_HASHTABLE_HELPERS = Arrays.asList(
         "__wurst_InitHashtable",
         "__wurst_SaveInteger", "__wurst_SaveBoolean", "__wurst_SaveReal", "__wurst_SaveStr",
         "__wurst_LoadInteger", "__wurst_LoadBoolean", "__wurst_LoadReal", "__wurst_LoadStr",
-        "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString",
+        "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString", "__wurst_HaveSavedHandle",
         "__wurst_FlushChildHashtable", "__wurst_FlushParentHashtable",
-        "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString"
+        "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString", "__wurst_RemoveSavedHandle"
     );
-    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(Arrays.asList(
-        "InitHashtable",
-        "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
-        "LoadInteger", "LoadBoolean", "LoadReal", "LoadStr",
-        "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString",
-        "FlushChildHashtable", "FlushParentHashtable",
-        "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString"
-    ));
+    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(allHashtableNativeNames());
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
         "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
@@ -253,6 +277,7 @@ public class LuaTranslator {
         }
 
         cleanStatements();
+        emitExperimentalHashtableLeakGuards();
 
         return luaModel;
     }
@@ -263,11 +288,66 @@ public class LuaTranslator {
      * corresponding Warcraft natives are unavailable or filtered out.
      */
     private void ensureWurstHashtableHelpers() {
-        for (String helper : REQUIRED_WURST_HASHTABLE_HELPERS) {
+        Set<String> requiredHelpers = new LinkedHashSet<>(REQUIRED_WURST_HASHTABLE_HELPERS);
+        requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_SAVE_NAMES));
+        requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_LOAD_NAMES));
+        for (String helper : requiredHelpers) {
             LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
             LuaNatives.get(f);
             luaModel.add(f);
         }
+    }
+
+    private void emitExperimentalHashtableLeakGuards() {
+        luaModel.add(LuaAst.LuaLiteral("-- Wurst experimental Lua assertion guards: raw WC3 hashtable natives must not be called."));
+        for (String nativeName : allHashtableNativeNames()) {
+            luaModel.add(LuaAst.LuaLiteral("if " + nativeName + " ~= nil then " + nativeName
+                + " = function(...) error(\"Wurst Lua assertion failed: unexpected call to native " + nativeName
+                + ". Expected __wurst_" + nativeName + ".\") end end"));
+        }
+    }
+
+    public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
+        List<String> leaked = new ArrayList<>();
+        List<String> missingHelpers = new ArrayList<>();
+        for (String nativeName : allHashtableNativeNames()) {
+            if (containsRegex(luaCode, "\\b" + nativeName + "\\s*\\(")) {
+                leaked.add(nativeName);
+            }
+            String helperName = "__wurst_" + nativeName;
+            boolean helperCalled = containsRegex(luaCode, "\\b" + helperName + "\\s*\\(");
+            boolean helperDefined = containsRegex(luaCode, "\\bfunction\\s+" + helperName + "\\s*\\(");
+            if (helperCalled && !helperDefined) {
+                missingHelpers.add(helperName);
+            }
+        }
+        if (!leaked.isEmpty()) {
+            throw new RuntimeException("Wurst Lua backend assertion failed: leaked raw hashtable native calls in generated Lua: "
+                + String.join(", ", leaked));
+        }
+        if (!missingHelpers.isEmpty()) {
+            throw new RuntimeException("Wurst Lua backend assertion failed: missing __wurst hashtable helper definitions in generated Lua: "
+                + String.join(", ", missingHelpers));
+        }
+    }
+
+    private static List<String> allHashtableNativeNames() {
+        List<String> result = new ArrayList<>(HASHTABLE_NATIVE_NAMES_RAW);
+        result.addAll(HASHTABLE_HANDLE_SAVE_NAMES);
+        result.addAll(HASHTABLE_HANDLE_LOAD_NAMES);
+        return result;
+    }
+
+    private static List<String> prefixed(List<String> names) {
+        List<String> result = new ArrayList<>();
+        for (String name : names) {
+            result.add("__wurst_" + name);
+        }
+        return result;
+    }
+
+    private static boolean containsRegex(String text, String regex) {
+        return Pattern.compile(regex).matcher(text).find();
     }
 
     private boolean isFixedEntryPoint(ImFunction function) {

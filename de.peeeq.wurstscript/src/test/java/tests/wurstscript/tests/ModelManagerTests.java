@@ -942,6 +942,57 @@ public class ModelManagerTests {
     }
 
     @Test
+    public void runmapPurge_configOverrideCacheWithDetachedDependencyPackagesDoesNotCrash() throws Exception {
+        File projectFolder = new File("./temp/testProject_runmap_purge_config_detached/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depConfig");
+        File dependencyWurst = new File(dependencyRoot, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(dependencyWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileProjectWar3Map = WFile.create(new File(wurstFolder, "war3map.j"));
+        WFile fileDepBase = WFile.create(new File(dependencyWurst, "UpgradeObjEditing.wurst"));
+        WFile fileDepConfig = WFile.create(new File(dependencyWurst, "UpgradeObjEditing_config.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "init",
+            "    skip"
+        ));
+        writeFile(fileProjectWar3Map, "globals\nendglobals\n");
+        writeFile(fileDepBase, string(
+            "package UpgradeObjEditing",
+            "@configurable int version = 1",
+            "endpackage"
+        ));
+        writeFile(fileDepConfig, string(
+            "package UpgradeObjEditing_config",
+            "@config int version = 2",
+            "endpackage"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        manager.syncCompilationUnit(fileDepBase);
+        manager.syncCompilationUnit(fileDepConfig);
+        assertNotNull(manager.getCompilationUnit(fileDepBase), "dependency base package should be loaded");
+        assertNotNull(manager.getCompilationUnit(fileDepConfig), "dependency config package should be loaded");
+
+        // Force config-override attribute cache before purge so removed packages can become detached later.
+        assertNotNull(manager.getModel().attrConfigOverridePackages());
+
+        purgeUnimportedFiles_likeRunMap(manager.getModel(), manager);
+        assertEquals(manager.getCompilationUnit(fileDepBase), null, "unimported dependency base package CU must be removed");
+        assertEquals(manager.getCompilationUnit(fileDepConfig), null, "unimported dependency config package CU must be removed");
+
+        // Regression: translate must not crash with "package ... is not attached to a model".
+        runRunmapLikeCompile_Closer(projectFolder, manager);
+    }
+
+    @Test
     public void syncCompilationUnitContent_noopContentProducesNoChanges() throws Exception {
         File projectFolder = new File("./temp/testProject_sync_noop/");
         File wurstFolder = new File(projectFolder, "wurst");

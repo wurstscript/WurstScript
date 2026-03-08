@@ -1146,6 +1146,12 @@ public class PrettyPrinter {
         sb.append("\n");
     }
 
+    public static void prettyPrint(StmtContinue e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("continue");
+        sb.append("\n");
+    }
+
     public static void prettyPrint(StmtWhile e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("while");

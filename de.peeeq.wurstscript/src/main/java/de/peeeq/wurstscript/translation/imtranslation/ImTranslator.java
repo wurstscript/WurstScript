@@ -97,6 +97,7 @@ public class ImTranslator {
 
     private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
     private final Deque<Map<TypeParamDef, ImTypeVar>> typeVarOverrideStack = new ArrayDeque<>();
+    private final Deque<ImVar> continueFlagStack = new ArrayDeque<>();
 
     private static boolean hasTypeVarNamed(ImTypeVars vars, String name) {
         for (ImTypeVar v : vars) {
@@ -116,6 +117,18 @@ public class ImTranslator {
 
     public void popTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
         if (m != null && !m.isEmpty()) typeVarOverrideStack.pop();
+    }
+
+    public void pushContinueFlag(ImVar continueFlag) {
+        continueFlagStack.push(continueFlag);
+    }
+
+    public void popContinueFlag() {
+        continueFlagStack.pop();
+    }
+
+    public @Nullable ImVar currentContinueFlag() {
+        return continueFlagStack.peek();
     }
 
 

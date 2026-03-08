@@ -747,6 +747,8 @@ public class AntlrWurstParseTreeTransformer {
         } else if (s.stmtBreak() != null) {
             return Ast
                     .StmtExitwhen(source(s), Ast.ExprBoolVal(source(s), true));
+        } else if (s.stmtContinue() != null) {
+            return Ast.StmtContinue(source(s));
         } else if (s.stmtSkip() != null) {
             return Ast.StmtSkip(source(s));
         } else if (s.stmtSwitch() != null) {

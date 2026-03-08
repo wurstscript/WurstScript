@@ -87,6 +87,26 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "return 0", true);
     }
 
+    @Test
+    public void continueLoweringInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    int i = 0",
+            "    int sum = 0",
+            "    while i < 5",
+            "        i++",
+            "        if i mod 2 == 0",
+            "            continue",
+            "        sum += i",
+            "    if sum == 9",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_continueLoweringInLua.lua"), Charsets.UTF_8);
+        assertTrue("expected continue lowering helper flag in lua output", compiled.contains("continueFlag_"));
+    }
+
     @Ignore
     @Test
     public void testExecution() {
@@ -583,6 +603,44 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bLoadReal\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadStr\\(");
         assertDoesNotContainRegex(compiled, "\\bFlushChildHashtable\\(");
+        assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
+        assertTrue(compiled.contains("function __wurst_HaveSavedHandle("));
+    }
+
+    @Test
+    public void hashtableHandleExtensionsUseWurstLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    if h.hasHandle(1, 2)",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
+        assertTrue(compiled.contains("Wurst experimental Lua assertion guards"));
+    }
+
+    @Test
+    public void hashtableHandleLoadSaveUseWurstLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    h.saveAbilityHandle(1, 2, null)",
+            "    let a = h.loadAbilityHandle(1, 2)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleLoadSaveUseWurstLuaHelpers.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_SaveAbilityHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_LoadAbilityHandle\\(");
     }
 
     @Test

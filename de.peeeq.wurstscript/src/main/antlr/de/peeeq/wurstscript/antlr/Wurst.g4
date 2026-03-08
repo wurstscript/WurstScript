@@ -260,6 +260,7 @@ statement:
 		 | stmtSet (externalLambda|NL)
 		 | stmtReturn (externalLambda|NL)
 		 | stmtBreak NL
+		 | stmtContinue NL
 		 | stmtSkip NL
 		 | expr (externalLambda|NL)
 		 | stmtIf
@@ -435,6 +436,7 @@ forIteratorLoop:
 
 
 stmtBreak:'break';
+stmtContinue:'continue';
 stmtSkip:'skip';
 
 
@@ -461,6 +463,7 @@ WHILE: 'while';
 FOR: 'for';
 IN: 'in';
 BREAK: 'break';
+CONTINUE: 'continue';
 NEW: 'new';
 NULL: 'null';
 PACKAGE: 'package';

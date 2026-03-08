@@ -326,6 +326,10 @@ public class DescriptionHtml {
         return "The skip statement does nothing. Just skip this line.";
     }
 
+    public static String description(StmtContinue stmtContinue) {
+        return "continue: Skips the rest of the current loop iteration.";
+    }
+
     public static String description(StmtWhile stmtWhile) {
         return "While Statement: Repeat while the condition is true.";
     }

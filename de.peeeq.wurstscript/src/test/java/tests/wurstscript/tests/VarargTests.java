@@ -131,6 +131,24 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void varargWithContinue() {
+        testAssertErrorsLines(true, "Cannot use continue in vararg for each loops",
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        if i > 2",
+                "            continue",
+                "        sum += i",
+                "    if sum == 3",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
     public void legitNestedBreak() {
         testAssertOkLines(true,
                 "package Test",

@@ -388,6 +388,61 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_returnInsideIf_inStatementsBlock() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface FnBool",
+                "    function run() returns boolean",
+                "function foo(FnBool fn) returns boolean",
+                "    return fn.run()",
+                "init",
+                "    FnBool fn = () ->",
+                "        let i = 0",
+                "        if i > 0",
+                "            return false",
+                "        return true",
+                "    if foo(fn)",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void closure_multipleEarlyReturns_inStatementsBlock() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface FnInt",
+                "    function run() returns int",
+                "function call(FnInt f) returns int",
+                "    return f.run()",
+                "init",
+                "    let x = call() ->",
+                "        let i = 2",
+                "        if i < 0",
+                "            return -1",
+                "        if i > 1",
+                "            return 7",
+                "        return 3",
+                "    if x == 7",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void statementsBlockOutsideClosure_stillRequiresReturnAtEnd() {
+        testAssertErrorsLines(false, "Return in a statements block can only be at the end.",
+                "package test",
+                "init",
+                "    let x = begin",
+                "        if true",
+                "            return 1",
+                "        return 2",
+                "    end"
+        );
+    }
+
+    @Test
     public void code_anonfunc1() {
         testAssertOkLines(false,
                 "package test",
