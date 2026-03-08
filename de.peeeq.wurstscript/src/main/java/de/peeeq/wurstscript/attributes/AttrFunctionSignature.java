@@ -64,6 +64,9 @@ public class AttrFunctionSignature {
     }
 
     private static void checkCodeClosureCaptures(StmtCall fc, FunctionSignature sig) {
+        if (!sig.isValidParameterNumber(fc.getArgs().size())) {
+            return;
+        }
         for (int i = 0; i < fc.getArgs().size(); i++) {
             Expr arg = fc.getArgs().get(i);
             if (!(arg instanceof ExprClosure)) {
