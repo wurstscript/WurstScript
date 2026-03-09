@@ -1,12 +1,5 @@
 package tests.wurstscript.tests;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
@@ -15,7 +8,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 public class RealWorldExamples extends WurstScriptTest {
 
     private static final String TEST_DIR = "./testscripts/concept/";
@@ -137,22 +129,11 @@ public class RealWorldExamples extends WurstScriptTest {
 
     @Test
     public void test_stdlib() {
-        List<File> inputs = Lists.newLinkedList();
-        // TODO set config
-        RunArgs runArgs = RunArgs.defaults();
-        runArgs.addLibs(Sets.newHashSet(StdLib.getLib()));
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiCliImpl(), null, runArgs);
-        for (File f : comp.getLibs().values()) {
-            WLogger.info("Adding file: " + f);
-            inputs.add(f);
-        }
-
         new TestConfig("stdlib")
                 .withStdLib(true)
                 .executeTests(true)
                 .executeProgOnlyAfterTransforms(false)
                 .executeProg(false)
-                .withInputFiles(inputs)
                 .run()
                 .getModel();
 
