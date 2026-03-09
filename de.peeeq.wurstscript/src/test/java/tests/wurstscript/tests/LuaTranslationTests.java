@@ -482,6 +482,31 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void newGenericsStringFieldAssignmentRoundTripsInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class C<T:>",
+            "    T x",
+            "function stringToIndex(string s) returns int",
+            "    return 42",
+            "function stringFromIndex(int i) returns string",
+            "    return \"42\"",
+            "function testGenericStringField() returns boolean",
+            "    C<string> c = new C<string>",
+            "    c.x = \"42\"",
+            "    return c.x == \"42\"",
+            "init",
+            "    if testGenericStringField()",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "stringEnsure(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
+    }
+
+    @Test
     public void largeFunctionSpillsLocalsIntoTableInLua() throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");

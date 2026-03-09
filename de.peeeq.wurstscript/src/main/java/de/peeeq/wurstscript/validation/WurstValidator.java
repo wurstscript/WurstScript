@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
@@ -300,7 +301,7 @@ public class WurstValidator {
             if (e instanceof NameRef) {
                 NameRef nr = (NameRef) e;
                 NameLink def = nr.attrNameLink();
-                if (def != null) {
+                if (def != null && !(def instanceof OtherLink)) {
                     used.add(def.getDef().attrNearestPackage());
                     if (def.getDef().attrHasAnnotation("@config")) {
                         WPackage configPackage = getConfiguredPackage(def.getDef());
@@ -2024,7 +2025,7 @@ public class WurstValidator {
      */
     private void checkVarRef(NameRef e, boolean dynamicContext) {
         NameLink link = e.attrNameLink();
-        if (link == null) {
+        if (link == null || link instanceof OtherLink) {
             return;
         }
         NameDef def = link.getDef();

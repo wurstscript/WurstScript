@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -108,6 +109,9 @@ public class AttrImplicitParameter {
 
     private static OptExpr getImplicitParamterCaseNormalVar(NameRef e) {
         NameLink def = e.attrNameLink();
+        if (def instanceof OtherLink) {
+            return Ast.NoExpr();
+        }
         if (def != null && def.getDef() instanceof VarDef) {
             VarDef varDef = (VarDef) def.getDef();
             if (varDef.attrIsDynamicClassMember()) {

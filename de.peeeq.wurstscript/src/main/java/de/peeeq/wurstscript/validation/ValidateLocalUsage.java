@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -42,7 +43,7 @@ public class ValidateLocalUsage {
                 LExpr updatedExpr = set.getUpdatedExpr();
                 if (updatedExpr != null) {
                     NameLink nameLink = updatedExpr.attrNameLink();
-                    if (nameLink != null) {
+                    if (nameLink != null && !(nameLink instanceof OtherLink)) {
                         locals.remove(nameLink.getDef());
                     }
 

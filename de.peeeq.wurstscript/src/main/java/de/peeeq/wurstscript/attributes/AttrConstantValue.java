@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 
@@ -31,6 +32,9 @@ public class AttrConstantValue {
 
     public static ILconst calculate(ExprVarAccess e) {
         NameLink v = e.attrNameLink();
+        if (v instanceof OtherLink) {
+            throw new ConstantValueCalculationException(e.toString());
+        }
         if (v != null && v.getDef() instanceof GlobalVarDef) {
             GlobalVarDef g = (GlobalVarDef) v.getDef();
             if (g.attrIsConstant() && g.getInitialExpr() instanceof Expr) {

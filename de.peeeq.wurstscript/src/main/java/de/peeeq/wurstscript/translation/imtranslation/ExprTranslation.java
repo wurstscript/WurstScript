@@ -247,6 +247,9 @@ public class ExprTranslation {
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
         NameLink link = e.attrNameLink();
+        if (link instanceof OtherLink) {
+            return ((OtherLink) link).translate(e, t, f);
+        }
         NameDef decl = link == null ? null : link.getDef();
         if (decl == null) {
             // should only happen with gg_ variables
@@ -303,9 +306,6 @@ public class ExprTranslation {
             EnumMember enumMember = (EnumMember) decl;
             int id = t.getEnumMemberId(enumMember);
             return ImIntVal(id);
-        } else if (link instanceof OtherLink) {
-            OtherLink otherLink = (OtherLink) link;
-            return otherLink.translate(e, t, f);
         } else {
             throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
         }

@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -68,13 +69,13 @@ public class AttrExprType {
 
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef() instanceof VarDef) {
+        if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof VarDef) {
             if (Utils.getParentVarDef(Optional.of(term)) == Optional.of((VarDef) varDef.getDef())) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
         }
-        if (varDef.getDef() instanceof FunctionDefinition) {
+        if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
         return varDef.getTyp();
@@ -388,10 +389,10 @@ public class AttrExprType {
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef() instanceof FunctionDefinition) {
+        if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
-        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (!(varDef instanceof OtherLink) && varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
         }
         return varDef.getTyp(); // TODO .setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
@@ -403,7 +404,7 @@ public class AttrExprType {
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (!(varDef instanceof OtherLink) && varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
         }
         WurstType typ = varDef.getTyp();
