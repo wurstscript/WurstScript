@@ -237,31 +237,62 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("__wurst_enumDestructable_override = prev"));
         });
 
-        addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
+            f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));
 
-        addNative(Arrays.asList(
-            "SaveInteger", "SaveBoolean", "SaveReal", "SaveStr",
-            "__wurst_SaveInteger", "__wurst_SaveBoolean", "__wurst_SaveReal", "__wurst_SaveStr"), f -> {
+        addNative(Arrays.asList("SaveInteger", "__wurst_SaveInteger"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then h[p] = {} end h[p][c] = i"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_int = t end"));
+            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
+        });
+        addNative(Arrays.asList("SaveBoolean", "__wurst_SaveBoolean"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_bool = t end"));
+            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
+        });
+        addNative(Arrays.asList("SaveReal", "__wurst_SaveReal"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_real = t end"));
+            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
+        });
+        addNative(Arrays.asList("SaveStr", "__wurst_SaveStr"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_str = t end"));
+            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
         });
         addNative(withWurstPrefix(HASHTABLE_HANDLE_SAVE_NAMES), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then h[p] = {} end h[p][c] = i"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil then t = {}; h.__wurst_ht_handle = t end"));
+            f.getBody().add(LuaAst.LuaLiteral("if not t[p] then t[p] = {} end t[p][c] = i"));
         });
 
         addNative(Arrays.asList("LoadInteger", "__wurst_LoadInteger"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return 0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = h[p][c]"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return 0 end"));
+            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
             f.getBody().add(LuaAst.LuaLiteral("if v == nil then return 0 end"));
             f.getBody().add(LuaAst.LuaLiteral("return v"));
         });
@@ -270,8 +301,9 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return false end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = h[p][c]"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return false end"));
+            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
             f.getBody().add(LuaAst.LuaLiteral("if v == nil then return false end"));
             f.getBody().add(LuaAst.LuaLiteral("return v"));
         });
@@ -280,8 +312,9 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return 0.0 end"));
-            f.getBody().add(LuaAst.LuaLiteral("local v = h[p][c]"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return 0.0 end"));
+            f.getBody().add(LuaAst.LuaLiteral("local v = t[p][c]"));
             f.getBody().add(LuaAst.LuaLiteral("if v == nil then return 0.0 end"));
             f.getBody().add(LuaAst.LuaLiteral("return v"));
         });
@@ -290,44 +323,108 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("return h[p][c]"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("return t[p][c]"));
         });
         addNative(withWurstPrefix(HASHTABLE_HANDLE_LOAD_NAMES), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return nil end"));
-            f.getBody().add(LuaAst.LuaLiteral("return h[p][c]"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
+            f.getBody().add(LuaAst.LuaLiteral("if t == nil or t[p] == nil then return nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("return t[p][c]"));
         });
 
-        addNative(Arrays.asList(
-            "HaveSavedInteger", "HaveSavedBoolean", "HaveSavedReal", "HaveSavedString", "HaveSavedHandle",
-            "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString", "__wurst_HaveSavedHandle"), f -> {
+        addNative(Arrays.asList("HaveSavedInteger", "__wurst_HaveSavedInteger"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return h[p] ~= nil and h[p][c] ~= nil"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
+            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
+        });
+        addNative(Arrays.asList("HaveSavedBoolean", "__wurst_HaveSavedBoolean"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
+            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
+        });
+        addNative(Arrays.asList("HaveSavedReal", "__wurst_HaveSavedReal"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
+            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
+        });
+        addNative(Arrays.asList("HaveSavedString", "__wurst_HaveSavedString"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
+            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
+        });
+        addNative(Arrays.asList("HaveSavedHandle", "__wurst_HaveSavedHandle"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
+            f.getBody().add(LuaAst.LuaLiteral("return t ~= nil and t[p] ~= nil and t[p][c] ~= nil"));
         });
 
         addNative(Arrays.asList("FlushChildHashtable", "__wurst_FlushChildHashtable"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("h[p] = nil"));
+            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_int then h.__wurst_ht_int[p] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_bool then h.__wurst_ht_bool[p] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_real then h.__wurst_ht_real[p] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_str then h.__wurst_ht_str[p] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("if h.__wurst_ht_handle then h.__wurst_ht_handle[p] = nil end"));
         });
 
         addNative(Arrays.asList("FlushParentHashtable", "__wurst_FlushParentHashtable"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("for k in pairs(h) do h[k] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_int = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_bool = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_real = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_str = {}"));
+            f.getBody().add(LuaAst.LuaLiteral("h.__wurst_ht_handle = {}"));
         });
 
-        addNative(Arrays.asList(
-            "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString", "RemoveSavedHandle",
-            "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString", "__wurst_RemoveSavedHandle"), f -> {
+        addNative(Arrays.asList("RemoveSavedInteger", "__wurst_RemoveSavedInteger"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("if h[p] then h[p][c] = nil end"));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_int"));
+            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
+        });
+        addNative(Arrays.asList("RemoveSavedBoolean", "__wurst_RemoveSavedBoolean"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_bool"));
+            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
+        });
+        addNative(Arrays.asList("RemoveSavedReal", "__wurst_RemoveSavedReal"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_real"));
+            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
+        });
+        addNative(Arrays.asList("RemoveSavedString", "__wurst_RemoveSavedString"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_str"));
+            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
+        });
+        addNative(Arrays.asList("RemoveSavedHandle", "__wurst_RemoveSavedHandle"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("local t = h.__wurst_ht_handle"));
+            f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
         });
 
         addNative("typeIdToTypeName", f -> {

@@ -661,6 +661,37 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void hashtableHelpersEmitPerTypeBucketsInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    h.saveInt(1, 2, 7)",
+            "    h.saveReal(1, 2, 3.5)",
+            "    h.saveString(1, 2, \"x\")",
+            "    h.saveAbilityHandle(1, 2, null)",
+            "    let i = h.loadInt(1, 2)",
+            "    let r = h.loadReal(1, 2)",
+            "    let s = h.loadString(1, 2)",
+            "    let a = h.loadAbilityHandle(1, 2)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHelpersEmitPerTypeBucketsInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_handle", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveInteger", "h.__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveReal", "h.__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveStr", "h.__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveAbilityHandle", "h.__wurst_ht_handle", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "h.__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadReal", "h.__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadStr", "h.__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
+    }
+
+    @Test
     public void luaFunctionRefWrapperForwardsVarargs() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
