@@ -97,6 +97,28 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
     @Test
+    public void testContinueOutsideLoop() {
+        assertError(false, "Continue statements must be used inside a loop.",
+                "continue"
+        );
+    }
+
+    @Test
+    public void testWhileContinue() {
+        assertOk(true,
+                "int x = 0",
+                "int sum = 0",
+                "while x < 5",
+                "	x++",
+                "	if x mod 2 == 1",
+                "		continue",
+                "	sum += x",
+                "if sum == 6",
+                "	testSuccess()",
+                "");
+    }
+
+    @Test
     public void testFor1() {
         assertOk(true,
                 "int x = 0",
@@ -125,6 +147,32 @@ public class SimpleStatementTests extends WurstScriptTest {
                 "for int i = 0 to 10 step 3",
                 "	x = x + i",
                 "if x == 18",
+                "	testSuccess()",
+                "");
+    }
+
+    @Test
+    public void testForContinueUp() {
+        assertOk(true,
+                "int sum = 0",
+                "for int i = 1 to 6",
+                "	if i mod 2 == 1",
+                "		continue",
+                "	sum += i",
+                "if sum == 12",
+                "	testSuccess()",
+                "");
+    }
+
+    @Test
+    public void testForContinueDown() {
+        assertOk(true,
+                "int sum = 0",
+                "for int i = 6 downto 1",
+                "	if i mod 2 == 0",
+                "		continue",
+                "	sum += i",
+                "if sum == 9",
                 "	testSuccess()",
                 "");
     }
@@ -268,6 +316,48 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
     @Test
+    public void testForInContinue() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class IntList",
+                "	static int array elements",
+                "	int size = 0",
+                "	private function getOffset() returns int",
+                "		return 64*((this castTo int)-1)",
+                "	function add(int x) returns IntList",
+                "		elements[getOffset() + size] = x",
+                "		size++",
+                "		return this",
+                "	function get(int i) returns int",
+                "		return elements[getOffset() + i]",
+                "	function iterator() returns IntListIterator",
+                "		return new IntListIterator(this)",
+                "class IntListIterator",
+                "	IntList list",
+                "	int pos = 0",
+                "	construct(IntList list)",
+                "		this.list = list",
+                "	function hasNext() returns boolean",
+                "		return pos < list.size",
+                "	function next() returns int",
+                "		pos++",
+                "		return list.get(pos-1)",
+                "	function close()",
+                "		destroy this",
+                "init",
+                "	IntList list = new IntList().add(1).add(2).add(3).add(4)",
+                "	int sum = 0",
+                "	for int i in list",
+                "		if i mod 2 == 0",
+                "			continue",
+                "		sum += i",
+                "	if sum == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void testForFrom_once() {
         // for-from expression should be evaluated only once
         testAssertOkLines(true,
@@ -289,6 +379,29 @@ public class SimpleStatementTests extends WurstScriptTest {
                 "		testSuccess()"
         );
 
+    }
+
+    @Test
+    public void testForFromContinue() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "	int x = 0",
+                "	function next() returns int",
+                "		x++",
+                "		return x",
+                "	function hasNext() returns boolean",
+                "		return x < 5",
+                "init",
+                "	int sum = 0",
+                "	for i from new C()",
+                "		if i mod 2 == 0",
+                "			continue",
+                "		sum += i",
+                "	if sum == 9",
+                "		testSuccess()"
+        );
     }
 
     @Test

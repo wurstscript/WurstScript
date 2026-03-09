@@ -423,6 +423,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_StmtContinue(StmtContinue stmtContinue) {
+            return string("continue: skips the rest of the current loop iteration.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ConstructorDef(ConstructorDef constr) {
             return description(constr);
         }

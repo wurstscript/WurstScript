@@ -42,5 +42,34 @@ public class LuaNativesTests {
         assertTrue(rendered.contains("for i,a in ipairs(t.actions) do a() end"));
         assertTrue(rendered.contains("return true"));
     }
-}
 
+    @Test
+    public void initHashtableCreatesPerTypeBuckets() {
+        String rendered = renderNative("__wurst_InitHashtable");
+        assertTrue(rendered.contains("__wurst_ht_int"));
+        assertTrue(rendered.contains("__wurst_ht_bool"));
+        assertTrue(rendered.contains("__wurst_ht_real"));
+        assertTrue(rendered.contains("__wurst_ht_str"));
+        assertTrue(rendered.contains("__wurst_ht_handle"));
+    }
+
+    @Test
+    public void hashtableSavesUseTypeSpecificBuckets() {
+        String saveInt = renderNative("__wurst_SaveInteger");
+        String saveReal = renderNative("__wurst_SaveReal");
+        String saveHandle = renderNative("__wurst_SaveAbilityHandle");
+        assertTrue(saveInt.contains("h.__wurst_ht_int"));
+        assertTrue(saveReal.contains("h.__wurst_ht_real"));
+        assertTrue(saveHandle.contains("h.__wurst_ht_handle"));
+    }
+
+    @Test
+    public void hashtableLoadsUseTypeSpecificBuckets() {
+        String loadInt = renderNative("__wurst_LoadInteger");
+        String loadStr = renderNative("__wurst_LoadStr");
+        String loadHandle = renderNative("__wurst_LoadAbilityHandle");
+        assertTrue(loadInt.contains("h.__wurst_ht_int"));
+        assertTrue(loadStr.contains("h.__wurst_ht_str"));
+        assertTrue(loadHandle.contains("h.__wurst_ht_handle"));
+    }
+}

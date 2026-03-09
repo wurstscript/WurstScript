@@ -213,13 +213,8 @@ public class LanguageWorker implements Runnable {
                         FileReconcile fr = (FileReconcile) change;
                         affected = modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
                     } else if (change instanceof FileSystemUpdated || change instanceof FileDeleted) {
-                        // Dependency roots may have changed (e.g. grill install), refresh and sync incrementally.
-                        modelManager.refreshDependencies();
-                        if (change instanceof FileDeleted) {
-                            affected = modelManager.removeCompilationUnit(change.getFilename());
-                        } else {
-                            affected = modelManager.syncCompilationUnit(change.getFilename());
-                        }
+                        // Dependency roots may have changed (e.g. grill install), sync full dependency state.
+                        affected = modelManager.syncDependencyCompilationUnits();
                     } else {
                         // Editor-triggered updates (save/close) use the normal incremental path.
                         affected = modelManager.syncCompilationUnit(change.getFilename());

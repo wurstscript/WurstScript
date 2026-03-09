@@ -10,6 +10,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -123,7 +125,9 @@ public class ClosureTranslator {
             public void visit(ImVarAccess va) {
                 super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
-                    throw new CompileError(va.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + va.getVar().getName());
+                    throw new CompileError(bestCaptureErrorPos(va),
+                        "Anonymous functions used as 'code' cannot capture variables. Captured "
+                            + va.getVar().getName() + closureDebugContext());
                 }
             }
 
@@ -131,10 +135,47 @@ public class ClosureTranslator {
             public void visit(ImSet s) {
                 super.visit(s);
                 if (isLocalToOtherFunc(s.getLeft())) {
-                    throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft());
+                    throw new CompileError(bestCaptureErrorPos(s),
+                        "Anonymous functions used as 'code' cannot capture variables. Captured "
+                            + s.getLeft() + closureDebugContext());
                 }
             }
         });
+    }
+
+    private String closureDebugContext() {
+        String pos = "<unknown>";
+        WPos p = e.attrErrorPos();
+        if (isUsableSource(p)) {
+            pos = p.printShort();
+        }
+        String nearestFunc = e.attrNearestFuncDef() == null ? "<none>" : e.attrNearestFuncDef().getName();
+        String nearestPkg = e.attrNearestPackage() == null ? "<none>" : Utils.printElement(e.attrNearestPackage());
+        return " [closure=" + pos
+            + ", expectedType=" + e.attrExpectedTypAfterOverloading()
+            + ", closureType=" + e.attrTyp()
+            + ", nearestFunc=" + nearestFunc
+            + ", nearestPackage=" + nearestPkg + "]";
+    }
+
+    private WPos bestCaptureErrorPos(ImStmt s) {
+        WPos src = s.attrTrace().attrSource();
+        if (isUsableSource(src)) {
+            return src;
+        }
+        return e.attrErrorPos();
+    }
+
+    private WPos bestCaptureErrorPos(ImVarAccess va) {
+        WPos src = va.attrTrace().attrSource();
+        if (isUsableSource(src)) {
+            return src;
+        }
+        return e.attrErrorPos();
+    }
+
+    private boolean isUsableSource(WPos pos) {
+        return pos != null && pos.getLine() > 0 && pos.getFile() != null && !pos.getFile().isEmpty();
     }
 
 
@@ -247,6 +288,7 @@ public class ClosureTranslator {
      */
     private void transformTranslated(ImExpr t) {
         final List<ImVarAccess> vas = Lists.newArrayList();
+        final List<ImVarAccess> thisVarAccessesToRewrite = Lists.newArrayList();
         final List<ImMemberAccess> receiversToRewrite = Lists.newArrayList();
         ImVar closureThisVar = tr.getThisVar(e);
 
@@ -256,6 +298,14 @@ public class ClosureTranslator {
                 super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
                     vas.add(va);
+                    return;
+                }
+                if (capturedThisField != null && va.getVar() == closureThisVar) {
+                    // Explicit `this` used inside a closure (e.g. "var cur = this")
+                    // must refer to captured outer this, not the synthetic closure instance.
+                    if (!isReceiverInMemberAccess(va)) {
+                        thisVarAccessesToRewrite.add(va);
+                    }
                 }
             }
 
@@ -277,9 +327,20 @@ public class ClosureTranslator {
             va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
         }
 
+        for (ImVarAccess va : thisVarAccessesToRewrite) {
+            va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), capturedThisField, JassIm.ImExprs()));
+        }
+
         for (ImMemberAccess ma : receiversToRewrite) {
             ma.setReceiver(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), capturedThisField, JassIm.ImExprs()));
         }
+    }
+
+    private boolean isReceiverInMemberAccess(ImVarAccess va) {
+        if (va.getParent() instanceof ImMemberAccess ma) {
+            return ma.getReceiver() == va;
+        }
+        return false;
     }
 
     private void captureEnclosingThis() {

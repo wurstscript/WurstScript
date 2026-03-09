@@ -496,6 +496,8 @@ public class WurstValidator {
             }
             if (e instanceof StmtExitwhen)
                 visit((StmtExitwhen) e);
+            if (e instanceof StmtContinue)
+                visit((StmtContinue) e);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -617,6 +619,23 @@ public class WurstValidator {
             parent = parent.getParent();
         }
         exitwhen.addError("Break is not allowed outside of loop statements.");
+    }
+
+    private void visit(StmtContinue stmtContinue) {
+        Element parent = stmtContinue.getParent();
+        while (!(parent instanceof FunctionDefinition)) {
+            if (parent instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) parent;
+                if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
+                    stmtContinue.addError("Cannot use continue in vararg for each loops.");
+                }
+                return;
+            } else if (parent instanceof LoopStatement) {
+                return;
+            }
+            parent = parent.getParent();
+        }
+        stmtContinue.addError("Continue is not allowed outside of loop statements.");
     }
 
     private void checkTupleDef(TupleDef e) {
@@ -1015,10 +1034,11 @@ public class WurstValidator {
         if (expectedTyp instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
+                String codeLambdaContext = codeLambdaContext(e);
                 for (Map.Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
 
                     elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName()
-                        + "' in anonymous function. This is only possible with closures.");
+                        + "' in anonymous function" + codeLambdaContext + ". This is only possible with closures.");
                 }
             }
         } else if (expectedTyp instanceof WurstTypeUnknown || expectedTyp instanceof WurstTypeClosure) {
@@ -1063,6 +1083,21 @@ public class WurstValidator {
             }
         }
 
+    }
+
+    private static String codeLambdaContext(ExprClosure e) {
+        Element parent = e.getParent();
+        if (parent instanceof Arguments args) {
+            Element call = args.getParent();
+            if (call instanceof StmtCall stmtCall) {
+                String funcName = stmtCall instanceof FunctionCall fc ? fc.getFuncName() : "<unknown>";
+                if (stmtCall instanceof ExprMemberMethod) {
+                    return " passed as code to ." + funcName + "() ->";
+                }
+                return " passed as code to " + funcName + "() ->";
+            }
+        }
+        return "";
     }
 
     private void checkConstructorsUnique(ClassOrModule c) {
@@ -1850,7 +1885,7 @@ public class WurstValidator {
     private void visit(StmtReturn s) {
         if (s.attrNearestExprStatementsBlock() != null) {
             ExprStatementsBlock e = s.attrNearestExprStatementsBlock();
-            if (e.getReturnStmt() != s) {
+            if (!isClosureImplementationBlock(e) && e.getReturnStmt() != s) {
                 s.addError("Return in a statements block can only be at the end.");
                 return;
             }
@@ -1870,6 +1905,11 @@ public class WurstValidator {
             }
             checkReturnInFunc(s, func);
         }
+    }
+
+    private boolean isClosureImplementationBlock(ExprStatementsBlock block) {
+        Element parent = block.getParent();
+        return parent instanceof ExprClosure && ((ExprClosure) parent).getImplementation() == block;
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {

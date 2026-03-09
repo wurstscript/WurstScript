@@ -34,6 +34,12 @@ public interface ModelManager {
      */
     void refreshDependencies();
 
+    /**
+     * refresh and synchronize all dependency compilation units.
+     * This handles dependency delete/replace/move/rename scenarios robustly.
+     */
+    Changes syncDependencyCompilationUnits();
+
     Changes syncCompilationUnit(WFile changedFilePath);
 
     Changes syncCompilationUnitContent(WFile filename, String contents);

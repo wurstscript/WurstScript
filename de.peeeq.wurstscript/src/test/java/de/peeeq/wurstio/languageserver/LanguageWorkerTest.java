@@ -109,8 +109,7 @@ public class LanguageWorkerTest {
                 new FileEvent(wFile.getUriString(), FileChangeType.Changed)
             )));
 
-            assertTrue(waitUntil(() -> mm.refreshDependencyCalls.get() >= 1, 2000), "dependency watcher changes should refresh dependency roots");
-            assertTrue(waitUntil(() -> mm.syncFileCalls.get() >= 1, 2000), "dependency watcher changes should sync changed file");
+            assertTrue(waitUntil(() -> mm.syncDependencyCalls.get() >= 1, 2000), "dependency watcher changes should sync dependency state");
             assertEquals(mm.cleanCalls.get(), 0, "dependency watcher changes should not clean");
             assertEquals(mm.buildCalls.get(), 0, "dependency watcher changes should not full rebuild");
         } finally {
@@ -238,6 +237,7 @@ public class LanguageWorkerTest {
         final AtomicInteger syncFileCalls = new AtomicInteger();
         final AtomicInteger syncContentCalls = new AtomicInteger();
         final AtomicInteger refreshDependencyCalls = new AtomicInteger();
+        final AtomicInteger syncDependencyCalls = new AtomicInteger();
         final AtomicInteger reconcileCalls = new AtomicInteger();
         final File projectPath;
 
@@ -272,6 +272,12 @@ public class LanguageWorkerTest {
         @Override
         public void refreshDependencies() {
             refreshDependencyCalls.incrementAndGet();
+        }
+
+        @Override
+        public Changes syncDependencyCompilationUnits() {
+            syncDependencyCalls.incrementAndGet();
+            return Changes.empty();
         }
 
         @Override

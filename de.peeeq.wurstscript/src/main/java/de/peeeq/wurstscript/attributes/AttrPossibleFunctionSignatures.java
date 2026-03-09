@@ -85,8 +85,14 @@ public class AttrPossibleFunctionSignatures {
                 fc.getErrorHandler().sendError(c);
             }
         }
-
-        return ImmutableList.copyOf(inferred);
+        ImmutableList.Builder<FunctionSignature> result = ImmutableList.builder();
+        for (int i = 0; i < n; i++) {
+            var r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
+            if (r.getBadness() == bestBad) {
+                result.add(inferred[i]);
+            }
+        }
+        return result.build();
     }
 
 

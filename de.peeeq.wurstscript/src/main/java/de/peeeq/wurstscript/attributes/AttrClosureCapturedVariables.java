@@ -62,7 +62,8 @@ public class AttrClosureCapturedVariables {
 
     private static boolean isLocalVariable(NameDef def) {
         return def instanceof LocalVarDef
-                || def instanceof WParameter && !(def.getParent().getParent() instanceof TupleDef);
+                || def instanceof WParameter && !(def.getParent().getParent() instanceof TupleDef)
+                || def instanceof WShortParameter;
 
     }
 

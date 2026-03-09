@@ -59,6 +59,17 @@ public class Flow {
         return next;
     }
 
+    public static List<WStatement> getNext(StmtContinue s) {
+        LoopStatement loop = getParentLoopStatement(s);
+        if (loop == null) {
+            s.addError("Continue statements must be used inside a loop.");
+            return Collections.emptyList();
+        }
+        List<WStatement> next = loop.attrAfterBodyStatements();
+        setPrevios(s, next);
+        return next;
+    }
+
     private static boolean isConstantBool(Expr cond, boolean value) {
         return cond instanceof ExprBoolVal && ((ExprBoolVal) cond).getValB() == value;
     }

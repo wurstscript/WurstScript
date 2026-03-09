@@ -8,6 +8,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +65,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("Pattern must not occur: " + regex, matcher.find());
     }
 
+    private void assertContainsRegex(String output, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(output);
+        assertTrue("Pattern must occur: " + regex, matcher.find());
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -73,6 +81,47 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_testStdLib.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
+        assertTrue(compiled.contains("function __wurst_InitHashtable("));
+        assertTrue(compiled.contains("function __wurst_SaveInteger("));
+        assertTrue(compiled.contains("function __wurst_LoadInteger("));
+        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "return 0", true);
+    }
+
+    @Test
+    public void continueLoweringInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    int i = 0",
+            "    int sum = 0",
+            "    while i < 5",
+            "        i++",
+            "        if i mod 2 == 0",
+            "            continue",
+            "        sum += i",
+            "    if sum == 9",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_continueLoweringInLua.lua"), Charsets.UTF_8);
+        assertTrue("expected continue lowering helper flag in lua output", compiled.contains("continueFlag_"));
+    }
+
+    @Test
+    public void noContinueDoesNotEmitContinueFlagInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    int i = 0",
+            "    while i < 3",
+            "        i++",
+            "        if i > 10",
+            "            skip",
+            "    testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_noContinueDoesNotEmitContinueFlagInLua.lua"), Charsets.UTF_8);
+        assertFalse("continue flag helper should not be emitted when no continue is present", compiled.contains("continueFlag_"));
     }
 
     @Ignore
@@ -198,6 +247,69 @@ public class LuaTranslationTests extends WurstScriptTest {
         // strings use the stringConcat function in lua instead of + operator
         assertFunctionBodyContains(compiled, "test", "+", false);
         assertFunctionBodyContains(compiled, "test", "stringConcat", true);
+    }
+
+    @Test
+    public void numericOpsDoNotUseGlobalEnsureWrapping() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "function cmp(int a, int b) returns boolean",
+            "    return a < b",
+            "function divi(int a, int b) returns int",
+            "    return a div b",
+            "function addi(int a, int b) returns int",
+            "    return a + b",
+            "init",
+            "    cmp(1, 2)",
+            "    divi(2, 1)",
+            "    addi(1, 2)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_numericOpsDoNotUseGlobalEnsureWrapping.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "cmp", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "cmp", "realEnsure", false);
+        assertFunctionBodyContains(compiled, "divi", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "divi", "realEnsure", false);
+        assertFunctionBodyContains(compiled, "addi", "intEnsure", false);
+        assertFunctionBodyContains(compiled, "addi", "realEnsure", false);
+    }
+
+    @Test
+    public void lazyGenericClosureDispatchWorksInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "public function lazy<T:>(Lazy<T> l) returns Lazy<T>",
+            "    return l",
+            "public abstract class Lazy<T:>",
+            "    T val = null",
+            "    var wasRetrieved = false",
+            "    abstract function retrieve() returns T",
+            "    function get() returns T",
+            "        if not wasRetrieved",
+            "            val = retrieve()",
+            "            wasRetrieved = true",
+            "        return val",
+            "init",
+            "    let l = lazy<int>(() -> 5)",
+            "    if l.get() == 5",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_lazyGenericClosureDispatchWorksInLua.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("Lazy_lazy_Test.Lazy_retrieve ="));
+        assertTrue(compiled.contains("l:Lazy_get()"));
+    }
+
+    @Test
+    public void stringArrayReadIsEnsured() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "string array playerName",
+            "init",
+            "    let i = 0",
+            "    SetPlayerName(Player(i), playerName[i])"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*stringEnsure\\(");
     }
 
     @Test
@@ -350,6 +462,49 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void newGenericsDoNotUseOldTypecastHelpersInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class C",
+            "function id<T>(T x) returns T",
+            "    return x",
+            "function testGeneric()",
+            "    let c = new C()",
+            "    let c2 = id<C>(c)",
+            "    if c2 == null",
+            "        skip",
+            "init",
+            "    testGeneric()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsDoNotUseOldTypecastHelpersInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectToIndex", false);
+        assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectFromIndex", false);
+    }
+
+    @Test
+    public void largeFunctionSpillsLocalsIntoTableInLua() throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("function huge()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 210; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    huge()");
+
+        test().testLua(true).lines(lines.toArray(new String[0]));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_largeFunctionSpillsLocalsIntoTableInLua.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("function huge("));
+        assertTrue(compiled.contains("__wurst_locals"));
+        assertFalse(compiled.contains("local v0"));
+        assertFalse(compiled.contains("local v209"));
+    }
+
+    @Test
     public void reflectionNativesStubbedForLua() throws IOException {
         test().testLua(true).lines(
             "package Test",
@@ -465,6 +620,180 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bLoadReal\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadStr\\(");
         assertDoesNotContainRegex(compiled, "\\bFlushChildHashtable\\(");
+        assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
+        assertTrue(compiled.contains("function __wurst_HaveSavedHandle("));
+    }
+
+    @Test
+    public void hashtableHandleExtensionsUseWurstLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    if h.hasHandle(1, 2)",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
+        assertTrue(compiled.contains("Wurst experimental Lua assertion guards"));
+    }
+
+    @Test
+    public void hashtableHandleLoadSaveUseWurstLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    h.saveAbilityHandle(1, 2, null)",
+            "    let a = h.loadAbilityHandle(1, 2)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleLoadSaveUseWurstLuaHelpers.lua"), Charsets.UTF_8);
+        assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
+        assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_SaveAbilityHandle\\(");
+        assertContainsRegex(compiled, "\\b__wurst_LoadAbilityHandle\\(");
+    }
+
+    @Test
+    public void hashtableHelpersEmitPerTypeBucketsInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import Hashtable",
+            "init",
+            "    let h = InitHashtable()",
+            "    h.saveInt(1, 2, 7)",
+            "    h.saveReal(1, 2, 3.5)",
+            "    h.saveString(1, 2, \"x\")",
+            "    h.saveAbilityHandle(1, 2, null)",
+            "    let i = h.loadInt(1, 2)",
+            "    let r = h.loadReal(1, 2)",
+            "    let s = h.loadString(1, 2)",
+            "    let a = h.loadAbilityHandle(1, 2)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHelpersEmitPerTypeBucketsInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_InitHashtable", "__wurst_ht_handle", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveInteger", "h.__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveReal", "h.__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveStr", "h.__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_SaveAbilityHandle", "h.__wurst_ht_handle", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "h.__wurst_ht_int", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadReal", "h.__wurst_ht_real", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadStr", "h.__wurst_ht_str", true);
+        assertFunctionBodyContains(compiled, "__wurst_LoadAbilityHandle", "h.__wurst_ht_handle", true);
+    }
+
+    @Test
+    public void luaFunctionRefWrapperForwardsVarargs() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let f = CreateForce()",
+            "    ForForce(f, () -> skip)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("xpcall(function (...)"));
+        assertTrue(compiled.contains(", ...)"));
+        assertFalse(compiled.contains("local temp = ..."));
+        assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
+    }
+
+    @Test
+    public void forForceIsRemappedToWurstHelperInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let f = CreateForce()",
+            "    ForForce(f, () -> begin",
+            "        if GetEnumPlayer() != null",
+            "            skip",
+            "    end)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_forForceIsRemappedToWurstHelperInLua.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "\\b__wurst_ForForce\\(");
+        assertContainsRegex(compiled, "\\b__wurst_GetEnumPlayer\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForForce\\s*\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_GetEnumPlayer\\s*\\(");
+    }
+
+    @Test
+    public void nestedForForceUsesRemappedHelpersInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "force g",
+            "function inner()",
+            "    ForForce(g, () -> begin",
+            "        if GetEnumPlayer() != null",
+            "            skip",
+            "    end)",
+            "init",
+            "    g = CreateForce()",
+            "    ForForce(g, () -> inner())"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nestedForForceUsesRemappedHelpersInLua.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForForce\\s*\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_GetEnumPlayer\\s*\\(");
+        Matcher forForceCalls = Pattern.compile("\\b__wurst_ForForce\\s*\\(").matcher(compiled);
+        int count = 0;
+        while (forForceCalls.find()) {
+            count++;
+        }
+        assertTrue("expected at least two remapped __wurst_ForForce call sites for nested loops", count >= 2);
+    }
+
+    @Test
+    public void wurstGetEnumPlayerPrefersNativeBeforeOverride() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let f = CreateForce()",
+            "    ForForce(f, () -> begin",
+            "        if GetEnumPlayer() != null",
+            "            skip",
+            "    end)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_wurstGetEnumPlayerPrefersNativeBeforeOverride.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+__wurst_GetEnumPlayer\\s*\\(\\)");
+        assertContainsRegex(compiled, "if GetEnumPlayer ~= nil then\\s+local p = GetEnumPlayer\\(\\)\\s+if p ~= nil then return p end\\s+end\\s+if __wurst_enumPlayer_override ~= nil then return __wurst_enumPlayer_override end");
+    }
+
+    @Test
+    public void groupItemDestructableCallbacksUseWurstContextHelpersInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let g = CreateGroup()",
+            "    ForGroup(g, () -> begin",
+            "        if GetEnumUnit() != null",
+            "            skip",
+            "    end)",
+            "    EnumItemsInRect(null, null, () -> begin",
+            "        if GetEnumItem() != null",
+            "            skip",
+            "    end)",
+            "    EnumDestructablesInRect(null, null, () -> begin",
+            "        if GetEnumDestructable() != null",
+            "            skip",
+            "    end)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_groupItemDestructableCallbacksUseWurstContextHelpersInLua.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "\\b__wurst_ForGroup\\(");
+        assertContainsRegex(compiled, "\\b__wurst_GetEnumUnit\\(");
+        assertContainsRegex(compiled, "\\b__wurst_EnumItemsInRect\\(");
+        assertContainsRegex(compiled, "\\b__wurst_GetEnumItem\\(");
+        assertContainsRegex(compiled, "\\b__wurst_EnumDestructablesInRect\\(");
+        assertContainsRegex(compiled, "\\b__wurst_GetEnumDestructable\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForGroup\\s*\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumItemsInRect\\s*\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumDestructablesInRect\\s*\\(");
     }
 
     @Test
@@ -495,6 +824,25 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaErrorWrapperIgnoresAbortSentinel.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("if err == \"__wurst_abort_thread\" then return end"));
         assertTrue(compiled.contains("if err2 == \"__wurst_abort_thread\" then return end"));
+    }
+
+    @Test
+    public void removesUnusedClassesFromLuaOutput() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class Keep",
+            "    function ping()",
+            "        skip",
+            "class Drop",
+            "    function pong()",
+            "        skip",
+            "init",
+            "    let k = new Keep()",
+            "    k.ping()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_removesUnusedClassesFromLuaOutput.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("Keep"));
+        assertFalse(compiled.contains("Drop"));
     }
 
 }

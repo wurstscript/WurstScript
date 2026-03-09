@@ -548,6 +548,30 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void inlayHintsDoNotCrashOnCascadeCodeLambdaWithMissingTarget() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "class TriggerWrap",
+                "    function addAction(code c)",
+                "        skip",
+                "init",
+                "    let t = new TriggerWrap()",
+                "        ..missing() ->",
+                "            skip",
+                "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+        assertNotNull(hints);
+    }
+
+    @Test
     public void prepareRenameReturnsSymbolRange() throws IOException {
         CompletionTestData data = input(
                 "package test",
