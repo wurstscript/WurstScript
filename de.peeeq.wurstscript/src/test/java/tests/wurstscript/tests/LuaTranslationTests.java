@@ -440,6 +440,30 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturningMethodNamedFromIndexIsNotTypecastWrapper() throws IOException {
+        test().testLua(true).lines(
+            "package TupleFromIndexRepro",
+            "public tuple vec2(real x, real y)",
+            "public tuple searchResult(boolean found, vec2 pos)",
+            "public constant ZERO2 = vec2(0., 0.)",
+            "public class A",
+            "    function next() returns searchResult",
+            "        return nextFromIndex(1)",
+            "    function nextFromIndex(int startIndex) returns searchResult",
+            "        return searchResult(false, ZERO2)",
+            "public class B extends A",
+            "init",
+            "    let b = new B()",
+            "    let r = b.next()",
+            "    if r.found",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_tupleReturningMethodNamedFromIndexIsNotTypecastWrapper.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+[^\\n]*nextFromIndex[^\\n]*\\(");
+        assertDoesNotContainRegex(compiled, "return\\s+__wurst_objectFromIndex\\s*\\(\\s*this\\s*\\)");
+    }
+
+    @Test
     public void oldGenericsCastingDoesNotUseGetHandleId() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",

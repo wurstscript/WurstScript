@@ -775,9 +775,12 @@ public class LuaTranslator {
         if (f.getParameters().isEmpty()) {
             return false;
         }
-        String tcFunc = f.getName();
-        ImVar p = f.getParameters().get(0);
-        LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(p));
+        String tcFunc = getTypeCastingFunctionName(f);
+        if (tcFunc == null) {
+            return false;
+        }
+        ImVar firstParam = f.getParameters().get(0);
+        LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
 
         if ("stringToIndex".equals(tcFunc)) {
             lf.getBody().clear();
@@ -801,17 +804,6 @@ public class LuaTranslator {
             return true;
         }
         if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
-            lf.getBody().clear();
-            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
-            return true;
-        }
-        // Final fallback for transformed/copied function names that may lose trace info:
-        if (tcFunc.endsWith("ToIndex")) {
-            lf.getBody().clear();
-            lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
-            return true;
-        }
-        if (tcFunc.endsWith("FromIndex")) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
             return true;
@@ -1099,13 +1091,6 @@ public class LuaTranslator {
             if ("TypeCasting".equals(p.getName())) {
                 return fd.getName();
             }
-        }
-        // Fallback: transformed/copied IM functions may lose package trace metadata.
-        // Keep Lua behavior stable by routing canonical *ToIndex/*FromIndex names anyway.
-        String name = f.getName();
-        if ("stringToIndex".equals(name) || "stringFromIndex".equals(name)
-            || name.endsWith("ToIndex") || name.endsWith("FromIndex")) {
-            return name;
         }
         return null;
     }

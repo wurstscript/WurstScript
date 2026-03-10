@@ -125,6 +125,20 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_selfReference_withIt_assignmentNoCrash() {
+        testAssertOkLines(false,
+                "package test",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc f = (int n) -> begin",
+                "        IntFunc x = it",
+                "        x = it",
+                "        return n",
+                "    end");
+    }
+
+    @Test
     public void closure_begin_end1() {
         testAssertOkLines(true,
                 "package test",

@@ -1229,7 +1229,10 @@ public class WurstValidator {
             NameRef vb = (NameRef) b;
             NameLink nla = va.attrNameLink();
             NameLink nlb = vb.attrNameLink();
-            if (nla != null && nlb != null && nla.getDef() == nlb.getDef()
+            if (nla != null && nlb != null
+                    && !(nla instanceof OtherLink)
+                    && !(nlb instanceof OtherLink)
+                    && nla.getDef() == nlb.getDef()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
                 if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
                     AstElementWithIndexes vai = (AstElementWithIndexes) va;
