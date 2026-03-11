@@ -1648,6 +1648,125 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
         }
+        checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
+    }
+
+    /**
+     * JASS compatibility shim: we currently synthesize "= null" for uninitialized non-primitive
+     * locals to avoid invalid emitted JASS. Still report likely user bugs early when such a local
+     * is read before its first explicit assignment in the input.
+     */
+    private void checkJassImplicitNullLocalsReadWithoutExplicitWrite(FunctionLike f) {
+        if (!Utils.isJassCode(f)) {
+            return;
+        }
+
+        List<LocalVarDef> implicitNullLocals = new ArrayList<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (isImplicitNullInit(localVarDef)) {
+                    implicitNullLocals.add(localVarDef);
+                }
+            }
+        });
+        if (implicitNullLocals.isEmpty()) {
+            return;
+        }
+
+        Set<LocalVarDef> implicitNullLocalSet = new HashSet<>(implicitNullLocals);
+        Map<LocalVarDef, StmtSet> firstExplicitWrite = new HashMap<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(StmtSet stmtSet) {
+                super.visit(stmtSet);
+                NameLink link = stmtSet.getUpdatedExpr().attrNameLink();
+                if (link != null && link.getDef() instanceof LocalVarDef) {
+                    LocalVarDef local = (LocalVarDef) link.getDef();
+                    if (!implicitNullLocalSet.contains(local)) {
+                        return;
+                    }
+                    StmtSet previous = firstExplicitWrite.get(local);
+                    if (previous == null
+                        || stmtSet.attrSource().getLeftPos() < previous.attrSource().getLeftPos()) {
+                        firstExplicitWrite.put(local, stmtSet);
+                    }
+                }
+            }
+        });
+
+        Set<LocalVarDef> readBeforeExplicitWrite = new HashSet<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprVarAccess varAccess) {
+                super.visit(varAccess);
+                NameLink link = varAccess.attrNameLink();
+                if (link == null || !(link.getDef() instanceof LocalVarDef)) {
+                    return;
+                }
+                LocalVarDef local = (LocalVarDef) link.getDef();
+                if (!implicitNullLocalSet.contains(local)) {
+                    return;
+                }
+                if (isWriteTarget(varAccess)) {
+                    return;
+                }
+                StmtSet firstWrite = firstExplicitWrite.get(local);
+                if (firstWrite == null) {
+                    readBeforeExplicitWrite.add(local);
+                    return;
+                }
+                StmtSet enclosingSet = nearestEnclosingStmtSet(varAccess);
+                if (enclosingSet == firstWrite) {
+                    readBeforeExplicitWrite.add(local);
+                    return;
+                }
+                if (varAccess.attrSource().getLeftPos() < firstWrite.attrSource().getLeftPos()) {
+                    readBeforeExplicitWrite.add(local);
+                }
+            }
+        });
+
+        for (LocalVarDef local : implicitNullLocals) {
+            if (readBeforeExplicitWrite.contains(local)) {
+                local.addWarning("Variable " + local.getName()
+                    + " is read before explicit initialization in input JASS; defaulting to null.");
+            }
+        }
+    }
+
+    private boolean isWriteTarget(ExprVarAccess varAccess) {
+        if (!(varAccess.getParent() instanceof StmtSet)) {
+            return false;
+        }
+        StmtSet set = (StmtSet) varAccess.getParent();
+        return set.getUpdatedExpr() == varAccess;
+    }
+
+    private @Nullable StmtSet nearestEnclosingStmtSet(Element e) {
+        Element current = e.getParent();
+        while (current != null) {
+            if (current instanceof StmtSet) {
+                return (StmtSet) current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private boolean isImplicitNullInit(LocalVarDef localVarDef) {
+        if (!(localVarDef.getInitialExpr() instanceof ExprNull)) {
+            return false;
+        }
+        // Synthetic null-inits created by the JASS parser use the exact local declaration source span.
+        return sameSourceSpan(localVarDef.getInitialExpr().attrSource(), localVarDef.attrSource());
+    }
+
+    private boolean sameSourceSpan(de.peeeq.wurstscript.parser.WPos a, de.peeeq.wurstscript.parser.WPos b) {
+        return a.getFile().equals(b.getFile())
+            && a.getLeftPos() == b.getLeftPos()
+            && a.getRightPos() == b.getRightPos();
     }
 
 
