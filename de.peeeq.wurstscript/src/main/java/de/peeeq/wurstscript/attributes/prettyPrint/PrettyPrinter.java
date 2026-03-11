@@ -876,7 +876,7 @@ public class PrettyPrinter {
         printCommentsBefore(sb, e, indent);
         printIndent(sb, indent);
         if ((e.getOptTyp() instanceof NoTypeExpr)) {
-            if (e.attrIsConstant()) {
+            if (e.attrIsConstant() && !(e.getParent() instanceof StmtForRange)) {
                 sb.append("let");
             } else if (!(e.getParent() instanceof StmtForRange)) {
                 sb.append("var");
