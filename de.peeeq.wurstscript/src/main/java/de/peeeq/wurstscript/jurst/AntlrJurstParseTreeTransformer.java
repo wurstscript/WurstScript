@@ -783,7 +783,7 @@ public class AntlrJurstParseTreeTransformer {
     private WStatement transformForRangeLoop(ForRangeLoopContext s) {
         WPos source = source(s);
         Expr start = transformExpr(s.start);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start, true);
         Expr to = transformExpr(s.end);
         Expr step;
         if (s.step == null) {
@@ -800,9 +800,12 @@ public class AntlrJurstParseTreeTransformer {
         throw error(s, "for range loop not implemented: " + text(s));
     }
 
-    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v, OptExpr initialExpr) {
-        // Loop variables behave like let-variables for user code.
-        Modifiers modifiers = Ast.Modifiers(Ast.ModConstant(source(v)));
+    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v, OptExpr initialExpr, boolean constant) {
+        Modifiers modifiers = Ast.Modifiers();
+        if (constant) {
+            // Range-loop variables behave like let-variables for user code.
+            modifiers.add(Ast.ModConstant(source(v)));
+        }
         OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
         Identifier name = text(v.name);
         return Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr);
@@ -810,7 +813,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private WStatement transformForIteratorLoop(ForIteratorLoopContext s) {
         WPos source = source(s);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, Ast.NoExpr());
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, Ast.NoExpr(), false);
         Expr in = transformExpr(s.iteratorExpr);
         WStatements body = transformStatements(s.statementsBlock());
         if (s.iterStyle.getType() == JurstParser.IN) {
