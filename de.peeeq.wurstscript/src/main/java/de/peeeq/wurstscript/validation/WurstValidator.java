@@ -1643,7 +1643,69 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("blizzard.j")
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
+            checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
         }
+    }
+
+    /**
+     * JASS compatibility shim: we currently synthesize "= null" for uninitialized non-primitive
+     * locals to avoid invalid emitted JASS. Still report likely user bugs early when such a local
+     * is read but never explicitly assigned in the input.
+     */
+    private void checkJassImplicitNullLocalsReadWithoutExplicitWrite(FunctionLike f) {
+        if (!Utils.isJassCode(f)) {
+            return;
+        }
+
+        List<LocalVarDef> implicitNullLocals = new ArrayList<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (isImplicitNullInit(localVarDef)) {
+                    implicitNullLocals.add(localVarDef);
+                }
+            }
+        });
+        if (implicitNullLocals.isEmpty()) {
+            return;
+        }
+
+        Set<LocalVarDef> explicitWrites = new HashSet<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(StmtSet stmtSet) {
+                super.visit(stmtSet);
+                NameLink link = stmtSet.getUpdatedExpr().attrNameLink();
+                if (link != null && link.getDef() instanceof LocalVarDef) {
+                    explicitWrites.add((LocalVarDef) link.getDef());
+                }
+            }
+        });
+
+        for (LocalVarDef local : implicitNullLocals) {
+            if (explicitWrites.contains(local)) {
+                continue;
+            }
+            if (f.attrReadVariables().contains(local)) {
+                local.addError("Variable " + local.getName()
+                    + " is read before explicit initialization in input JASS.");
+            }
+        }
+    }
+
+    private boolean isImplicitNullInit(LocalVarDef localVarDef) {
+        if (!(localVarDef.getInitialExpr() instanceof ExprNull)) {
+            return false;
+        }
+        // Synthetic null-inits created by the JASS parser use the exact local declaration source span.
+        return sameSourceSpan(localVarDef.getInitialExpr().attrSource(), localVarDef.attrSource());
+    }
+
+    private boolean sameSourceSpan(de.peeeq.wurstscript.parser.WPos a, de.peeeq.wurstscript.parser.WPos b) {
+        return a.getFile().equals(b.getFile())
+            && a.getLeftPos() == b.getLeftPos()
+            && a.getRightPos() == b.getRightPos();
     }
 
 

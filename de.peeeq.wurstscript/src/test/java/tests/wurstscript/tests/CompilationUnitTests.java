@@ -38,4 +38,32 @@ public class CompilationUnitTests extends WurstScriptTest {
                 ));
     }
 
+    @Test
+    public void jassLocalHandleDefaultsToNull() {
+        testAssertOkLinesWithStdLib(false,
+            "function tiw takes nothing returns nothing",
+            "local location uiw",
+            "set uiw = null",
+            "endfunction",
+            "package B",
+            "    init",
+            "        tiw()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void jassLocalHandleReadWithoutExplicitInitReportsEarly() {
+        testAssertErrorsLinesWithStdLib(false, "read before explicit initialization in input JASS",
+            "function tiw takes nothing returns nothing",
+            "local location uiw",
+            "call RemoveLocation(uiw)",
+            "endfunction",
+            "package B",
+            "    init",
+            "        tiw()",
+            "endpackage"
+        );
+    }
+
 }

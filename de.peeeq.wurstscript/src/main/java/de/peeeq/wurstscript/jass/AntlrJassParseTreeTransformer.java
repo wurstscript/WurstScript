@@ -15,9 +15,11 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 
 public class AntlrJassParseTreeTransformer {
+    private static final Set<String> JASS_PRIMITIVE_TYPES = Set.of("integer", "real", "boolean");
     private final String file;
     private final ErrorHandler cuErrorHandler;
     private final LineOffsets lineOffsets;
@@ -123,10 +125,21 @@ public class AntlrJassParseTreeTransformer {
             OptTypeExpr optTyp = transformOptionalType(l.jassTypeExpr());
             Identifier name = Ast.Identifier(source(l.name), l.name.getText());
             OptExpr initialExpr = transformOptionalExpr(l.initial);
+            if (l.initial == null && shouldDefaultLocalToNull(optTyp)) {
+                initialExpr = Ast.ExprNull(source(l));
+            }
             result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
                     initialExpr));
         }
         return result;
+    }
+
+    private boolean shouldDefaultLocalToNull(OptTypeExpr optTyp) {
+        if (!(optTyp instanceof TypeExprSimple)) {
+            return false;
+        }
+        String typeName = ((TypeExprSimple) optTyp).getTypeName();
+        return !JASS_PRIMITIVE_TYPES.contains(typeName);
     }
 
     private WStatements transformJassStatements(JassParser.JassStatementsContext stmts) {
