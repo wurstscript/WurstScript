@@ -1,10 +1,16 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ClassesTests extends WurstScriptTest {
 
@@ -39,6 +45,274 @@ public class ClassesTests extends WurstScriptTest {
     @Test
     public void classes_method() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_method.wurst"), true);
+    }
+
+    @Test
+    public void dispatchNarrowingUsesStaticReceiverTypeInJass() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    class B extends A",
+            "        override function bar() returns int",
+            "            return 2",
+            "",
+            "    class C extends A",
+            "",
+            "    function useC(C c) returns int",
+            "        return c.bar()",
+            "",
+            "    init",
+            "        let c = new C",
+            "        if useC(c) == 1",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingUsesStaticReceiverTypeInJass_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("dispatch_narrow_C_A_A_bar"),
+            "Expected narrowed dispatch function for receiver type C.");
+        assertTrue(jass.contains("return dispatch_narrow_C_A_A_bar(c)")
+                || jass.contains("call dispatch_narrow_C_A_A_bar"),
+            "Expected call site to use narrowed dispatch.");
+        assertFalse(jass.contains("return dispatch_A_A_bar(") && jass.contains("function useC"),
+            "Call site should not use full A dispatch for static receiver type C.");
+        assertFalse(jass.contains("call dispatch_A_A_bar"),
+            "Call site should not use full A dispatch for static receiver type C.");
+    }
+
+    @Test
+    public void dispatchNarrowingOnInterfaceSubtypeKeepsSemantics() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "",
+            "    interface A",
+            "        function f1() returns int",
+            "",
+            "    interface B extends A",
+            "        function f2() returns int",
+            "",
+            "    class C implements B",
+            "        override function f1() returns int",
+            "            return 3",
+            "        override function f2() returns int",
+            "            return 4",
+            "",
+            "    function useB(B b) returns int",
+            "        return b.f1()",
+            "",
+            "    function useA(A a) returns int",
+            "        return a.f1()",
+            "",
+            "    init",
+            "        B b = new C()",
+            "        A a = b",
+            "        if useB(b) == 3 and useA(a) == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchNarrowingOnInterfaceSubtypeKeepsSemantics_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+
+        assertTrue(jass.contains("function useB takes integer b returns integer"),
+            "Expected useB helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_narrow_B_A_A_f1(b)"),
+            "Expected B-typed call site to use narrowed dispatch.");
+        assertTrue(jass.contains("function useA takes integer a returns integer"),
+            "Expected useA helper in generated jass.");
+        assertTrue(jass.contains("return dispatch_A_A_f1(a)"),
+            "Expected A-typed call site to use regular A dispatch.");
+    }
+
+    @Test
+    public void repeatedCallsOnSameReceiverAreNotDispatchCachedYet() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    @extern native I2S(int x) returns string",
+            "    @extern native S2I(string x) returns int",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        r += a.bar()",
+            "        r += S2I(I2S(0))",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        let ua = useA(a)",
+            "        if ua == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File noOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_no_opts.j");
+        File optOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_opt.j");
+        String noOpt = Files.readString(noOptOut.toPath(), StandardCharsets.UTF_8);
+        String opt = Files.readString(optOut.toPath(), StandardCharsets.UTF_8);
+
+        int noOptDispatchCalls = countOccurrences(noOpt, "dispatch_A_A_bar(");
+        int optDispatchCalls = countOccurrences(opt, "dispatch_A_A_bar(");
+
+        assertTrue(noOptDispatchCalls >= 3,
+            "Expected at least three dispatch calls in no_opts output, found " + noOptDispatchCalls);
+        assertTrue(optDispatchCalls >= 3,
+            "Expected at least three dispatch calls in opt output, found " + optDispatchCalls);
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_repeatedCallsOnSameReceiverAreNotDispatchCachedYet_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount == 1,
+            "Expected inlopt output to contain a single dispatch guard, found " + inlOptGuardCount);
+    }
+
+    @Test
+    public void dispatchGuardNotDedupedAcrossRhsSideEffects() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        r = mutatingRhs(a)",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossRhsSideEffects_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across mutating RHS call, found " + inlOptGuardCount);
+    }
+
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossRhsSideEffectsStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        r = mutatingRhs(a)",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void dispatchGuardNotDedupedAcrossNestedMutatingExprStatement() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        function bar() returns int",
+            "            return 1",
+            "",
+            "    function mutatingRhs(A a) returns int",
+            "        destroy a",
+            "        return 0",
+            "",
+            "    function useA(A a) returns int",
+            "        int r = 0",
+            "        r += a.bar()",
+            "        int unused = mutatingRhs(a) + 0",
+            "        r += a.bar()",
+            "        return r",
+            "",
+            "    init",
+            "        let a = new A",
+            "        useA(a)",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        File inlOptOut = new File(TEST_OUTPUT_PATH + "ClassesTests_dispatchGuardNotDedupedAcrossNestedMutatingExprStatement_inlopt.j");
+        String inlOpt = Files.readString(inlOptOut.toPath(), StandardCharsets.UTF_8);
+        int inlOptGuardCount = countOccurrences(inlOpt, "if A_typeId[a] == 0 then");
+        assertTrue(inlOptGuardCount >= 2,
+            "Expected inlopt output to keep separate guards across nested mutating expr statement, found " + inlOptGuardCount);
+    }
+
+    @Test(expectedExceptions = DebugPrintError.class)
+    public void dispatchGuardAcrossNestedMutatingExprStatementStillThrowsAtRuntime() {
+        test().executeProg()
+            .executeProgOnlyAfterTransforms()
+            .lines(
+                "package test",
+                "    class A",
+                "        function bar() returns int",
+                "            return 1",
+                "",
+                "    function mutatingRhs(A a) returns int",
+                "        destroy a",
+                "        return 0",
+                "",
+                "    function useA(A a) returns int",
+                "        int r = 0",
+                "        r += a.bar()",
+                "        int unused = mutatingRhs(a) + 0",
+                "        r += a.bar()",
+                "        return r",
+                "",
+                "    init",
+                "        let a = new A",
+                "        useA(a)",
+                "endpackage"
+            );
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int c = 0;
+        int i = 0;
+        while ((i = text.indexOf(needle, i)) >= 0) {
+            c++;
+            i += needle.length();
+        }
+        return c;
     }
 
     @Test
@@ -692,6 +966,216 @@ public class ClassesTests extends WurstScriptTest {
             "			super(p)",
             "endpackage"
         );
+    }
+
+    @Test
+    public void constructor_chaining_basic() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct()",
+            "            this(3)",
+            "        construct(int i)",
+            "            x = i",
+            "    init",
+            "        let a = new A()",
+            "        if a.x == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_basic_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("function construct_A takes integer this returns nothing"),
+            "Expected delegating constructor function in generated jass.");
+        assertTrue(jass.contains("function construct_A2 takes integer this, integer i returns nothing"),
+            "Expected target constructor overload in generated jass.");
+        assertTrue(jass.contains("call construct_A2(this, 3)"),
+            "Expected delegating constructor to call target constructor.");
+        assertFalse(jass.contains("function construct_A takes integer this returns nothing\n\tcall A_init(this)"),
+            "Delegating constructor must not emit duplicate class init.");
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected class init to be emitted exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_vararg() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct()",
+            "            this(1, \"a\", \"b\")",
+            "        construct(int i, vararg string xs)",
+            "            x = i",
+            "            for s in xs",
+            "                x++",
+            "    init",
+            "        let a = new A()",
+            "        if a.x == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_vararg_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("call construct_A2_2(this, 1, \"a\", \"b\")"),
+            "Expected delegating constructor to pass concrete vararg arguments.");
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected vararg constructor chain to initialize class exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_must_be_first_statement() {
+        testAssertErrorsLines(false, "must be the first statement",
+            "package test",
+            "    class A",
+            "        construct()",
+            "            skip",
+            "            this(1)",
+            "        construct(int i)",
+            "            skip",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_self_call() {
+        testAssertErrorsLines(false, "cannot call itself",
+            "package test",
+            "    class A",
+            "        construct()",
+            "            this()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_and_super_conflict() {
+        testAssertErrorsLines(false, "Cannot call super(...) and this(...)",
+            "package test",
+            "    class A",
+            "        construct(int i)",
+            "            skip",
+            "    class B extends A",
+            "        construct()",
+            "            super(1)",
+            "            this(2)",
+            "        construct(int i)",
+            "            super(i)",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void constructor_chaining_extends_without_direct_super_call() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct(int i)",
+            "            x = i",
+            "    class B extends A",
+            "        construct()",
+            "            this(7)",
+            "        construct(int i)",
+            "            super(i)",
+            "    init",
+            "        let b = new B()",
+            "        if b.x == 7",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_extends_without_direct_super_call_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(jass.contains("call construct_B2(this, 7)"),
+            "Expected delegating constructor in subclass to call target constructor.");
+        assertTrue(jass.contains("call construct_A(this, i)"),
+            "Expected target constructor to emit super constructor call.");
+        assertTrue(jass.contains("call B_init(this)"),
+            "Expected subclass init call in target constructor.");
+        assertFalse(jass.contains("function construct_B takes integer this returns nothing\n\tcall B_init(this)"),
+            "Delegating subclass constructor must not emit duplicate subclass init.");
+        assertTrue(countOccurrences(jass, "call B_init(this)") == 1,
+            "Expected subclass init to be emitted exactly once.");
+    }
+
+    @Test
+    public void constructor_chaining_timing_and_sideeffects() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    int ticks = 0",
+            "    function tick() returns int",
+            "        ticks++",
+            "        return ticks",
+            "    class A",
+            "        int p = tick()",
+            "        int q = 0",
+            "        construct()",
+            "            this(7)",
+            "            q = tick()",
+            "            p += 100",
+            "        construct(int i)",
+            "            q = tick()",
+            "            p += i",
+            "    init",
+            "        let a = new A()",
+            "        if a.p == 108 and a.q == 3 and ticks == 3",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_timing_and_sideeffects_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(countOccurrences(jass, "call A_init(this)") == 1,
+            "Expected class init to run exactly once in constructor chain.");
+        int idxDelegatingCall = jass.indexOf("call construct_A2(this, 7)");
+        int idxDelegatingBody = jass.indexOf("set A_q[this] = tick()", idxDelegatingCall);
+        assertTrue(idxDelegatingCall >= 0 && idxDelegatingBody > idxDelegatingCall,
+            "Expected delegating constructor body to run after this(...) target call.");
+    }
+
+    @Test
+    public void constructor_chaining_subclass_timing_and_order() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 0",
+            "        construct(int i)",
+            "            x = i * 10",
+            "    class B extends A",
+            "        int y = 0",
+            "        construct()",
+            "            this(2)",
+            "            y += 1",
+            "            x += 1",
+            "        construct(int i)",
+            "            super(i)",
+            "            y += 10",
+            "            x += 2",
+            "    init",
+            "        let b = new B()",
+            "        if b.x == 23 and b.y == 11",
+            "            testSuccess()",
+            "endpackage"
+        );
+
+        File output = new File(TEST_OUTPUT_PATH + "ClassesTests_constructor_chaining_subclass_timing_and_order_no_opts.j");
+        String jass = Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        assertTrue(countOccurrences(jass, "call B_init(this)") == 1,
+            "Expected subclass init to run exactly once in constructor chain.");
+        int idxSuperCall = jass.indexOf("call construct_A(this, i)");
+        int idxBInitCall = jass.indexOf("call B_init(this)");
+        int idxYMutation = jass.indexOf("set B_y[this] = B_y[this] + 10");
+        assertTrue(idxSuperCall >= 0 && idxBInitCall > idxSuperCall && idxYMutation > idxBInitCall,
+            "Expected order super(...) -> B_init -> target constructor body in subclass constructor chain.");
     }
 
     @Test

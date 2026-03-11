@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.ClassManagementVars;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
@@ -51,6 +52,9 @@ public class CompiletimeFunctionRunner {
     private final ImTranslator translator;
     private boolean injectObjects;
     private final Deque<Runnable> delayedActions = new ArrayDeque<>();
+    private final Map<ClassManagementVars, List<CompiletimeObjectInit>> compiletimeObjects = new LinkedHashMap<>();
+    private final Map<String, Long> compiletimeFunctionNanos = new LinkedHashMap<>();
+    private long compiletimeExprNanos = 0L;
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -97,21 +101,30 @@ public class CompiletimeFunctionRunner {
 
     public void run() {
         try {
+            long t0 = System.nanoTime();
             List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
             collectCompiletimeExpressions(toExecute);
             collectCompiletimeFunctions(toExecute);
+            long tCollected = System.nanoTime();
 
             toExecute.sort(Comparator.comparing(this::getOrderIndex));
+            long tSorted = System.nanoTime();
 
             execute(toExecute);
+            long tExecuted = System.nanoTime();
 
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
+            long tWriteback = System.nanoTime();
             runDelayedActions();
+            emitCompiletimeObjectAllocs();
+            long tDelayed = System.nanoTime();
 
             partitionCompiletimeStateInitFunction();
+            long tPartitioned = System.nanoTime();
+            logCompiletimeTiming(toExecute, t0, tCollected, tSorted, tExecuted, tWriteback, tDelayed, tPartitioned);
 
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
@@ -134,6 +147,48 @@ public class CompiletimeFunctionRunner {
             }
         }
 
+    }
+
+    private void logCompiletimeTiming(List<Either<ImCompiletimeExpr, ImFunction>> toExecute,
+                                      long t0, long tCollected, long tSorted, long tExecuted,
+                                      long tWriteback, long tDelayed, long tPartitioned) {
+        int exprCount = 0;
+        int funcCount = 0;
+        for (Either<ImCompiletimeExpr, ImFunction> e : toExecute) {
+            if (e.isLeft()) {
+                exprCount++;
+            } else {
+                funcCount++;
+            }
+        }
+        WLogger.info(String.format(
+            "Compiletime breakdown: total=%dms collect=%dms sort=%dms execute=%dms writeback=%dms delayed=%dms partition=%dms funcs=%d exprs=%d exprEval=%dms",
+            ms(tPartitioned - t0),
+            ms(tCollected - t0),
+            ms(tSorted - tCollected),
+            ms(tExecuted - tSorted),
+            ms(tWriteback - tExecuted),
+            ms(tDelayed - tWriteback),
+            ms(tPartitioned - tDelayed),
+            funcCount,
+            exprCount,
+            ms(compiletimeExprNanos)
+        ));
+        if (!compiletimeFunctionNanos.isEmpty()) {
+            List<Map.Entry<String, Long>> top = compiletimeFunctionNanos.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(10)
+                .collect(Collectors.toList());
+            StringBuilder sb = new StringBuilder("Top compiletime functions:");
+            for (Map.Entry<String, Long> e : top) {
+                sb.append("\n  ").append(e.getKey()).append(": ").append(ms(e.getValue())).append("ms");
+            }
+            WLogger.info(sb.toString());
+        }
+    }
+
+    private static long ms(long nanos) {
+        return nanos / 1_000_000L;
     }
 
     private void partitionCompiletimeStateInitFunction() {
@@ -220,6 +275,7 @@ public class CompiletimeFunctionRunner {
 
 
     private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
+        long t0 = System.nanoTime();
         try {
             ProgramState globalState = interpreter.getGlobalState();
             globalState.setLastStatement(cte);
@@ -261,6 +317,8 @@ public class CompiletimeFunctionRunner {
             e.setStacktrace(msg);
             e.setTrace(cte.attrTrace());
             throw e;
+        } finally {
+            compiletimeExprNanos += System.nanoTime() - t0;
         }
     }
 
@@ -272,9 +330,9 @@ public class CompiletimeFunctionRunner {
 
             ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
             imProg.getGlobals().add(res);
-            ImAlloc alloc = JassIm.ImAlloc(obj.getTrace(), obj.getType());
-            addCompiletimeStateInitAlloc(alloc.getTrace(), res, alloc);
             globalState.setVal(res, obj);
+
+            registerCompiletimeObject(obj, res);
 
 
             Element trace = obj.getTrace();
@@ -368,6 +426,71 @@ public class CompiletimeFunctionRunner {
         }
         throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
 
+    }
+
+    private void registerCompiletimeObject(ILconstObject obj, ImVar targetVar) {
+        ClassManagementVars mVars = translator.getClassManagementVarsFor(obj.getType().getClassDef());
+        compiletimeObjects.computeIfAbsent(mVars, k -> new ArrayList<>())
+            .add(new CompiletimeObjectInit(obj, targetVar));
+    }
+
+    private void emitCompiletimeObjectAllocs() {
+        if (compiletimeObjects.isEmpty()) {
+            return;
+        }
+
+        List<ImStmt> objectInits = new ArrayList<>();
+
+        for (Map.Entry<ClassManagementVars, List<CompiletimeObjectInit>> entry : compiletimeObjects.entrySet()) {
+            List<CompiletimeObjectInit> objs = entry.getValue();
+            if (objs.isEmpty()) {
+                continue;
+            }
+
+            objs.sort(Comparator.comparingInt(o -> o.object.getObjectId()));
+
+            ClassManagementVars mVars = entry.getKey();
+            // Ensure replayed allocations are driven by maxIndex and not by stale free-list state.
+            objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0)));
+
+            int currentMax = 0;
+            int finalMax = globalState.getMaxAllocatedId(objs.get(0).object.getImClass());
+
+            for (CompiletimeObjectInit init : objs) {
+                int desiredId = init.object.getObjectId();
+                int targetMax = desiredId - 1;
+                if (targetMax > currentMax) {
+                    objectInits.add(JassIm.ImSet(init.object.getTrace(),
+                        JassIm.ImVarAccess(mVars.maxIndex),
+                        JassIm.ImIntVal(targetMax)));
+                    currentMax = targetMax;
+                }
+
+                ImAlloc alloc = JassIm.ImAlloc(init.object.getTrace(), init.object.getType());
+                ImSet assign = JassIm.ImSet(init.object.getTrace(), JassIm.ImVarAccess(init.targetVar), alloc);
+                objectInits.add(assign);
+                imProg.getGlobalInits().put(init.targetVar, Collections.singletonList(assign));
+                currentMax = desiredId;
+            }
+
+            if (finalMax > currentMax) {
+                objectInits.add(JassIm.ImSet(objs.get(0).object.getTrace(),
+                    JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(finalMax)));
+            }
+        }
+
+        getCompiletimeStateInitFunction().getBody().addAll(0, objectInits);
+    }
+
+    private static class CompiletimeObjectInit {
+        private final ILconstObject object;
+        private final ImVar targetVar;
+
+        private CompiletimeObjectInit(ILconstObject object, ImVar targetVar) {
+            this.object = object;
+            this.targetVar = targetVar;
+        }
     }
 
     private ImFunction compiletimeStateInitFunction = null;
@@ -491,11 +614,12 @@ public class CompiletimeFunctionRunner {
 
     private void executeCompiletimeFunction(ImFunction f) {
         if (functionFlag.matches(f)) {
+            long t0 = System.nanoTime();
             try {
                 if (!f.getBody().isEmpty()) {
                     interpreter.getGlobalState().setLastStatement(f.getBody().get(0));
                 }
-                WLogger.debug("running " + functionFlag + " function " + f.getName());
+                WLogger.trace(() -> "running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
                 successTests.add(f);
             } catch (TestSuccessException e) {
@@ -505,6 +629,8 @@ public class CompiletimeFunctionRunner {
             } catch (Throwable e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
                 throw e;
+            } finally {
+                compiletimeFunctionNanos.merge(f.getName(), System.nanoTime() - t0, Long::sum);
             }
         }
     }

@@ -6,6 +6,10 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrWurstDoc {
 
     public static String getComment(NameDef nameDef) {
+        String triviaComment = getCommentFromTrivia(nameDef);
+        if (!triviaComment.isEmpty()) {
+            return triviaComment;
+        }
         if (nameDef instanceof HasModifier) {
             HasModifier HasModifier = nameDef;
             return getCommmentHelper(HasModifier);
@@ -26,12 +30,28 @@ public class AttrWurstDoc {
     }
 
     public static String getComment(ConstructorDef constructorDef) {
+        String triviaComment = getCommentFromTrivia(constructorDef);
+        if (!triviaComment.isEmpty()) {
+            return triviaComment;
+        }
         return getCommmentHelper(constructorDef);
     }
 
 
+    private static String getCommentFromTrivia(AstElementWithSource e) {
+        CompilationUnit cu = e.attrCompilationUnit();
+        if (cu == null || cu.getCuInfo() == null) {
+            return "";
+        }
+        return cu.getCuInfo().getTriviaIndex().findLeadingHotdoc(e.getSource().getLeftPos());
+    }
+
     private static String comment(WurstDoc wurstDoc) {
-        String result = wurstDoc.getRawComment();
+        return normalizeHotdocComment(wurstDoc.getRawComment());
+    }
+
+    public static String normalizeHotdocComment(String rawComment) {
+        String result = rawComment;
         if (result.length() <= 5) {
             return "";
         }

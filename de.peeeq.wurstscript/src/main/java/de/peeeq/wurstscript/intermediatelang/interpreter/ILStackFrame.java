@@ -13,14 +13,17 @@ import java.util.Collections;
 import java.util.Map;
 
 public class ILStackFrame {
-
     public final Either<ImFunction, ImCompiletimeExpr> f;
     public final ILconst[] args;
     public final WPos trace;
     public final @Nullable ILconstObject receiver;
     public final Map<ImTypeVar, ImType> typeSubstitutions;
 
-    public ILStackFrame(ImFunction f, @Nullable ILconstObject receiver, ILconst[] args2, WPos trace, Map<ImTypeVar, ImType> typeSubstitutions) {
+    // last executed element *within this frame*
+    public @Nullable de.peeeq.wurstscript.jassIm.Element currentElement;
+
+    public ILStackFrame(ImFunction f, @Nullable ILconstObject receiver, ILconst[] args2, WPos trace,
+                        Map<ImTypeVar, ImType> typeSubstitutions) {
         this.f = Either.left(f);
         this.receiver = receiver;
         this.args = args2;
@@ -36,36 +39,40 @@ public class ILStackFrame {
         this.typeSubstitutions = Collections.emptyMap();
     }
 
+    public @Nullable WPos getCurrentSourcePos() {
+        if (currentElement != null) {
+            try {
+                return currentElement.attrTrace().attrSource();
+            } catch (Exception ignored) {}
+        }
+        return trace;
+    }
+
     public String getMessage() {
         StringBuilder sb = new StringBuilder();
+
+        WPos pos = getCurrentSourcePos();
+        if (pos != null && !pos.isArtificial()) {
+            String file = new File(pos.getFile()).getName();
+            sb.append("    ╚ ").append(file).append(":").append(pos.getLine());
+        }
+
         if (f.isLeft()) {
-            sb.append("... when calling ").append(f.getLeft().getName()).append("(");
-            boolean first = true;
-            for (ILconst arg : args) {
-                if (!first) {
-                    sb.append(", ");
-                }
-                sb.append(arg);
-                first = false;
+            sb.append(" inside call ").append(f.getLeft().getName()).append("(");
+            for (int i = 0; i < args.length; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(args[i]);
             }
             sb.append(")");
         } else {
             sb.append("... when executing compiletime expression ");
         }
-
-        if (trace != null && !trace.isArtificial()) {
-            String file = new File(trace.getFile()).getName();
-            sb.append(" in ").append(file).append(":").append(trace.getLine());
-        }
-
         return sb.toString();
     }
 
     public CompileError makeCompileError() {
-        return new CompileError(trace, getMessage());
-    }
-
-    public WPos getTrace() {
-        return trace;
+        // Use current element position if available:
+        WPos pos = getCurrentSourcePos();
+        return new CompileError(pos != null ? pos : trace, getMessage());
     }
 }

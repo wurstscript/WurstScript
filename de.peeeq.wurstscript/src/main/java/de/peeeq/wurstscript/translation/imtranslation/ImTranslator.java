@@ -95,6 +95,43 @@ public class ImTranslator {
     private final boolean debug = false;
     private final RunArgs runArgs;
 
+    private final Map<ClassDef, Map<TypeParamDef, ImTypeVar>> capturedOwnerTypeVarsByStaticClass = new IdentityHashMap<>();
+    private final Deque<Map<TypeParamDef, ImTypeVar>> typeVarOverrideStack = new ArrayDeque<>();
+    private final Deque<ImVar> continueFlagStack = new ArrayDeque<>();
+
+    private static boolean hasTypeVarNamed(ImTypeVars vars, String name) {
+        for (ImTypeVar v : vars) {
+            if (v.getName().equals(name)) return true;
+        }
+        return false;
+    }
+
+    public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassDef cd) {
+        Map<TypeParamDef, ImTypeVar> m = capturedOwnerTypeVarsByStaticClass.get(cd);
+        return (m == null) ? Collections.emptyMap() : m;
+    }
+
+    public void pushTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
+        if (m != null && !m.isEmpty()) typeVarOverrideStack.push(m);
+    }
+
+    public void popTypeVarOverrides(Map<TypeParamDef, ImTypeVar> m) {
+        if (m != null && !m.isEmpty()) typeVarOverrideStack.pop();
+    }
+
+    public void pushContinueFlag(ImVar continueFlag) {
+        continueFlagStack.push(continueFlag);
+    }
+
+    public void popContinueFlag() {
+        continueFlagStack.pop();
+    }
+
+    public @Nullable ImVar currentContinueFlag() {
+        return continueFlagStack.peek();
+    }
+
+
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
@@ -157,6 +194,154 @@ public class ImTranslator {
                     + t.getMessage()
                     + "\nPlease open a ticket with source code and the error log.", t);
         }
+    }
+
+    public void removeEmptyPackageInits() {
+        Set<ImFunction> emptyInitFunctions = new HashSet<>();
+        for (ImFunction initFunc : new LinkedHashSet<>(initFuncMap.values())) {
+            if (isTrivialInitFunction(initFunc)) {
+                emptyInitFunctions.add(initFunc);
+            }
+        }
+        if (emptyInitFunctions.isEmpty()) {
+            return;
+        }
+
+        Map<ImVar, ImFunction> initFuncRefs = collectInitFuncRefs();
+        removeInitCallsFromMain(emptyInitFunctions, initFuncRefs);
+        removeInitFuncRefsFromGlobals(emptyInitFunctions);
+        imProg.getFunctions().removeIf(emptyInitFunctions::contains);
+        initFuncMap.values().removeIf(emptyInitFunctions::contains);
+    }
+
+    private boolean isTrivialInitFunction(ImFunction initFunc) {
+        if (initFunc.getBody().isEmpty()) {
+            return true;
+        }
+        if (initFunc.getBody().size() != 1) {
+            return false;
+        }
+        ImStmt stmt = initFunc.getBody().get(0);
+        if (!(stmt instanceof ImReturn)) {
+            return false;
+        }
+        ImExprOpt returnValue = ((ImReturn) stmt).getReturnValue();
+        if (returnValue instanceof ImNoExpr) {
+            return true;
+        }
+        return returnValue instanceof ImBoolVal && ((ImBoolVal) returnValue).getValB();
+    }
+
+    private void removeInitCallsFromMain(Set<ImFunction> emptyInitFunctions, Map<ImVar, ImFunction> initFuncRefs) {
+        ImFunction main = getMainFunc();
+        if (main == null) {
+            return;
+        }
+
+        ImFunction native_TriggerAddCondition = getNativeFunc("TriggerAddCondition");
+        ImFunction native_Condition = getNativeFunc("Condition");
+        ImFunction native_ClearTrigger = getNativeFunc("TriggerClearConditions");
+
+        ImStmts mainBody = main.getBody();
+        for (int i = 0; i < mainBody.size(); i++) {
+            ImStmt stmt = mainBody.get(i);
+            if (stmt instanceof ImFunctionCall) {
+                ImFunctionCall call = (ImFunctionCall) stmt;
+                if (emptyInitFunctions.contains(call.getFunc())) {
+                    mainBody.remove(i--);
+                    continue;
+                }
+                if (native_TriggerAddCondition != null && native_Condition != null
+                        && call.getFunc() == native_TriggerAddCondition
+                        && hasInitCondition(call, native_Condition, emptyInitFunctions, initFuncRefs)) {
+                    if (i + 2 < mainBody.size()
+                            && mainBody.get(i + 1) instanceof ImIf
+                            && isTriggerClear(mainBody.get(i + 2), native_ClearTrigger)) {
+                        mainBody.remove(i + 2);
+                        mainBody.remove(i + 1);
+                        mainBody.remove(i--);
+                    }
+                }
+            }
+        }
+    }
+
+    private void removeInitFuncRefsFromGlobals(Set<ImFunction> emptyInitFunctions) {
+        ImFunction globalInit = getGlobalInitFunc();
+        if (globalInit == null) {
+            return;
+        }
+        ImStmts body = globalInit.getBody();
+        for (int i = 0; i < body.size(); i++) {
+            ImStmt stmt = body.get(i);
+            if (!(stmt instanceof ImSet)) {
+                continue;
+            }
+            ImExpr right = ((ImSet) stmt).getRight();
+            if (right instanceof ImFuncRef && emptyInitFunctions.contains(((ImFuncRef) right).getFunc())) {
+                body.remove(i--);
+            }
+        }
+    }
+
+    private Map<ImVar, ImFunction> collectInitFuncRefs() {
+        ImFunction globalInit = getGlobalInitFunc();
+        if (globalInit == null) {
+            return Collections.emptyMap();
+        }
+        Map<ImVar, ImFunction> refs = new HashMap<>();
+        ImStmts body = globalInit.getBody();
+        for (int i = 0; i < body.size(); i++) {
+            ImStmt stmt = body.get(i);
+            if (!(stmt instanceof ImSet)) {
+                continue;
+            }
+            ImSet set = (ImSet) stmt;
+            if (!(set.getLeft() instanceof ImVarAccess)) {
+                continue;
+            }
+            if (!(set.getRight() instanceof ImFuncRef)) {
+                continue;
+            }
+            refs.put(((ImVarAccess) set.getLeft()).getVar(), ((ImFuncRef) set.getRight()).getFunc());
+        }
+        return refs;
+    }
+
+    private boolean hasInitCondition(ImFunctionCall call, ImFunction nativeCondition, Set<ImFunction> emptyInitFunctions,
+                                     Map<ImVar, ImFunction> initFuncRefs) {
+        if (call.getArguments().size() < 2) {
+            return false;
+        }
+        ImExpr conditionExpr = call.getArguments().get(1);
+        if (!(conditionExpr instanceof ImFunctionCall)) {
+            return false;
+        }
+        ImFunctionCall conditionCall = (ImFunctionCall) conditionExpr;
+        if (conditionCall.getFunc() != nativeCondition) {
+            return false;
+        }
+        if (conditionCall.getArguments().size() != 1) {
+            return false;
+        }
+        ImExpr argument = conditionCall.getArguments().get(0);
+        if (argument instanceof ImFuncRef) {
+            ImFuncRef funcRef = (ImFuncRef) argument;
+            return emptyInitFunctions.contains(funcRef.getFunc());
+        }
+        if (argument instanceof ImVarAccess) {
+            ImVar var = ((ImVarAccess) argument).getVar();
+            ImFunction target = initFuncRefs.get(var);
+            return target != null && emptyInitFunctions.contains(target);
+        }
+        return false;
+    }
+
+    private boolean isTriggerClear(ImStmt stmt, ImFunction nativeClearTrigger) {
+        if (nativeClearTrigger == null) {
+            return false;
+        }
+        return stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == nativeClearTrigger;
     }
 
     /**
@@ -626,7 +811,13 @@ public class ImTranslator {
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+            TypeParamDef tpd = typeVariableReverse.get(tv);
+
+            // If this ImTypeVar corresponds to an owner TypeParamDef (captured case),
+            // resolve it through context so owner context uses owner vars, Iterator context uses captured vars.
+            ImTypeVar tvForContext = (tpd != null) ? getTypeVar(tpd) : tv;
+
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tvForContext), Collections.emptyMap()));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -1028,7 +1219,7 @@ public class ImTranslator {
 
     public Multimap<ImFunction, ImFunction> getCalledFunctions() {
         if (callRelations == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return callRelations;
     }
@@ -1036,6 +1227,14 @@ public class ImTranslator {
 
 
     public void calculateCallRelationsAndUsedVariables() {
+        calculateCallRelationsAndVariables(true);
+    }
+
+    public void calculateCallRelationsAndReadVariables() {
+        calculateCallRelationsAndVariables(false);
+    }
+
+    private void calculateCallRelationsAndVariables(boolean includeUsedVariables) {
         // estimate sizes to reduce rehashing
         final int funcEstimate = Math.max(16, imProg.getFunctions().size());
         final int varEstimate  = Math.max(32, imProg.getGlobals().size());
@@ -1043,14 +1242,14 @@ public class ImTranslator {
         callRelations = com.google.common.collect.LinkedHashMultimap.create(); // keep Guava type externally
 
         usedFunctions = new ReferenceOpenHashSet<>(funcEstimate);
-        usedVariables = new ObjectOpenHashSet<>(varEstimate);
+        usedVariables = includeUsedVariables ? new ObjectOpenHashSet<>(varEstimate) : null;
         readVariables = new ObjectOpenHashSet<>(varEstimate);
 
         final ImFunction main = getMainFunc();
-        if (main != null) calculateCallRelations(main);
+        if (main != null) calculateCallRelations(main, includeUsedVariables);
 
         final ImFunction conf = getConfFunc();
-        if (conf != null && conf != main) calculateCallRelations(conf);
+        if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
         // mark protected globals as read
         // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
@@ -1061,7 +1260,7 @@ public class ImTranslator {
         }
     }
 
-    private void calculateCallRelations(ImFunction rootFunction) {
+    private void calculateCallRelations(ImFunction rootFunction, boolean includeUsedVariables) {
         // nothing to do
         if (rootFunction == null) return;
 
@@ -1080,7 +1279,9 @@ public class ImTranslator {
             }
 
             // Only computed once per function thanks to usedFunctions.add() gate
-            usedVariables.addAll(f.calcUsedVariables());
+            if (includeUsedVariables) {
+                usedVariables.addAll(f.calcUsedVariables());
+            }
             readVariables.addAll(f.calcReadVariables());
 
             final Set<ImFunction> called = f.calcUsedFunctions();
@@ -1212,8 +1413,12 @@ public class ImTranslator {
             for (WParameter p : constr.getParameters()) {
                 params.add(getVarFor(p));
             }
-
-            f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), flags());
+            List<FunctionFlag> constructorFlags = flags();
+            if (!constr.getParameters().isEmpty()
+                && constr.getParameters().get(constr.getParameters().size() - 1).attrIsVararg()) {
+                constructorFlags.add(IS_VARARG);
+            }
+            f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), constructorFlags);
             addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
@@ -1245,8 +1450,12 @@ public class ImTranslator {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {
             String name = "new_" + constr.attrNearestClassDef().getName();
-
-            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), flags());
+            List<FunctionFlag> constructorFlags = flags();
+            if (!constr.getParameters().isEmpty()
+                && constr.getParameters().get(constr.getParameters().size() - 1).attrIsVararg()) {
+                constructorFlags.add(IS_VARARG);
+            }
+            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), constructorFlags);
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }
@@ -1363,10 +1572,15 @@ public class ImTranslator {
         return typeVariableReverse.get(tv);
     }
 
-    public ImTypeVar getTypeVar(TypeParamDef tv) {
-        return typeVariable.getFor(tv);
+    public ImTypeVar getTypeVar(TypeParamDef tp) {
+        // If we're translating inside a captured class (Iterator), prefer its override
+        for (Map<TypeParamDef, ImTypeVar> m : typeVarOverrideStack) {
+            ImTypeVar v = m.get(tp);
+            if (v != null) return v;
+        }
+        // Fallback: canonical per-TypeParamDef var (used elsewhere)
+        return typeVariable.getFor(tp);
     }
-
     public boolean isLuaTarget() {
         return runArgs.isLua();
     }
@@ -1638,14 +1852,14 @@ public class ImTranslator {
 
     public Set<ImVar> getReadVariables() {
         if (readVariables == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return readVariables;
     }
 
     public Set<ImFunction> getUsedFunctions() {
         if (usedFunctions == null) {
-            calculateCallRelationsAndUsedVariables();
+            calculateCallRelationsAndReadVariables();
         }
         return usedFunctions;
     }
@@ -1661,6 +1875,99 @@ public class ImTranslator {
         return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
     }
 
+    // inside ImTranslator
+
+    private static boolean isIteratorLike(ClassOrInterface s) {
+        return (s instanceof NamedScope) && ((NamedScope) s).getName().contains("Iterator");
+    }
+
+    private void addCapturedTypeVarsFromOwningGeneric(ImTypeVars typeVariables, ClassOrInterface s) {
+        if (isIteratorLike(s)) {
+            WLogger.trace(() -> "[GENCAP] addCaptured enter: " + s.getClass().getSimpleName()
+                + " name=" + ((NamedScope) s).getName()
+                + " parent=" + (s.getParent() == null ? "null" : s.getParent().getClass().getSimpleName()));
+        }
+
+        if (!(s instanceof ClassDef)) {
+            if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] not a ClassDef -> skip");
+            return;
+        }
+        ClassDef cd = (ClassDef) s;
+
+        boolean isStatic = cd.attrIsStatic();
+        if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] isStatic=" + isStatic);
+        if (!isStatic) return;
+
+        de.peeeq.wurstscript.ast.Element parent = cd.getParent();
+        de.peeeq.wurstscript.ast.Element parent2 = parent == null ? null : parent.getParent();
+
+        AstElementWithTypeParameters owner = null;
+        String ownerInfo = null;
+
+        if (parent2 instanceof ModuleInstanciation) {
+            ModuleInstanciation mi = (ModuleInstanciation) parent2;
+            ClassDef o = mi.attrNearestClassDef();
+            owner = o;
+            ownerInfo = "moduleInst=" + mi.getName() + " owner=" + (o == null ? "null" : o.getName());
+        } else if (parent2 instanceof ClassDef) {
+            ClassDef o = (ClassDef) parent2;
+            owner = o;
+            ownerInfo = "outerClass=" + o.getName();
+        } else if (parent2 instanceof InterfaceDef) {
+            InterfaceDef o = (InterfaceDef) parent2;
+            owner = o;
+            ownerInfo = "outerInterface=" + o.getName();
+        } else {
+            if (isIteratorLike(s)) WLogger.trace(() -> "[GENCAP] parent2 not ModuleInstanciation/ClassDef/InterfaceDef -> skip");
+            return;
+        }
+
+        if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] " + ownerInfo);
+
+        if (owner == null) return;
+        if (owner == cd) return;
+
+        // override map for this static inner class: owner TypeParamDef -> captured ImTypeVar (fresh node)
+        Map<TypeParamDef, ImTypeVar> override =
+            capturedOwnerTypeVarsByStaticClass.computeIfAbsent(cd, k -> new IdentityHashMap<>());
+
+        for (TypeParamDef tp : owner.getTypeParameters()) {
+            if (!(tp.getTypeParamConstraints() instanceof TypeExprList)) {
+                continue;
+            }
+
+            ImTypeVar captured = override.get(tp);
+            if (captured == null) {
+                // Create a *fresh* ImTypeVar node (do NOT reuse getTypeVar(tp))
+                String baseName = tp.getName();
+                String name = baseName;
+
+                if (hasTypeVarNamed(typeVariables, name)) {
+                    String ownerName = (owner instanceof NamedScope) ? ((NamedScope) owner).getName() : "Owner";
+                    name = baseName + "$" + ownerName;
+                }
+                if (hasTypeVarNamed(typeVariables, name)) {
+                    name = baseName + "$cap" + typeVariables.size();
+                }
+
+                captured = JassIm.ImTypeVar(name);
+
+                // keep reverse mapping working for captured vars too
+                typeVariableReverse.put(captured, tp);
+
+                override.put(tp, captured);
+
+                if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] created captured owner tvar: " + captured.getName());
+            }
+
+            // Add to inner class' ImTypeVars if not already present by name
+            if (!hasTypeVarNamed(typeVariables, captured.getName())) {
+                typeVariables.add(captured);
+                if (isIteratorLike(s) && WLogger.isTraceEnabled()) WLogger.trace("[GENCAP] captured owner tvar added: " + captured.getName());
+            }
+        }
+    }
+
 
     private final Map<ClassOrInterface, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
@@ -1668,16 +1975,32 @@ public class ImTranslator {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
             ImTypeVars typeVariables = JassIm.ImTypeVars();
-            if (s instanceof AstElementWithTypeParameters) {
-                for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
+
+            // 1) class' own type parameters (unchanged idea, but use name-based uniqueness)
+            if (s1 instanceof AstElementWithTypeParameters) {
+                for (TypeParamDef tp : ((AstElementWithTypeParameters) s1).getTypeParameters()) {
                     if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                        ImTypeVar tv = getTypeVar(tp);
-                        typeVariables.add(tv);
+                        ImTypeVar tv = getTypeVar(tp); // now context-aware (override stack)
+                        if (!hasTypeVarNamed(typeVariables, tv.getName())) {
+                            typeVariables.add(tv);
+                        }
                     }
                 }
             }
 
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            // 2) NEW: capture owner generics for static classes inside module instantiations
+            // (keeps your logging + parent logic inside that method)
+            addCapturedTypeVarsFromOwningGeneric(typeVariables, s1);
+
+            return JassIm.ImClass(
+                s1,
+                s1.getName(),
+                typeVariables,
+                JassIm.ImVars(),
+                JassIm.ImMethods(),
+                JassIm.ImFunctions(),
+                Lists.newArrayList()
+            );
         });
     }
 
@@ -1685,10 +2008,16 @@ public class ImTranslator {
     Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
 
     public ImMethod getMethodFor(FuncDef f) {
+
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.newArrayList(), false);
+
+            // IMPORTANT: method name must match implementation function name,
+            // otherwise EliminateClasses dispatch lookup can fail.
+            String methodName = imFunc.getName();
+            WLogger.trace(() -> "[GENCAP] getMethodFor " + elementNameWithPath(f) + " -> methodName=" + methodName);
+            m = JassIm.ImMethod(f, selfType(f), methodName, imFunc, Lists.newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;

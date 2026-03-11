@@ -35,4 +35,8 @@ public class FrameProvider extends Provider {
         return new IlConstHandle("frameType", i.getVal());
     }
 
+    public IlConstHandle BlzGetFrameByName(ILconstString name, ILconstInt createContext) {
+        return new IlConstHandle("framehandle", new FrameHandle());
+    }
+
 }

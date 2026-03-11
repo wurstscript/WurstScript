@@ -1,12 +1,15 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.JassDocService;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.AttrWurstDoc;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.parser.TriviaIndex;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -14,10 +17,15 @@ import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Created by peter on 24.04.16.
@@ -43,12 +51,35 @@ public class HoverInfo extends UserRequest<Hover> {
         if (cu == null) {
             return new Hover(Collections.singletonList(Either.forLeft("File " + filename + " is not part of the project. Move it to the wurst folder.")));
         }
+        int offset = offsetAt(line, column);
+        Optional<TriviaIndex.CommentTrivia> commentTrivia = cu.getCuInfo().getTriviaIndex().findCommentAtOffset(offset);
+        if (commentTrivia.isPresent()) {
+            return new Hover(Collections.emptyList());
+        }
         Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
         WLogger.debug("hovering over " + Utils.printElement(e));
         List<Either<String, MarkedString>> desription = e.match(new Description());
         desription = addArgumentHint(e, desription);
 
         return new Hover(desription);
+    }
+
+    private int offsetAt(int line, int column) {
+        int currentLine = 1;
+        int currentColumn = 1;
+        for (int i = 0; i < buffer.length(); i++) {
+            if (currentLine == line && currentColumn == column) {
+                return i;
+            }
+            char c = buffer.charAt(i);
+            if (c == '\n') {
+                currentLine++;
+                currentColumn = 1;
+            } else {
+                currentColumn++;
+            }
+        }
+        return Math.max(0, buffer.length() - 1);
     }
 
     private List<Either<String, MarkedString>> addArgumentHint(Element e, List<Either<String, MarkedString>> desription) {
@@ -62,7 +93,7 @@ public class HoverInfo extends UserRequest<Hover> {
                     if (f != null) {
                         WurstType parameterType = f.getParameterType(index);
                         String parameterName = f.getParameterName(index);
-                        desription = Utils.append(desription, Either.forLeft("Parameter " + parameterType + " " + parameterName));
+                        desription = Utils.append(desription, Either.forRight(new MarkedString("wurst", "parameter " + parameterType + " " + parameterName)));
                     }
                 }
             }
@@ -113,9 +144,21 @@ public class HoverInfo extends UserRequest<Hover> {
         public List<Either<String, MarkedString>> description(FunctionDefinition f) {
             List<Either<String, MarkedString>> result = new ArrayList<>();
             String comment = f.attrComment();
+            boolean docsFromJassdoc = false;
+            if (comment == null || comment.isEmpty()) {
+                comment = JassDocService.getInstance().documentationForFunction(f);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
+            if ((comment == null || comment.isEmpty()) && f instanceof FunctionImplementation) {
+                comment = inferWrappedNativeDoc(f);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
 
             // TODO parse comment
             if (comment != null && !comment.isEmpty()) {
+                if (docsFromJassdoc) {
+                    result.add(Either.forLeft("_JassDoc_"));
+                }
                 result.add(Either.forLeft(comment));
             }
 
@@ -133,8 +176,55 @@ public class HoverInfo extends UserRequest<Hover> {
                 functionDescription += "returns " + returnTypeHtml;
             }
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
-            result.add(Either.forLeft("defined in " + nearestScopeName(f)));
+            result.add(Either.forLeft(definedInText(f)));
             return result;
+        }
+
+        private @Nullable String inferWrappedNativeDoc(FunctionDefinition f) {
+            return inferWrappedNativeDoc(f, new LinkedHashSet<>());
+        }
+
+        private @Nullable String inferWrappedNativeDoc(FunctionDefinition f, Set<FunctionDefinition> visited) {
+            if (!visited.add(f)) {
+                return null;
+            }
+            String directDoc = JassDocService.getInstance().documentationForFunction(f);
+            if (directDoc != null && !directDoc.isEmpty()) {
+                return directDoc;
+            }
+            if (!(f instanceof FunctionImplementation)) {
+                return null;
+            }
+            Set<FunctionDefinition> callees = new LinkedHashSet<>();
+            ((FunctionImplementation) f).getBody().accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ExprFunctionCall exprFunctionCall) {
+                    addCallee(exprFunctionCall.attrFuncDef());
+                    super.visit(exprFunctionCall);
+                }
+
+                @Override
+                public void visit(ExprMemberMethodDot exprMemberMethodDot) {
+                    addCallee(exprMemberMethodDot.attrFuncDef());
+                    super.visit(exprMemberMethodDot);
+                }
+
+                @Override
+                public void visit(ExprMemberMethodDotDot exprMemberMethodDotDot) {
+                    addCallee(exprMemberMethodDotDot.attrFuncDef());
+                    super.visit(exprMemberMethodDotDot);
+                }
+
+                private void addCallee(FunctionDefinition def) {
+                    if (def != null && def != f) {
+                        callees.add(def);
+                    }
+                }
+            });
+            if (callees.size() != 1) {
+                return null;
+            }
+            return inferWrappedNativeDoc(callees.iterator().next(), visited);
         }
 
         private static String nearestScopeName(Element n) {
@@ -151,21 +241,33 @@ public class HoverInfo extends UserRequest<Hover> {
             }
             List<Either<String, MarkedString>> result = new ArrayList<>();
             String comment = n.attrComment();
+            boolean docsFromJassdoc = false;
+            if (comment == null || comment.isEmpty()) {
+                comment = JassDocService.getInstance().documentationForVariable(n);
+                docsFromJassdoc = comment != null && !comment.isEmpty();
+            }
             if (comment != null && !comment.isEmpty()) {
+                if (docsFromJassdoc) {
+                    result.add(Either.forLeft("_JassDoc_"));
+                }
                 result.add(Either.forLeft(comment));
             }
-            if (n.attrIsConstant()) {
-                if (n instanceof GlobalOrLocalVarDef) {
-                    GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) n;
-                    VarInitialization initialExpr = v.getInitialExpr();
-                    String initial = Utils.prettyPrint(initialExpr);
-                    result.add(Either.forRight(new MarkedString("wurst", " = " + initial)));
+
+            String initializer = "";
+            if (n instanceof GlobalOrLocalVarDef) {
+                GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) n;
+                VarInitialization initialExpr = v.getInitialExpr();
+                if (!(initialExpr instanceof NoExpr)) {
+                    initializer = " = " + Utils.prettyPrint(initialExpr);
                 }
             }
 
-            String additionalProposalInfo = type(n.attrTyp()) + " " + n.getName()
-                    + " defined in " + nearestScopeName(n);
-            result.add(Either.forLeft(additionalProposalInfo));
+            if (n instanceof TypeParamDef) {
+                result.add(Either.forRight(new MarkedString("wurst", "type parameter " + n.getName())));
+            } else {
+                result.add(Either.forRight(new MarkedString("wurst", type(n.attrTyp()) + " " + n.getName() + initializer)));
+            }
+            result.add(Either.forLeft(definedInText(n)));
             return result;
         }
 
@@ -188,8 +290,19 @@ public class HoverInfo extends UserRequest<Hover> {
             }
             functionDescription += "(" + params + ") ";
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
-            result.add(Either.forLeft("defined in " + nearestScopeName(f)));
+            result.add(Either.forLeft(definedInText(f)));
             return result;
+        }
+
+        private static String definedInText(Element n) {
+            String file = n.attrSource().getFile();
+            if (file == null || file.isEmpty()) {
+                return "defined in " + nearestScopeName(n);
+            }
+            File f = new File(file);
+            String label = f.getName();
+            String uri = f.toURI().toString();
+            return "defined in [" + label + "](" + uri + ")";
         }
 
         public List<Either<String, MarkedString>> description(NameRef nr) {
@@ -266,10 +379,13 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_WImport(WImport imp) {
+            List<Either<String, MarkedString>> result = new ArrayList<>();
             WPackage imported = imp.attrImportedPackage();
-            if (imported != null)
-                return string(imported.attrComment());
-            return string("import ...");
+            if (imported != null && imported.attrComment() != null && !imported.attrComment().isEmpty()) {
+                result.add(Either.forLeft(imported.attrComment()));
+            }
+            result.add(Either.forRight(new MarkedString("wurst", "import " + imp.getPackagename())));
+            return result;
         }
 
         @Override
@@ -303,31 +419,27 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_StmtExitwhen(StmtExitwhen stmtExitwhen) {
-            return string("extiwhen: Exits the current loop when the condition is true");
+            return string("exitwhen: exits the current loop when the condition is true.");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_StmtContinue(StmtContinue stmtContinue) {
+            return string("continue: skips the rest of the current loop iteration.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ConstructorDef(ConstructorDef constr) {
-            List<Either<String, MarkedString>> result = new ArrayList<>();
-            NamedScope c = constr.attrNearestNamedScope();
-            String comment = constr.attrComment();
-            result.add(Either.forLeft(comment));
-
-
-            String descr = "construct(" + getParameterString(constr) + ") "
-                    + "defined in " + Utils.printElement(c);
-            result.add(Either.forRight(new MarkedString("wurst", descr)));
-            return result;
+            return description(constr);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WImports(WImports wImports) {
-            return string("imports");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WStatements(WStatements wStatements) {
-            return string("statements");
+            return Collections.emptyList();
         }
 
         @Override
@@ -337,7 +449,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_SwitchStmt(SwitchStmt switchStmt) {
-            return string("A switch statement does different things depending on the value of an epxression.");
+            return string("A switch statement executes branches based on an expression value.");
         }
 
         @Override
@@ -373,7 +485,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_LocalVarDef(LocalVarDef v) {
-            return string("Local Variable " + v.getName() + " of type " + type(v.attrTyp()));
+            return description(v);
         }
 
         private List<Either<String, MarkedString>> string(String s) {
@@ -467,12 +579,12 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_TypeExprList(TypeExprList typeExprList) {
-            return string("A list of type-expressions");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_FuncDefs(FuncDefs funcDefs) {
-            return string("A list of function definitions");
+            return Collections.emptyList();
         }
 
         @Override
@@ -496,22 +608,22 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_Arguments(Arguments arguments) {
-            return string("List of arguments");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleInstanciations(ModuleInstanciations moduleInstanciations) {
-            return string("List of module instantiations.");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WShortParameters(WShortParameters wShortParameters) {
-            return string("Parameters of anonymous function.");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_SwitchDefaultCaseStatements(SwitchDefaultCaseStatements switchDefaultCaseStatements) {
-            return string("Default statements of switch-statement");
+            return Collections.emptyList();
         }
 
         @Override
@@ -521,7 +633,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleUses(ModuleUses moduleUses) {
-            return string("A list of module uses");
+            return Collections.emptyList();
         }
 
         @Override
@@ -531,7 +643,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_JassToplevelDeclarations(JassToplevelDeclarations jassToplevelDeclarations) {
-            return string("A list of declarations.");
+            return Collections.emptyList();
         }
 
         @Override
@@ -546,19 +658,23 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ConstructorDefs(ConstructorDefs constructorDefs) {
-            return string("A list of constructors");
+            return Collections.emptyList();
         }
 
         private List<Either<String, MarkedString>> typeExpr(TypeExpr t) {
+            NameDef nameDef = t.tryGetNameDef();
+            if (nameDef != null) {
+                return description(nameDef);
+            }
             WurstType wt = t.attrTyp();
             if (wt == null) {
-                return string("Type " + t);
+                return Collections.singletonList(Either.forRight(new MarkedString("wurst", "type " + t)));
             }
             if (wt instanceof WurstTypeNamedScope) {
                 WurstTypeNamedScope wtn = (WurstTypeNamedScope) wt;
                 return description(wtn.getDef());
             }
-            return string(type(wt));
+            return Collections.singletonList(Either.forRight(new MarkedString("wurst", type(wt))));
         }
 
         @Override
@@ -574,7 +690,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_Modifiers(Modifiers modifiers) {
-            return string("A list of modifiers");
+            return string("Modifiers for this declaration.");
         }
 
         @Override
@@ -599,7 +715,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ExprList(ExprList exprList) {
-            return string("A list of expressions.");
+            return Collections.emptyList();
         }
 
         @Override
@@ -659,17 +775,17 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_TypeParamDefs(TypeParamDefs typeParamDefs) {
-            return string("A list of type parameters.");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtForFrom(StmtForFrom stmtForFrom) {
-            return string("The for-from loop takes an iterate and takes elements from the iterator until it is empty.");
+            return string("The for-from loop repeatedly takes elements from an iterator until it is empty.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_Indexes(Indexes indexes) {
-            return string("A list of indexes");
+            return Collections.emptyList();
         }
 
         @Override
@@ -719,7 +835,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_GlobalVarDefs(GlobalVarDefs globalVarDefs) {
-            return string("A list of global variables.");
+            return Collections.emptyList();
         }
 
         @Override
@@ -734,7 +850,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_WPackages(WPackages wPackages) {
-            return string("A list of packages.");
+            return Collections.emptyList();
         }
 
         @Override
@@ -744,7 +860,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_WurstDoc(WurstDoc wurstDoc) {
-            return wurstDoc.getParent().match(this);
+            return string(AttrWurstDoc.normalizeHotdocComment(wurstDoc.getRawComment()));
         }
 
         @Override
@@ -769,7 +885,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ModVararg(ModVararg modVararg) {
-            return string("Declares the parameter to be a array of variable length");
+            return string("Declares this parameter as a variable-length argument list.");
         }
 
         @Override
@@ -784,7 +900,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_TopLevelDeclarations(TopLevelDeclarations topLevelDeclarations) {
-            return string("A list of declarations.");
+            return Collections.emptyList();
         }
 
         @Override
@@ -799,12 +915,12 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_WEntities(WEntities wEntities) {
-            return string("A list of entities");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ArraySizes(ArraySizes arraySizes) {
-            return string("A list of array-sizes");
+            return Collections.emptyList();
         }
 
         @Override
@@ -819,12 +935,15 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_EnumMembers(EnumMembers enumMembers) {
-            return string("A list of enum-members.");
+            return Collections.emptyList();
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeExprThis(TypeExprThis typeExprThis) {
-            return typeExpr(typeExprThis);
+            List<Either<String, MarkedString>> result = new ArrayList<>();
+            result.add(Either.forLeft("'thistype' refers to the dynamic type of 'this' in the current context."));
+            result.add(Either.forRight(new MarkedString("wurst", "resolved as " + type(typeExprThis.attrTyp()))));
+            return result;
         }
 
         @Override
@@ -864,7 +983,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_WParameters(WParameters wParameters) {
-            return string("A list of parameters");
+            return Collections.emptyList();
         }
     }
 

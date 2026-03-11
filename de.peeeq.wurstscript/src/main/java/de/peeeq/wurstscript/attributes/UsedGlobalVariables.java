@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 
@@ -36,7 +37,7 @@ public class UsedGlobalVariables {
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
             NameLink def = nameRef.attrNameLink();
-            if (def.getDef() instanceof GlobalVarDef) {
+            if (def != null && !(def instanceof OtherLink) && def.getDef() instanceof GlobalVarDef) {
                 GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                 result.add(varDef);
             }
@@ -103,7 +104,7 @@ public class UsedGlobalVariables {
                 // write access
             } else {
                 NameLink def = nameRef.attrNameLink();
-                if (def.getDef() instanceof GlobalVarDef) {
+                if (def != null && !(def instanceof OtherLink) && def.getDef() instanceof GlobalVarDef) {
                     GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                     result.add(varDef);
                 }

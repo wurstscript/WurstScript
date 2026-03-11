@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.lsp4j.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -76,7 +77,13 @@ public class Convert {
                     break;
 
             }
-            diagnostics.add(new Diagnostic(range, message, severity, "Wurst"));
+            String source = severity == DiagnosticSeverity.Warning ? "Wurst warning" : "Wurst error";
+            Diagnostic diagnostic = new Diagnostic(range, message, severity, source);
+            String messageLower = message.toLowerCase();
+            if (messageLower.contains("deprecated")) {
+                diagnostic.setTags(Collections.singletonList(DiagnosticTag.Deprecated));
+            }
+            diagnostics.add(diagnostic);
         }
         return new PublishDiagnosticsParams(filename.getUriString(), diagnostics);
     }

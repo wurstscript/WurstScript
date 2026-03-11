@@ -7,11 +7,29 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
+    private static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
+    private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
+        "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
+        "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
+        "timerToIndex", "locationToIndex", "regionToIndex", "rectToIndex", "soundToIndex",
+        "effectToIndex", "dialogToIndex", "buttonToIndex", "questToIndex", "questitemToIndex",
+        "leaderboardToIndex", "multiboardToIndex", "trackableToIndex", "lightningToIndex",
+        "ubersplatToIndex", "framehandleToIndex", "oskeytypeToIndex"
+    );
+    private static final Set<String> LUA_HANDLE_FROM_INDEX = Set.of(
+        "widgetFromIndex", "unitFromIndex", "destructableFromIndex", "itemFromIndex", "abilityFromIndex",
+        "forceFromIndex", "groupFromIndex", "triggerFromIndex", "triggeractionFromIndex", "triggerconditionFromIndex",
+        "timerFromIndex", "locationFromIndex", "regionFromIndex", "rectFromIndex", "soundFromIndex",
+        "effectFromIndex", "dialogFromIndex", "buttonFromIndex", "questFromIndex", "questitemFromIndex",
+        "leaderboardFromIndex", "multiboardFromIndex", "trackableFromIndex", "lightningFromIndex",
+        "ubersplatFromIndex", "framehandleFromIndex", "oskeytypeFromIndex"
+    );
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
@@ -35,29 +53,40 @@ public class ExprTranslation {
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
 //        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
 //         alternative: use xpcall to get stacktraces (did not work)
+        boolean returnsValue = !(e.getFunc().getReturnType() instanceof ImVoid);
         LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-        LuaVariable tempDots = LuaAst.LuaVariable("temp", LuaAst.LuaExprVarAccess(dots));
-        LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
-        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots),
-            LuaAst.LuaStatements(
-                tempDots,
-                tempRes,
-                LuaAst.LuaExprFunctionCallByName("xpcall",
-                    LuaAst.LuaExprlist(
-                        LuaAst.LuaExprFunctionAbstraction(
-                            LuaAst.LuaParams(),
-                            LuaAst.LuaStatements(
-                                LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
-                                    LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
-                        ),
-//                        LuaAst.LuaLiteral("function(err) " + errorFuncName(tr) + "(tostring(err)) end")
-                        LuaAst.LuaLiteral("function(err) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end")
-                        // unfortunately  BJDebugMsg(debug.traceback()) is not working
-                    )
-                ),
-                LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes))
-            )
-        );
+        LuaStatements callbackBody = LuaAst.LuaStatements();
+        if (returnsValue) {
+            LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
+            callbackBody.add(tempRes);
+            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
+                LuaAst.LuaExprlist(
+                    LuaAst.LuaExprFunctionAbstraction(
+                        LuaAst.LuaParams(dots.copy()),
+                        LuaAst.LuaStatements(
+                            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
+                                LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))))
+                    ),
+                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
+                    LuaAst.LuaExprVarAccess(dots.copy())
+                )
+            ));
+            callbackBody.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes)));
+        } else {
+            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
+                LuaAst.LuaExprlist(
+                    LuaAst.LuaExprFunctionAbstraction(
+                        LuaAst.LuaParams(dots.copy()),
+                        LuaAst.LuaStatements(
+                            LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))
+                        )
+                    ),
+                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
+                    LuaAst.LuaExprVarAccess(dots.copy())
+                )
+            ));
+        }
+        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots), callbackBody);
     }
 
     private static String callErrorFunc(LuaTranslator tr, String msg) {
@@ -72,13 +101,54 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
+        String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
+        if (tcFunc != null && !e.getArguments().isEmpty()) {
+            LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
+            if (tcFunc.equals("stringToIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("stringFromIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (LUA_HANDLE_TO_INDEX.contains(tcFunc)) {
+                return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (LUA_HANDLE_FROM_INDEX.contains(tcFunc)) {
+                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
+            }
+        }
+
         LuaFunction f = tr.luaFunc.getFor(e.getFunc());
+        if ("I2S".equals(f.getName()) && isIntentionalThreadAbortCall(e)) {
+            return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
+                LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
+                LuaAst.LuaExprIntVal("0")
+            ));
+        }
         if (f.getName().equals(ImTranslator.$DEBUG_PRINT)) {
             f.setName("BJDebugMsg");
         } else if (f.getName().equals("I2S")) {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
+    }
+
+    private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
+        if (e.getArguments().size() != 1) {
+            return false;
+        }
+        ImExpr arg = e.getArguments().get(0);
+        if (!(arg instanceof ImOperatorCall)) {
+            return false;
+        }
+        ImOperatorCall op = (ImOperatorCall) arg;
+        if (op.getOp() != WurstOperator.DIV_INT) {
+            return false;
+        }
+        if (op.getArguments().size() != 2) {
+            return false;
+        }
+        ImExpr left = op.getArguments().get(0);
+        ImExpr right = op.getArguments().get(1);
+        return (left instanceof ImIntVal && ((ImIntVal) left).getValI() == 1)
+            && (right instanceof ImIntVal && ((ImIntVal) right).getValI() == 0);
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
@@ -313,11 +383,32 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
+        LuaExpr access = translateArrayAccessRaw(e, tr);
+        return ensureByType(access, e.attrTyp(), tr);
+    }
+
+    public static LuaExpr translateArrayAccessRaw(ImVarArrayAccess e, LuaTranslator tr) {
         LuaExprlist indexes = LuaAst.LuaExprlist();
         for (ImExpr ie : e.getIndexes()) {
             indexes.add(ie.translateToLua(tr));
         }
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
+    }
+
+    private static LuaExpr ensureByType(LuaExpr expr, ImType type, LuaTranslator tr) {
+        if (TypesHelper.isStringType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureStrFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isIntType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureIntFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isBoolType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureBoolFunction, LuaAst.LuaExprlist(expr));
+        }
+        if (TypesHelper.isRealType(type)) {
+            return LuaAst.LuaExprFunctionCall(tr.ensureRealFunction, LuaAst.LuaExprlist(expr));
+        }
+        return expr;
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
@@ -336,6 +427,9 @@ public class ExprTranslation {
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
         if (TypesHelper.isIntType(imCast.getToType())) {
+            if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
+                return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
+            }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType
             || imCast.getToType() instanceof ImAnyType) {

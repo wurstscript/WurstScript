@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 
 import java.util.Map.Entry;
@@ -33,6 +34,10 @@ public class AttrClosureCapturedVariables {
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
             NameLink def = nr.attrNameLink();
+            if (def instanceof OtherLink) {
+                // Synthetic links (e.g. implicit closure-self) are not captured locals.
+                return;
+            }
 
             if (def != null && isLocalVariable(def.getDef())) {
                 VarDef v = (VarDef) def.getDef();
@@ -62,7 +67,8 @@ public class AttrClosureCapturedVariables {
 
     private static boolean isLocalVariable(NameDef def) {
         return def instanceof LocalVarDef
-                || def instanceof WParameter && !(def.getParent().getParent() instanceof TupleDef);
+                || def instanceof WParameter && !(def.getParent().getParent() instanceof TupleDef)
+                || def instanceof WShortParameter;
 
     }
 

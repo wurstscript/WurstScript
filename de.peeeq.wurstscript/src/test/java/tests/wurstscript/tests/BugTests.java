@@ -1,5 +1,7 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -13,7 +15,7 @@ import java.io.IOException;
 import static de.peeeq.wurstscript.utils.Utils.string;
 
 public class BugTests extends WurstScriptTest {
-    private static final String TEST_DIR = "./testscripts/concept/";
+    public static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
     public void localsInOndestroy() throws IOException {
@@ -158,6 +160,53 @@ public class BugTests extends WurstScriptTest {
                 "		if a + b == 6",
                 "			testSuccess()",
                 "endpackage");
+    }
+
+    @Test
+    public void classVarInitOrderShouldError_770() {
+        testAssertErrorsLines(false, "used before it is initialized",
+                "package test",
+                "class B",
+                "    var i = 0",
+                "    function get() returns int",
+                "        return i",
+                "class A",
+                "    private var foo = b.get()",
+                "    private var b = new B()",
+                "endpackage");
+    }
+
+    @Test
+    public void dependencyDiagnosticsAreMuted() {
+        CompilationResult res = test()
+            .setStopOnFirstError(false)
+            .withCu(compilationUnit("_build/dependencies/dep/Dep.wurst",
+                "package dep",
+                "init",
+                "    if true",
+                "endpackage"))
+            .run();
+
+        Assert.assertTrue(res.getGui().getErrorList().isEmpty(), "Expected no errors.");
+        Assert.assertTrue(res.getGui().getWarningList().isEmpty(),
+            "Expected no warnings from _build/dependencies sources.");
+    }
+
+    @Test
+    public void projectDiagnosticsStayVisible() {
+        CompilationResult res = test()
+            .setStopOnFirstError(false)
+            .withCu(compilationUnit("wurst/Local.wurst",
+                "package local",
+                "init",
+                "    if true",
+                "endpackage"))
+            .run();
+
+        Assert.assertTrue(res.getGui().getErrorList().isEmpty(), "Expected no errors.");
+        Assert.assertTrue(res.getGui().getWarningList().stream()
+                .anyMatch(w -> w.getMessage().contains("empty then-block")),
+            "Expected warning for project sources.");
     }
 
 
@@ -849,6 +898,37 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void forRangeStartReadsParameter() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "function foo(int bar)",
+                "    for i = bar to 10",
+                "        skip",
+                "endpackage"
+            );
+
+        Assert.assertTrue(
+            result.getGui().getWarningList().stream()
+                .noneMatch(w -> w.getMessage().contains("The parameter bar is never read")),
+            "Unexpected unused warning for parameter bar: " + result.getGui().getWarningList()
+        );
+    }
+
+    @Test
+    public void forRangeLoopVarIsImmutable() {
+        testAssertErrorsLines(false, "Cannot assign a new value to constant",
+            "package test",
+            "init",
+            "    int stackPointer = 3",
+            "    for i = 0 to stackPointer",
+            "        i--",
+            "endpackage");
+    }
+
 
     @Test
     public void unreadVarWarningArrays() { // #813
@@ -1070,6 +1150,18 @@ public class BugTests extends WurstScriptTest {
                 "    if foo(bar(1), bar(2))",
                 "        testSuccess()"
         );
+
+        try {
+            String jass = Files.toString(
+                new File(TEST_OUTPUT_PATH + "BugTests_testStacktrace_stacktraceinlopt.j"),
+                Charsets.UTF_8
+            );
+            Assert.assertTrue(jass.contains("wurst_stack_depth"));
+            Assert.assertTrue(jass.contains("wurst_stack"));
+            Assert.assertFalse(jass.contains("return \"\""));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -1379,6 +1471,35 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
+    public void middlewareOverloadMin() throws IOException {
+        testAssertOkFile(new File(TEST_DIR + "MiddlewareOverload_min.wurst"), false);
+    }
+
+    @Test
+    public void cannotVallDynamicBug() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "public abstract class VoidFunction<T>",
+            "    abstract function call(T t)",
+            "int x = 0",
+            "function foo(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> bar(j - 1)",
+            "    f.call(i)",
+            "function bar(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> foo(j - 1)",
+            "    if i > 0",
+            "        f.call(i)",
+            "init",
+            "    bar(10)",
+            "    if x == 11",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void cycle_with_generics() {
         testAssertOkLines(true,
             "package Test",
@@ -1419,6 +1540,37 @@ public class BugTests extends WurstScriptTest {
             "init",
             "    ExecuteFunc(\"foo\")"
         );
+    }
+
+    @Test
+    public void executeFuncBridgeKeepsCallerStackFrames() {
+        test().executeProg(false).executeTests(false).lines(
+            "package Test",
+            "@extern native ExecuteFunc(string f)",
+            "function getStackTraceString() returns string",
+            "    return \"\"",
+            "function foo()",
+            "    getStackTraceString()",
+            "function caller()",
+            "    getStackTraceString()",
+            "    ExecuteFunc(\"foo\")",
+            "    getStackTraceString()",
+            "init",
+            "    caller()"
+        );
+
+        try {
+            String jass = Files.toString(
+                new File(TEST_OUTPUT_PATH + "BugTests_executeFuncBridgeKeepsCallerStackFrames_stacktraceinlopt.j"),
+                Charsets.UTF_8
+            );
+            Assert.assertTrue(jass.contains("function bridge_foo"));
+            Assert.assertFalse(jass.contains("bridge_oldStackDepth"));
+            Assert.assertFalse(jass.contains("set wurst_stack_depth = 0"));
+            Assert.assertTrue(jass.contains("via ExecuteFunc"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -1679,6 +1831,137 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testTooltipGenerator() {
+        test().withStdLib().lines(
+            "package Test",
+            "import AbilityObjEditing",
+            "import HashMap",
+            "",
+            "@configurable constant TITLE_COLOR = \"|cff3B97D3\"",
+            "@configurable constant TITLE_TTYPE = \"Target Type:\"",
+            "@configurable constant MAX_TITLES = 10",
+            "",
+            "@configurable function buildLearnTooltip(string name) returns string",
+            "\treturn \"|cffFFCC00Learn|r \" + name + \" - [|cffffcc00Level %d|r]\"",
+            "",
+            "@configurable function buildActiveTooltip(string name, int lvl) returns string",
+            "\treturn name + \"  - Level \" + lvl.toString()",
+            "",
+            "@configurable function buildPassiveTooltip(string name, int lvl) returns string",
+            "\treturn name + \"  - Level \" + lvl.toString()",
+            "",
+            "@configurable function buildDescription(string description) returns string",
+            "\treturn \"|cff919191\" + description + \"|r\"",
+            "\t",
+            "public class AbilityTooltipGenerator implements TooltipGenerator",
+            "\tprivate constant propMap = new IterableMap<string, StringLevelClosure>",
+            "\tprivate var description = \"\"",
+            "",
+            "\tprivate var levels = 1",
+            "\tprivate var hotkey = \"\"",
+            "\tprivate var name = \"\"",
+            "",
+            "\tconstruct(string description)",
+            "\t\tthis.description = description",
+            "",
+            "\tconstruct()",
+            "",
+            "\toverride function addProperty(string title, StringLevelClosure lc)",
+            "\t\tpropMap.put(title, lc)",
+            "",
+            "\toverride function applyToDef(AbilityDefinition def)",
+            "\t\tlevels = propMap.has(\"Levels\") ? fixValue(propMap.getAndRemove(\"Levels\").run(0)).toInt() : 1",
+            "\t\tname = propMap.has(\"Name\") ? propMap.getAndRemove(\"Name\").run(0) : \"unnamed\"",
+            "\t\thotkey = propMap.has(\"Hotkey\") ? propMap.getAndRemove(\"Hotkey\").run(0) : \"Q\"",
+            "\t\tdef..setTooltipLearn(generateTooltipLearn())",
+            "\t\t..setTooltipLearnExtended(generateTooltipExtended(-1, true))",
+            "\t\tfor i = 1 to levels",
+            "\t\t\tdef..setTooltipNormal(i, generateTooltipNormal(i))",
+            "\t\t\t..setTooltipNormalExtended(i, generateTooltipExtended(i, false))",
+            "",
+            "\tprivate function generateTooltipLearn() returns string",
+            "\t\treturn buildLearnTooltip(name)",
+            "",
+            "\tprivate function generateTooltipNormal(int lvl) returns string",
+            "\t\treturn buildActiveTooltip(name, lvl)",
+            "",
+            "\tprivate function generateTooltipExtended(int lvl, boolean learn) returns string",
+            "\t\tvar s = \"\"",
+            "",
+            "\t\tfor key in propMap",
+            "\t\t\tvar tmp = \"\"",
+            "\t\t\tvar isConstantValue = true",
+            "\t\t\tlet val = fixValue(propMap.get(key).run(1))",
+            "\t\t\tfor i = 2 to levels",
+            "\t\t\t\tlet tval = fixValue(propMap.get(key).run(i))",
+            "\t\t\t\tif val != tval",
+            "\t\t\t\t\tisConstantValue = false",
+            "\t\t\t\t\tbreak",
+            "",
+            "\t\t\tif isConstantValue",
+            "\t\t\t\ttmp += \"|cffFFCC00\" + val + \"|r \"",
+            "\t\t\telse",
+            "\t\t\t\tfor i = 1 to levels",
+            "\t\t\t\t\ttmp += fixValue(propMap.get(key).run(i)) + (i < levels ? \"/\" : \"\")",
+            "",
+            "\t\t\ts += TITLE_COLOR + key + \":|r \" + colorLevelValue(tmp, lvl, levels) + \"\\n\"",
+            "\t\ts += \"\\n\"",
+            "\t\ts += buildDescription(description)",
+            "\t\treturn s",
+            "",
+            "\tprivate static function fixValue(string value) returns string",
+            "\t\tif value == \"\"",
+            "\t\t\treturn \"\"",
+            "\t\tvar s = value",
+            "\t\tlet len = s.length()",
+            "\t\tlet lastChar = s.substring(len-1, len)",
+            "\t\tif lastChar == \".\"",
+            "\t\t\ts = s.substring(0, len-1)",
+            "\t\telse if len > 1 and s.substring(len-2, len) == \".0\"",
+            "\t\t\ts = s.substring(0, len-2)",
+            "\t\treturn s",
+            "",
+            "\tprivate static function colorLevelValue(string oldString, int lvl, int maxLevel) returns string",
+            "\t\tvar _newString = \"\"",
+            "\t\tvar charCount = 0",
+            "\t\tvar charPosCount = 0",
+            "\t\tint array charPos",
+            "\t\tlet oldLen = oldString.length()",
+            "\t\tfor char in oldString",
+            "\t\t\tif char == \"/\"",
+            "\t\t\t\tcharPos[charPosCount] = charCount",
+            "\t\t\t\tcharPosCount++",
+            "\t\t\tcharCount++",
+            "\t\tif lvl == -1",
+            "\t\t\t_newString = oldString",
+            "\t\telse if charPosCount <= 0",
+            "\t\t\t_newString = \"|cffFFCC00\" + oldString",
+            "\t\telse if maxLevel <= 1",
+            "\t\t\t_newString = \"|cffFFCC00\" + oldString",
+            "\t\telse if lvl == 1",
+            "\t\t\t_newString = \"|cffFFCC00\" + oldString.substring(0, charPos[0]) + \"|r\" + oldString.substring(charPos[0], oldLen)",
+            "\t\telse if lvl == maxLevel",
+            "\t\t\t_newString = oldString.substring(0, charPos[lvl-2] + 1) + \"|cffFFCC00\" + oldString.substring(charPos[lvl-2] + 1, oldLen) + \"|r\"",
+            "\t\telse",
+            "\t\t\t_newString = oldString.substring(0, charPos[lvl-2] + 1) + \"|cffFFCC00\" + oldString.substring(charPos[lvl-2] + 1, charPos[lvl-1]) + \"|r\" + oldString.substring(charPos[lvl-1], oldLen)",
+            "\t\treturn _newString",
+            "constant h = compiletime(gen())",
+            "",
+            "function gen() returns int",
+            "    let myInt = 20",
+            "    let tgen = new AbilityTooltipGenerator(\"Test1\")",
+            "    new AbilityDefinitionItemHealAoe('1234')",
+            "        ..registerTooltipGenerator(tgen)",
+            "        ..tooltipStartListen()",
+            "        ..addTooltipProperty(\"String\", _ -> \"a\")",
+            "        ..tooltipStopListen(true)",
+            "",
+            "    return 1",
+            "init",
+            "    testSuccess()"
 
+        );
+    }
 
 }

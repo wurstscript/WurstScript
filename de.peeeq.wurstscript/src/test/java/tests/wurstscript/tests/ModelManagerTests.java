@@ -245,6 +245,147 @@ public class ModelManagerTests {
 
     }
 
+    @Test
+    public void unresolvedImportsAreAllReported() throws IOException {
+        File projectFolder = new File("./temp/testProject_all_import_errors/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileMainA = WFile.create(new File(wurstFolder, "MainA.wurst"));
+        WFile fileMainB = WFile.create(new File(wurstFolder, "MainB.wurst"));
+        WFile fileMainC = WFile.create(new File(wurstFolder, "MainC.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+
+        writeFile(fileMainA, string(
+            "package MainA",
+            "import DoesNotExistA",
+            "import DoesNotExistB",
+            "import DoesNotExistC",
+            "import DoesNotExistD",
+            "endpackage"
+        ));
+        writeFile(fileMainB, string(
+            "package MainB",
+            "import MissingPkg1",
+            "import MissingPkg2",
+            "import MissingPkg3",
+            "endpackage"
+        ));
+        writeFile(fileMainC, string(
+            "package MainC",
+            "import UnknownAlpha",
+            "import UnknownBeta",
+            "endpackage"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+
+        String errorsMainA = errors.getOrDefault(fileMainA, "");
+        assertImportMissing(errorsMainA, "DoesNotExistA");
+        assertImportMissing(errorsMainA, "DoesNotExistB");
+        assertImportMissing(errorsMainA, "DoesNotExistC");
+        assertImportMissing(errorsMainA, "DoesNotExistD");
+
+        String errorsMainB = errors.getOrDefault(fileMainB, "");
+        assertImportMissing(errorsMainB, "MissingPkg1");
+        assertImportMissing(errorsMainB, "MissingPkg2");
+        assertImportMissing(errorsMainB, "MissingPkg3");
+
+        String errorsMainC = errors.getOrDefault(fileMainC, "");
+        assertImportMissing(errorsMainC, "UnknownAlpha");
+        assertImportMissing(errorsMainC, "UnknownBeta");
+    }
+
+    private void assertImportMissing(String diagnostics, String packageName) {
+        boolean hasResolvedError = diagnostics.contains("The import '" + packageName + "' could not be resolved.");
+        boolean hasValidatorError = diagnostics.contains("Could not find imported package " + packageName);
+        assertEquals(hasResolvedError || hasValidatorError, true,
+            "Expected missing-import diagnostic for " + packageName + " in:\n" + diagnostics);
+    }
+
+    @Test
+    public void deletingFileClearsErrorsFromModel() throws IOException {
+        File projectFolder = new File("./temp/testProject_delete_clears_errors/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile badFile = WFile.create(new File(wurstFolder, "Bad.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(badFile, string(
+            "package Bad",
+            "init",
+            "    if ("
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertThat(errors.get(badFile), CoreMatchers.containsString("extraneous input"));
+        assertEquals(manager.hasErrors(), true);
+
+        // Delete and remove from model: stale diagnostics/errors must be cleared immediately.
+        badFile.getFile().delete();
+        manager.removeCompilationUnit(badFile);
+
+        assertEquals(manager.hasErrors(), false);
+        assertEquals(errors.getOrDefault(badFile, ""), "");
+    }
+
+    @Test
+    public void readdingMovedFileWithSameContentUpdatesModel() throws IOException {
+        File projectFolder = new File("./temp/testProject_move_same_content/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        String packageTest = string(
+            "package Test",
+            "public function foo()"
+        );
+
+        WFile fileTest = WFile.create(new File(wurstFolder, "Test.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(fileTest, packageTest);
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        assertNotNull(manager.getCompilationUnit(fileTest));
+
+        // Simulate move/delete then recreate with same contents.
+        fileTest.getFile().delete();
+        manager.removeCompilationUnit(fileTest);
+        writeFile(fileTest, packageTest);
+        manager.syncCompilationUnit(fileTest);
+
+        assertNotNull(manager.getCompilationUnit(fileTest), "file should be present after re-adding same contents");
+    }
+
+    @Test
+    public void duplicatePackageReportsSingleClearMessage() throws IOException {
+        File projectFolder = new File("./temp/testProject_duplicate_package_message/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile a = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile b = WFile.create(new File(wurstFolder, "B.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(a, "package Dup\n");
+        writeFile(b, "package Dup\n");
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+
+        String allErrors = errors.values().stream().collect(Collectors.joining("\n"));
+        assertThat(allErrors, CoreMatchers.containsString("Package 'Dup' is defined multiple times."));
+        assertThat(allErrors, new IsNot<>(CoreMatchers.containsString("is already defined in")));
+    }
+
     @NotNull
     private Map<WFile, String> keepErrorsInMap(ModelManagerImpl manager) {
         // keep error messages in a map:
@@ -882,10 +1023,218 @@ public class ModelManagerTests {
     }
 
     /** Same as MapRequest.purgeUnimportedFiles: keep wurst-folder CUs and any imported transitively, plus .j files. */
+    @Test
+    public void runmapPurge_keepsProjectWar3MapAndPurgesUnimportedDependency() throws Exception {
+        File projectFolder = new File("./temp/testProject_runmap_purge_dep/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depA");
+        File dependencyWurst = new File(dependencyRoot, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(dependencyWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileProjectWar3Map = WFile.create(new File(wurstFolder, "war3map.j"));
+        WFile fileDep = WFile.create(new File(dependencyWurst, "UnimportedDep.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "init",
+            "    skip"
+        ));
+        writeFile(fileProjectWar3Map, "globals\nendglobals\n");
+        writeFile(fileDep, string(
+            "package UnimportedDep",
+            "init",
+            "    skip"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        assertNotNull(manager.getCompilationUnit(fileProjectWar3Map), "project war3map.j should be loaded before purge");
+
+        manager.syncCompilationUnit(fileDep);
+        assertNotNull(manager.getCompilationUnit(fileDep), "dependency CU should be loaded after opening/sync");
+        purgeUnimportedFiles_likeRunMap(manager.getModel(), manager);
+
+        assertEquals(manager.getCompilationUnit(fileDep), null, "unimported dependency CU must be removed by purge");
+        assertNotNull(manager.getCompilationUnit(fileProjectWar3Map), "project war3map.j must be retained by purge");
+    }
+
+    @Test
+    public void runmapPurge_onlyKeepsWar3MapFromProjectWurstFolder() throws Exception {
+        File projectFolder = new File("./temp/testProject_runmap_purge_war3map_scope/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depB");
+        File dependencyWurst = new File(dependencyRoot, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(dependencyWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileProjectWar3Map = WFile.create(new File(wurstFolder, "war3map.j"));
+        WFile fileDependencyWar3Map = WFile.create(new File(dependencyWurst, "war3map.j"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, "package Main\n");
+        writeFile(fileProjectWar3Map, "globals\nendglobals\n");
+        writeFile(fileDependencyWar3Map, "globals\nendglobals\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        assertNotNull(manager.getCompilationUnit(fileProjectWar3Map), "project war3map.j should be loaded before purge");
+        manager.syncCompilationUnit(fileDependencyWar3Map);
+        assertNotNull(manager.getCompilationUnit(fileDependencyWar3Map), "dependency war3map.j should be loaded after opening/sync");
+
+        purgeUnimportedFiles_likeRunMap(manager.getModel(), manager);
+
+        assertNotNull(manager.getCompilationUnit(fileProjectWar3Map), "project war3map.j must be retained");
+        assertEquals(manager.getCompilationUnit(fileDependencyWar3Map), null, "dependency war3map.j must not be retained implicitly");
+    }
+
+    @Test
+    public void runmapPurge_configOverrideCacheWithDetachedDependencyPackagesDoesNotCrash() throws Exception {
+        File projectFolder = new File("./temp/testProject_runmap_purge_config_detached/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File dependencyRoot = new File(new File(new File(projectFolder, "_build"), "dependencies"), "depConfig");
+        File dependencyWurst = new File(dependencyRoot, "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(dependencyWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileProjectWar3Map = WFile.create(new File(wurstFolder, "war3map.j"));
+        WFile fileDepBase = WFile.create(new File(dependencyWurst, "UpgradeObjEditing.wurst"));
+        WFile fileDepConfig = WFile.create(new File(dependencyWurst, "UpgradeObjEditing_config.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "init",
+            "    skip"
+        ));
+        writeFile(fileProjectWar3Map, "globals\nendglobals\n");
+        writeFile(fileDepBase, string(
+            "package UpgradeObjEditing",
+            "@configurable int version = 1",
+            "endpackage"
+        ));
+        writeFile(fileDepConfig, string(
+            "package UpgradeObjEditing_config",
+            "@config int version = 2",
+            "endpackage"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        manager.syncCompilationUnit(fileDepBase);
+        manager.syncCompilationUnit(fileDepConfig);
+        assertNotNull(manager.getCompilationUnit(fileDepBase), "dependency base package should be loaded");
+        assertNotNull(manager.getCompilationUnit(fileDepConfig), "dependency config package should be loaded");
+
+        // Force config-override attribute cache before purge so removed packages can become detached later.
+        assertNotNull(manager.getModel().attrConfigOverridePackages());
+
+        purgeUnimportedFiles_likeRunMap(manager.getModel(), manager);
+        assertEquals(manager.getCompilationUnit(fileDepBase), null, "unimported dependency base package CU must be removed");
+        assertEquals(manager.getCompilationUnit(fileDepConfig), null, "unimported dependency config package CU must be removed");
+
+        // Regression: translate must not crash with "package ... is not attached to a model".
+        runRunmapLikeCompile_Closer(projectFolder, manager);
+    }
+
+    @Test
+    public void syncCompilationUnitContent_noopContentProducesNoChanges() throws Exception {
+        File projectFolder = new File("./temp/testProject_sync_noop/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "init",
+            "    skip"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        String sameContent = Files.readString(fileMain.getFile().toPath());
+        ModelManager.Changes changes = manager.syncCompilationUnitContent(fileMain, sameContent);
+        assertEquals(changes.isEmpty(), true, "unchanged sync should not trigger reconcile work");
+    }
+
+    @Test
+    public void dependencySyncHandlesReplaceMoveRenameDelete() throws Exception {
+        File projectFolder = new File("./temp/testProject_dependency_sync_changes/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        File depAWurst = new File(new File(new File(new File(projectFolder, "_build"), "dependencies"), "depA"), "wurst");
+        File depBWurst = new File(new File(new File(new File(projectFolder, "_build"), "dependencies"), "depB"), "wurst");
+        newCleanFolder(wurstFolder);
+        newCleanFolder(depAWurst);
+        newCleanFolder(depBWurst);
+
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile depAFile = WFile.create(new File(depAWurst, "DummyDamage.wurst"));
+        WFile depBFile = WFile.create(new File(depBWurst, "DummyDamageNew.wurst"));
+        WFile depBRenamed = WFile.create(new File(depBWurst, "DummyDamageRenamed.wurst"));
+
+        writeFile(fileWurst, "package Wurst\n");
+        writeFile(fileMain, string(
+            "package Main",
+            "import DummyDamage",
+            "init",
+            "    foo()"
+        ));
+        writeFile(depAFile, string(
+            "package DummyDamage",
+            "public function foo()"
+        ));
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        Map<WFile, String> errors = keepErrorsInMap(manager);
+        manager.buildProject();
+        assertEquals(errors.get(fileMain), "", "baseline build with depA should be clean");
+        assertNotNull(manager.getCompilationUnit(depAFile), "depA CU should be loaded");
+
+        // replace: depA is removed and depB provides the same package
+        depAFile.getFile().delete();
+        writeFile(depBFile, string(
+            "package DummyDamage",
+            "public function foo()"
+        ));
+        ModelManager.Changes changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depAFile), null, "removed dependency CU must be dropped from model");
+        assertNotNull(manager.getCompilationUnit(depBFile), "replacement dependency CU should be loaded");
+        assertEquals(errors.get(fileMain), "", "replace should keep compilation clean");
+
+        // move/rename inside dependency folder
+        Files.move(depBFile.getFile().toPath(), depBRenamed.getFile().toPath());
+        changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depBFile), null, "moved dependency source should be removed");
+        assertNotNull(manager.getCompilationUnit(depBRenamed), "renamed dependency source should be loaded");
+        assertEquals(errors.get(fileMain), "", "move/rename should keep compilation clean");
+
+        // delete dependency entirely
+        depBRenamed.getFile().delete();
+        changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertEquals(manager.getCompilationUnit(depBRenamed), null, "deleted dependency source should be removed");
+        assertImportMissing(errors.getOrDefault(fileMain, ""), "DummyDamage");
+    }
+
     private void purgeUnimportedFiles_likeRunMap(WurstModel model, ModelManagerImpl manager) {
-        // Seed: files inside project root (wurst folder) OR .j files.
         java.util.Set<CompilationUnit> keep = model.stream()
-            .filter(cu -> isInWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager) || cu.getCuInfo().getFile().endsWith(".j"))
+            .filter(cu -> isInProjectWurstFolder_likeRunMap(cu.getCuInfo().getFile(), manager)
+                || isProjectWar3Map_likeRunMap(cu.getCuInfo().getFile(), manager)
+                || isRequiredBuildJass_likeRunMap(cu.getCuInfo().getFile(), manager))
             .collect(java.util.stream.Collectors.toSet());
 
         // Recursively add imported packages’ CUs (uses attrImportedPackage like RunMap)
@@ -893,12 +1242,31 @@ public class ModelManagerTests {
         model.removeIf(cu -> !keep.contains(cu));
     }
 
-    private boolean isInWurstFolder_likeRunMap(String file, ModelManagerImpl manager) {
-        java.nio.file.Path p = java.nio.file.Paths.get(file);
-        java.nio.file.Path w = manager.getProjectPath().toPath(); // project root
+    private boolean isInProjectWurstFolder_likeRunMap(String file, ModelManagerImpl manager) {
+        java.nio.file.Path p = java.nio.file.Paths.get(file).toAbsolutePath().normalize();
+        java.nio.file.Path w = manager.getProjectPath().toPath().resolve("wurst").toAbsolutePath().normalize();
         return p.startsWith(w)
             && java.nio.file.Files.exists(p)
             && Utils.isWurstFile(file);
+    }
+
+    private boolean isProjectWar3Map_likeRunMap(String file, ModelManagerImpl manager) {
+        if (!file.endsWith("war3map.j")) {
+            return false;
+        }
+        java.nio.file.Path p = java.nio.file.Paths.get(file).toAbsolutePath().normalize();
+        java.nio.file.Path w = manager.getProjectPath().toPath().resolve("wurst").toAbsolutePath().normalize();
+        return p.startsWith(w) && java.nio.file.Files.exists(p);
+    }
+
+    private boolean isRequiredBuildJass_likeRunMap(String file, ModelManagerImpl manager) {
+        java.nio.file.Path p = java.nio.file.Paths.get(file).toAbsolutePath().normalize();
+        java.nio.file.Path buildDir = manager.getProjectPath().toPath().resolve("_build").toAbsolutePath().normalize();
+        if (!p.startsWith(buildDir) || !java.nio.file.Files.exists(p)) {
+            return false;
+        }
+        String name = p.getFileName().toString();
+        return name.equals("common.j") || name.equals("blizzard.j");
     }
 
     private void addImports_likeRunMap(java.util.Set<CompilationUnit> result, java.util.Set<CompilationUnit> toAdd) {

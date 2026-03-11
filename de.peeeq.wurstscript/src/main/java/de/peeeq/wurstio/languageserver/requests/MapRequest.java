@@ -27,6 +27,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
@@ -38,9 +39,11 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -67,6 +70,12 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private static Long lastMapModified = 0L;
     private static String lastMapPath = "";
+    protected String cachedMapFileName = "";
+
+    public static final String BUILD_CONFIGURED_SCRIPT_NAME = "01_war3mapj_with_config.j.txt";
+    public static final String BUILD_COMPILED_JASS_NAME = "02_compiled.j.txt";
+    public static final String BUILD_COMPILED_LUA_NAME = "02_compiled.lua";
+    public static final String BUILD_JHCR_SCRIPT_NAME = "03_jhcr_war3map.j";
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -96,7 +105,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
-            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.of(GameVersion.VERSION_1_29));
+            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.empty());
         } else {
             this.w3data = getBestW3InstallationData();
         }
@@ -159,8 +168,9 @@ public abstract class MapRequest extends UserRequest<Object> {
                 luaCode.get().print(sb, 0);
 
                 String compiledMapScript = sb.toString();
+                LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
                 File buildDir = getBuildDir();
-                File outFile = new File(buildDir, "compiled.lua");
+                File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
                 return outFile;
 
@@ -178,7 +188,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg.get());
                 String compiledMapScript = printer.printProg();
                 File buildDir = getBuildDir();
-                File outFile = new File(buildDir, "compiled.j.txt");
+                File outFile = new File(buildDir, BUILD_COMPILED_JASS_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
 
                 if (!runArgs.isDisablePjass()) {
@@ -208,7 +218,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    private File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
+    protected File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
         File buildDir = getBuildDir();
         File commonJ = new File(buildDir, "common.j");
         File blizzardJ = new File(buildDir, "blizzard.j");
@@ -224,7 +234,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         ProcessBuilder pb = new ProcessBuilder(langServer.getConfigProvider().getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(buildDir);
         Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
-        return new File(buildDir, "jhcr_war3map.j");
+        return renameJhcrOutput(buildDir);
     }
 
     /**
@@ -236,23 +246,55 @@ public abstract class MapRequest extends UserRequest<Object> {
     private void purgeUnimportedFiles(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
-            .filter(cu -> isInWurstFolder(cu.getCuInfo().getFile()) || cu.getCuInfo().getFile().endsWith(".j")).collect(Collectors.toSet());
+            .filter(cu -> isInProjectWurstFolder(cu.getCuInfo().getFile())
+                || isProjectWar3MapScript(cu.getCuInfo().getFile())
+                || isRequiredBuildJass(cu.getCuInfo().getFile()))
+            .collect(Collectors.toSet());
         addImports(imported, imported);
 
         model.removeIf(cu -> !imported.contains(cu));
     }
 
-    private boolean isInWurstFolder(String file) {
-        Path p = Paths.get(file);
-        Path w;
+    private boolean isProjectWar3MapScript(String file) {
+        if (!file.endsWith("war3map.j")) {
+            return false;
+        }
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path projectWurstFolder;
         try {
-            w = workspaceRoot.getPath();
+            projectWurstFolder = workspaceRoot.getPath().resolve("wurst").toAbsolutePath().normalize();
         } catch (FileNotFoundException e) {
             return false;
         }
-        return p.startsWith(w)
+        return p.startsWith(projectWurstFolder) && java.nio.file.Files.exists(p);
+    }
+
+    private boolean isInProjectWurstFolder(String file) {
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path projectWurstFolder;
+        try {
+            projectWurstFolder = workspaceRoot.getPath().resolve("wurst").toAbsolutePath().normalize();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+        return p.startsWith(projectWurstFolder)
             && java.nio.file.Files.exists(p)
             && Utils.isWurstFile(file);
+    }
+
+    private boolean isRequiredBuildJass(String file) {
+        Path p = Paths.get(file).toAbsolutePath().normalize();
+        Path buildDir;
+        try {
+            buildDir = workspaceRoot.getPath().resolve("_build").toAbsolutePath().normalize();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+        if (!p.startsWith(buildDir)) {
+            return false;
+        }
+        String name = p.getFileName().toString();
+        return name.equals("common.j") || name.equals("blizzard.j");
     }
 
     protected File getBuildDir() {
@@ -300,7 +342,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         gui.sendProgress("Compiling Script");
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
-            WLogger.info("dep: " + dep.getPath());
+            WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
         if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
@@ -371,7 +413,91 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (!cacheDir.exists()) {
             UtilsIO.mkdirs(cacheDir);
         }
-        return new File(cacheDir, "cached_map.w3x");
+        return new File(cacheDir, resolveCachedMapFileName());
+    }
+
+    private String resolveCachedMapFileName() {
+        if (!cachedMapFileName.isEmpty()) {
+            return cachedMapFileName;
+        }
+        return resolveCachedMapFileName(runArgs.isLua());
+    }
+
+    private String resolveCachedMapFileName(boolean luaMode) {
+        if (!map.isPresent()) {
+            return luaMode ? "cached_map_lua.w3x" : "cached_map_jass.w3x";
+        }
+        File inputMap = map.get();
+        String inputName = inputMap.getName();
+        int dot = inputName.lastIndexOf('.');
+        String baseName = dot > 0 ? inputName.substring(0, dot) : inputName;
+        // Keep only filesystem-safe characters and avoid collisions for same basename from different folders.
+        String safeBase = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String pathHash = Integer.toUnsignedString(inputMap.getAbsolutePath().hashCode(), 36);
+        String modeSuffix = luaMode ? "lua" : "jass";
+        return safeBase + "_" + pathHash + "_" + modeSuffix + "_cached.w3x";
+    }
+
+    protected File ensureWritableTargetFile(File targetFile, String dialogTitle, String lockMessage,
+                                            String cancelMessage) {
+        File currentTarget = targetFile;
+        while (isLocked(currentTarget)) {
+            int choice = showTargetLockedDialog(dialogTitle, lockMessage);
+            if (choice == 0 || choice == JOptionPane.CLOSED_OPTION) {
+                throw new RequestFailedException(MessageType.Warning, cancelMessage);
+            } else if (choice == 1) {
+                continue;
+            } else if (choice == 2) {
+                currentTarget = createTemporaryTargetFile(currentTarget);
+            }
+        }
+        return currentTarget;
+    }
+
+    private int showTargetLockedDialog(String dialogTitle, String message) {
+        JFrame frame = new JFrame();
+        frame.setAlwaysOnTop(true);
+        Object[] options = { "Cancel", "Retry", "Rename" };
+        return JOptionPane.showOptionDialog(
+            frame,
+            message,
+            dialogTitle,
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+    }
+
+    private File createTemporaryTargetFile(File currentTarget) {
+        String currentName = currentTarget.getName();
+        String baseName = currentName.endsWith(".w3x")
+            ? currentName.substring(0, currentName.length() - 4)
+            : currentName;
+        try {
+            File parent = currentTarget.getParentFile();
+            if (parent == null) {
+                parent = getBuildDir();
+            }
+            File tempTarget = java.nio.file.Files.createTempFile(parent.toPath(), baseName + "_", ".w3x").toFile();
+            tempTarget.deleteOnExit();
+            WLogger.info("Using temporary map target due to locked file: " + tempTarget.getAbsolutePath());
+            return tempTarget;
+        } catch (IOException e) {
+            throw new RequestFailedException(MessageType.Error, "Could not create temporary map target file.", e);
+        }
+    }
+
+    private boolean isLocked(File targetMap) {
+        if (!targetMap.exists()) {
+            return false;
+        }
+        try (FileChannel ignored = FileChannel.open(targetMap.toPath(), StandardOpenOption.WRITE)) {
+            return false;
+        } catch (IOException e) {
+            return true;
+        }
     }
 
     /**
@@ -379,6 +505,7 @@ public abstract class MapRequest extends UserRequest<Object> {
      */
     protected File ensureCachedMap(WurstGui gui) throws IOException {
         File cachedMap = getCachedMapFile();
+        cleanupOppositeModeCacheAndOutputs();
 
         if (!map.isPresent()) {
             throw new RequestFailedException(MessageType.Error, "No source map provided");
@@ -396,21 +523,46 @@ public abstract class MapRequest extends UserRequest<Object> {
         return cachedMap;
     }
 
+    private void cleanupOppositeModeCacheAndOutputs() {
+        if (cachedMapFileName.isEmpty()) {
+            File cacheDir = new File(getBuildDir(), "cache");
+            String oppositeModeCacheName = resolveCachedMapFileName(!runArgs.isLua());
+            java.nio.file.Path oppositeModeCache = new File(cacheDir, oppositeModeCacheName).toPath();
+            try {
+                java.nio.file.Files.deleteIfExists(oppositeModeCache);
+            } catch (IOException e) {
+                WLogger.warning("Could not delete opposite-mode cached map: " + oppositeModeCache + " (" + e.getMessage() + ")");
+            }
+        }
+
+        File buildDir = getBuildDir();
+        File oppositeCompiledOutput = runArgs.isLua()
+            ? new File(buildDir, BUILD_COMPILED_JASS_NAME)
+            : new File(buildDir, BUILD_COMPILED_LUA_NAME);
+        try {
+            java.nio.file.Files.deleteIfExists(oppositeCompiledOutput.toPath());
+        } catch (IOException e) {
+            WLogger.warning("Could not delete opposite-mode compiled output: " + oppositeCompiledOutput + " (" + e.getMessage() + ")");
+        }
+    }
+
     protected CompilationResult compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap,
                                               WurstProjectConfigData projectConfigData, File buildDir,
                                               boolean isProd) throws Exception {
 
-        // Ensure we're working with the cached map
-        File cachedMap = ensureCachedMap(gui);
+        if (!runArgs.isHotReload()) {
+            // Ensure we're working with the cached map
+            File cachedMap = ensureCachedMap(gui);
 
-        // Update testMap to point to cached map
-        testMap = Optional.of(cachedMap);
+            // Update testMap to point to cached map
+            testMap = Optional.of(cachedMap);
+        }
 
         CompilationResult result;
 
         if (runArgs.isHotReload()) {
             result = new CompilationResult();
-            result.script = new File(buildDir, "war3mapj_with_config.j.txt");
+            result.script = new File(buildDir, BUILD_CONFIGURED_SCRIPT_NAME);
             if (!result.script.exists()) {
                 result.script = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
             }
@@ -419,9 +571,9 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
         } else {
             timeTaker.beginPhase("load map script");
-            File scriptFile = loadMapScript(testMap, modelManager, gui);
+            File scriptFile = loadMapScript(getMapForScriptExtraction(testMap), modelManager, gui);
             timeTaker.endPhase();
-            result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile);
+            result = applyProjectConfig(gui, testMap, buildDir, projectConfigData, scriptFile, BUILD_CONFIGURED_SCRIPT_NAME);
         }
 
         // Compile the script
@@ -526,7 +678,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         return true;
     }
 
-    private File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
+    protected File loadMapScript(Optional<File> mapCopy, ModelManager modelManager, WurstGui gui) throws Exception {
         File scriptFile = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
@@ -534,10 +686,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             System.out.println("No extract map script enabled - not extracting.");
             if (scriptFile.exists()) {
                 System.out.println("war3map.j exists at wurst root.");
-                CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
-                if (compilationUnit == null) {
-                    modelManager.syncCompilationUnit(WFile.create(scriptFile));
-                }
+                ensureScriptIsSynced(modelManager, scriptFile);
                 return scriptFile;
             } else {
                 throw new CompileError(new WPos("", new LineOffsets(), 0, 0),
@@ -548,12 +697,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             lastMapModified = MapRequest.mapLastModified;
             lastMapPath = MapRequest.mapPath;
             System.out.println("Map not cached yet, extracting script");
-            byte[] extractedScript = null;
-            try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
-                if (mpqEditor.hasFile("war3map.j")) {
-                    extractedScript = mpqEditor.extractFile("war3map.j");
-                }
-            }
+            byte[] extractedScript = extractMapScript(mapCopy);
             if (extractedScript == null) {
                 if (scriptFile.exists()) {
                     String msg = "No war3map.j in map file, using old extracted file";
@@ -580,26 +724,66 @@ public abstract class MapRequest extends UserRequest<Object> {
                 WLogger.info("new map, use extracted");
                 // write mapfile from map to workspace
                 Files.write(extractedScript, scriptFile);
+                ensureScriptIsSynced(modelManager, scriptFile);
             }
         } else {
             System.out.println("Map not modified, not extracting script");
         }
-
+        if (scriptFile.exists()) {
+            ensureScriptIsSynced(modelManager, scriptFile);
+        }
 
         return scriptFile;
     }
 
-    private CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile) {
+    private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
+        CompilationUnit compilationUnit = modelManager.getCompilationUnit(WFile.create(scriptFile));
+        if (compilationUnit == null) {
+            modelManager.syncCompilationUnit(WFile.create(scriptFile));
+        }
+    }
+
+    protected CompilationResult applyProjectConfig(WurstGui gui, Optional<File> testMap, File buildDir, WurstProjectConfigData projectConfig, File scriptFile,
+                                                   String outputScriptName) {
         AtomicReference<CompilationResult> result = new AtomicReference<>();
         gui.sendProgress("Applying Map Config...");
         timeTaker.measure("Applying Map Config", () -> {
             try {
-                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), scriptFile, buildDir, runArgs, w3data));
+                result.set(ProjectConfigBuilder.apply(projectConfig, testMap.get(), scriptFile, buildDir, runArgs, w3data, outputScriptName));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
         return result.get();
+    }
+
+    protected Optional<File> getMapForScriptExtraction(Optional<File> mapCopy) {
+        if (map.isPresent()) {
+            return map;
+        }
+        return mapCopy;
+    }
+
+    protected byte[] extractMapScript(Optional<File> mapCopy) throws Exception {
+        if (!mapCopy.isPresent()) {
+            return null;
+        }
+        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
+            if (mpqEditor.hasFile("war3map.j")) {
+                return mpqEditor.extractFile("war3map.j");
+            }
+        }
+        return null;
+    }
+
+    protected File renameJhcrOutput(File buildDir) throws IOException {
+        File rawJhcrScript = new File(buildDir, "jhcr_war3map.j");
+        if (!rawJhcrScript.exists()) {
+            throw new IOException("Could not find file " + rawJhcrScript.getAbsolutePath());
+        }
+        File renamedJhcrScript = new File(buildDir, BUILD_JHCR_SCRIPT_NAME);
+        java.nio.file.Files.move(rawJhcrScript.toPath(), renamedJhcrScript.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        return renamedJhcrScript;
     }
 
     private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
@@ -628,32 +812,49 @@ public abstract class MapRequest extends UserRequest<Object> {
         } catch (FileNotFoundException e) {
             throw new RuntimeException("Cannot get build dir", e);
         }
-        if (luaDir.exists()) {
-            File[] children = luaDir.listFiles();
-            if (children != null) {
-                Arrays.stream(children).forEach(child -> {
-                    try {
-                        byte[] bytes = java.nio.file.Files.readAllBytes(child.toPath());
-                        if (child.getName().startsWith("pre_")) {
-                            byte[] existingBytes = java.nio.file.Files.readAllBytes(script.toPath());
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                bytes);
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                existingBytes,
-                                StandardOpenOption.APPEND);
-                        } else {
-                            java.nio.file.Files.write(
-                                script.toPath(),
-                                bytes,
-                                StandardOpenOption.APPEND);
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        if (!luaDir.exists()) {
+            return;
+        }
+
+        try (var fileStream = java.nio.file.Files.walk(luaDir.toPath())) {
+            List<Path> luaFiles = fileStream
+                .filter(java.nio.file.Files::isRegularFile)
+                .sorted(Comparator.comparing(path -> {
+                    Path relative = luaDir.toPath().relativize(path);
+                    return relative.toString().replace('\\', '/').toLowerCase(Locale.ROOT);
+                }))
+                .collect(Collectors.toList());
+
+            if (luaFiles.isEmpty()) {
+                return;
             }
+
+            List<byte[]> preChunks = new ArrayList<>();
+            List<byte[]> postChunks = new ArrayList<>();
+            for (Path luaFile : luaFiles) {
+                byte[] bytes = java.nio.file.Files.readAllBytes(luaFile);
+                String fileName = luaFile.getFileName().toString();
+                if (fileName.startsWith("pre_")) {
+                    preChunks.add(bytes);
+                } else {
+                    postChunks.add(bytes);
+                }
+            }
+
+            if (!preChunks.isEmpty()) {
+                byte[] existingBytes = java.nio.file.Files.readAllBytes(script.toPath());
+                java.nio.file.Files.write(script.toPath(), new byte[0]);
+                for (byte[] preChunk : preChunks) {
+                    java.nio.file.Files.write(script.toPath(), preChunk, StandardOpenOption.APPEND);
+                }
+                java.nio.file.Files.write(script.toPath(), existingBytes, StandardOpenOption.APPEND);
+            }
+
+            for (byte[] postChunk : postChunks) {
+                java.nio.file.Files.write(script.toPath(), postChunk, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

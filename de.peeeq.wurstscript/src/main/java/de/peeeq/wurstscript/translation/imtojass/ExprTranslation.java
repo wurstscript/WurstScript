@@ -60,7 +60,7 @@ public class ExprTranslation {
             } else if (typename.equals("boolean") || typename.equals("bool")) {
                 return JassExprBoolVal(false);
             } else if (typename.equals("string")) {
-                return JassExprStringVal("");
+                return JassExprNull();
             }
         }
 

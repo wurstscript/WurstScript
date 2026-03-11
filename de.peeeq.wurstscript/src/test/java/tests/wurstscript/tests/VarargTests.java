@@ -131,6 +131,24 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void varargWithContinue() {
+        testAssertErrorsLines(true, "Cannot use continue in vararg for each loops",
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        if i > 2",
+                "            continue",
+                "        sum += i",
+                "    if sum == 3",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
     public void legitNestedBreak() {
         testAssertOkLines(true,
                 "package Test",
@@ -301,6 +319,43 @@ public class VarargTests extends WurstScriptTest {
                 "    if c.foo(1,2) == 3 and d.foo(1,2) == 2 and d.foo(1,2,3,4) == 24",
                 "        testSuccess()");
 
+    }
+
+    @Test
+    public void varargConstructor() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    int value = 0",
+                "    construct(int i, vararg string strings)",
+                "        value = i",
+                "        for s in strings",
+                "            value++",
+                "init",
+                "    let a = new A(2, \"x\", \"y\", \"z\")",
+                "    if a.value == 5",
+                "        testSuccess()");
+    }
+
+    @Test
+    public void varargConstructorSuperCall() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    int sum = 0",
+                "    construct(int i, vararg int xs)",
+                "        sum = i",
+                "        for x in xs",
+                "            sum += x",
+                "class B extends A",
+                "    construct()",
+                "        super(1,2,3,4)",
+                "init",
+                "    let b = new B()",
+                "    if b.sum == 10",
+                "        testSuccess()");
     }
 
 

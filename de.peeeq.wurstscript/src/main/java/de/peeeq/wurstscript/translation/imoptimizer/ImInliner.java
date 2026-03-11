@@ -3,8 +3,10 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
 
@@ -19,6 +21,7 @@ public class ImInliner {
     private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
+    private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
     private final ImTranslator translator;
     private final ImProg prog;
     private final Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
@@ -70,7 +73,14 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            if (f != called && shouldInline(call, called)) {
+            boolean canInline = f != called && shouldInline(call, called);
+            if (LOG_INLINER) {
+                String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
+                    (canInline ? "" : " reason=" + skipReason(call, called));
+                WLogger.info(msg);
+                System.out.println(msg);
+            }
+            if (canInline) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
                     inlineCall(f, parent, parentI, call);
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
@@ -99,12 +109,39 @@ public class ImInliner {
         return null;
     }
 
+    private String skipReason(ImFunctionCall call, ImFunction f) {
+        if (f.isNative()) {
+            return "native";
+        }
+        if (call.getCallType() == CallType.EXECUTE) {
+            return "execute_call";
+        }
+        if (!inlinableFunctions.contains(f)) {
+            return "not_in_inlinable_set";
+        }
+        if (isRecursive(f)) {
+            return "recursive";
+        }
+        double threshold = inlineTreshold;
+        for (ImExpr arg : call.getArguments()) {
+            if (arg instanceof ImConst) {
+                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
+                break;
+            }
+        }
+        double rating = getRating(f);
+        if (rating >= threshold) {
+            return "rating_too_high(" + rating + ">=" + threshold + ")";
+        }
+        return "unknown";
+    }
+
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
         ImFunction called = call.getFunc();
         if (called == f) {
             throw new Error("cannot inline self.");
         }
-        List<ImStmt> stmts = Lists.newArrayList();
+        List<ImStmt> prefixStmts = Lists.newArrayList();
         // save arguments to temp vars:
         List<ImExpr> args = call.getArguments().removeAll();
         Map<ImVar, ImVar> varSubtitutions = Maps.newLinkedHashMap();
@@ -115,7 +152,7 @@ public class ImInliner {
             f.getLocals().add(tempVar);
             varSubtitutions.put(param, tempVar);
             // set temp var
-            stmts.add(JassIm.ImSet(arg.attrTrace(), JassIm.ImVarAccess(tempVar), arg));
+            prefixStmts.add(JassIm.ImSet(arg.attrTrace(), JassIm.ImVarAccess(tempVar), arg));
         }
         // add locals
         for (ImVar l : called.getLocals()) {
@@ -124,6 +161,7 @@ public class ImInliner {
             varSubtitutions.put(l, newL);
         }
         // add body and replace params with tempvars
+        List<ImStmt> copiedBody = Lists.newArrayList();
         for (int i = 0; i < called.getBody().size(); i++) {
             ImStmt s = called.getBody().get(i).copy();
             ImHelper.replaceVar(s, varSubtitutions);
@@ -138,21 +176,53 @@ public class ImInliner {
             });
 
 
-            stmts.add(s);
+            copiedBody.add(s);
         }
-        // handle return
+
+        List<ImStmt> stmts = Lists.newArrayList();
+        stmts.addAll(prefixStmts);
+
         ImExpr newExpr = null;
-        if (stmts.size() > 0) {
-            ImStmt lastStmt = stmts.get(stmts.size() - 1);
-            if (lastStmt instanceof ImReturn) {
-                ImReturn ret = (ImReturn) lastStmt;
-                stmts.remove(stmts.size() - 1);
-                ImExprOpt valOpt = ret.getReturnValue();
-                if (valOpt instanceof ImExpr) {
-                    ImExpr val = (ImExpr) valOpt.copy();
-                    ImHelper.replaceVar(val, varSubtitutions);
-                    newExpr = ImStatementExpr(ImStmts(stmts), val);
+        if (maxOneReturn(called)) {
+            // Fast path for existing single-return shape.
+            stmts.addAll(copiedBody);
+            if (!stmts.isEmpty()) {
+                ImStmt lastStmt = stmts.get(stmts.size() - 1);
+                if (lastStmt instanceof ImReturn) {
+                    ImReturn ret = (ImReturn) lastStmt;
+                    stmts.remove(stmts.size() - 1);
+                    ImExprOpt valOpt = ret.getReturnValue();
+                    if (valOpt instanceof ImExpr) {
+                        ImExpr val = (ImExpr) valOpt.copy();
+                        ImHelper.replaceVar(val, varSubtitutions);
+                        newExpr = ImStatementExpr(ImStmts(stmts), val);
+                    }
                 }
+            }
+        } else {
+            // Multi-return path: rewrite returns to done-flag + optional return temp.
+            ImVar doneVar = JassIm.ImVar(call.attrTrace(), TypesHelper.imBool(), "inlineDone", false);
+            f.getLocals().add(doneVar);
+            stmts.add(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(doneVar), JassIm.ImBoolVal(false)));
+
+            ImVar retVar = null;
+            if (!(called.getReturnType() instanceof ImVoid)) {
+                retVar = JassIm.ImVar(call.attrTrace(), called.getReturnType().copy(), "inlineRet", false);
+                f.getLocals().add(retVar);
+            }
+
+            ImStmts rewritten = rewriteForEarlyReturns(JassIm.ImStmts(copiedBody), doneVar, retVar);
+            stmts.addAll(rewritten.removeAll());
+
+            if (retVar != null) {
+                // Set fallback return value only on paths where the inlined body did not execute any return.
+                // Keeping this write close to the final read avoids dead-store removal creating uninitialized JASS locals.
+                ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
+                stmts.add(JassIm.ImIf(call.attrTrace(), notDone,
+                    JassIm.ImStmts(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(retVar),
+                        ImHelper.defaultValueForComplexType(called.getReturnType()))),
+                    JassIm.ImStmts()));
+                newExpr = ImStatementExpr(ImStmts(stmts), JassIm.ImVarAccess(retVar));
             }
         }
         if (newExpr == null) {
@@ -162,9 +232,54 @@ public class ImInliner {
 
     }
 
+    private ImStmts rewriteForEarlyReturns(ImStmts body, ImVar doneVar, ImVar retVar) {
+        ImStmts rewritten = JassIm.ImStmts();
+        for (ImStmt s : body) {
+            ImStmt transformed = rewriteStmtForEarlyReturn(s, doneVar, retVar);
+            ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
+            rewritten.add(JassIm.ImIf(s.attrTrace(), notDone, JassIm.ImStmts(transformed), JassIm.ImStmts()));
+        }
+        return rewritten;
+    }
+
+    private ImStmt rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
+        if (s instanceof ImReturn) {
+            ImReturn r = (ImReturn) s;
+            ImStmts b = JassIm.ImStmts();
+            if (retVar != null && r.getReturnValue() instanceof ImExpr) {
+                ImExpr rv = (ImExpr) r.getReturnValue();
+                rv.setParent(null);
+                b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), rv));
+            }
+            b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(doneVar), JassIm.ImBoolVal(true)));
+            return ImHelper.statementExprVoid(b);
+        } else if (s instanceof ImIf) {
+            ImIf imIf = (ImIf) s;
+            ImStmts thenBlock = rewriteForEarlyReturns(imIf.getThenBlock().copy(), doneVar, retVar);
+            ImStmts elseBlock = rewriteForEarlyReturns(imIf.getElseBlock().copy(), doneVar, retVar);
+            return JassIm.ImIf(imIf.getTrace(), imIf.getCondition().copy(), thenBlock, elseBlock);
+        } else if (s instanceof ImLoop) {
+            ImLoop l = (ImLoop) s;
+            ImStmts loopBody = JassIm.ImStmts();
+            loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
+            loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
+            return JassIm.ImLoop(l.getTrace(), loopBody);
+        } else if (s instanceof ImVarargLoop) {
+            ImVarargLoop l = (ImVarargLoop) s;
+            ImStmts loopBody = JassIm.ImStmts();
+            loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
+            loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
+            return JassIm.ImVarargLoop(l.getTrace(), loopBody, l.getLoopVar());
+        }
+        // Keep tree ownership valid when rewrapping statements into new blocks.
+        return s.copy();
+    }
+
     private void rateInlinableFunctions() {
-        for (Map.Entry<ImFunction, ImFunction> f : translator.getCalledFunctions().entries()) {
-            incCallCount(f.getKey());
+        for (Map.Entry<ImFunction, ImFunction> edge : translator.getCalledFunctions().entries()) {
+            // For bloat control we need how often a function is used (incoming edges),
+            // not how many calls it performs itself (outgoing edges).
+            incCallCount(edge.getValue());
         }
         for (ImFunction f : inlinableFunctions) {
             int size = estimateSize(f);
@@ -276,22 +391,32 @@ public class ImInliner {
 
     private void collectInlinableFunctions() {
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
-            if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
-                // do not inline natives
-                continue;
-            }
-            if (f == translator.getGlobalInitFunc()) {
-                continue;
-            }
-            if (f.hasFlag(IS_VARARG)) {
-                // do not inline vararg functions
-                // this is only relevant for lua, because in JASS they are eliminated before inlining
-                continue;
-            }
-            if (maxOneReturn(f)) {
+            if (isInlineCandidate(f)) {
                 inlinableFunctions.add(f);
             }
         }
+        // Some call targets can survive in the call graph but not in prog/classes lists.
+        for (ImFunction f : translator.getCalledFunctions().values()) {
+            if (isInlineCandidate(f)) {
+                inlinableFunctions.add(f);
+            }
+        }
+    }
+
+    private boolean isInlineCandidate(ImFunction f) {
+        if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
+            // do not inline natives
+            return false;
+        }
+        if (f == translator.getGlobalInitFunc()) {
+            return false;
+        }
+        if (f.hasFlag(IS_VARARG)) {
+            // do not inline vararg functions
+            // this is only relevant for lua, because in JASS they are eliminated before inlining
+            return false;
+        }
+        return true;
     }
 
     private boolean maxOneReturn(ImFunction f) {

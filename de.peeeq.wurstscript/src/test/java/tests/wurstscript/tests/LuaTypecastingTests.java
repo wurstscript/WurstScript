@@ -1,8 +1,15 @@
 package tests.wurstscript.tests;
 
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.regex.Pattern;
+
+import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
 
@@ -188,5 +195,133 @@ public class LuaTypecastingTests extends WurstScriptTest {
         );
     }
 
-}
+    @Test
+    public void compiletimeHashMapStringPutInLua() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import HashMap",
+            "let map = compiletime(new HashMap<string, string>())",
+            "@compiletime function initialize()",
+            "    map.put(\"hello\", \"world\")"
+        );
+    }
 
+    @Test
+    public void compiletimeIterableMapStringPutInLua() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import HashMap",
+            "let modes = compiletime(new IterableMap<string, int>())",
+            "@compiletime function initialize()",
+            "    modes.put(\"r\", 1)",
+            "    modes.put(\"sr\", 2)"
+        );
+    }
+
+    @Test
+    public void luaTypeCastingStringIndexUsesLuaMapping() {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "@compiletime function initialize()",
+            "    let s = stringFromIndex(stringToIndex(\"abc\"))",
+            "    if s == \"abc\"",
+            "        skip"
+        );
+    }
+
+    @Test
+    public void luaFramehandleFromIndexDoesNotUseFogstateHashtablePath() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "init",
+            "    let fh = framehandleFromIndex(1)",
+            "    let idx = framehandleToIndex(fh)",
+            "    let u = unitFromIndex(2)",
+            "    let ui = unitToIndex(u)",
+            "    if idx >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaFramehandleFromIndexDoesNotUseFogstateHashtablePath.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("__wurst_objectFromIndex("));
+        Pattern framehandleFromIndexUsesLuaHelper = Pattern.compile(
+            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        );
+        assertTrue(framehandleFromIndexUsesLuaHelper.matcher(compiled).find());
+        Pattern unitFromIndexUsesLuaHelper = Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        );
+        assertTrue(unitFromIndexUsesLuaHelper.matcher(compiled).find());
+        Pattern unitFromIndexSavesFog = Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?Table_saveFogState[\\s\\S]*?\\nend",
+            Pattern.MULTILINE
+        );
+        assertFalse(unitFromIndexSavesFog.matcher(compiled).find());
+    }
+
+    @Test
+    public void luaTypeCastingCompatWrappersUseLuaHelpers() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import TypeCasting",
+            "init",
+            "    let u = unitFromIndex(1)",
+            "    let ui = unitToIndex(u)",
+            "    let w = widgetFromIndex(2)",
+            "    let wi = widgetToIndex(w)",
+            "    let fh = framehandleFromIndex(3)",
+            "    let fhi = framehandleToIndex(fh)",
+            "    let k = oskeytypeFromIndex(4)",
+            "    let ki = oskeytypeToIndex(k)",
+            "    let s = stringFromIndex(stringToIndex(\"abc\"))",
+            "    if ui + wi + fhi + ki >= 0 and s.length() >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTypecastingTests_luaTypeCastingCompatWrappersUseLuaHelpers.lua"), Charsets.UTF_8);
+
+        assertTrue(Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+unitToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+widgetFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+widgetToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+framehandleFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+framehandleToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+oskeytypeFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+oskeytypeToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_objectToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+stringToIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringToIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+        assertTrue(Pattern.compile(
+            "function\\s+stringFromIndex\\([^)]*\\)[\\s\\S]*?return\\s+__wurst_stringFromIndex\\(",
+            Pattern.MULTILINE
+        ).matcher(compiled).find());
+    }
+
+}

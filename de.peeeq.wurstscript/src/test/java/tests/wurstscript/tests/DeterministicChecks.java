@@ -23,7 +23,7 @@ public class DeterministicChecks extends WurstScriptTest {
     @Test
     public void simple() throws IOException {
         ErrorHandler.outputTestSource = true;
-        run(this::exampleCode, "exampleCode");
+        run(this::exampleCode, "exampleCode_no_opts");
         ErrorHandler.outputTestSource = false;
     }
 
@@ -63,7 +63,7 @@ public class DeterministicChecks extends WurstScriptTest {
     @Test
     public void cyclicFunctionCall() throws IOException {
         ErrorHandler.outputTestSource = true;
-        run(this::cycleExample, "cycleExample");
+        run(this::cycleExample, "cycleExample_no_opts");
         ErrorHandler.outputTestSource = false;
     }
 

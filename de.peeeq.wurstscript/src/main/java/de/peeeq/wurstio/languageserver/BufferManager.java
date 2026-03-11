@@ -41,9 +41,12 @@ public class BufferManager {
         switch (fileEvent.getType()) {
             case Created:
             case Changed:
-                    readFileFromDisk(uri);
+                readFileFromDisk(uri);
+                break;
             case Deleted:
                 currentBuffer.remove(uri);
+                latestVersion.remove(uri);
+                break;
         }
     }
 
@@ -69,7 +72,8 @@ public class BufferManager {
 
     synchronized void handleChange(DidChangeTextDocumentParams params) {
         WFile uri = WFile.create(params.getTextDocument().getUri());
-        int version = params.getTextDocument().getVersion();
+        Integer versionObj = params.getTextDocument().getVersion();
+        int version = versionObj != null ? versionObj : getTextDocumentVersion(uri) + 1;
         if (version < getTextDocumentVersion(uri)) {
             // ignore old versions
             return;
@@ -84,9 +88,28 @@ public class BufferManager {
             } else {
                 int start = getOffset(sb, contentChange.getRange().getStart());
                 int end = getOffset(sb, contentChange.getRange().getEnd());
-                sb.replace(start, end - start, contentChange.getText());
+                if (end < start) {
+                    int tmp = start;
+                    start = end;
+                    end = tmp;
+                }
+                sb.replace(start, end, contentChange.getText());
             }
         }
+    }
+
+    synchronized void handleOpen(DidOpenTextDocumentParams params) {
+        TextDocumentItem item = params.getTextDocument();
+        WFile uri = WFile.create(item.getUri());
+        latestVersion.put(uri, item.getVersion());
+        StringBuilder sb = buffer(uri);
+        sb.replace(0, sb.length(), item.getText());
+    }
+
+    synchronized void handleClose(DidCloseTextDocumentParams params) {
+        WFile uri = WFile.create(params.getTextDocument().getUri());
+        currentBuffer.remove(uri);
+        latestVersion.remove(uri);
     }
 
     public synchronized int getTextDocumentVersion(WFile uri) {
@@ -95,15 +118,15 @@ public class BufferManager {
 
     private int getOffset(StringBuilder sb, Position position) {
         int pos = 0;
-        int line = 1;
+        int line = 0;
         while (pos < sb.length() && line < position.getLine()) {
             if (sb.charAt(pos) == '\n') {
                 line++;
             }
             pos++;
         }
-        pos += position.getCharacter();
-        return Math.min(pos, sb.length() - 1);
+        pos += Math.max(0, position.getCharacter());
+        return Math.min(Math.max(0, pos), sb.length());
     }
 
     synchronized public void updateFile(WFile wFile, String contents) {

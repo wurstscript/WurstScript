@@ -1,0 +1,1564 @@
+package ArrayList
+import NoWurst
+import Integer
+import String
+import Printing
+import Real
+import Wurstunit
+
+
+constant MAX_ARRAY_SIZE = 8192
+
+/**
+ * High-performance array-based list using static shared storage per type.
+ * In most cases, a LinkedList is a better choice due to its flexibility.
+ * This data structure is only recommended for performance-critical code
+ * and requires careful use to avoid fragmentation.
+ *
+ * WHEN TO USE:
+ * ===========
+ * ArrayList is faster than LinkedList for:
+ * - Iterating large lists (1000+ elements) - no node indirection
+ * - Index based operations - O(1) vs O(n)
+ * - When only appending elements to the end
+ *
+ * LinkedList is better for:
+ * - Insertion anywhere except the end of the list
+ * - Deletions while retaining order
+ * - Unknown size requirements
+ * - No resize performance risk
+ *
+ * TYPE SYSTEM IMPLICATIONS:
+ * ========================
+ * Each ArrayList<T> type gets its own static storage array.
+ * - ArrayList<int>, ArrayList<unit>, ArrayList<string> = 3 separate arrays
+ * - Each type can hold up to MAX_ARRAY_SIZE elements total across all instances
+ *
+ * Choose wisely based on how many types you have.
+ *
+ * PERFORMANCE RULES:
+ * ==================
+ *
+ * 1. PRESIZE, DON'T RESIZE
+ *    Bad:  new ArrayList<int>()           // Might resize multiple times
+ *    Good: new ArrayList<int>(maxSize)    // One allocation
+ *
+ *    Why: Resize operations copy ALL elements to new memory. Expensive!
+ *
+ * 2. REUSE, DON'T RECREATE
+ *    Bad:  In loop `let temp = new ArrayList<int>() ... destroy temp`
+ *    Good: `let temp = new ArrayList<int>() ... temp.clear()` in loop
+ *
+ *    Why: Allocation/Deallocation is moderately expensive and causes fragmentation
+ *
+ * 3. ORDERED REMOVAL IS SLOW
+ *    Bad:  list.removeAt(i)           // O(n) - shifts all elements
+ *    Good: list.removeSwap(i)         // O(1) - swaps with last element
+ *
+ *    Only use removeSwap() if order doesn't matter
+ *
+ * 4. ITERATORS ALLOCATE
+ *    Bad:  for elem in list: process(elem)           // Allocates iterator
+ *    Good: for i = 0 to list.size()-1                // Zero allocation
+ *
+ *    Use iterators for convenience, index loops for performance
+ *
+ * 5. AVOID FREQUENT INSERTS AT START
+ *    Bad:  list.addtoStart(x)         // O(n) every time
+ *    Good: Use LinkedList or add in reverse order
+ *
+ * PERFORMANCE TABLE:
+ * ==================
+ * Operation          | ArrayList | LinkedList | Notes
+ * -------------------|-----------|------------|---------------------------
+ * add(elem)          | O(1)*     | O(1)       | *O(n) on resize!
+ * addtoStart(elem)   | O(n)      | O(1)       | Shifts all elements
+ * get(index)         | O(1)      | O(n)       | Major ArrayList advantage
+ * removeAt(index)    | O(n)      | O(1)       | Shifts remaining elements
+ * removeSwap(index)  | O(1)      | N/A        | Doesn't preserve order
+ * Iterate all        | Faster    | Fast       | LinkedList does double the work, but is still fast
+ * Memory per element | 1 slot    | 3 slots    | Element + 2 pointers
+ * Create/destroy     | Varies    | High       | AL might need memory management, LL needs to process Nodes
+ *
+ * MEMORY MANAGEMENT:
+ * ==================
+ * ArrayList uses section allocation in a shared static array per type.
+ * Destroyed lists return sections to a free pool for reuse.
+ * Free sections are compacted to reduce fragmentation.
+ *
+ * Fragmentation occurs when lists grow - the old section becomes a gap.
+ * This is why presizing matters: growth = copy to new location = wasted space.
+ *
+ * Hard limit: MAX_ARRAY_SIZE total slots per type across all instances.
+ **/
+public class ArrayList<T:>
+    private static T array store
+    private static int nextFreeIndex = 0
+
+    // Memory management structures
+    private static constant int MAX_FREE_SECTIONS = 256
+    private static int array freeSectionStart
+    private static int array freeSectionCapacity
+    private static int freeSectionCount = 0
+
+    private int startIndex
+    private int capacity
+    private int size = 0
+    private static constant int INITIAL_CAPACITY = 16
+
+    static function getNextFreeIndex() returns int
+        return nextFreeIndex
+
+    /** Creates a new empty list with default capacity (16) */
+    construct()
+        allocateStorage(INITIAL_CAPACITY)
+
+    /** Creates a new list with specified initial capacity - RECOMMENDED for performance */
+    construct(int initialCapacity)
+        allocateStorage(initialCapacity)
+
+    /** Creates a new list by copying all elements from another list */
+    construct(thistype base)
+        allocateStorage(base.size > INITIAL_CAPACITY ? base.size : INITIAL_CAPACITY)
+        for elem in base
+            add(elem)
+
+    /** Allocates storage section - tries to reuse freed sections first */
+    private function allocateStorage(int cap)
+        // Try to find a freed section that fits
+        for i = 0 to freeSectionCount - 1
+            if freeSectionCapacity[i] >= cap
+                startIndex = freeSectionStart[i]
+                capacity = freeSectionCapacity[i]
+
+                // Remove this section from free list
+                for j = i to freeSectionCount - 2
+                    freeSectionStart[j] = freeSectionStart[j + 1]
+                    freeSectionCapacity[j] = freeSectionCapacity[j + 1]
+                freeSectionCount--
+                return
+
+        // No suitable free section, allocate new
+        if nextFreeIndex + cap > MAX_ARRAY_SIZE
+            // Try to compact free sections
+            compactFreeList()
+
+            if nextFreeIndex + cap > MAX_ARRAY_SIZE
+                // Still not enough, wrap around (dangerous!)
+                print("ArrayList: WARNING - Memory store exhausted (" + MAX_ARRAY_SIZE.toString() + "), wrapping around!")
+                nextFreeIndex = 0
+
+        startIndex = nextFreeIndex
+        capacity = cap
+        nextFreeIndex += cap
+
+    /** Compacts the free list by merging adjacent sections */
+    private static function compactFreeList()
+        if freeSectionCount <= 1
+            return
+
+        // Sort free sections by start index using insertion sort
+        for i = 1 to freeSectionCount - 1
+            let keyStart = freeSectionStart[i]
+            let keyCap = freeSectionCapacity[i]
+            var j = i - 1
+
+            while j >= 0 and freeSectionStart[j] > keyStart
+                freeSectionStart[j + 1] = freeSectionStart[j]
+                freeSectionCapacity[j + 1] = freeSectionCapacity[j]
+                j--
+
+            freeSectionStart[j + 1] = keyStart
+            freeSectionCapacity[j + 1] = keyCap
+
+        // Merge adjacent sections
+        var writeIdx = 0
+        for readIdx = 0 to freeSectionCount - 1
+            if writeIdx > 0 and freeSectionStart[writeIdx - 1] + freeSectionCapacity[writeIdx - 1] == freeSectionStart[readIdx]
+                // Merge with previous
+                freeSectionCapacity[writeIdx - 1] += freeSectionCapacity[readIdx]
+            else
+                // Keep as separate section
+                if writeIdx != readIdx
+                    freeSectionStart[writeIdx] = freeSectionStart[readIdx]
+                    freeSectionCapacity[writeIdx] = freeSectionCapacity[readIdx]
+                writeIdx++
+
+        freeSectionCount = writeIdx
+
+        // Update nextFreeIndex if last section extends to it
+        if freeSectionCount > 0
+            let lastIdx = freeSectionCount - 1
+            if freeSectionStart[lastIdx] + freeSectionCapacity[lastIdx] == nextFreeIndex
+                nextFreeIndex = freeSectionStart[lastIdx]
+                freeSectionCount--
+
+    /** Frees this list's storage section for reuse */
+    private function freeStorage()
+        if capacity <= 0
+            return
+
+        // Add to free list if there's space
+        if freeSectionCount < MAX_FREE_SECTIONS
+            freeSectionStart[freeSectionCount] = startIndex
+            freeSectionCapacity[freeSectionCount] = capacity
+            freeSectionCount++
+
+            // If this was at the end, we can reclaim it immediately
+            if startIndex + capacity == nextFreeIndex
+                nextFreeIndex = startIndex
+                freeSectionCount--
+        else
+            // Free list full, try to compact
+            compactFreeList()
+
+            // Try again after compaction
+            if freeSectionCount < MAX_FREE_SECTIONS
+                freeSectionStart[freeSectionCount] = startIndex
+                freeSectionCapacity[freeSectionCount] = capacity
+                freeSectionCount++
+
+    /** Grows the capacity (doubles it) - EXPENSIVE OPERATION! */
+    private function grow()
+        let newCapacity = capacity * 2
+        let oldStart = startIndex
+        let oldCapacity = capacity
+
+        // Try to allocate new section
+        allocateStorage(newCapacity)
+
+        // Copy elements to new location
+        for i = 0 to size - 1
+            store[startIndex + i] = store[oldStart + i]
+
+        // Free old section
+        let tempStart = startIndex
+        let tempCap = capacity
+        startIndex = oldStart
+        capacity = oldCapacity
+        freeStorage()
+        startIndex = tempStart
+        capacity = tempCap
+
+    ondestroy
+        // Clear references to allow garbage collection
+        for i = 0 to size - 1
+            store[startIndex + i] = null
+
+        // Return storage to free pool
+        freeStorage()
+
+    /** Debug function to get memory layout info */
+    function getMemoryInfo() returns string
+        return "Start: " + startIndex.toString() + ", Capacity: " + capacity.toString() + ", Size: " + size.toString()
+
+    /** Static function to get global memory state */
+    static function getGlobalMemoryInfo() returns string
+        return "NextFree: " + nextFreeIndex.toString() + ", FreeSections: " + freeSectionCount.toString() + ", Used: " + (nextFreeIndex - freeSectionCount).toString()
+
+    // ============================================================================
+    // BASIC OPERATIONS
+    // ============================================================================
+
+    /** Adds one or more elements to the end of the list (amortized O(1)) */
+    function add(vararg T elems)
+        for elem in elems
+            if size >= capacity
+                grow()
+            store[startIndex + size] = elem
+            size++
+
+    /** Adds all elements from another list */
+    function addAll(ArrayList<T> other)
+        // Optimize: pre-grow if needed
+        let needed = size + other.size
+        while needed > capacity
+            grow()
+
+        for i = 0 to other.size - 1
+            store[startIndex + size] = other.get(i)
+            size++
+
+    /** Returns the element at the specified index (O(1)) */
+    function get(int index) returns T
+        if index < 0 or index >= size
+            print("ArrayList: Index out of bounds: " + index.toString())
+        return store[startIndex + index]
+
+    /** Sets the element at the specified index (O(1)) */
+    function set(int index, T elem)
+        if index < 0 or index >= size
+            print("ArrayList: Index out of bounds: " + index.toString())
+        store[startIndex + index] = elem
+
+    /** Returns the index of the specified element or -1 if it doesn't exist (O(n)) */
+    function indexOf(T elem) returns int
+        for i = 0 to size - 1
+            if store[startIndex + i] == elem
+                return i
+        return -1
+
+    /** Returns whether the list contains the specified element (O(n)) */
+    function has(T elem) returns boolean
+        return indexOf(elem) >= 0
+
+    /** Removes the element at the given index and returns it (O(n) - shifts elements) */
+    function removeAt(int index) returns T
+        if index < 0 or index >= size
+            print("ArrayList: Index out of bounds: " + index.toString())
+
+        let elem = store[startIndex + index]
+
+        // Shift elements left
+        for i = index to size - 2
+            store[startIndex + i] = store[startIndex + i + 1]
+
+        size--
+        return elem
+
+    /** Removes the element at the given index by swapping with last element (O(1) - DOES NOT PRESERVE ORDER!) */
+    function removeSwap(int index) returns T
+        if index < 0 or index >= size
+            print("ArrayList: Index out of bounds: " + index.toString())
+
+        let elem = store[startIndex + index]
+
+        // Replace with last element
+        size--
+        if index < size
+            store[startIndex + index] = store[startIndex + size]
+
+        return elem
+
+    /** Removes the first occurrence of the element from the list (O(n)) */
+    function remove(T elem) returns bool
+        let index = indexOf(elem)
+        if index >= 0
+            removeAt(index)
+            return true
+        return false
+
+    /** Returns the size of the list (O(1)) */
+    function size() returns int
+        return size
+
+    /** Checks whether this list is empty (O(1)) */
+    function isEmpty() returns boolean
+        return size == 0
+
+    /** Returns the first element in the list (O(1)) */
+    function getFirst() returns T
+        if size == 0
+            print("ArrayList: getFirst on empty list")
+        return store[startIndex]
+
+    /** Returns the last element in the list (O(1)) */
+    function getLast() returns T
+        if size == 0
+            print("ArrayList: getLast on empty list")
+        return store[startIndex + size - 1]
+
+    /** Clears all elements from the list (O(1) - reuse this list instead of creating new ones!) */
+    function clear()
+        size = 0
+
+    /** Returns a shallow copy of this list */
+    function copy() returns ArrayList<T>
+        let list = new ArrayList<T>(size)
+        for i = 0 to size - 1
+            list.add(store[startIndex + i])
+        return list
+
+    /** Replaces the first occurrence of 'whichElement' with 'newElement' */
+    function replace(T whichElement, T newElement) returns boolean
+        let index = indexOf(whichElement)
+        if index >= 0
+            set(index, newElement)
+            return true
+        return false
+
+    /** Returns a random element from this list or null if empty */
+    function getRandomElement() returns T
+        if size == 0
+            return null
+        return get(GetRandomInt(0, size - 1))
+
+    // ============================================================================
+    // STACK OPERATIONS (LIFO)
+    // ============================================================================
+
+    /** Adds an element to the end of the list (stack push) */
+    function push(T elem)
+        add(elem)
+
+    /** Returns and removes the last added element (LIFO) */
+    function pop() returns T
+        if size == 0
+            return null
+        size--
+        return store[startIndex + size]
+
+    /** Returns the lastly added element without removing it */
+    function peek() returns T
+        return getLast()
+
+    // ============================================================================
+    // QUEUE OPERATIONS (FIFO)
+    // ============================================================================
+
+    /** Adds an element to the end (queue enqueue) */
+    function enqueue(T elem)
+        add(elem)
+
+    /** Returns and removes the first element (FIFO) - WARNING: O(n) operation! */
+    function dequeue() returns T
+        if size == 0
+            return null
+        return removeAt(0)
+
+    // ============================================================================
+    // INSERTION OPERATIONS
+    // ============================================================================
+
+    /** Adds element at the beginning of the list - WARNING: O(n) operation! */
+    function addtoStart(T elem)
+        if size >= capacity
+            grow()
+
+        // Shift all elements right
+        for i = size - 1 downto 0
+            store[startIndex + i + 1] = store[startIndex + i]
+
+        store[startIndex] = elem
+        size++
+
+    /** Adds the given element at the given index - WARNING: O(n) operation! */
+    function addAt(T elem, int index)
+        if index < 0 or index > size
+            print("ArrayList: Index out of bounds: " + index.toString())
+
+        if size >= capacity
+            grow()
+
+        // Shift elements right
+        for i = size - 1 downto index
+            store[startIndex + i + 1] = store[startIndex + i]
+
+        store[startIndex + index] = elem
+        size++
+
+    // ============================================================================
+    // ITERATOR & FUNCTIONAL OPERATIONS
+    // ============================================================================
+
+    /** Get an iterator for this list - NOTE: Creates an object, use index loops in hot paths! */
+    function iterator() returns ALIterator<T>
+        return new ALIterator<T>(this)
+
+    /** Removes elements that satisfy the predicate */
+    function removeIf(ArrayListPredicate<T> predicate)
+        let itr = iterator()
+        for elem from itr
+            if predicate.isTrueFor(elem)
+                itr.remove()
+        itr.close()
+        destroy predicate
+
+    /** Executes the closure for each element */
+    function forEach(ALItrClosure<T> itr) returns ArrayList<T>
+        for i = 0 to size - 1
+            itr.run(store[startIndex + i])
+        destroy itr
+        return this
+
+    /** Updates all elements */
+    function updateAll(ArrayListUpdater<T> f)
+        for i = 0 to size - 1
+            store[startIndex + i] = f.update(store[startIndex + i])
+        destroy f
+
+    /** Returns the list obtained by applying the given closure to each element */
+    function map<Q:>(MapClosure<T, Q> itr) returns ArrayList<Q>
+        let output = new ArrayList<Q>(size)
+        forEach(t -> output.add(itr.run(t)))
+        destroy itr
+        return output
+
+    /** Returns a new list of elements that satisfy the predicate */
+    function filter(ArrayListPredicate<T> predicate) returns ArrayList<T>
+        let result = new ArrayList<T>()
+        for i = 0 to size - 1
+            let elem = store[startIndex + i]
+            if predicate.isTrueFor(elem)
+                result.add(elem)
+        destroy predicate
+        return result
+
+    /** Folds this list into a single value of type Q */
+    function foldl<Q:>(Q startValue, FoldClosure<T, Q> predicate) returns Q
+        var result = startValue
+        for i = 0 to size - 1
+            result = predicate.run(store[startIndex + i], result)
+        destroy predicate
+        return result
+
+    /** Returns the first element that satisfies the predicate, or null if none present */
+    function find(ArrayListPredicate<T> predicate) returns T
+        T result = null
+        for i = 0 to size - 1
+            let elem = store[startIndex + i]
+            if predicate.isTrueFor(elem)
+                result = elem
+                break
+        destroy predicate
+        return result
+
+    // ============================================================================
+    // SORTING & SHUFFLING
+    // ============================================================================
+
+    /** Performs a Fisher-Yates shuffle on this list */
+    function shuffle()
+        for i = size - 1 downto 1
+            let j = GetRandomInt(0, i)
+            let tmp = store[startIndex + i]
+            store[startIndex + i] = store[startIndex + j]
+            store[startIndex + j] = tmp
+
+    /** Sorts the list using optimized quicksort with median-of-three pivot */
+    function sortWith(Comparator<T> comparator)
+        if comparator != null and size > 1
+            quicksort(comparator, 0, size - 1)
+
+    /** Optimized quicksort with median-of-three pivot selection */
+    private function quicksort(Comparator<T> comparator, int low, int high)
+        if low < high
+            let pivot = medianOfThree(comparator, low, low + (high - low) div 2, high)
+            let p = partition(comparator, low, high, pivot)
+
+            quicksort(comparator, low, p - 1)
+            quicksort(comparator, p + 1, high)
+
+    /** Median-of-three pivot selection */
+    private function medianOfThree(Comparator<T> comparator, int a, int b, int c) returns int
+        let va = store[startIndex + a]
+        let vb = store[startIndex + b]
+        let vc = store[startIndex + c]
+
+        if comparator.compare(va, vb) < 0
+            if comparator.compare(vb, vc) < 0
+                return b
+            else if comparator.compare(va, vc) < 0
+                return c
+            else
+                return a
+        else
+            if comparator.compare(va, vc) < 0
+                return a
+            else if comparator.compare(vb, vc) < 0
+                return c
+            else
+                return b
+
+    /** Optimized partition with median pivot */
+    private function partition(Comparator<T> comparator, int low, int high, int pivotIndex) returns int
+        let pivotValue = store[startIndex + pivotIndex]
+
+        // Move pivot to end
+        let temp = store[startIndex + pivotIndex]
+        store[startIndex + pivotIndex] = store[startIndex + high]
+        store[startIndex + high] = temp
+
+        var storeIndex = low
+
+        for i = low to high - 1
+            if comparator.compare(store[startIndex + i], pivotValue) < 0
+                let t = store[startIndex + storeIndex]
+                store[startIndex + storeIndex] = store[startIndex + i]
+                store[startIndex + i] = t
+                storeIndex++
+
+        // Move pivot to final position
+        let t2 = store[startIndex + storeIndex]
+        store[startIndex + storeIndex] = store[startIndex + high]
+        store[startIndex + high] = t2
+
+        return storeIndex
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+public function asArrayList<T:>(vararg T ts) returns ArrayList<T>
+    let al = new ArrayList<T>()
+    for t in ts
+        al.add(t)
+    return al
+
+// ============================================================================
+// ITERATOR
+// ============================================================================
+
+/** Iterator for ArrayList - NOTE: Allocates an object, prefer index loops in hot paths! */
+public class ALIterator<T:>
+    private ArrayList<T> parent
+    private int currentIndex
+    private bool destroyOnClose = true
+    private bool canRemove = false
+
+    construct(ArrayList<T> parent)
+        this.parent = parent
+        reset()
+
+    construct(ArrayList<T> parent, bool destroyOnClose)
+        this.parent = parent
+        this.destroyOnClose = destroyOnClose
+        reset()
+
+    function reset()
+        currentIndex = -1
+        canRemove = false
+
+    function hasNext() returns boolean
+        return currentIndex + 1 < parent.size()
+
+    function next() returns T
+        currentIndex++
+        canRemove = true
+        return parent.get(currentIndex)
+
+    function lookahead() returns T
+        if currentIndex + 1 < parent.size()
+            return parent.get(currentIndex + 1)
+        return null
+
+    /** Removes the last element returned by next() */
+    function remove() returns T
+        if not canRemove or currentIndex < 0
+            return null
+
+        let removed = parent.removeSwap(currentIndex)
+        currentIndex--
+        canRemove = false
+        return removed
+
+    /** Modifies the last element returned by next() */
+    function modify(T newval)
+        if canRemove and currentIndex >= 0
+            parent.set(currentIndex, newval)
+
+    function close()
+        if destroyOnClose
+            destroy this
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
+public interface ArrayListPredicate<T:>
+    function isTrueFor(T t) returns boolean
+
+public interface ALItrClosure<T:>
+    function run(T t)
+
+public interface ArrayListUpdater<T:>
+    function update(T t) returns T
+
+public interface MapClosure<T:, Q:>
+    function run(T t) returns Q
+
+public interface FoldClosure<T:, Q:>
+    function run(T t, Q q) returns Q
+
+public interface Comparator<T:>
+    function compare(T o1, T o2) returns int
+
+// ============================================================================
+// SPECIALIZED SORT FUNCTIONS
+// ============================================================================
+
+constant Comparator<int> intComparator = (i1, i2) -> i1 - i2
+public function ArrayList<int>.sort()
+    this.sortWith(intComparator)
+
+constant Comparator<real> realComparator = (r1, r2) -> (r1 - r2).toInt()
+public function ArrayList<real>.sort()
+    this.sortWith(realComparator)
+
+constant Comparator<string> stringComparator = (s1, s2) -> stringCompare(s1, s2)
+public function ArrayList<string>.sort()
+    this.sortWith(stringComparator)
+
+// ============================================================================
+// STRING OPERATIONS
+// ============================================================================
+
+/** Joins elements from a string list into one string using a separator */
+public function ArrayList<string>.joinBy(string separator) returns string
+    var joined = ""
+    for i = 0 to this.size() - 1
+        if i > 0
+            joined += separator
+        joined += this.get(i)
+    return joined
+
+/** Joins elements from a string list into one string */
+public function ArrayList<string>.join() returns string
+    return this.joinBy("")
+
+// Hard fail helper (no prints)
+function fail(string msg)
+    testFail("ArrayList generics test: " + msg)
+
+function assertEqInt(int a, int b, string msg)
+    if a != b
+        fail(msg + " expected=" + b.toString() + " got=" + a.toString())
+
+function assertEqReal(real a, real b, string msg)
+    if a != b
+        fail(msg + " expected=" + b.toString() + " got=" + a.toString())
+
+function assertEqStr(string a, string b, string msg)
+    if a != b
+        fail(msg + " expected=\"" + b + "\" got=\"" + a + "\"")
+
+init
+    // =========================================================================
+    // Goal: catch "shared static bookkeeping across specializations" WITHOUT
+    // static calls. We do it by interleaving allocations/frees across types and
+    // verifying that each list's contents remain correct (no overwrites/gaps).
+    // =========================================================================
+
+    // 1) Interleaved creation + fill with type-specific sentinels
+    let iA = new ArrayList<int>(64)
+    let rA = new ArrayList<real>(64)
+    let sA = new ArrayList<string>(64)
+
+    for k = 0 to 63
+        iA.add(100000 + k)            // ints: 100000..100063
+        rA.add((200000 + k).toReal()) // reals: 200000..200063
+        sA.add("S" + k.toString())    // strings: S0..S63
+
+    for k = 0 to 63
+        assertEqInt(iA.get(k), 100000 + k, "phase1 int mismatch at " + k.toString())
+        assertEqReal(rA.get(k), (200000 + k).toReal(), "phase1 real mismatch at " + k.toString())
+        assertEqStr(sA.get(k), "S" + k.toString(), "phase1 string mismatch at " + k.toString())
+
+    // 2) Create/destroy many lists of ONE type to exercise free-section metadata.
+    // If freeSectionStart/freeSectionCapacity/freeSectionCount are shared across types,
+    // later allocations of another type can start reusing wrong "free sections"
+    // and overwrite other type's store.
+    let churnCount = 40
+
+    for t = 0 to churnCount - 1
+        let tmp = new ArrayList<int>(32)
+        for k = 0 to 31
+            tmp.add(9000 + t * 100 + k)
+        // quick sanity on tmp
+        assertEqInt(tmp.get(0), 9000 + t * 100, "tmp int mismatch t=" + t.toString())
+        assertEqInt(tmp.get(31), 9000 + t * 100 + 31, "tmp int mismatch end t=" + t.toString())
+        destroy tmp
+
+    // After int churn, the real/string lists must remain intact
+    for k = 0 to 63
+        assertEqReal(rA.get(k), (200000 + k).toReal(), "after int churn real corrupted at " + k.toString())
+        assertEqStr(sA.get(k), "S" + k.toString(), "after int churn string corrupted at " + k.toString())
+
+    // 3) Now churn REAL lists, then check int/string still intact
+    for t = 0 to churnCount - 1
+        let tmp = new ArrayList<real>(33)
+        for k = 0 to 32
+            tmp.add((7000 + t * 100 + k).toReal())
+        assertEqReal(tmp.get(0), (7000 + t * 100).toReal(), "tmp real mismatch t=" + t.toString())
+        assertEqReal(tmp.get(32), (7000 + t * 100 + 32).toReal(), "tmp real mismatch end t=" + t.toString())
+        destroy tmp
+
+    for k = 0 to 63
+        assertEqInt(iA.get(k), 100000 + k, "after real churn int corrupted at " + k.toString())
+        assertEqStr(sA.get(k), "S" + k.toString(), "after real churn string corrupted at " + k.toString())
+
+    // 4) Now churn STRING lists, then check int/real still intact
+    for t = 0 to churnCount - 1
+        let tmp = new ArrayList<string>(31)
+        for k = 0 to 30
+            tmp.add("T" + t.toString() + "_" + k.toString())
+        assertEqStr(tmp.get(0), "T" + t.toString() + "_0", "tmp string mismatch t=" + t.toString())
+        assertEqStr(tmp.get(30), "T" + t.toString() + "_30", "tmp string mismatch end t=" + t.toString())
+        destroy tmp
+
+    for k = 0 to 63
+        assertEqInt(iA.get(k), 100000 + k, "after string churn int corrupted at " + k.toString())
+        assertEqReal(rA.get(k), (200000 + k).toReal(), "after string churn real corrupted at " + k.toString())
+
+    // 5) Mixed-size allocate/free pattern: encourages fragmentation + compaction paths.
+    // If free-list metadata is shared, one type can “compact” another type’s free list.
+    let iB = new ArrayList<int>(8)
+    let iC = new ArrayList<int>(128)
+    let rB = new ArrayList<real>(9)
+    let sB = new ArrayList<string>(10)
+
+    for k = 0 to 7
+        iB.add(300000 + k)
+    for k = 0 to 127
+        iC.add(400000 + k)
+    for k = 0 to 8
+        rB.add((500000 + k).toReal())
+    for k = 0 to 9
+        sB.add("X" + k.toString())
+
+    destroy iB
+    destroy rB
+    // allocate again to reuse freed sections
+    let iD = new ArrayList<int>(7)
+    let rC = new ArrayList<real>(8)
+
+    for k = 0 to 6
+        iD.add(600000 + k)
+    for k = 0 to 7
+        rC.add((700000 + k).toReal())
+
+    // Verify older long list still correct (would be overwritten if reuse crosses types)
+    assertEqInt(iC.get(0), 400000, "iC corrupted at 0")
+    assertEqInt(iC.get(127), 400127, "iC corrupted at end")
+
+    // Verify original main lists still correct
+    for k = 0 to 63
+        assertEqInt(iA.get(k), 100000 + k, "final int corrupted at " + k.toString())
+        assertEqReal(rA.get(k), (200000 + k).toReal(), "final real corrupted at " + k.toString())
+        assertEqStr(sA.get(k), "S" + k.toString(), "final string corrupted at " + k.toString())
+
+    // Verify new allocations correct
+    for k = 0 to 6
+        assertEqInt(iD.get(k), 600000 + k, "iD mismatch at " + k.toString())
+    for k = 0 to 7
+        assertEqReal(rC.get(k), (700000 + k).toReal(), "rC mismatch at " + k.toString())
+    for k = 0 to 9
+        assertEqStr(sB.get(k), "X" + k.toString(), "sB mismatch at " + k.toString())
+
+    // Cleanup
+    destroy iD
+    destroy rC
+    destroy iC
+    destroy sB
+    destroy iA
+    destroy rA
+    destroy sA
+
+    testSuccess()
+
+function ArrayList<int>.assertEqualsInts(vararg int expected)
+    var i = 0
+    for exp in expected
+        this.get(i).assertEquals(exp)
+        i += 1
+
+function ArrayList<string>.assertEqualsStrings(vararg string expected)
+    var i = 0
+    for exp in expected
+        this.get(i).assertEquals(exp)
+        i += 1
+
+function sumInts(ArrayList<int> l) returns int
+	var s = 0
+	for i = 0 to l.size() - 1
+		s += l.get(i)
+	return s
+
+// Predicate/closures helpers (interfaces must be implemented by classes in Wurst)
+class PredGreaterThan implements ArrayListPredicate<int>
+	private int threshold
+	construct(int threshold)
+		this.threshold = threshold
+	function isTrueFor(int t) returns boolean
+		return t > threshold
+
+class PredEven implements ArrayListPredicate<int>
+	function isTrueFor(int t) returns boolean
+		return t mod 2 == 0
+
+class AddOneClosure implements ALItrClosure<int>
+	function run(int t)
+		// no-op side effects handled by external vars in tests via static (not available here)
+
+class UpdAdd implements ArrayListUpdater<int>
+	private int add
+	construct(int add)
+		this.add = add
+	function update(int t) returns int
+		return t + add
+
+class MapToRealTimes10 implements MapClosure<int, real>
+	function run(int t) returns real
+		return t.toReal() * 10.
+
+class FoldSum implements FoldClosure<int, int>
+	function run(int t, int q) returns int
+		return q + t
+
+class CmpIntAsc implements Comparator<int>
+	function compare(int o1, int o2) returns int
+		return o1 - o2
+
+class CmpRealAsc implements Comparator<real>
+	function compare(real o1, real o2) returns int
+		return (o1 - o2).toInt()
+
+class CmpStringAsc implements Comparator<string>
+	function compare(string a, string b) returns int
+		return stringCompare(a, b)
+
+
+// =====================================================================================
+// Construction / basic state
+// =====================================================================================
+
+
+
+
+@test
+function testConstructDefault()
+	let l = new ArrayList<int>()
+	l.size().assertEquals(0)
+	l.isEmpty().assertTrue()
+	destroy l
+
+@test
+function testConstructWithCapacity()
+	let l = new ArrayList<int>(3)
+	l.size().assertEquals(0)
+	l.isEmpty().assertTrue()
+	// should be able to add up to 3 without resizing
+	l.add(1,2,3)
+	l.size().assertEquals(3)
+	l.get(0).assertEquals(1)
+	l.get(2).assertEquals(3)
+	destroy l
+
+@test
+function testCopyMethod()
+	let a = new ArrayList<int>()
+	a.add(1,2,3,4)
+	let b = a.copy()
+	b.size().assertEquals(a.size())
+	for i = 0 to a.size()-1
+		b.get(i).assertEquals(a.get(i))
+	b.set(0, 99)
+	a.get(0).assertEquals(1)
+	b.get(0).assertEquals(99)
+	destroy a
+	destroy b
+
+
+// =====================================================================================
+// add / addAll / growth behavior
+// =====================================================================================
+
+@test
+function testAddVarargOrder()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	l.assertEqualsInts(1, 2, 3, 4)
+	destroy l
+
+@test
+function testAddAllKeepsOrder()
+	let a = new ArrayList<int>(2)
+	let b = new ArrayList<int>(2)
+	a.add(1,2)
+	b.add(3,4)
+	a.addAll(b)
+	a.assertEqualsInts(1, 2, 3, 4)
+	// other unchanged
+	b.size().assertEquals(2)
+	b.get(0).assertEquals(3)
+	destroy a
+	destroy b
+
+@test
+function testGrowKeepsElements()
+	// force growth by starting small
+	let l = new ArrayList<int>(1)
+	for i = 1 to 50
+		l.add(i)
+	l.size().assertEquals(50)
+	for i = 0 to 49
+		l.get(i).assertEquals(i+1)
+	destroy l
+
+
+// =====================================================================================
+// get / set / indexOf / has / replace
+// =====================================================================================
+
+@test
+function testGetSet()
+	let l = new ArrayList<string>()
+	l.add("a","b","c")
+	l.get(1).assertEquals("b")
+	l.set(1, "x")
+	l.get(1).assertEquals("x")
+	destroy l
+
+@test
+function testIndexOfAndHas()
+	let l = new ArrayList<int>()
+	l.add(10,20,30,20)
+	l.indexOf(10).assertEquals(0)
+	l.indexOf(20).assertEquals(1) // first occurrence
+	l.indexOf(999).assertEquals(-1)
+	l.has(30).assertTrue()
+	l.has(999).assertFalse()
+	destroy l
+
+@test
+function testReplace()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,2)
+	l.replace(2, 9).assertTrue()
+	l.assertEqualsInts(1, 9, 3, 2)
+	l.replace(123, 7).assertFalse()
+	destroy l
+
+
+// =====================================================================================
+// removeAt / removeSwap / remove(elem)
+// =====================================================================================
+
+@test
+function testRemoveAtShiftsAndReturns()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	l.removeAt(1).assertEquals(2)
+	l.assertEqualsInts(1, 3, 4)
+	destroy l
+
+@test
+function testRemoveSwapReturnsAndDoesNotPreserveOrder()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	let removed = l.removeSwap(1)
+	removed.assertEquals(2)
+	l.size().assertEquals(3)
+	// After swap removal at index 1, element at 1 becomes old last (4)
+	l.get(0).assertEquals(1)
+	l.get(1).assertEquals(4)
+	l.get(2).assertEquals(3)
+	destroy l
+
+@test
+function testRemoveFirstOccurrence()
+	let l = new ArrayList<int>()
+	l.add(5,6,7,6,8)
+	l.remove(6).assertTrue()
+	l.assertEqualsInts(5, 7, 6, 8)
+	l.remove(123).assertFalse()
+	destroy l
+
+
+// =====================================================================================
+// size / isEmpty / getFirst / getLast / clear
+// =====================================================================================
+
+@test
+function testGettersAndClear()
+	let l = new ArrayList<string>()
+	l.isEmpty().assertTrue()
+	l.add("x","y","z")
+	l.isEmpty().assertFalse()
+	l.getFirst().assertEquals("x")
+	l.getLast().assertEquals("z")
+	l.clear()
+	l.size().assertEquals(0)
+	l.isEmpty().assertTrue()
+	// after clear, adding should reuse list
+	l.add("a")
+	l.getFirst().assertEquals("a")
+	l.getLast().assertEquals("a")
+	destroy l
+
+
+// =====================================================================================
+// Random element (non-empty guarantee + membership)
+// =====================================================================================
+
+@test
+function testGetRandomElementIsMember()
+	let l = new ArrayList<int>()
+	l.add(11,22,33,44,55)
+	for i = 0 to 50
+		let r = l.getRandomElement()
+		assertTrue(l.has(r), "random element must be from list")
+	destroy l
+
+
+// =====================================================================================
+// Stack operations
+// =====================================================================================
+
+@test
+function testStackPushPopPeek()
+	let l = new ArrayList<string>()
+	l.push("a")
+	l.push("b")
+	l.push("c")
+	l.peek().assertEquals("c")
+	l.pop().assertEquals("c")
+	l.peek().assertEquals("b")
+	l.pop().assertEquals("b")
+	l.peek().assertEquals("a")
+	l.pop().assertEquals("a")
+	l.size().assertEquals(0)
+	destroy l
+
+@test
+function testPopOnEmptyReturnsNull()
+	let l = new ArrayList<string>()
+	let x = l.pop()
+	assertTrue(x == null, "pop on empty should return null")
+	destroy l
+
+
+// =====================================================================================
+// Queue operations
+// =====================================================================================
+
+@test
+function testQueueEnqueueDequeue()
+	let l = new ArrayList<string>()
+	l.enqueue("a")
+	l.enqueue("b")
+	l.enqueue("c")
+	l.getFirst().assertEquals("a")
+	l.dequeue().assertEquals("a")
+	l.getFirst().assertEquals("b")
+	l.dequeue().assertEquals("b")
+	l.getFirst().assertEquals("c")
+	l.dequeue().assertEquals("c")
+	l.size().assertEquals(0)
+	destroy l
+
+// =====================================================================================
+// Insertion operations: addtoStart / addAt
+// =====================================================================================
+
+@test
+function testAddToStart()
+	let l = new ArrayList<int>(2)
+	l.add(2,3)
+	l.addtoStart(1)
+	l.assertEqualsInts(1, 2, 3)
+	destroy l
+
+@test
+function testAddAtMiddle()
+	let l = new ArrayList<int>()
+	for i = 1 to 6
+		l.add(i)
+	l.addAt(99, 3) // 0-based => after 1,2,3
+	l.assertEqualsInts(1, 2, 3, 99, 4, 5, 6)
+	destroy l
+
+@test
+function testAddAtBeginningAndEnd()
+	let l = new ArrayList<int>()
+	l.add(2,3)
+	l.addAt(1, 0)
+	l.addAt(4, l.size())
+	l.assertEqualsInts(1, 2, 3, 4)
+	destroy l
+
+
+// =====================================================================================
+// Iterator: hasNext/next/lookahead/remove/modify/reset
+// =====================================================================================
+
+@test
+function testIteratorWalkAndLookahead()
+	let l = new ArrayList<int>()
+	l.add(10,20,30)
+	let itr = l.iterator()
+	itr.hasNext().assertTrue()
+	itr.lookahead().assertEquals(10)
+	itr.next().assertEquals(10)
+	itr.lookahead().assertEquals(20)
+	itr.next().assertEquals(20)
+	itr.lookahead().assertEquals(30)
+	itr.next().assertEquals(30)
+	assertTrue(itr.lookahead() == 0, "lookahead after end should be null")
+	itr.hasNext().assertFalse()
+	itr.close()
+	destroy l
+
+@test
+function testIteratorRemoveSwapSemantics()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	let itr = l.iterator()
+	itr.next().assertEquals(1)
+	itr.next().assertEquals(2)
+	// remove last returned (2) via removeSwap at index 1, should swap with last (4)
+	itr.remove().assertEquals(2)
+	l.size().assertEquals(3)
+	l.get(0).assertEquals(1)
+	l.get(1).assertEquals(4)
+	l.get(2).assertEquals(3)
+	// iterator decremented index, should continue correctly
+	itr.next().assertEquals(4)
+	itr.next().assertEquals(3)
+	itr.hasNext().assertFalse()
+	itr.close()
+	destroy l
+
+@test
+function testIteratorModify()
+	let l = new ArrayList<int>()
+	l.add(1,2,3)
+	let itr = l.iterator()
+	itr.next().assertEquals(1)
+	itr.modify(10)
+	l.get(0).assertEquals(10)
+	itr.next().assertEquals(2)
+	itr.modify(20)
+	l.get(1).assertEquals(20)
+	itr.close()
+	destroy l
+
+@test
+function testIteratorReset()
+	let l = new ArrayList<int>()
+	l.add(5,6,7)
+	let itr = l.iterator()
+	itr.next().assertEquals(5)
+	itr.reset()
+	itr.next().assertEquals(5)
+	itr.next().assertEquals(6)
+	itr.next().assertEquals(7)
+	itr.hasNext().assertFalse()
+	itr.close()
+	destroy l
+
+
+// =====================================================================================
+// removeIf / updateAll / map / filter / foldl / find / forEach
+// =====================================================================================
+
+@test
+function testUpdateAll()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	l.updateAll(new UpdAdd(5))
+	l.assertEqualsInts(6, 7, 8, 9)
+	destroy l
+
+@test
+function testRemoveIf()
+	let l = new ArrayList<int>()
+	for i = 1 to 10
+		l.add(i)
+	// remove all > 6
+	l.removeIf(new PredGreaterThan(6))
+	// order is NOT guaranteed because iterator.remove uses removeSwap.
+	// assert membership + size only
+	l.size().assertEquals(6)
+	for i = 1 to 6
+		assertTrue(l.has(i), "must still contain 1..6")
+	for i = 7 to 10
+		l.has(i).assertFalse()
+	destroy l
+
+@test
+function testFilterKeepsOrder()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4,5,6)
+	let evens = l.filter(new PredEven())
+	evens.assertEqualsInts(2, 4, 6)
+	destroy evens
+	destroy l
+
+@test
+function testMap()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	let r = l.map<real>(new MapToRealTimes10())
+	r.size().assertEquals(4)
+	r.get(0).assertEquals(10.)
+	r.get(3).assertEquals(40.)
+	destroy r
+	destroy l
+
+@test
+function testFoldlSum()
+	let l = new ArrayList<int>()
+	for i = 1 to 6
+		l.add(i)
+	let s = l.foldl<int>(0, new FoldSum())
+	s.assertEquals(21)
+	destroy l
+
+@test
+function testFind()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4,5)
+	let f = l.find(new PredGreaterThan(3))
+	assertTrue(f != 0, "find should return a value")
+	f.assertEquals(4) // first > 3 in order
+	let g = l.find(new PredGreaterThan(99))
+	assertTrue(g == 0, "find should return null if none")
+	destroy l
+
+@test
+function testForEachReturnsThisAndExecutes()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	// forEach destroys closure; easiest: validate it returns same reference
+	let ret = l.forEach(new AddOneClosure())
+	assertTrue(ret == l, "forEach should return this")
+	// content unchanged by AddOneClosure (no-op)
+	sumInts(l).assertEquals(10)
+	destroy l
+
+
+
+// =====================================================================================
+// shuffle / sortWith / specialized sort / string joins
+// =====================================================================================
+
+@test
+function testShufflePreservesMultiset()
+	let l = new ArrayList<int>()
+	for i = 1 to 20
+		l.add(i)
+	let beforeSum = sumInts(l)
+	l.shuffle()
+	let afterSum = sumInts(l)
+	afterSum.assertEquals(beforeSum)
+	// also ensure all elements still exist
+	for i = 1 to 20
+		l.has(i).assertTrue()
+	destroy l
+
+@test
+function testSortWithComparatorInt()
+	let l = new ArrayList<int>()
+	for i = 0 to 200
+		l.add(GetRandomInt(-100, 100) * 2 + 1)
+	l.sortWith(new CmpIntAsc())
+	// verify non-decreasing
+	for i = 0 to l.size() - 2
+		l.get(i).assertLessThanOrEqual(l.get(i+1))
+	destroy l
+
+@test
+function testSpecializedSortInt()
+	let l = new ArrayList<int>()
+	for i = 6 downto 1
+		l.add(i)
+	l.sort()
+	l.get(0).assertEquals(1)
+	l.get(5).assertEquals(6)
+	destroy l
+
+@test
+function testSpecializedSortReal()
+	let l = new ArrayList<real>()
+	for i = 6 downto 1
+		l.add(i.toReal())
+	l.sort()
+	l.get(0).assertEquals(1.)
+	l.get(5).assertEquals(6.)
+	destroy l
+
+@test
+function testSpecializedSortString()
+	let l = new ArrayList<string>()
+	l.add("c","a","b")
+	l.sort()
+	l.get(0).assertEquals("a")
+	l.get(1).assertEquals("b")
+	l.get(2).assertEquals("c")
+	destroy l
+
+@test
+function testJoinAndJoinBy()
+	let l = new ArrayList<string>()
+	l.add("this","is","a","string")
+	l.join().assertEquals("thisisastring")
+	l.joinBy(" ").assertEquals("this is a string")
+	destroy l
+
+
+// =====================================================================================
+// asArrayList utility
+// =====================================================================================
+
+@test
+function testAsArrayList()
+	let l = asArrayList(4,3,2,1)
+	l.size().assertEquals(4)
+	l.get(0).assertEquals(4)
+	l.get(3).assertEquals(1)
+	// fold-style via manual sum
+	sumInts(l).assertEquals(10)
+	destroy l
+
+
+// =====================================================================================
+// Edge-case semantics (safe returns)
+// =====================================================================================
+
+@test
+function testPeekOnSingle()
+	let l = new ArrayList<int>()
+	l.push(123)
+	l.peek().assertEquals(123)
+	l.size().assertEquals(1)
+	destroy l
+
+@test
+function testGetLastAfterRemovals()
+	let l = new ArrayList<int>()
+	l.add(1,2,3,4)
+	l.removeAt(3).assertEquals(4)
+	l.getLast().assertEquals(3)
+	l.removeSwap(0).assertEquals(1)
+	// now size=2, content is [3,2] or [?,?] depending on swap mechanics:
+	// after removeSwap(0) on [1,2,3], last (3) moves to index 0 => [3,2]
+	l.getFirst().assertEquals(3)
+	l.getLast().assertEquals(2)
+	destroy l
+
+@test
+function testAddAllSelfWouldInfiniteLoopWithoutFix()
+    let l = new ArrayList<int>(2)
+    l.add(1,2,3)
+
+    // Without the addAll fix, this can loop forever / keep growing.
+    // With the fix, it should duplicate the snapshot once.
+    l.addAll(l)
+
+    l.size().assertEquals(6)
+    l.get(0).assertEquals(1)
+    l.get(1).assertEquals(2)
+    l.get(2).assertEquals(3)
+    l.get(3).assertEquals(1)
+    l.get(4).assertEquals(2)
+    l.get(5).assertEquals(3)
+
+    destroy l
+
+/**
+ * Minimal stand-in for your CFBuilding shape (only what the loop uses).
+ */
+class CFBuildingTest
+	boolean isAntiAir = false
+	ArrayList<CFBuildingTest> upgrades = null
+
+	construct(boolean isAntiAir, ArrayList<CFBuildingTest> upgrades)
+		this.isAntiAir = isAntiAir
+		this.upgrades = upgrades
+
+
+/**
+ * This is structurally your loop, but with a hard iteration guard so the test
+ * fails instead of hanging if toCheck grows without bound.
+ */
+function iterativeSearchHasAntiAir(ArrayList<CFBuildingTest> startUpgrades) returns boolean
+	let toCheck = new ArrayList<CFBuildingTest>()
+	toCheck.addAll(startUpgrades)
+
+	var result = false
+	var guard = 0
+
+	while not toCheck.isEmpty()
+		guard++
+		// If addAll(self) happens, size explodes and this guard trips.
+		if guard > 2000
+			testFail("iterativeSearch did not terminate (likely addAll(self) via aliasing upgrades==toCheck)")
+
+		let b = toCheck.removeSwap(toCheck.size() - 1)
+		if b.isAntiAir
+			result = true
+			break
+		if b.upgrades != null
+			toCheck.addAll(b.upgrades)
+
+	destroy toCheck
+	return result
+
+
+@test
+function testIterativeSearch_NormalTree_TerminatesAndFindsAA()
+	// A -> B -> C(AA)
+	let cUp = new ArrayList<CFBuildingTest>()
+	let c = new CFBuildingTest(true, null)
+
+	let bUp = new ArrayList<CFBuildingTest>()
+	bUp.add(c)
+	let b = new CFBuildingTest(false, bUp)
+
+	let aUp = new ArrayList<CFBuildingTest>()
+	aUp.add(b)
+	let a = new CFBuildingTest(false, aUp)
+
+	let start = new ArrayList<CFBuildingTest>()
+	start.add(a)
+
+	iterativeSearchHasAntiAir(start).assertTrue()
+
+	destroy start
+	destroy aUp
+	destroy bUp
+	destroy cUp
+	destroy a
+	destroy b
+	destroy c
+
+
+@test
+function testIterativeSearch_AliasingUpgradesToToCheck_WouldHangWithoutSafeAddAll()
+	/*
+	 * This recreates the nasty case:
+	 * - You pop an element b from toCheck
+	 * - b.upgrades points to *the same list instance as toCheck*
+	 * - toCheck.addAll(b.upgrades) becomes toCheck.addAll(toCheck)
+	 *
+	 * With the original iterator-based addAll, this can run forever.
+	 * With a fixed addAll (index loop with captured size OR explicit self-add handling),
+	 * it terminates (it may duplicate elements once, but it stops).
+	 */
+	let start = new ArrayList<CFBuildingTest>()
+
+	// We need to create b first; we set its upgrades later once toCheck exists inside the function.
+	// Trick: we use a wrapper building 'a' whose upgrades list we mutate *inside* the search by aliasing.
+	let aUp = new ArrayList<CFBuildingTest>()
+	let a = new CFBuildingTest(false, aUp)
+	start.add(a)
+
+	// Run a custom version inlined here so we can actually create the alias to 'toCheck'
+	let toCheck = new ArrayList<CFBuildingTest>()
+	toCheck.addAll(start)
+
+	// Create alias: a.upgrades points at the toCheck list itself
+	a.upgrades = toCheck
+
+	var result = false
+	var guard = 0
+	while not toCheck.isEmpty()
+		guard++
+		if guard > 2000
+			testFail("Loop did not terminate: addAll(self) alias reproduced")
+
+		let b = toCheck.removeSwap(toCheck.size() - 1)
+		if b.isAntiAir
+			result = true
+			break
+		if b.upgrades != null
+			toCheck.addAll(b.upgrades)
+
+	// With safe addAll, should terminate and not find AA
+	result.assertFalse()
+
+	destroy toCheck
+	destroy start
+	destroy aUp
+	destroy a

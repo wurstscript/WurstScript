@@ -52,13 +52,9 @@ public abstract class DefLink extends NameLink {
         return Stream.of();
     }
 
-
-
-
     public @Nullable WurstType getReceiverType() {
         return receiverType;
     }
-
 
     public DefLink hidingPrivate() {
         return (DefLink) super.hidingPrivate();
@@ -84,20 +80,14 @@ public abstract class DefLink extends NameLink {
      */
     public @Nullable DefLink adaptToReceiverType(WurstType receiverType) {
         if (this.receiverType == null) {
-            if (receiverType == null) {
-                return this;
-            } else {
-                return null;
-            }
+            return receiverType == null ? this : null;
         }
         NameDef def = getDef();
-        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(typeParams), VariablePosition.LEFT);
-        if (match == null) {
-            return null;
-        }
+        VariableBinding seed = VariableBinding.emptyMapping().withTypeVariables(typeParams);
+        VariableBinding match = receiverType.matchAgainstSupertype(this.receiverType, def, seed, VariablePosition.RIGHT);
+        if (match == null) return null;
         return withTypeArgBinding(def, match);
     }
-
 
     @Override
     public abstract DefLink withTypeArgBinding(Element context, VariableBinding binding);

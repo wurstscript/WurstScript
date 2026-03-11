@@ -876,7 +876,7 @@ public class PrettyPrinter {
         printCommentsBefore(sb, e, indent);
         printIndent(sb, indent);
         if ((e.getOptTyp() instanceof NoTypeExpr)) {
-            if (e.attrIsConstant()) {
+            if (e.attrIsConstant() && !(e.getParent() instanceof StmtForRange)) {
                 sb.append("let");
             } else if (!(e.getParent() instanceof StmtForRange)) {
                 sb.append("var");
@@ -1143,6 +1143,12 @@ public class PrettyPrinter {
     public static void prettyPrint(StmtSkip e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("skip");
+        sb.append("\n");
+    }
+
+    public static void prettyPrint(StmtContinue e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("continue");
         sb.append("\n");
     }
 

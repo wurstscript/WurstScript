@@ -5,6 +5,7 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstCommands;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WEntity;
@@ -70,7 +71,7 @@ public class CodeLensRequest {
         @Override
         public CodeLens execute(ModelManager modelManager) throws IOException {
             Object data = unresolved.getData();
-            Command cmd = new Command("Run Wurst unit test", "wurst.tests", Collections.singletonList(data));
+            Command cmd = new Command("Run Wurst unit test", WurstCommands.WURST_TESTS, Collections.singletonList(data));
             unresolved.setCommand(cmd);
             return unresolved;
         }

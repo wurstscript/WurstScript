@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -11,6 +12,21 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 
 public class NameResolution {
+    private static String memberFuncCacheName(String name, WurstType receiverType) {
+        return name
+            + "@"
+            + receiverType
+            + "#"
+            + System.identityHashCode(receiverType);
+    }
+
+    private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
+        return scope.attrNameLinks().get(name);
+    }
+
+    private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
+        return scope.attrTypeNameLinks().get(name);
+    }
 
     public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
         if (!showErrors) {
@@ -43,7 +59,7 @@ public class NameResolution {
         Set<NameDef> seen = new HashSet<>();
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -117,16 +133,41 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_FUNC);
             @SuppressWarnings("unchecked")
             ImmutableCollection<FuncLink> cached = (ImmutableCollection<FuncLink>) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
+                WLogger.trace(() -> "[LOOKUPCACHE] HIT MEMBER_FUNC node=" + System.identityHashCode(node)
+                    + " name=" + name
+                    + " recv=" + receiverType
+                    + " recvId=" + System.identityHashCode(receiverType)
+                    + " size=" + cached.size());
                 return cached;
             }
         }
 
         List<FuncLink> result = new ArrayList<>(4);
-        addMemberMethods(node, receiverType, name, result);
+        WLogger.trace(() -> "[LMF] addMemberMethods recv=" + receiverType
+            + " recvId=" + System.identityHashCode(receiverType)
+            + " name=" + name
+            + " node=" + System.identityHashCode(node));
+        // Collect from the type first, but *validate/adapt* each candidate to the actual receiverType.
+        List<FuncLink> fromType = new ArrayList<>(4);
+        addMemberMethods(node, receiverType, name, fromType);
+        for (FuncLink cand : fromType) {
+            DefLink m = matchDefLinkReceiver(cand, receiverType, node, showErrors);
+            if (m instanceof FuncLink) {
+                result.add((FuncLink) m);
+            }
+        }
+
+        for (FuncLink f : result) {
+            WLogger.trace(() -> "[LMF]  addMemberMethods -> " + f
+                + " recv=" + f.getReceiverType()
+                + " recvId=" + System.identityHashCode(f.getReceiverType())
+                + " linkVB=" + f.getVariableBinding()
+                + " linkTypeParams=" + f.getTypeParams());
+        }
 
         WScope scope = node.attrNearestScope();
 
@@ -137,7 +178,7 @@ public class NameResolution {
         }
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -155,7 +196,12 @@ public class NameResolution {
         ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
 
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_FUNC);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_FUNC);
+            WLogger.trace(() -> "[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
+                + " name=" + name
+                + " recv=" + receiverType
+                + " recvId=" + System.identityHashCode(receiverType)
+                + " size=" + immutableResult.size());
             GlobalCaches.lookupCache.put(key, immutableResult);
         }
 
@@ -207,7 +253,7 @@ public class NameResolution {
                 }
             }
 
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (DefLink n : links) {
@@ -252,7 +298,7 @@ public class NameResolution {
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
         if (!showErrors) {
-            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+            GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_VAR);
             NameLink cached = (NameLink) GlobalCaches.lookupCache.get(key);
             if (cached != null) {
                 return cached;
@@ -270,7 +316,7 @@ public class NameResolution {
         DefLinkMatch bestMatch = null;
 
         for (WScope s : scopes) {
-            Collection<DefLink> links = s.attrNameLinks().get(name);
+            Collection<DefLink> links = scopeNameLinks(s, name);
             if (links.isEmpty()) continue;
 
             DefLinkMatch candidate = findBestMemberVarMatch(links, receiverType, node, showErrors);
@@ -286,7 +332,11 @@ public class NameResolution {
 
         if (bestMatch != null) {
             if (!showErrors) {
-                GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, name + "@" + receiverType, GlobalCaches.LookupType.MEMBER_VAR);
+                GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_VAR);
+                WLogger.trace(() -> "[LOOKUPCACHE] PUT MEMBER_FUNC node=" + System.identityHashCode(node)
+                    + " name=" + name
+                    + " recv=" + receiverType
+                    + " recvId=" + System.identityHashCode(receiverType));
                 GlobalCaches.lookupCache.put(key, bestMatch.link);
             }
             return bestMatch.link;
@@ -412,22 +462,41 @@ public class NameResolution {
     }
 
     public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
-        WurstType n_receiverType = n.getReceiverType();
-        if (n_receiverType == null) {
-            return null;
-        }
-        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(n.getTypeParams()), VariablePosition.RIGHT);
-        if (mapping == null) {
-            return null;
-        }
+        WurstType candRecv = n.getReceiverType();
+        if (candRecv == null) return null;
+
+        VariableBinding seed = VariableBinding.emptyMapping().withTypeVariables(n.getTypeParams());
+        VariableBinding mapping = receiverType.matchAgainstSupertype(candRecv, node, seed, VariablePosition.RIGHT);
+        if (mapping == null) return null;
+
+        WLogger.trace(() -> "[MATCHRECV] def=" + ((n instanceof FuncLink) ? ((FuncLink) n).getDef().getName() : n.getDef().getName())
+            + " left=" + receiverType
+            + " candRecv=" + candRecv
+            + " linkTypeParams=" + n.getTypeParams()
+            + (n instanceof FuncLink ? (" linkVB=" + ((FuncLink) n).getVariableBinding()) : ""));
+
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
                 node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER && !receiverType.isSubtypeOf(n_receiverType, node)) {
+            } else if (n.getVisibility() == Visibility.PROTECTED_OTHER && !receiverType.isSubtypeOf(candRecv, node)) {
                 node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
             }
         }
+
         return n.withTypeArgBinding(node, mapping);
+    }
+
+    private static Iterable<TypeParamDef> typeParamsOfReceiverType(WurstType t) {
+        if (t instanceof WurstTypeClassOrInterface) {
+            return ((WurstTypeClassOrInterface) t).getDef().getTypeParameters();
+        }
+        if (t instanceof WurstTypeClass) {
+            return ((WurstTypeClass) t).getClassDef().getTypeParameters();
+        }
+        if (t instanceof WurstTypeInterface) {
+            return ((WurstTypeInterface) t).getInterfaceDef().getTypeParameters();
+        }
+        return java.util.Collections.emptyList();
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
@@ -452,7 +521,7 @@ public class NameResolution {
 
 
         for (WScope s : scopes) {
-            ImmutableCollection<TypeLink> links = s.attrTypeNameLinks().get(name);
+            ImmutableCollection<TypeLink> links = scopeTypeLinks(s, name);
             if (links.isEmpty()) continue;
 
             for (NameLink n : links) {
@@ -495,7 +564,7 @@ public class NameResolution {
     public static PackageLink lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            for (NameLink n : scopeNameLinks(scope, name)) {
                 if (n instanceof PackageLink) {
                     return (PackageLink) n;
                 }

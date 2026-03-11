@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 
 public class UsedPackages {
 
@@ -34,7 +35,7 @@ public class UsedPackages {
     public static ImmutableCollection<WPackage> usedPackages(NameRef e) {
         ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
         NameLink def = e.attrNameLink();
-        if (def.getDef() instanceof VarDef) {
+        if (def != null && !(def instanceof OtherLink) && def.getDef() instanceof VarDef) {
             if (def.getDef().attrNearestPackage() instanceof WPackage) {
                 result.add((WPackage) e.attrNearestPackage());
             }

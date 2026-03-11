@@ -27,10 +27,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
 public class AntlrWurstParseTreeTransformer {
+    private static final Set<String> JASS_PRIMITIVE_TYPES = Set.of("integer", "real", "boolean");
 
     private final String file;
     private final ErrorHandler cuErrorHandler;
@@ -225,10 +227,21 @@ public class AntlrWurstParseTreeTransformer {
             OptTypeExpr optTyp = transformOptionalType(l.typeExpr());
             Identifier name = text(l.name);
             OptExpr initialExpr = transformOptionalExpr(l.initial);
+            if (l.initial == null && shouldDefaultJassLocalToNull(optTyp)) {
+                initialExpr = Ast.ExprNull(source(l));
+            }
             result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
                     initialExpr));
         }
         return result;
+    }
+
+    private boolean shouldDefaultJassLocalToNull(OptTypeExpr optTyp) {
+        if (!(optTyp instanceof TypeExprSimple)) {
+            return false;
+        }
+        String typeName = ((TypeExprSimple) optTyp).getTypeName();
+        return !JASS_PRIMITIVE_TYPES.contains(typeName);
     }
 
     private WStatements transformJassStatements(JassStatementsContext stmts) {
@@ -747,6 +760,8 @@ public class AntlrWurstParseTreeTransformer {
         } else if (s.stmtBreak() != null) {
             return Ast
                     .StmtExitwhen(source(s), Ast.ExprBoolVal(source(s), true));
+        } else if (s.stmtContinue() != null) {
+            return Ast.StmtContinue(source(s));
         } else if (s.stmtSkip() != null) {
             return Ast.StmtSkip(source(s));
         } else if (s.stmtSwitch() != null) {
@@ -931,8 +946,8 @@ public class AntlrWurstParseTreeTransformer {
 
     private WStatement transformForRangeLoop(ForRangeLoopContext s) {
         WPos source = source(s);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar);
-        loopVar.setInitialExpr(transformExpr(s.start));
+        Expr start = transformExpr(s.start);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start, true);
         Expr to = transformExpr(s.end);
         Expr step;
         if (s.step == null) {
@@ -949,17 +964,20 @@ public class AntlrWurstParseTreeTransformer {
         throw error(s, "not implemented: " + text(s));
     }
 
-    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v) {
+    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v, OptExpr initialExpr, boolean constant) {
         Modifiers modifiers = Ast.Modifiers();
+        if (constant) {
+            // Range-loop variables behave like let-variables for user code.
+            modifiers.add(Ast.ModConstant(source(v)));
+        }
         OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
         Identifier name = text(v.name);
-        OptExpr initialExpr = Ast.NoExpr();
         return Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr);
     }
 
     private WStatement transformForIteratorLoop(ForIteratorLoopContext s) {
         WPos source = source(s);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, Ast.NoExpr(), false);
         Expr in = transformExpr(s.iteratorExpr);
         WStatements body = transformStatements(s.statementsBlock());
         if (s.iterStyle.getType() == WurstParser.IN) {

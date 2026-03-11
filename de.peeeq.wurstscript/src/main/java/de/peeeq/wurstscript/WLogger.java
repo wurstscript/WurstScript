@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 
 public abstract class WLogger {
@@ -28,12 +29,40 @@ public abstract class WLogger {
         instance.trace(msg);
     }
 
+    public static void trace(String format, Object... args) {
+        instance.trace(format, args);
+    }
+
+    public static void trace(Supplier<String> msgSupplier) {
+        if (instance.isTraceEnabled()) {
+            instance.trace(msgSupplier.get());
+        }
+    }
+
     public static void info(String msg) {
         instance.info(msg);
     }
 
     public static void debug(String s) {
         instance.debug(s);
+    }
+
+    public static void debug(String format, Object... args) {
+        instance.debug(format, args);
+    }
+
+    public static void debug(Supplier<String> msgSupplier) {
+        if (instance.isDebugEnabled()) {
+            instance.debug(msgSupplier.get());
+        }
+    }
+
+    public static boolean isTraceEnabled() {
+        return instance.isTraceEnabled();
+    }
+
+    public static boolean isDebugEnabled() {
+        return instance.isDebugEnabled();
     }
 
     public static void setLevel(Level level) {
@@ -86,22 +115,24 @@ public abstract class WLogger {
     }
 
     private static String getLast100Lines(File file) throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(file);
-        FileChannel channel = fileInputStream.getChannel();
-        ByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-        buffer.position((int) channel.size());
-        int count = 0;
-        StringBuilder builder = new StringBuilder();
-        for (long i = channel.size() - 1; i >= 0; i--) {
-            char c = (char) buffer.get((int) i);
-            builder.append(c);
-            if (c == '\n') {
-                if (count == 100) break;
-                count++;
+        FileChannel channel;
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            channel = fileInputStream.getChannel();
+            ByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
+            buffer.position((int) channel.size());
+            int count = 0;
+            StringBuilder builder = new StringBuilder();
+            for (long i = channel.size() - 1; i >= 0; i--) {
+                char c = (char) buffer.get((int) i);
+                builder.append(c);
+                if (c == '\n') {
+                    if (count == 100) break;
+                    count++;
+                }
             }
+            return builder.toString();
         }
-        channel.close();
-        return builder.toString();
+
     }
 
 

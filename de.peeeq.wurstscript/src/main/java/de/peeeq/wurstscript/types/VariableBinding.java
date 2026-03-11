@@ -84,7 +84,7 @@ public class VariableBinding implements Iterable<Tuple2<TypeParamDef, WurstTypeB
                 if (!first) {
                     s.append(", ");
                 }
-                s.append(t.getName()).append(" line ").append(t.getSource().getLine());
+                s.append(t.getName()).append(":").append(t.getSource().getLine());
                 first = false;
             }
             s.append(">");

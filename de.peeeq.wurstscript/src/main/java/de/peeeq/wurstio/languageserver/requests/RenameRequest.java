@@ -6,8 +6,10 @@ import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,10 +38,15 @@ public class RenameRequest extends UserRequest<WorkspaceEdit> {
             String uri = e.getKey();
             VersionedTextDocumentIdentifier textDocument = new VersionedTextDocumentIdentifier();
             textDocument.setUri(uri);
+            textDocument.setVersion(bufferManager.getTextDocumentVersion(de.peeeq.wurstio.languageserver.WFile.create(uri)));
             List<TextEdit> fileEdits = new ArrayList<>();
+            Set<String> seenRanges = new LinkedHashSet<>();
             for (GetUsages.UsagesData usage : e.getValue()) {
-                if (usage.getKind() == DocumentHighlightKind.Read) {
-                    fileEdits.add(new TextEdit(usage.getRange(), params.getNewName()));
+                Range range = usage.getRange();
+                String key = range.getStart().getLine() + ":" + range.getStart().getCharacter() + "-"
+                        + range.getEnd().getLine() + ":" + range.getEnd().getCharacter();
+                if (seenRanges.add(key)) {
+                    fileEdits.add(new TextEdit(range, params.getNewName()));
                 }
             }
             edits.add(Either.forLeft(new TextDocumentEdit(textDocument, fileEdits)));

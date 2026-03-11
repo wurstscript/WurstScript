@@ -98,7 +98,7 @@ public class AttrFuncDef {
         cands.addAll(methods);
         cands.addAll(exts);
 
-        var argTypes = AttrFuncDef.argumentTypesPre(node);
+        var argTypes = AttrFuncDef.argumentTypes(node);
 
         // Pass 1: exact matches
         java.util.ArrayList<FuncLink> exactLinks = new java.util.ArrayList<>();
@@ -166,6 +166,9 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(final ExprFunctionCall node) {
+        if (isConstructorThisCall(node)) {
+            return null;
+        }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
         if (result == null) {
@@ -179,6 +182,20 @@ public class AttrFuncDef {
             }
         }
         return result;
+    }
+
+    private static boolean isConstructorThisCall(ExprFunctionCall node) {
+        if (!node.getFuncName().equals("this")) {
+            return false;
+        }
+        Element current = node;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     private static @Nullable FuncLink getExtensionFunction(Expr left, Expr right, WurstOperator op) {
@@ -242,9 +259,11 @@ public class AttrFuncDef {
                         pIndex++;
                     }
                     if (hasInferredType) {
-                        // if there are unknown parameter types, use an approximated function type for overloading resolution
-                        WurstType resultType = WurstTypeInfer.instance();
-                        argType = new WurstTypeClosure(paramTypes, resultType);
+                        WurstType bodyType = closure.getImplementation().attrTyp();
+                        if (bodyType == null || bodyType instanceof WurstTypeUnknown) {
+                            bodyType = WurstTypeInfer.instance();
+                        }
+                        argType = new WurstTypeClosure(paramTypes, bodyType);
                     } else {
                         // if there are no unknown types for the argument, then it should be safe to directly calculate the type
                         argType = arg.attrTyp();

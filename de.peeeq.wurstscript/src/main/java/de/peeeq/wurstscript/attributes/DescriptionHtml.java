@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -159,6 +160,9 @@ public class DescriptionHtml {
         NameLink nameDef = nr.attrNameLink();
         if (nameDef == null) {
             return nr.getVarName() + " is not defined yet.";
+        }
+        if (nameDef instanceof OtherLink) {
+            return nr.getVarName() + " has type " + htmlType(nameDef.getTyp());
         }
         return nameDef.getDef().descriptionHtml();
     }
@@ -324,6 +328,10 @@ public class DescriptionHtml {
 
     public static String description(StmtSkip stmtSkip) {
         return "The skip statement does nothing. Just skip this line.";
+    }
+
+    public static String description(StmtContinue stmtContinue) {
+        return "continue: Skips the rest of the current loop iteration.";
     }
 
     public static String description(StmtWhile stmtWhile) {

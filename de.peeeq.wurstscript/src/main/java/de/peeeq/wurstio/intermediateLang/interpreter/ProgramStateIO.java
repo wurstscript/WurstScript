@@ -554,17 +554,19 @@ public class ProgramStateIO extends ProgramState {
             out.write("// Modified Table (contains all custom objects)\n\n");
             exportToWurst(dataStore.getCustomObjs(), fileType, out);
 
-            out.write("// Original Table (contains all modified default objects)\n" +
-                "// Wurst does not support modifying default objects\n" +
-                "// but you can copy these functions and replace 'xxxx' with a new, custom id.\n\n");
+            out.write("// Original Table (contains all modified default/melee objects)\n" +
+                "// These are emitted when createObjectDefinition uses the same base/new id.\n\n");
             exportToWurst(dataStore.getOrigObjs(), fileType, out);
         }
     }
 
     public void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out) throws IOException {
         for (ObjMod.Obj obj : customObjs) {
-            String oldId = obj.getBaseId().getVal();
-            String newId = (obj.getNewId() != null ? obj.getNewId().getVal() : "xxxx");
+            // Original-table objects (melee overrides) have no base/new id in wc3libs.
+            // For Wurst export we represent them as same-id overrides.
+            String objectId = obj.getId().getVal();
+            String oldId = (obj.getBaseId() != null ? obj.getBaseId().getVal() : objectId);
+            String newId = (obj.getNewId() != null ? obj.getNewId().getVal() : objectId);
             out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
                 .append("()\n");
             out.append("\tlet def = createObjectDefinition(\"").append(fileType.getExt()).append("\", '");

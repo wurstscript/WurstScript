@@ -1,14 +1,15 @@
 package de.peeeq.wurstscript.intermediatelang;
 
-import com.google.common.collect.Maps;
-import de.peeeq.datastructures.IntTuple;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
-import java.util.Map;
+import java.util.Arrays;
 
 
 public class ILconstMultiArray extends ILconstAbstract {
 
-    private final Map<IntTuple, ILconst> contents = Maps.newHashMap();
+    private final Object2ObjectOpenHashMap<IntList, ILconst> contents = new Object2ObjectOpenHashMap<>();
 
 
     @Override
@@ -21,12 +22,28 @@ public class ILconstMultiArray extends ILconstAbstract {
         return contents.toString();
     }
 
-    public ILconst get(IntTuple key) {
+    public ILconst get(IntList key) {
         return contents.get(key);
     }
 
-    public void set(IntTuple key, ILconst val) {
-        contents.put(key, val);
+    public ILconst get(int... key) {
+        return contents.get(copyKey(key));
+    }
+
+    public void set(IntList key, ILconst val) {
+        contents.put(copyKey(key), val);
+    }
+
+    public void set(ILconst val, int... key) {
+        contents.put(copyKey(key), val);
+    }
+
+    private static IntArrayList copyKey(IntList key) {
+        return new IntArrayList(key);
+    }
+
+    private static IntArrayList copyKey(int... key) {
+        return IntArrayList.wrap(Arrays.copyOf(key, key.length));
     }
 
 }

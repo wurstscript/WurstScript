@@ -7,6 +7,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WurstModel;
 
 import java.util.*;
 
@@ -19,7 +20,8 @@ public class InitOrder {
         packages.addAll(p.attrImportedPackagesTransitive());
 
         // add config package if it exists:
-        WPackage configPackage = p.getModel().attrConfigOverridePackages().get(p);
+        WurstModel model = safeModel(p);
+        WPackage configPackage = model == null ? null : model.attrConfigOverridePackages().get(p);
         if (configPackage != null) {
             packages.add(configPackage);
         }
@@ -70,8 +72,11 @@ public class InitOrder {
         StringBuilder msg = new StringBuilder();
         Map<WPackage, WPackage> configuredPackage = new HashMap<>();
         if (considerConfig) {
-            for (WPackage configured : imported.getModel().attrConfigOverridePackages().keySet()) {
-                configuredPackage.put(imported.getModel().attrConfigOverridePackages().get(configured), configured);
+            WurstModel model = safeModel(imported);
+            if (model != null) {
+                for (WPackage configured : model.attrConfigOverridePackages().keySet()) {
+                    configuredPackage.put(model.attrConfigOverridePackages().get(configured), configured);
+                }
             }
         }
         for (WPackage p : callStack) {
@@ -152,7 +157,8 @@ public class InitOrder {
             // add imports of configured package to config package
             // that way cyclic dependencies are checked for the config package and errors will be reported for the config package
             if (considerConfig) {
-                WPackage configPackage = p.getModel().attrConfigOverridePackages().get(imported);
+                WurstModel model = safeModel(p);
+                WPackage configPackage = model == null ? null : model.attrConfigOverridePackages().get(imported);
                 if (configPackage != null && configPackage != p) {
                     if (configPackage == callStack.get(0)) {
                         reportCyclicDependency(callStack, configPackage, reportedErrors, useWarnings);
@@ -168,6 +174,10 @@ public class InitOrder {
     }
 
     private static void collectImportedPackages(List<WPackage> callStack, WPackage p, Collection<WPackage> result, Set<String> reportedErrors, boolean considerConfig, boolean useWarnings) {
+        if (safeModel(p) == null) {
+            // Detached packages can occur transiently in language-server workflows; ignore them for init-order analysis.
+            return;
+        }
         callStack.add(p);
         addCollectImportedPackage(callStack, p, result, p.getImports(), reportedErrors, considerConfig, useWarnings);
         /*
@@ -178,13 +188,22 @@ public class InitOrder {
         even though the configured package will be initialized after the config package.
          */
         if (considerConfig) {
-            for (Map.Entry<WPackage, WPackage> e : p.getModel().attrConfigOverridePackages().entrySet()) {
+            WurstModel model = safeModel(p);
+            if (model != null) for (Map.Entry<WPackage, WPackage> e : model.attrConfigOverridePackages().entrySet()) {
                 if (e.getValue().equals(p)) {
                     addCollectImportedPackage(callStack, e.getKey(), result, e.getKey().getImports(), reportedErrors, considerConfig, useWarnings);
                 }
             }
         }
         callStack.remove(callStack.size() - 1);
+    }
+
+    private static WurstModel safeModel(WPackage p) {
+        try {
+            return p.getModel();
+        } catch (Error ignored) {
+            return null;
+        }
     }
 
 }

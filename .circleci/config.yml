@@ -17,8 +17,7 @@ jobs:
     working_directory: ~/repo/de.peeeq.wurstscript
 
     environment:
-      # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
+      GRADLE_OPTS: -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2
       TERM: dumb
 
     steps:
@@ -28,20 +27,18 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "build.gradle" }}
+            - v2-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
             # fallback to using the latest cache if no exact match is found
-            - v1-dependencies-
-
-      - run: ./gradlew dependencies
+            - v2-gradle-
 
       - save_cache:
           paths:
             - ~/.gradle
-          key: v1-dependencies-{{ checksum "build.gradle" }}
+          key: v2-gradle-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
 
-      # run tests
-      - run: ./gradlew test --info
-
-      # report tests results
-      - run: ./gradlew jacocoTestReport coveralls
+      # run tests and coverage in one invocation to avoid duplicate config/startup cost
+      - run:
+          name: Run tests and coverage
+          command: ./gradlew --no-daemon --stacktrace test jacocoTestReport coveralls
+          no_output_timeout: 30m
       

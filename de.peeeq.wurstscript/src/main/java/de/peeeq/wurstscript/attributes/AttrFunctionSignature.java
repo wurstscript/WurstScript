@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +19,23 @@ public class AttrFunctionSignature {
 
     public static FunctionSignature calculate(StmtCall fc) {
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
-        FunctionSignature sig = filterSigs(sigs, argTypes(fc), fc);
+        List<WurstType> at = argTypes(fc);
+
+        FunctionSignature sig = filterSigs(sigs, at, fc);
+
+        // ---- DEBUG: what did we pick, and what did we bind? ----
+        if (fc instanceof FunctionCall) {
+            WLogger.trace(() -> "[IMPLCONV] call=" + name(fc) + " args=" + at);
+//            WLogger.trace("[IMPLCONV] pickedSig=" + sig);
+            WLogger.trace(() -> "[IMPLCONV] mapping=" + sig.getMapping()
+                + " unbound=" + sig.getMapping().printUnboundTypeVars());
+            if (fc instanceof ExprMemberMethodDot emmd) {
+                WLogger.trace(() -> "[IMPLCONV] receiver=" + emmd.getLeft().attrTyp()
+                    + " raw=" + emmd.getLeft().attrTypRaw()
+                    + " member=" + emmd.getFuncName());
+            }
+        }
+        // --------------------------------------------------------
 
         VariableBinding mapping = sig.getMapping();
         for (CompileError error : mapping.getErrors()) {
@@ -40,14 +58,55 @@ public class AttrFunctionSignature {
             fc.addError("Cannot infer type for type parameter " + mapping.printUnboundTypeVars());
         }
 
+        checkCodeClosureCaptures(fc, sig);
+
         return sig;
+    }
+
+    private static void checkCodeClosureCaptures(StmtCall fc, FunctionSignature sig) {
+        if (!sig.isValidParameterNumber(fc.getArgs().size())) {
+            return;
+        }
+        for (int i = 0; i < fc.getArgs().size(); i++) {
+            Expr arg = fc.getArgs().get(i);
+            if (!(arg instanceof ExprClosure)) {
+                continue;
+            }
+            if (!(sig.getParamType(i) instanceof WurstTypeCode)) {
+                continue;
+            }
+            ExprClosure closure = (ExprClosure) arg;
+            if (!closure.attrCapturedVariables().isEmpty()) {
+                String codeLambdaContext = codeLambdaContext(fc);
+                closure.attrCapturedVariables().entries().forEach(entry ->
+                    entry.getKey().addError("Cannot capture local variable '" + entry.getValue().getName()
+                        + "' in anonymous function" + codeLambdaContext + ". This is only possible with closures."));
+            }
+        }
+    }
+
+    private static String codeLambdaContext(StmtCall stmtCall) {
+        String funcName = stmtCall instanceof FunctionCall fc ? fc.getFuncName() : "<unknown>";
+        if (stmtCall instanceof ExprMemberMethod) {
+            return " passed as code to ." + funcName + "() ->";
+        }
+        return " passed as code to " + funcName + "() ->";
     }
 
     private static FunctionSignature filterSigs(
             Collection<FunctionSignature> sigs,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
+            if (location instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) location)) {
+                return FunctionSignature.empty;
+            }
             if (!isInitTrigFunc(location)) {
+                if (location instanceof ExprMemberMethodDot) {
+                    ExprMemberMethodDot emmd = (ExprMemberMethodDot) location;
+                    WLogger.trace(() -> "[IMPLCONV] receiver typRaw=" + emmd.getLeft().attrTypRaw()
+                        + " typ=" + emmd.getLeft().attrTyp()
+                        + " for call ." + emmd.getFuncName());
+                }
                 location.addError("Could not find " + name(location) + ".");
             }
             return FunctionSignature.empty;
@@ -94,6 +153,20 @@ public class AttrFunctionSignature {
         return candidates.get(0);
     }
 
+    private static boolean isConstructorThisCall(ExprFunctionCall call) {
+        if (!call.getFuncName().equals("this")) {
+            return false;
+        }
+        Element current = call;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {
         List<FunctionSignature> list = new ArrayList<>();
         for (FunctionSignature sig : candidates) {
@@ -119,12 +192,21 @@ public class AttrFunctionSignature {
     }
 
     @NotNull
-    private static List<FunctionSignature> filterByArgumentTypes(Collection<FunctionSignature> sigs, List<WurstType> argTypes, StmtCall location) {
+    private static List<FunctionSignature> filterByArgumentTypes(
+        Collection<FunctionSignature> sigs, List<WurstType> argTypes, StmtCall location) {
+
         List<FunctionSignature> candidates = new ArrayList<>();
         for (FunctionSignature sig : sigs) {
-            sig = sig.matchAgainstArgs(argTypes, location);
-            if (sig != null) {
-                candidates.add(sig);
+            WLogger.trace(() -> "[IMPLCONV] trySig=" + sig + " argTypes=" + argTypes);
+
+            FunctionSignature matched = sig.matchAgainstArgs(argTypes, location);
+
+            if (matched != null) {
+                WLogger.trace(() -> "[IMPLCONV]   -> matched, mapping=" + matched.getMapping()
+                    + " unbound=" + matched.getMapping().printUnboundTypeVars());
+                candidates.add(matched);
+            } else {
+                WLogger.trace("[IMPLCONV]   -> no match");
             }
         }
         return candidates;

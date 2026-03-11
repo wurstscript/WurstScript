@@ -14,6 +14,12 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 
     private final EnumDef edef;
 
+    public WurstTypeEnum(boolean isStaticRef, EnumDef edef, VariableBinding captured) {
+        super(isStaticRef, captured);
+        if (edef == null) throw new IllegalArgumentException();
+        this.edef = edef;
+    }
+
     public WurstTypeEnum(boolean isStaticRef, EnumDef edef) {
         super(isStaticRef);
         if (edef == null) throw new IllegalArgumentException();
@@ -23,6 +29,11 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
     @Override
     public EnumDef getDef() {
         return edef;
+    }
+
+    @Override
+    public WurstType replaceTypeVarsWithCaptured(List<WurstTypeBoundTypeParam> newTypes, VariableBinding newCaptured) {
+        return new WurstTypeEnum(isStaticRef(), edef, newCaptured);
     }
 
     @Override

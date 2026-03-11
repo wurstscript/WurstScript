@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameResolution;
@@ -84,8 +85,14 @@ public class AttrPossibleFunctionSignatures {
                 fc.getErrorHandler().sendError(c);
             }
         }
-
-        return ImmutableList.copyOf(inferred);
+        ImmutableList.Builder<FunctionSignature> result = ImmutableList.builder();
+        for (int i = 0; i < n; i++) {
+            var r = sigs.get(i).tryMatchAgainstArgs(argTypes, argsNode, fc);
+            if (r.getBadness() == bestBad) {
+                result.add(inferred[i]);
+            }
+        }
+        return result.build();
     }
 
 
@@ -139,6 +146,19 @@ public class AttrPossibleFunctionSignatures {
         final ImmutableCollection<FuncLink> raw =
             mm.lookupMemberFuncs(leftType, name, /*showErrors*/ false);
 
+        WLogger.trace(() -> "[IMPLCONV] lookupMemberFuncs name=" + name
+            + " leftType=" + leftType
+            + " leftRaw=" + left.attrTypRaw()
+            + " raw.size=" + raw.size());
+
+        for (FuncLink f : raw) {
+            WLogger.trace(() -> "[IMPLCONV] rawLink name=" + f.getName()
+                + " def=" + f.getDef()
+                + " recv=" + f.getReceiverType()
+                + " typeParams=" + f.getTypeParams()
+                + " binding=" + f.getVariableBinding());
+        }
+
         if (raw.isEmpty()) {
             // Let downstream handle "not found"
             return ImmutableList.of();
@@ -174,6 +194,10 @@ public class AttrPossibleFunctionSignatures {
         for (FuncLink f : visible) {
             FunctionSignature sig = FunctionSignature.fromNameLink(f);
 
+            if (WLogger.isTraceEnabled()) WLogger.trace("[IMPLCONV] fromNameLink -> sig=" + sig
+                + " sig.recv=" + sig.getReceiverType()
+                + " sig.map=" + sig.getMapping());
+
             // Bind type variables using the actual receiver
             WurstType recv = sig.getReceiverType();
             if (recv != null) {
@@ -184,7 +208,22 @@ public class AttrPossibleFunctionSignatures {
                 // For members injected via `use module`, the receiver can be a synthetic/module `thistype`
                 // that is not directly comparable here (especially during incremental builds).
                 // Do NOT drop the candidate if binding fails; keep it and let arg matching rank it later.
-                if (m != null) {
+                if (m == null) {
+                    // Keep only if this is the "synthetic receiver" situation (use-module / thistype).
+                    // Otherwise it's almost certainly a stale specialized FuncLink (exactly what your log shows).
+                    String rs = String.valueOf(recv);
+                    boolean synthetic = rs.contains("thistype") || rs.contains("module"); // refine later if you have a proper predicate
+                    if (!synthetic) {
+                        WLogger.trace(() -> "[IMPLCONV] drop candidate: receiver mismatch left=" + leftType + " recv=" + recv
+                            + " def=" + f.getDef() + " linkBinding=" + f.getVariableBinding());
+                        WLogger.trace(() -> "[IMPLCONV] receiver mismatch: leftType=" + leftType
+                            + " recv=" + recv
+                            + " func=" + f.getName()
+                            + " def=" + f.getDef()
+                            + " linkBinding=" + f.getVariableBinding());
+                        continue;
+                    }
+                } else {
                     sig = sig.setTypeArgs(mm, m);
                 }
             }

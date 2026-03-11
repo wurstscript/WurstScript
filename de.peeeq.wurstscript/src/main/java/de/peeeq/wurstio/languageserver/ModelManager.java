@@ -29,6 +29,17 @@ public interface ModelManager {
 
     void buildProject();
 
+    /**
+     * refresh discovered dependency roots (e.g. _build/dependencies after grill install)
+     */
+    void refreshDependencies();
+
+    /**
+     * refresh and synchronize all dependency compilation units.
+     * This handles dependency delete/replace/move/rename scenarios robustly.
+     */
+    Changes syncDependencyCompilationUnits();
+
     Changes syncCompilationUnit(WFile changedFilePath);
 
     Changes syncCompilationUnitContent(WFile filename, String contents);

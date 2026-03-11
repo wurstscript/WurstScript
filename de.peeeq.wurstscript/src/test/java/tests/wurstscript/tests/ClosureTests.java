@@ -69,6 +69,76 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_selfReference_withIt_recursion() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc fact = (int n) ->",
+                "        if n <= 1",
+                "            return 1",
+                "        return n * it.apply(n - 1)",
+                "    if fact.apply(5) == 120",
+                "        testSuccess()");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_usesNearestClosure() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc outer = (int x) -> begin",
+                "        IntFunc inner = (int y) ->",
+                "            if y <= 0",
+                "                return 0",
+                "            return 1 + it.apply(y - 1)",
+                "        return inner.apply(x)",
+                "    end",
+                "    if outer.apply(3) == 3",
+                "        testSuccess()");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_requiresKnownClosureTargetType() {
+        testAssertErrorsLines(false, "closure target type is unknown",
+                "package test",
+                "init",
+                "    let f = (int x) -> it");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_isReadOnly() {
+        testAssertErrorsLines(false, "Invalid assignment. This is not a variable",
+                "package test",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc f = (int x) -> begin",
+                "        it = f",
+                "        return x",
+                "    end");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_assignmentNoCrash() {
+        testAssertOkLines(false,
+                "package test",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc f = (int n) -> begin",
+                "        IntFunc x = it",
+                "        x = it",
+                "        return n",
+                "    end");
+    }
+
+    @Test
     public void closure_begin_end1() {
         testAssertOkLines(true,
                 "package test",
@@ -138,6 +208,51 @@ public class ClosureTests extends WurstScriptTest {
                 "		testSuccess()",
                 "init",
                 "	test(4)"
+        );
+    }
+
+    @Test
+    public void overloadCodeVsClosureInterface_prefersClosureInterface() {
+        testAssertOkLines(false,
+                "package test",
+                "interface IntCallback",
+                "    function run(int p)",
+                "class Wrapper",
+                "    function forEach(code callback)",
+                "        skip",
+                "    function forEach(IntCallback callback)",
+                "        callback.run(1)",
+                "init",
+                "    let w = new Wrapper()",
+                "    var x = 0",
+                "    w.forEach() p ->",
+                "        x += p"
+        );
+    }
+
+    @Test
+    public void nestedCodeClosureCaptureIsValidationError() {
+        testAssertErrorsLines(false, "passed as code to .addAction() ->",
+                "package test",
+                "interface PerkApplyFunc",
+                "    function run(int p)",
+                "interface VoidCallback",
+                "    function run()",
+                "class TriggerWrap",
+                "    function addAction(code c)",
+                "        skip",
+                "native takesInt(int i)",
+                "function doAfter(real delay, VoidCallback cb)",
+                "    skip",
+                "function addPerk(PerkApplyFunc f)",
+                "    skip",
+                "init",
+                "    let roundStartTrigger = new TriggerWrap()",
+                "    addPerk((int plr) -> begin",
+                "        roundStartTrigger.addAction() ->",
+                "            doAfter(0.01) ->",
+                "                takesInt(plr)",
+                "    end)"
         );
     }
 
@@ -339,6 +454,61 @@ public class ClosureTests extends WurstScriptTest {
                 "init",
                 "	SimpleFunc f = () -> foo()",
                 "	f.apply()"
+        );
+    }
+
+    @Test
+    public void closure_returnInsideIf_inStatementsBlock() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface FnBool",
+                "    function run() returns boolean",
+                "function foo(FnBool fn) returns boolean",
+                "    return fn.run()",
+                "init",
+                "    FnBool fn = () ->",
+                "        let i = 0",
+                "        if i > 0",
+                "            return false",
+                "        return true",
+                "    if foo(fn)",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void closure_multipleEarlyReturns_inStatementsBlock() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface FnInt",
+                "    function run() returns int",
+                "function call(FnInt f) returns int",
+                "    return f.run()",
+                "init",
+                "    let x = call() ->",
+                "        let i = 2",
+                "        if i < 0",
+                "            return -1",
+                "        if i > 1",
+                "            return 7",
+                "        return 3",
+                "    if x == 7",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void statementsBlockOutsideClosure_stillRequiresReturnAtEnd() {
+        testAssertErrorsLines(false, "Return in a statements block can only be at the end.",
+                "package test",
+                "init",
+                "    let x = begin",
+                "        if true",
+                "            return 1",
+                "        return 2",
+                "    end"
         );
     }
 

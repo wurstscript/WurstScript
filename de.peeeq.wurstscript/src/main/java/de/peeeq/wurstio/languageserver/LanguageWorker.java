@@ -52,6 +52,7 @@ public class LanguageWorker implements Runnable {
 
     private final Object lock = new Object();
     private ModelManager.Changes changesToReconcile = ModelManager.Changes.empty();
+    private boolean reconcileNowRequested = false;
     private final DebouncingTimer packagesToReconcileTimer = new DebouncingTimer(() -> {
         synchronized (lock) {
             lock.notify();
@@ -109,6 +110,17 @@ public class LanguageWorker implements Runnable {
         @Override
         public String toString() {
             return "FileUpdated(" + getFilename() + ")";
+        }
+    }
+
+    class FileSystemUpdated extends PendingChange {
+        public FileSystemUpdated(WFile filename) {
+            super(filename);
+        }
+
+        @Override
+        public String toString() {
+            return "FileSystemUpdated(" + getFilename() + ")";
         }
     }
 
@@ -182,6 +194,12 @@ public class LanguageWorker implements Runnable {
                 // cannot do anything useful at the moment
                 WLogger.info("LanguageWorker is waiting for init ... ");
             }
+        } else if (reconcileNowRequested && !changesToReconcile.isEmpty() && changes.isEmpty()) {
+            packagesToReconcileTimer.stop();
+            ModelManager.Changes changes = changesToReconcile;
+            changesToReconcile = ModelManager.Changes.empty();
+            reconcileNowRequested = false;
+            return new Workitem("reconcile files (save)", () -> modelManager.reconcile(changes));
         } else if (!userRequests.isEmpty()) {
             UserRequest<?> req = userRequests.remove();
             return new Workitem(req.toString(), () -> req.run(modelManager));
@@ -191,11 +209,20 @@ public class LanguageWorker implements Runnable {
             return new Workitem(change.toString(), () -> {
                 ModelManager.Changes affected = null;
                 if (isWurstDependencyFile(change)) {
-                    if (!(change instanceof FileReconcile)) {
-                        modelManager.clean();
+                    if (change instanceof FileReconcile) {
+                        FileReconcile fr = (FileReconcile) change;
+                        affected = modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
+                    } else if (change instanceof FileSystemUpdated || change instanceof FileDeleted) {
+                        // Dependency roots may have changed (e.g. grill install), sync full dependency state.
+                        affected = modelManager.syncDependencyCompilationUnits();
+                    } else {
+                        // Editor-triggered updates (save/close) use the normal incremental path.
+                        affected = modelManager.syncCompilationUnit(change.getFilename());
                     }
                 } else if (change instanceof FileDeleted) {
                     affected = modelManager.removeCompilationUnit(change.getFilename());
+                } else if (change instanceof FileSystemUpdated) {
+                    affected = modelManager.syncCompilationUnit(change.getFilename());
                 } else if (change instanceof FileUpdated) {
                     affected = modelManager.syncCompilationUnit(change.getFilename());
                 } else if (change instanceof FileReconcile) {
@@ -214,6 +241,7 @@ public class LanguageWorker implements Runnable {
             packagesToReconcileTimer.stop();
             ModelManager.Changes changes = changesToReconcile;
             changesToReconcile = ModelManager.Changes.empty();
+            reconcileNowRequested = false;
 
             return new Workitem("reconcile files", () -> {
                 modelManager.reconcile(changes);
@@ -223,7 +251,12 @@ public class LanguageWorker implements Runnable {
     }
 
     private boolean isWurstDependencyFile(PendingChange change) {
-        return change.getFilename().getUriString().endsWith("wurst.dependencies");
+        return isWurstDependencyFile(change.getFilename());
+    }
+
+    private boolean isWurstDependencyFile(WFile file) {
+        String uri = file.getUriString().replace('\\', '/');
+        return uri.contains("/_build/dependencies/");
     }
 
     private PendingChange removeFirst(Map<WFile, PendingChange> changes) {
@@ -261,13 +294,18 @@ public class LanguageWorker implements Runnable {
     public void handleFileChanged(DidChangeWatchedFilesParams params) {
         synchronized (lock) {
             for (FileEvent fileEvent : params.getChanges()) {
-                bufferManager.handleFileChange(fileEvent);
-
                 WFile file = WFile.create(fileEvent.getUri());
+                boolean isOpenInEditor = bufferManager.getTextDocumentVersion(file) >= 0;
+                // For open documents incremental didChange is authoritative.
+                // Ignore watcher changed/created events to avoid clobbering in-memory state.
+                if (isOpenInEditor && fileEvent.getType() != FileChangeType.Deleted) {
+                    continue;
+                }
+                bufferManager.handleFileChange(fileEvent);
                 if (fileEvent.getType() == FileChangeType.Deleted) {
                     changes.put(file, new FileDeleted(file));
                 } else {
-                    changes.put(file, new FileUpdated(file));
+                    changes.put(file, new FileSystemUpdated(file));
                 }
             }
             lock.notifyAll();
@@ -280,6 +318,35 @@ public class LanguageWorker implements Runnable {
             WFile file = WFile.create(params.getTextDocument().getUri());
 
             changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleOpen(DidOpenTextDocumentParams params) {
+        synchronized (lock) {
+            bufferManager.handleOpen(params);
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(file)));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleClose(DidCloseTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            bufferManager.handleClose(params);
+            changes.put(file, new FileUpdated(file));
+            lock.notifyAll();
+        }
+    }
+
+    public void handleSave(DidSaveTextDocumentParams params) {
+        synchronized (lock) {
+            WFile file = WFile.create(params.getTextDocument().getUri());
+            reconcileNowRequested = true;
+            changes.put(file, new FileUpdated(file));
+            // Save should flush diagnostics quickly instead of waiting for debounce.
+            packagesToReconcileTimer.triggerNow();
             lock.notifyAll();
         }
     }

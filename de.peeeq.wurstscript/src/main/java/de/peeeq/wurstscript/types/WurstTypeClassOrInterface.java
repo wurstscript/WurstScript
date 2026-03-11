@@ -20,6 +20,11 @@ import java.util.List;
 public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
     public WurstTypeClassOrInterface(List<WurstTypeBoundTypeParam> typeParameters,
+                                     boolean isStaticRef, VariableBinding captured) {
+        super(typeParameters, isStaticRef, captured);
+    }
+
+    public WurstTypeClassOrInterface(List<WurstTypeBoundTypeParam> typeParameters,
                                      boolean isStaticRef) {
         super(typeParameters, isStaticRef);
     }

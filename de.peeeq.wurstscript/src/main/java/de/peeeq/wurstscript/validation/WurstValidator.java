@@ -6,9 +6,11 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
+import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
@@ -53,6 +55,7 @@ public class WurstValidator {
     private @Nullable Element lastElement = null;
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
+    private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
 
     public WurstValidator(WurstModel root) {
         this.prog = root;
@@ -298,7 +301,7 @@ public class WurstValidator {
             if (e instanceof NameRef) {
                 NameRef nr = (NameRef) e;
                 NameLink def = nr.attrNameLink();
-                if (def != null) {
+                if (def != null && !(def instanceof OtherLink)) {
                     used.add(def.getDef().attrNearestPackage());
                     if (def.getDef().attrHasAnnotation("@config")) {
                         WPackage configPackage = getConfiguredPackage(def.getDef());
@@ -385,6 +388,7 @@ public class WurstValidator {
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef) {
                 checkConstructor((ConstructorDef) e);
+                checkThisConstructorCall((ConstructorDef) e);
                 checkConstructorSuperCall((ConstructorDef) e);
             }
             if (e instanceof ExprBinary)
@@ -483,7 +487,7 @@ public class WurstValidator {
             }
             if (e instanceof WScope)
                 checkForDuplicateNames((WScope) e);
-            if (e instanceof WStatement)
+            if (isHeavy() && e instanceof WStatement)
                 checkReachability((WStatement) e);
             if (e instanceof WurstModel)
                 checkForDuplicatePackages((WurstModel) e);
@@ -493,6 +497,8 @@ public class WurstValidator {
             }
             if (e instanceof StmtExitwhen)
                 visit((StmtExitwhen) e);
+            if (e instanceof StmtContinue)
+                visit((StmtContinue) e);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -614,6 +620,23 @@ public class WurstValidator {
             parent = parent.getParent();
         }
         exitwhen.addError("Break is not allowed outside of loop statements.");
+    }
+
+    private void visit(StmtContinue stmtContinue) {
+        Element parent = stmtContinue.getParent();
+        while (!(parent instanceof FunctionDefinition)) {
+            if (parent instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) parent;
+                if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
+                    stmtContinue.addError("Cannot use continue in vararg for each loops.");
+                }
+                return;
+            } else if (parent instanceof LoopStatement) {
+                return;
+            }
+            parent = parent.getParent();
+        }
+        stmtContinue.addError("Continue is not allowed outside of loop statements.");
     }
 
     private void checkTupleDef(TupleDef e) {
@@ -1012,10 +1035,11 @@ public class WurstValidator {
         if (expectedTyp instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
+                String codeLambdaContext = codeLambdaContext(e);
                 for (Map.Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
 
                     elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName()
-                        + "' in anonymous function. This is only possible with closures.");
+                        + "' in anonymous function" + codeLambdaContext + ". This is only possible with closures.");
                 }
             }
         } else if (expectedTyp instanceof WurstTypeUnknown || expectedTyp instanceof WurstTypeClosure) {
@@ -1060,6 +1084,21 @@ public class WurstValidator {
             }
         }
 
+    }
+
+    private static String codeLambdaContext(ExprClosure e) {
+        Element parent = e.getParent();
+        if (parent instanceof Arguments args) {
+            Element call = args.getParent();
+            if (call instanceof StmtCall stmtCall) {
+                String funcName = stmtCall instanceof FunctionCall fc ? fc.getFuncName() : "<unknown>";
+                if (stmtCall instanceof ExprMemberMethod) {
+                    return " passed as code to ." + funcName + "() ->";
+                }
+                return " passed as code to " + funcName + "() ->";
+            }
+        }
+        return "";
     }
 
     private void checkConstructorsUnique(ClassOrModule c) {
@@ -1190,7 +1229,10 @@ public class WurstValidator {
             NameRef vb = (NameRef) b;
             NameLink nla = va.attrNameLink();
             NameLink nlb = vb.attrNameLink();
-            if (nla != null && nlb != null && nla.getDef() == nlb.getDef()
+            if (nla != null && nlb != null
+                    && !(nla instanceof OtherLink)
+                    && !(nlb instanceof OtherLink)
+                    && nla.getDef() == nlb.getDef()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
                 if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
                     AstElementWithIndexes vai = (AstElementWithIndexes) va;
@@ -1419,7 +1461,13 @@ public class WurstValidator {
     private void visit(WParameter p) {
         checkVarName(p, false);
         if (p.attrIsVararg()) {
-            if (p.attrNearestFuncDef().getParameters().size() != 1) {
+            Element owner = p.getParent().getParent();
+            if (owner instanceof ConstructorDef) {
+                WParameters params = ((ConstructorDef) owner).getParameters();
+                if (params.get(params.size() - 1) != p) {
+                    p.addError("Vararg parameter in constructors must be last");
+                }
+            } else if (p.attrNearestFuncDef().getParameters().size() != 1) {
                 p.addError("Vararg functions may only have one parameter");
             }
         }
@@ -1573,6 +1621,12 @@ public class WurstValidator {
     }
 
     private void checkUninitializedVars(FunctionLike f) {
+        if (!isHeavy()) {
+            // Phase-1: collect only. Avoid triggering extra attributes in light validation.
+            heavyFunctions.add(f);
+            return;
+        }
+
         boolean isAbstract = false;
         if (f instanceof FuncDef) {
             FuncDef func = (FuncDef) f;
@@ -1586,12 +1640,6 @@ public class WurstValidator {
         }
         if (isAbstract) return;
 
-        if (!isHeavy()) {
-            // Phase-1: collect, but do not analyze.
-            heavyFunctions.add(f);
-            return;
-        }
-
         // Phase-2: actually run heavy analyses:
         checkReturn(f);
 
@@ -1600,6 +1648,125 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
         }
+        checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
+    }
+
+    /**
+     * JASS compatibility shim: we currently synthesize "= null" for uninitialized non-primitive
+     * locals to avoid invalid emitted JASS. Still report likely user bugs early when such a local
+     * is read before its first explicit assignment in the input.
+     */
+    private void checkJassImplicitNullLocalsReadWithoutExplicitWrite(FunctionLike f) {
+        if (!Utils.isJassCode(f)) {
+            return;
+        }
+
+        List<LocalVarDef> implicitNullLocals = new ArrayList<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (isImplicitNullInit(localVarDef)) {
+                    implicitNullLocals.add(localVarDef);
+                }
+            }
+        });
+        if (implicitNullLocals.isEmpty()) {
+            return;
+        }
+
+        Set<LocalVarDef> implicitNullLocalSet = new HashSet<>(implicitNullLocals);
+        Map<LocalVarDef, StmtSet> firstExplicitWrite = new HashMap<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(StmtSet stmtSet) {
+                super.visit(stmtSet);
+                NameLink link = stmtSet.getUpdatedExpr().attrNameLink();
+                if (link != null && link.getDef() instanceof LocalVarDef) {
+                    LocalVarDef local = (LocalVarDef) link.getDef();
+                    if (!implicitNullLocalSet.contains(local)) {
+                        return;
+                    }
+                    StmtSet previous = firstExplicitWrite.get(local);
+                    if (previous == null
+                        || stmtSet.attrSource().getLeftPos() < previous.attrSource().getLeftPos()) {
+                        firstExplicitWrite.put(local, stmtSet);
+                    }
+                }
+            }
+        });
+
+        Set<LocalVarDef> readBeforeExplicitWrite = new HashSet<>();
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprVarAccess varAccess) {
+                super.visit(varAccess);
+                NameLink link = varAccess.attrNameLink();
+                if (link == null || !(link.getDef() instanceof LocalVarDef)) {
+                    return;
+                }
+                LocalVarDef local = (LocalVarDef) link.getDef();
+                if (!implicitNullLocalSet.contains(local)) {
+                    return;
+                }
+                if (isWriteTarget(varAccess)) {
+                    return;
+                }
+                StmtSet firstWrite = firstExplicitWrite.get(local);
+                if (firstWrite == null) {
+                    readBeforeExplicitWrite.add(local);
+                    return;
+                }
+                StmtSet enclosingSet = nearestEnclosingStmtSet(varAccess);
+                if (enclosingSet == firstWrite) {
+                    readBeforeExplicitWrite.add(local);
+                    return;
+                }
+                if (varAccess.attrSource().getLeftPos() < firstWrite.attrSource().getLeftPos()) {
+                    readBeforeExplicitWrite.add(local);
+                }
+            }
+        });
+
+        for (LocalVarDef local : implicitNullLocals) {
+            if (readBeforeExplicitWrite.contains(local)) {
+                local.addWarning("Variable " + local.getName()
+                    + " is read before explicit initialization in input JASS; defaulting to null.");
+            }
+        }
+    }
+
+    private boolean isWriteTarget(ExprVarAccess varAccess) {
+        if (!(varAccess.getParent() instanceof StmtSet)) {
+            return false;
+        }
+        StmtSet set = (StmtSet) varAccess.getParent();
+        return set.getUpdatedExpr() == varAccess;
+    }
+
+    private @Nullable StmtSet nearestEnclosingStmtSet(Element e) {
+        Element current = e.getParent();
+        while (current != null) {
+            if (current instanceof StmtSet) {
+                return (StmtSet) current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private boolean isImplicitNullInit(LocalVarDef localVarDef) {
+        if (!(localVarDef.getInitialExpr() instanceof ExprNull)) {
+            return false;
+        }
+        // Synthetic null-inits created by the JASS parser use the exact local declaration source span.
+        return sameSourceSpan(localVarDef.getInitialExpr().attrSource(), localVarDef.attrSource());
+    }
+
+    private boolean sameSourceSpan(de.peeeq.wurstscript.parser.WPos a, de.peeeq.wurstscript.parser.WPos b) {
+        return a.getFile().equals(b.getFile())
+            && a.getLeftPos() == b.getLeftPos()
+            && a.getRightPos() == b.getRightPos();
     }
 
 
@@ -1607,6 +1774,9 @@ public class WurstValidator {
 
 
     private void checkCall(StmtCall call) {
+        if (call instanceof ExprFunctionCall && isConstructorThisCall((ExprFunctionCall) call)) {
+            return;
+        }
         String funcName;
         if (call instanceof FunctionCall) {
             FunctionCall fcall = (FunctionCall) call;
@@ -1719,6 +1889,9 @@ public class WurstValidator {
 
     private void visit(ExprFunctionCall stmtCall) {
         String funcName = stmtCall.getFuncName();
+        if (isConstructorThisCall(stmtCall)) {
+            return;
+        }
         // calculating the exprType should reveal most errors:
         stmtCall.attrTyp();
 
@@ -1769,17 +1942,24 @@ public class WurstValidator {
 
     @Deprecated
     private void checkParams(Element where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
-        if (args.size() > parameterTypes.size()) {
-            where.addError(preMsg + "Too many parameters.");
-
-        } else if (args.size() < parameterTypes.size()) {
+        boolean isVararg = !parameterTypes.isEmpty() && Utils.getLast(parameterTypes) instanceof WurstTypeVararg;
+        int minParameters = isVararg ? parameterTypes.size() - 1 : parameterTypes.size();
+        if (args.size() < minParameters) {
             where.addError(preMsg + "Missing parameters.");
+        } else if (!isVararg && args.size() > parameterTypes.size()) {
+            where.addError(preMsg + "Too many parameters.");
         } else {
+            WurstType varargBaseType = isVararg
+                    ? ((WurstTypeVararg) Utils.getLast(parameterTypes)).getBaseType()
+                    : null;
             for (int i = 0; i < args.size(); i++) {
-
                 WurstType actual = args.get(i).attrTyp();
-                WurstType expected = parameterTypes.get(i);
-                // if (expected instanceof AstElementWithTypeArgs)
+                WurstType expected;
+                if (isVararg && i >= parameterTypes.size() - 1) {
+                    expected = varargBaseType;
+                } else {
+                    expected = parameterTypes.get(i);
+                }
                 if (!actual.isSubtypeOf(expected, where)) {
                     args.get(i).addError(
                             preMsg + "Expected " + expected + " as parameter " + (i + 1) + " but found " + actual);
@@ -1828,7 +2008,7 @@ public class WurstValidator {
     private void visit(StmtReturn s) {
         if (s.attrNearestExprStatementsBlock() != null) {
             ExprStatementsBlock e = s.attrNearestExprStatementsBlock();
-            if (e.getReturnStmt() != s) {
+            if (!isClosureImplementationBlock(e) && e.getReturnStmt() != s) {
                 s.addError("Return in a statements block can only be at the end.");
                 return;
             }
@@ -1848,6 +2028,11 @@ public class WurstValidator {
             }
             checkReturnInFunc(s, func);
         }
+    }
+
+    private boolean isClosureImplementationBlock(ExprStatementsBlock block) {
+        Element parent = block.getParent();
+        return parent instanceof ExprClosure && ((ExprClosure) parent).getImplementation() == block;
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
@@ -1962,7 +2147,7 @@ public class WurstValidator {
      */
     private void checkVarRef(NameRef e, boolean dynamicContext) {
         NameLink link = e.attrNameLink();
-        if (link == null) {
+        if (link == null || link instanceof OtherLink) {
             return;
         }
         NameDef def = link.getDef();
@@ -1976,6 +2161,14 @@ public class WurstValidator {
         if (e.attrTyp() instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope wtns = (WurstTypeNamedScope) e.attrTyp();
             if (wtns.isStaticRef()) {
+                if (isUsedAsReceiverInExprMember(e) && isNewGenericTypeDef(def)) {
+                    Element parent = e.getParent();
+                    parent.addError(
+                        "Cannot access members via generic type '" + def.getName() + "' without specialization.\n"
+                            + "New generics (<T:>) require a concrete specialization; use an instance receiver instead."
+                    );
+                    return;
+                }
                 if (!isUsedAsReceiverInExprMember(e)) {
                     e.addError("Reference to " + e.getVarName() + " cannot be used as an expression.");
                 } else if (e.getParent() instanceof ExprMemberMethodDotDot) {
@@ -2030,6 +2223,9 @@ public class WurstValidator {
 
             @Override
             public VariableBinding case_ExprFunctionCall(ExprFunctionCall e) {
+                if (isConstructorThisCall(e)) {
+                    return null;
+                }
                 return e.attrTyp().getTypeArgBinding();
             }
 
@@ -2120,11 +2316,14 @@ public class WurstValidator {
         }
     }
 
-    private static boolean isTypeParamNewGeneric(TypeParamDef tp) {
+    public static boolean isTypeParamNewGeneric(TypeParamDef tp) {
         return tp.getTypeParamConstraints() instanceof TypeExprList;
     }
 
     private void checkFuncRef(FuncRef ref) {
+        if (isConstructorThisCall(ref)) {
+            return;
+        }
         if (ref.getFuncName().isEmpty()) {
             ref.addError("Missing function name.");
         }
@@ -2396,12 +2595,17 @@ public class WurstValidator {
                 d.getParameters().addError("Module constructors must not have parameters.");
             }
         }
+        FunctionCall thisCall = getFirstThisConstructorCall(d);
         StructureDef s = d.attrNearestStructureDef();
         if (s instanceof ClassDef) {
             ClassDef c = (ClassDef) s;
             WurstTypeClass ct = c.attrTypC();
             WurstTypeClass extendedClass = ct.extendedClass();
             if (extendedClass != null) {
+                if (thisCall != null) {
+                    // Delegating constructors call another constructor which then handles super().
+                    return;
+                }
                 // Use the *bound* super-constructor signature
                 ConstructorDef sc = d.attrSuperConstructor();
                 if (sc == null) {
@@ -2727,6 +2931,9 @@ public class WurstValidator {
     }
 
     private void checkForDuplicateNames(WScope scope) {
+        if (scope instanceof WPackage) {
+            return;
+        }
         ImmutableMultimap<String, DefLink> links = scope.attrNameLinks();
         for (String name : links.keySet()) {
             ImmutableCollection<DefLink> nameLinks = links.get(name);
@@ -2838,6 +3045,59 @@ public class WurstValidator {
             v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
+        if (v instanceof GlobalVarDef) {
+            checkClassMemberInitializerOrder((GlobalVarDef) v);
+        }
+
+    }
+
+    private void checkClassMemberInitializerOrder(GlobalVarDef v) {
+        if (!v.attrIsDynamicClassMember()) {
+            return;
+        }
+        if (!(v.getInitialExpr() instanceof Expr)) {
+            return;
+        }
+        ClassDef owner = v.attrNearestClassDef();
+        if (owner == null) {
+            return;
+        }
+        Map<GlobalVarDef, Integer> order = classVarInitOrder(owner);
+        Integer currentPos = order.get(v);
+        if (currentPos == null) {
+            return;
+        }
+        Expr initExpr = (Expr) v.getInitialExpr();
+        for (NameDef used : initExpr.attrReadVariables()) {
+            if (!(used instanceof GlobalVarDef)) {
+                continue;
+            }
+            GlobalVarDef usedVar = (GlobalVarDef) used;
+            if (usedVar == v || !usedVar.attrIsDynamicClassMember()) {
+                continue;
+            }
+            if (usedVar.attrNearestClassDef() != owner) {
+                continue;
+            }
+            Integer usedPos = order.get(usedVar);
+            if (usedPos != null && usedPos > currentPos) {
+                v.addError("Class variable <" + usedVar.getName() + "> is used before it is initialized.");
+                return;
+            }
+        }
+    }
+
+    private Map<GlobalVarDef, Integer> classVarInitOrder(ClassDef classDef) {
+        return classVarInitOrderCache.computeIfAbsent(classDef, cd -> {
+            Map<GlobalVarDef, Integer> order = new IdentityHashMap<>();
+            int index = 0;
+            for (GlobalVarDef var : cd.getVars()) {
+                if (var.attrIsDynamicClassMember()) {
+                    order.put(var, index++);
+                }
+            }
+            return order;
+        });
     }
 
     private void checkLocalShadowing(LocalVarDef v) {
@@ -2862,9 +3122,99 @@ public class WurstValidator {
         }
     }
 
+    private void checkThisConstructorCall(ConstructorDef c) {
+        FunctionCall firstThisCall = getFirstThisConstructorCall(c);
+        int firstRelevantIndex = firstRelevantStatementIndex(c);
+        for (int i = 0; i < c.getBody().size(); i++) {
+            WStatement s = c.getBody().get(i);
+            if (s instanceof FunctionCall) {
+                FunctionCall call = (FunctionCall) s;
+                if (isConstructorThisCall(call) && i != firstRelevantIndex) {
+                    call.addError("Constructor call this(...) must be the first statement.");
+                }
+            }
+        }
+        if (firstThisCall == null) {
+            return;
+        }
+        if (c.getSuperConstructorCall() instanceof SomeSuperConstructorCall) {
+            c.addError("Cannot call super(...) and this(...) in the same constructor.");
+            return;
+        }
+        ClassOrModule owner = c.attrNearestClassOrModule();
+        if (owner == null) {
+            return;
+        }
+        ConstructorDef target = OverloadingResolver.resolveThisCall(owner.getConstructors(), firstThisCall);
+        if (target == c) {
+            firstThisCall.addError("Constructor cannot call itself using this(...).");
+        }
+    }
+
+    private @Nullable FunctionCall getFirstThisConstructorCall(ConstructorDef c) {
+        int i = firstRelevantStatementIndex(c);
+        if (i >= 0 && c.getBody().get(i) instanceof FunctionCall) {
+            FunctionCall call = (FunctionCall) c.getBody().get(i);
+            if (isConstructorThisCall(call)) {
+                return call;
+            }
+        }
+        return null;
+    }
+
+    private int firstRelevantStatementIndex(ConstructorDef c) {
+        for (int i = 0; i < c.getBody().size(); i++) {
+            WStatement s = c.getBody().get(i);
+            if (!(s instanceof StartFunctionStatement) && !(s instanceof EndFunctionStatement)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean isConstructorThisCall(FunctionCall call) {
+        return call.getFuncName().equals("this") && nearestEnclosingConstructor(call) != null;
+    }
+
+    private boolean isConstructorThisCall(FuncRef ref) {
+        if (ref instanceof FunctionCall) {
+            return isConstructorThisCall((FunctionCall) ref);
+        }
+        return false;
+    }
+
+    private @Nullable ConstructorDef nearestEnclosingConstructor(Element e) {
+        Element current = e;
+        while (current != null) {
+            if (current instanceof ConstructorDef) {
+                return (ConstructorDef) current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
     private void checkParameter(WParameter param) {
         if (param.attrTyp() instanceof WurstTypeArray) {
             param.addError("Cannot use arrays as parameters.");
         }
+    }
+
+    private static boolean isNewGenericTypeDef(@Nullable NameDef def) {
+        if (!(def instanceof AstElementWithTypeParameters)) {
+            return false;
+        }
+        AstElementWithTypeParameters g = (AstElementWithTypeParameters) def;
+        TypeParamDefs tps = g.getTypeParameters();
+        if (tps == null || tps.size() == 0) {
+            return false;
+        }
+        // Treat "any new TP" as new-generic. Mixed is already diagnosed elsewhere.
+        for (TypeParamDef tp : tps) {
+            if (isTypeParamNewGeneric(tp)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

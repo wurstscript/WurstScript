@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -21,23 +22,32 @@ public abstract class WurstTypeNamedScope extends WurstType {
     private final boolean isStaticRef;
     // TODO change this to a list of TypeParamDef and add typeMapping?
     private final List<WurstTypeBoundTypeParam> typeParameters;
+    private final VariableBinding capturedBinding;
 
-
-
-    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef, VariableBinding capturedBinding) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = typeParameters;
+        this.capturedBinding = capturedBinding;
+    }
+
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
+        this(typeParameters, isStaticRef, VariableBinding.emptyMapping());
+    }
+
+    public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, VariableBinding capturedBinding) {
+        this(typeParameters, false, capturedBinding);
     }
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters) {
-        this.isStaticRef = false;
-        this.typeParameters = typeParameters;
+        this(typeParameters, false, VariableBinding.emptyMapping());
     }
 
+    public WurstTypeNamedScope(boolean isStaticRef, VariableBinding capturedBinding) {
+        this(Collections.emptyList(), isStaticRef, capturedBinding);
+    }
 
     public WurstTypeNamedScope(boolean isStaticRef) {
-        this.isStaticRef = isStaticRef;
-        this.typeParameters = Collections.emptyList();
+        this(Collections.emptyList(), isStaticRef, VariableBinding.emptyMapping());
     }
 
     @Override
@@ -91,7 +101,19 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return s + ">";
     }
 
+    private static boolean isNewGenericTp(TypeParamDef tp) {
+        return tp.getTypeParamConstraints() instanceof TypeExprList;
+    }
 
+    private static VariableBinding onlyNew(VariableBinding b) {
+        VariableBinding r = VariableBinding.emptyMapping();
+        for (TypeParamDef tp : b.keys()) {
+            if (!isNewGenericTp(tp)) continue;
+            Option<WurstTypeBoundTypeParam> v = b.get(tp);
+            if (!v.isEmpty()) r = r.set(tp, v.get());
+        }
+        return r;
+    }
 
     @Override
     public VariableBinding getTypeArgBinding() {
@@ -99,7 +121,8 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (WurstTypeBoundTypeParam tp : typeParameters) {
             res = res.set(tp.getTypeParamDef(), tp);
         }
-        return res;
+        // NEW generics only:
+        return res.union(onlyNew(capturedBinding));
     }
 
     @Override
@@ -108,8 +131,20 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (WurstTypeBoundTypeParam t : typeParameters) {
             newTypes.add(t.setTypeArgs(typeParamBounds));
         }
-        return replaceTypeVars(newTypes);
+
+        VariableBinding newCaptured = onlyNew(capturedBinding).union(onlyNew(typeParamBounds));
+
+        // Legacy generics: keep old behavior
+        if (newCaptured.keys().isEmpty()) {
+            return replaceTypeVars(newTypes);
+        }
+        return replaceTypeVarsWithCaptured(newTypes, newCaptured);
     }
+
+    abstract public WurstType replaceTypeVarsWithCaptured(
+        List<WurstTypeBoundTypeParam> newTypes,
+        VariableBinding newCaptured
+    );
 
     abstract public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes);
 

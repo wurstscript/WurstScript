@@ -4,6 +4,7 @@ import com.google.common.collect.Ordering;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -23,6 +24,27 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
     abstract void handleError(List<String> hints);
 
+    boolean isVararg(F f) {
+        int paramCount = getParameterCount(f);
+        return paramCount > 0 && getParameterType(f, paramCount - 1) instanceof WurstTypeVararg;
+    }
+
+    int getMinParameterCount(F f) {
+        return isVararg(f) ? getParameterCount(f) - 1 : getParameterCount(f);
+    }
+
+    boolean hasValidParameterCount(F f, C caller) {
+        int argCount = getArgumentCount(caller);
+        return argCount >= getMinParameterCount(f) && (isVararg(f) || argCount <= getParameterCount(f));
+    }
+
+    WurstType getParameterTypeForArg(F f, int i) {
+        if (isVararg(f) && i >= getParameterCount(f) - 1) {
+            return ((WurstTypeVararg) getParameterType(f, getParameterCount(f) - 1)).getBaseType();
+        }
+        return getParameterType(f, i);
+    }
+
     Optional<F> resolve(Iterable<F> alternativeFunctions, C caller) {
         int size = Utils.size(alternativeFunctions);
         if (size == 0) {
@@ -35,13 +57,18 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
         Map<F, Integer> numMatches = new HashMap<>();
         for (F f : alternativeFunctions) {
+            if (!hasValidParameterCount(f, caller)) {
+                numMatches.put(f, -1);
+                continue;
+            }
             int matches = 0;
-            for (int i = 0; i < getArgumentCount(caller) && i < getParameterCount(f); i++) {
+            for (int i = 0; i < getArgumentCount(caller); i++) {
+                WurstType expectedParamType = getParameterTypeForArg(f, i);
                 if (getArgumentType(caller, i) instanceof WurstTypeTypeParam
-                        && getParameterType(f, i) instanceof WurstTypeTypeParam) {
+                        && expectedParamType instanceof WurstTypeTypeParam) {
                     // should be ok!
-                } else if (!getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i), f)) {
-                    hints.add("Expected " + getParameterType(f, i)
+                } else if (!getArgumentType(caller, i).isSubtypeOf(expectedParamType, f)) {
+                    hints.add("Expected " + expectedParamType
                             + " as parameter " + i + " ,but found " + getArgumentType(caller, i) + ".");
                     continue;
                 }
@@ -67,7 +94,7 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
         List<F> rightNumberOfParams = new ArrayList<>();
         for (F f1 : funcs) {
-            if (getParameterCount(f1) == getArgumentCount(caller)) {
+            if (hasValidParameterCount(f1, caller)) {
                 rightNumberOfParams.add(f1);
             }
         }
@@ -108,7 +135,7 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
             @Override
             WurstType getParameterType(ConstructorDef f, int i) {
-                return f.getParameters().get(i).getTyp().attrTyp().dynamic();
+                return f.getParameters().get(i).attrTyp();
             }
 
             @Override
@@ -138,7 +165,7 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
             @Override
             WurstType getParameterType(ConstructorDef f, int i) {
-                return f.getParameters().get(i).getTyp().attrTyp().dynamic();
+                return f.getParameters().get(i).attrTyp();
             }
 
             @Override
@@ -160,6 +187,36 @@ public abstract class OverloadingResolver<F extends Element, C> {
             WurstType getArgumentType(ConstructorDef c, int i) {
                 SomeSuperConstructorCall sc = (SomeSuperConstructorCall) c.getSuperConstructorCall();
                 return sc.getSuperArgs().get(i).attrTyp();
+            }
+
+            @Override
+            void handleError(List<String> hints) {
+                node.addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
+            }
+        }.resolve(constructors, node).orElse(null);
+    }
+
+    public static @Nullable ConstructorDef resolveThisCall(List<ConstructorDef> constructors, final FunctionCall node) {
+        return new OverloadingResolver<ConstructorDef, FunctionCall>() {
+
+            @Override
+            int getParameterCount(ConstructorDef f) {
+                return f.getParameters().size();
+            }
+
+            @Override
+            WurstType getParameterType(ConstructorDef f, int i) {
+                return f.getParameters().get(i).attrTyp();
+            }
+
+            @Override
+            int getArgumentCount(FunctionCall c) {
+                return c.getArgs().size();
+            }
+
+            @Override
+            WurstType getArgumentType(FunctionCall c, int i) {
+                return c.getArgs().get(i).attrTyp();
             }
 
             @Override

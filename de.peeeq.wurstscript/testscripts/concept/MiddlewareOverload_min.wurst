@@ -1,0 +1,15 @@
+package Bug
+
+public interface CallbackUnary
+    function call(int t)
+    function callAndDestroy(int t)
+        this.call(t)
+        destroy this
+
+public interface MiddlewareUnary
+    function call(int t, CallbackUnary cb)
+
+public function mwUnary() returns MiddlewareUnary
+    return (int t, mwCb) -> begin
+        mwCb.callAndDestroy(t)
+    end

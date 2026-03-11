@@ -2,7 +2,6 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -29,6 +28,7 @@ import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -41,7 +41,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -148,47 +147,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadWurstFilesInDir(f);
             } else if (Utils.isWurstFile(f)) {
                 loadFile(f);
-            } else if (f.getName().equals("wurst.dependencies")) {
-                dependencies.addAll(checkDependencyFile(f, gui));
             } else if ((!mapFile.isPresent() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
                 loadFile(f);
             }
         }
-    }
-
-    public static ImmutableList<File> checkDependencyFile(File depFile, WurstGui gui) {
-        List<String> lines;
-        try {
-            lines = Files.readLines(depFile, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new Error(e);
-        }
-        LineOffsets offsets = new LineOffsets();
-        int lineNr = 0;
-        int offset = 0;
-        for (String line : lines) {
-            offsets.set(lineNr, offset);
-            lineNr++;
-            offset += line.length() + 1;
-        }
-        offsets.set(lineNr, offset);
-        lineNr = 0;
-        ImmutableList.Builder<File> dependencies = ImmutableList.builder();
-        for (String line : lines) {
-            int lineOffset = offsets.get(lineNr);
-            WPos pos = new WPos(depFile.getAbsolutePath(), offsets, lineOffset + 1, lineOffset + line.length() + 1);
-            File folder = new File(line);
-            if (!folder.exists()) {
-                gui.sendError(new CompileError(pos, "Folder " + line + " not found."));
-            } else if (!folder.isDirectory()) {
-                gui.sendError(new CompileError(pos, line + " is not a folder."));
-            } else {
-                dependencies.add(folder);
-            }
-            lineNr++;
-        }
-        return dependencies.build();
     }
 
     @Override
@@ -219,10 +181,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadWurstFilesInDir(relativeWurstDir);
             } else {
                 WLogger.info("No wurst folder found in " + relativeWurstDir);
-            }
-            File dependencyFile = new File(projectFolder, "wurst.dependencies");
-            if (dependencyFile.exists()) {
-                dependencies.addAll(checkDependencyFile(dependencyFile, gui));
             }
             addDependenciesFromFolder(projectFolder, dependencies);
         }
@@ -288,21 +246,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     public static void addDependenciesFromFolder(File projectFolder, Collection<File> dependencies) {
         File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
         File[] depProjects = dependencyFolder.listFiles();
-        if (depProjects != null) {
-            for (File depFile : depProjects) {
-                if (depFile.isDirectory()) {
-                    boolean b = true;
-                    for (File f : dependencies) {
-                        if (FileUtils.sameFile(f, depFile)) {
-                            b = false;
-                            break;
-                        }
-                    }
-                    if (b) {
-                        dependencies.add(depFile);
-                    }
+        if (depProjects == null) return;
+
+        // keep behavior (FileUtils.sameFile), but avoid O(n*m) scanning
+        List<File> existing = new ArrayList<>(dependencies);
+
+        outer:
+        for (File depFile : depProjects) {
+            if (!depFile.isDirectory()) continue;
+
+            for (File f : existing) {
+                if (FileUtils.sameFile(f, depFile)) {
+                    continue outer;
                 }
             }
+            dependencies.add(depFile);
+            existing.add(depFile);
         }
     }
 
@@ -372,7 +331,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private CompilationUnit loadLibPackage(Function<File, CompilationUnit> addCompilationUnit, String imp) {
         File file = getLibs().get(imp);
         if (file == null) {
-            gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
+            gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Is your dependency present in _build/dependencies?"));
             return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
             return addCompilationUnit.apply(file);
@@ -534,12 +493,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         beginPhase(13, "flatten");
-        optimizer.removeGarbage();
+        boolean garbageChanged = optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
         // Re-run to avoid #883
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        if (garbageChanged) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+        }
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
         timeTaker.endPhase();
@@ -560,7 +521,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // translate flattened intermediate lang to jass:
 
         beginPhase(14, "translate to jass");
-        getImTranslator().calculateCallRelationsAndUsedVariables();
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+        imTranslator.removeEmptyPackageInits();
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+        getImTranslator().calculateCallRelationsAndReadVariables();
         ImToJassTranslator translator =
             new ImToJassTranslator(getImProg(), getImTranslator().getCalledFunctions(), getImTranslator().getMainFunc(), getImTranslator().getConfFunc());
         prog = translator.translate();
@@ -615,34 +581,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     @NotNull
-    private ImFunction findNative(String funcName, WPos trace) {
+    private ImFunction findFunctionInternal(String funcName, WPos trace, boolean mustBeNative) {
+        Preconditions.checkNotNull(imProg);
         for (ImFunction func : imProg.getFunctions()) {
-            if (func.isNative()) {
-                if (func.getName().equals(funcName)) {
-                    return Optional.of(func)
-                        .orElseGet(() -> {
-                            throw new CompileError(trace, "Could not find native " + funcName);
-                        });
-                }
+            if (func.getName().equals(funcName) && (!mustBeNative || func.isNative())) {
+                return func;
             }
         }
-        return Optional.<ImFunction>empty()
-            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
+        throw new CompileError(trace, "Could not find " + (mustBeNative ? "native " : "") + funcName);
+    }
+
+    @NotNull
+    private ImFunction findNative(String funcName, WPos trace) {
+        return findFunctionInternal(funcName, trace, true);
     }
 
     @NotNull
     private ImFunction findFunction(String funcName, WPos trace) {
-        for (ImFunction func : imProg.getFunctions()) {
-            if (func.getName().equals(funcName)) {
-                return Optional.of(func)
-                    .orElseGet(() -> {
-                        throw new CompileError(trace, "Could not find native " + funcName);
-                    });
-            }
-        }
-        return Optional.<ImFunction>empty()
-            .orElseThrow(() -> new CompileError(trace, "Could not find native " + funcName));
+        return findFunctionInternal(funcName, trace, false);
     }
+
 
     @NotNull
     private ImFunctionCall callExtern(Element trace, CallType callType, String functionName, ImExpr... arguments) {
@@ -959,12 +917,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterlocalopts.im");
 
-        optimizer.removeGarbage();
+        boolean garbageChanged = optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
         // Re-run to avoid #883
-        optimizer.removeGarbage();
-        imProg.flatten(imTranslator);
+        if (garbageChanged) {
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
+        }
 
         printDebugImProg("./test-output/lua/im " + stage++ + "_afterremoveGarbage1.im");
 
@@ -978,7 +938,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             printDebugImProg("./test-output/lua/im " + stage++ + "_afteroptimize.im");
             timeTaker.endPhase();
         }
-        beginPhase(13, "translate to lua");
+        beginPhase(13, "lua remove garbage");
+        RemoveGarbage.removeGarbage(imProg);
+        imProg.flatten(imTranslator);
+        timeTaker.endPhase();
+
+        beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         ImAttrType.setWurstClassType(TypesHelper.imInt());
