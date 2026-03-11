@@ -38,4 +38,66 @@ public class CompilationUnitTests extends WurstScriptTest {
                 ));
     }
 
+    @Test
+    public void jassLocalHandleDefaultsToNull() {
+        testAssertOkLinesWithStdLib(false,
+            "function tiw takes nothing returns nothing",
+            "local location uiw",
+            "set uiw = null",
+            "endfunction",
+            "package B",
+            "    init",
+            "        tiw()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void jassLocalHandleReadWithoutExplicitInitReportsEarly() {
+        testAssertWarningsLinesWithStdLib(false, "read before explicit initialization in input JASS",
+            "function tiw takes nothing returns nothing",
+            "local location uiw",
+            "call RemoveLocation(uiw)",
+            "endfunction",
+            "package B",
+            "    init",
+            "        tiw()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void war3mapJassLocalHandleReadWithoutExplicitInitReportsEarly() {
+        test()
+            .withStdLib()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("read before explicit initialization in input JASS")
+            .compilationUnits(
+                compilationUnit("war3map.j",
+                    "function showUnitTextAlliesWithZ takes nothing returns nothing",
+                    "local location p2",
+                    "call RemoveLocation(p2)",
+                    "endfunction"
+                )
+            );
+    }
+
+    @Test
+    public void jassLocalHandleReadBeforeLaterWriteStillWarns() {
+        testAssertWarningsLinesWithStdLib(false, "read before explicit initialization in input JASS",
+            "function tiw takes nothing returns nothing",
+            "local location uiw",
+            "call RemoveLocation(uiw)",
+            "set uiw = GetRectCenter(GetPlayableMapRect())",
+            "call RemoveLocation(uiw)",
+            "set uiw = null",
+            "endfunction",
+            "package B",
+            "    init",
+            "        tiw()",
+            "endpackage"
+        );
+    }
+
 }

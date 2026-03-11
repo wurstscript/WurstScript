@@ -27,10 +27,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
 public class AntlrWurstParseTreeTransformer {
+    private static final Set<String> JASS_PRIMITIVE_TYPES = Set.of("integer", "real", "boolean");
 
     private final String file;
     private final ErrorHandler cuErrorHandler;
@@ -225,10 +227,21 @@ public class AntlrWurstParseTreeTransformer {
             OptTypeExpr optTyp = transformOptionalType(l.typeExpr());
             Identifier name = text(l.name);
             OptExpr initialExpr = transformOptionalExpr(l.initial);
+            if (l.initial == null && shouldDefaultJassLocalToNull(optTyp)) {
+                initialExpr = Ast.ExprNull(source(l));
+            }
             result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
                     initialExpr));
         }
         return result;
+    }
+
+    private boolean shouldDefaultJassLocalToNull(OptTypeExpr optTyp) {
+        if (!(optTyp instanceof TypeExprSimple)) {
+            return false;
+        }
+        String typeName = ((TypeExprSimple) optTyp).getTypeName();
+        return !JASS_PRIMITIVE_TYPES.contains(typeName);
     }
 
     private WStatements transformJassStatements(JassStatementsContext stmts) {
