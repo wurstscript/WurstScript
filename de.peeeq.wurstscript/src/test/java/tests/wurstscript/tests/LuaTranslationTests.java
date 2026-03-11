@@ -440,6 +440,30 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturningMethodNamedFromIndexIsNotTypecastWrapper() throws IOException {
+        test().testLua(true).lines(
+            "package TupleFromIndexRepro",
+            "public tuple vec2(real x, real y)",
+            "public tuple searchResult(boolean found, vec2 pos)",
+            "public constant ZERO2 = vec2(0., 0.)",
+            "public class A",
+            "    function next() returns searchResult",
+            "        return nextFromIndex(1)",
+            "    function nextFromIndex(int startIndex) returns searchResult",
+            "        return searchResult(false, ZERO2)",
+            "public class B extends A",
+            "init",
+            "    let b = new B()",
+            "    let r = b.next()",
+            "    if r.found",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_tupleReturningMethodNamedFromIndexIsNotTypecastWrapper.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+[^\\n]*nextFromIndex[^\\n]*\\(");
+        assertDoesNotContainRegex(compiled, "return\\s+__wurst_objectFromIndex\\s*\\(\\s*this\\s*\\)");
+    }
+
+    @Test
     public void oldGenericsCastingDoesNotUseGetHandleId() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
@@ -479,6 +503,31 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsDoNotUseOldTypecastHelpersInLua.lua"), Charsets.UTF_8);
         assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectToIndex", false);
         assertFunctionBodyContains(compiled, "testGeneric", "__wurst_objectFromIndex", false);
+    }
+
+    @Test
+    public void newGenericsStringFieldAssignmentRoundTripsInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class C<T:>",
+            "    T x",
+            "function stringToIndex(string s) returns int",
+            "    return 42",
+            "function stringFromIndex(int i) returns string",
+            "    return \"42\"",
+            "function testGenericStringField() returns boolean",
+            "    C<string> c = new C<string>",
+            "    c.x = \"42\"",
+            "    return c.x == \"42\"",
+            "init",
+            "    if testGenericStringField()",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "stringEnsure(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }
 
     @Test

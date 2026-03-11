@@ -3,7 +3,11 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import org.eclipse.jdt.annotation.Nullable;
@@ -74,8 +78,52 @@ public class AttrNameDef {
 
     protected static NameLink searchNameInScope(String varName, NameRef node) {
         boolean showErrors = !varName.startsWith("gg_");
-        NameLink result = node.lookupVar(varName, showErrors);
-        return result;
+        if (!"it".equals(varName)) {
+            return node.lookupVar(varName, showErrors);
+        }
+
+        // Normal lexical lookup wins, so user-defined names can shadow implicit closure-self.
+        NameLink result = node.lookupVar(varName, false);
+        if (result != null) {
+            return result;
+        }
+
+        NameLink implicitClosureSelf = lookupImplicitClosureSelf(node, showErrors);
+        if (implicitClosureSelf != null) {
+            return implicitClosureSelf;
+        }
+        if (node.attrNearestExprClosure() != null) {
+            // keep diagnostics focused on closure typing instead of "unknown variable it"
+            return null;
+        }
+
+        if (!showErrors) {
+            return null;
+        }
+
+        // Fallback to default diagnostics when no implicit closure-self is available.
+        return node.lookupVar(varName, true);
+    }
+
+    private static @Nullable NameLink lookupImplicitClosureSelf(NameRef node, boolean showErrors) {
+        ExprClosure closure = node.attrNearestExprClosure();
+        if (closure == null) {
+            return null;
+        }
+        WurstType expectedTyp = closure.attrExpectedTypAfterOverloading();
+        if (!(expectedTyp instanceof WurstTypeClassOrInterface)) {
+            if (showErrors && (expectedTyp instanceof WurstTypeUnknown)) {
+                node.addError("Cannot use implicit closure self 'it' because the closure target type is unknown.");
+            }
+            return null;
+        }
+
+        return new OtherLink(Visibility.LOCAL, "it", expectedTyp) {
+            @Override
+            public de.peeeq.wurstscript.jassIm.ImExpr translate(NameRef e, de.peeeq.wurstscript.translation.imtranslation.ImTranslator t, de.peeeq.wurstscript.jassIm.ImFunction f) {
+                return de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess(t.getThisVar(closure));
+            }
+        };
     }
 
     private static boolean isWriteAccess(final NameRef node) {
@@ -110,7 +158,7 @@ public class AttrNameDef {
 
     public static @Nullable NameDef tryGetNameDef(NameRef e) {
         NameLink link = e.attrNameLink();
-        if (link == null) {
+        if (link == null || link instanceof OtherLink) {
             return null;
         }
         return link.getDef();
@@ -139,6 +187,9 @@ public class AttrNameDef {
 
     public static NameDef calculateDef(NameRef nameRef) {
         NameLink l = nameRef.attrNameLink();
+        if (l instanceof OtherLink) {
+            return null;
+        }
         return l == null ? null : l.getDef();
     }
 }

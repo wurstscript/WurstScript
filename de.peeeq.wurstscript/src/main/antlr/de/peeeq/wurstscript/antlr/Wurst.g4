@@ -340,7 +340,7 @@ exprMemberVar:
 
 
 exprVarAccess:
-				 varname=ID indexes?
+				 varname=(ID|IT) indexes?
 			 ;
 
 
@@ -375,7 +375,7 @@ exprPrimary:
 	  | exprClosure
 	  | exprStatementsBlock
 	  | exprDestroy
-      | varname=ID indexes?
+      | varname=(ID|IT) indexes?
       | atom=(INT
       | REAL
 	  | STRING

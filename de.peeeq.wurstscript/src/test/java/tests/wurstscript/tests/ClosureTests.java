@@ -69,6 +69,76 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_selfReference_withIt_recursion() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc fact = (int n) ->",
+                "        if n <= 1",
+                "            return 1",
+                "        return n * it.apply(n - 1)",
+                "    if fact.apply(5) == 120",
+                "        testSuccess()");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_usesNearestClosure() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc outer = (int x) -> begin",
+                "        IntFunc inner = (int y) ->",
+                "            if y <= 0",
+                "                return 0",
+                "            return 1 + it.apply(y - 1)",
+                "        return inner.apply(x)",
+                "    end",
+                "    if outer.apply(3) == 3",
+                "        testSuccess()");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_requiresKnownClosureTargetType() {
+        testAssertErrorsLines(false, "closure target type is unknown",
+                "package test",
+                "init",
+                "    let f = (int x) -> it");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_isReadOnly() {
+        testAssertErrorsLines(false, "Invalid assignment. This is not a variable",
+                "package test",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc f = (int x) -> begin",
+                "        it = f",
+                "        return x",
+                "    end");
+    }
+
+    @Test
+    public void closure_selfReference_withIt_assignmentNoCrash() {
+        testAssertOkLines(false,
+                "package test",
+                "interface IntFunc",
+                "    function apply(int x) returns int",
+                "init",
+                "    IntFunc f = (int n) -> begin",
+                "        IntFunc x = it",
+                "        x = it",
+                "        return n",
+                "    end");
+    }
+
+    @Test
     public void closure_begin_end1() {
         testAssertOkLines(true,
                 "package test",
