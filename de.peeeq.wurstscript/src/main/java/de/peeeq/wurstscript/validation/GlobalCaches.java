@@ -170,6 +170,7 @@ public final class GlobalCaches {
 
         invalidateLookupCache(affected, live);
         invalidateLocalStateCache(affected, live);
+        invalidateLocalStateNoArgCache(affected, live);
     }
 
     private static Set<CompilationUnit> toIdentitySet(Iterable<CompilationUnit> units) {
@@ -228,6 +229,45 @@ public final class GlobalCaches {
             LOCAL_STATE_CACHE.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Object, Object2ObjectOpenHashMap<ArgumentKey, LocalState>> entry = it.next();
+            Object key = entry.getKey();
+            if (!(key instanceof ImFunction)) {
+                continue;
+            }
+
+            ImFunction function = (ImFunction) key;
+            Element trace = function.attrTrace();
+            if (trace == null) {
+                continue;
+            }
+
+            CompilationUnit owner = AttrNearest.nearestCompilationUnit(trace);
+            if (owner == null) {
+                continue;
+            }
+
+            boolean shouldEvict = affected.contains(owner)
+                || (live != null && !live.contains(owner));
+
+            if (shouldEvict) {
+                it.remove();
+                evicted++;
+            }
+        }
+
+        if (evicted > 0) {
+            localStateStats.recordEviction(evicted);
+        }
+    }
+
+    private static void invalidateLocalStateNoArgCache(Set<CompilationUnit> affected, Set<CompilationUnit> live) {
+        if (LOCAL_STATE_NOARG_CACHE.isEmpty()) {
+            return;
+        }
+
+        int evicted = 0;
+        Iterator<Map.Entry<Object, LocalState>> it = LOCAL_STATE_NOARG_CACHE.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Object, LocalState> entry = it.next();
             Object key = entry.getKey();
             if (!(key instanceof ImFunction)) {
                 continue;
