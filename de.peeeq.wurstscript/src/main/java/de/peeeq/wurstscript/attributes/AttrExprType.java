@@ -101,9 +101,15 @@ public class AttrExprType {
         WurstType varDefType = varDef.getTyp();
         if (varDefType instanceof WurstTypeArray) {
             return ((WurstTypeArray) varDefType).getBaseType();
-        } else {
-            term.addError("Variable " + varDef.getName() + " is of type " + varDefType + ", should be an array variable.");
         }
+        if (term.getIndexes().size() == 1) {
+            FuncLink overload = AttrFuncDef.getIndexGetOperator(term, varDefType, term.getIndexes().get(0).attrTyp());
+            if (overload != null) {
+                return overload.getReturnType();
+            }
+        }
+        term.addError("Variable " + varDef.getName() + " is of type " + varDefType +
+                ", should be an array variable or define operator overloading function " + AttrFuncDef.overloadingIndexGet + ".");
         return WurstTypeUnknown.instance();
     }
 
@@ -412,7 +418,13 @@ public class AttrExprType {
             WurstTypeArray ar = (WurstTypeArray) typ;
             return ar.getBaseType();
         }
-        term.addError("Variable " + term.getVarName() + " is not an array.");
+        if (term.getIndexes().size() == 1) {
+            FuncLink overload = AttrFuncDef.getIndexGetOperator(term, typ, term.getIndexes().get(0).attrTyp());
+            if (overload != null) {
+                return overload.getReturnType();
+            }
+        }
+        term.addError("Variable " + term.getVarName() + " is not an array and has no " + AttrFuncDef.overloadingIndexGet + " overload.");
         return typ;
     }
 

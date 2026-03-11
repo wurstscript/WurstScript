@@ -34,6 +34,8 @@ public class AttrFuncDef {
     public final static String overloadingMinus = "op_minus";
     public final static String overloadingMult = "op_mult";
     public final static String overloadingDiv = "op_divReal";
+    public final static String overloadingIndexGet = "op_index";
+    public final static String overloadingIndexSet = "op_indexAssign";
 
     public static FuncLink calculate(final ExprFuncRef node) {
 
@@ -204,6 +206,14 @@ public class AttrFuncDef {
             return null;
         }
         return searchMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
+    }
+
+    public static @Nullable FuncLink getIndexGetOperator(Expr node, WurstType receiverType, WurstType indexType) {
+        return searchMemberFunc(node, receiverType, overloadingIndexGet, Collections.singletonList(indexType));
+    }
+
+    public static @Nullable FuncLink getIndexSetOperator(Expr node, WurstType receiverType, WurstType indexType, WurstType valueType) {
+        return searchMemberFunc(node, receiverType, overloadingIndexSet, Lists.newArrayList(indexType, valueType));
     }
 
 

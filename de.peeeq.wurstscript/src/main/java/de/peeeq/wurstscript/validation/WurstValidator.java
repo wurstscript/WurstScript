@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -1198,10 +1199,33 @@ public class WurstValidator {
                     .addError("Invalid assignment. This is not a variable, this is a " + nameLink);
             return;
         }
-
-        WurstType leftType = s.getUpdatedExpr().attrTyp();
         WurstType rightType = s.getRight().attrTyp();
-
+        if (s.getUpdatedExpr() instanceof NameRef && s.getUpdatedExpr() instanceof AstElementWithIndexes) {
+            NameRef left = (NameRef) s.getUpdatedExpr();
+            AstElementWithIndexes leftWithIndex = (AstElementWithIndexes) s.getUpdatedExpr();
+            WurstType targetType = nameLink.getTyp();
+            if (!(targetType instanceof WurstTypeArray)) {
+                if (leftWithIndex.getIndexes().size() != 1) {
+                    s.addError("Only one index is supported for overloaded [] assignment.");
+                    return;
+                }
+                FuncLink setOverload = AttrFuncDef.getIndexSetOperator(
+                        left,
+                        targetType,
+                        leftWithIndex.getIndexes().get(0).attrTyp(),
+                        rightType);
+                if (setOverload == null) {
+                    s.addError("No operator overloading function for [] assignment was found for receiver type "
+                            + targetType + ". The overloading function has to be named: " + AttrFuncDef.overloadingIndexSet);
+                    return;
+                }
+                checkAssignment(Utils.isJassCode(s), s, setOverload.getParameterType(1), rightType);
+                checkIfAssigningToConstant(s.getUpdatedExpr());
+                checkIfNoEffectAssignment(s);
+                return;
+            }
+        }
+        WurstType leftType = s.getUpdatedExpr().attrTyp();
         checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 
         checkIfAssigningToConstant(s.getUpdatedExpr());
@@ -2644,9 +2668,12 @@ public class WurstValidator {
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
         checkNameRefDeprecated(ea, ea.tryGetNameDef());
-        for (Expr index : ea.getIndexes()) {
-            if (!(index.attrTyp().isSubtypeOf(WurstTypeInt.instance(), ea))) {
-                index.addError("Arrayindices have to be of type int");
+        NameLink nameLink = ea.attrNameLink();
+        if (nameLink != null && nameLink.getTyp() instanceof WurstTypeArray) {
+            for (Expr index : ea.getIndexes()) {
+                if (!(index.attrTyp().isSubtypeOf(WurstTypeInt.instance(), ea))) {
+                    index.addError("Arrayindices have to be of type int");
+                }
             }
         }
     }

@@ -4,12 +4,17 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -330,9 +335,52 @@ public class StmtTranslation {
 
 
     public static ImStmt translate(StmtSet s, ImTranslator t, ImFunction f) {
+        ImStmt overloadedIndexSet = translateOverloadedIndexSet(s, t, f);
+        if (overloadedIndexSet != null) {
+            return overloadedIndexSet;
+        }
         ImLExpr updated = s.getUpdatedExpr().imTranslateExprLvalue(t, f);
         ImExpr right = s.getRight().imTranslateExpr(t, f);
         return ImSet(s, updated, right);
+    }
+
+    private static @Nullable ImStmt translateOverloadedIndexSet(StmtSet s, ImTranslator t, ImFunction f) {
+        if (!(s.getUpdatedExpr() instanceof NameRef) || !(s.getUpdatedExpr() instanceof AstElementWithIndexes)) {
+            return null;
+        }
+        NameRef left = (NameRef) s.getUpdatedExpr();
+        AstElementWithIndexes withIndexes = (AstElementWithIndexes) s.getUpdatedExpr();
+        if (withIndexes.getIndexes().size() != 1) {
+            return null;
+        }
+        NameLink link = left.attrNameLink();
+        if (link == null || link.getTyp() instanceof WurstTypeArray) {
+            return null;
+        }
+        FuncLink setOverload = AttrFuncDef.getIndexSetOperator(
+                left,
+                link.getTyp(),
+                withIndexes.getIndexes().get(0).attrTyp(),
+                s.getRight().attrTyp());
+        if (setOverload == null) {
+            return null;
+        }
+        if (link instanceof OtherLink || !(link.getDef() instanceof VarDef)) {
+            throw new CompileError(s.getSource(), "Could not resolve assignment receiver for overloaded [] assignment.");
+        }
+        VarDef varDef = (VarDef) link.getDef();
+        ImVar receiverVar = t.getVarFor(varDef);
+        ImExpr receiver;
+        if (left.attrImplicitParameter() instanceof Expr) {
+            Expr implicit = (Expr) left.attrImplicitParameter();
+            receiver = JassIm.ImMemberAccess(left, implicit.imTranslateExpr(t, f), JassIm.ImTypeArguments(), receiverVar, JassIm.ImExprs());
+        } else {
+            receiver = ImVarAccess(receiverVar);
+        }
+        ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
+        ImExpr value = s.getRight().imTranslateExpr(t, f);
+        ImFunction calledFunc = t.getFuncFor(setOverload.getDef());
+        return ImFunctionCall(s, calledFunc, ImTypeArguments(), ImExprs(receiver, index, value), false, CallType.NORMAL);
     }
 
 

@@ -182,5 +182,64 @@ public class OpOverloading extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void testOverloading_indexRead() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i + 5",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[3]",
+                "		if x == 8",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexReadMissing() {
+        testAssertErrorsLines(true, "op_index",
+                "package test",
+                "	class ListLike",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[3]",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWrite() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class ListLike",
+                "		int x = 0",
+                "		function op_index(int i) returns int",
+                "			return x + i",
+                "		function op_indexAssign(int i, int v)",
+                "			x = v + i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "		if l[1] == 4",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWriteMissingSetter() {
+        testAssertErrorsLines(true, "op_indexAssign",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "endpackage");
+    }
+
 
 }
