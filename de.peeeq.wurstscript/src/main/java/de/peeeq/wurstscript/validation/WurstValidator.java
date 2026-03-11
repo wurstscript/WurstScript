@@ -624,7 +624,7 @@ public class WurstValidator {
 
     private void visit(StmtContinue stmtContinue) {
         Element parent = stmtContinue.getParent();
-        while (!(parent instanceof FunctionDefinition)) {
+        while (parent != null && !(parent instanceof FunctionDefinition)) {
             if (parent instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) parent;
                 if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
@@ -636,7 +636,7 @@ public class WurstValidator {
             }
             parent = parent.getParent();
         }
-        stmtContinue.addError("Continue is not allowed outside of loop statements.");
+        stmtContinue.addError("Continue statements must be used inside a loop.");
     }
 
     private void checkTupleDef(TupleDef e) {
