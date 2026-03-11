@@ -2024,7 +2024,25 @@ public class ImTranslator {
     }
 
     public ClassManagementVars getClassManagementVarsFor(ImClass c) {
-        return getClassManagementVars().get(c);
+        Map<ImClass, ClassManagementVars> vars = getClassManagementVars();
+        ClassManagementVars res = vars.get(c);
+        if (res != null) {
+            return res;
+        }
+        debugClassManagementMiss("first lookup miss", c, vars);
+        // Recover from stale/mutated key situations by rebuilding from current classes.
+        classManagementVars = null;
+        vars = getClassManagementVars();
+        res = vars.get(c);
+        if (res != null) {
+            return res;
+        }
+        debugClassManagementMiss("after rebuild miss", c, vars);
+        // Last-resort fallback: ensure compilation does not crash language-server requests.
+        WLogger.info("ClassManagementVars missing for class " + c.getName() + ", creating fallback mapping.");
+        ClassManagementVars fallback = new ClassManagementVars(c, this);
+        vars.put(c, fallback);
+        return fallback;
     }
 
 
@@ -2046,13 +2064,36 @@ public class ImTranslator {
             }
         }
         // generate typeId variables
-        classManagementVars = Maps.newLinkedHashMap();
+        classManagementVars = new IdentityHashMap<>();
         for (ImClass c : imProg.getClasses()) {
             ImClass rep = p.getRep(c);
             ClassManagementVars v = classManagementVars.computeIfAbsent(rep, r -> new ClassManagementVars(r, this));
             classManagementVars.put(c, v);
         }
         return classManagementVars;
+    }
+
+    private void debugClassManagementMiss(String stage, ImClass c, Map<ImClass, ClassManagementVars> vars) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ClassMgmt] ").append(stage)
+            .append(" target=").append(c.getName())
+            .append("#").append(System.identityHashCode(c))
+            .append(" mapSize=").append(vars.size());
+        int sameName = 0;
+        int sameIdentity = 0;
+        for (ImClass k : vars.keySet()) {
+            if (k == c) sameIdentity++;
+            if (k.getName().equals(c.getName())) {
+                sameName++;
+                if (sameName <= 5) {
+                    sb.append(" | sameNameKey=").append(k.getName())
+                        .append("#").append(System.identityHashCode(k));
+                }
+            }
+        }
+        sb.append(" | sameNameCount=").append(sameName)
+            .append(" sameIdentityCount=").append(sameIdentity);
+        WLogger.info(sb.toString());
     }
 
 

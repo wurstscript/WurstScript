@@ -104,6 +104,31 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
     @Test
+    public void testContinueAsVariableName() {
+        assertOk(true,
+                "int continue = 5",
+                "int x = continue",
+                "if x == 5",
+                "	testSuccess()",
+                "");
+    }
+
+    @Test
+    public void testContinueKeywordAndVariableNameTogether() {
+        assertOk(true,
+                "int continue = 0",
+                "int sum = 0",
+                "while continue < 5",
+                "	continue++",
+                "	if continue mod 2 == 0",
+                "		continue",
+                "	sum += continue",
+                "if sum == 9",
+                "	testSuccess()",
+                "");
+    }
+
+    @Test
     public void testWhileContinue() {
         assertOk(true,
                 "int x = 0",

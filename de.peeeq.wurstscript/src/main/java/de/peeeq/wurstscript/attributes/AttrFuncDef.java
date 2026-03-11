@@ -209,11 +209,38 @@ public class AttrFuncDef {
     }
 
     public static @Nullable FuncLink getIndexGetOperator(Expr node, WurstType receiverType, WurstType indexType) {
-        return searchMemberFunc(node, receiverType, overloadingIndexGet, Collections.singletonList(indexType));
+        List<WurstType> argTypes = Collections.singletonList(indexType);
+        FuncLink candidate = searchMemberFunc(node, receiverType, overloadingIndexGet, argTypes);
+        if (candidate == null || !matchesArguments(node, candidate, argTypes)) {
+            return null;
+        }
+        return candidate;
     }
 
     public static @Nullable FuncLink getIndexSetOperator(Expr node, WurstType receiverType, WurstType indexType, WurstType valueType) {
-        return searchMemberFunc(node, receiverType, overloadingIndexSet, Lists.newArrayList(indexType, valueType));
+        List<WurstType> argTypes = Lists.newArrayList(indexType, valueType);
+        FuncLink candidate = searchMemberFunc(node, receiverType, overloadingIndexSet, argTypes);
+        if (candidate == null || !matchesArguments(node, candidate, argTypes)) {
+            return null;
+        }
+        return candidate;
+    }
+
+    private static boolean matchesArguments(Element node, FuncLink f, List<WurstType> argumentTypes) {
+        if (f.getParameterTypes().size() != argumentTypes.size()) {
+            return false;
+        }
+        VariableBinding mapping = f.getVariableBinding();
+        for (int i = 0; i < argumentTypes.size(); i++) {
+            WurstType at = argumentTypes.get(i);
+            WurstType pt = f.getParameterType(i);
+            VariableBinding m2 = at.matchAgainstSupertype(pt, node, mapping, VariablePosition.RIGHT);
+            if (m2 == null) {
+                return false;
+            }
+            mapping = m2;
+        }
+        return true;
     }
 
 

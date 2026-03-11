@@ -241,5 +241,32 @@ public class OpOverloading extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void testOverloading_indexReadWrongIndexType() {
+        testAssertErrorsLines(true, "op_index",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[\"x\"]",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWriteWrongIndexType() {
+        testAssertErrorsLines(true, "op_indexAssign",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "		function op_indexAssign(int i, int v)",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[\"x\"] = 1",
+                "endpackage");
+    }
+
 
 }

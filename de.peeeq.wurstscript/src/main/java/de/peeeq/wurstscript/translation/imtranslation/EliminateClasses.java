@@ -88,16 +88,27 @@ public class EliminateClasses {
             "instanceCount",
             TypesHelper.imInt(),
             JassIm.ImIntVal(0),
-            c ->
-                JassIm.ImOperatorCall(WurstOperator.MINUS,
+            c -> {
+                ClassManagementVars m = translator.getClassManagementVarsFor(c);
+                if (m == null) {
+                    return JassIm.ImIntVal(0);
+                }
+                return JassIm.ImOperatorCall(WurstOperator.MINUS,
                     JassIm.ImExprs(
-                        JassIm.ImVarAccess(translator.getClassManagementVarsFor(c).maxIndex),
-                        JassIm.ImVarAccess(translator.getClassManagementVarsFor(c).freeCount))));
+                        JassIm.ImVarAccess(m.maxIndex),
+                        JassIm.ImVarAccess(m.freeCount)));
+            });
         maxInstanceCountFunc = accessClassManagementVar(
             "maxInstanceCount",
             TypesHelper.imInt(),
             JassIm.ImIntVal(0),
-            c -> JassIm.ImVarAccess(translator.getClassManagementVarsFor(c).maxIndex));
+            c -> {
+                ClassManagementVars m = translator.getClassManagementVarsFor(c);
+                if (m == null) {
+                    return JassIm.ImIntVal(0);
+                }
+                return JassIm.ImVarAccess(m.maxIndex);
+            });
         maxTypeIdFunc = maxTypeIdFunc();
     }
 
@@ -111,9 +122,13 @@ public class EliminateClasses {
     }
 
     public static int calculateMaxTypeId(ImProg prog) {
+        return calculateMaxTypeId(TypeId.calculate(prog));
+    }
+
+    private static int calculateMaxTypeId(Map<ImClass, Integer> classId) {
         boolean seen = false;
         int best = 0;
-        for (Integer x : prog.attrTypeId().values()) {
+        for (Integer x : classId.values()) {
             int i = x;
             if (!seen || i > best) {
                 seen = true;
@@ -129,8 +144,9 @@ public class EliminateClasses {
         ImVar typeId = JassIm.ImVar(trace, TypesHelper.imInt(), "typeId", false);
         ImVars parameters = JassIm.ImVars(typeId);
         ImVars locals = JassIm.ImVars();
-        Map<ImClass, Integer> classId = prog.attrTypeId();
-        int maxTypeId = calculateMaxTypeId(prog);
+        // Use fresh IDs from current classes to avoid stale attrTypeId cache inconsistencies.
+        Map<ImClass, Integer> classId = TypeId.calculate(prog);
+        int maxTypeId = calculateMaxTypeId(classId);
         ImClass[] typeIdToClass = new ImClass[maxTypeId + 1];
         for (Map.Entry<ImClass, Integer> e : classId.entrySet()) {
             typeIdToClass[e.getValue()] = e.getKey();
@@ -149,7 +165,11 @@ public class EliminateClasses {
         if (lower > upper) {
             return JassIm.ImStmts();
         } else if (lower == upper) {
-            return JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), makeAccess.apply(typeIdToClass[lower])));
+            ImClass c = typeIdToClass[lower];
+            if (c == null) {
+                return JassIm.ImStmts();
+            }
+            return JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), makeAccess.apply(c)));
         } else {
             int mid = lower + (upper - lower) / 2;
             return

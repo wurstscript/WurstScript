@@ -1219,6 +1219,13 @@ public class WurstValidator {
                             + targetType + ". The overloading function has to be named: " + AttrFuncDef.overloadingIndexSet);
                     return;
                 }
+                WurstType indexType = leftWithIndex.getIndexes().get(0).attrTyp();
+                WurstType expectedIndexType = setOverload.getParameterType(0);
+                if (!indexType.isSubtypeOf(expectedIndexType, s)) {
+                    s.addError("Index expression has type " + indexType
+                            + " but overloaded [] assignment expects " + expectedIndexType + ".");
+                    return;
+                }
                 checkAssignment(Utils.isJassCode(s), s, setOverload.getParameterType(1), rightType);
                 checkIfAssigningToConstant(s.getUpdatedExpr());
                 checkIfNoEffectAssignment(s);
