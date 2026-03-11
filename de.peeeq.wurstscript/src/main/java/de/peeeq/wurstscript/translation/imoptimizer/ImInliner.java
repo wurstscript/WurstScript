@@ -209,13 +209,19 @@ public class ImInliner {
             if (!(called.getReturnType() instanceof ImVoid)) {
                 retVar = JassIm.ImVar(call.attrTrace(), called.getReturnType().copy(), "inlineRet", false);
                 f.getLocals().add(retVar);
-                stmts.add(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(retVar), ImHelper.defaultValueForComplexType(called.getReturnType())));
             }
 
             ImStmts rewritten = rewriteForEarlyReturns(JassIm.ImStmts(copiedBody), doneVar, retVar);
             stmts.addAll(rewritten.removeAll());
 
             if (retVar != null) {
+                // Set fallback return value only on paths where the inlined body did not execute any return.
+                // Keeping this write close to the final read avoids dead-store removal creating uninitialized JASS locals.
+                ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
+                stmts.add(JassIm.ImIf(call.attrTrace(), notDone,
+                    JassIm.ImStmts(JassIm.ImSet(call.attrTrace(), JassIm.ImVarAccess(retVar),
+                        ImHelper.defaultValueForComplexType(called.getReturnType()))),
+                    JassIm.ImStmts()));
                 newExpr = ImStatementExpr(ImStmts(stmts), JassIm.ImVarAccess(retVar));
             }
         }

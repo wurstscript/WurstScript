@@ -972,6 +972,111 @@ public class OptimizerTests extends WurstScriptTest {
             "Expected test setup to remain non-constant and observable in _inl output.");
     }
 
+    @Test
+    public void inlinerMultiReturnFallbackInitComesAfterReturnRewrites() throws IOException {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "@inline function maybeAbs(int x) returns int",
+            "    if x > 0",
+            "        return x",
+            "    return 0 - x",
+            "init",
+            "    let y = maybeAbs(-4)",
+            "    if y == 4",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        String inlined = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnFallbackInitComesAfterReturnRewrites_inl.j"), Charsets.UTF_8);
+        int firstReturnWrite = inlined.indexOf("set inlineRet = x");
+        int fallbackDefaultWrite = inlined.lastIndexOf("set inlineRet = 0");
+        assertTrue(firstReturnWrite >= 0, "Expected rewritten return assignment to inlineRet in _inl output.");
+        assertTrue(fallbackDefaultWrite > firstReturnWrite,
+            "Expected fallback default assignment to inlineRet after rewritten returns.");
+    }
+
+    @Test
+    public void inlinerRepeatedTransitiveInliningSingleRun() throws IOException {
+        testAssertOkLinesWithStdLib(false,
+            "package test",
+            "@inline function c(int x) returns int",
+            "    return x + 1",
+            "@inline function b(int x) returns int",
+            "    return c(x) + 1",
+            "@inline function a(int x) returns int",
+            "    return b(x) + 1",
+            "init",
+            "    let y = a(GetRandomInt(1, 10))",
+            "    if y > 0",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        String inlined = Files.toString(new File("test-output/OptimizerTests_inlinerRepeatedTransitiveInliningSingleRun_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("call a("), "Expected a() to be inlined.");
+        assertFalse(inlined.contains("call b("), "Expected b() to be inlined transitively.");
+        assertFalse(inlined.contains("call c("), "Expected c() to be inlined transitively.");
+    }
+
+    @Test
+    public void inlinerDeepNestedTransitiveInlining() throws IOException {
+        testAssertOkLinesWithStdLib(false,
+            "package test",
+            "@inline function e(int x) returns int",
+            "    return x + 1",
+            "@inline function d(int x) returns int",
+            "    return e(x) + 1",
+            "@inline function c(int x) returns int",
+            "    return d(x) + 1",
+            "@inline function b(int x) returns int",
+            "    return c(x) + 1",
+            "@inline function a(int x) returns int",
+            "    return b(x) + 1",
+            "init",
+            "    let y = a(GetRandomInt(1, 10))",
+            "    if y > 0",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        String inlined = Files.toString(new File("test-output/OptimizerTests_inlinerDeepNestedTransitiveInlining_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("call a("), "Expected a() to be inlined.");
+        assertFalse(inlined.contains("call b("), "Expected b() to be inlined.");
+        assertFalse(inlined.contains("call c("), "Expected c() to be inlined.");
+        assertFalse(inlined.contains("call d("), "Expected d() to be inlined.");
+        assertFalse(inlined.contains("call e("), "Expected e() to be inlined.");
+    }
+
+    @Test
+    public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "@inline function chooseLoc(boolean c, location a, location b) returns location",
+            "    if c",
+                "        return a",
+            "    return b",
+            "init",
+            "    location la = Location(0., 0.)",
+            "    location lb = Location(1., 1.)",
+            "    location picked = chooseLoc(GetRandomInt(0, 1) == 0, la, lb)",
+            "    RemoveLocation(picked)",
+            "    RemoveLocation(la)",
+            "    RemoveLocation(lb)",
+            "    testSuccess()",
+            "endpackage"
+        );
+
+        String inlined = Files.toString(new File("test-output/OptimizerTests_inlinerLocationLocalsAreInitializedBeforeUse_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("call chooseLoc("), "Expected chooseLoc() to be inlined.");
+        assertTrue(inlined.contains("local location inlineRet"), "Expected inline return temp for location type.");
+
+        int initIdx = inlined.indexOf("set inlineRet = null");
+        int useIdx = inlined.indexOf("set picked = inlineRet");
+        assertTrue(initIdx >= 0, "Expected explicit initialization of location inlineRet.");
+        assertTrue(useIdx > initIdx, "Expected inlineRet to be initialized before use.");
+    }
+
 
     @Test
     public void moveTowardsBug() { // see #737
