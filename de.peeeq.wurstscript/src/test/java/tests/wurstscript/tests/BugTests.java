@@ -898,6 +898,37 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void forRangeStartReadsParameter() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "function foo(int bar)",
+                "    for i = bar to 10",
+                "        skip",
+                "endpackage"
+            );
+
+        Assert.assertTrue(
+            result.getGui().getWarningList().stream()
+                .noneMatch(w -> w.getMessage().contains("The parameter bar is never read")),
+            "Unexpected unused warning for parameter bar: " + result.getGui().getWarningList()
+        );
+    }
+
+    @Test
+    public void forRangeLoopVarIsImmutable() {
+        testAssertErrorsLines(false, "Cannot assign a new value to constant",
+            "package test",
+            "init",
+            "    int stackPointer = 3",
+            "    for i = 0 to stackPointer",
+            "        i--",
+            "endpackage");
+    }
+
 
     @Test
     public void unreadVarWarningArrays() { // #813

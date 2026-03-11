@@ -933,8 +933,8 @@ public class AntlrWurstParseTreeTransformer {
 
     private WStatement transformForRangeLoop(ForRangeLoopContext s) {
         WPos source = source(s);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar);
-        loopVar.setInitialExpr(transformExpr(s.start));
+        Expr start = transformExpr(s.start);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start);
         Expr to = transformExpr(s.end);
         Expr step;
         if (s.step == null) {
@@ -951,17 +951,17 @@ public class AntlrWurstParseTreeTransformer {
         throw error(s, "not implemented: " + text(s));
     }
 
-    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v) {
-        Modifiers modifiers = Ast.Modifiers();
+    private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v, OptExpr initialExpr) {
+        // Loop variables behave like let-variables for user code.
+        Modifiers modifiers = Ast.Modifiers(Ast.ModConstant(source(v)));
         OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
         Identifier name = text(v.name);
-        OptExpr initialExpr = Ast.NoExpr();
         return Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr);
     }
 
     private WStatement transformForIteratorLoop(ForIteratorLoopContext s) {
         WPos source = source(s);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, Ast.NoExpr());
         Expr in = transformExpr(s.iteratorExpr);
         WStatements body = transformStatements(s.statementsBlock());
         if (s.iterStyle.getType() == WurstParser.IN) {
