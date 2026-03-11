@@ -6,9 +6,12 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -77,6 +80,10 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
                 return linkTo(originalDecl);
             }
         }
+        FunctionDefinition indexOpDecl = getIndexOperatorDeclarationAtPos(e);
+        if (indexOpDecl != null) {
+            return linkTo(indexOpDecl);
+        }
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
             FunctionDefinition decl = funcRef.attrFuncDef();
@@ -115,6 +122,37 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
             return linkTo(superConstructor);
         }
         return Collections.emptyList();
+    }
+
+    private FunctionDefinition getIndexOperatorDeclarationAtPos(Element e) {
+        Element target = e;
+        if (target instanceof Indexes && target.getParent() instanceof NameRef) {
+            target = target.getParent();
+        }
+        if (!(target instanceof NameRef) || !(target instanceof AstElementWithIndexes)) {
+            return null;
+        }
+
+        NameRef nr = (NameRef) target;
+        AstElementWithIndexes withIndexes = (AstElementWithIndexes) target;
+        if (withIndexes.getIndexes().size() != 1) {
+            return null;
+        }
+        NameLink link = nr.attrNameLink();
+        if (link == null || link.getTyp() instanceof WurstTypeArray) {
+            return null;
+        }
+
+        WurstType receiverType = link.getTyp();
+        WurstType indexType = withIndexes.getIndexes().get(0).attrTyp();
+        if (nr.getParent() instanceof StmtSet && ((StmtSet) nr.getParent()).getUpdatedExpr() == nr) {
+            StmtSet set = (StmtSet) nr.getParent();
+            FuncLink f = AttrFuncDef.getIndexSetOperator(nr, receiverType, indexType, set.getRight().attrTyp());
+            return f == null ? null : f.getDef();
+        }
+
+        FuncLink f = AttrFuncDef.getIndexGetOperator(nr, receiverType, indexType);
+        return f == null ? null : f.getDef();
     }
 
     private List<? extends Location> typeDefinitionFor(Element e) {
