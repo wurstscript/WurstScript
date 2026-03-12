@@ -268,5 +268,31 @@ public class OpOverloading extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void testOverloading_indexWriteOnlySetter() {
+        testAssertOkLines(false,
+                "package test",
+                "	class ListLike",
+                "		function op_indexAssign(int i, int v)",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_memberIndexWriteOnlySetter() {
+        testAssertOkLines(false,
+                "package test",
+                "	class ListLike",
+                "		function op_indexAssign(int i, int v)",
+                "	class Box",
+                "		ListLike l = new ListLike()",
+                "	init",
+                "		Box b = new Box()",
+                "		b.l[1] = 2",
+                "endpackage");
+    }
+
 
 }

@@ -226,6 +226,41 @@ public class AttrFuncDef {
         return candidate;
     }
 
+    public static @Nullable FuncLink getIndexSetOperatorByIndex(Expr node, WurstType receiverType, WurstType indexType) {
+        Collection<FuncLink> funcs1 = node.lookupMemberFuncs(receiverType, overloadingIndexSet);
+        if (funcs1.isEmpty()) {
+            return null;
+        }
+        List<FuncLink> funcs = filterInvisible(overloadingIndexSet, node, funcs1);
+        funcs = filterByReceiverType(node, overloadingIndexSet, funcs);
+        List<FuncLink> byParamCount = Lists.newArrayList();
+        for (FuncLink f : funcs) {
+            if (f.getParameterTypes().size() == 2) {
+                byParamCount.add(f);
+            }
+        }
+        if (byParamCount.isEmpty()) {
+            return null;
+        }
+        List<FuncLink> byIndexType = Lists.newArrayList();
+        for (FuncLink f : byParamCount) {
+            VariableBinding mapping = f.getVariableBinding();
+            WurstType expectedIndexType = f.getParameterType(0);
+            VariableBinding m2 = indexType.matchAgainstSupertype(expectedIndexType, node, mapping, VariablePosition.RIGHT);
+            if (m2 != null) {
+                byIndexType.add(f);
+            }
+        }
+        if (byIndexType.isEmpty()) {
+            return null;
+        }
+        if (byIndexType.size() == 1) {
+            return byIndexType.get(0);
+        }
+        // ambiguous write-only expected type context: pick deterministic first
+        return byIndexType.get(0);
+    }
+
     private static boolean matchesArguments(Element node, FuncLink f, List<WurstType> argumentTypes) {
         if (f.getParameterTypes().size() != argumentTypes.size()) {
             return false;
