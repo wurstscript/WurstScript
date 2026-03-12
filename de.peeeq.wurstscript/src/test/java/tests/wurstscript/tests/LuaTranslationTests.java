@@ -330,6 +330,26 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void overloadedMethodsDoNotAliasInLuaDispatchTables() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class Writer",
+            "    function write(int i)",
+            "        skip",
+            "    function write(string s)",
+            "        skip",
+            "init",
+            "    let w = new Writer()",
+            "    w.write(1)",
+            "    w.write(\"x\")"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_overloadedMethodsDoNotAliasInLuaDispatchTables.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("Writer.Writer_write = Writer_Writer_write"));
+        assertTrue(compiled.contains("Writer.Writer_write1 = Writer_Writer_write1"));
+        assertFalse(compiled.contains("Writer.Writer_write = Writer_Writer_write1"));
+    }
+
+    @Test
     public void mainAndConfigNamesFixed() throws IOException {
         test().testLua(true).lines(
             "package Test",
@@ -528,6 +548,234 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testGenericStringField", "stringEnsure(c.C_x)", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
+    }
+
+    @Test
+    public void genericOverrideChainBindsRootSlotToMostSpecificImplInLua() throws IOException {
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
+
+        Matcher slotMatcher = Pattern.compile("FSM_currentState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
+        assertTrue("Expected FSM to dispatch through a virtual *_update slot.", slotMatcher.find());
+        String dispatchedSlot = slotMatcher.group(1);
+
+        String[] states = {"FindBuilder", "PlanNextAction", "FindSpot", "BuildAtTarget", "QuickBuild", "RescueStrikeTarget"};
+        for (String state : states) {
+            assertContainsRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*" + state + "_" + state + "_update");
+            assertDoesNotContainRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
+        }
+    }
+
+    @Test
+    public void luaOutputIsDeterministicForGenericOverrideSlots() throws IOException {
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String first = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);
+
+        GlobalCaches.clearAll();
+
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String second = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);
+
+        assertEquals(first, second);
+    }
+
+    @Test
+    public void genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua() throws IOException {
+        test().testLua(true).compilationUnits(genericOverrideGlobalStateReproUnits());
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
+
+        Matcher slotMatcher = Pattern.compile("FSM_globalState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
+        assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", slotMatcher.find());
+        String dispatchedSlot = slotMatcher.group(1);
+
+        assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");
+        assertDoesNotContainRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
+    }
+
+    private CU[] genericOverrideReproUnits() {
+        return new CU[]{
+            compilationUnit("fsmLib.wurst",
+                "package FSMReproLib",
+                "",
+                "public abstract class State<T:>",
+                "    function enter(T owner)",
+                "    function update(T owner, real dt)",
+                "    function exit(T owner)",
+                "",
+                "public class NoOpState<T:> extends State<T>",
+                "    override function enter(T owner)",
+                "    override function update(T owner, real dt)",
+                "    override function exit(T owner)",
+                "",
+                "public class FSM<T:>",
+                "    T owner",
+                "    State<T> currentState = null",
+                "",
+                "    construct(T owner)",
+                "        this.owner = owner",
+                "",
+                "    function setInitialState(State<T> st)",
+                "        currentState = st",
+                "        if currentState != null",
+                "            currentState.enter(owner)",
+                "",
+                "    function update(real dt)",
+                "        if currentState != null",
+                "            currentState.update(owner, dt)"
+            ),
+            compilationUnit("repro.wurst",
+                "package GenericOverrideSlotRepro",
+                "import FSMReproLib",
+                "",
+                "public class Owner",
+                "    FSM<Owner> fsm = new FSM<Owner>(this)",
+                "    int findBuilderTicks = 0",
+                "    int planTicks = 0",
+                "    int findSpotTicks = 0",
+                "    int buildTicks = 0",
+                "",
+                "public constant globalCheckState = new GlobalCheckState()",
+                "public constant findBuilderState = new FindBuilder()",
+                "public constant planNextActionState = new PlanNextAction()",
+                "public constant findSpotState = new FindSpot()",
+                "public constant buildAtTargetState = new BuildAtTarget()",
+                "public constant quickBuildState = new QuickBuild()",
+                "public constant rescueStrikeTargetState = new RescueStrikeTarget()",
+                "",
+                "class GlobalCheckState extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "",
+                "class FindBuilder extends NoOpState<Owner>",
+                "    override function enter(Owner o)",
+                "        o.findBuilderTicks = 0",
+                "    override function update(Owner o, real dt)",
+                "        o.findBuilderTicks++",
+                "",
+                "class PlanNextAction extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.planTicks++",
+                "",
+                "class FindSpot extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.findSpotTicks++",
+                "",
+                "class BuildAtTarget extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.buildTicks++",
+
+                "class QuickBuild extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.buildTicks++",
+                "",
+                "class RescueStrikeTarget extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.buildTicks++",
+                "",
+                "function runOne(State<Owner> st) returns int",
+                "    let o = new Owner()",
+                "    o.fsm.setInitialState(st)",
+                "    for i = 0 to 4",
+                "        o.fsm.update(0.1)",
+                "    return o.findBuilderTicks",
+                "",
+                "init",
+                "    runOne(findBuilderState)",
+                "    runOne(planNextActionState)",
+                "    runOne(findSpotState)",
+                "    runOne(buildAtTargetState)",
+                "    runOne(quickBuildState)",
+                "    runOne(rescueStrikeTargetState)"
+            )
+        };
+    }
+
+    private CU[] genericOverrideGlobalStateReproUnits() {
+        return new CU[]{
+            compilationUnit("fsmLib.wurst",
+                "package FSMReproLibGlobal",
+                "",
+                "public abstract class State<T:>",
+                "    function enter(T owner)",
+                "    function update(T owner, real dt)",
+                "    function exit(T owner)",
+                "",
+                "public class NoOpState<T:> extends State<T>",
+                "    override function enter(T owner)",
+                "    override function update(T owner, real dt)",
+                "    override function exit(T owner)",
+                "",
+                "public class FSM<T:>",
+                "    T owner",
+                "    State<T> globalState = null",
+                "    State<T> currentState = null",
+                "",
+                "    construct(T owner)",
+                "        this.owner = owner",
+                "",
+                "    function setInitialState(State<T> st)",
+                "        currentState = st",
+                "        if currentState != null",
+                "            currentState.enter(owner)",
+                "",
+                "    function setGlobalState(State<T> st)",
+                "        globalState = st",
+                "",
+                "    function update(real dt)",
+                "        if globalState != null",
+                "            globalState.update(owner, dt)",
+                "        if currentState != null",
+                "            currentState.update(owner, dt)"
+            ),
+            compilationUnit("repro.wurst",
+                "package GenericOverrideGlobalStateSlotRepro",
+                "import FSMReproLibGlobal",
+                "",
+                "public class Owner",
+                "    FSM<Owner> fsm = new FSM<Owner>(this)",
+                "    int globalTicks = 0",
+                "    int findBuilderTicks = 0",
+                "    int planTicks = 0",
+                "    int findSpotTicks = 0",
+                "    int buildTicks = 0",
+                "",
+                "public constant globalCheckState = new GlobalCheckState()",
+                "public constant findBuilderState = new FindBuilder()",
+                "public constant planNextActionState = new PlanNextAction()",
+                "public constant findSpotState = new FindSpot()",
+                "public constant buildAtTargetState = new BuildAtTarget()",
+                "public constant quickBuildState = new QuickBuild()",
+                "",
+                "class GlobalCheckState extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.globalTicks++",
+                "",
+                "class FindBuilder extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.findBuilderTicks++",
+                "",
+                "class PlanNextAction extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.planTicks++",
+                "",
+                "class FindSpot extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.findSpotTicks++",
+                "",
+                "class BuildAtTarget extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.buildTicks++",
+                "",
+                "class QuickBuild extends NoOpState<Owner>",
+                "    override function update(Owner o, real dt)",
+                "        o.buildTicks++",
+                "",
+                "init",
+                "    let o = new Owner()",
+                "    o.fsm.setGlobalState(globalCheckState)",
+                "    o.fsm.setInitialState(buildAtTargetState)",
+                "    o.fsm.update(0.1)"
+            )
+        };
     }
 
     @Test
