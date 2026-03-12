@@ -2029,20 +2029,35 @@ public class ImTranslator {
         if (res != null) {
             return res;
         }
-        debugClassManagementMiss("first lookup miss", c, vars);
-        // Recover from stale/mutated key situations by rebuilding from current classes.
-        classManagementVars = null;
-        vars = getClassManagementVars();
-        res = vars.get(c);
-        if (res != null) {
-            return res;
+        // Try to recover by aliasing to an already existing entry without rebuilding.
+        ClassManagementVars alias = findClassManagementAlias(c, vars);
+        if (alias != null) {
+            vars.put(c, alias);
+            return alias;
         }
-        debugClassManagementMiss("after rebuild miss", c, vars);
-        // Last-resort fallback: ensure compilation does not crash language-server requests.
-        WLogger.info("ClassManagementVars missing for class " + c.getName() + ", creating fallback mapping.");
-        ClassManagementVars fallback = new ClassManagementVars(c, this);
-        vars.put(c, fallback);
-        return fallback;
+        // Extend mapping for current class graph only; do not clear and rebuild map,
+        // as rebuilding creates duplicate globals/initializers.
+        Partitions<ImClass> p = buildClassPartitions();
+        p.add(c);
+        for (ImClassType sc : c.getSuperClasses()) {
+            p.union(c, sc.getClassDef());
+        }
+        ImClass rep = p.getRep(c);
+        ClassManagementVars repVars = vars.get(rep);
+        if (repVars == null) {
+            repVars = findClassManagementAlias(rep, vars);
+            if (repVars == null) {
+                repVars = new ClassManagementVars(rep, this);
+            }
+            vars.put(rep, repVars);
+        }
+        for (ImClass cls : imProg.getClasses()) {
+            if (p.getRep(cls) == rep) {
+                vars.putIfAbsent(cls, repVars);
+            }
+        }
+        vars.put(c, repVars);
+        return repVars;
     }
 
 
@@ -2054,15 +2069,7 @@ public class ImTranslator {
         if (classManagementVars != null) {
             return classManagementVars;
         }
-        // create partitions, such that each sub-class and super-class are in
-        // the same partition
-        Partitions<ImClass> p = new Partitions<>();
-        for (ImClass c : imProg.getClasses()) {
-            p.add(c);
-            for (ImClassType sc : c.getSuperClasses()) {
-                p.union(c, sc.getClassDef());
-            }
-        }
+        Partitions<ImClass> p = buildClassPartitions();
         // generate typeId variables
         classManagementVars = new IdentityHashMap<>();
         for (ImClass c : imProg.getClasses()) {
@@ -2073,27 +2080,25 @@ public class ImTranslator {
         return classManagementVars;
     }
 
-    private void debugClassManagementMiss(String stage, ImClass c, Map<ImClass, ClassManagementVars> vars) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[ClassMgmt] ").append(stage)
-            .append(" target=").append(c.getName())
-            .append("#").append(System.identityHashCode(c))
-            .append(" mapSize=").append(vars.size());
-        int sameName = 0;
-        int sameIdentity = 0;
-        for (ImClass k : vars.keySet()) {
-            if (k == c) sameIdentity++;
-            if (k.getName().equals(c.getName())) {
-                sameName++;
-                if (sameName <= 5) {
-                    sb.append(" | sameNameKey=").append(k.getName())
-                        .append("#").append(System.identityHashCode(k));
-                }
+    private Partitions<ImClass> buildClassPartitions() {
+        Partitions<ImClass> p = new Partitions<>();
+        for (ImClass c : imProg.getClasses()) {
+            p.add(c);
+            for (ImClassType sc : c.getSuperClasses()) {
+                p.union(c, sc.getClassDef());
             }
         }
-        sb.append(" | sameNameCount=").append(sameName)
-            .append(" sameIdentityCount=").append(sameIdentity);
-        WLogger.info(sb.toString());
+        return p;
+    }
+
+    private @Nullable ClassManagementVars findClassManagementAlias(ImClass target, Map<ImClass, ClassManagementVars> vars) {
+        for (Map.Entry<ImClass, ClassManagementVars> e : vars.entrySet()) {
+            ImClass k = e.getKey();
+            if (k == target || k.attrTrace() == target.attrTrace()) {
+                return e.getValue();
+            }
+        }
+        return null;
     }
 
 

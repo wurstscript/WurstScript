@@ -43,6 +43,7 @@ public class EliminateClasses {
         INSTANCE_COUNT,
         MAX_INSTANCE_COUNT
     );
+    private final Map<ImClass, Integer> classIds;
     private ImFunction typeIdToTypeNameFunc;
     private ImFunction maxTypeIdFunc;
     private ImFunction instanceCountFunc;
@@ -52,6 +53,7 @@ public class EliminateClasses {
         translator = tr;
         this.prog = prog;
         this.checkedDispatch = checkedDispatch;
+        this.classIds = TypeId.calculate(prog);
     }
 
     public void eliminateClasses() {
@@ -115,7 +117,7 @@ public class EliminateClasses {
     @NotNull
     private ImFunction maxTypeIdFunc() {
         ImVars parameters = JassIm.ImVars();
-        int maxTypeId = calculateMaxTypeId(prog);
+        int maxTypeId = calculateMaxTypeId(classIds);
         ImFunction f = JassIm.ImFunction(prog.getTrace(), "maxTypeId", JassIm.ImTypeVars(), parameters, imInt(), JassIm.ImVars(), JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), JassIm.ImIntVal(maxTypeId))), Collections.emptyList());
         prog.getFunctions().add(f);
         return f;
@@ -144,11 +146,9 @@ public class EliminateClasses {
         ImVar typeId = JassIm.ImVar(trace, TypesHelper.imInt(), "typeId", false);
         ImVars parameters = JassIm.ImVars(typeId);
         ImVars locals = JassIm.ImVars();
-        // Use fresh IDs from current classes to avoid stale attrTypeId cache inconsistencies.
-        Map<ImClass, Integer> classId = TypeId.calculate(prog);
-        int maxTypeId = calculateMaxTypeId(classId);
+        int maxTypeId = calculateMaxTypeId(classIds);
         ImClass[] typeIdToClass = new ImClass[maxTypeId + 1];
-        for (Map.Entry<ImClass, Integer> e : classId.entrySet()) {
+        for (Map.Entry<ImClass, Integer> e : classIds.entrySet()) {
             typeIdToClass[e.getValue()] = e.getKey();
         }
         ImStmts body = generateBinarySearch(1, maxTypeId, typeId, typeIdToClass, makeAccess);
@@ -561,7 +561,7 @@ public class EliminateClasses {
             }
         }
         if (current != null) {
-            typeIdToMethod.put(c.attrTypeId(), current);
+            typeIdToMethod.put(typeIdOf(c), current);
         }
         // process subclasses:
         for (ImClass sc : c.attrSubclasses()) {
@@ -687,7 +687,7 @@ public class EliminateClasses {
     }
 
     private void replaceTypeIdOfClass(ImTypeIdOfClass e) {
-        e.replaceBy(JassIm.ImIntVal(e.getClazz().getClassDef().attrTypeId()));
+        e.replaceBy(JassIm.ImIntVal(typeIdOf(e.getClazz().getClassDef())));
     }
 
     private void replaceInstanceof(ImInstanceof e) {
@@ -695,8 +695,7 @@ public class EliminateClasses {
         List<ImClass> allSubClasses = getAllSubclasses(e.getClazz().getClassDef());
         List<Integer> subClassIds = new ArrayList<>();
         for (ImClass allSubClass : allSubClasses) {
-            Integer attrTypeId = allSubClass.attrTypeId();
-            subClassIds.add(attrTypeId);
+            subClassIds.add(typeIdOf(allSubClass));
         }
         List<IntRange> idRanges = IntRange.createFromIntList(subClassIds);
         ImExpr obj = e.getObj();
@@ -754,6 +753,18 @@ public class EliminateClasses {
         for (ImClass sc : clazz.attrSubclasses()) {
             getAllSubclassesH(result, sc);
         }
+    }
+
+    private int typeIdOf(ImClass c) {
+        Integer id = classIds.get(c);
+        if (id != null) {
+            return id;
+        }
+        Integer fallback = TypeId.calculate(prog).get(c);
+        if (fallback != null) {
+            return fallback;
+        }
+        throw new CompileError(c, "Could not resolve type id for class " + c.getName() + ".");
     }
 
     private void replaceDealloc(ImDealloc e) {
