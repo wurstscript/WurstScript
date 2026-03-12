@@ -95,6 +95,39 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
         testGetDef(testData, "1:22-1:42");
     }
 
+    @Test
+    public void indexReadOperatorOnBracketJumpsToOverload() {
+        CompletionTestData testData = input(
+                "package test",
+                "    class ListLike",
+                "        function op_index(int i) returns int",
+                "            return i",
+                "    init",
+                "        ListLike l = new ListLike()",
+                "        int x = l|[1]",
+                "endpackage"
+        );
+
+        testGetDef(testData, "2:17-2:25");
+    }
+
+    @Test
+    public void indexWriteOperatorOnBracketJumpsToOverload() {
+        CompletionTestData testData = input(
+                "package test",
+                "    class ListLike",
+                "        function op_index(int i) returns int",
+                "            return i",
+                "        function op_indexAssign(int i, int v)",
+                "    init",
+                "        ListLike l = new ListLike()",
+                "        l|[1] = 2",
+                "endpackage"
+        );
+
+        testGetDef(testData, "4:17-4:31");
+    }
+
 
     private void testGetDef(CompletionTestData testData, String... expectedPositions) {
         testGetDef(testData, Arrays.asList(expectedPositions));

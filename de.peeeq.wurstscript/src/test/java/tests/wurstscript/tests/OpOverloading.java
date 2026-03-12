@@ -182,5 +182,117 @@ public class OpOverloading extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void testOverloading_indexRead() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i + 5",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[3]",
+                "		if x == 8",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexReadMissing() {
+        testAssertErrorsLines(true, "op_index",
+                "package test",
+                "	class ListLike",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[3]",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWrite() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class ListLike",
+                "		int x = 0",
+                "		function op_index(int i) returns int",
+                "			return x + i",
+                "		function op_indexAssign(int i, int v)",
+                "			x = v + i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "		if l[1] == 4",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWriteMissingSetter() {
+        testAssertErrorsLines(true, "op_indexAssign",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexReadWrongIndexType() {
+        testAssertErrorsLines(true, "op_index",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		int x = l[\"x\"]",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWriteWrongIndexType() {
+        testAssertErrorsLines(true, "op_indexAssign",
+                "package test",
+                "	class ListLike",
+                "		function op_index(int i) returns int",
+                "			return i",
+                "		function op_indexAssign(int i, int v)",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[\"x\"] = 1",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_indexWriteOnlySetter() {
+        testAssertOkLines(false,
+                "package test",
+                "	class ListLike",
+                "		function op_indexAssign(int i, int v)",
+                "	init",
+                "		ListLike l = new ListLike()",
+                "		l[1] = 2",
+                "endpackage");
+    }
+
+    @Test
+    public void testOverloading_memberIndexWriteOnlySetter() {
+        testAssertOkLines(false,
+                "package test",
+                "	class ListLike",
+                "		function op_indexAssign(int i, int v)",
+                "	class Box",
+                "		ListLike l = new ListLike()",
+                "	init",
+                "		Box b = new Box()",
+                "		b.l[1] = 2",
+                "endpackage");
+    }
+
 
 }

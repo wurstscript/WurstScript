@@ -25,7 +25,7 @@ jassGlobalsBlock:
 				;
 
 jassGlobalDecl:
-				  constant='constant'? typeExpr name=ID ('=' initial=expr)? NL
+				  constant='constant'? typeExpr name=(ID|CONTINUE|SKIP_|BREAK) ('=' initial=expr)? NL
 			  ;
 
 jassFuncDef:
@@ -35,7 +35,7 @@ jassFuncDef:
 			   'endfunction' NL
 		   ;
 
-jassLocal: 'local' typeExpr name=ID ('=' initial=expr)? NL;
+jassLocal: 'local' typeExpr name=(ID|CONTINUE|SKIP_|BREAK) ('=' initial=expr)? NL;
 
 jassStatements: stmts+=jassStatement*;
 
@@ -224,7 +224,7 @@ funcSignature:
 formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				 vararg=VARARG? typeExpr name=ID
+				 vararg=VARARG? typeExpr name=(ID|CONTINUE|SKIP_|BREAK)
 			   ;
 
 typeExpr:
@@ -238,7 +238,7 @@ typeExpr:
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=ID ('=' variableInit)? NL
+		  name=(ID|CONTINUE|SKIP_|BREAK) ('=' variableInit)? NL
 	  ;		  
 
 variableInit: (arrayInit | initial=expr);
@@ -312,12 +312,12 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' variableInit)?
+		  name=(ID|CONTINUE|SKIP_|BREAK) ('=' variableInit)?
 	  ;
 
 
 localVarDefInline:
-					 typeExpr? name=ID
+					 typeExpr? name=(ID|CONTINUE|SKIP_|BREAK)
 				 ;
 
 stmtSet:
@@ -335,12 +335,12 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=ID? indexes?
+				 expr dots=('.'|'..') varname=(ID|CONTINUE|SKIP_|BREAK)? indexes?
 			 ;
 
 
 exprVarAccess:
-				 varname=(ID|IT) indexes?
+				 varname=(ID|CONTINUE|SKIP_|BREAK|IT) indexes?
 			 ;
 
 
@@ -354,7 +354,7 @@ expr:
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
-	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
+	  | receiver=expr dotsVar=('.'|'..') varName=(ID|CONTINUE|SKIP_|BREAK)? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser
@@ -375,7 +375,7 @@ exprPrimary:
 	  | exprClosure
 	  | exprStatementsBlock
 	  | exprDestroy
-      | varname=(ID|IT) indexes?
+      | varname=(ID|CONTINUE|SKIP_|BREAK|IT) indexes?
       | atom=(INT
       | REAL
 	  | STRING
@@ -412,7 +412,7 @@ shortFormalParameters:
     | /* empty */
     ;
 
-shortFormalParameter: typeExpr? name=ID;
+shortFormalParameter: typeExpr? name=(ID|CONTINUE|SKIP_|BREAK);
 
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
@@ -444,6 +444,7 @@ stmtSkip:'skip';
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 
 exprList : exprs+=expr (',' exprs+=expr)*;
+
 
 
 

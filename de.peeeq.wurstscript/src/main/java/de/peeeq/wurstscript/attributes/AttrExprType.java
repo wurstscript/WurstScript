@@ -101,9 +101,23 @@ public class AttrExprType {
         WurstType varDefType = varDef.getTyp();
         if (varDefType instanceof WurstTypeArray) {
             return ((WurstTypeArray) varDefType).getBaseType();
-        } else {
-            term.addError("Variable " + varDef.getName() + " is of type " + varDefType + ", should be an array variable.");
         }
+        if (term.getIndexes().size() == 1) {
+            WurstType indexType = term.getIndexes().get(0).attrTyp();
+            FuncLink getOverload = AttrFuncDef.getIndexGetOperator(term, varDefType, indexType);
+            if (getOverload != null) {
+                return getOverload.getReturnType();
+            }
+            if (isWriteAccess(term)) {
+                FuncLink setOverload = AttrFuncDef.getIndexSetOperatorByIndex(term, varDefType, indexType);
+                if (setOverload != null) {
+                    return setOverload.getParameterType(1);
+                }
+                return WurstTypeUnknown.instance();
+            }
+        }
+        term.addError("Variable " + varDef.getName() + " is of type " + varDefType +
+                ", should be an array variable or define operator overloading function " + AttrFuncDef.overloadingIndexGet + ".");
         return WurstTypeUnknown.instance();
     }
 
@@ -412,7 +426,21 @@ public class AttrExprType {
             WurstTypeArray ar = (WurstTypeArray) typ;
             return ar.getBaseType();
         }
-        term.addError("Variable " + term.getVarName() + " is not an array.");
+        if (term.getIndexes().size() == 1) {
+            WurstType indexType = term.getIndexes().get(0).attrTyp();
+            FuncLink getOverload = AttrFuncDef.getIndexGetOperator(term, typ, indexType);
+            if (getOverload != null) {
+                return getOverload.getReturnType();
+            }
+            if (isWriteAccess(term)) {
+                FuncLink setOverload = AttrFuncDef.getIndexSetOperatorByIndex(term, typ, indexType);
+                if (setOverload != null) {
+                    return setOverload.getParameterType(1);
+                }
+                return WurstTypeUnknown.instance();
+            }
+        }
+        term.addError("Variable " + term.getVarName() + " is not an array and has no " + AttrFuncDef.overloadingIndexGet + " overload.");
         return typ;
     }
 
@@ -591,5 +619,13 @@ public class AttrExprType {
         }
         exprArrayLength.addError(".length is only valid on arrays.");
         return de.peeeq.wurstscript.types.WurstTypeUnknown.instance();
+    }
+
+    private static boolean isWriteAccess(NameRef node) {
+        if (node.getParent() instanceof StmtSet) {
+            StmtSet stmtSet = (StmtSet) node.getParent();
+            return stmtSet.getUpdatedExpr() == node;
+        }
+        return false;
     }
 }
