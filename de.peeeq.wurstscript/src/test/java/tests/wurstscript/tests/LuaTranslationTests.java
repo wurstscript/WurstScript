@@ -797,8 +797,135 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_largeFunctionSpillsLocalsIntoTableInLua.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("function huge("));
         assertTrue(compiled.contains("__wurst_locals"));
+        assertContainsRegex(compiled, "__wurst_locals\\[[0-9]+\\]");
         assertFalse(compiled.contains("local v0"));
         assertFalse(compiled.contains("local v209"));
+        assertFalse(compiled.contains("\nsum = "));
+        assertFalse(compiled.contains("\nv0 = "));
+        assertFalse(compiled.contains("takesInt(sum)"));
+    }
+
+    @Test
+    public void inlinerDoesNotForceSpillWhenCallerStaysBelowLimit() throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("function small(int x) returns int");
+        lines.add("    let a = x");
+        lines.add("    let b = a + 1");
+        lines.add("    let c = b + 1");
+        lines.add("    let d = c + 1");
+        lines.add("    return d");
+        lines.add("function caller()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 195; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    sum += small(1)");
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        test().testLua(true).lines(lines.toArray(new String[0]));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_inlinerDoesNotForceSpillWhenCallerStaysBelowLimit.lua"), Charsets.UTF_8);
+        int start = compiled.indexOf("function caller(");
+        assertTrue("caller function not found in generated lua output", start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("caller function end not found in generated lua output", end > start);
+        String callerBody = compiled.substring(start, end);
+
+        assertFalse("caller should not spill locals into table in this shape", callerBody.contains("__wurst_locals"));
+        assertTrue("caller should keep direct call in this shape", callerBody.contains("small(1)"));
+    }
+
+    @Test
+    public void spilledLocalsKeepNestedBlockInitializationsInLua() throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("function hugeNested(boolean b)");
+        lines.add("    var sum = 0");
+        lines.add("    if b");
+        lines.add("        let inside = 7");
+        lines.add("        sum += inside");
+        for (int i = 0; i < 210; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    hugeNested(true)");
+
+        test().testLua(true).lines(lines.toArray(new String[0]));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_spilledLocalsKeepNestedBlockInitializationsInLua.lua"), Charsets.UTF_8);
+        int start = compiled.indexOf("function hugeNested(");
+        assertTrue("hugeNested function not found in generated lua output", start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("hugeNested function end not found in generated lua output", end > start);
+        String body = compiled.substring(start, end);
+
+        assertTrue(body.contains("__wurst_locals"));
+        assertContainsRegex(body, "__wurst_locals\\[[0-9]+\\]\\s*=\\s*7");
+        assertFalse("nested block local declaration should be rewritten", body.contains("local inside"));
+    }
+
+    @Test
+    public void spilledLocalsDeclareTableBeforeFirstUseInLua() throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("function huge()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 210; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    huge()");
+
+        test().testLua(true).lines(lines.toArray(new String[0]));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_spilledLocalsDeclareTableBeforeFirstUseInLua.lua"), Charsets.UTF_8);
+        int start = compiled.indexOf("function huge(");
+        assertTrue("huge function not found in generated lua output", start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("huge function end not found in generated lua output", end > start);
+        String body = compiled.substring(start, end);
+
+        int declarationPos = body.indexOf("local __wurst_locals");
+        int firstUsePos = body.indexOf("__wurst_locals[");
+        assertTrue("expected __wurst_locals declaration in spilled function body", declarationPos >= 0);
+        assertTrue("expected __wurst_locals use in spilled function body", firstUsePos >= 0);
+        assertTrue("__wurst_locals must be declared before first table access", declarationPos < firstUsePos);
+    }
+
+    @Test
+    public void luaInlinerDoesNotInlineFunctionsWithMultipleReturns() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native takesInt(int i)",
+            "function choose(boolean b, int x) returns int",
+            "    if b",
+            "        return x + 1",
+            "    return x + 2",
+            "function caller()",
+            "    let v = choose(true, 40)",
+            "    takesInt(v)",
+            "init",
+            "    caller()"
+        );
+
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaInlinerDoesNotInlineFunctionsWithMultipleReturns.lua"), Charsets.UTF_8);
+        int start = compiled.indexOf("function caller(");
+        assertTrue("caller function not found in generated lua output", start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("caller function end not found in generated lua output", end > start);
+        String callerBody = compiled.substring(start, end);
+
+        assertTrue("caller should keep a direct call to choose for Lua target", callerBody.contains("choose(true, 40)"));
+        assertFalse("caller should not contain multi-return inline control vars", callerBody.contains("inlineDone"));
+        assertFalse("caller should not contain multi-return inline return temp vars", callerBody.contains("inlineRet"));
     }
 
     @Test
@@ -1044,6 +1171,27 @@ public class LuaTranslationTests extends WurstScriptTest {
             count++;
         }
         assertTrue("expected at least two remapped __wurst_ForForce call sites for nested loops", count >= 2);
+    }
+
+    @Test
+    public void luaInlinerKeepsCallbackFuncRefFunctionsAsCallBoundary() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "player picked",
+            "function pick(force f) returns player",
+            "    picked = null",
+            "    ForForce(f, () -> begin",
+            "        picked = GetEnumPlayer()",
+            "    end)",
+            "    return picked",
+            "function caller(force f) returns player",
+            "    return pick(f)",
+            "init",
+            "    let f = CreateForce()",
+            "    let p = caller(f)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaInlinerKeepsCallbackFuncRefFunctionsAsCallBoundary.lua"), Charsets.UTF_8);
+        assertContainsRegex(compiled, "function\\s+caller\\s*\\([^\\)]*\\)\\s+return\\s+pick\\([^\\)]*\\)\\s+end");
     }
 
     @Test
