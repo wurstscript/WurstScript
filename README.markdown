@@ -2,8 +2,8 @@
 
 Wurstscript is a delicious programming language which compiles to Jass or Lua code that is used to power WarCraft III maps.
 
-[![Build Status](https://grill.wurstlang.org/hudson/job/Wurst/badge/icon)](http://grill.wurstlang.org/hudson/job/Wurst/)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/wurstscript/WurstScript/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/wurstscript/WurstScript/tree/master)
+[![Build](https://github.com/wurstscript/WurstScript/actions/workflows/build.yml/badge.svg)](https://github.com/wurstscript/WurstScript/actions/workflows/build.yml)
+[![Release](https://github.com/wurstscript/WurstScript/actions/workflows/release.yml/badge.svg)](https://github.com/wurstscript/WurstScript/actions/workflows/release.yml)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 [![Coverage Status](https://coveralls.io/repos/github/wurstscript/WurstScript/badge.svg?branch=master)](https://coveralls.io/github/wurstscript/WurstScript?branch=master)
@@ -12,6 +12,7 @@ Wurstscript is a delicious programming language which compiles to Jass or Lua co
 ## User Documentation
 
 Using WurstScript to build a map is easy! Check out the [Setup Guide](https://wurstscript.github.io/start.html) on how to get started.
+For users, installation is automated and intended to work out of the box via the official setup.
 For a formal description of all language features, visit the [Manual](https://wurstscript.github.io/manual.html).
 
 Consider joining the WurstScript community on [Discord](https://discord.gg/mSHZpWcadz).
@@ -45,7 +46,10 @@ The source for the wurstscript website can be found here: https://github.com/wur
 
 ## Compiler Build Process
 
-Java 11+ is required to build the project. Clone the repository and open the `de.peeeq.wurstscript` folder which contains the compiler project.
+For **contributing/developing the compiler**, Java 25 is required.  
+End users normally do not need to install/configure Java manually for the standard Wurst setup flow.
+
+Clone the repository and open the `de.peeeq.wurstscript` folder which contains the compiler project.
 
 ### Using Gradle
 
@@ -78,6 +82,8 @@ To run the Test Suite, execute `AllTests.xml` with TestNG.
 
 ### Publishing a new release
 
-[Jenkins](http://peeeq.de/hudson/job/Wurst/) auto-releases versions as `major.minor.patch.hotfix-jenkins-Wurst-buildNumber` - e.g. `1.8.1.0-jenkins-Wurst-1248`.
+Releases are published via GitHub workflows and GitHub Releases:
+- Workflow: https://github.com/wurstscript/WurstScript/actions/workflows/release.yml
+- Releases: https://github.com/wurstscript/WurstScript/releases
 
 The version string can be updated in [build.gradle](https://github.com/wurstscript/WurstScript/blob/master/de.peeeq.wurstscript/build.gradle#L28).
