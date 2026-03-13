@@ -187,3 +187,139 @@ run:
 * New behavior must be documented through tests.
 
 
+
+---
+
+## 7. LSP Structure and Build Pipelines
+
+This repository has multiple entry points that may trigger compilation/build behavior:
+
+* **Language Server runtime**
+  `de.peeeq.wurstio.languageserver.*`
+* **LSP build request**
+  `de.peeeq.wurstio.languageserver.requests.BuildMap`
+* **CLI compiler entry point**
+  `de.peeeq.wurstio.Main`
+* **CLI map build request**
+  `de.peeeq.wurstio.languageserver.requests.CliBuildMap`
+
+### LSP architecture (high-level)
+
+* `WurstLanguageServer` wires LSP protocol handlers.
+* `LanguageWorker` serializes requests and file-change reconciliation.
+* `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
+* User actions like build/start/tests are implemented in `languageserver.requests.*`.
+
+### Build-map pipeline (centralized)
+
+Map build behavior is centralized in:
+
+* `MapRequest.executeBuildMapPipeline(...)`
+
+Both:
+
+* `BuildMap` (VSCode/LSP build command), and
+* `CliBuildMap` (CLI `-build`, used by grill)
+
+must use that shared backend flow.
+
+This pipeline handles:
+
+1. map/cached-map preparation
+2. script extraction/config application
+3. compilation (Jass/Lua)
+4. script + map data injection (including imports/w3i)
+5. final output map write + MPQ compression finalization
+
+### Lock handling policy
+
+* `BuildMap` (LSP/UI) may use interactive retry/rename behavior for locked output files.
+* `CliBuildMap` must fail fast with a clear error for locked files (non-interactive environments).
+
+### Agent guardrails for future changes
+
+* Do **not** reintroduce separate build-map logic in `Main` or other call sites.
+* If map build behavior changes, update the shared `MapRequest` pipeline first, then keep wrappers thin.
+* Ensure CLI and LSP builds remain behaviorally aligned unless a difference is explicitly required and tested.
+
+---
+
+## 8. Backend Parity and Lua Guardrails
+
+Recent fixes established additional rules for backend work. Follow these for all future changes:
+
+### Jass/Lua feature parity
+
+* New language/compiler features must be validated for **both Jass and Lua** backends.
+* Behavior should be as close as possible across backends.
+* If behavior differs, treat it as intentional only when:
+  * the reason is backend/runtime-specific, and
+  * the difference is documented in tests.
+
+### Error behavior parity expectations
+
+* Prefer matching Jass behavior semantically in Lua output.
+* Be explicit that Lua is stricter in some runtime cases where Jass may silently default/swallow invalid operations.
+* Do not rely on Lua strictness as a substitute for correct lowering/translation.
+
+### Lua inliner safety: callback/function-reference boundaries
+
+* On Lua target, do **not** inline across callback/function-reference-heavy sites (IM `ImFuncRef`-containing callees).
+* This avoids breaking callback context semantics (e.g. wrapper/xpcall/callback-native interactions such as force/group enum callbacks).
+* This is a structural rule, not a name-based exclusion.
+
+### Lua locals limit fallback (>200 locals)
+
+* Lua has a hard local-variable limit per function.
+* When a function exceeds the safe local threshold, rewrite locals to a locals-table fallback.
+* Requirements for fallback correctness:
+  * locals-table declaration must be at function top before first use,
+  * rewritten accesses must target the declared table (no global fallback),
+  * nested block local initializations must be preserved,
+  * use deterministic **numeric slot indices** (`tbl[1]`, `tbl[2]`, ...) rather than string keys.
+
+### Regression testing requirements
+
+* Any backend parity fix must add/adjust regression tests in `tests.wurstscript.tests.*`.
+* Include tests that check:
+  * generated backend output shape for the affected backend,
+  * no behavioral regression in the other backend when relevant,
+  * known fragile cases (dispatch binding, inlining boundaries, locals spilling).
+
+---
+
+## 9. Virtual Slot Binding and Determinism (New Generics + Lua)
+
+Recent regressions showed that virtual-slot binding can silently degrade to base/no-op implementations in generated Lua while still compiling. Follow these rules for all related changes:
+
+### Root-slot correctness is mandatory
+
+* For FSM-style dispatch (`currentState.<rootSlot>(...)`), each concrete subclass must bind that **same root slot** to its own most-specific implementation.
+* Never accept mappings where a subclass has its own update method but the dispatched root slot still points to `NoOpState_*` (or another base implementation).
+* When verifying generated Lua, always inspect both:
+  * the slot invoked at call-site (`FSM_*update`), and
+  * class table assignments for each sibling state class.
+
+### Override-chain integrity (wrapper/bridge cases)
+
+* If override wrappers/bridges are created, preserve transitive override links (`wrapper -> real override`) so deeper subclasses remain reachable during slot/name normalization.
+* Avoid transformations that disconnect root methods from concrete overrides in the method union graph.
+
+### Deterministic Lua emission requirements
+
+* Lua output must be deterministic for identical input (same input -> byte-identical output in test harness).
+* Any iteration over methods/supertypes/union groups used for naming or table assignment must be deterministic (stable ordering).
+* If multiple candidate methods exist for the same slot in a class, selection must be deterministic and must prefer the most specific non-abstract implementation for that class.
+
+### Required regression tests for slot fixes
+
+* Add a repro with:
+  * `State<T:>`, `NoOpState<T:>`, `FSM<T:>`,
+  * multiple sibling `NoOpState<Owner>` subclasses (including at least 4+ siblings),
+  * early constant state instantiation,
+  * root-slot call through `State<T>`.
+* In generated Lua assertions:
+  * extract the actual dispatched slot name from `FSM_*update` call-site,
+  * assert each concrete sibling class binds that slot to its own implementation,
+  * assert no sibling binds that dispatched slot to `NoOpState_*`.
+* Add a compile-twice determinism assertion for the same repro input.

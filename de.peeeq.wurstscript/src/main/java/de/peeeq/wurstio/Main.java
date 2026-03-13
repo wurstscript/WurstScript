@@ -8,12 +8,11 @@ import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
-import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.requests.CliBuildMap;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
@@ -31,8 +30,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -110,35 +108,42 @@ public class Main {
             }
 
             try {
-                WurstProjectConfigData projectConfig = null;
-                Path buildDir = null;
-                Optional<Path> target = Optional.empty();
                 String workspaceroot = runArgs.getWorkspaceroot();
+                RunArgs compileArgs = runArgs;
+                List<String> mergedArgs = new ArrayList<>(asList(args));
+                if (workspaceroot != null) {
+                    WLogger.info("workspaceroot: " + workspaceroot);
+                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot));
+                    WLogger.info("workspaceroot: " + (argsList == null));
+                    mergedArgs.addAll(argsList);
+                    compileArgs = new RunArgs(mergedArgs);
+                }
+
                 if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
                     Path root = Paths.get(workspaceroot);
                     Path inputMap = root.resolve(runArgs.getInputmap());
-                    projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
-
+                    WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
                     if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
-                        buildDir = root.resolve("_build");
-                        java.nio.file.Files.createDirectories(buildDir);
-                        target = Optional.of(buildDir.resolve(projectConfig.getBuildMapData().getFileName() + ".w3x"));
-                        java.nio.file.Files.copy(inputMap, target.get(), StandardCopyOption.REPLACE_EXISTING);
-                        runArgs.setMapFile(target.get().toAbsolutePath().toString());
+                        CliBuildMap cliBuildMap = new CliBuildMap(
+                            WFile.create(root.toFile()),
+                            Optional.of(inputMap.toFile()),
+                            mergedArgs,
+                            Optional.empty(),
+                            gui
+                        );
+                        de.peeeq.wurstio.languageserver.ModelManager modelManager =
+                            new de.peeeq.wurstio.languageserver.ModelManagerImpl(root.toFile(), new de.peeeq.wurstio.languageserver.BufferManager());
+                        modelManager.buildProject();
+                        Object result = cliBuildMap.execute(modelManager);
+                        WLogger.info("map build success");
+                        System.out.println("Build succeeded. Output file: <" + result + ">");
+                        gui.sendProgress("Finished!");
+                        return;
                     }
                 }
 
                 String mapFilePath = runArgs.getMapFile();
 
-                RunArgs compileArgs = runArgs;
-                if (workspaceroot != null) {
-                    WLogger.info("workspaceroot: " + workspaceroot);
-                    List<String> argList = new LinkedList<>(asList(args));
-                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot));
-                    WLogger.info("workspaceroot: " + (argsList == null));
-                    argList.addAll(argsList);
-                    compileArgs = new RunArgs(argList);
-                }
                 CompilationProcess compilationProcess = new CompilationProcess(gui, compileArgs);
                 @Nullable CharSequence compiledScript;
 
@@ -161,14 +166,6 @@ public class Main {
                 if (compiledScript != null) {
                     File scriptFile = new File("compiled.j.txt");
                     Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
-
-                    if (projectConfig != null && target.isPresent()) {
-                        ProjectConfigBuilder.apply(projectConfig, target.get().toFile(), scriptFile, buildDir.toFile(),
-                            runArgs, new W3InstallationData(null, Paths.get(workspaceroot).toFile(), false));
-
-                        WLogger.info("map build success");
-                        System.out.println("Build succeeded. Output file: <" + target.get().toAbsolutePath() + ">");
-                    }
                 }
 
                 gui.sendProgress("Finished!");

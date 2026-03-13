@@ -670,6 +670,57 @@ public abstract class MapRequest extends UserRequest<Object> {
         WLogger.info("Cached map size after injection: " + (cachedMap.length() / 1024 / 1024) + " MB");
     }
 
+    protected File executeBuildMapPipeline(ModelManager modelManager, WurstGui gui, WurstProjectConfigData projectConfig) throws Exception {
+        if (!map.isPresent()) {
+            throw new RequestFailedException(MessageType.Error, "Map is null");
+        }
+        if (!map.get().exists()) {
+            throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
+        }
+
+        mapLastModified = map.get().lastModified();
+        mapPath = map.get().getAbsolutePath();
+
+        gui.sendProgress("Copying map");
+
+        File buildDir = getBuildDir();
+        File targetMapFile = getBuildOutputMapFile(projectConfig, buildDir);
+        targetMapFile = ensureWritableBuildOutput(targetMapFile, false);
+
+        CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, true);
+        injectMapData(gui, Optional.of(targetMapFile), result);
+
+        targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
+        java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+        gui.sendProgress("Finalizing map");
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
+            if (mpq != null) {
+                mpq.closeWithCompression();
+            }
+        }
+
+        gui.sendProgress("Done.");
+        return targetMapFile;
+    }
+
+    protected File ensureWritableBuildOutput(File targetMapFile, boolean isFinalWrite) {
+        String lockMessage = isFinalWrite
+            ? "The output map file is still in use and cannot be replaced.\nClick Retry, choose Rename to use a temporary file name, or Cancel."
+            : "The output map file is in use and cannot be replaced.\nClose Warcraft III and click Retry, choose Rename to use a temporary file name, or Cancel.";
+        return ensureWritableTargetFile(
+            targetMapFile,
+            "Build Map",
+            lockMessage,
+            "Build canceled because output map target is in use."
+        );
+    }
+
+    private static File getBuildOutputMapFile(WurstProjectConfigData projectConfig, File buildDir) {
+        String fileName = projectConfig.getBuildMapData().getFileName();
+        return new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
+    }
+
     private static boolean startsWith(byte[] data, byte[] prefix) {
         if (data.length < prefix.length) return false;
         for (int i = 0; i < prefix.length; i++) {

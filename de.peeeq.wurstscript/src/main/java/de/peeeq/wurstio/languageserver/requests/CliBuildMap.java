@@ -2,10 +2,8 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
-import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -13,19 +11,22 @@ import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 
 /**
- * Created by peter on 16.05.16.
+ * CLI entry point for build-map that reuses the same backend map pipeline as the language server.
  */
-public class BuildMap extends MapRequest {
+public class CliBuildMap extends MapRequest {
+    private final WurstGui gui;
 
-    public BuildMap(WurstLanguageServer languageServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
-                    List<String> compileArgs) {
-        super(languageServer, map, compileArgs, workspaceRoot, wc3Path, Optional.empty());
+    public CliBuildMap(WFile workspaceRoot, Optional<File> map, List<String> compileArgs, Optional<String> wc3Path, WurstGui gui) {
+        super(null, map, compileArgs, workspaceRoot, wc3Path, Optional.empty());
+        this.gui = gui;
     }
 
     @Override
@@ -40,10 +41,10 @@ public class BuildMap extends MapRequest {
                 "Please install your project using grill or the wurst setup tool.");
         }
 
-        WLogger.info("buildMap " + map + " " + compileArgs);
-        WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
+        WLogger.info("cli buildMap " + map + " " + compileArgs);
         try {
-            executeBuildMapPipeline(modelManager, gui, projectConfig);
+            File targetMapFile = executeBuildMapPipeline(modelManager, gui, projectConfig);
+            return targetMapFile.getAbsolutePath();
         } catch (CompileError e) {
             WLogger.info(e);
             throw new RequestFailedException(MessageType.Error, "A compilation error occurred when building the map:\n" + e);
@@ -55,6 +56,18 @@ public class BuildMap extends MapRequest {
                 gui.sendFinished();
             }
         }
-        return "ok"; // TODO
+    }
+
+    @Override
+    protected File ensureWritableBuildOutput(File targetFile, boolean isFinalWrite) {
+        if (!targetFile.exists()) {
+            return targetFile;
+        }
+        try (FileChannel ignored = FileChannel.open(targetFile.toPath(), StandardOpenOption.WRITE)) {
+            return targetFile;
+        } catch (IOException e) {
+            throw new RequestFailedException(MessageType.Warning,
+                "The output map file is in use and cannot be replaced: " + targetFile.getAbsolutePath());
+        }
     }
 }
