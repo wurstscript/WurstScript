@@ -285,3 +285,41 @@ Recent fixes established additional rules for backend work. Follow these for all
   * generated backend output shape for the affected backend,
   * no behavioral regression in the other backend when relevant,
   * known fragile cases (dispatch binding, inlining boundaries, locals spilling).
+
+---
+
+## 9. Virtual Slot Binding and Determinism (New Generics + Lua)
+
+Recent regressions showed that virtual-slot binding can silently degrade to base/no-op implementations in generated Lua while still compiling. Follow these rules for all related changes:
+
+### Root-slot correctness is mandatory
+
+* For FSM-style dispatch (`currentState.<rootSlot>(...)`), each concrete subclass must bind that **same root slot** to its own most-specific implementation.
+* Never accept mappings where a subclass has its own update method but the dispatched root slot still points to `NoOpState_*` (or another base implementation).
+* When verifying generated Lua, always inspect both:
+  * the slot invoked at call-site (`FSM_*update`), and
+  * class table assignments for each sibling state class.
+
+### Override-chain integrity (wrapper/bridge cases)
+
+* If override wrappers/bridges are created, preserve transitive override links (`wrapper -> real override`) so deeper subclasses remain reachable during slot/name normalization.
+* Avoid transformations that disconnect root methods from concrete overrides in the method union graph.
+
+### Deterministic Lua emission requirements
+
+* Lua output must be deterministic for identical input (same input -> byte-identical output in test harness).
+* Any iteration over methods/supertypes/union groups used for naming or table assignment must be deterministic (stable ordering).
+* If multiple candidate methods exist for the same slot in a class, selection must be deterministic and must prefer the most specific non-abstract implementation for that class.
+
+### Required regression tests for slot fixes
+
+* Add a repro with:
+  * `State<T:>`, `NoOpState<T:>`, `FSM<T:>`,
+  * multiple sibling `NoOpState<Owner>` subclasses (including at least 4+ siblings),
+  * early constant state instantiation,
+  * root-slot call through `State<T>`.
+* In generated Lua assertions:
+  * extract the actual dispatched slot name from `FSM_*update` call-site,
+  * assert each concrete sibling class binds that slot to its own implementation,
+  * assert no sibling binds that dispatched slot to `NoOpState_*`.
+* Add a compile-twice determinism assertion for the same repro input.
