@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GlobalsInliner implements OptimizerPass {
-
     public int optimize(ImTranslator trans) {
         int obsoleteCount = 0;
         ImProg prog = trans.getImProg();
@@ -44,7 +43,7 @@ public class GlobalsInliner implements OptimizerPass {
                 ImVarWrite obs = null;
                 for (ImVarWrite write : v.attrWrites()) {
                     ImFunction func = write.getNearestFunc();
-                    if (isInInit(func)) {
+                    if (isInInitGlobals(func)) {
                         right = write.getRight();
                         obs = write;
                         break;
@@ -67,19 +66,21 @@ public class GlobalsInliner implements OptimizerPass {
                 List<ImVarWrite> initWrites = new ArrayList<>();
                 for (ImVarWrite imVarWrite : v.attrWrites()) {
                     ImFunction nearestFunc = imVarWrite.getNearestFunc();
-                    if (isInInit(nearestFunc)) {
+                    if (isInInitGlobals(nearestFunc)) {
                         initWrites.add(imVarWrite);
                     }
                 }
                 if (initWrites.size() == 1) {
                     if(v.getType() instanceof ImSimpleType) {
-                        ImExpr write = v.attrWrites().iterator().next().getRight();
+                        ImVarWrite initWrite = initWrites.get(0);
+                        ImExpr write = initWrite.getRight();
                         try {
                             ImExpr defaultValue = ImHelper.defaultValueForType((ImSimpleType) v.getType());
                             boolean isDefault = defaultValue.structuralEquals(write);
                             if (isDefault) {
-                                // Assignment is default value and can be removed
-                                v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
+                                // Only remove the init write when it assigns the default value.
+                                // Never touch non-init writes here.
+                                initWrite.replaceBy(ImHelper.nullExpr());
                             }
                         } catch (Exception e) {
                             throw new CompileError(write.attrTrace().attrErrorPos(),
@@ -140,9 +141,8 @@ public class GlobalsInliner implements OptimizerPass {
     }
 
 
-    private static boolean isInInit(ImFunction func) {
-        return func != null && (func.getName().startsWith("init_") || func.getName().equals("main") || func.getName().startsWith("InitTrig_")
-                || func.getName().equals("initGlobals"));
+    private static boolean isInInitGlobals(ImFunction func) {
+        return func != null && func.getName().equals("initGlobals");
     }
 
 }

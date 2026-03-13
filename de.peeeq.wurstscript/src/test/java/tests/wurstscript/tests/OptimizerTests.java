@@ -97,6 +97,40 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage");
     }
 
+    @Test
+    public void globalsInlinerDoesNotRemoveNonInitDefaultWrite() {
+        test().executeProg().lines(
+            "package test",
+            "    native testSuccess()",
+            "    boolean g = false",
+            "    @noinline function resetG()",
+            "        g = false",
+            "    function setG()",
+            "        g = true",
+            "    init",
+            "        setG()",
+            "        resetG()",
+            "        if not g",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
+    public void globalsInlinerRespectsInitReadBeforeSingleWriteOrder() {
+        test().executeProg().lines(
+            "package test",
+            "    native testSuccess()",
+            "    int g = 0",
+            "    boolean sawDefault = false",
+            "    init",
+            "        if g == 0",
+            "            sawDefault = true",
+            "        g = 5",
+            "        if sawDefault and g == 5",
+            "            testSuccess()"
+        );
+    }
+
 
     @Test
     public void test_nullsetter1() {

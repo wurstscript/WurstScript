@@ -132,7 +132,6 @@ public class RunArgs {
 
         addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
             s -> functionSplitLimit = Integer.parseInt(s, 10));
-
         optionPrettyPrint = addOption("prettyPrint", "Pretty print the input file, or all sub-directory if the given path is: '...'");
 
         nextArg:
@@ -149,6 +148,20 @@ public class RunArgs {
                         o.isSet = true;
                         continue nextArg;
                     } else if ((o.argHandler != null && isDoubleArg(a, o))) {
+                        String value = a.substring(a.indexOf(" ") + 1).trim();
+                        if (value.isEmpty()) {
+                            throw new RuntimeException("Missing value for option: -" + o.name);
+                        }
+                        o.argHandler.accept(value);
+                        o.isSet = true;
+                        continue nextArg;
+                    } else if (o.argHandler != null && isEqualsArg(a, o)) {
+                        String value = a.substring(a.indexOf("=") + 1).trim();
+                        if (value.isEmpty()) {
+                            throw new RuntimeException("Missing value for option: -" + o.name);
+                        }
+                        o.argHandler.accept(value);
+                        o.isSet = true;
                         continue nextArg;
                     }
                 }
@@ -168,6 +181,10 @@ public class RunArgs {
 
     private boolean isDoubleArg(String arg, RunOption option) {
         return (arg.contains(" ") && ("-" + option.name).equals(arg.substring(0, arg.indexOf(" "))));
+    }
+
+    private boolean isEqualsArg(String arg, RunOption option) {
+        return arg.startsWith("-" + option.name + "=");
     }
 
     private RunOption addOption(String name, String descr) {

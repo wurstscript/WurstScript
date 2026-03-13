@@ -28,6 +28,7 @@ public class ImInliner {
     private final Map<ImFunction, Integer> callCounts = Maps.newLinkedHashMap();
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
+    private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
     private final double inlineTreshold = 50;
 
     static {
@@ -49,8 +50,7 @@ public class ImInliner {
     }
 
     private void inlineFunctions() {
-
-        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+        for (ImFunction f : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
             inlineFunctions(f);
         }
     }
@@ -61,7 +61,7 @@ public class ImInliner {
         }
         done.add(f);
         // first inline functions called from this function
-        for (ImFunction called : translator.getCalledFunctions().get(f)) {
+        for (ImFunction called : sortedFunctions(translator.getCalledFunctions().get(f))) {
             inlineFunctions(called);
         }
         boolean[] changed = new boolean[]{false};
@@ -73,10 +73,10 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            boolean canInline = f != called && shouldInline(call, called);
+            boolean canInline = f != called && shouldInline(f, call, called);
             if (LOG_INLINER) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
-                    (canInline ? "" : " reason=" + skipReason(call, called));
+                    (canInline ? "" : " reason=" + skipReason(f, call, called));
                 WLogger.info(msg);
                 System.out.println(msg);
             }
@@ -109,12 +109,18 @@ public class ImInliner {
         return null;
     }
 
-    private String skipReason(ImFunctionCall call, ImFunction f) {
+    private String skipReason(ImFunction caller, ImFunctionCall call, ImFunction f) {
         if (f.isNative()) {
             return "native";
         }
         if (call.getCallType() == CallType.EXECUTE) {
             return "execute_call";
+        }
+        if (translator.isLuaTarget() && !maxOneReturn(f)) {
+            return "lua_multi_return_inline_disabled";
+        }
+        if (translator.isLuaTarget() && containsFuncRef(f)) {
+            return "lua_callback_funcref_barrier";
         }
         if (!inlinableFunctions.contains(f)) {
             return "not_in_inlinable_set";
@@ -276,12 +282,18 @@ public class ImInliner {
     }
 
     private void rateInlinableFunctions() {
-        for (Map.Entry<ImFunction, ImFunction> edge : translator.getCalledFunctions().entries()) {
+        List<Map.Entry<ImFunction, ImFunction>> edges = new ArrayList<>(translator.getCalledFunctions().entries());
+        edges.sort((a, b) -> {
+            int c = functionSortKey(a.getKey()).compareTo(functionSortKey(b.getKey()));
+            if (c != 0) return c;
+            return functionSortKey(a.getValue()).compareTo(functionSortKey(b.getValue()));
+        });
+        for (Map.Entry<ImFunction, ImFunction> edge : edges) {
             // For bloat control we need how often a function is used (incoming edges),
             // not how many calls it performs itself (outgoing edges).
             incCallCount(edge.getValue());
         }
-        for (ImFunction f : inlinableFunctions) {
+        for (ImFunction f : sortedFunctions(inlinableFunctions)) {
             int size = estimateSize(f);
             funcSizes.put(f, size);
         }
@@ -322,8 +334,23 @@ public class ImInliner {
         }
     }
 
-    private boolean shouldInline(ImFunctionCall call, ImFunction f) {
+    private boolean shouldInline(ImFunction caller, ImFunctionCall call, ImFunction f) {
         if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
+            return false;
+        }
+        if (translator.isLuaTarget() && !maxOneReturn(f)) {
+            // Conservative safety: Lua inliner multi-return rewriting is not yet fully robust
+            // across all lowered patterns. Keep call semantics intact for now.
+            return false;
+        }
+        if (translator.isLuaTarget() && containsFuncRef(f)) {
+            // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
+            // Keeping them as standalone calls avoids callback context/vararg scope breakage.
+            return false;
+        }
+        if (isLuaTypeCastingCompatFunction(f)) {
+            // In Lua these compat wrappers are rewritten to object index helpers.
+            // If they are inlined beforehand, old TypeCasting bodies leak through.
             return false;
         }
 
@@ -362,6 +389,31 @@ public class ImInliner {
         return false;
     }
 
+    private boolean containsFuncRef(ImFunction f) {
+        if (f == null) {
+            return false;
+        }
+        Boolean cached = containsFuncRefCache.get(f);
+        if (cached != null) {
+            return cached;
+        }
+        boolean result = containsFuncRef(f.getBody());
+        containsFuncRefCache.put(f, result);
+        return result;
+    }
+
+    private boolean containsFuncRef(Element e) {
+        if (e instanceof ImFuncRef) {
+            return true;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (containsFuncRef(e.get(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private int estimateSize(ImFunction f) {
         int[] r = new int[]{0};
         estimateSize(f.getBody(), r);
@@ -390,22 +442,44 @@ public class ImInliner {
     }
 
     private void collectInlinableFunctions() {
-        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+        for (ImFunction f : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
             if (isInlineCandidate(f)) {
                 inlinableFunctions.add(f);
             }
         }
         // Some call targets can survive in the call graph but not in prog/classes lists.
-        for (ImFunction f : translator.getCalledFunctions().values()) {
+        for (ImFunction f : sortedFunctions(translator.getCalledFunctions().values())) {
             if (isInlineCandidate(f)) {
                 inlinableFunctions.add(f);
             }
         }
     }
 
+    private List<ImFunction> sortedFunctions(Collection<ImFunction> functions) {
+        List<ImFunction> r = new ArrayList<>(functions);
+        r.sort(Comparator.comparing(this::functionSortKey));
+        return r;
+    }
+
+    private String functionSortKey(ImFunction f) {
+        if (f == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(f.getName()).append("|");
+        sb.append(f.getReturnType()).append("|");
+        for (ImVar p : f.getParameters()) {
+            sb.append(p.getType()).append(",");
+        }
+        return sb.toString();
+    }
+
     private boolean isInlineCandidate(ImFunction f) {
         if (f.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE) || f.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
             // do not inline natives
+            return false;
+        }
+        if (isLuaTypeCastingCompatFunction(f)) {
             return false;
         }
         if (f == translator.getGlobalInitFunc()) {
@@ -417,6 +491,20 @@ public class ImInliner {
             return false;
         }
         return true;
+    }
+
+    private boolean isLuaTypeCastingCompatFunction(ImFunction f) {
+        if (!translator.isLuaTarget() || f == null) {
+            return false;
+        }
+        de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
+        if (trace instanceof de.peeeq.wurstscript.ast.FuncDef fd
+            && fd.attrNearestPackage() instanceof de.peeeq.wurstscript.ast.WPackage p
+            && "TypeCasting".equals(p.getName())) {
+            String name = fd.getName();
+            return name.endsWith("FromIndex") || name.endsWith("ToIndex");
+        }
+        return false;
     }
 
     private boolean maxOneReturn(ImFunction f) {

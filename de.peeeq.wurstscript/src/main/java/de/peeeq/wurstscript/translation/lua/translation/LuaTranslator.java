@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -95,6 +96,8 @@ public class LuaTranslator {
     );
     private static final boolean DEBUG_LUA_DISPATCH = "1".equals(System.getenv("WURST_DEBUG_LUA_DISPATCH"))
         || Boolean.getBoolean("wurst.debug.lua.dispatch");
+    private static final boolean DEBUG_LUA_LOCALS = "1".equals(System.getenv("WURST_DEBUG_LUA_LOCALS"))
+        || Boolean.getBoolean("wurst.debug.lua.locals");
 
     final ImProg prog;
     final LuaCompilationUnit luaModel;
@@ -319,6 +322,7 @@ public class LuaTranslator {
         }
 
         cleanStatements();
+        enforceLuaLocalLimits();
         emitExperimentalHashtableLeakGuards();
 
         return luaModel;
@@ -767,7 +771,8 @@ public class LuaTranslator {
 
             // translate body:
             translateStatements(lf.getBody(), f.getBody());
-            spillLocalsIntoTableIfNeeded(lf, functionLocals);
+            // local-limit enforcement is done after final statement cleanup,
+            // because cleanup and later rewrites can still introduce locals.
         }
 
         if (f.isExtern() || f.isNative()) {
@@ -828,41 +833,145 @@ public class LuaTranslator {
         return false;
     }
 
-    private void spillLocalsIntoTableIfNeeded(LuaFunction lf, List<LuaVariable> functionLocals) {
-        if (functionLocals.size() <= LUA_LOCALS_LIMIT) {
+    private void enforceLuaLocalLimits() {
+        luaModel.accept(new LuaModel.DefaultVisitor() {
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                spillLocalsIntoTableIfNeeded(f.getName(), f.getParams(), f.getBody());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                spillLocalsIntoTableIfNeeded(m.getName(), m.getParams(), m.getBody());
+            }
+        });
+    }
+
+    private void spillLocalsIntoTableIfNeeded(String functionName, LuaParams params, LuaStatements body) {
+        List<LuaVariable> scopeLocals = collectFunctionScopeLocals(body);
+        int localCount = params.size() + scopeLocals.size();
+        if (DEBUG_LUA_LOCALS) {
+            WLogger.info("[LUA_LOCALS] function=" + functionName + " params=" + params.size()
+                + " locals=" + scopeLocals.size() + " total=" + localCount);
+        }
+        if (localCount < LUA_LOCALS_LIMIT || scopeLocals.isEmpty()) {
             return;
         }
 
-        Set<LuaVariable> localSet = new HashSet<>(functionLocals);
-        LuaVariable localsTable = LuaAst.LuaVariable(uniqueName("__wurst_locals"),
-            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        LuaVariable localsTable = findTopLevelLocalsTable(body);
+        if (localsTable == null) {
+            localsTable = LuaAst.LuaVariable(uniqueName("__wurst_locals"),
+                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        }
+        // Must be declared before any rewritten uses; otherwise accesses become global lookups.
+        if (!body.isEmpty() && body.get(0) != localsTable) {
+            body.remove(localsTable);
+            body.add(0, localsTable);
+        }
+
+        Set<LuaVariable> localSet = new LinkedHashSet<>();
+        for (LuaVariable v : scopeLocals) {
+            if (v != localsTable) {
+                localSet.add(v);
+            }
+        }
+        if (localSet.isEmpty()) {
+            return;
+        }
+
+        if (DEBUG_LUA_LOCALS) {
+            WLogger.info("[LUA_LOCALS] spill function=" + functionName + " total=" + localCount
+                + " spilledLocals=" + localSet.size());
+        }
+
+        final LuaVariable tableVar = localsTable;
+        final Map<LuaVariable, Integer> localSlots = createLocalSlots(localSet);
 
         // Rewrite accesses first, then replace declarations with table init assignments.
-        lf.getBody().forEachElement(e -> {
+        forEachElementRec(body, e -> {
             if (e instanceof LuaExprVarAccess) {
                 LuaExprVarAccess va = (LuaExprVarAccess) e;
-                if (localSet.contains(va.getVar())) {
-                    LuaExpr tableRef = LuaAst.LuaExprVarAccess(localsTable);
-                    LuaExpr key = LuaAst.LuaExprStringVal(va.getVar().getName());
+                LuaVariable var = va.getVar();
+                Integer slot = localSlots.get(var);
+                if (slot != null) {
+                    LuaExpr tableRef = LuaAst.LuaExprVarAccess(tableVar);
+                    LuaExpr key = LuaAst.LuaExprIntVal("" + slot);
                     va.replaceBy(LuaAst.LuaExprArrayAccess(tableRef, LuaAst.LuaExprlist(key)));
                 }
             }
         });
 
-        List<LuaStatement> oldBody = new ArrayList<>(lf.getBody());
-        lf.getBody().clear();
-        lf.getBody().add(localsTable);
+        rewriteLocalDeclarationsToTableAssignments(body, localSet, localSlots, tableVar);
+    }
 
-        for (LuaStatement stmt : oldBody) {
-            if (stmt instanceof LuaVariable && localSet.contains(stmt)) {
-                LuaVariable localDecl = (LuaVariable) stmt;
-                LuaExpr key = LuaAst.LuaExprStringVal(localDecl.getName());
-                LuaExpr left = LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(localsTable), LuaAst.LuaExprlist(key));
-                lf.getBody().add(LuaAst.LuaAssignment(left, ((LuaExpr) localDecl.getInitialValue()).copy()));
-            } else {
-                lf.getBody().add(stmt);
+    private Map<LuaVariable, Integer> createLocalSlots(Set<LuaVariable> localSet) {
+        Map<LuaVariable, Integer> r = new LinkedHashMap<>();
+        int i = 1;
+        for (LuaVariable v : localSet) {
+            r.put(v, i++);
+        }
+        return r;
+    }
+
+    private LuaVariable findTopLevelLocalsTable(LuaStatements body) {
+        for (LuaStatement stmt : body) {
+            if (stmt instanceof LuaVariable) {
+                LuaVariable v = (LuaVariable) stmt;
+                if (v.getName().startsWith("__wurst_locals") && v.getInitialValue() instanceof LuaTableConstructor) {
+                    return v;
+                }
             }
         }
+        return null;
+    }
+
+    private List<LuaVariable> collectFunctionScopeLocals(LuaStatements body) {
+        List<LuaVariable> result = new ArrayList<>();
+        collectFunctionScopeLocalsRec(body, result);
+        return result;
+    }
+
+    private void rewriteLocalDeclarationsToTableAssignments(LuaStatements stmts, Set<LuaVariable> localSet, Map<LuaVariable, Integer> localSlots, LuaVariable tableVar) {
+        ListIterator<LuaStatement> it = stmts.listIterator();
+        while (it.hasNext()) {
+            LuaStatement stmt = it.next();
+            if (stmt instanceof LuaVariable && localSet.contains(stmt)) {
+                LuaVariable localDecl = (LuaVariable) stmt;
+                Integer slot = localSlots.get(localDecl);
+                if (slot == null) {
+                    continue;
+                }
+                LuaExpr key = LuaAst.LuaExprIntVal("" + slot);
+                LuaExpr left = LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tableVar), LuaAst.LuaExprlist(key));
+                LuaExprOpt initVal = localDecl.getInitialValue();
+                LuaExpr right = initVal instanceof LuaExpr ? (LuaExpr) initVal.copy() : LuaAst.LuaExprNull();
+                it.set(LuaAst.LuaAssignment(left, right));
+            } else if (stmt instanceof LuaIf) {
+                LuaIf luaIf = (LuaIf) stmt;
+                rewriteLocalDeclarationsToTableAssignments(luaIf.getThenStmts(), localSet, localSlots, tableVar);
+                rewriteLocalDeclarationsToTableAssignments(luaIf.getElseStmts(), localSet, localSlots, tableVar);
+            } else if (stmt instanceof LuaWhile) {
+                LuaWhile luaWhile = (LuaWhile) stmt;
+                rewriteLocalDeclarationsToTableAssignments(luaWhile.getBody(), localSet, localSlots, tableVar);
+            }
+        }
+    }
+
+    private void collectFunctionScopeLocalsRec(de.peeeq.wurstscript.luaAst.Element e, List<LuaVariable> out) {
+        if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
+            return;
+        }
+        if (e instanceof LuaVariable) {
+            out.add((LuaVariable) e);
+        }
+        e.forEachElement(child -> collectFunctionScopeLocalsRec(child, out));
+    }
+
+    private void forEachElementRec(de.peeeq.wurstscript.luaAst.Element root, java.util.function.Consumer<de.peeeq.wurstscript.luaAst.Element> action) {
+        action.accept(root);
+        root.forEachElement(child -> forEachElementRec(child, action));
     }
 
     void translateStatements(List<LuaStatement> res, ImStmts stmts) {
