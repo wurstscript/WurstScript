@@ -187,3 +187,101 @@ run:
 * New behavior must be documented through tests.
 
 
+
+---
+
+## 7. LSP Structure and Build Pipelines
+
+This repository has multiple entry points that may trigger compilation/build behavior:
+
+* **Language Server runtime**
+  `de.peeeq.wurstio.languageserver.*`
+* **LSP build request**
+  `de.peeeq.wurstio.languageserver.requests.BuildMap`
+* **CLI compiler entry point**
+  `de.peeeq.wurstio.Main`
+* **CLI map build request**
+  `de.peeeq.wurstio.languageserver.requests.CliBuildMap`
+
+### LSP architecture (high-level)
+
+* `WurstLanguageServer` wires LSP protocol handlers.
+* `LanguageWorker` serializes requests and file-change reconciliation.
+* `ModelManagerImpl` owns project model state (wurst files, dependencies, diagnostics).
+* User actions like build/start/tests are implemented in `languageserver.requests.*`.
+
+### Build-map pipeline (centralized)
+
+Map build behavior is centralized in:
+
+* `MapRequest.executeBuildMapPipeline(...)`
+
+Both:
+
+* `BuildMap` (VSCode/LSP build command), and
+* `CliBuildMap` (CLI `-build`, used by grill)
+
+must use that shared backend flow.
+
+This pipeline handles:
+
+1. map/cached-map preparation
+2. script extraction/config application
+3. compilation (Jass/Lua)
+4. script + map data injection (including imports/w3i)
+5. final output map write + MPQ compression finalization
+
+### Lock handling policy
+
+* `BuildMap` (LSP/UI) may use interactive retry/rename behavior for locked output files.
+* `CliBuildMap` must fail fast with a clear error for locked files (non-interactive environments).
+
+### Agent guardrails for future changes
+
+* Do **not** reintroduce separate build-map logic in `Main` or other call sites.
+* If map build behavior changes, update the shared `MapRequest` pipeline first, then keep wrappers thin.
+* Ensure CLI and LSP builds remain behaviorally aligned unless a difference is explicitly required and tested.
+
+---
+
+## 8. Backend Parity and Lua Guardrails
+
+Recent fixes established additional rules for backend work. Follow these for all future changes:
+
+### Jass/Lua feature parity
+
+* New language/compiler features must be validated for **both Jass and Lua** backends.
+* Behavior should be as close as possible across backends.
+* If behavior differs, treat it as intentional only when:
+  * the reason is backend/runtime-specific, and
+  * the difference is documented in tests.
+
+### Error behavior parity expectations
+
+* Prefer matching Jass behavior semantically in Lua output.
+* Be explicit that Lua is stricter in some runtime cases where Jass may silently default/swallow invalid operations.
+* Do not rely on Lua strictness as a substitute for correct lowering/translation.
+
+### Lua inliner safety: callback/function-reference boundaries
+
+* On Lua target, do **not** inline across callback/function-reference-heavy sites (IM `ImFuncRef`-containing callees).
+* This avoids breaking callback context semantics (e.g. wrapper/xpcall/callback-native interactions such as force/group enum callbacks).
+* This is a structural rule, not a name-based exclusion.
+
+### Lua locals limit fallback (>200 locals)
+
+* Lua has a hard local-variable limit per function.
+* When a function exceeds the safe local threshold, rewrite locals to a locals-table fallback.
+* Requirements for fallback correctness:
+  * locals-table declaration must be at function top before first use,
+  * rewritten accesses must target the declared table (no global fallback),
+  * nested block local initializations must be preserved,
+  * use deterministic **numeric slot indices** (`tbl[1]`, `tbl[2]`, ...) rather than string keys.
+
+### Regression testing requirements
+
+* Any backend parity fix must add/adjust regression tests in `tests.wurstscript.tests.*`.
+* Include tests that check:
+  * generated backend output shape for the affected backend,
+  * no behavioral regression in the other backend when relevant,
+  * known fragile cases (dispatch binding, inlining boundaries, locals spilling).
