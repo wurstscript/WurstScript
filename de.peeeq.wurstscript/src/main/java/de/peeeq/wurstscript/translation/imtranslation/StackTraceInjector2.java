@@ -295,9 +295,14 @@ public class StackTraceInjector2 {
      */
     private int getStacktraceIndex(ImFunctionCall c) {
         ImFunction f = c.getFunc();
-        int res = f.getParameters().size() - 1;
+        int res;
         if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
-            res--;
+            // Keep stacktrace before vararg payload.
+            res = f.getParameters().size() - 2;
+        } else {
+            // Append for non-vararg calls based on actual call shape.
+            // This avoids relying on parameter-layout assumptions in lowered calls.
+            res = c.getArguments().size();
         }
         if (res < 0 || res > c.getArguments().size() + 1) {
             throw new CompileError(c, "Call " + c + " invalid index " + res + " for parameters " + f.getParameters() + " and isVararg = " + f.hasFlag(FunctionFlagEnum.IS_VARARG));
@@ -307,9 +312,16 @@ public class StackTraceInjector2 {
 
     private int getStacktraceIndex(ImMethodCall c) {
         ImFunction f = c.getMethod().getImplementation();
-        int res = f.getParameters().size() - 2; // subtract one for implicit parameter
+        int res;
         if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
-            res--;
+            // For vararg methods keep the stacktrace argument before the vararg bucket.
+            // Method implementations normally include an implicit receiver as first parameter.
+            res = f.getParameters().size() - 3;
+        } else {
+            // For non-vararg methods append after existing explicit call arguments.
+            // This is robust even if a generated method implementation does not carry
+            // an implicit receiver parameter in its function signature.
+            res = c.getArguments().size();
         }
         if (res < 0 || res > c.getArguments().size() + 1) {
             throw new CompileError(c, "Call " + c + " invalid index " + res + " for parameters " + f.getParameters() + " and isVararg = " + f.hasFlag(FunctionFlagEnum.IS_VARARG));

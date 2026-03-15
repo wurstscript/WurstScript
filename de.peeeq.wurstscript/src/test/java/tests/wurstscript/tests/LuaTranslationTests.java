@@ -2,6 +2,13 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import config.WurstProjectConfigData;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
@@ -9,6 +16,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -71,6 +79,27 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Pattern must occur: " + regex, matcher.find());
     }
 
+    private String compileLuaWithRunArgs(String testName, boolean withStdLib, String... lines) {
+        RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
+        WurstGui gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        List<CU> inputs = Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines)));
+
+        WurstModel model = parseFiles(Collections.emptyList(), inputs, withStdLib, compiler);
+        assertNotNull("parse returned null model, errors = " + gui.getErrorList(), model);
+        assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(new WurstProjectConfigData(), false, false);
+        LuaCompilationUnit luaCode = compiler.transformProgToLua();
+
+        StringBuilder sb = new StringBuilder();
+        luaCode.print(sb, 0);
+        return sb.toString();
+    }
+
     @Test
     public void testStdLib() throws IOException {
         test().testLua(true).withStdLib().lines(
@@ -85,6 +114,56 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("function __wurst_SaveInteger("));
         assertTrue(compiled.contains("function __wurst_LoadInteger("));
         assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "return 0", true);
+    }
+
+    @Test
+    public void stacktraceStringsNotInjectedIntoNumericComparisons() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_stacktraceStringsNotInjectedIntoNumericComparisons",
+            false,
+            "package Test",
+            "public tuple Vec2(real x, real y)",
+            "public tuple scanResult(boolean found, Vec2 pos)",
+            "class MyRect",
+            "    real minX",
+            "    real minY",
+            "    real maxX",
+            "    real maxY",
+            "    construct(real minX, real minY, real maxX, real maxY)",
+            "        this.minX = minX",
+            "        this.minY = minY",
+            "        this.maxX = maxX",
+            "        this.maxY = maxY",
+            "    function contains(Vec2 p) returns boolean",
+            "        return p.x > minX and p.x < maxX and p.y > minY and p.y < maxY",
+            "function gridAnchor(MyRect r, int dirX, int dirY, boolean isBehind) returns Vec2",
+            "    let ax = dirX >= 0 ? r.minX + (isBehind ? 0 : 64) : r.maxX + (isBehind ? 0 : 64)",
+            "    let ay = dirY >= 0 ? r.minY : r.maxY",
+            "    return Vec2(ax, ay)",
+            "function stepsAlongY(MyRect r, real startY, int dirY, real stepSize) returns int",
+            "    if dirY >= 0 and stepSize > 0 and r.maxY > startY",
+            "        return 1",
+            "    return 0",
+            "class BuildScanIterator",
+            "    private var scanWidth = 128.",
+            "    function tryRect(MyRect r, int dirX, int dirY) returns scanResult",
+            "        if r == null",
+            "            return scanResult(false, Vec2(0., 0.))",
+            "        let start = gridAnchor(r, dirX, dirY, true)",
+            "        if not r.contains(start)",
+            "            return scanResult(false, Vec2(0., 0.))",
+            "        let maxY = stepsAlongY(r, start.y, dirY, scanWidth)",
+            "        if maxY >= 0",
+            "            return scanResult(true, start)",
+            "        return scanResult(false, Vec2(0., 0.))",
+            "init",
+            "    let b = new BuildScanIterator",
+            "    b.tryRect(new MyRect(0., 0., 256., 256.), 1, 1)"
+        );
+        assertContainsRegex(compiled, "\"when calling contains");
+        assertDoesNotContainRegex(compiled, "\"when calling contains[^\"]*\"\\s*[<>]=?");
+        assertContainsRegex(compiled, "stepsAlongY\\(");
+        assertDoesNotContainRegex(compiled, "(?s)if not\\((\\w+)\\) then.*?stepsAlongY\\([^\\n]*,\\s*\\1\\s*,");
     }
 
     @Test

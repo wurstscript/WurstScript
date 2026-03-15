@@ -947,7 +947,7 @@ public class AntlrWurstParseTreeTransformer {
     private WStatement transformForRangeLoop(ForRangeLoopContext s) {
         WPos source = source(s);
         Expr start = transformExpr(s.start);
-        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start, true);
+        LocalVarDef loopVar = transformLocalVarDef(s.loopVar, start, false);
         Expr to = transformExpr(s.end);
         Expr step;
         if (s.step == null) {
