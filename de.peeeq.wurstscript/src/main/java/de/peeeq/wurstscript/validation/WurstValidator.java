@@ -1333,6 +1333,12 @@ public class WurstValidator {
             return;
         }
         NameDef var = link.getDef();
+        if (var != null && isForRangeLoopVar(var)) {
+            left.addWarning("Avoid mutating for-loop variable " + Utils.printElement(var)
+                + ": this can cause unexpected iteration side effects (skipped or repeated iterations). "
+                + "This will be an error in a future version.");
+            return;
+        }
         if (var != null && var.attrIsConstant()) {
             if (var instanceof GlobalVarDef) {
                 GlobalVarDef glob = (GlobalVarDef) var;
@@ -1343,6 +1349,13 @@ public class WurstValidator {
             }
             left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
         }
+    }
+
+    private boolean isForRangeLoopVar(NameDef var) {
+        Element parent = var.getParent();
+        return parent instanceof StmtForRange
+            || parent instanceof StmtForRangeUp
+            || parent instanceof StmtForRangeDown;
     }
 
     private boolean isInConstructor(Element e) {

@@ -919,8 +919,8 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
-    public void forRangeLoopVarIsImmutable() {
-        testAssertErrorsLines(false, "Cannot assign a new value to constant",
+    public void forRangeLoopVarMutationWarns() {
+        testAssertWarningsLines(false, "unexpected iteration side effects",
             "package test",
             "init",
             "    int stackPointer = 3",
