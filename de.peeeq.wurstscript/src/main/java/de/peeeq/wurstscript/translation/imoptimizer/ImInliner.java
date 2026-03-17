@@ -116,9 +116,6 @@ public class ImInliner {
         if (call.getCallType() == CallType.EXECUTE) {
             return "execute_call";
         }
-        if (translator.isLuaTarget() && !maxOneReturn(f)) {
-            return "lua_multi_return_inline_disabled";
-        }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             return "lua_callback_funcref_barrier";
         }
@@ -241,14 +238,14 @@ public class ImInliner {
     private ImStmts rewriteForEarlyReturns(ImStmts body, ImVar doneVar, ImVar retVar) {
         ImStmts rewritten = JassIm.ImStmts();
         for (ImStmt s : body) {
-            ImStmt transformed = rewriteStmtForEarlyReturn(s, doneVar, retVar);
+            ImStmts transformed = rewriteStmtForEarlyReturn(s, doneVar, retVar);
             ImExpr notDone = JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.NOT, JassIm.ImExprs(JassIm.ImVarAccess(doneVar)));
-            rewritten.add(JassIm.ImIf(s.attrTrace(), notDone, JassIm.ImStmts(transformed), JassIm.ImStmts()));
+            rewritten.add(JassIm.ImIf(s.attrTrace(), notDone, transformed, JassIm.ImStmts()));
         }
         return rewritten;
     }
 
-    private ImStmt rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
+    private ImStmts rewriteStmtForEarlyReturn(ImStmt s, ImVar doneVar, ImVar retVar) {
         if (s instanceof ImReturn) {
             ImReturn r = (ImReturn) s;
             ImStmts b = JassIm.ImStmts();
@@ -258,27 +255,27 @@ public class ImInliner {
                 b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(retVar), rv));
             }
             b.add(JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(doneVar), JassIm.ImBoolVal(true)));
-            return ImHelper.statementExprVoid(b);
+            return b;
         } else if (s instanceof ImIf) {
             ImIf imIf = (ImIf) s;
             ImStmts thenBlock = rewriteForEarlyReturns(imIf.getThenBlock().copy(), doneVar, retVar);
             ImStmts elseBlock = rewriteForEarlyReturns(imIf.getElseBlock().copy(), doneVar, retVar);
-            return JassIm.ImIf(imIf.getTrace(), imIf.getCondition().copy(), thenBlock, elseBlock);
+            return JassIm.ImStmts(JassIm.ImIf(imIf.getTrace(), imIf.getCondition().copy(), thenBlock, elseBlock));
         } else if (s instanceof ImLoop) {
             ImLoop l = (ImLoop) s;
             ImStmts loopBody = JassIm.ImStmts();
             loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
-            return JassIm.ImLoop(l.getTrace(), loopBody);
+            return JassIm.ImStmts(JassIm.ImLoop(l.getTrace(), loopBody));
         } else if (s instanceof ImVarargLoop) {
             ImVarargLoop l = (ImVarargLoop) s;
             ImStmts loopBody = JassIm.ImStmts();
             loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
-            return JassIm.ImVarargLoop(l.getTrace(), loopBody, l.getLoopVar());
+            return JassIm.ImStmts(JassIm.ImVarargLoop(l.getTrace(), loopBody, l.getLoopVar()));
         }
         // Keep tree ownership valid when rewrapping statements into new blocks.
-        return s.copy();
+        return JassIm.ImStmts(s.copy());
     }
 
     private void rateInlinableFunctions() {
@@ -336,11 +333,6 @@ public class ImInliner {
 
     private boolean shouldInline(ImFunction caller, ImFunctionCall call, ImFunction f) {
         if (f.isNative() || call.getCallType() == CallType.EXECUTE) {
-            return false;
-        }
-        if (translator.isLuaTarget() && !maxOneReturn(f)) {
-            // Conservative safety: Lua inliner multi-return rewriting is not yet fully robust
-            // across all lowered patterns. Keep call semantics intact for now.
             return false;
         }
         if (translator.isLuaTarget() && containsFuncRef(f)) {

@@ -1111,6 +1111,56 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(useIdx > initIdx, "Expected inlineRet to be initialized before use.");
     }
 
+    @Test
+    public void inlinerMultiReturnKeepsPostReturnSideEffectsUnreachableUnderInlopt() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "@inline function pickPositive(int x) returns int",
+            "    if x > 0",
+            "        return x",
+            "    testFail(\"post-return path executed\")",
+            "    return 0 - x",
+            "init",
+            "    let y = pickPositive(7)",
+            "    if y == 7",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput() throws IOException {
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "@inline function maybeAbs(int x) returns int",
+            "    if x > 0",
+            "        return x",
+            "    return 0 - x",
+            "init",
+            "    let y = maybeAbs(GetRandomInt(-5, 5))",
+            "    if y >= 0",
+            "        testSuccess()",
+            "endpackage"
+        );
+
+        String inl = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inl.j"), Charsets.UTF_8);
+        String inlopt = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inlopt.j"), Charsets.UTF_8);
+
+        for (String generated : java.util.List.of(inl, inlopt)) {
+            assertFalse(generated.contains("call maybeAbs("), "Expected maybeAbs() to be fully inlined.");
+            assertTrue(generated.contains("set inlineDone"), "Expected explicit inlineDone writes.");
+            assertTrue(generated.contains("set inlineRet"), "Expected explicit inlineRet writes.");
+            assertTrue(generated.contains("set inlineDone = false")
+                    || generated.contains("local boolean inlineDone = false"),
+                "Expected explicit inlineDone initialization.");
+            assertTrue(generated.contains("set inlineDone = true"), "Expected explicit rewritten return marking.");
+            assertTrue(generated.matches("(?s).*if\\s+not\\s+inlineDone.*"),
+                "Expected explicit post-return gating in generated code.");
+        }
+    }
+
 
     @Test
     public void moveTowardsBug() { // see #737
@@ -1220,6 +1270,30 @@ public class OptimizerTests extends WurstScriptTest {
             "init",
             "    if getDamage(2) > 239 and getDamage(2) < 241",
             "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void precisionSensitiveRealFoldUsesSingleFoldingPath() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "@extern native R2I(real r) returns int",
+            "@extern native I2S(int i) returns string",
+            "",
+            "@inline function risky(real a, real b) returns int",
+            "    real d = a - b",
+            "    return R2I(d)",
+            "",
+            "init",
+            "    // On WC3 real semantics these literals collapse to same float, so (a - b) should be 0.",
+            "    let x = risky(16777217., 16777216.)",
+            "    if x == 0",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"precision fold regression: \" + I2S(x))",
+            "endpackage"
         );
     }
 

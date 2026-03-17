@@ -101,6 +101,7 @@ public class LuaTranslator {
 
     final ImProg prog;
     final LuaCompilationUnit luaModel;
+    private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
         "print", "tostring", "error",
@@ -180,7 +181,7 @@ public class LuaTranslator {
     GetAForB<ImClass, LuaVariable> luaClassVar = new GetAForB<ImClass, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImClass a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaNoExpr());
+            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
     };
 
@@ -321,9 +322,10 @@ public class LuaTranslator {
             initClassTables(c);
         }
 
+        emitExperimentalHashtableLeakGuards();
+        prependDeferredMainInitToMain();
         cleanStatements();
         enforceLuaLocalLimits();
-        emitExperimentalHashtableLeakGuards();
 
         return luaModel;
     }
@@ -353,11 +355,38 @@ public class LuaTranslator {
     }
 
     private void emitExperimentalHashtableLeakGuards() {
-        luaModel.add(LuaAst.LuaLiteral("-- Wurst experimental Lua assertion guards: raw WC3 hashtable natives must not be called."));
+        deferMainInit(LuaAst.LuaLiteral("-- Wurst experimental Lua assertion guards: raw WC3 hashtable natives must not be called."));
+        deferMainInit(LuaAst.LuaLiteral("do"));
+        deferMainInit(LuaAst.LuaLiteral("    local __wurst_guard_ok = pcall(function()"));
         for (String nativeName : allHashtableNativeNames()) {
-            luaModel.add(LuaAst.LuaLiteral("if " + nativeName + " ~= nil then " + nativeName
+            deferMainInit(LuaAst.LuaLiteral("        if " + nativeName + " ~= nil then " + nativeName
                 + " = function(...) error(\"Wurst Lua assertion failed: unexpected call to native " + nativeName
                 + ". Expected __wurst_" + nativeName + ".\") end end"));
+        }
+        deferMainInit(LuaAst.LuaLiteral("    end)"));
+        deferMainInit(LuaAst.LuaLiteral("    if not __wurst_guard_ok then"));
+        deferMainInit(LuaAst.LuaLiteral("        -- Some Lua runtimes lock native globals. Compile-time leak checks stay authoritative."));
+        deferMainInit(LuaAst.LuaLiteral("    end"));
+        deferMainInit(LuaAst.LuaLiteral("end"));
+    }
+
+    private void deferMainInit(LuaStatement statement) {
+        deferredMainInit.add(statement);
+    }
+
+    private void prependDeferredMainInitToMain() {
+        if (deferredMainInit.isEmpty()) {
+            return;
+        }
+        ImFunction mainIm = imTr.getMainFunc();
+        if (mainIm == null) {
+            return;
+        }
+        LuaFunction mainLua = luaFunc.getFor(mainIm);
+        LuaStatements mainBody = mainLua.getBody();
+        for (int i = deferredMainInit.size() - 1; i >= 0; i--) {
+            LuaStatement stmt = deferredMainInit.remove(i);
+            mainBody.add(0, stmt);
         }
     }
 
@@ -534,15 +563,17 @@ public class LuaTranslator {
 
     private void createObjectIndexFunctions() {
         String vName = "__wurst_objectIndexMap";
-        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
-        )));
+        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaExprNull());
         luaModel.add(v);
-
-        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(v), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
-        )));
+        ))));
+
+        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
         luaModel.add(im);
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(im), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
+        ))));
 
         {
             String[] code = {
@@ -597,12 +628,13 @@ public class LuaTranslator {
     }
 
     private void createStringIndexFunctions() {
-        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
+        luaModel.add(map);
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(map), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0")),
             LuaAst.LuaTableNamedField("byString", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())),
             LuaAst.LuaTableNamedField("byIndex", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()))
-        )));
-        luaModel.add(map);
+        ))));
 
         {
             String[] code = {
@@ -995,8 +1027,6 @@ public class LuaTranslator {
 
         luaModel.add(initMethod);
 
-        classVar.setInitialValue(emptyTable());
-
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
@@ -1038,14 +1068,14 @@ public class LuaTranslator {
         // set supertype metadata:
         LuaTableFields superClasses = LuaAst.LuaTableFields();
         collectSuperClasses(superClasses, c, new HashSet<>());
-        luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
             WURST_SUPERTYPES),
             LuaAst.LuaTableConstructor(superClasses)
         ));
 
         // set typeid metadata:
-        luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
             ExprTranslation.TYPE_ID),
             LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
@@ -1100,7 +1130,7 @@ public class LuaTranslator {
             if (impl == null || impl.getImplementation() == null) {
                 continue;
             }
-            luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
                 LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
@@ -1343,8 +1373,9 @@ public class LuaTranslator {
             return;
         }
         LuaVariable lv = luaVar.getFor(v);
-        lv.setInitialValue(defaultValue(v.getType()));
+        lv.setInitialValue(LuaAst.LuaExprNull());
         luaModel.add(lv);
+        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(lv), defaultValue(v.getType())));
     }
 
     private LuaExpr defaultValue(ImType type) {
