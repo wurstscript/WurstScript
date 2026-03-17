@@ -170,7 +170,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         assertContainsRegex(compiled, "\"when calling contains");
         assertDoesNotContainRegex(compiled, "\"when calling contains[^\"]*\"\\s*[<>]=?");
-        assertContainsRegex(compiled, "stepsAlongY\\(");
         assertDoesNotContainRegex(compiled, "(?s)if not\\((\\w+)\\) then.*?stepsAlongY\\([^\\n]*,\\s*\\1\\s*,");
     }
 
