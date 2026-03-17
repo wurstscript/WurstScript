@@ -309,31 +309,19 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         } else {
                             Value newValue = null;
 
-                            // Try constant folding first
-                            ImExpr foldedExpr = tryConstantFold(right, newOut);
-                            if (foldedExpr != null && foldedExpr != right) {
-                                // We successfully folded to a constant
-                                newValue = Value.tryValue(foldedExpr);
-                                if (newValue != null) {
-                                    // Replace the RHS with the folded constant in the AST
-                                    right.replaceBy(foldedExpr);
-                                }
-                            }
-
-                            // If no folding happened, try regular value propagation
-                            if (newValue == null) {
-                                if (right instanceof ImConst) {
-                                    newValue = Value.tryValue(right);
-                                } else if (right instanceof ImVarAccess) {
-                                    ImVar varRight = ((ImVarAccess) right).getVar();
-                                    if(newOut.containsKey(varRight)) {
-                                        newValue = newOut.get(varRight).getOrNull();
-                                    } else {
-                                        newValue = Value.tryValue(right);
-                                    }
-                                } else if(right instanceof ImTupleExpr) {
+                            // Constant folding is intentionally centralized in SimpleRewrites.
+                            // This pass performs propagation only to keep fold semantics in one place.
+                            if (right instanceof ImConst) {
+                                newValue = Value.tryValue(right);
+                            } else if (right instanceof ImVarAccess) {
+                                ImVar varRight = ((ImVarAccess) right).getVar();
+                                if(newOut.containsKey(varRight)) {
+                                    newValue = newOut.get(varRight).getOrNull();
+                                } else {
                                     newValue = Value.tryValue(right);
                                 }
+                            } else if(right instanceof ImTupleExpr) {
+                                newValue = Value.tryValue(right);
                             }
 
                             if (newValue == null) {
