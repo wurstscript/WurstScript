@@ -2052,7 +2052,8 @@ public class WurstValidator {
     private void visit(StmtReturn s) {
         if (s.attrNearestExprStatementsBlock() != null) {
             ExprStatementsBlock e = s.attrNearestExprStatementsBlock();
-            if (!isClosureImplementationBlock(e) && e.getReturnStmt() != s) {
+            boolean closureImplementationBlock = isClosureImplementationBlock(e);
+            if (!closureImplementationBlock && e.getReturnStmt() != s) {
                 s.addError("Return in a statements block can only be at the end.");
                 return;
             }
@@ -2062,7 +2063,9 @@ public class WurstValidator {
                     s.addError("Cannot return void from statements block.");
                 }
             } else {
-                s.addError("Cannot have empty return statement in statements block.");
+                if (!closureImplementationBlock || !closureReturnsVoid(e)) {
+                    s.addError("Cannot have empty return statement in statements block.");
+                }
             }
         } else {
             FunctionImplementation func = s.attrNearestFuncDef();
@@ -2077,6 +2080,16 @@ public class WurstValidator {
     private boolean isClosureImplementationBlock(ExprStatementsBlock block) {
         Element parent = block.getParent();
         return parent instanceof ExprClosure && ((ExprClosure) parent).getImplementation() == block;
+    }
+
+    private boolean closureReturnsVoid(ExprStatementsBlock block) {
+        Element parent = block.getParent();
+        if (!(parent instanceof ExprClosure)) {
+            return false;
+        }
+        ExprClosure closure = (ExprClosure) parent;
+        FuncLink abstractMethod = closure.attrClosureAbstractMethod();
+        return abstractMethod != null && abstractMethod.getReturnType().isVoid();
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
