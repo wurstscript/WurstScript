@@ -500,6 +500,27 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_multipleEmptyEarlyReturns_inVoidStatementsBlock() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface FnVoid",
+                "    function run()",
+                "function call(FnVoid f)",
+                "    f.run()",
+                "int x = 0",
+                "init",
+                "    call() ->",
+                "        x = 1",
+                "        if true",
+                "            return",
+                "        x = 2",
+                "    if x == 1",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
     public void statementsBlockOutsideClosure_stillRequiresReturnAtEnd() {
         testAssertErrorsLines(false, "Return in a statements block can only be at the end.",
                 "package test",
