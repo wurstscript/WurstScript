@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    maven { url 'https://jitpack.io' }
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.github.inwc3:wc3libs:cc49c8e63c'
+    implementation 'com.google.guava:guava:31.1-jre'
+}
+
+application {
+    mainClass = 'objEditing.abilities.GenAbilities'
+}
+
+run {
+    workingDir = file('.')
+}
+
+sourceSets {
+    main {
+        java { srcDirs = ['src'] }
+    }
+}
