@@ -553,10 +553,12 @@ public class ProgramStateIO extends ProgramState {
             // Add the appropriate stdlib wrapper import for the file type so generated
             // code using e.g. AbilityDefinitionSlow can reference that class directly.
             switch (fileType) {
-                case ABILITIES: out.write("import AbilityObjEditing\n"); break;
-                case UNITS:     out.write("import UnitObjEditing\n"); break;
-                case BUFFS:     out.write("import BuffObjEditing\n"); break;
-                case ITEMS:     out.write("import ItemObjEditing\n"); break;
+                case ABILITIES:    out.write("import AbilityObjEditing\n"); break;
+                case UNITS:        out.write("import UnitObjEditing\n"); break;
+                case BUFFS:        out.write("import BuffObjEditing\n"); break;
+                case ITEMS:        out.write("import ItemObjEditing\n"); break;
+                case DESTRUCTABLES: out.write("import DestructableObjEditing\n"); break;
+                case DOODADS:      out.write("import DoodadObjEditing\n"); break;
                 default: break;
             }
             out.write("\n");
