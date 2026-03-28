@@ -17,7 +17,10 @@ jobs:
     working_directory: ~/repo/de.peeeq.wurstscript
 
     environment:
-      GRADLE_OPTS: -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2
+      # With --no-daemon, GRADLE_OPTS applies to the build JVM itself.
+      # Cap it at 256 MB so the forked test JVM (-Xmx2g) + JaCoCo agent overhead
+      # fit within the medium container's 4 GB.
+      GRADLE_OPTS: -Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2 -Xmx256m
       TERM: dumb
 
     steps:
