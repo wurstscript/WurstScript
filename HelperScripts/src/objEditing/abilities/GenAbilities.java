@@ -201,6 +201,7 @@ public class GenAbilities {
             fd.printFunc(usedNames);
         }
 
+
         // Build a constant-name map for ALL abilities (used so stdlib classes reference AbilityIds.xxx)
         // We need this before generating any class output.
         Map<String, String> spellToConstant = new HashMap<>(); // spell -> camelCase constant name
