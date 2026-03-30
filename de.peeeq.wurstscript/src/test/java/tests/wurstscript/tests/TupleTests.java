@@ -540,6 +540,21 @@ public class TupleTests extends WurstScriptTest {
         );
     }
     @Test
+    public void returnWrongTupleType() {
+        testAssertErrorsLines(false, "Cannot return t2",
+                "package test",
+                "native testSuccess()",
+                "tuple t1(int i, int i2)",
+                "tuple t2(int i, int i2, int i3)",
+                "let t2i = t2(1, 2, 3)",
+                "function foo() returns t1",
+                "    return t2i",
+                "init",
+                "    let x = foo()"
+        );
+    }
+
+    @Test
     public void nestedTupleArray() {
         testAssertOkLines(true,
                 "package test",
