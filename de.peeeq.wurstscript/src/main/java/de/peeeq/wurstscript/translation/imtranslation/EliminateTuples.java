@@ -567,9 +567,8 @@ public class EliminateTuples {
 
         // Sanity:
         if (flatExprs.size() != returnVars.size()) {
-            throw new RuntimeException("Tuple arity mismatch in return: RHS has "
-                + flatExprs.size() + " leaves, but function expects "
-                + returnVars.size());
+            throw new CompileError(parent.getTrace(),
+                "Cannot return tuple with " + flatExprs.size() + " element(s) from function expecting " + returnVars.size() + " element(s)");
         }
 
         // 2) Assign per component, converting nulls to proper defaults of LHS type

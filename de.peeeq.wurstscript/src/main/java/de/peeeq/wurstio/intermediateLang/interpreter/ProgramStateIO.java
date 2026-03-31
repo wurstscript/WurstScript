@@ -549,7 +549,19 @@ public class ProgramStateIO extends ProgramState {
                               ObjectFileType fileType, Path outFile) throws IOException {
         try (BufferedWriter out = Files.newBufferedWriter(outFile, StandardCharsets.UTF_8)) {
             out.write("package WurstExportedObjects_" + fileType.getExt() + "\n");
-            out.write("import ObjEditingNatives\n\n");
+            out.write("import ObjEditingNatives\n");
+            // Add the appropriate stdlib wrapper import for the file type so generated
+            // code using e.g. AbilityDefinitionSlow can reference that class directly.
+            switch (fileType) {
+                case ABILITIES:    out.write("import AbilityObjEditing\n"); break;
+                case UNITS:        out.write("import UnitObjEditing\n"); break;
+                case BUFFS:        out.write("import BuffObjEditing\n"); break;
+                case ITEMS:        out.write("import ItemObjEditing\n"); break;
+                case DESTRUCTABLES: out.write("import DestructableObjEditing\n"); break;
+                case DOODADS:      out.write("import DoodadObjEditing\n"); break;
+                default: break;
+            }
+            out.write("\n");
 
             out.write("// Modified Table (contains all custom objects)\n\n");
             exportToWurst(dataStore.getCustomObjs(), fileType, out);
@@ -560,55 +572,173 @@ public class ProgramStateIO extends ProgramState {
         }
     }
 
-    public void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out) throws IOException {
+    public static void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out) throws IOException {
         for (ObjMod.Obj obj : customObjs) {
             // Original-table objects (melee overrides) have no base/new id in wc3libs.
             // For Wurst export we represent them as same-id overrides.
             String objectId = obj.getId().getVal();
             String oldId = (obj.getBaseId() != null ? obj.getBaseId().getVal() : objectId);
             String newId = (obj.getNewId() != null ? obj.getNewId().getVal() : objectId);
-            out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
-                .append("()\n");
-            out.append("\tlet def = createObjectDefinition(\"").append(fileType.getExt()).append("\", '");
-            out.append(newId);
-            out.append("', '");
-            out.append(oldId);
-            out.append("')\n");
-            for (ObjMod.Obj.Mod m : obj.getMods()) {
-                if (fileType.usesLevels() && m instanceof ObjMod.Obj.ExtendedMod) {
-                    ObjMod.Obj.ExtendedMod extendedMod = (ObjMod.Obj.ExtendedMod) m;
-                    out.append("\t..setLvlData").append(valTypeToFuncPostfix(extendedMod.getValType())).append("(\"");
-                    out.append(m.toString());
-                    out.append("\", ")
-                        .append(String.valueOf(extendedMod.getLevel()))
-                        .append(", ")
-                        .append(String.valueOf(extendedMod.getDataPt())).append(", ")
-                        .append((extendedMod.getValType() == ObjMod.ValType.STRING) ?
-                            Utils.escapeString(extendedMod.getVal().toString()) :
-                            extendedMod.getVal().toString())
-                        .append(")\n");
-                } else {
-                    out.append("\t..set").append(valTypeToFuncPostfix(m.getValType())).append("(\"");
-                    out.append(m.toString());
-                    out.append("\", ").append((m.getValType() == ObjMod.ValType.STRING) ?
-                        Utils.escapeString(m.getVal().toString()) :
-                        m.getVal().toString()).append(")\n");
+
+            // Filter the internal "wurs" marker field — it is an implementation detail
+            // added by the compiler to tag generated objects and should not appear in output.
+            List<ObjMod.Obj.Mod> modsToExport = obj.getMods().stream()
+                .filter(m -> !m.toString().equals("wurs"))
+                .collect(Collectors.toList());
+
+            if (!tryExportWithWrapper(out, fileType, newId, oldId, modsToExport)) {
+                // Raw fallback: createObjectDefinition with direct field setters
+                out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
+                    .append("()\n");
+                out.append("\tlet def = createObjectDefinition(\"").append(fileType.getExt()).append("\", '");
+                out.append(newId).append("', '").append(oldId).append("')\n");
+                for (ObjMod.Obj.Mod m : modsToExport) {
+                    appendRawMod(out, m, fileType);
                 }
+                out.append("\n\n");
             }
-            out.append("\n\n");
         }
     }
 
-    private String valTypeToFuncPostfix(ObjMod.ValType valType) {
+    /**
+     * Attempts to emit a wrapper-class-based definition for the given object.
+     * Uses the stdlib high-level classes (e.g. AbilityDefinitionSlow, UnitDefinition)
+     * and their named setter methods.
+     *
+     * <p>Fields that have no known wrapper method are emitted as commented-out raw
+     * calls so the output is still useful even when coverage is incomplete.
+     *
+     * <p>Returns {@code false} only when there is no wrapper class at all for this
+     * object type / base ID (e.g. doodads, upgrades, or an unknown ability base ID),
+     * in which case the caller should fall back to the fully raw format.
+     */
+    private static boolean tryExportWithWrapper(Appendable out, ObjectFileType fileType,
+                                          String newId, String oldId,
+                                          List<ObjMod.Obj.Mod> mods) throws IOException {
+        String wrapperClass;
+        Map<String, StdlibObjectMappings.FieldMethodInfo> fieldMethods;
+        // Constructor argument string, e.g. "'A01M'" or "'H001', 'hfoo'"
+        String constructorArgs;
+
+        switch (fileType) {
+            case ABILITIES:
+                wrapperClass = StdlibObjectMappings.ABILITY_CLASS_BY_BASE_ID.get(oldId);
+                if (wrapperClass == null) return false;
+                fieldMethods = StdlibObjectMappings.ABILITY_FIELD_METHODS.getOrDefault(
+                    oldId, Collections.emptyMap());
+                constructorArgs = "'" + newId + "'";
+                break;
+            case UNITS:
+                // Buildings: base ID is in the known building set
+                // Heroes: base ID is in the known hero set, OR the new (custom) ID starts with
+                //         an uppercase letter (WC3 convention for custom hero unit IDs)
+                if (StdlibObjectMappings.BUILDING_BASE_IDS.contains(oldId)) {
+                    wrapperClass = "BuildingDefinition";
+                    fieldMethods = StdlibObjectMappings.BUILDING_FIELD_METHODS;
+                } else if (StdlibObjectMappings.HERO_BASE_IDS.contains(oldId)
+                           || Character.isUpperCase(newId.charAt(0))) {
+                    wrapperClass = "HeroDefinition";
+                    fieldMethods = StdlibObjectMappings.HERO_FIELD_METHODS;
+                } else {
+                    wrapperClass = "UnitDefinition";
+                    fieldMethods = StdlibObjectMappings.UNIT_FIELD_METHODS;
+                }
+                constructorArgs = "'" + newId + "', '" + oldId + "'";
+                break;
+            case BUFFS:
+                wrapperClass = "BuffDefinition";
+                fieldMethods = StdlibObjectMappings.BUFF_FIELD_METHODS;
+                constructorArgs = "'" + newId + "', '" + oldId + "'";
+                break;
+            case ITEMS:
+                wrapperClass = "ItemDefinition";
+                fieldMethods = StdlibObjectMappings.ITEM_FIELD_METHODS;
+                constructorArgs = "'" + newId + "', '" + oldId + "'";
+                break;
+            case DESTRUCTABLES:
+                wrapperClass = "DestructableDefinition";
+                fieldMethods = StdlibObjectMappings.DESTRUCTABLE_FIELD_METHODS;
+                constructorArgs = "'" + newId + "', '" + oldId + "'";
+                break;
+            case DOODADS:
+                wrapperClass = "DoodadDefinition";
+                fieldMethods = StdlibObjectMappings.DOODAD_FIELD_METHODS;
+                constructorArgs = "'" + newId + "', '" + oldId + "'";
+                break;
+            default:
+                return false;
+        }
+
+        out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
+            .append("()\n");
+        out.append("\tnew ").append(wrapperClass).append("(").append(constructorArgs).append(")\n");
+
+        for (ObjMod.Obj.Mod m : mods) {
+            StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(m, fileType));
+            if (info != null) {
+                out.append("\t..").append(info.methodName()).append("(");
+                if (info.hasLevel() && m instanceof ObjMod.Obj.ExtendedMod) {
+                    out.append(String.valueOf(((ObjMod.Obj.ExtendedMod) m).getLevel())).append(", ");
+                }
+                out.append(formatModValue(m, info.isBoolField())).append(")\n");
+            } else {
+                // No wrapper method for this field — emit as a commented raw call so the
+                // user can see what needs to be handled and add it manually.
+                out.append("\t// TODO no wrapper: ");
+                appendRawMod(out, m, fileType);
+            }
+        }
+        out.append("\n\n");
+        return true;
+    }
+
+    /**
+     * Returns the lookup key used to match a mod to a {@link StdlibObjectMappings.FieldMethodInfo}.
+     * Uses the mod's actual dataPtr when it is an {@link ObjMod.Obj.ExtendedMod}, regardless of
+     * whether the file type reports {@code usesLevels()} — some types (e.g. buffs) store their
+     * data as extended mods even though the file type flag is false.
+     */
+    static String fieldKey(ObjMod.Obj.Mod m, ObjectFileType fileType) {
+        if (m instanceof ObjMod.Obj.ExtendedMod ext) {
+            return m.toString() + ":" + ext.getDataPt();
+        }
+        // Plain Mods (non-extended) have no dataPtr. WC3 WE stores equivalent data as
+        // ExtendedMod with dataPtr=0, so use 0 here to match the JSON keys for unit/item/buff
+        // fields. Ability fields always use ExtendedMod so this path only applies to unit types.
+        return m.toString() + ":0";
+    }
+
+    /** Formats a mod value for use in generated Wurst source. */
+    static String formatModValue(ObjMod.Obj.Mod m, boolean isBoolField) {
+        if (isBoolField) {
+            return "0".equals(m.getVal().toString()) ? "false" : "true";
+        }
+        if (m.getValType() == ObjMod.ValType.STRING) {
+            return Utils.escapeString(m.getVal().toString());
+        }
+        return m.getVal().toString();
+    }
+
+    /** Appends a single raw field-setter call (e.g. ..setLvlDataUnreal(...)) to {@code out}. */
+    private static void appendRawMod(Appendable out, ObjMod.Obj.Mod m, ObjectFileType fileType) throws IOException {
+        if (m instanceof ObjMod.Obj.ExtendedMod ext) {
+            out.append("\t..setLvlData").append(valTypeToFuncPostfix(ext.getValType())).append("(\"");
+            out.append(m.toString()).append("\", ")
+                .append(String.valueOf(ext.getLevel())).append(", ")
+                .append(String.valueOf(ext.getDataPt())).append(", ")
+                .append(formatModValue(m, false)).append(")\n");
+        } else {
+            out.append("\t..set").append(valTypeToFuncPostfix(m.getValType())).append("(\"");
+            out.append(m.toString()).append("\", ").append(formatModValue(m, false)).append(")\n");
+        }
+    }
+
+    private static String valTypeToFuncPostfix(ObjMod.ValType valType) {
         switch (valType) {
-            case INT:
-                return "Int";
-            case REAL:
-                return "Real";
-            case UNREAL:
-                return "Unreal";
-            case STRING:
-                return "String";
+            case INT:    return "Int";
+            case REAL:   return "Real";
+            case UNREAL: return "Unreal";
+            case STRING: return "String";
         }
         return "Int";
     }
