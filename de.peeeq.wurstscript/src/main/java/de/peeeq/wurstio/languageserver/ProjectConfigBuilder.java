@@ -97,8 +97,8 @@ public class ProjectConfigBuilder {
         // Apply map header (this is cheap, so we always do it)
         applyMapHeader(projectConfig, targetMap);
 
-        // Update the manifest with new config hash
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), true)) {
+        // Update the manifest with new config hash (must open writable to insert)
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
             ImportFile.CacheManifest manifest = ImportFile.getCachedManifest(mpq).orElse(new ImportFile.CacheManifest());
             manifest.setMapConfig(configHash);
             ImportFile.saveManifest(mpq, manifest);
