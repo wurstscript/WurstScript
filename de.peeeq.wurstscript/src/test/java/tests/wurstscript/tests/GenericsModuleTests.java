@@ -64,8 +64,8 @@ public class GenericsModuleTests extends WurstScriptTest {
                 "        use M<int>",
                 "    init",
                 "        C c = new C",
-                "        string r = c.map(\"hello\")",
-                "        if r == \"hello\"",
+                "        int r = c.map(42)",
+                "        if r == 42",
                 "            testSuccess()",
                 "endpackage"
         );

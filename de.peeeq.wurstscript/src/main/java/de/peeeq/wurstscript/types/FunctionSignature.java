@@ -118,12 +118,18 @@ public class FunctionSignature {
 
     public static FunctionSignature fromNameLink(FuncLink f) {
         VariableBinding mapping = f.getVariableBinding();
-        // Only add the function definition's own type parameters as type variables
-        // for inference. Enclosing structure type params (from class/module) are
-        // resolved through receiver type matching, not argument inference.
         FunctionDefinition def = f.getDef();
+        // Only add the function's own type params that are still unbound (i.e., still in
+        // f.getTypeParams() — withTypeArgBinding removes them as they get resolved).
+        // We must NOT add enclosing structure (module/class) type params, which would
+        // appear as spurious unbound inference variables.
         if (def instanceof AstElementWithTypeParameters) {
-            mapping = mapping.withTypeVariables(((AstElementWithTypeParameters) def).getTypeParameters());
+            java.util.Set<TypeParamDef> ownParams = new java.util.HashSet<>(
+                ((AstElementWithTypeParameters) def).getTypeParameters());
+            List<TypeParamDef> unboundOwn = f.getTypeParams().stream()
+                .filter(ownParams::contains)
+                .collect(Collectors.toList());
+            mapping = mapping.withTypeVariables(unboundOwn);
         }
         return new FunctionSignature(def, mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(def.getParameters()), f.getReturnType());
     }
