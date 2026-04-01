@@ -1212,4 +1212,21 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void conflictingTypeArgsMemberMethod() {
+        // Regression test: calling a generic method via dot notation with conflicting type arguments
+        // used to cause a NullPointerException instead of a proper type error.
+        // The two arguments infer conflicting types for T (int vs string), which should produce
+        // a "Wrong parameter type" compile error, not a compiler crash.
+        testAssertErrorsLines(false, "Wrong parameter type",
+            "package test",
+            "class C",
+            "    function combine<T>(T x, T y) returns T",
+            "        return x",
+            "init",
+            "    let c = new C()",
+            "    c.combine(1, \"hello\")"
+        );
+    }
+
 }

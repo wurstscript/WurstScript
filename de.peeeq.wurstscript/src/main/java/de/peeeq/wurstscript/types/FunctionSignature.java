@@ -234,7 +234,6 @@ public class FunctionSignature {
         for (int i = 0; i < argTypes.size(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
-            mapping = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             VariableBinding before = mapping;
             VariableBinding after = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             WLogger.trace(() -> "[IMPLCONV]   vb " + System.identityHashCode(before)
