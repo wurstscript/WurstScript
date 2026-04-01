@@ -69,8 +69,11 @@ public class FuncLink extends DefLink {
         WurstType returnType = func.attrReturnTyp();
         WurstType receiverType = calcReceiverType(definedIn, func);
 
-        // Seed mapping with ALL visible type vars (not just the function's)
-        VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(typeParams);
+        // Only the function's OWN type params need inference via argument matching.
+        // Enclosing structure type params (class/module) are resolved through
+        // receiver type matching in matchDefLinkReceiver, not through inference.
+        List<TypeParamDef> ownTypeParams = typeParams(func).collect(Collectors.toList());
+        VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(ownTypeParams);
 
         return new FuncLink(visibility, definedIn, typeParams, receiverType, func, paramNames, paramTypes, returnType, mapping);
     }
@@ -182,6 +185,16 @@ public class FuncLink extends DefLink {
         }
         WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
         changed = changed || newReceiverType != getReceiverType();
+        // Also check if any type params are being bound (even if types don't
+        // change structurally — e.g., T bound to itself within a generic module)
+        if (!changed) {
+            for (TypeParamDef tp : getTypeParams()) {
+                if (binding.contains(tp)) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
         if (changed) {
             // remove type parameters that are now bound:
             List<TypeParamDef> newTypeParams = new ArrayList<>();

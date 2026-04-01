@@ -118,8 +118,14 @@ public class FunctionSignature {
 
     public static FunctionSignature fromNameLink(FuncLink f) {
         VariableBinding mapping = f.getVariableBinding();
-        mapping = mapping.withTypeVariables(f.getTypeParams());
-        return new FunctionSignature(f.getDef(), mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        // Only add the function definition's own type parameters as type variables
+        // for inference. Enclosing structure type params (from class/module) are
+        // resolved through receiver type matching, not argument inference.
+        FunctionDefinition def = f.getDef();
+        if (def instanceof AstElementWithTypeParameters) {
+            mapping = mapping.withTypeVariables(((AstElementWithTypeParameters) def).getTypeParameters());
+        }
+        return new FunctionSignature(def, mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(def.getParameters()), f.getReturnType());
     }
 
 
