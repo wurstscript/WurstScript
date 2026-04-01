@@ -96,6 +96,14 @@ jobs:
         shell: bash
         run: ./gradlew test --no-daemon --stacktrace
 
+      - name: Report test results
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: de.peeeq.wurstscript/build/test-results/**/*.xml
+          check_name: Test Results (${{ matrix.os }})
+          fail_on_failure: false
+
       - name: Upload packaged artifact (per-OS)
         uses: actions/upload-artifact@v4
         with:

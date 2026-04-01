@@ -118,8 +118,20 @@ public class FunctionSignature {
 
     public static FunctionSignature fromNameLink(FuncLink f) {
         VariableBinding mapping = f.getVariableBinding();
-        mapping = mapping.withTypeVariables(f.getTypeParams());
-        return new FunctionSignature(f.getDef(), mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        FunctionDefinition def = f.getDef();
+        // Only add the function's own type params that are still unbound (i.e., still in
+        // f.getTypeParams() — withTypeArgBinding removes them as they get resolved).
+        // We must NOT add enclosing structure (module/class) type params, which would
+        // appear as spurious unbound inference variables.
+        if (def instanceof AstElementWithTypeParameters) {
+            java.util.Set<TypeParamDef> ownParams = new java.util.HashSet<>(
+                ((AstElementWithTypeParameters) def).getTypeParameters());
+            List<TypeParamDef> unboundOwn = f.getTypeParams().stream()
+                .filter(ownParams::contains)
+                .collect(Collectors.toList());
+            mapping = mapping.withTypeVariables(unboundOwn);
+        }
+        return new FunctionSignature(def, mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(def.getParameters()), f.getReturnType());
     }
 
 
@@ -234,7 +246,6 @@ public class FunctionSignature {
         for (int i = 0; i < argTypes.size(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
-            mapping = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             VariableBinding before = mapping;
             VariableBinding after = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             WLogger.trace(() -> "[IMPLCONV]   vb " + System.identityHashCode(before)

@@ -47,6 +47,76 @@ public class GenericsModuleTests extends WurstScriptTest {
         );
     }
 
+    // Regression: FuncLink.create() was seeding the mapping with ALL visible type params
+    // (including enclosing module/class type params), causing them to appear as unbound
+    // inference variables on generic function calls. Only the function's own type params
+    // should be seeded; module type params are resolved via receiver type matching.
+    @Test
+    public void genericModuleFunctionWithOwnTypeParam() {
+        testAssertOkLines(false,
+                "package test",
+                "    native testSuccess()",
+                "    module M<T>",
+                "        T value",
+                "        function map<S>(S s) returns S",
+                "            return s",
+                "    class C",
+                "        use M<int>",
+                "    init",
+                "        C c = new C",
+                "        int r = c.map(42)",
+                "        if r == 42",
+                "            testSuccess()",
+                "endpackage"
+        );
+    }
+
+    // Regression: FuncLink.withTypeArgBinding() only detected structural type changes,
+    // missing the case where a type param is bound to itself (e.g. T→T in a generic class
+    // using a generic module). The FuncLink was not updated, leaving stale type params.
+    @Test
+    public void genericModuleInGenericClassGet() {
+        testAssertOkLines(false,
+                "package test",
+                "    native testSuccess()",
+                "    module M<T>",
+                "        T value",
+                "        function get() returns T",
+                "            return value",
+                "    class C<S>",
+                "        use M<S>",
+                "    init",
+                "        C<int> c = new C<int>",
+                "        c.value = 42",
+                "        int v = c.get()",
+                "        if v == 42",
+                "            testSuccess()",
+                "endpackage"
+        );
+    }
+
+    // Regression: static generic function in a generic module caused NPE due to
+    // duplicate matchAgainstSupertype call passing potentially-null mapping to the
+    // second call. FunctionSignature.fromNameLink also incorrectly added enclosing
+    // module type params as inference variables.
+    @Test
+    public void staticGenericFunctionInGenericModule() {
+        testAssertOkLines(false,
+                "package test",
+                "    native testSuccess()",
+                "    module M<T>",
+                "        static function wrap<S>(S s) returns S",
+                "            return s",
+                "    class C",
+                "        use M<int>",
+                "    init",
+                "        int x = C.wrap(99)",
+                "        if x == 99",
+                "            testSuccess()",
+                "endpackage"
+        );
+    }
+
     @Test
     public void genericInception() {
         testAssertOkLines(false,
