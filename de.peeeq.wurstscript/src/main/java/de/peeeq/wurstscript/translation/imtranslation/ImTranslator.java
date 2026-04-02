@@ -59,7 +59,14 @@ public class ImTranslator {
 
     private final ImProg imProg;
 
-    final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
+    public final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
+
+    /**
+     * When targeting Lua, package init functions that should be called directly via xpcall
+     * rather than through the JASS TriggerEvaluate thread-isolation pattern.
+     * Populated during translateProg() when isLuaTarget() is true.
+     */
+    public final Map<ImFunction, String> luaInitFunctions = new Object2ObjectLinkedOpenHashMap<>();
 
     private final Map<TranslatedToImFunction, ImVar> thisVarMap = new Object2ObjectLinkedOpenHashMap<>();
 
@@ -528,16 +535,23 @@ public class ImTranslator {
         }
         Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
 
-        ImVar initTrigVar = prepareTrigger();
+        if (isLuaTarget()) {
+            // In Lua mode, xpcall handles error isolation; no trigger handle is needed.
+            for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
+                callInitFunc(calledInitializers, p, null);
+            }
+        } else {
+            ImVar initTrigVar = prepareTrigger();
 
-        for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
-            callInitFunc(calledInitializers, p, initTrigVar);
-        }
+            for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
+                callInitFunc(calledInitializers, p, initTrigVar);
+            }
 
-        ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
-        if (native_DestroyTrigger != null) {
-            getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger, ImTypeArguments(),
-                    JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
+            ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
+            if (native_DestroyTrigger != null) {
+                getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger, ImTypeArguments(),
+                        JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
+            }
         }
     }
 
@@ -563,7 +577,7 @@ public class ImTranslator {
         return getFuncFor(Utils.getFirst(wurstFunc).getDef());
     }
 
-    private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
+private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullable ImVar initTrigVar) {
         Preconditions.checkNotNull(p);
         if (calledInitializers.contains(p)) {
             return;
@@ -580,6 +594,14 @@ public class ImTranslator {
         if (initFunc.getBody().size() == 0) {
             return;
         }
+        if (isLuaTarget()) {
+            // In Lua mode, xpcall replaces TriggerEvaluate for error isolation without WC3 handle overhead.
+            // Record the init function so the Lua translator can wrap it with xpcall.
+            luaInitFunctions.put(initFunc, p.getName());
+            getMainFunc().getBody().add(ImFunctionCall(initFunc.getTrace(), initFunc, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
+            return;
+        }
+
         boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
 
         if (!successful) {

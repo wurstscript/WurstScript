@@ -13,7 +13,7 @@ public class ExprTranslation {
 
     public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
-    private static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
+    static final String WURST_ABORT_THREAD_SENTINEL = "__wurst_abort_thread";
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
         "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
@@ -89,7 +89,7 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots), callbackBody);
     }
 
-    private static String callErrorFunc(LuaTranslator tr, String msg) {
+    static String callErrorFunc(LuaTranslator tr, String msg) {
         LuaFunction ef = tr.getErrorFunc();
         if (ef != null) {
             if (ef.getParams().size() == 2) {

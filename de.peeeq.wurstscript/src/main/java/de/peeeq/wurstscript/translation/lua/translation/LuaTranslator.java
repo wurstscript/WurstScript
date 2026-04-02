@@ -218,7 +218,7 @@ public class LuaTranslator {
     LuaFunction ensureRealFunction = LuaAst.LuaFunction(uniqueName("realEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
-        Objects.requireNonNull(this.getProg().getFunctions().stream()
+        this.getProg().getFunctions().stream()
             .flatMap(f -> {
                 Element trace = f.attrTrace();
                 if (trace instanceof FuncDef) {
@@ -233,8 +233,9 @@ public class LuaTranslator {
                 }
                 return Stream.empty();
             })
-            .findFirst().orElse(null)));
-    private final ImTranslator imTr;
+            .findFirst().orElse(null));
+    final ImTranslator imTr;
+
 
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
         this.prog = prog;
@@ -322,7 +323,6 @@ public class LuaTranslator {
             initClassTables(c);
         }
 
-        emitExperimentalHashtableLeakGuards();
         prependDeferredMainInitToMain();
         cleanStatements();
         enforceLuaLocalLimits();
@@ -352,22 +352,6 @@ public class LuaTranslator {
             LuaNatives.get(f);
             luaModel.add(f);
         }
-    }
-
-    private void emitExperimentalHashtableLeakGuards() {
-        deferMainInit(LuaAst.LuaLiteral("-- Wurst experimental Lua assertion guards: raw WC3 hashtable natives must not be called."));
-        deferMainInit(LuaAst.LuaLiteral("do"));
-        deferMainInit(LuaAst.LuaLiteral("    local __wurst_guard_ok = pcall(function()"));
-        for (String nativeName : allHashtableNativeNames()) {
-            deferMainInit(LuaAst.LuaLiteral("        if " + nativeName + " ~= nil then " + nativeName
-                + " = function(...) error(\"Wurst Lua assertion failed: unexpected call to native " + nativeName
-                + ". Expected __wurst_" + nativeName + ".\") end end"));
-        }
-        deferMainInit(LuaAst.LuaLiteral("    end)"));
-        deferMainInit(LuaAst.LuaLiteral("    if not __wurst_guard_ok then"));
-        deferMainInit(LuaAst.LuaLiteral("        -- Some Lua runtimes lock native globals. Compile-time leak checks stay authoritative."));
-        deferMainInit(LuaAst.LuaLiteral("    end"));
-        deferMainInit(LuaAst.LuaLiteral("end"));
     }
 
     private void deferMainInit(LuaStatement statement) {

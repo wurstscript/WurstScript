@@ -5,11 +5,38 @@ import de.peeeq.wurstscript.luaAst.*;
 
 import java.util.List;
 
+import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_ABORT_THREAD_SENTINEL;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+
 public class StmtTranslation {
 
     public static void translate(ImExpr e, List<LuaStatement> res, LuaTranslator tr) {
+        // In Lua mode, package init functions are called directly and wrapped with xpcall.
+        if (e instanceof ImFunctionCall) {
+            ImFunctionCall call = (ImFunctionCall) e;
+            if (tr.imTr.luaInitFunctions.containsKey(call.getFunc())) {
+                emitLuaInitXpcall(call.getFunc(), res, tr);
+                return;
+            }
+        }
         LuaExpr expr = e.translateToLua(tr);
         res.add(expr);
+    }
+
+    private static void emitLuaInitXpcall(ImFunction initFunc, List<LuaStatement> res, LuaTranslator tr) {
+        String funcName = tr.luaFunc.getFor(initFunc).getName();
+        String packageName = tr.imTr.luaInitFunctions.getOrDefault(initFunc, "?");
+        String errHandler = "function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end"
+                + " BJDebugMsg(\"lua init error: \" .. tostring(err))"
+                + " xpcall(function() " + ExprTranslation.callErrorFunc(tr, "tostring(err)") + " end,"
+                + " function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end"
+                + " BJDebugMsg(\"error reporting error: \" .. tostring(err2)) end) end";
+        res.add(LuaAst.LuaLiteral("do"));
+        res.add(LuaAst.LuaLiteral("  local __wurst_init_ok = xpcall(" + funcName + ", " + errHandler + ")"));
+        res.add(LuaAst.LuaLiteral("  if not __wurst_init_ok then"));
+        res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"") + ""));
+        res.add(LuaAst.LuaLiteral("  end"));
+        res.add(LuaAst.LuaLiteral("end"));
     }
 
     public static void translate(ImExitwhen s, List<LuaStatement> res, LuaTranslator tr) {
