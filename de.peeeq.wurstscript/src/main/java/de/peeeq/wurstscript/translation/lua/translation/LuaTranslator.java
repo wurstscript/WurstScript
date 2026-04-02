@@ -324,25 +324,10 @@ public class LuaTranslator {
         }
 
         prependDeferredMainInitToMain();
-        moveEntrypointToEnd("main");
-        moveEntrypointToEnd("config");
         cleanStatements();
         enforceLuaLocalLimits();
 
         return luaModel;
-    }
-
-    /** Move a named WC3 entrypoint function (main/config) to the end of the model so all
-     *  helpers it calls are defined before it in the file. */
-    private void moveEntrypointToEnd(String funcName) {
-        for (int i = 0; i < luaModel.size(); i++) {
-            LuaStatement s = luaModel.get(i);
-            if (s instanceof LuaFunction && ((LuaFunction) s).getName().equals(funcName)) {
-                luaModel.remove(i);
-                luaModel.add(s);
-                return;
-            }
-        }
     }
 
     /**

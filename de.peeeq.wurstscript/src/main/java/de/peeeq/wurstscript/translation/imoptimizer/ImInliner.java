@@ -482,11 +482,6 @@ public class ImInliner {
             // this is only relevant for lua, because in JASS they are eliminated before inlining
             return false;
         }
-        if (translator.luaInitFunctions.containsKey(f)) {
-            // Lua package init functions must stay as ImFunctionCall nodes so StmtTranslation
-            // can wrap them in xpcall. Inlining removes the call site and loses the guard.
-            return false;
-        }
         return true;
     }
 
