@@ -477,10 +477,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         String beforeMain = compiled.substring(0, mainPos);
         assertFalse(beforeMain.contains("__wurst_objectIndexMap = ({"));
         assertFalse(beforeMain.contains("__wurst_string_index_map = ({"));
-        assertFalse(beforeMain.contains("Wurst experimental Lua assertion guards"));
         assertTrue(mainSection.contains("__wurst_objectIndexMap = ({"));
         assertTrue(mainSection.contains("__wurst_string_index_map = ({"));
-        assertTrue(mainSection.contains("Wurst experimental Lua assertion guards"));
     }
 
     @Test
@@ -531,7 +529,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertOccursBefore(mainSection, "C.__wurst_supertypes =", "initGlobals()");
         assertOccursBefore(mainSection, "C.__typeId__ =", "initGlobals()");
         assertOccursBefore(mainSection, "C.C_f =", "initGlobals()");
-        assertOccursBefore(mainSection, "Wurst experimental Lua assertion guards", "initGlobals()");
     }
 
     @Test
@@ -1198,15 +1195,19 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void stdLibInitUsesTriggerEvaluateGuardInMain() throws IOException {
+    public void stdLibInitUsesXpcallInsteadOfTriggerEvaluateInMain() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
             "    skip"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesTriggerEvaluateGuardInMain.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("if not(TriggerEvaluate("));
-        assertTrue(compiled.contains("TriggerClearConditions"));
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesXpcallInsteadOfTriggerEvaluateInMain.lua"), Charsets.UTF_8);
+        // Package inits use direct xpcall — no WC3 trigger handle overhead
+        assertTrue(compiled.contains("xpcall(init_"));
+        assertTrue(compiled.contains("__wurst_init_ok"));
+        // TriggerEvaluate pattern must NOT appear for init functions
+        assertFalse(compiled.contains("if not(TriggerEvaluate("));
+        assertFalse(compiled.contains("TriggerClearConditions"));
     }
 
     @Test
@@ -1261,22 +1262,23 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableHandleExtensionsUseWurstLuaHelpers.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bHaveSavedHandle\\(");
         assertContainsRegex(compiled, "\\b__wurst_HaveSavedHandle\\(");
-        assertTrue(compiled.contains("Wurst experimental Lua assertion guards"));
     }
 
     @Test
-    public void hashtableNativeOverrideGuardsAreRuntimeSafe() throws IOException {
+    public void hashtableNativesAreReplacedByWurstHelpers() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "init",
             "    let h = InitHashtable()",
             "    h.saveInt(1, 2, 7)"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableNativeOverrideGuardsAreRuntimeSafe.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("Wurst experimental Lua assertion guards"));
-        assertContainsRegex(compiled, "\\blocal\\s+__wurst_guard_ok\\s*=\\s*pcall\\s*\\(\\s*function\\s*\\(");
-        assertContainsRegex(compiled, "\\bInitHashtable\\s*=\\s*function\\s*\\(");
-        assertContainsRegex(compiled, "\\bSaveInteger\\s*=\\s*function\\s*\\(");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_hashtableNativesAreReplacedByWurstHelpers.lua"), Charsets.UTF_8);
+        // Runtime guard overrides are removed; compile-time checks are authoritative.
+        assertFalse(compiled.contains("Wurst experimental Lua assertion guards"));
+        assertFalse(compiled.contains("__wurst_guard_ok"));
+        // __wurst_ helper definitions must still be present.
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_InitHashtable\\s*\\(");
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
     }
 
     @Test
