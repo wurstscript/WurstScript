@@ -612,12 +612,18 @@ public abstract class MapRequest extends UserRequest<Object> {
                 mapScriptName = "war3map.j";
             }
 
-            // Delete old scripts
+            // Delete old scripts (both root and scripts/ subdirectory locations)
             if (mpqEditor.hasFile("war3map.j")) {
                 mpqEditor.deleteFile("war3map.j");
             }
+            if (mpqEditor.hasFile("scripts\\war3map.j")) {
+                mpqEditor.deleteFile("scripts\\war3map.j");
+            }
             if (mpqEditor.hasFile("war3map.lua")) {
                 mpqEditor.deleteFile("war3map.lua");
+            }
+            if (mpqEditor.hasFile("scripts\\war3map.lua")) {
+                mpqEditor.deleteFile("scripts\\war3map.lua");
             }
 
             // Insert new script
@@ -696,6 +702,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         gui.sendProgress("Finalizing map");
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMapFile))) {
             if (mpq != null) {
+                // Strip internal Wurst cache files — they are dev-only metadata and should
+                // not be present in the distributed map.
+                if (mpq.hasFile("wurst_cache_manifest.txt")) mpq.deleteFile("wurst_cache_manifest.txt");
+                if (mpq.hasFile("wurst_object_cache.txt"))   mpq.deleteFile("wurst_object_cache.txt");
                 mpq.closeWithCompression();
             }
         }
@@ -822,6 +832,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {
             if (mpqEditor.hasFile("war3map.j")) {
                 return mpqEditor.extractFile("war3map.j");
+            }
+            if (mpqEditor.hasFile("scripts\\war3map.j")) {
+                return mpqEditor.extractFile("scripts\\war3map.j");
             }
         }
         return null;

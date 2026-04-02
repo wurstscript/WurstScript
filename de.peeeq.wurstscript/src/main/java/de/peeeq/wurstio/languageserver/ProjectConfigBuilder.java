@@ -82,8 +82,17 @@ public class ProjectConfigBuilder {
             applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
         } else if (!configNeedsApplying) {
             WLogger.info("Using cached w3i configuration");
-            // Still need to set the result.script correctly
-            result.script = mapScript;
+            // Prefer the previously-injected script (with correct config() body) over the
+            // raw map script. If it doesn't exist yet (e.g. first Lua build after a JASS-only
+            // cache), fall through to re-inject so the config() body is never stale.
+            File cachedInjectedScript = new File(buildDir, outputScriptName);
+            if (cachedInjectedScript.exists()) {
+                result.script = cachedInjectedScript;
+            } else if (StringUtils.isNotBlank(buildMapData.getName())) {
+                WLogger.info("Cached injected script missing, re-injecting config");
+                applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
+            }
+            // else result.script stays as mapScript (no wurst.build name configured)
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");

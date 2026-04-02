@@ -108,7 +108,7 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
     implementation 'com.github.inwc3:jmpq3:29b55f2c32'
-    implementation 'com.github.inwc3:wc3libs:cc49c8e63c'
+    implementation 'com.github.inwc3:wc3libs:6a96a79595'
     implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit.ssh.apache'
