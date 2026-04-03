@@ -2,12 +2,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
@@ -220,7 +215,7 @@ public class LuaTranslator {
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
         this.getProg().getFunctions().stream()
             .flatMap(f -> {
-                Element trace = f.attrTrace();
+                de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
                 if (trace instanceof FuncDef) {
                     FuncDef fd = (FuncDef) trace;
                     if (fd.getName().equals("error")
@@ -438,7 +433,7 @@ public class LuaTranslator {
     }
 
     private void setNameFromTrace(JassImElementWithName named) {
-        Element trace = named.attrTrace();
+        de.peeeq.wurstscript.ast.Element trace = named.attrTrace();
         if (trace instanceof NameDef) {
             named.setName(((NameDef) trace).getName());
         }
@@ -459,9 +454,7 @@ public class LuaTranslator {
         // give all related methods the same name in deterministic order
         List<List<ImMethod>> groups = new ArrayList<>();
         for (Set<ImMethod> group : methodUnions.groups().values()) {
-            List<ImMethod> sortedGroup = new ArrayList<>(group);
-            sortedGroup.sort(Comparator.comparing(this::methodSortKey));
-            groups.add(sortedGroup);
+            groups.addAll(partitionMethodsByDispatchSignature(group));
         }
         groups.sort(Comparator.comparing(g -> g.isEmpty() ? "" : methodSortKey(g.get(0))));
         for (List<ImMethod> group : groups) {
@@ -1026,7 +1019,7 @@ public class LuaTranslator {
         // local new_inst = { ... }
         LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
         LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
-        for (ImVar field : c.getFields()) {
+        for (ImVar field : collectFieldsForAllocation(c)) {
             initialFieldValues.add(
                 LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
             );
@@ -1042,6 +1035,25 @@ public class LuaTranslator {
             ))
         )));
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+    }
+
+    private List<ImVar> collectFieldsForAllocation(ImClass c) {
+        List<ImVar> result = new ArrayList<>();
+        Set<ImClass> visited = new HashSet<>();
+        collectFieldsForAllocation(c, result, visited);
+        return result;
+    }
+
+    private void collectFieldsForAllocation(ImClass c, List<ImVar> out, Set<ImClass> visited) {
+        if (!visited.add(c)) {
+            return;
+        }
+        List<ImClassType> superClasses = new ArrayList<>(c.getSuperClasses());
+        superClasses.sort(Comparator.comparing(sc -> classSortKey(sc.getClassDef())));
+        for (ImClassType sc : superClasses) {
+            collectFieldsForAllocation(sc.getClassDef(), out, visited);
+        }
+        out.addAll(c.getFields());
     }
 
     private void initClassTables(ImClass c) {
@@ -1087,7 +1099,10 @@ public class LuaTranslator {
             groupedMethods.computeIfAbsent(root, k -> new ArrayList<>()).add(method);
         }
 
-        List<List<ImMethod>> groups = new ArrayList<>(groupedMethods.values());
+        List<List<ImMethod>> groups = new ArrayList<>();
+        for (List<ImMethod> methods : groupedMethods.values()) {
+            groups.addAll(partitionMethodsByDispatchSignature(methods));
+        }
         groups.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
         Map<String, ImMethod> slotToImpl = new TreeMap<>();
         for (List<ImMethod> groupMethods : groups) {
@@ -1122,6 +1137,58 @@ public class LuaTranslator {
         }
     }
 
+    private List<List<ImMethod>> partitionMethodsByDispatchSignature(Collection<ImMethod> methods) {
+        Map<String, List<ImMethod>> partitions = new TreeMap<>();
+        for (ImMethod method : methods) {
+            partitions.computeIfAbsent(dispatchSignatureKey(method), k -> new ArrayList<>()).add(method);
+        }
+        List<List<ImMethod>> result = new ArrayList<>(partitions.values());
+        for (List<ImMethod> group : result) {
+            group.sort(Comparator.comparing(this::methodSortKey));
+        }
+        result.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
+        return result;
+    }
+
+    private String dispatchSignatureKey(ImMethod method) {
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation == null) {
+            return "<abstract>";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(typeKey(implementation.getReturnType())).append("|");
+        ImVars params = implementation.getParameters();
+        for (int i = 1; i < params.size(); i++) {
+            if (i > 1) {
+                sb.append(",");
+            }
+            sb.append(typeKey(params.get(i).getType()));
+        }
+        return sb.toString();
+    }
+
+    private ImFunction resolveDispatchSignatureImplementation(ImMethod method, Set<ImMethod> visited) {
+        if (method == null || !visited.add(method)) {
+            return null;
+        }
+        if (method.getImplementation() != null) {
+            return method.getImplementation();
+        }
+        List<ImMethod> subMethods = new ArrayList<>(method.getSubMethods());
+        subMethods.sort(Comparator.comparing(this::methodSortKey));
+        for (ImMethod subMethod : subMethods) {
+            ImFunction resolved = resolveDispatchSignatureImplementation(subMethod, visited);
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+        return null;
+    }
+
+    private String typeKey(ImType type) {
+        return type == null ? "<null>" : type.toString();
+    }
+
     private Set<String> collectDispatchSlotNames(ImClass receiverClass, List<ImMethod> groupMethods) {
         Set<String> slotNames = new TreeSet<>();
         Set<String> semanticNames = new TreeSet<>();
@@ -1140,6 +1207,12 @@ public class LuaTranslator {
             }
             if (owner != null && !semanticName.isEmpty()) {
                 slotNames.add(owner.getName() + "_" + semanticName);
+            }
+            String sourceSemanticName = sourceSemanticName(m);
+            if (owner != null && isClosureGeneratedClass(owner) && !sourceSemanticName.isEmpty()) {
+                semanticNames.add(sourceSemanticName);
+                slotNames.add(sourceSemanticName);
+                slotNames.add(owner.getName() + "_" + sourceSemanticName);
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
@@ -1327,6 +1400,32 @@ public class LuaTranslator {
         return methodName;
     }
 
+    private boolean isClosureGeneratedClass(ImClass c) {
+        return c != null && c.attrTrace() instanceof ExprClosure;
+    }
+
+    private String sourceSemanticName(ImMethod method) {
+        if (method == null) {
+            return "";
+        }
+        de.peeeq.wurstscript.ast.Element trace = method.attrTrace();
+        if (trace instanceof FuncDef funcDef) {
+            return funcDef.getName();
+        }
+        if (trace instanceof AstElementWithFuncName withFuncName) {
+            return withFuncName.getFuncNameId().getName();
+        }
+        if (method.getImplementation() != null) {
+            String implementationName = method.getImplementation().getName();
+            int firstUnderscore = implementationName.indexOf('_');
+            if (firstUnderscore > 0) {
+                return implementationName.substring(0, firstUnderscore);
+            }
+            return implementationName;
+        }
+        return "";
+    }
+
     private String classSortKey(ImClass c) {
         if (c == null) {
             return "";
@@ -1471,7 +1570,7 @@ public class LuaTranslator {
     }
 
     public String getTypeCastingFunctionName(ImFunction f) {
-        Element trace = f.attrTrace();
+        de.peeeq.wurstscript.ast.Element trace = f.attrTrace();
         if (trace instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p) {
             if ("TypeCasting".equals(p.getName())) {
                 return fd.getName();

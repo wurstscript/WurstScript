@@ -45,6 +45,8 @@ public class StackTraceInjector2 {
         final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
         // called function -> calling function
         final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
+        // calling function -> called function
+        final Multimap<ImFunction, ImFunction> directCalls = LinkedListMultimap.create();
         final List<ImFuncRefOrCall> funcRefs = Lists.newArrayList();
         prog.accept(new ImProg.DefaultVisitor() {
 
@@ -72,7 +74,17 @@ public class StackTraceInjector2 {
                     calls.put(c.getFunc(), c);
                     ImFunction caller = c.getNearestFunc();
                     callRelation.put(c.getFunc(), caller);
+                    directCalls.put(caller, c.getFunc());
                 }
+            }
+
+            @Override
+            public void visit(ImMethodCall c) {
+                super.visit(c);
+                ImFunction caller = c.getNearestFunc();
+                ImFunction callee = c.getMethod().getImplementation();
+                directCalls.put(caller, callee);
+                callRelation.put(callee, caller);
             }
 
             @Override
@@ -97,6 +109,7 @@ public class StackTraceInjector2 {
         Set<ImFunction> affectedFuncs = Sets.newLinkedHashSet(stackTraceGets.keySet());
 
         if (tr.isLuaTarget()) {
+            Set<ImFunction> configOnlyFuncs = getConfigOnlyFunctions(directCalls, callRelation);
             // in Lua all functions are potentially affected, because we don't know where Lua might crash
             Stream.concat(
                 prog.getFunctions().stream(),
@@ -106,6 +119,7 @@ public class StackTraceInjector2 {
                         && !f.hasFlag(FunctionFlagEnum.IS_BJ)
                         && !f.hasFlag(FunctionFlagEnum.IS_EXTERN))
                 .collect(Collectors.toCollection(() -> affectedFuncs));
+            affectedFuncs.removeAll(configOnlyFuncs);
 
         } else {
             for (ImFunction stackTraceUse : stackTraceGets.keys()) {
@@ -121,6 +135,60 @@ public class StackTraceInjector2 {
         rewriteErrorStatements(stackTraceGets);
         rewriteMethodCalls(affectedFuncs);
 
+    }
+
+    private Set<ImFunction> getFunctionsReachableFrom(String functionName, Multimap<ImFunction, ImFunction> directCalls) {
+        Set<ImFunction> reachable = Sets.newLinkedHashSet();
+        Deque<ImFunction> worklist = new ArrayDeque<>();
+        Stream.concat(
+                prog.getFunctions().stream(),
+                prog.getClasses().stream().flatMap(c -> c.getFunctions().stream()))
+            .filter(f -> f.getName().equals(functionName))
+            .forEach(worklist::addLast);
+        while (!worklist.isEmpty()) {
+            ImFunction current = worklist.removeFirst();
+            if (!reachable.add(current)) {
+                continue;
+            }
+            for (ImFunction callee : directCalls.get(current)) {
+                worklist.addLast(callee);
+            }
+        }
+        return reachable;
+    }
+
+    private Set<ImFunction> getConfigOnlyFunctions(Multimap<ImFunction, ImFunction> directCalls,
+                                                   Multimap<ImFunction, ImFunction> reverseCalls) {
+        Set<ImFunction> configReachable = getFunctionsReachableFrom("config", directCalls);
+        if (configReachable.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        Set<ImFunction> runtimeSharedFuncs = Sets.newLinkedHashSet();
+        Deque<ImFunction> worklist = new ArrayDeque<>();
+        for (ImFunction f : configReachable) {
+            boolean hasNonConfigCaller = reverseCalls.get(f).stream()
+                .anyMatch(caller -> !configReachable.contains(caller));
+            if (hasNonConfigCaller) {
+                worklist.addLast(f);
+            }
+        }
+
+        while (!worklist.isEmpty()) {
+            ImFunction current = worklist.removeFirst();
+            if (!runtimeSharedFuncs.add(current)) {
+                continue;
+            }
+            for (ImFunction callee : directCalls.get(current)) {
+                if (configReachable.contains(callee)) {
+                    worklist.addLast(callee);
+                }
+            }
+        }
+
+        Set<ImFunction> configOnlyFuncs = Sets.newLinkedHashSet(configReachable);
+        configOnlyFuncs.removeAll(runtimeSharedFuncs);
+        return configOnlyFuncs;
     }
 
     private void rewriteMethodCalls(Set<ImFunction> affectedFuncs) {

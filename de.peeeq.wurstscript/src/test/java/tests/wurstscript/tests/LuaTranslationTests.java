@@ -67,6 +67,15 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
+    private String getFunctionBody(String output, String functionName) {
+        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
+        Matcher matcher = pattern.matcher(output);
+        if (!matcher.find()) {
+            fail("Function " + functionName + " was not found.");
+        }
+        return matcher.group(1);
+    }
+
     private void assertDoesNotContainRegex(String output, String regex) {
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(output);
@@ -85,6 +94,38 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Expected to find: " + first, firstPos >= 0);
         assertTrue("Expected to find: " + second, secondPos >= 0);
         assertTrue("Expected '" + first + "' before '" + second + "'.", firstPos < secondPos);
+    }
+
+    private List<String> uniqueMatches(String output, String regex, int group) {
+        Matcher matcher = Pattern.compile(regex).matcher(output);
+        List<String> result = new ArrayList<>();
+        while (matcher.find()) {
+            String value = matcher.group(group);
+            if (!result.contains(value)) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    private String singleMatch(String output, String regex, int group) {
+        Matcher matcher = Pattern.compile(regex).matcher(output);
+        assertTrue("Expected pattern to occur: " + regex, matcher.find());
+        String result = matcher.group(group);
+        assertFalse("Expected exactly one match for pattern: " + regex, matcher.find());
+        return result;
+    }
+
+    private List<String> nonBaseSubclassBindings(String output, String baseName, String slotName) {
+        Matcher matcher = Pattern.compile("([A-Za-z0-9_]+)\\." + Pattern.quote(slotName) + "\\s*=\\s*[A-Za-z0-9_]+").matcher(output);
+        List<String> result = new ArrayList<>();
+        while (matcher.find()) {
+            String owner = matcher.group(1);
+            if (!owner.equals(baseName) && owner.startsWith(baseName + "_") && !result.contains(owner)) {
+                result.add(owner);
+            }
+        }
+        return result;
     }
 
     private String compileLuaWithRunArgs(String testName, boolean withStdLib, String... lines) {
@@ -382,7 +423,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_lazyGenericClosureDispatchWorksInLua.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("Lazy_lazy_Test.Lazy_retrieve ="));
-        assertTrue(compiled.contains("l:Lazy_get()"));
+        assertTrue(compiled.contains("Lazy_Lazy_get(l)") || compiled.contains("l:Lazy_get()"));
     }
 
     @Test
@@ -433,6 +474,433 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("Writer.Writer_write = Writer_Writer_write"));
         assertTrue(compiled.contains("Writer.Writer_write1 = Writer_Writer_write1"));
         assertFalse(compiled.contains("Writer.Writer_write = Writer_Writer_write1"));
+    }
+
+    @Test
+    public void overloadedOverrideDispatchDoesNotCollapseLuaSlots() throws IOException {
+        test().testLua(true).lines(
+            "package DispatchOverloadBug",
+            "class Base",
+            "    function doThing(int a)",
+            "        this.doThing(a, 0)",
+            "    function doThing(int a, int b)",
+            "        this.doThing(a, b, false)",
+            "    function doThing(int a, int b, boolean flag)",
+            "        skip",
+            "class Child extends Base",
+            "    override function doThing(int a, int b)",
+            "        super.doThing(a, b)",
+            "init",
+            "    let c = new Child()",
+            "    c.doThing(1)"
+        );
+
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_overloadedOverrideDispatchDoesNotCollapseLuaSlots.lua"), Charsets.UTF_8);
+        Matcher slotMatcher = Pattern.compile("Child\\.(Base_doThing\\d*)\\s*=\\s*Child_Child_doThing").matcher(compiled);
+        List<String> overriddenSlots = new ArrayList<>();
+        while (slotMatcher.find()) {
+            overriddenSlots.add(slotMatcher.group(1));
+        }
+        assertEquals("Expected Child override to bind exactly one dispatch slot.", 1, overriddenSlots.size());
+
+        Matcher baseSlotsMatcher = Pattern.compile("Base\\.(Base_doThing\\d*)\\s*=").matcher(compiled);
+        List<String> baseSlots = new ArrayList<>();
+        while (baseSlotsMatcher.find()) {
+            String slot = baseSlotsMatcher.group(1);
+            if (!baseSlots.contains(slot)) {
+                baseSlots.add(slot);
+            }
+        }
+        assertEquals("Expected three distinct Base overload dispatch slots.", 3, baseSlots.size());
+        assertTrue(compiled.contains("this:Base_doThing1(a, 0)"));
+        assertTrue(compiled.contains("Base_Base_doThing2(this1, a1, b, false)"));
+        assertTrue(compiled.contains("Child.Base_doThing1 = Child_Child_doThing"));
+        assertTrue(compiled.contains("Child.Base_doThing2 = Base_Base_doThing2"));
+    }
+
+    @Test
+    public void moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots",
+            false,
+            "package Test",
+            "module M",
+            "    function setup(int a)",
+            "        this.setup(a, 0)",
+            "    function setup(int a, int b)",
+            "        this.setup(a, b, false)",
+            "    function setup(int a, int b, boolean c)",
+            "        skip",
+            "class Base",
+            "    use M",
+            "class Child extends Base",
+            "    override function setup(int a, int b)",
+            "        super.setup(a, b)",
+            "init",
+            "    let c = new Child()",
+            "    c.setup(1)"
+        );
+
+        List<String> overriddenSlots = uniqueMatches(compiled, "Child\\.Base(?:_M)?_setup(\\d*)\\s*=\\s*Child_Child_setup", 1);
+        List<String> baseSlots = uniqueMatches(compiled, "Base\\.Base(?:_M)?_setup(\\d*)\\s*=", 1);
+
+        assertEquals("Expected exactly one overridden setup overload family from module-provided methods.", 1, overriddenSlots.size());
+        assertEquals("Expected three distinct setup slots on Base.", 3, baseSlots.size());
+        assertTrue(compiled.contains(":Base_M_setup1(") || compiled.contains(":Base_setup1("));
+        assertContainsRegex(compiled, "Child\\.Base(?:_M)?_setup" + Pattern.quote(overriddenSlots.get(0)) + "\\s*=\\s*Child_Child_setup");
+    }
+
+    @Test
+    public void multiLevelOverloadedOverridesKeepDistinctLuaSlots() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_multiLevelOverloadedOverridesKeepDistinctLuaSlots",
+            false,
+            "package Test",
+            "class Base",
+            "    function setup(int a)",
+            "        this.setup(a, 0)",
+            "    function setup(int a, int b)",
+            "        this.setup(a, b, false)",
+            "    function setup(int a, int b, boolean c)",
+            "        skip",
+            "class Mid extends Base",
+            "    override function setup(int a, int b)",
+            "        super.setup(a, b)",
+            "class Child extends Mid",
+            "    override function setup(int a, int b, boolean c)",
+            "        super.setup(a, b, c)",
+            "init",
+            "    let c = new Child()",
+            "    c.setup(1)"
+        );
+
+        List<String> midSlots = uniqueMatches(compiled, "Mid\\.(Base_setup\\d*)\\s*=\\s*Mid_Mid_setup", 1);
+        List<String> childSlots = uniqueMatches(compiled, "Child\\.(Base_setup\\d*)\\s*=\\s*Child_Child_setup", 1);
+        List<String> baseSlots = uniqueMatches(compiled, "Base\\.(Base_setup\\d*)\\s*=", 1);
+
+        assertEquals("Expected Mid to override exactly one base setup slot.", 1, midSlots.size());
+        assertEquals("Expected Child to override exactly one base setup slot.", 1, childSlots.size());
+        assertEquals("Expected three distinct setup slots across hierarchy.", 3, baseSlots.size());
+        assertFalse("Expected different overload slots for Mid and Child overrides.", midSlots.get(0).equals(childSlots.get(0)));
+        assertTrue(compiled.contains("Child." + midSlots.get(0) + " = Mid_Mid_setup"));
+        assertTrue(compiled.contains("Child." + childSlots.get(0) + " = Child_Child_setup"));
+    }
+
+    @Test
+    public void generatedOverloadDispatchMatrixKeepsDistinctLuaSlots() {
+        for (int overloadCount = 3; overloadCount <= 5; overloadCount++) {
+            for (int overrideIndex = 2; overrideIndex < overloadCount; overrideIndex++) {
+                String testName = "LuaTranslationTests_generatedOverloadDispatchMatrixKeepsDistinctLuaSlots_"
+                    + overloadCount + "_" + overrideIndex;
+                String compiled = compileLuaWithRunArgs(
+                    testName,
+                    false,
+                    generatedOverloadDispatchMatrixLines(overloadCount, overrideIndex)
+                );
+
+                List<String> baseSlots = uniqueMatches(compiled, "Base\\.(Base_route\\d*)\\s*=", 1);
+                List<String> overriddenSlots = uniqueMatches(compiled, "Child\\.(Base_route\\d*)\\s*=\\s*Child_Child_route", 1);
+
+                assertEquals("Expected one overridden route slot for overloadCount=" + overloadCount + ", overrideIndex=" + overrideIndex,
+                    1, overriddenSlots.size());
+                assertEquals("Expected distinct route slots to match overload count for overloadCount=" + overloadCount,
+                    overloadCount, baseSlots.size());
+                assertTrue("Missing child binding for overridden slot " + overriddenSlots.get(0),
+                    compiled.contains("Child." + overriddenSlots.get(0) + " = Child_Child_route"));
+
+                for (int stubIndex = Math.max(overrideIndex - 1, 1); stubIndex < overloadCount - 1; stubIndex++) {
+                    String functionName = stubIndex == 0 ? "Base_Base_route" : "Base_Base_route" + stubIndex;
+                    String nextFunctionName = "Base_Base_route" + (stubIndex + 1);
+                    String body = getFunctionBody(compiled, functionName);
+                    assertTrue("Expected " + functionName + " to directly call " + nextFunctionName,
+                        body.contains(nextFunctionName + "("));
+                    assertFalse("Expected " + functionName + " to avoid virtual route dispatch in stub body.",
+                        body.contains(":Base_route("));
+                    assertFalse("Expected " + functionName + " to avoid virtual route dispatch to any numbered route slot.",
+                        body.contains(":Base_route1(")
+                            || body.contains(":Base_route2(")
+                            || body.contains(":Base_route3(")
+                            || body.contains(":Base_route4("));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void middleOverloadStubDirectCallsFinalImplInLua() {
+        test().testLua(true).lines(
+            "package Test",
+            "class Base",
+            "    function setup(int a, int b, int c, int d, int e, int f)",
+            "        skip",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g)",
+            "        this.setup(a, b, c, d, e, f, g, 0)",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h)",
+            "        this.setup(a, b, c, d, e, f, g, h, 0)",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
+            "        skip",
+            "class Child extends Base",
+            "    override function setup(int a, int b, int c, int d, int e, int f, int g, int h)",
+            "        super.setup(a, b, c, d, e, f, g, h)",
+            "init",
+            "    let c = new Child()",
+            "    c.setup(1, 2, 3, 4, 5, 6, 7)"
+        );
+
+        try {
+            String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_middleOverloadStubDirectCallsFinalImplInLua.lua"), Charsets.UTF_8);
+            String middleBody = getFunctionBody(compiled, "Base_Base_setup1");
+            assertTrue(middleBody.contains("Base_Base_setup2("));
+            assertFalse(middleBody.contains(":Base_setup("));
+            assertFalse(middleBody.contains(":Base_setup1("));
+            assertFalse(middleBody.contains(":Base_setup2("));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    public void kuiStyleMiddleOverrideChainUsesDirectFinalImplCallInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_kuiStyleMiddleOverrideChainUsesDirectFinalImplCallInLua",
+            false,
+            "package Test",
+            "class KUIFrame",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g)",
+            "        skip",
+            "class KUIWindow extends KUIFrame",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h)",
+            "        this.setup(a, b, c, d, e, f, g, h, 0)",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
+            "        this.setup(a, b, c, d, e, f, g, h, i, 0)",
+            "    function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i, int j)",
+            "        skip",
+            "class KUITargetUnit extends KUIWindow",
+            "    override function setup(int a, int b, int c, int d, int e, int f, int g, int h, int i)",
+            "        super.setup(a, b, c, d, e, f, g, h, i)",
+            "init",
+            "    let x = new KUITargetUnit()",
+            "    x.setup(1, 2, 3, 4, 5, 6, 7, 8)"
+        );
+
+        String setupBody = getFunctionBody(compiled, "KUIWindow_KUIWindow_setup1");
+        assertTrue(setupBody.contains("KUIWindow_KUIWindow_setup2("));
+        assertFalse(setupBody.contains(":KUIWindow_setup("));
+        assertFalse(setupBody.contains(":KUITargetUnit_setup("));
+    }
+
+    @Test
+    public void closureInterfaceCallsitesUseSubclassBindingsForSameLuaSlot() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_closureInterfaceCallsitesUseSubclassBindingsForSameLuaSlot",
+            false,
+            "package Test",
+            "interface LLItrClosure",
+            "    function run(int t)",
+            "class LinkedList",
+            "    function forEach(LLItrClosure f)",
+            "        f.run(1)",
+            "function feed(LinkedList xs)",
+            "    xs.forEach((int t) -> skip)",
+            "    xs.forEach((int t) -> skip)",
+            "init",
+            "    let xs = new LinkedList()",
+            "    feed(xs)"
+        );
+
+        String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
+        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        assertEquals("run", slotName);
+        List<String> subclassBindings = nonBaseSubclassBindings(compiled, "LLItrClosure", slotName);
+
+        assertTrue("Expected generated closure subclasses for LLItrClosure to bind slot " + slotName,
+            subclassBindings.size() >= 2);
+        assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
+    }
+
+    @Test
+    public void abstractCallbackFamiliesKeepCallsiteAndSubclassSlotNamesAlignedInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_abstractCallbackFamiliesKeepCallsiteAndSubclassSlotNamesAlignedInLua",
+            false,
+            "package Test",
+            "public abstract class OtherCallback",
+            "    abstract function callback(int elem)",
+            "class OtherRegistry",
+            "    function applyTo(OtherCallback cb)",
+            "        cb.callback(0)",
+            "public abstract class ForElementCallback",
+            "    abstract function callback(int elem)",
+            "class Registry",
+            "    function forEachIn(ForElementCallback cb)",
+            "        cb.callback(1)",
+            "function runAll(Registry r, OtherRegistry o)",
+            "    r.forEachIn() elem ->",
+            "        skip",
+            "    r.forEachIn() elem ->",
+            "        skip",
+            "    o.applyTo() elem ->",
+            "        skip",
+            "init",
+            "    runAll(new Registry(), new OtherRegistry())"
+        );
+
+        String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
+        String callbackSlot = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        assertEquals("callback", callbackSlot);
+        List<String> subclassBindings = nonBaseSubclassBindings(compiled, "ForElementCallback", callbackSlot);
+
+        assertTrue("Expected generated ForElementCallback closure subclasses to bind slot " + callbackSlot,
+            subclassBindings.size() >= 2);
+        assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(callbackSlot) + "\\s*=");
+
+        String otherBody = getFunctionBody(compiled, "OtherRegistry_OtherRegistry_applyTo");
+        String otherSlot = singleMatch(otherBody, ":([A-Za-z0-9_]+)\\(", 1);
+        assertTrue(otherSlot.startsWith("callback"));
+        List<String> otherSubclassBindings = nonBaseSubclassBindings(compiled, "OtherCallback", otherSlot);
+
+        assertTrue("Expected generated OtherCallback closure subclass to bind slot " + otherSlot,
+            otherSubclassBindings.size() >= 1);
+        assertContainsRegex(compiled, "OtherCallback_[A-Za-z0-9_]+\\." + Pattern.quote(otherSlot) + "\\s*=");
+    }
+
+    @Test
+    public void genericClosureInterfacesKeepPrefixedBaseSlotNamesInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_genericClosureInterfacesKeepPrefixedBaseSlotNamesInLua",
+            false,
+            "package Test",
+            "class Box<T>",
+            "    T elem",
+            "    construct(T elem)",
+            "        this.elem = elem",
+            "class LinkedList<X>",
+            "    Box<X> stored = null",
+            "    function add(X x)",
+            "        stored = new Box<X>(x)",
+            "    function forEach(LLItrClosure<X> f)",
+            "        if stored != null",
+            "            f.run(stored.elem)",
+            "public interface LLItrClosure<T>",
+            "    function run(T t)",
+            "function test()",
+            "    let xs = new LinkedList<int>()",
+            "    xs.add(1)",
+            "    xs.forEach() itr ->",
+            "        skip",
+            "init",
+            "    test()"
+        );
+
+        String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
+        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        assertEquals("LLItrClosure_run", slotName);
+        assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
+        assertDoesNotContainRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.LLItrClosure_run\\d+\\s*=");
+    }
+
+    @Test
+    public void genericAbstractCallbacksKeepPrefixedBaseSlotNamesInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_genericAbstractCallbacksKeepPrefixedBaseSlotNamesInLua",
+            false,
+            "package Test",
+            "class Registry<T>",
+            "    T stored = null",
+            "    construct(T stored)",
+            "        this.stored = stored",
+            "    function forEachIn(ForElementCallback<T> cb)",
+            "        if stored != null",
+            "            cb.callback(stored)",
+            "public abstract class ForElementCallback<T>",
+            "    abstract function callback(T elem)",
+            "function test()",
+            "    let r = new Registry<int>(1)",
+            "    r.forEachIn() elem ->",
+            "        skip",
+            "init",
+            "    test()"
+        );
+
+        String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
+        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        assertEquals("ForElementCallback_callback", slotName);
+        assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
+        assertDoesNotContainRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\.ForElementCallback_callback\\d+\\s*=");
+    }
+
+    @Test
+    public void genericRegistryModuleCallbacksKeepModuleQualifiedLuaSlotNames() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "public interface ForElementCallback<T>",
+            "    function callback(T elem)",
+            "public module RegistryModule<T>",
+            "    static T stored = null",
+            "    protected static function addToRegistry(T obj) returns int",
+            "        stored = obj",
+            "        return 0",
+            "    static function forEachIn(ForElementCallback<T> cb) returns ForElementCallback<T>",
+            "        if stored != null",
+            "            cb.callback(stored)",
+            "        return cb",
+            "class Dungeon",
+            "    use RegistryModule<Dungeon>",
+            "    static function makeOne()",
+            "        addToRegistry(new Dungeon())",
+            "function setup()",
+            "    Dungeon.makeOne()",
+            "    Dungeon.forEachIn((dungeon) -> begin",
+            "        skip",
+            "    end)",
+            "init",
+            "    setup()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericRegistryModuleCallbacksKeepModuleQualifiedLuaSlotNames.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "function\\s+[A-Za-z0-9_]*forEachIn\\(");
+        assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\.(RegistryModule_)?ForElementCallback_callback\\s*=");
+        assertDoesNotContainRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\.ForElementCallback_callback\\d+\\s*=");
+    }
+
+    @Test
+    public void nestedGenericLinkedListClosuresKeepPrefixedLuaSlotNames() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "public interface CallbackSingle",
+            "    function run()",
+            "public function _Logging_executeCustom(string msg, CallbackSingle cb)",
+            "    cb.run()",
+            "public interface LLItrClosure<T>",
+            "    function run(T t)",
+            "class Node<T>",
+            "    T elem",
+            "    Node<T> next = null",
+            "class LinkedList<T>",
+            "    Node<T> first = null",
+            "    function add(T elem)",
+            "        let n = new Node<T>()",
+            "        n.elem = elem",
+            "        n.next = first",
+            "        first = n",
+            "    function forEach(LLItrClosure<T> itr)",
+            "        var cur = first",
+            "        while cur != null",
+            "            itr.run(cur.elem)",
+            "            cur = cur.next",
+            "function setup()",
+            "    let ids = new LinkedList<int>()",
+            "    ids.add(1)",
+            "    ids.forEach() id ->",
+            "        _Logging_executeCustom(\"x\") ->",
+            "            skip",
+            "init",
+            "    setup()"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_nestedGenericLinkedListClosuresKeepPrefixedLuaSlotNames.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "function\\s+LinkedList_[A-Za-z0-9_]*forEach\\(");
+        assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.LLItrClosure_run\\s*=");
     }
 
     @Test
@@ -603,6 +1071,59 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse(compiled.contains("function config2("));
         assertTrue(compiled.contains("function config1("));
         assertTrue(compiled.contains("config1()"));
+    }
+
+    @Test
+    public void stacktracesAreNotInjectedIntoConfigSeededLuaFunctions() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_stacktracesAreNotInjectedIntoConfigSeededLuaFunctions",
+            false,
+            "package Test",
+            "@noinline function configHelper()",
+            "    skip",
+            "@noinline function runtimeHelper()",
+            "    skip",
+            "function config()",
+            "    configHelper()",
+            "init",
+            "    runtimeHelper()"
+        );
+
+        assertDoesNotContainRegex(compiled, "function\\s+config\\([^\\)]*__wurst_stackPos");
+        assertDoesNotContainRegex(compiled, "function\\s+config1\\([^\\)]*__wurst_stackPos");
+        assertDoesNotContainRegex(compiled, "function\\s+configHelper\\([^\\)]*__wurst_stackPos");
+        assertDoesNotContainRegex(compiled, "configHelper\\(\"when calling configHelper");
+
+        assertContainsRegex(compiled, "function\\s+runtimeHelper\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled, "runtimeHelper\\(\"when calling runtimeHelper");
+    }
+
+    @Test
+    public void stacktracesStayInjectedForLuaHelpersSharedByConfigAndRuntime() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_stacktracesStayInjectedForLuaHelpersSharedByConfigAndRuntime",
+            false,
+            "package Test",
+            "@noinline function sharedLeaf()",
+            "    skip",
+            "@noinline function sharedHelper()",
+            "    sharedLeaf()",
+            "@noinline function configOnlyHelper()",
+            "    skip",
+            "function config()",
+            "    configOnlyHelper()",
+            "    sharedHelper()",
+            "init",
+            "    sharedHelper()"
+        );
+
+        assertDoesNotContainRegex(compiled, "function\\s+configOnlyHelper\\([^\\)]*__wurst_stackPos");
+        assertDoesNotContainRegex(compiled, "configOnlyHelper\\(\"when calling configOnlyHelper");
+
+        assertContainsRegex(compiled, "function\\s+sharedHelper\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled, "function\\s+sharedLeaf\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled, "sharedHelper\\(\"when calling sharedHelper");
+        assertContainsRegex(compiled, "sharedLeaf\\(\"when calling sharedLeaf");
     }
 
     @Test
@@ -950,6 +1471,56 @@ public class LuaTranslationTests extends WurstScriptTest {
                 "    o.fsm.update(0.1)"
             )
         };
+    }
+
+    private String[] generatedOverloadDispatchMatrixLines(int overloadCount, int overrideIndex) {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("class Base");
+        for (int i = 1; i <= overloadCount; i++) {
+            lines.add("    function route(" + routeParams(i) + ")");
+            if (i < overloadCount) {
+                lines.add("        this.route(" + routeArgsToNext(i) + ")");
+            } else {
+                lines.add("        skip");
+            }
+        }
+        lines.add("class Child extends Base");
+        lines.add("    override function route(" + routeParams(overrideIndex) + ")");
+        lines.add("        super.route(" + routeArgsCurrent(overrideIndex) + ")");
+        lines.add("init");
+        lines.add("    let c = new Child()");
+        lines.add("    c.route(" + routeStartArgs() + ")");
+        return lines.toArray(new String[0]);
+    }
+
+    private String routeParams(int arity) {
+        List<String> params = new ArrayList<>();
+        for (int i = 1; i <= arity; i++) {
+            params.add("int p" + i);
+        }
+        return String.join(", ", params);
+    }
+
+    private String routeArgsToNext(int arity) {
+        List<String> args = new ArrayList<>();
+        for (int i = 1; i <= arity; i++) {
+            args.add("p" + i);
+        }
+        args.add("0");
+        return String.join(", ", args);
+    }
+
+    private String routeArgsCurrent(int arity) {
+        List<String> args = new ArrayList<>();
+        for (int i = 1; i <= arity; i++) {
+            args.add("p" + i);
+        }
+        return String.join(", ", args);
+    }
+
+    private String routeStartArgs() {
+        return "1";
     }
 
     @Test
@@ -1502,6 +2073,31 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_removesUnusedClassesFromLuaOutput.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("Keep"));
         assertFalse(compiled.contains("Drop"));
+    }
+
+    @Test
+    public void subclassAllocationIncludesInheritedFieldsInLua() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "class Window",
+            "    int anchorTop",
+            "    int anchorBottom",
+            "    function anchored() returns boolean",
+            "        return anchorTop == 0 and anchorBottom == 0",
+            "class Child extends Window",
+            "    int ownField",
+            "init",
+            "    let c = new Child()",
+            "    c.ownField = 7",
+            "    if c.anchored()",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled,
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorTop=");
+        assertContainsRegex(compiled,
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorBottom=");
     }
 
 }
