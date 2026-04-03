@@ -175,6 +175,17 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImMethodCall e, LuaTranslator tr) {
+        ImMethod method = e.getMethod();
+        if (!method.getIsAbstract()
+            && method.getImplementation() != null
+            && method.getSubMethods().isEmpty()) {
+            LuaExprlist args = LuaAst.LuaExprlist();
+            args.add(e.getReceiver().translateToLua(tr));
+            for (ImExpr arg : e.getArguments()) {
+                args.add(arg.translateToLua(tr));
+            }
+            return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(method.getImplementation()), args);
+        }
         return LuaAst.LuaExprMethodCall(e.getReceiver().translateToLua(tr), tr.luaMethod.getFor(e.getMethod()), tr.translateExprList(e.getArguments()));
     }
 
