@@ -1099,6 +1099,34 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void stacktracesStayInjectedForLuaHelpersSharedByConfigAndRuntime() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_stacktracesStayInjectedForLuaHelpersSharedByConfigAndRuntime",
+            false,
+            "package Test",
+            "@noinline function sharedLeaf()",
+            "    skip",
+            "@noinline function sharedHelper()",
+            "    sharedLeaf()",
+            "@noinline function configOnlyHelper()",
+            "    skip",
+            "function config()",
+            "    configOnlyHelper()",
+            "    sharedHelper()",
+            "init",
+            "    sharedHelper()"
+        );
+
+        assertDoesNotContainRegex(compiled, "function\\s+configOnlyHelper\\([^\\)]*__wurst_stackPos");
+        assertDoesNotContainRegex(compiled, "configOnlyHelper\\(\"when calling configOnlyHelper");
+
+        assertContainsRegex(compiled, "function\\s+sharedHelper\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled, "function\\s+sharedLeaf\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled, "sharedHelper\\(\"when calling sharedHelper");
+        assertContainsRegex(compiled, "sharedLeaf\\(\"when calling sharedLeaf");
+    }
+
+    @Test
     public void objectIndexFunctionsDoNotCollideWithUserFunctions() throws IOException {
         test().testLua(true).lines(
             "package Test",
