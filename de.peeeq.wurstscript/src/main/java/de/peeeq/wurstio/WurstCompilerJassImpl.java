@@ -943,6 +943,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
 
+        beginPhase(13, "prepare lua dispatch");
+        LuaDispatchPreparation.prepare(imProg);
+        timeTaker.endPhase();
+
         beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();

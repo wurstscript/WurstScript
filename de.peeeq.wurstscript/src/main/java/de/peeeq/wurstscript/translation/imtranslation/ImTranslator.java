@@ -772,7 +772,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
             ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
-                    impl, Lists.newArrayList(), false);
+                    impl, Lists.newArrayList(), Lists.newArrayList(), "", false);
             return m;
         }
     };
@@ -2039,7 +2039,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             // otherwise EliminateClasses dispatch lookup can fail.
             String methodName = imFunc.getName();
             WLogger.trace(() -> "[GENCAP] getMethodFor " + elementNameWithPath(f) + " -> methodName=" + methodName);
-            m = JassIm.ImMethod(f, selfType(f), methodName, imFunc, Lists.newArrayList(), false);
+            m = JassIm.ImMethod(f, selfType(f), methodName, imFunc, Lists.newArrayList(), Lists.newArrayList(), "", false);
             methodForFuncDef.put(f, m);
         }
         return m;

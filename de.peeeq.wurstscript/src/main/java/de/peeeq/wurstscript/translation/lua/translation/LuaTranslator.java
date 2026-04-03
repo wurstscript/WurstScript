@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
-import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -17,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
@@ -97,6 +95,7 @@ public class LuaTranslator {
     final ImProg prog;
     final LuaCompilationUnit luaModel;
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
+    private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
         "print", "tostring", "error",
@@ -270,19 +269,26 @@ public class LuaTranslator {
     }
 
     protected String uniqueName(String name) {
-        int i = 0;
-        String rname = name;
-        while (usedNames.contains(rname)) {
-            rname = name + ++i;
+        Integer nextIndex = uniqueNameCounters.get(name);
+        if (nextIndex == null) {
+            uniqueNameCounters.put(name, 1);
+            if (usedNames.add(name)) {
+                return name;
+            }
+            nextIndex = 1;
         }
-        usedNames.add(rname);
-        return rname;
+        String candidate;
+        do {
+            candidate = name + nextIndex;
+            nextIndex++;
+        } while (!usedNames.add(candidate));
+        uniqueNameCounters.put(name, nextIndex);
+        return candidate;
     }
 
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
 
-        normalizeMethodNames();
         normalizeFieldNames();
 
 //        NormalizeNames.normalizeNames(prog);
@@ -372,13 +378,15 @@ public class LuaTranslator {
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
         List<String> leaked = new ArrayList<>();
         List<String> missingHelpers = new ArrayList<>();
+        Set<String> calledFunctionNames = collectCalledFunctionNames(luaCode);
+        Set<String> definedFunctionNames = collectDefinedFunctionNames(luaCode);
         for (String nativeName : allHashtableNativeNames()) {
-            if (containsRegex(luaCode, "\\b" + nativeName + "\\s*\\(")) {
+            if (calledFunctionNames.contains(nativeName)) {
                 leaked.add(nativeName);
             }
             String helperName = "__wurst_" + nativeName;
-            boolean helperCalled = containsRegex(luaCode, "\\b" + helperName + "\\s*\\(");
-            boolean helperDefined = containsRegex(luaCode, "\\bfunction\\s+" + helperName + "\\s*\\(");
+            boolean helperCalled = calledFunctionNames.contains(helperName);
+            boolean helperDefined = definedFunctionNames.contains(helperName);
             if (helperCalled && !helperDefined) {
                 missingHelpers.add(helperName);
             }
@@ -391,6 +399,80 @@ public class LuaTranslator {
             throw new RuntimeException("Wurst Lua backend assertion failed: missing __wurst hashtable helper definitions in generated Lua: "
                 + String.join(", ", missingHelpers));
         }
+    }
+
+    private static Set<String> collectCalledFunctionNames(String text) {
+        Set<String> result = new HashSet<>();
+        int length = text.length();
+        int index = 0;
+        while (index < length) {
+            if (!isIdentifierStart(text.charAt(index))) {
+                index++;
+                continue;
+            }
+            int end = scanIdentifierEnd(text, index + 1);
+            int next = skipWhitespace(text, end);
+            if (next < length && text.charAt(next) == '(') {
+                result.add(text.substring(index, end));
+            }
+            index = end;
+        }
+        return result;
+    }
+
+    private static Set<String> collectDefinedFunctionNames(String text) {
+        Set<String> result = new HashSet<>();
+        int length = text.length();
+        int index = 0;
+        while (index < length) {
+            if (!matchesWord(text, index, "function")) {
+                index++;
+                continue;
+            }
+            int nameStart = skipWhitespace(text, index + "function".length());
+            if (nameStart >= length || !isIdentifierStart(text.charAt(nameStart))) {
+                index++;
+                continue;
+            }
+            int nameEnd = scanIdentifierEnd(text, nameStart + 1);
+            int next = skipWhitespace(text, nameEnd);
+            if (next < length && text.charAt(next) == '(') {
+                result.add(text.substring(nameStart, nameEnd));
+            }
+            index = nameEnd;
+        }
+        return result;
+    }
+
+    private static int skipWhitespace(String text, int index) {
+        while (index < text.length() && Character.isWhitespace(text.charAt(index))) {
+            index++;
+        }
+        return index;
+    }
+
+    private static int scanIdentifierEnd(String text, int index) {
+        while (index < text.length() && isIdentifierPart(text.charAt(index))) {
+            index++;
+        }
+        return index;
+    }
+
+    private static boolean matchesWord(String text, int index, String word) {
+        int end = index + word.length();
+        if (end > text.length() || !text.regionMatches(index, word, 0, word.length())) {
+            return false;
+        }
+        return (index == 0 || !isIdentifierPart(text.charAt(index - 1)))
+            && (end == text.length() || !isIdentifierPart(text.charAt(end)));
+    }
+
+    private static boolean isIdentifierStart(char ch) {
+        return ch == '_' || Character.isLetter(ch);
+    }
+
+    private static boolean isIdentifierPart(char ch) {
+        return ch == '_' || Character.isLetterOrDigit(ch);
     }
 
     private static List<String> allHashtableNativeNames() {
@@ -406,10 +488,6 @@ public class LuaTranslator {
             result.add("__wurst_" + name);
         }
         return result;
-    }
-
-    private static boolean containsRegex(String text, String regex) {
-        return Pattern.compile(regex).matcher(text).find();
     }
 
     private boolean isFixedEntryPoint(ImFunction function) {
@@ -440,27 +518,19 @@ public class LuaTranslator {
     }
 
     private void normalizeMethodNames() {
-        // group related methods
-        UnionFind<ImMethod> methodUnions = new UnionFind<>();
+        Map<String, List<ImMethod>> groupedMethods = new TreeMap<>();
         for (ImClass c : prog.getClasses()) {
             for (ImMethod m : c.getMethods()) {
-                methodUnions.find(m);
-                for (ImMethod subMethod : m.getSubMethods()) {
-                    methodUnions.union(m, subMethod);
-                }
+                groupedMethods.computeIfAbsent(dispatchGroupKey(m), ignored -> new ArrayList<>()).add(m);
             }
         }
-
-        // give all related methods the same name in deterministic order
-        List<List<ImMethod>> groups = new ArrayList<>();
-        for (Set<ImMethod> group : methodUnions.groups().values()) {
-            groups.addAll(partitionMethodsByDispatchSignature(group));
-        }
+        List<List<ImMethod>> groups = new ArrayList<>(groupedMethods.values());
         groups.sort(Comparator.comparing(g -> g.isEmpty() ? "" : methodSortKey(g.get(0))));
         for (List<ImMethod> group : groups) {
             if (group.isEmpty()) {
                 continue;
             }
+            group.sort(Comparator.comparing(this::methodSortKey));
             String name = uniqueName(group.get(0).getName());
             for (ImMethod method : group) {
                 method.setName(name);
@@ -1082,27 +1152,12 @@ public class LuaTranslator {
 
     private void createMethods(ImClass c, LuaVariable classVar) {
         List<ImMethod> allMethods = collectMethodsInHierarchy(c);
-        Set<ImMethod> inHierarchy = new HashSet<>(allMethods);
-        UnionFind<ImMethod> unions = new UnionFind<>();
+        Map<String, List<ImMethod>> groupedMethods = new TreeMap<>();
         for (ImMethod method : allMethods) {
-            unions.find(method);
-            for (ImMethod subMethod : method.getSubMethods()) {
-                if (inHierarchy.contains(subMethod)) {
-                    unions.union(method, subMethod);
-                }
-            }
+            groupedMethods.computeIfAbsent(dispatchGroupKey(method), ignored -> new ArrayList<>()).add(method);
         }
 
-        Map<ImMethod, List<ImMethod>> groupedMethods = new HashMap<>();
-        for (ImMethod method : allMethods) {
-            ImMethod root = unions.find(method);
-            groupedMethods.computeIfAbsent(root, k -> new ArrayList<>()).add(method);
-        }
-
-        List<List<ImMethod>> groups = new ArrayList<>();
-        for (List<ImMethod> methods : groupedMethods.values()) {
-            groups.addAll(partitionMethodsByDispatchSignature(methods));
-        }
+        List<List<ImMethod>> groups = new ArrayList<>(groupedMethods.values());
         groups.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
         Map<String, ImMethod> slotToImpl = new TreeMap<>();
         for (List<ImMethod> groupMethods : groups) {
@@ -1137,92 +1192,25 @@ public class LuaTranslator {
         }
     }
 
-    private List<List<ImMethod>> partitionMethodsByDispatchSignature(Collection<ImMethod> methods) {
-        Map<String, List<ImMethod>> partitions = new TreeMap<>();
-        for (ImMethod method : methods) {
-            partitions.computeIfAbsent(dispatchSignatureKey(method), k -> new ArrayList<>()).add(method);
-        }
-        List<List<ImMethod>> result = new ArrayList<>(partitions.values());
-        for (List<ImMethod> group : result) {
-            group.sort(Comparator.comparing(this::methodSortKey));
-        }
-        result.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
-        return result;
-    }
-
-    private String dispatchSignatureKey(ImMethod method) {
-        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
-        if (implementation == null) {
-            return "<abstract>";
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append(typeKey(implementation.getReturnType())).append("|");
-        ImVars params = implementation.getParameters();
-        for (int i = 1; i < params.size(); i++) {
-            if (i > 1) {
-                sb.append(",");
-            }
-            sb.append(typeKey(params.get(i).getType()));
-        }
-        return sb.toString();
-    }
-
-    private ImFunction resolveDispatchSignatureImplementation(ImMethod method, Set<ImMethod> visited) {
-        if (method == null || !visited.add(method)) {
-            return null;
-        }
-        if (method.getImplementation() != null) {
-            return method.getImplementation();
-        }
-        List<ImMethod> subMethods = new ArrayList<>(method.getSubMethods());
-        subMethods.sort(Comparator.comparing(this::methodSortKey));
-        for (ImMethod subMethod : subMethods) {
-            ImFunction resolved = resolveDispatchSignatureImplementation(subMethod, visited);
-            if (resolved != null) {
-                return resolved;
-            }
-        }
-        return null;
-    }
-
-    private String typeKey(ImType type) {
-        return type == null ? "<null>" : type.toString();
-    }
-
     private Set<String> collectDispatchSlotNames(ImClass receiverClass, List<ImMethod> groupMethods) {
         Set<String> slotNames = new TreeSet<>();
         Set<String> semanticNames = new TreeSet<>();
-        Set<String> dispatchKeys = new TreeSet<>();
-        Set<String> closureRuntimeKeys = new TreeSet<>();
         for (ImMethod m : groupMethods) {
             if (m == null) {
                 continue;
             }
-            dispatchKeys.add(dispatchSignatureKey(m));
-            closureRuntimeKeys.add(closureRuntimeDispatchKey(m));
-            String methodName = m.getName();
-            if (!methodName.isEmpty()) {
-                slotNames.add(methodName);
+            for (String alias : m.getLuaMethodDispatchAliases()) {
+                if (alias != null && !alias.isEmpty()) {
+                    slotNames.add(alias);
+                }
             }
-            ImClass owner = m.attrClass();
-            String semanticName = semanticNameFromMethodName(methodName);
+            String semanticName = semanticNameFromMethodName(m.getName());
             if (!semanticName.isEmpty()) {
                 semanticNames.add(semanticName);
             }
-            if (owner != null && !semanticName.isEmpty()) {
-                slotNames.add(owner.getName() + "_" + semanticName);
-            }
             String sourceSemanticName = sourceSemanticName(m);
-            if (owner != null && isClosureGeneratedClass(owner) && !sourceSemanticName.isEmpty()) {
+            if (m.attrClass() != null && m.attrClass().attrTrace() instanceof ExprClosure && !sourceSemanticName.isEmpty()) {
                 semanticNames.add(sourceSemanticName);
-                slotNames.add(sourceSemanticName);
-                slotNames.add(owner.getName() + "_" + sourceSemanticName);
-            }
-        }
-        if (receiverClass != null && !dispatchKeys.isEmpty() && !semanticNames.isEmpty()) {
-            collectEquivalentHierarchyMethodNames(receiverClass, dispatchKeys, semanticNames, slotNames, new HashSet<>());
-            if (isClosureGeneratedClass(receiverClass) && !closureRuntimeKeys.isEmpty()) {
-                collectEquivalentClosureFamilyMethodNames(receiverClass, closureRuntimeKeys, semanticNames, slotNames);
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
@@ -1235,105 +1223,6 @@ public class LuaTranslator {
             }
         }
         return slotNames;
-    }
-
-    private void collectEquivalentHierarchyMethodNames(ImClass c, Set<String> dispatchKeys, Set<String> semanticNames,
-                                                       Set<String> slotNames, Set<ImClass> visited) {
-        if (c == null || !visited.add(c)) {
-            return;
-        }
-        for (ImMethod method : c.getMethods()) {
-            if (method == null) {
-                continue;
-            }
-            if (!dispatchKeys.contains(dispatchSignatureKey(method))) {
-                continue;
-            }
-            String methodName = method.getName();
-            String semanticName = semanticNameFromMethodName(methodName);
-            String sourceSemanticName = sourceSemanticName(method);
-            if (!semanticNames.contains(semanticName) && !semanticNames.contains(sourceSemanticName)) {
-                continue;
-            }
-            if (!methodName.isEmpty()) {
-                slotNames.add(methodName);
-                slotNames.add(c.getName() + "_" + methodName);
-            }
-        }
-        for (ImClassType sc : c.getSuperClasses()) {
-            collectEquivalentHierarchyMethodNames(sc.getClassDef(), dispatchKeys, semanticNames, slotNames, visited);
-        }
-    }
-
-    private void collectEquivalentClosureFamilyMethodNames(ImClass receiverClass, Set<String> closureRuntimeKeys,
-                                                           Set<String> semanticNames, Set<String> slotNames) {
-        Set<ImClass> anchors = new HashSet<>();
-        collectClosureFamilyAnchors(receiverClass, anchors, new HashSet<>());
-        if (anchors.isEmpty()) {
-            return;
-        }
-        List<ImClass> classes = new ArrayList<>(prog.getClasses());
-        classes.sort(Comparator.comparing(this::classSortKey));
-        for (ImClass candidateClass : classes) {
-            if (!sharesClosureFamilyAnchor(candidateClass, anchors, new HashSet<>())) {
-                continue;
-            }
-            List<ImMethod> methods = new ArrayList<>(candidateClass.getMethods());
-            methods.sort(Comparator.comparing(this::methodSortKey));
-            for (ImMethod method : methods) {
-                if (!closureRuntimeKeys.contains(closureRuntimeDispatchKey(method))) {
-                    continue;
-                }
-                String methodName = method.getName();
-                String semanticName = semanticNameFromMethodName(methodName);
-                String sourceSemanticName = sourceSemanticName(method);
-                if (!semanticNames.contains(semanticName) && !semanticNames.contains(sourceSemanticName)) {
-                    continue;
-                }
-                if (!methodName.isEmpty()) {
-                    slotNames.add(methodName);
-                    slotNames.add(candidateClass.getName() + "_" + methodName);
-                }
-            }
-        }
-    }
-
-    private String closureRuntimeDispatchKey(ImMethod method) {
-        if (method == null) {
-            return "<null>";
-        }
-        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
-        if (implementation == null) {
-            return "<abstract>";
-        }
-        return "" + Math.max(0, implementation.getParameters().size() - 1);
-    }
-
-    private void collectClosureFamilyAnchors(ImClass c, Set<ImClass> anchors, Set<ImClass> visited) {
-        if (c == null || !visited.add(c)) {
-            return;
-        }
-        if (!isClosureGeneratedClass(c)) {
-            anchors.add(c);
-        }
-        for (ImClassType sc : c.getSuperClasses()) {
-            collectClosureFamilyAnchors(sc.getClassDef(), anchors, visited);
-        }
-    }
-
-    private boolean sharesClosureFamilyAnchor(ImClass c, Set<ImClass> anchors, Set<ImClass> visited) {
-        if (c == null || !visited.add(c)) {
-            return false;
-        }
-        if (anchors.contains(c)) {
-            return true;
-        }
-        for (ImClassType sc : c.getSuperClasses()) {
-            if (sharesClosureFamilyAnchor(sc.getClassDef(), anchors, visited)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {
@@ -1498,6 +1387,11 @@ public class LuaTranslator {
         return owner + "|" + m.getName() + "|" + impl;
     }
 
+    private String dispatchGroupKey(ImMethod method) {
+        String key = method.getLuaDispatchGroupKey();
+        return key == null || key.isEmpty() ? methodSortKey(method) : key;
+    }
+
     private String semanticNameFromMethodName(String methodName) {
         if (methodName == null || methodName.isEmpty()) {
             return "";
@@ -1507,10 +1401,6 @@ public class LuaTranslator {
             return methodName.substring(lastUnderscore + 1);
         }
         return methodName;
-    }
-
-    private boolean isClosureGeneratedClass(ImClass c) {
-        return c != null && c.attrTrace() instanceof ExprClosure;
     }
 
     private String sourceSemanticName(ImMethod method) {

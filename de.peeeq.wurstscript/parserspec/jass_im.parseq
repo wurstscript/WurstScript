@@ -68,6 +68,8 @@ ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,
+	java.util.List<String> luaMethodDispatchAliases,
+	String luaDispatchGroupKey,
 	boolean isAbstract)
 	
 	
