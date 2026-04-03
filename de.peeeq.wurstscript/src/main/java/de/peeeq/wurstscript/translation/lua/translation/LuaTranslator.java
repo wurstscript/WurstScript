@@ -1192,10 +1192,14 @@ public class LuaTranslator {
     private Set<String> collectDispatchSlotNames(ImClass receiverClass, List<ImMethod> groupMethods) {
         Set<String> slotNames = new TreeSet<>();
         Set<String> semanticNames = new TreeSet<>();
+        Set<String> dispatchKeys = new TreeSet<>();
+        Set<String> closureRuntimeKeys = new TreeSet<>();
         for (ImMethod m : groupMethods) {
             if (m == null) {
                 continue;
             }
+            dispatchKeys.add(dispatchSignatureKey(m));
+            closureRuntimeKeys.add(closureRuntimeDispatchKey(m));
             String methodName = m.getName();
             if (!methodName.isEmpty()) {
                 slotNames.add(methodName);
@@ -1215,6 +1219,12 @@ public class LuaTranslator {
                 slotNames.add(owner.getName() + "_" + sourceSemanticName);
             }
         }
+        if (receiverClass != null && !dispatchKeys.isEmpty() && !semanticNames.isEmpty()) {
+            collectEquivalentHierarchyMethodNames(receiverClass, dispatchKeys, semanticNames, slotNames, new HashSet<>());
+            if (isClosureGeneratedClass(receiverClass) && !closureRuntimeKeys.isEmpty()) {
+                collectEquivalentClosureFamilyMethodNames(receiverClass, closureRuntimeKeys, semanticNames, slotNames);
+            }
+        }
         if (receiverClass != null && !semanticNames.isEmpty()) {
             Set<String> classNames = new TreeSet<>();
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
@@ -1225,6 +1235,105 @@ public class LuaTranslator {
             }
         }
         return slotNames;
+    }
+
+    private void collectEquivalentHierarchyMethodNames(ImClass c, Set<String> dispatchKeys, Set<String> semanticNames,
+                                                       Set<String> slotNames, Set<ImClass> visited) {
+        if (c == null || !visited.add(c)) {
+            return;
+        }
+        for (ImMethod method : c.getMethods()) {
+            if (method == null) {
+                continue;
+            }
+            if (!dispatchKeys.contains(dispatchSignatureKey(method))) {
+                continue;
+            }
+            String methodName = method.getName();
+            String semanticName = semanticNameFromMethodName(methodName);
+            String sourceSemanticName = sourceSemanticName(method);
+            if (!semanticNames.contains(semanticName) && !semanticNames.contains(sourceSemanticName)) {
+                continue;
+            }
+            if (!methodName.isEmpty()) {
+                slotNames.add(methodName);
+                slotNames.add(c.getName() + "_" + methodName);
+            }
+        }
+        for (ImClassType sc : c.getSuperClasses()) {
+            collectEquivalentHierarchyMethodNames(sc.getClassDef(), dispatchKeys, semanticNames, slotNames, visited);
+        }
+    }
+
+    private void collectEquivalentClosureFamilyMethodNames(ImClass receiverClass, Set<String> closureRuntimeKeys,
+                                                           Set<String> semanticNames, Set<String> slotNames) {
+        Set<ImClass> anchors = new HashSet<>();
+        collectClosureFamilyAnchors(receiverClass, anchors, new HashSet<>());
+        if (anchors.isEmpty()) {
+            return;
+        }
+        List<ImClass> classes = new ArrayList<>(prog.getClasses());
+        classes.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass candidateClass : classes) {
+            if (!sharesClosureFamilyAnchor(candidateClass, anchors, new HashSet<>())) {
+                continue;
+            }
+            List<ImMethod> methods = new ArrayList<>(candidateClass.getMethods());
+            methods.sort(Comparator.comparing(this::methodSortKey));
+            for (ImMethod method : methods) {
+                if (!closureRuntimeKeys.contains(closureRuntimeDispatchKey(method))) {
+                    continue;
+                }
+                String methodName = method.getName();
+                String semanticName = semanticNameFromMethodName(methodName);
+                String sourceSemanticName = sourceSemanticName(method);
+                if (!semanticNames.contains(semanticName) && !semanticNames.contains(sourceSemanticName)) {
+                    continue;
+                }
+                if (!methodName.isEmpty()) {
+                    slotNames.add(methodName);
+                    slotNames.add(candidateClass.getName() + "_" + methodName);
+                }
+            }
+        }
+    }
+
+    private String closureRuntimeDispatchKey(ImMethod method) {
+        if (method == null) {
+            return "<null>";
+        }
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation == null) {
+            return "<abstract>";
+        }
+        return "" + Math.max(0, implementation.getParameters().size() - 1);
+    }
+
+    private void collectClosureFamilyAnchors(ImClass c, Set<ImClass> anchors, Set<ImClass> visited) {
+        if (c == null || !visited.add(c)) {
+            return;
+        }
+        if (!isClosureGeneratedClass(c)) {
+            anchors.add(c);
+        }
+        for (ImClassType sc : c.getSuperClasses()) {
+            collectClosureFamilyAnchors(sc.getClassDef(), anchors, visited);
+        }
+    }
+
+    private boolean sharesClosureFamilyAnchor(ImClass c, Set<ImClass> anchors, Set<ImClass> visited) {
+        if (c == null || !visited.add(c)) {
+            return false;
+        }
+        if (anchors.contains(c)) {
+            return true;
+        }
+        for (ImClassType sc : c.getSuperClasses()) {
+            if (sharesClosureFamilyAnchor(sc.getClassDef(), anchors, visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {
