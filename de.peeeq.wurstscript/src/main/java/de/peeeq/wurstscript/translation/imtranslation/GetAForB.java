@@ -11,12 +11,13 @@ public abstract class GetAForB<B, A> {
     public abstract A initFor(B a);
 
     public A getFor(B a) {
-        if (thing.containsKey(a)) {
-            return thing.get(a);
+        A existing = thing.get(a);
+        if (existing != null) {
+            return existing;
         }
-        A b = initFor(a);
-        thing.put(a, b);
-        return b;
+        A created = initFor(a);
+        thing.put(a, created);
+        return created;
     }
 
 }

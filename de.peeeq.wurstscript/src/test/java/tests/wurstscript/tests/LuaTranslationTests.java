@@ -128,6 +128,18 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    private List<String> subclassCreateClasses(String output, String baseName) {
+        Matcher matcher = Pattern.compile("function\\s+(" + Pattern.quote(baseName) + "_[A-Za-z0-9_]+):create\\d*\\s*\\(").matcher(output);
+        List<String> result = new ArrayList<>();
+        while (matcher.find()) {
+            String owner = matcher.group(1);
+            if (!result.contains(owner)) {
+                result.add(owner);
+            }
+        }
+        return result;
+    }
+
     private String compileLuaWithRunArgs(String testName, boolean withStdLib, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
         WurstGui gui = new WurstGuiCliImpl();
@@ -901,6 +913,74 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertContainsRegex(compiled, "function\\s+LinkedList_[A-Za-z0-9_]*forEach\\(");
         assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.LLItrClosure_run\\s*=");
+    }
+
+    @Test
+    public void erasedLinkedListClosureCallsitesKeepSuffixedRunSlotsAlignedAcrossAllSubclasses() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_erasedLinkedListClosureCallsitesKeepSuffixedRunSlotsAlignedAcrossAllSubclasses",
+            false,
+            "package Test",
+            "interface Alpha0",
+            "    function run()",
+            "interface Alpha1",
+            "    function run()",
+            "interface Alpha2",
+            "    function run()",
+            "interface Alpha3",
+            "    function run()",
+            "interface Alpha4",
+            "    function run()",
+            "interface Alpha5",
+            "    function run()",
+            "public interface MapClosure<T,S>",
+            "    function run(T t) returns S",
+            "public interface LLItrClosure<T>",
+            "    function run(T t)",
+            "class Node<T>",
+            "    T elem",
+            "    Node<T> next = null",
+            "class LinkedList<T>",
+            "    Node<T> first = null",
+            "    function add(T elem)",
+            "        let n = new Node<T>()",
+            "        n.elem = elem",
+            "        n.next = first",
+            "        first = n",
+            "    function forEach(LLItrClosure<T> itr)",
+            "        var cur = first",
+            "        while cur != null",
+            "            itr.run(cur.elem)",
+            "            cur = cur.next",
+            "    function map<S>(MapClosure<T,S> itr) returns LinkedList<S>",
+            "        let out = new LinkedList<S>()",
+            "        forEach() t ->",
+            "            out.add(itr.run(t))",
+            "        return out",
+            "function usePlain(LinkedList<int> xs)",
+            "    xs.forEach() x ->",
+            "        skip",
+            "function useMapped(LinkedList<int> xs)",
+            "    xs.map((int x) -> x + 1)",
+            "function useNested(LinkedList<int> xs)",
+            "    xs.forEach() x ->",
+            "        xs.map((int y) -> y + x)",
+            "init",
+            "    let xs = new LinkedList<int>()",
+            "    xs.add(1)",
+            "    usePlain(xs)",
+            "    useMapped(xs)",
+            "    useNested(xs)"
+        );
+
+        List<String> subclasses = subclassCreateClasses(compiled, "LLItrClosure");
+        assertTrue("Expected multiple generated LLItrClosure subclasses", subclasses.size() >= 3);
+        List<String> suffixedSlots = uniqueMatches(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.(run\\d+)\\s*=", 1);
+        assertTrue("Expected at least one suffixed LLItrClosure run slot", !suffixedSlots.isEmpty());
+        String slotName = suffixedSlots.get(0);
+        for (String subclass : subclasses) {
+            assertContainsRegex(compiled, Pattern.quote(subclass) + "\\." + Pattern.quote(slotName) + "\\s*=");
+        }
     }
 
     @Test
