@@ -32,11 +32,7 @@ import ErrorHandling
 
 // The generalized result class with variable binding
 public class SqlResult
-    string v1 = ""
-    string v2 = ""
-    string v3 = ""
-    string v4 = ""
-    // Add up to v30 as needed
+    string array cols
 
 // A full SQL-Select helper
 public function sqlite_select(int db, string query) returns LinkedList<SqlResult>
@@ -46,15 +42,11 @@ public function sqlite_select(int db, string query) returns LinkedList<SqlResult
     
     while sqlite_step(stmt)
         let row = new SqlResult()
-        if cols > 0
-            row.v1 = sqlite_column_string(stmt, 0)
-        if cols > 1
-            row.v2 = sqlite_column_string(stmt, 1)
-        if cols > 2
-            row.v3 = sqlite_column_string(stmt, 2)
-        if cols > 3
-            row.v4 = sqlite_column_string(stmt, 3)
-        // Map more bindings if expanding SqlResult
+        // SQLite permits up to 2000 columns per result set.
+        let limit = cols > 2000 ? 2000 : cols
+        for i = 0 to limit - 1
+            row.cols[i] = sqlite_column_string(stmt, i)
+            
         list.add(row)
         
     sqlite_finalize(stmt)
@@ -85,14 +77,14 @@ function buildAndVerifyDatabase()
     if results.size() != 3
         error("Expected 3 database entries, found " + results.size().toString())
 
-    // 5. Verify the highest power is returned first correctly (Arthur is 9000 -> v3)
+    // 5. Verify the highest power is returned first correctly (Arthur is 9000 -> cols[2])
     let topHero = results.get(0)
-    if topHero.v1 != "Arthur" or topHero.v3 != "9000"
-        error("Expected Arthur as highest power, but got " + topHero.v1 + " with " + topHero.v3)
+    if topHero.cols[0] != "Arthur" or topHero.cols[2] != "9000"
+        error("Expected Arthur as highest power, but got " + topHero.cols[0] + " with " + topHero.cols[2])
 
     // 5b. Verify standard fetch
     let mageHero = results.get(1)
-    if mageHero.v1 != "Merlin" or mageHero.v2 != "Mage"
+    if mageHero.cols[0] != "Merlin" or mageHero.cols[1] != "Mage"
         error("Validation Failed for Merlin row!")
         
     // 6. Output to the developer console log
