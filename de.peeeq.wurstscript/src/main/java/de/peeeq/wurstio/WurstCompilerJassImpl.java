@@ -889,6 +889,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         ImTranslator imTranslator2 = getImTranslator();
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
+
+        // Lower Lua-specific native calls into IM-level wrappers before optimization,
+        // so the optimizer can inline and eliminate the nil-safety checks and remapped stubs.
+        beginPhase(4, "lua native lowering");
+        LuaNativeLowering.transform(imProg);
+        timeTaker.endPhase();
+
         // inliner
         stage = 5;
         if (runArgs.isInline()) {

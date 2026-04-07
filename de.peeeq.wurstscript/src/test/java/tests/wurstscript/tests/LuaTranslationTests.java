@@ -1897,7 +1897,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "\\bRemoveSavedHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bSaveAbilityHandle\\(");
         assertDoesNotContainRegex(compiled, "\\bLoadAbilityHandle\\(");
-        assertTrue(compiled.contains("function __wurst_HaveSavedHandle("));
+        // With IM-level remapping, helpers are only emitted when called.
+        // SaveInteger is used by stdlib init code, so its helper must be present.
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_SaveInteger\\s*\\(");
     }
 
     @Test
@@ -2178,6 +2180,100 @@ public class LuaTranslationTests extends WurstScriptTest {
             "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorTop=");
         assertContainsRegex(compiled,
             "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorBottom=");
+    }
+
+    // ----- GetHandleId remapping -----
+
+    @Test
+    public void getHandleIdIsRemappedToWurstPolyfillInLua() throws IOException {
+        // User code that calls GetHandleId(unit) must be rewritten to __wurst_GetHandleId(unit)
+        // so that the table-based counter is used instead of the desync-prone native handle ID.
+        // Use withStdLib so that 'unit'/'agent' types are known to the compiler.
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    let id = GetHandleId(u)",
+            "    print(I2S(id))"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_getHandleIdIsRemappedToWurstPolyfillInLua.lua"), Charsets.UTF_8);
+        // Raw GetHandleId must not appear as a call
+        assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
+        // __wurst_GetHandleId must be defined
+        assertContainsRegex(compiled, "function\\s+__wurst_GetHandleId\\s*\\(");
+        // The polyfill must delegate to the object-index mechanism
+        assertContainsRegex(compiled, "__wurst_objectToIndex");
+        // The Lua backend assertion should not throw
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator.assertNoLeakedGetHandleIdCalls(compiled);
+    }
+
+    @Test
+    public void getHandleIdAssertionDetectsLeak() {
+        // Verify the assertion helper throws when a raw GetHandleId call is present.
+        try {
+            de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+                .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
+            fail("Expected RuntimeException for leaked GetHandleId call");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("GetHandleId"));
+        }
+    }
+
+    // ----- Null-safe extern native wrappers -----
+
+    @Test
+    public void externNativesWithHandleParamsGetNilSafetyWrapper() throws IOException {
+        // BJ natives (IS_BJ) with handle-type parameters must be wrapped at the IM level
+        // so that passing nil returns a safe default instead of crashing the Lua runtime.
+        // GetUnitTypeId is a common.j native (IS_BJ) with a handle param, returns integer.
+        // Result is used in print() so the optimizer does not dead-code-eliminate the call.
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    print(I2S(GetUnitTypeId(u)))"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_externNativesWithHandleParamsGetNilSafetyWrapper.lua"), Charsets.UTF_8);
+        // A nil-safety wrapper must be emitted for GetUnitTypeId (IS_BJ, handle → integer)
+        assertContainsRegex(compiled, "\\bfunction\\s+__wurst_safe_GetUnitTypeId\\s*\\(");
+        // Call site must be remapped to the wrapper
+        assertContainsRegex(compiled, "\\b__wurst_safe_GetUnitTypeId\\(");
+        // Return default for integer type must be 0
+        assertContainsRegex(compiled, "return 0");
+    }
+
+    @Test
+    public void externNativesWithOnlyPrimitiveParamsDoNotGetWrapper() throws IOException {
+        // Natives that only take integer/real/boolean params cannot crash with nil,
+        // so no wrapper should be emitted for them.
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_externNativesWithOnlyPrimitiveParamsDoNotGetWrapper",
+            false,
+            "package Test",
+            "native Sin(real x) returns real",
+            "native I2R(int i) returns real",
+            "init",
+            "    let s = Sin(1.0)",
+            "    let r = I2R(1)"
+        );
+        // No nil-safety wrapper should be emitted for purely-primitive natives
+        assertDoesNotContainRegex(compiled, "__wurst_safe_Sin");
+        assertDoesNotContainRegex(compiled, "__wurst_safe_I2R");
+    }
+
+    @Test
+    public void wurstInternalNativesDoNotGetNilSafetyWrapper() throws IOException {
+        // Wurst-internal natives (__wurst_* names) must not be double-wrapped.
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_wurstInternalNativesDoNotGetNilSafetyWrapper",
+            false,
+            "package Test",
+            "native testSuccess()"
+        );
+        // __wurst_* helpers must not have the nil-safety wrapper pattern applied
+        assertDoesNotContainRegex(compiled, "__wurst_safe___wurst_");
     }
 
 }

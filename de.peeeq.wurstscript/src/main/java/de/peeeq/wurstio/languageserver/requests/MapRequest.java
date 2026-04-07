@@ -169,6 +169,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 String compiledMapScript = sb.toString();
                 LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
+                LuaTranslator.assertNoLeakedGetHandleIdCalls(compiledMapScript);
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, BUILD_COMPILED_LUA_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);

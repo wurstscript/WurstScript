@@ -427,6 +427,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("if t ~= nil and t[p] then t[p][c] = nil end"));
         });
 
+        addNative("__wurst_GetHandleId", f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return __wurst_objectToIndex(h)"));
+        });
+
         addNative("typeIdToTypeName", f -> {
             f.getParams().add(LuaAst.LuaVariable("typeId", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return \"\""));
