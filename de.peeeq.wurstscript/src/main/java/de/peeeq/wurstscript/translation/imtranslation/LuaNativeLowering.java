@@ -83,6 +83,20 @@ public final class LuaNativeLowering {
      * functions, most of which are unreachable in any given program).
      */
     public static void transform(ImProg prog) {
+        // Replace all reads of MagicFunctions_isLua with true.
+        // This must happen before any optimizer passes so that dead-code elimination
+        // can remove Jass-only branches at compile time.
+        // We use attrReads() (not a visitor) to target only rvalue uses, avoiding
+        // ClassCastException when the same ImVarAccess appears as a write target (lvalue).
+        for (ImVar global : prog.getGlobals()) {
+            if ("MagicFunctions_isLua".equals(global.getName())) {
+                for (ImVarRead read : new ArrayList<>(global.attrReads())) {
+                    read.replaceBy(JassIm.ImBoolVal(true));
+                }
+                break;
+            }
+        }
+
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();

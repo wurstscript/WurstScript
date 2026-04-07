@@ -2125,6 +2125,31 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void i2sAbortSentinelNotBrokenByEarlierI2SCallInLua() throws IOException {
+        // Regression: ExprTranslation used f.setName("tostring") to rename the shared
+        // LuaFunction for I2S. After the first ordinary I2S(x) call was translated, f.getName()
+        // returned "tostring", so the sentinel check "I2S".equals(f.getName()) silently failed
+        // for any later I2S(1/0) abort call — leaving actual //0 division in the Lua output.
+        // This test forces a normal I2S call before the abort to expose the mutation bug.
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "import ErrorHandling",
+            "init",
+            "    let x = 42",
+            "    print(I2S(x))",   // normal I2S call first — used to corrupt the cached LuaFunction
+            "    error(\"test\")"  // triggers I2S(1 div 0) inside ErrorHandling.error()
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_i2sAbortSentinelNotBrokenByEarlierI2SCallInLua.lua"), Charsets.UTF_8);
+        // The abort must be the sentinel, not a raw //0 that Lua would crash on at runtime
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        assertTrue(compiled.contains("__wurst_abort_thread"));
+        // tostring() must still be used for the normal I2S call
+        assertContainsRegex(compiled, "tostring\\s*\\(");
+    }
+
+    @Test
     public void luaErrorWrapperIgnoresAbortSentinel() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
@@ -2288,6 +2313,28 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         // __wurst_* helpers must not have the nil-safety wrapper pattern applied
         assertDoesNotContainRegex(compiled, "__wurst_safe___wurst_");
+    }
+
+    @Test
+    public void isLuaMagicConstantIsTrueInLuaMode() throws IOException {
+        // isLua must be inlined to true in Lua mode by GlobalsInliner,
+        // so backend-specific code paths can be selected at compile time.
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    if isLua",
+            "        print(\"lua-path\")",
+            "    else",
+            "        print(\"jass-path\")"
+        );
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_isLuaMagicConstantIsTrueInLuaMode.lua"),
+            Charsets.UTF_8);
+        // After inlining, the raw isLua variable must not appear in Lua output
+        assertFalse("MagicFunctions_isLua must be inlined away in Lua mode", compiled.contains("MagicFunctions_isLua"));
+        // The lua-path branch must be preserved
+        assertTrue("lua-path branch must be present", compiled.contains("lua-path"));
     }
 
 }

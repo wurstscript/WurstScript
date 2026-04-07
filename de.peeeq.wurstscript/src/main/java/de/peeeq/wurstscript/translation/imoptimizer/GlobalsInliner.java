@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class GlobalsInliner implements OptimizerPass {
     public int optimize(ImTranslator trans) {
@@ -26,6 +25,21 @@ public class GlobalsInliner implements OptimizerPass {
             if (trans.isUnitTestMode() && v.getName().equals("MagicFunctions_compiletime")) {
                 // in unit test mode we run tests and compiletime functions with optimizations,
                 // so it is important, that we do not optimize away the compiletime constant
+                continue;
+            }
+            if (v.getName().equals("MagicFunctions_isLua") && trans.isLuaTarget()) {
+                // In Lua mode, isLua must evaluate to true.
+                // Normal inlining would use the declared value (false); override it here.
+                for (ImVarRead read : new ArrayList<>(v.attrReads())) {
+                    read.replaceBy(JassIm.ImBoolVal(true));
+                }
+                for (ImVarWrite write : new ArrayList<>(v.attrWrites())) {
+                    if (write.getParent() != null) {
+                        write.replaceBy(ImHelper.nullExpr());
+                    }
+                }
+                obsoleteVars.add(v);
+                obsoleteCount++;
                 continue;
             }
             if (v.getType() instanceof ImArrayType

@@ -8,7 +8,7 @@ public class WurstKeywords {
             "tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof",
             "super", "enum", "switch", "case", "default", "typeId", "begin", "end",
             // not really a keyword, but it should feel like one:
-            "compiletime",
+            "compiletime", "isLua",
             // jurst keywords, maybe split the highlighters later...:
             "library", "endlibrary", "scope", "endscope", "requires", "uses", "needs", "struct", "endstruct",
             "then", "endif", "loop", "exitwhen", "endloop", "method", "takes", "endmethod", "set", "call",
