@@ -12,9 +12,6 @@ import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -974,7 +971,7 @@ public class LuaTranslator {
     }
 
     private void debugDispatchGroup(ImClass receiverClass, String key, Set<String> slotNames, List<ImMethod> groupMethods, ImMethod chosen) {
-        if (!DEBUG_LUA_DISPATCH && !isSuspiciousGroup(slotNames, groupMethods, chosen)) {
+        if (!DEBUG_LUA_DISPATCH) {
             return;
         }
         String chosenImpl = chosen != null && chosen.getImplementation() != null ? chosen.getImplementation().getName() : "null";
@@ -988,38 +985,12 @@ public class LuaTranslator {
             }
             candidates.append(m.getName()).append("->").append(impl).append("@").append(classSortKey(m.attrClass()));
         }
-        System.err.println("[LuaDispatch] class=" + classSortKey(receiverClass)
+        String line = "[LuaDispatch] class=" + classSortKey(receiverClass)
             + " key=" + key
             + " slots=" + slotNames
             + " chosen=" + chosenImpl
-            + " candidates=[" + candidates + "]");
-        if (DEBUG_LUA_DISPATCH) {
-            String line = "[LuaDispatch] class=" + classSortKey(receiverClass)
-                + " key=" + key
-                + " slots=" + slotNames
-                + " chosen=" + chosenImpl
-                + " candidates=[" + candidates + "]"
-                + System.lineSeparator();
-            try {
-                Files.writeString(Path.of("C:/Users/Frotty/Documents/GitHub/WurstScript/lua-dispatch-debug.log"),
-                    line, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
-    private boolean isSuspiciousGroup(Set<String> slotNames, List<ImMethod> groupMethods, ImMethod chosen) {
-        if (slotNames.size() > 1) {
-            return true;
-        }
-        boolean hasNonNoOp = false;
-        for (ImMethod m : groupMethods) {
-            if (!isNoOpImplementation(m) && m.getImplementation() != null) {
-                hasNonNoOp = true;
-                break;
-            }
-        }
-        return hasNonNoOp && isNoOpImplementation(chosen);
+            + " candidates=[" + candidates + "]";
+        WLogger.trace(line);
     }
 
     private String methodSortKey(ImMethod m) {

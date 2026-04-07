@@ -141,10 +141,16 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     private String compileLuaWithRunArgs(String testName, boolean withStdLib, String... lines) {
+        return compileLuaWithCUs(testName, withStdLib, Collections.emptyList(), lines);
+    }
+
+    private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
-        List<CU> inputs = Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines)));
+        List<CU> inputs = new ArrayList<>();
+        inputs.addAll(extraCUs);
+        inputs.add(new CU(testName + ".wurst", String.join("\n", lines)));
 
         WurstModel model = parseFiles(Collections.emptyList(), inputs, withStdLib, compiler);
         assertNotNull("parse returned null model, errors = " + gui.getErrorList(), model);
@@ -2316,22 +2322,26 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void isLuaMagicConstantIsTrueInLuaMode() throws IOException {
-        // isLua must be inlined to true in Lua mode by GlobalsInliner,
-        // so backend-specific code paths can be selected at compile time.
-        test().testLua(true).withStdLib().lines(
+    public void isLuaMagicConstantIsTrueInLuaMode() {
+        // isLua must be replaced with true by LuaNativeLowering so the optimizer can
+        // prune Jass-only branches at compile time. This test does NOT use withStdLib()
+        // to avoid dependence on the stdlib version pin in StdLib.java.
+        CU magicFunctions = new CU("MagicFunctions.wurst",
+            "package MagicFunctions\npublic constant isLua = false\n");
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_isLuaMagicConstantIsTrueInLuaMode",
+            false,
+            Collections.singletonList(magicFunctions),
             "package Test",
             "import MagicFunctions",
+            "native print(string s)",
             "init",
             "    if isLua",
             "        print(\"lua-path\")",
             "    else",
             "        print(\"jass-path\")"
         );
-        String compiled = Files.toString(
-            new File("test-output/lua/LuaTranslationTests_isLuaMagicConstantIsTrueInLuaMode.lua"),
-            Charsets.UTF_8);
-        // After inlining, the raw isLua variable must not appear in Lua output
+        // After LuaNativeLowering, all reads of MagicFunctions_isLua must be inlined to true
         assertFalse("MagicFunctions_isLua must be inlined away in Lua mode", compiled.contains("MagicFunctions_isLua"));
         // The lua-path branch must be preserved
         assertTrue("lua-path branch must be present", compiled.contains("lua-path"));
