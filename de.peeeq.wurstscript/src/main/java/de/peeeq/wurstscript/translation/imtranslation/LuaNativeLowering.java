@@ -78,18 +78,31 @@ public final class LuaNativeLowering {
      * can inline and eliminate the generated wrappers.
      */
     public static void transform(ImProg prog) {
+        // Pre-scan: find which BJ functions are actually called, so we only create stubs/wrappers
+        // for reachable functions. Creating wrappers for all BJ functions in the IM (common.j has
+        // hundreds of them) would be extremely memory-intensive.
+        Set<ImFunction> calledBjFuncs = new LinkedHashSet<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getFunc().isBj()) {
+                    calledBjFuncs.add(call.getFunc());
+                }
+            }
+        });
+
+        if (calledBjFuncs.isEmpty()) {
+            return;
+        }
+
         // Maps original BJ function → replacement (either a IS_NATIVE stub or a nil-safety wrapper)
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();
         // Nil-safety wrappers are collected separately and added to prog AFTER the traversal,
         // so the traversal does not visit their bodies and replace their internal BJ delegate calls.
         List<ImFunction> deferredWrappers = new ArrayList<>();
 
-        // Snapshot to avoid ConcurrentModificationException when createNativeStub adds to prog.getFunctions()
-        List<ImFunction> snapshot = new ArrayList<>(prog.getFunctions());
-        for (ImFunction f : snapshot) {
-            if (!f.isBj()) {
-                continue;
-            }
+        for (ImFunction f : calledBjFuncs) {
             String name = f.getName();
 
             if ("GetHandleId".equals(name)) {
