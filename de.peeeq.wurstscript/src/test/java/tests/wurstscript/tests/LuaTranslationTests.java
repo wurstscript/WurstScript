@@ -2220,6 +2220,20 @@ public class LuaTranslationTests extends WurstScriptTest {
         }
     }
 
+    @Test
+    public void getHandleIdAssertionDoesNotFalsePositiveOnDeclarations() {
+        // A function declaration named GetHandleId (e.g. from a class method) must not
+        // trigger the assertion — only actual calls should.
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function Foo:GetHandleId(x) return 0 end");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function Foo.GetHandleId(x) return 0 end");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("-- GetHandleId(x) is remapped");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("local s = \"GetHandleId(x)\"");
+    }
+
     // ----- Null-safe extern native wrappers -----
 
     @Test

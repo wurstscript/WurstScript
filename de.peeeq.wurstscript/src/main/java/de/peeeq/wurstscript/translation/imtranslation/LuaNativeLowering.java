@@ -76,59 +76,44 @@ public final class LuaNativeLowering {
      *
      * <p>Must be called <em>before</em> the optimizer so that the optimizer
      * can inline and eliminate the generated wrappers.
+     *
+     * <p>Stubs and wrappers are created lazily (on first call-site encounter) and added
+     * to prog only after the traversal completes.  This avoids the memory cost of
+     * creating wrappers for every BJ function in the IM (common.j declares hundreds of
+     * functions, most of which are unreachable in any given program).
      */
     public static void transform(ImProg prog) {
-        // Pre-scan: find which BJ functions are actually called, so we only create stubs/wrappers
-        // for reachable functions. Creating wrappers for all BJ functions in the IM (common.j has
-        // hundreds of them) would be extremely memory-intensive.
-        Set<ImFunction> calledBjFuncs = new LinkedHashSet<>();
-        prog.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImFunctionCall call) {
-                super.visit(call);
-                if (call.getFunc().isBj()) {
-                    calledBjFuncs.add(call.getFunc());
-                }
-            }
-        });
-
-        if (calledBjFuncs.isEmpty()) {
-            return;
-        }
-
-        // Maps original BJ function → replacement (either a IS_NATIVE stub or a nil-safety wrapper)
+        // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
+        // Populated lazily during the traversal.
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();
-        // Nil-safety wrappers are collected separately and added to prog AFTER the traversal,
-        // so the traversal does not visit their bodies and replace their internal BJ delegate calls.
-        List<ImFunction> deferredWrappers = new ArrayList<>();
+        // BJ functions that don't need a replacement (not GetHandleId, not hashtable/callback,
+        // no handle params). Cached to avoid rechecking the same function at every call site.
+        Set<ImFunction> noReplacement = new HashSet<>();
+        // All generated functions (stubs and wrappers) are deferred until after the traversal:
+        // - Stubs: deferred so ConcurrentModificationException is avoided on prog.getFunctions()
+        // - Wrappers: deferred so the visitor doesn't see their internal BJ delegate calls and
+        //   recursively wrap them, which would cause infinite wrapping.
+        List<ImFunction> deferredAdditions = new ArrayList<>();
 
-        for (ImFunction f : calledBjFuncs) {
-            String name = f.getName();
-
-            if ("GetHandleId".equals(name)) {
-                replacements.put(f, createNativeStub("__wurst_GetHandleId", f, prog));
-            } else if (HASHTABLE_NATIVE_NAMES.contains(name)) {
-                replacements.put(f, createNativeStub("__wurst_" + name, f, prog));
-            } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
-                replacements.put(f, createNativeStub("__wurst_" + name, f, prog));
-            } else if (hasHandleParam(f)) {
-                ImFunction wrapper = createNilSafeWrapper(f);
-                replacements.put(f, wrapper);
-                deferredWrappers.add(wrapper);
-            }
-        }
-
-        if (replacements.isEmpty()) {
-            return;
-        }
-
-        // Replace all call sites in the existing IM (before adding wrappers).
-        // Wrappers are deferred so their internal BJ delegate calls are not replaced.
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
                 super.visit(call);
-                ImFunction replacement = replacements.get(call.getFunc());
+                ImFunction f = call.getFunc();
+                if (!f.isBj()) return;
+                if (noReplacement.contains(f)) return;
+
+                if (!replacements.containsKey(f)) {
+                    ImFunction r = computeReplacement(f);
+                    if (r != null) {
+                        replacements.put(f, r);
+                        deferredAdditions.add(r);
+                    } else {
+                        noReplacement.add(f);
+                    }
+                }
+                ImFunction replacement = replacements.get(f);
+
                 if (replacement != null) {
                     call.replaceBy(JassIm.ImFunctionCall(
                         call.attrTrace(), replacement,
@@ -137,30 +122,45 @@ public final class LuaNativeLowering {
                         false, CallType.NORMAL));
                 }
             }
+
+            private ImFunction computeReplacement(ImFunction bj) {
+                String name = bj.getName();
+                if ("GetHandleId".equals(name)) {
+                    return createNativeStub("__wurst_GetHandleId", bj);
+                } else if (HASHTABLE_NATIVE_NAMES.contains(name)) {
+                    return createNativeStub("__wurst_" + name, bj);
+                } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
+                    return createNativeStub("__wurst_" + name, bj);
+                } else if (hasHandleParam(bj)) {
+                    return createNilSafeWrapper(bj);
+                }
+                return null;
+            }
         });
 
-        // Add nil-safety wrapper functions AFTER traversal so their own bodies are not traversed.
-        prog.getFunctions().addAll(deferredWrappers);
+        // Add all generated functions after the traversal so their bodies are not visited
+        // by the replacement visitor above.
+        prog.getFunctions().addAll(deferredAdditions);
     }
 
     /**
      * Creates a new IS_NATIVE (non-BJ) IM function stub with the same signature as
      * {@code original}.  The Lua translator will fill in the body via
      * {@code LuaNatives.get()} when it encounters the stub.
+     *
+     * <p>The caller is responsible for adding the stub to prog.getFunctions().
      */
-    private static ImFunction createNativeStub(String name, ImFunction original, ImProg prog) {
+    private static ImFunction createNativeStub(String name, ImFunction original) {
         ImVars params = JassIm.ImVars();
         for (ImVar p : original.getParameters()) {
             params.add(JassIm.ImVar(p.attrTrace(), p.getType().copy(), p.getName(), false));
         }
-        ImFunction stub = JassIm.ImFunction(
+        return JassIm.ImFunction(
             original.attrTrace(), name,
             JassIm.ImTypeVars(), params,
             original.getReturnType().copy(),
             JassIm.ImVars(), JassIm.ImStmts(),
             Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
-        prog.getFunctions().add(stub);
-        return stub;
     }
 
     /**
