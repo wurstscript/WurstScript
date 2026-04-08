@@ -18,6 +18,8 @@ const HELPER_ABILITY_FILE = "./HelperScripts/AbilityObjEditing.wurst";
 const UNIT_BALANCE_SLK = "./HelperScripts/unitbalance.slk";
 const OUT_FILE =
   "./de.peeeq.wurstscript/src/main/resources/stdlib-obj-mappings.json";
+const KB_OUT_FILE = "./HelperScripts/wc3-knowledge-base.json";
+const GAMEDATA_DIR = "./HelperScripts/gamedata";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -390,6 +392,422 @@ function generateJson(
   return JSON.stringify(json, null, 2);
 }
 
+// ===========================================================================
+// KNOWLEDGE BASE GENERATION
+// Reads all gamedata SLK/txt files and produces wc3-knowledge-base.json —
+// a self-contained description of all WC3 object types, their field schemas
+// (display names, types, categories) and all base-game object records.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function tryRead(path: string): string | null {
+  try { return Deno.readTextFileSync(path); } catch (_) { return null; }
+}
+
+function gdPath(file: string): string {
+  return `${GAMEDATA_DIR}/${file}`;
+}
+
+// ---------------------------------------------------------------------------
+// WorldEditStrings.txt  →  Map<"WESTRING_FOO", "Foo">
+// ---------------------------------------------------------------------------
+
+function parseWEStrings(content: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.replace(/\r$/, "").trim();
+    if (!line || line.startsWith("[") || line.startsWith(";") || line.startsWith("//")) continue;
+    const eq = line.indexOf("=");
+    if (eq < 1) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+    map.set(key, val);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// Generic SLK parser
+// Parses the SYLK-subset format used by WC3 game data files.
+// Returns a flat list of row-objects keyed by the column names from row Y=1.
+// ---------------------------------------------------------------------------
+
+interface SLKRow extends Record<string, string | number | null> {}
+
+function parseSLKRows(content: string): { idColName: string; rows: SLKRow[] } {
+  const grid: Record<number, Record<number, string | number | null>> = {};
+  let curY: number | null = null;
+
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    if (!line.startsWith("C;")) continue;
+
+    const parts = line.slice(2).split(";");
+    let x: number | null = null;
+    let y: number | null = null;
+    let k: string | number | null = null;
+
+    for (const p of parts) {
+      if (p.startsWith("X")) {
+        x = parseInt(p.slice(1));
+      } else if (p.startsWith("Y")) {
+        y = parseInt(p.slice(1));
+      } else if (p.startsWith("K")) {
+        const raw = p.slice(1);
+        if (!raw || raw === "-" || raw === "_" || raw === " - ") {
+          k = null;
+        } else if (raw.startsWith('"')) {
+          k = raw.endsWith('"') ? raw.slice(1, -1) : raw.slice(1);
+        } else {
+          const n = parseFloat(raw);
+          k = isNaN(n) ? raw : n;
+        }
+      }
+    }
+
+    if (y !== null) curY = y;
+    if (curY === null || x === null) continue;
+    if (!grid[curY]) grid[curY] = {};
+    grid[curY][x] = k;
+  }
+
+  // Y=1 is the header row; X=1 is always the ID column.
+  const headerRow = grid[1] ?? {};
+  const columns: Record<number, string> = {};
+  for (const [xStr, val] of Object.entries(headerRow)) {
+    if (typeof val === "string") columns[parseInt(xStr)] = val;
+  }
+  const idColName = columns[1] ?? "id";
+
+  const rows: SLKRow[] = [];
+  for (const y of Object.keys(grid).map(Number).sort((a, b) => a - b)) {
+    if (y === 1) continue;
+    const gridRow = grid[y];
+    const idVal = gridRow[1];
+    if (idVal === null || idVal === undefined) continue;
+
+    const obj: SLKRow = {};
+    for (const [xStr, val] of Object.entries(gridRow)) {
+      const colName = columns[parseInt(xStr)];
+      if (colName && val !== null && val !== undefined) obj[colName] = val;
+    }
+    if (Object.keys(obj).length > 0) rows.push(obj);
+  }
+
+  return { idColName, rows };
+}
+
+/** Index SLK rows by their ID column (X=1). */
+function slkToMap(content: string): Map<string, SLKRow> {
+  const { idColName, rows } = parseSLKRows(content);
+  const map = new Map<string, SLKRow>();
+  for (const row of rows) {
+    const id = row[idColName];
+    if (typeof id === "string" && id) map.set(id, row);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// INI-style func.txt / skin.txt parser
+// Sections like [UnitId] followed by Key=Value lines.
+// ---------------------------------------------------------------------------
+
+function parseFuncTxt(content: string): Map<string, Record<string, string>> {
+  const result = new Map<string, Record<string, string>>();
+  let current: Record<string, string> | null = null;
+
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("//")) continue;
+
+    if (trimmed.startsWith("[") && trimmed.includes("]")) {
+      const id = trimmed.slice(1, trimmed.indexOf("]")).trim();
+      if (!result.has(id)) result.set(id, {});
+      current = result.get(id)!;
+    } else if (current !== null) {
+      const eq = line.indexOf("=");
+      if (eq >= 1) {
+        const key = line.slice(0, eq).trim();
+        const val = line.slice(eq + 1).trim();
+        if (key) current[key] = val;
+      }
+    }
+  }
+  return result;
+}
+
+/** Merge multiple func maps; first writer per key wins. */
+function mergeFuncMaps(
+  ...maps: Map<string, Record<string, string>>[]
+): Map<string, Record<string, string>> {
+  const result = new Map<string, Record<string, string>>();
+  for (const m of maps) {
+    for (const [id, fields] of m) {
+      if (!result.has(id)) result.set(id, {});
+      const target = result.get(id)!;
+      for (const [k, v] of Object.entries(fields)) {
+        if (!(k in target)) target[k] = v;
+      }
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Field schema — derived from *metadata.slk files
+// ---------------------------------------------------------------------------
+
+interface KBFieldSchema {
+  /** 4-char field ID used in war3map binary formats, e.g. "unam" */
+  id: string;
+  /** Column name inside the source SLK, or key in Profile (func.txt) */
+  field: string;
+  /** Source SLK tag, e.g. "unitData", "unitUI", "Profile", "ItemData" */
+  slk: string;
+  /** Level index (-1 = not leveled; ≥ 0 = explicit level base) */
+  index: number;
+  /** 1 = value repeats per level (ability leveled fields) */
+  repeat: number;
+  /** Ability data slot pointer */
+  data: number;
+  /** UI category key, e.g. "stats", "combat", "text" */
+  category: string;
+  /** Human-readable display name (resolved from WorldEditStrings) */
+  displayName: string;
+  /** Editor sort key */
+  sort: string;
+  /** Data type: "string", "int", "real", "bool", "abilityList", etc. */
+  type: string;
+  minVal: string | null;
+  maxVal: string | null;
+  useHero: boolean;
+  useUnit: boolean;
+  useBuilding: boolean;
+  useItem: boolean;
+  useCreep: boolean;
+  section: string | null;
+}
+
+function buildSchemas(
+  metadataContent: string,
+  westrings: Map<string, string>
+): KBFieldSchema[] {
+  const { rows } = parseSLKRows(metadataContent);
+  const schemas: KBFieldSchema[] = [];
+
+  function resolveStr(v: string | number | null | undefined): string {
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (s.startsWith("WESTRING_")) return westrings.get(s) ?? s;
+    return s;
+  }
+  function toBool(v: string | number | null | undefined): boolean {
+    return v === 1 || v === "1";
+  }
+  function toNum(v: string | number | null | undefined): number {
+    if (v === null || v === undefined) return 0;
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    return isNaN(n) ? 0 : n;
+  }
+  function toNullStr(v: string | number | null | undefined): string | null {
+    return (v !== null && v !== undefined) ? String(v) : null;
+  }
+
+  for (const row of rows) {
+    const id = row["ID"] as string;
+    if (!id) continue;
+    schemas.push({
+      id,
+      field: resolveStr(row["field"]),
+      slk: resolveStr(row["slk"]),
+      index: toNum(row["index"]),
+      repeat: toNum(row["repeat"]),
+      data: toNum(row["data"]),
+      category: resolveStr(row["category"]),
+      displayName: resolveStr(row["displayName"]),
+      sort: resolveStr(row["sort"]),
+      type: resolveStr(row["type"]) || "string",
+      minVal: toNullStr(row["minVal"]),
+      maxVal: toNullStr(row["maxVal"]),
+      useHero: toBool(row["useHero"]),
+      useUnit: toBool(row["useUnit"]),
+      useBuilding: toBool(row["useBuilding"]),
+      useItem: toBool(row["useItem"]),
+      useCreep: toBool(row["useCreep"]),
+      section: toNullStr(row["section"]),
+    });
+  }
+  return schemas;
+}
+
+// ---------------------------------------------------------------------------
+// Object records — merge SLK maps + func/skin map for each object type
+// ---------------------------------------------------------------------------
+
+type ObjRecord = Record<string, string | number>;
+
+function buildObjectMap(
+  slkMaps: Map<string, SLKRow>[],
+  funcMap: Map<string, Record<string, string>>
+): Record<string, ObjRecord> {
+  // Collect all IDs from every source
+  const allIds = new Set<string>();
+  for (const m of slkMaps) for (const id of m.keys()) allIds.add(id);
+  for (const id of funcMap.keys()) allIds.add(id);
+
+  const result: Record<string, ObjRecord> = {};
+  for (const id of allIds) {
+    const obj: ObjRecord = {};
+
+    // SLK sources first (order = priority)
+    for (const m of slkMaps) {
+      const row = m.get(id);
+      if (!row) continue;
+      for (const [k, v] of Object.entries(row)) {
+        if (!(k in obj) && v !== null && v !== undefined) {
+          obj[k] = v as string | number;
+        }
+      }
+    }
+
+    // func.txt / skin.txt fields
+    const funcRow = funcMap.get(id);
+    if (funcRow) {
+      for (const [k, v] of Object.entries(funcRow)) {
+        if (!(k in obj) && v !== "") obj[k] = v;
+      }
+    }
+
+    result[id] = obj;
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Top-level knowledge base builder
+// ---------------------------------------------------------------------------
+
+function generateKnowledgeBase(westrings: Map<string, string>): object {
+  function loadSLK(file: string): Map<string, SLKRow> {
+    const c = tryRead(gdPath(file));
+    return c ? slkToMap(c) : new Map();
+  }
+  function loadFunc(...files: string[]): Map<string, Record<string, string>> {
+    const maps: Map<string, Record<string, string>>[] = [];
+    for (const f of files) {
+      const c = tryRead(gdPath(f));
+      if (c) maps.push(parseFuncTxt(c));
+    }
+    return mergeFuncMaps(...maps);
+  }
+  function loadSchema(file: string): KBFieldSchema[] {
+    const c = tryRead(gdPath(file));
+    return c ? buildSchemas(c, westrings) : [];
+  }
+
+  // --- Field schemas from metadata files ---
+  const unitMeta = loadSchema("unitmetadata.slk");
+  const abilityMeta = loadSchema("abilitymetadata.slk");
+  const buffMeta = loadSchema("abilitybuffmetadata.slk");
+  const destructableMeta = loadSchema("destructablemetadata.slk");
+  const upgradeMeta = [
+    ...loadSchema("upgrademetadata.slk"),
+    ...loadSchema("upgradeeffectmetadata.slk"),
+  ];
+
+  // --- Object data: merge SLK + func/skin sources per object type ---
+
+  // Units — five SLK files, all keyed by the same 4-char unit ID
+  const unitFunc = loadFunc(
+    "humanunitfunc.txt", "orcunitfunc.txt", "nightelfunitfunc.txt",
+    "undeadunitfunc.txt", "neutralunitfunc.txt", "campaignunitfunc.txt",
+    "unitskin.txt", "unitweaponsskin.txt", "unitaddons.txt",
+  );
+  const unitObjects = buildObjectMap(
+    [
+      loadSLK("unitdata.slk"),
+      loadSLK("unitui.slk"),
+      loadSLK("unitbalance.slk"),
+      loadSLK("unitweapons.slk"),
+      loadSLK("unitabilities.slk"),
+    ],
+    unitFunc,
+  );
+
+  // Abilities
+  const abilityFunc = loadFunc(
+    "humanabilityfunc.txt", "orcabilityfunc.txt", "nightelfabilityfunc.txt",
+    "undeadabilityfunc.txt", "neutralabilityfunc.txt", "campaignabilityfunc.txt",
+    "commonabilityfunc.txt", "itemabilityfunc.txt", "commandfunc.txt",
+    "abilityskin.txt",
+  );
+  const abilityObjects = buildObjectMap([loadSLK("abilitydata.slk")], abilityFunc);
+
+  // Buffs/effects — abilitybuffdata.slk; buff IDs may also appear in ability func files
+  const buffObjects = buildObjectMap([loadSLK("abilitybuffdata.slk")], abilityFunc);
+
+  // Items
+  const itemFunc = loadFunc(
+    "itemfunc.txt", "itemskin.txt", "itemaddons.txt",
+  );
+  const itemObjects = buildObjectMap([loadSLK("itemdata.slk")], itemFunc);
+
+  // Destructables
+  const destructableFunc = loadFunc(
+    "destructableskin.txt", "destructableaddons.txt",
+  );
+  const destructableObjects = buildObjectMap(
+    [loadSLK("destructabledata.slk")], destructableFunc,
+  );
+
+  // Upgrades
+  const upgradeFunc = loadFunc(
+    "humanupgradefunc.txt", "orcupgradefunc.txt", "nightelfupgradefunc.txt",
+    "undeadupgradefunc.txt", "neutralupgradefunc.txt", "campaignupgradefunc.txt",
+    "upgradeskin.txt",
+  );
+  const upgradeObjects = buildObjectMap([loadSLK("upgradedata.slk")], upgradeFunc);
+
+  // unitmetadata.slk covers units, heroes, buildings AND items; split by use-flags.
+  return {
+    /**
+     * Field schemas per object type.
+     * Each entry describes one editable field: its 4-char ID, human-readable
+     * display name (resolved from WorldEditStrings), data type, UI category,
+     * valid range, and which object sub-types use it.
+     */
+    fieldSchemas: {
+      unit: unitMeta.filter((s) => s.useUnit),
+      hero: unitMeta.filter((s) => s.useHero),
+      building: unitMeta.filter((s) => s.useBuilding),
+      item: unitMeta.filter((s) => s.useItem),
+      ability: abilityMeta,
+      buff: buffMeta,
+      destructable: destructableMeta,
+      upgrade: upgradeMeta,
+    },
+    /**
+     * All base-game objects keyed by their 4-char ID.
+     * Each record is a flat map of field-name → value, merging every SLK
+     * and Profile (func.txt/skin.txt) source for that object type.
+     */
+    objects: {
+      unit: unitObjects,
+      ability: abilityObjects,
+      buff: buffObjects,
+      item: itemObjects,
+      destructable: destructableObjects,
+      upgrade: upgradeObjects,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -490,3 +908,31 @@ const mappedCount = Object.keys(parsed.abilityClassByBaseId).length;
 const totalClasses = Object.keys(parsed.classOwnFields).length;
 console.log(`\nAbility base IDs mapped: ${mappedCount}`);
 console.log(`Total classes with own fields: ${totalClasses}`);
+
+// ---------------------------------------------------------------------------
+// Knowledge base generation (reads from HelperScripts/gamedata/)
+// ---------------------------------------------------------------------------
+
+const westringsContent = tryRead(gdPath("WorldEditStrings.txt"));
+if (!westringsContent) {
+  console.log("\nHelperScripts/gamedata/ not found — skipping knowledge base generation.");
+  console.log("Place WC3 game data files in HelperScripts/gamedata/ to enable this output.");
+} else {
+  console.log("\n--- Generating wc3-knowledge-base.json ---");
+  const westrings = parseWEStrings(westringsContent);
+  console.log(`Parsed ${westrings.size} WorldEditStrings entries`);
+
+  const kb = generateKnowledgeBase(westrings);
+  const kbJson = JSON.stringify(kb, null, 2);
+  Deno.writeTextFileSync(KB_OUT_FILE, kbJson);
+  console.log(`Generated: ${KB_OUT_FILE}`);
+
+  // Summary
+  const kbParsed = kb as { fieldSchemas: Record<string, unknown[]>; objects: Record<string, Record<string, unknown>> };
+  for (const [type, schemas] of Object.entries(kbParsed.fieldSchemas)) {
+    const count = (schemas as unknown[]).length;
+    const objCount = Object.keys(kbParsed.objects[type] ?? {}).length;
+    if (count > 0 || objCount > 0)
+      console.log(`  ${type}: ${count} field schemas, ${objCount} base objects`);
+  }
+}

@@ -100,4 +100,42 @@ public class CompilationUnitTests extends WurstScriptTest {
         );
     }
 
+    /** Jass code calling a Wurst-defined top-level function must produce a validator error. */
+    @Test
+    public void jassCallingWurstFunctionIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("Jass code cannot access Wurst symbol")
+            .compilationUnits(
+                compilationUnit("mylib.wurst",
+                    "// Jass-compat function defined in a .wurst file",
+                    "function wurstHelper takes nothing returns nothing",
+                    "endfunction"
+                ),
+                compilationUnit("war3map.j",
+                    "function jassFunc takes nothing returns nothing",
+                    "    call wurstHelper()",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** Wurst code calling a plain Jass function is valid (one-way relationship). */
+    @Test
+    public void wurstCallingJassFunctionIsOk() {
+        testAssertOk(false, false,
+            compilationUnit("mymap.j",
+                "function jassHelper takes nothing returns nothing",
+                "endfunction"
+            ),
+            compilationUnit("mylib.wurst",
+                "package mylib",
+                "init",
+                "    jassHelper()",
+                "endpackage"
+            )
+        );
+    }
+
 }

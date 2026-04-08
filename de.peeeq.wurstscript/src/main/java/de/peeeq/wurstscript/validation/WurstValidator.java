@@ -2208,6 +2208,7 @@ public class WurstValidator {
             return;
         }
         NameDef def = link.getDef();
+        checkJassAccessingWurstSymbol(e, def);
         if (def instanceof GlobalVarDef) {
             GlobalVarDef g = (GlobalVarDef) def;
             if (g.attrIsDynamicClassMember() && !dynamicContext) {
@@ -2389,12 +2390,31 @@ public class WurstValidator {
         if (called == null) {
             return;
         }
+        checkJassAccessingWurstSymbol(ref, called.getDef());
         WScope scope = ref.attrNearestFuncDef();
         if (scope == null) {
             scope = ref.attrNearestScope();
         }
         if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
             calledFunctions.put(scope, called.getDef());
+        }
+    }
+
+    /**
+     * Warn when Jass code (war3map.j or any .j file) references a symbol defined in a Wurst (.wurst/.jurst) file.
+     * The Wurst→Jass relationship is one-way: Wurst compiles to Jass, so Wurst can call Jass natives,
+     * but Jass cannot call Wurst-generated functions (their names get mangled by the Wurst compiler).
+     */
+    private void checkJassAccessingWurstSymbol(Element ref, NameDef def) {
+        String callerFile = ref.attrSource().getFile();
+        if (!callerFile.endsWith(".j")) {
+            return;
+        }
+        String defFile = def.attrSource().getFile();
+        if (defFile.endsWith(".wurst") || defFile.endsWith(".jurst")) {
+            ref.addError("Jass code cannot access Wurst symbol '" + def.getName() + "' defined in " + defFile + ".\n"
+                + "The Wurst\u2192Jass relationship is one-way: Wurst can call Jass, but Jass cannot call Wurst-defined symbols "
+                + "(their names are mangled by the Wurst compiler).");
         }
     }
 
