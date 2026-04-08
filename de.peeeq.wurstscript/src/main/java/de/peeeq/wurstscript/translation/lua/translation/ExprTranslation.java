@@ -116,15 +116,20 @@ public class ExprTranslation {
         }
 
         LuaFunction f = tr.luaFunc.getFor(e.getFunc());
-        if ("I2S".equals(f.getName()) && isIntentionalThreadAbortCall(e)) {
+        // Use the immutable ImFunction name rather than f.getName(), because f is a cached
+        // LuaFunction object shared across all call sites of this native. The setName() calls
+        // below mutate it, so f.getName() changes after the first translation and can no longer
+        // be relied upon for sentinel checks.
+        String imFuncName = e.getFunc().getName();
+        if ("I2S".equals(imFuncName) && isIntentionalThreadAbortCall(e)) {
             return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
                 LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
                 LuaAst.LuaExprIntVal("0")
             ));
         }
-        if (f.getName().equals(ImTranslator.$DEBUG_PRINT)) {
+        if (ImTranslator.$DEBUG_PRINT.equals(imFuncName)) {
             f.setName("BJDebugMsg");
-        } else if (f.getName().equals("I2S")) {
+        } else if ("I2S".equals(imFuncName)) {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));

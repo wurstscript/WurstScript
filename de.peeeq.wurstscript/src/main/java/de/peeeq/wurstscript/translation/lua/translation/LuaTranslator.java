@@ -12,9 +12,6 @@ import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -52,25 +49,6 @@ public class LuaTranslator {
         "FlushChildHashtable", "FlushParentHashtable",
         "RemoveSavedInteger", "RemoveSavedBoolean", "RemoveSavedReal", "RemoveSavedString", "RemoveSavedHandle"
     );
-    private static final List<String> REQUIRED_WURST_HASHTABLE_HELPERS = Arrays.asList(
-        "__wurst_InitHashtable",
-        "__wurst_SaveInteger", "__wurst_SaveBoolean", "__wurst_SaveReal", "__wurst_SaveStr",
-        "__wurst_LoadInteger", "__wurst_LoadBoolean", "__wurst_LoadReal", "__wurst_LoadStr",
-        "__wurst_HaveSavedInteger", "__wurst_HaveSavedBoolean", "__wurst_HaveSavedReal", "__wurst_HaveSavedString", "__wurst_HaveSavedHandle",
-        "__wurst_FlushChildHashtable", "__wurst_FlushParentHashtable",
-        "__wurst_RemoveSavedInteger", "__wurst_RemoveSavedBoolean", "__wurst_RemoveSavedReal", "__wurst_RemoveSavedString", "__wurst_RemoveSavedHandle"
-    );
-    private static final List<String> REQUIRED_WURST_CONTEXT_CALLBACK_HELPERS = Arrays.asList(
-        "__wurst_ForForce",
-        "__wurst_GetEnumPlayer",
-        "__wurst_ForGroup",
-        "__wurst_GetEnumUnit",
-        "__wurst_EnumItemsInRect",
-        "__wurst_GetEnumItem",
-        "__wurst_EnumDestructablesInRect",
-        "__wurst_GetEnumDestructable"
-    );
-    private static final Set<String> HASHTABLE_NATIVE_NAMES = new HashSet<>(allHashtableNativeNames());
     private static final Set<String> LUA_HANDLE_TO_INDEX = Set.of(
         "widgetToIndex", "unitToIndex", "destructableToIndex", "itemToIndex", "abilityToIndex",
         "forceToIndex", "groupToIndex", "triggerToIndex", "triggeractionToIndex", "triggerconditionToIndex",
@@ -130,7 +108,6 @@ public class LuaTranslator {
 
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
-
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
@@ -146,7 +123,7 @@ public class LuaTranslator {
 
         @Override
         public LuaFunction initFor(ImFunction a) {
-            String name = remapNativeName(a.getName());
+            String name = a.getName();
             if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
                 name = uniqueName(name);
             } else if (isFixedEntryPoint(a)) {
@@ -237,37 +214,6 @@ public class LuaTranslator {
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
-    private String remapNativeName(String name) {
-        if ("ForForce".equals(name)) {
-            return "__wurst_ForForce";
-        }
-        if ("GetEnumPlayer".equals(name)) {
-            return "__wurst_GetEnumPlayer";
-        }
-        if ("ForGroup".equals(name)) {
-            return "__wurst_ForGroup";
-        }
-        if ("GetEnumUnit".equals(name)) {
-            return "__wurst_GetEnumUnit";
-        }
-        if ("EnumItemsInRect".equals(name)) {
-            return "__wurst_EnumItemsInRect";
-        }
-        if ("GetEnumItem".equals(name)) {
-            return "__wurst_GetEnumItem";
-        }
-        if ("EnumDestructablesInRect".equals(name)) {
-            return "__wurst_EnumDestructablesInRect";
-        }
-        if ("GetEnumDestructable".equals(name)) {
-            return "__wurst_GetEnumDestructable";
-        }
-        if (HASHTABLE_NATIVE_NAMES.contains(name)) {
-            return "__wurst_" + name;
-        }
-        return name;
-    }
-
     protected String uniqueName(String name) {
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
@@ -299,8 +245,6 @@ public class LuaTranslator {
         createObjectIndexFunctions();
         createStringIndexFunctions();
         createEnsureTypeFunctions();
-        ensureWurstHashtableHelpers();
-        ensureWurstContextCallbackHelpers();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -331,31 +275,7 @@ public class LuaTranslator {
         return luaModel;
     }
 
-    /**
-     * Always emit internal hashtable helper functions used by Lua lowering.
-     * This keeps compiletime migration data loading robust even if the
-     * corresponding Warcraft natives are unavailable or filtered out.
-     */
-    private void ensureWurstHashtableHelpers() {
-        Set<String> requiredHelpers = new LinkedHashSet<>(REQUIRED_WURST_HASHTABLE_HELPERS);
-        requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_SAVE_NAMES));
-        requiredHelpers.addAll(prefixed(HASHTABLE_HANDLE_LOAD_NAMES));
-        for (String helper : requiredHelpers) {
-            LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
-            LuaNatives.get(f);
-            luaModel.add(f);
-        }
-    }
-
-    private void ensureWurstContextCallbackHelpers() {
-        for (String helper : REQUIRED_WURST_CONTEXT_CALLBACK_HELPERS) {
-            LuaFunction f = LuaAst.LuaFunction(helper, LuaAst.LuaParams(), LuaAst.LuaStatements());
-            LuaNatives.get(f);
-            luaModel.add(f);
-        }
-    }
-
-    private void deferMainInit(LuaStatement statement) {
+    void deferMainInit(LuaStatement statement) {
         deferredMainInit.add(statement);
     }
 
@@ -375,118 +295,20 @@ public class LuaTranslator {
         }
     }
 
+    // Assertion helpers are implemented in LuaAssertions; kept here as public entry points
+    // for callers that reference LuaTranslator directly.
+    public static void assertNoLeakedGetHandleIdCalls(String luaCode) {
+        LuaAssertions.assertNoLeakedGetHandleIdCalls(luaCode);
+    }
+
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
-        List<String> leaked = new ArrayList<>();
-        List<String> missingHelpers = new ArrayList<>();
-        Set<String> calledFunctionNames = collectCalledFunctionNames(luaCode);
-        Set<String> definedFunctionNames = collectDefinedFunctionNames(luaCode);
-        for (String nativeName : allHashtableNativeNames()) {
-            if (calledFunctionNames.contains(nativeName)) {
-                leaked.add(nativeName);
-            }
-            String helperName = "__wurst_" + nativeName;
-            boolean helperCalled = calledFunctionNames.contains(helperName);
-            boolean helperDefined = definedFunctionNames.contains(helperName);
-            if (helperCalled && !helperDefined) {
-                missingHelpers.add(helperName);
-            }
-        }
-        if (!leaked.isEmpty()) {
-            throw new RuntimeException("Wurst Lua backend assertion failed: leaked raw hashtable native calls in generated Lua: "
-                + String.join(", ", leaked));
-        }
-        if (!missingHelpers.isEmpty()) {
-            throw new RuntimeException("Wurst Lua backend assertion failed: missing __wurst hashtable helper definitions in generated Lua: "
-                + String.join(", ", missingHelpers));
-        }
+        LuaAssertions.assertNoLeakedHashtableNativeCalls(luaCode);
     }
 
-    private static Set<String> collectCalledFunctionNames(String text) {
-        Set<String> result = new HashSet<>();
-        int length = text.length();
-        int index = 0;
-        while (index < length) {
-            if (!isIdentifierStart(text.charAt(index))) {
-                index++;
-                continue;
-            }
-            int end = scanIdentifierEnd(text, index + 1);
-            int next = skipWhitespace(text, end);
-            if (next < length && text.charAt(next) == '(') {
-                result.add(text.substring(index, end));
-            }
-            index = end;
-        }
-        return result;
-    }
-
-    private static Set<String> collectDefinedFunctionNames(String text) {
-        Set<String> result = new HashSet<>();
-        int length = text.length();
-        int index = 0;
-        while (index < length) {
-            if (!matchesWord(text, index, "function")) {
-                index++;
-                continue;
-            }
-            int nameStart = skipWhitespace(text, index + "function".length());
-            if (nameStart >= length || !isIdentifierStart(text.charAt(nameStart))) {
-                index++;
-                continue;
-            }
-            int nameEnd = scanIdentifierEnd(text, nameStart + 1);
-            int next = skipWhitespace(text, nameEnd);
-            if (next < length && text.charAt(next) == '(') {
-                result.add(text.substring(nameStart, nameEnd));
-            }
-            index = nameEnd;
-        }
-        return result;
-    }
-
-    private static int skipWhitespace(String text, int index) {
-        while (index < text.length() && Character.isWhitespace(text.charAt(index))) {
-            index++;
-        }
-        return index;
-    }
-
-    private static int scanIdentifierEnd(String text, int index) {
-        while (index < text.length() && isIdentifierPart(text.charAt(index))) {
-            index++;
-        }
-        return index;
-    }
-
-    private static boolean matchesWord(String text, int index, String word) {
-        int end = index + word.length();
-        if (end > text.length() || !text.regionMatches(index, word, 0, word.length())) {
-            return false;
-        }
-        return (index == 0 || !isIdentifierPart(text.charAt(index - 1)))
-            && (end == text.length() || !isIdentifierPart(text.charAt(end)));
-    }
-
-    private static boolean isIdentifierStart(char ch) {
-        return ch == '_' || Character.isLetter(ch);
-    }
-
-    private static boolean isIdentifierPart(char ch) {
-        return ch == '_' || Character.isLetterOrDigit(ch);
-    }
-
-    private static List<String> allHashtableNativeNames() {
+    static List<String> allHashtableNativeNames() {
         List<String> result = new ArrayList<>(HASHTABLE_NATIVE_NAMES_RAW);
         result.addAll(HASHTABLE_HANDLE_SAVE_NAMES);
         result.addAll(HASHTABLE_HANDLE_LOAD_NAMES);
-        return result;
-    }
-
-    private static List<String> prefixed(List<String> names) {
-        List<String> result = new ArrayList<>();
-        for (String name : names) {
-            result.add("__wurst_" + name);
-        }
         return result;
     }
 
@@ -497,7 +319,11 @@ public class LuaTranslator {
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
             if (function.isBj() || function.isExtern() || function.isNative()) {
-                setNameFromTrace(function);
+                // Don't rename Wurst-internal stubs (names starting with __wurst_)
+                // since their names are intentionally different from their trace's source name.
+                if (!function.getName().startsWith("__wurst_")) {
+                    setNameFromTrace(function);
+                }
                 usedNames.add(function.getName());
             }
         }
@@ -575,220 +401,27 @@ public class LuaTranslator {
     }
 
     private void createStringConcatFunction() {
-        String[] code = {
-            "if x then",
-            "    if y then return x .. y else return x end",
-            "else",
-            "    return y",
-            "end"
-        };
-
-        stringConcatFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        stringConcatFunction.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        luaModel.add(stringConcatFunction);
+        LuaPolyfillSetup.createStringConcatFunction(this);
     }
 
     private void createInstanceOfFunction() {
-        // x instanceof A
-
-        // ==> x ~= nil and x.__wurst_supertypes[A]
-
-        String[] code = {
-            "return x ~= nil and x." + WURST_SUPERTYPES + "[A]"
-        };
-
-        instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            instanceOfFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        luaModel.add(instanceOfFunction);
+        LuaPolyfillSetup.createInstanceOfFunction(this);
     }
 
     private void createObjectIndexFunctions() {
-        String vName = "__wurst_objectIndexMap";
-        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaExprNull());
-        luaModel.add(v);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(v), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
-        ))));
-
-        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
-        luaModel.add(im);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(im), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
-        ))));
-
-        {
-            String[] code = {
-                "if x == nil then",
-                "    return 0",
-                "end",
-                // wrap numbers in special number-objects:
-                "if type(x) == \"number\" then",
-                "    if __wurst_number_wrapper_map[x] then",
-                "        x = __wurst_number_wrapper_map[x]",
-                "    else",
-                "        local obj = {__wurst_boxed_number = x}",
-                "        __wurst_number_wrapper_map[x] = obj",
-                "        x = obj",
-                "    end",
-                "end",
-                "if __wurst_objectIndexMap[x] then",
-                "    return __wurst_objectIndexMap[x]",
-                "else",
-                "   local r = __wurst_objectIndexMap.counter + 1",
-                "   __wurst_objectIndexMap.counter = r",
-                "   __wurst_objectIndexMap[r] = x",
-                "   __wurst_objectIndexMap[x] = r",
-                "   return r",
-                "end"
-            };
-
-            toIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            for (String c : code) {
-                toIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
-            }
-            luaModel.add(toIndexFunction);
-        }
-
-        {
-            String[] code = {
-                "if type(x) == \"number\" then",
-                "    x = __wurst_objectIndexMap[x]",
-                "end",
-                "if type(x) == \"table\" and x.__wurst_boxed_number then",
-                "    return x.__wurst_boxed_number",
-                "end",
-                "return x"
-            };
-
-            fromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            for (String c : code) {
-                fromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
-            }
-            luaModel.add(fromIndexFunction);
-        }
+        LuaPolyfillSetup.createObjectIndexFunctions(this);
     }
 
     private void createStringIndexFunctions() {
-        LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
-        luaModel.add(map);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(map), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0")),
-            LuaAst.LuaTableNamedField("byString", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())),
-            LuaAst.LuaTableNamedField("byIndex", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()))
-        ))));
-
-        {
-            String[] code = {
-                "if x == nil then",
-                "    return 0",
-                "end",
-                "if type(x) ~= \"string\" then",
-                "    x = tostring(x)",
-                "end",
-                "local id = __wurst_string_index_map.byString[x]",
-                "if id ~= nil then",
-                "    return id",
-                "end",
-                "id = __wurst_string_index_map.counter + 1",
-                "__wurst_string_index_map.counter = id",
-                "__wurst_string_index_map.byString[x] = id",
-                "__wurst_string_index_map.byIndex[id] = x",
-                "return id"
-            };
-
-            stringToIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            for (String c : code) {
-                stringToIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
-            }
-            luaModel.add(stringToIndexFunction);
-        }
-
-        {
-            String[] code = {
-                "local id = tonumber(x)",
-                "if id == nil then",
-                "    return \"\"",
-                "end",
-                "id = math.tointeger(id)",
-                "if id == nil then",
-                "    return \"\"",
-                "end",
-                "local s = __wurst_string_index_map.byIndex[id]",
-                "if s == nil then",
-                "    return \"\"",
-                "end",
-                "return s"
-            };
-
-            stringFromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            for (String c : code) {
-                stringFromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
-            }
-            luaModel.add(stringFromIndexFunction);
-        }
+        LuaPolyfillSetup.createStringIndexFunctions(this);
     }
 
     private void createArrayInitFunction() {
-        /*
-        function defaultArray(d)
-            local t = {}
-            local mt = {__index = function (table, key)
-                local v = d()
-                table[key] = v
-                return v
-            end}
-            setmetatable(t, mt)
-            return t
-        end
-         */
-        String[] code = {
-            "local t = {}",
-            "local mt = {__index = function (table, key)",
-            "    local v = d()",
-            "    table[key] = v",
-            "    return v",
-            "end}",
-            "setmetatable(t, mt)",
-            "return t"
-        };
-
-        arrayInitFunction.getParams().add(LuaAst.LuaVariable("d", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            arrayInitFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        luaModel.add(arrayInitFunction);
+        LuaPolyfillSetup.createArrayInitFunction(this);
     }
 
     private void createEnsureTypeFunctions() {
-        ensureIntFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0 end"));
-        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local i = math.tointeger(n)"));
-        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if i == nil then return 0 end"));
-        ensureIntFunction.getBody().add(LuaAst.LuaLiteral("return i"));
-        luaModel.add(ensureIntFunction);
-
-        ensureBoolFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return false end"));
-        ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("return x"));
-        luaModel.add(ensureBoolFunction);
-
-        ensureRealFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0.0 end"));
-        ensureRealFunction.getBody().add(LuaAst.LuaLiteral("return n"));
-        luaModel.add(ensureRealFunction);
-
-        ensureStrFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        ensureStrFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return \"\" end"));
-        ensureStrFunction.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
-        luaModel.add(ensureStrFunction);
+        LuaPolyfillSetup.createEnsureTypeFunctions(this);
     }
 
     private void cleanStatements() {
@@ -855,18 +488,23 @@ public class LuaTranslator {
         }
 
         if (f.isExtern() || f.isNative()) {
-            // only add the function if it is not yet defined:
             String name = lf.getName();
-            luaModel.add(LuaAst.LuaIf(
-                LuaAst.LuaExprFuncRef(lf),
-                LuaAst.LuaStatements(),
-                LuaAst.LuaStatements(
-                    LuaAst.LuaAssignment(LuaAst.LuaLiteral(name), LuaAst.LuaExprFunctionAbstraction(
-                        lf.getParams().copy(),
-                        lf.getBody().copy()
-                    ))
-                )
-            ));
+            if (name.startsWith("__wurst_")) {
+                // Wurst-internal natives are never pre-defined by the WC3 runtime; emit directly.
+                luaModel.add(lf);
+            } else {
+                // only add the function if it is not yet defined by the WC3 runtime:
+                luaModel.add(LuaAst.LuaIf(
+                    LuaAst.LuaExprFuncRef(lf),
+                    LuaAst.LuaStatements(),
+                    LuaAst.LuaStatements(
+                        LuaAst.LuaAssignment(LuaAst.LuaLiteral(name), LuaAst.LuaExprFunctionAbstraction(
+                            lf.getParams().copy(),
+                            lf.getBody().copy()
+                        ))
+                    )
+                ));
+            }
         } else {
             luaModel.add(lf);
         }
@@ -1333,7 +971,7 @@ public class LuaTranslator {
     }
 
     private void debugDispatchGroup(ImClass receiverClass, String key, Set<String> slotNames, List<ImMethod> groupMethods, ImMethod chosen) {
-        if (!DEBUG_LUA_DISPATCH && !isSuspiciousGroup(slotNames, groupMethods, chosen)) {
+        if (!DEBUG_LUA_DISPATCH) {
             return;
         }
         String chosenImpl = chosen != null && chosen.getImplementation() != null ? chosen.getImplementation().getName() : "null";
@@ -1347,38 +985,12 @@ public class LuaTranslator {
             }
             candidates.append(m.getName()).append("->").append(impl).append("@").append(classSortKey(m.attrClass()));
         }
-        System.err.println("[LuaDispatch] class=" + classSortKey(receiverClass)
+        String line = "[LuaDispatch] class=" + classSortKey(receiverClass)
             + " key=" + key
             + " slots=" + slotNames
             + " chosen=" + chosenImpl
-            + " candidates=[" + candidates + "]");
-        if (DEBUG_LUA_DISPATCH) {
-            String line = "[LuaDispatch] class=" + classSortKey(receiverClass)
-                + " key=" + key
-                + " slots=" + slotNames
-                + " chosen=" + chosenImpl
-                + " candidates=[" + candidates + "]"
-                + System.lineSeparator();
-            try {
-                Files.writeString(Path.of("C:/Users/Frotty/Documents/GitHub/WurstScript/lua-dispatch-debug.log"),
-                    line, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
-    private boolean isSuspiciousGroup(Set<String> slotNames, List<ImMethod> groupMethods, ImMethod chosen) {
-        if (slotNames.size() > 1) {
-            return true;
-        }
-        boolean hasNonNoOp = false;
-        for (ImMethod m : groupMethods) {
-            if (!isNoOpImplementation(m) && m.getImplementation() != null) {
-                hasNonNoOp = true;
-                break;
-            }
-        }
-        return hasNonNoOp && isNoOpImplementation(chosen);
+            + " candidates=[" + candidates + "]";
+        WLogger.trace(line);
     }
 
     private String methodSortKey(ImMethod m) {
