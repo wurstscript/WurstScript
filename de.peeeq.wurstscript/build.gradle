@@ -291,9 +291,15 @@ shadowJar {
 def fatJar = shadowJar.archiveFile.map { it.asFile }
 
 tasks.register('make_for_userdir', Copy) {
-    dependsOn 'shadowJar'
+    dependsOn 'shadowJar', 'make_for_userdir_wurst_compiler'
     from fatJar
     into "${System.properties['user.home']}/.wurst/"
+}
+
+tasks.register('make_for_userdir_wurst_compiler', Copy) {
+    dependsOn 'shadowJar'
+    from fatJar
+    into "${System.properties['user.home']}/.wurst/wurst-compiler/"
 }
 
 tasks.register('make_for_wurstpack', Copy) {

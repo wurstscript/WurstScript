@@ -51,4 +51,54 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void displayNativesAcceptNullForceAndLocalPlayer() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    DisplayTextToForce(null, \"force\")",
+            "    DisplayTimedTextToForce(null, 1.0, \"timed force\")",
+            "    DisplayTextToPlayer(GetLocalPlayer(), 0.0, 0.0, \"player\")",
+            "    DisplayTimedTextToPlayer(GetLocalPlayer(), 0.0, 0.0, 1.0, \"timed player\")",
+            "    if GetPlayerId(GetLocalPlayer()) == 0",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void setPlayerTechMaxAllowed() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    SetPlayerTechMaxAllowed(Player(0), 'hfoo', 3)",
+            "    if GetPlayerTechMaxAllowed(Player(0), 'hfoo') == 3",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void unitAndAbilityInfoNatives() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native GetUnitBuildTime(integer unitid) returns integer",
+            "init",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    RemoveUnit(u)",
+            "    if GetUnitName(u) == \"hfoo\"",
+            "        if GetUnitUserData(u) == 0",
+            "            if GetUnitUserData(null) == 0",
+            "                if GetUnitGoldCost('hfoo') == 0",
+            "                    if GetUnitWoodCost('hfoo') == 0",
+            "                        if GetUnitPointValueByType('hfoo') == 0",
+            "                            if GetFoodUsed('hfoo') == 0",
+            "                                if GetUnitBuildTime('hfoo') == 0",
+            "                                    if BlzGetAbilityIcon('AHbz') == \"\"",
+            "                                        if BlzGetAbilityExtendedTooltip('AHbz', 1) == \"\"",
+            "                                            if BlzGetUnitIntegerField(u, ConvertUnitIntegerField('ubui')) == 0",
+            "                                                if BlzGetUnitWeaponIntegerField(u, ConvertUnitWeaponIntegerField('ua1b'), 0) == 0",
+            "                                                    if not IsUnitType(u, ConvertUnitType(3))",
+            "                                                        testSuccess()"
+        );
+    }
+
 }

@@ -82,7 +82,7 @@ public class CompilationProcess {
 
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
-                    () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout()));
+                    () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout(), runArgs.getTestFilter()));
         }
 
         timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd, false));
@@ -153,12 +153,12 @@ public class CompilationProcess {
         }
     }
 
-    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler, int testTimeout) {
+    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler, int testTimeout, Optional<String> testFilter) {
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
         System.out.println("Running tests");
-        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter) {
             @Override
             protected void print(String message) {
                 out.print(message);

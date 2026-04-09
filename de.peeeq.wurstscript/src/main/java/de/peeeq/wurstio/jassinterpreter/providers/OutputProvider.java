@@ -18,6 +18,18 @@ public class OutputProvider extends Provider {
         super(interpreter);
     }
 
+    public void DisplayTextToForce(IlConstHandle force, ILconstString msg) {
+        outStream.println(msg.getVal());
+    }
+
+    public void DisplayTimedTextToForce(IlConstHandle force, ILconstReal duration, ILconstString msg) {
+        outStream.println(msg.getVal());
+    }
+
+    public void DisplayTextToPlayer(IlConstHandle player, ILconstReal x, ILconstReal y, ILconstString msg) {
+        outStream.println(msg.getVal());
+    }
+
     public void DisplayTimedTextToPlayer(IlConstHandle player, ILconstReal x, ILconstReal y, ILconstReal duration, ILconstString msg) {
         outStream.println(msg.getVal());
     }

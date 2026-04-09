@@ -33,6 +33,9 @@ public class ForceProvider extends Provider {
     }
 
     public ILconstBool IsPlayerInForce(IlConstHandle player, IlConstHandle force) {
+        if (player == null || force == null) {
+            return ILconstBool.FALSE;
+        }
         LinkedHashSet<IlConstHandle> forceList = (LinkedHashSet<IlConstHandle>) force.getObj();
         return ILconstBool.instance(forceList.contains(player));
     }
