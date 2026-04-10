@@ -99,7 +99,7 @@ public class RunMap extends MapRequest {
         // first we copy in same location to ensure validity
         File buildDir = getBuildDir();
         if (map.isPresent()) {
-            mapLastModified = map.get().lastModified();
+            mapLastModified = getSourceMapLastModified(map.get());
             mapPath = map.get().getAbsolutePath();
         }
         if (!runArgs.isHotReload()) {

@@ -395,7 +395,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         // Check if source map is newer
-        if (map.isPresent() && map.get().lastModified() > cachedMap.lastModified()) {
+        if (map.isPresent() && getSourceMapLastModified(map.get()) > cachedMap.lastModified()) {
             WLogger.info("Source map is newer than cache");
             return false;
         }
@@ -514,14 +514,67 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         File sourceMap = map.get();
 
+        long sourceLastModified = getSourceMapLastModified(sourceMap);
         // If cached map doesn't exist or source is newer, update cache
-        if (!cachedMap.exists() || sourceMap.lastModified() > cachedMap.lastModified()) {
+        if (!cachedMap.exists() || sourceLastModified > cachedMap.lastModified()) {
             WLogger.info("Updating cached map from source");
             gui.sendProgress("Updating cached map");
-            Files.copy(sourceMap, cachedMap);
+            if (sourceMap.isDirectory()) {
+                buildArchiveFromFolder(sourceMap, cachedMap);
+            } else {
+                Files.copy(sourceMap, cachedMap);
+            }
         }
 
         return cachedMap;
+    }
+
+    protected static long getSourceMapLastModified(File sourceMap) {
+        if (!sourceMap.isDirectory()) {
+            return sourceMap.lastModified();
+        }
+        try (java.util.stream.Stream<Path> files = java.nio.file.Files.walk(sourceMap.toPath())) {
+            return files
+                .map(Path::toFile)
+                .mapToLong(File::lastModified)
+                .max()
+                .orElse(sourceMap.lastModified());
+        } catch (IOException e) {
+            WLogger.warning("Could not inspect folder map timestamp: " + sourceMap + " (" + e.getMessage() + ")");
+            return sourceMap.lastModified();
+        }
+    }
+
+    private static void buildArchiveFromFolder(File sourceFolder, File cachedMap) throws IOException {
+        try {
+            java.nio.file.Files.deleteIfExists(cachedMap.toPath());
+            MpqEditorFactory.createEmptyArchive(cachedMap);
+            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(cachedMap))) {
+                try (java.util.stream.Stream<Path> files = java.nio.file.Files.walk(sourceFolder.toPath())) {
+                    List<Path> regularFiles = files
+                        .filter(java.nio.file.Files::isRegularFile)
+                        .sorted(Comparator.comparing(path -> sourceFolder.toPath().relativize(path).toString().replace('\\', '/')))
+                        .collect(Collectors.toList());
+                    for (Path file : regularFiles) {
+                        String filenameInMpq = sourceFolder.toPath().relativize(file).toString().replace('/', '\\');
+                        if (isInternalMpqMetadataFile(filenameInMpq)) {
+                            continue;
+                        }
+                        mpqEditor.insertFile(filenameInMpq, file.toFile());
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Could not build MPQ archive from folder map: " + sourceFolder.getAbsolutePath(), e);
+        }
+    }
+
+    private static boolean isInternalMpqMetadataFile(String filenameInMpq) {
+        return filenameInMpq.equals("(listfile)")
+            || filenameInMpq.equals("(attributes)")
+            || filenameInMpq.equals("(signature)");
     }
 
     private void cleanupOppositeModeCacheAndOutputs() {
@@ -685,7 +738,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
         }
 
-        mapLastModified = map.get().lastModified();
+        mapLastModified = getSourceMapLastModified(map.get());
         mapPath = map.get().getAbsolutePath();
 
         gui.sendProgress("Copying map");
@@ -828,6 +881,17 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     protected byte[] extractMapScript(Optional<File> mapCopy) throws Exception {
         if (!mapCopy.isPresent()) {
+            return null;
+        }
+        if (mapCopy.get().isDirectory()) {
+            File rootScript = new File(mapCopy.get(), "war3map.j");
+            if (rootScript.exists()) {
+                return java.nio.file.Files.readAllBytes(rootScript.toPath());
+            }
+            File scriptsScript = new File(new File(mapCopy.get(), "scripts"), "war3map.j");
+            if (scriptsScript.exists()) {
+                return java.nio.file.Files.readAllBytes(scriptsScript.toPath());
+            }
             return null;
         }
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, true)) {

@@ -8,6 +8,7 @@ import systems.crigges.jmpq3.MPQOpenOption;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 class Jmpq3BasedEditor implements MpqEditor {
     private final JMpqEditor editor;
@@ -23,6 +24,22 @@ class Jmpq3BasedEditor implements MpqEditor {
         }
         this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
 
+    }
+
+    static void createEmptyArchive(File mpqArchive) throws IOException {
+        try {
+            JMpqEditor.class.getMethod("createEmptyArchive", File.class).invoke(null, mpqArchive);
+        } catch (NoSuchMethodException e) {
+            throw new IOException("JMPQ3 is missing createEmptyArchive(File); update the JMPQ3 dependency.", e);
+        } catch (IllegalAccessException e) {
+            throw new IOException("Cannot access JMPQ3 createEmptyArchive(File).", e);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            }
+            throw new IOException("JMPQ3 could not create an empty MPQ archive.", cause);
+        }
     }
 
     @Override

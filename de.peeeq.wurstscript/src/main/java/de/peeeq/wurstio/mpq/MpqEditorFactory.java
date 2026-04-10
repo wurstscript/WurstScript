@@ -17,4 +17,8 @@ public class MpqEditorFactory {
         }
         return new Jmpq3BasedEditor(f.get(), readOnly);
     }
+
+    static public void createEmptyArchive(File f) throws Exception {
+        Jmpq3BasedEditor.createEmptyArchive(f);
+    }
 }

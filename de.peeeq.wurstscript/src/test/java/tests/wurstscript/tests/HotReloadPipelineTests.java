@@ -6,10 +6,14 @@ import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
+import systems.crigges.jmpq3.JMpqEditor;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -90,6 +94,51 @@ public class HotReloadPipelineTests {
         assertEquals(luaCache.equals(jassCache), false, "Lua/Jass modes must not share cached map filename");
         assertEquals(luaCache.getName().contains("_lua_cached.w3x"), true);
         assertEquals(jassCache.getName().contains("_jass_cached.w3x"), true);
+    }
+
+    @Test
+    public void folderMapInputIsMaterializedAsCachedArchive() throws Exception {
+        if (!jmpqCreateEmptyArchiveAvailable()) {
+            throw new SkipException("Requires JMPQ3 createEmptyArchive(File).");
+        }
+
+        File projectFolder = new File("./temp/testProject_folder_map_cache/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File sourceMap = new File(projectFolder, "folder_map.w3x");
+        Files.createDirectories(sourceMap.toPath());
+        Files.writeString(new File(sourceMap, "war3map.j").toPath(), "folder script");
+        File nestedFile = new File(sourceMap, "war3mapImported\\asset.txt");
+        Files.createDirectories(nestedFile.getParentFile().toPath());
+        Files.writeString(nestedFile.toPath(), "asset data");
+
+        WurstLanguageServer langServer = new WurstLanguageServer();
+        TestMapRequest request = new TestMapRequest(
+            langServer,
+            Optional.of(sourceMap),
+            List.of(),
+            WFile.create(projectFolder),
+            Map.of()
+        );
+
+        File cachedMap = request.ensureCachedMapForTest(new WurstGuiLogger());
+
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(cachedMap), true)) {
+            assertEquals(mpqEditor.hasFile("war3map.j"), true);
+            assertEquals(mpqEditor.hasFile("war3mapImported\\asset.txt"), true);
+            assertEquals(new String(mpqEditor.extractFile("war3map.j"), StandardCharsets.UTF_8), "folder script");
+            assertEquals(new String(mpqEditor.extractFile("war3mapImported\\asset.txt"), StandardCharsets.UTF_8), "asset data");
+        }
+    }
+
+    private boolean jmpqCreateEmptyArchiveAvailable() {
+        try {
+            JMpqEditor.class.getMethod("createEmptyArchive", File.class);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     @Test
@@ -229,6 +278,10 @@ public class HotReloadPipelineTests {
 
         private File getCachedMapFileForTest() {
             return getCachedMapFile();
+        }
+
+        private File ensureCachedMapForTest(WurstGui gui) throws Exception {
+            return ensureCachedMap(gui);
         }
     }
 }
