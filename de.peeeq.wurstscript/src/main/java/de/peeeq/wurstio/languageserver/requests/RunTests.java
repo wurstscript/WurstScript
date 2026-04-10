@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
@@ -45,6 +46,7 @@ public class RunTests extends UserRequest<Object> {
     private final int column;
     private final Optional<String> testName;
     private final int timeoutSeconds;
+    private final Optional<String> testFilter;
 
     private final List<ImFunction> successTests = Lists.newArrayList();
     private final List<TestFailure> failTests = Lists.newArrayList();
@@ -88,15 +90,20 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName) {
-        this(filename, line, column, testName, 20);
+        this(filename, line, column, testName, 20, Optional.empty());
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds) {
+        this(filename, line, column, testName, timeoutSeconds, Optional.empty());
+    }
+
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds, Optional<String> testFilter) {
         this.filename = filename.map(WFile::create);
         this.line = line;
         this.column = column;
         this.testName = testName;
         this.timeoutSeconds = timeoutSeconds;
+        this.testFilter = testFilter;
     }
 
 
@@ -176,6 +183,27 @@ public class RunTests extends UserRequest<Object> {
 
         WLogger.info("Ran compiletime functions");
 
+        if (testFilter.isPresent()) {
+            List<String> matched = new java.util.ArrayList<>();
+            for (ImFunction f : imProg.getFunctions()) {
+                if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
+                    String packageName = f.attrTrace().attrNearestPackage().tryGetNameDef().getName();
+                    String qualifiedName = packageName + "." + f.getName();
+                    if (qualifiedName.toLowerCase().contains(testFilter.get().toLowerCase())) {
+                        matched.add(qualifiedName);
+                    }
+                }
+            }
+            if (matched.isEmpty()) {
+                println("No tests match filter '" + testFilter.get() + "'.");
+            } else {
+                println("Filter '" + testFilter.get() + "' matched " + matched.size() + " test(s):");
+                for (String name : matched) {
+                    println("  " + name);
+                }
+            }
+        }
+
         // Use try-with-resources for automatic cleanup
         try (ScheduledExecutorService testScheduler = Executors.newSingleThreadScheduledExecutor()) {
 
@@ -189,9 +217,17 @@ public class RunTests extends UserRequest<Object> {
                     if (funcToTest.isPresent() && trace != funcToTest.get()) {
                         continue;
                     }
+                    if (testFilter.isPresent()) {
+                        String packageName = f.attrTrace().attrNearestPackage().tryGetNameDef().getName();
+                        String qualifiedName = packageName + "." + f.getName();
+                        if (!qualifiedName.toLowerCase().contains(testFilter.get().toLowerCase())) {
+                            continue;
+                        }
+                    }
 
-                    String message = "Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
-                        + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..";
+                    WPos source = f.attrTrace().attrSource();
+                    String file = new File(source.getFile()).toPath().normalize().toString();
+                    String message = "Running " + file + ":" + source.getLine() + " - " + f.getName() + "..";
                     println(message);
                     WLogger.info(message);
 

@@ -47,6 +47,14 @@ public class ConversionProvider extends Provider {
         return new IlConstHandle("unitstate" + i, new LinkedHashSet<>());
     }
 
+    public IlConstHandle ConvertUnitIntegerField(ILconstInt i) {
+        return new IlConstHandle("unitintegerfield" + i, i.getVal());
+    }
+
+    public IlConstHandle ConvertUnitWeaponIntegerField(ILconstInt i) {
+        return new IlConstHandle("unitweaponintegerfield" + i, i.getVal());
+    }
+
     public IlConstHandle ConvertAIDifficulty(ILconstInt i) {
         return new IlConstHandle("aidifficulty" + i, new LinkedHashSet<>());
     }

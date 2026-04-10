@@ -35,7 +35,7 @@ public class PlayerProvider extends Provider {
 
 
     public IlConstHandle GetLocalPlayer() {
-        return new IlConstHandle("Local Player", "local player");
+        return Player(ILconstInt.create(0));
     }
 
     public ILconstInt GetBJMaxPlayerSlots() {
@@ -52,5 +52,13 @@ public class PlayerProvider extends Provider {
 
     public ILconst GetPlayerColor(IlConstHandle player) {
         return ((PlayerMock) player.getObj()).playerColor;
+    }
+
+    public void SetPlayerTechMaxAllowed(IlConstHandle player, ILconstInt techid, ILconstInt maximum) {
+        ((PlayerMock) player.getObj()).techMaxAllowed.put(techid.getVal(), maximum);
+    }
+
+    public ILconstInt GetPlayerTechMaxAllowed(IlConstHandle player, ILconstInt techid) {
+        return ((PlayerMock) player.getObj()).techMaxAllowed.getOrDefault(techid.getVal(), ILconstInt.create(0));
     }
 }
