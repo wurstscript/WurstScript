@@ -67,6 +67,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("Function " + functionName + " was not found.", found);
     }
 
+    /** Skip the calling test when selective GetHandleId shimming is disabled. */
+    private static void requireSelectiveGetHandleIdShimming() {
+        if (!de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING) {
+            throw new org.testng.SkipException("Skipped: selective GetHandleId shimming is disabled (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING=false)");
+        }
+    }
+
     private String getFunctionBody(String output, String functionName) {
         Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
         Matcher matcher = pattern.matcher(output);
@@ -2217,9 +2224,9 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void getHandleIdIsRemappedToWurstPolyfillInLua() throws IOException {
-        // User code that calls GetHandleId(unit) must be rewritten to __wurst_GetHandleId(unit)
-        // so that the table-based counter is used instead of the desync-prone native handle ID.
-        // Use withStdLib so that 'unit'/'agent' types are known to the compiler.
+        requireSelectiveGetHandleIdShimming();
+        // Direct GetHandleId calls on opaque runtime handles should still use the Lua-side
+        // identity shim.
         test().testLua(true).withStdLib().lines(
             "package Test",
             "import MagicFunctions",
@@ -2229,30 +2236,227 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    print(I2S(id))"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_getHandleIdIsRemappedToWurstPolyfillInLua.lua"), Charsets.UTF_8);
-        // Raw GetHandleId must not appear as a call
-        assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
-        // __wurst_GetHandleId must be defined
         assertContainsRegex(compiled, "function\\s+__wurst_GetHandleId\\s*\\(");
-        // The polyfill must delegate to the object-index mechanism
-        assertContainsRegex(compiled, "__wurst_objectToIndex");
-        // The Lua backend assertion should not throw
+        assertContainsRegex(compiled, "id\\s*=\\s*__wurst_GetHandleId\\(u\\)");
+        String helperBody = getFunctionBody(compiled, "__wurst_GetHandleId");
+        assertTrue(helperBody.contains("return __wurst_objectToIndex(h)"));
+        assertFalse(helperBody.contains("__wurst_tryRegisterKnownEventHandle"));
+        assertFalse(helperBody.contains("__wurst_canonicalHandleIdByHandle"));
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator.assertNoLeakedGetHandleIdCalls(compiled);
     }
 
     @Test
-    public void getHandleIdAssertionDetectsLeak() {
-        // Verify the assertion helper throws when a raw GetHandleId call is present.
+    public void closureEventsHandleGetHandleIdUsesNativeGetHandleIdInLua() throws IOException {
+        test().testLua(true).withStdLib().executeProg(false)
+            .file(new File("testscripts/realbugs/nullclosurebug.wurst"));
+
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_closureEventsHandleGetHandleIdUsesNativeGetHandleIdInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "function\\s+handle_getHandleId\\s*\\(");
+        String helperBody = getFunctionBody(compiled, "handle_getHandleId");
+        assertTrue(helperBody.contains("return GetHandleId("));
+        assertFalse(helperBody.contains("__wurst_GetHandleId("));
+        assertContainsRegex(compiled, "eventid_toIntId\\(GetTriggerEventId\\(\\)\\)");
+        assertContainsRegex(compiled, "function\\s+eventid_isPlayerunitEvent\\s*\\(");
+        assertContainsRegex(compiled, "registerPlayerUnitEvent1\\(ConvertPlayerUnitEvent\\(eventId\\)");
+        assertContainsRegex(compiled, "eventId\\s*=\\s*handle_getHandleId\\(evnt\\)");
+        assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(evnt\\)");
+        assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(GetTriggerEventId\\(\\)\\)");
+    }
+
+    @Test
+    public void closureEventsEventIdCompatDoesNotUseOpaqueHandleShimInLua() throws IOException {
+        requireSelectiveGetHandleIdShimming();
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import ClosureEvents",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    let unitId = GetHandleId(u)",
+            "    let ev = EVENT_PLAYER_UNIT_SPELL_EFFECT",
+            "    let id = ev.getHandleId()",
+            "    if unitId + id >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_closureEventsEventIdCompatDoesNotUseOpaqueHandleShimInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "function\\s+handle_getHandleId\\s*\\(");
+        String helperBody = getFunctionBody(compiled, "handle_getHandleId");
+        assertTrue(helperBody.contains("return GetHandleId("));
+        assertFalse(helperBody.contains("__wurst_GetHandleId("));
+        assertDoesNotContainRegex(compiled, "function\\s+handle_getHandleId\\s*\\([^\\)]*\\)\\s*\\n\\s*return\\s+__wurst_GetHandleId\\(");
+        assertContainsRegex(compiled, "=\\s*__wurst_GetHandleId\\(");
+    }
+
+    @Test
+    public void registerEventsSpellCastKeepsNativeEventHandleIdsWhileUnitHandlesStayShimmedInLua() throws IOException {
+        requireSelectiveGetHandleIdShimming();
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import RegisterEvents",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    let unitId = GetHandleId(u)",
+            "    registerPlayerUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST) ->",
+            "        skip",
+            "    if unitId >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_registerEventsSpellCastKeepsNativeEventHandleIdsWhileUnitHandlesStayShimmedInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "registerPlayerUnitEvent\\(EVENT_PLAYER_UNIT_SPELL_CAST");
+        assertContainsRegex(compiled, "function\\s+registerPlayerUnitEvent\\s*\\(");
+        assertContainsRegex(compiled, "hid\\s*=\\s*handle_getHandleId\\(");
+        String helperBody = getFunctionBody(compiled, "handle_getHandleId");
+        assertTrue(helperBody.contains("return GetHandleId("));
+        assertFalse(helperBody.contains("__wurst_GetHandleId("));
+        assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(p1\\)");
+        assertContainsRegex(compiled, "=\\s*__wurst_GetHandleId\\(");
+    }
+
+    @Test
+    public void eventGetHandleIdMethodKeepsNativeSemanticsWhileOpaqueHandleMethodUsesLuaShim() throws IOException {
+        requireSelectiveGetHandleIdShimming();
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    let uid = u.getHandleId()",
+            "    let pe = EVENT_PLAYER_LEAVE",
+            "    let pid = pe.getHandleId()",
+            "    let pue = EVENT_PLAYER_UNIT_SPELL_CAST",
+            "    let pueid = pue.getHandleId()",
+            "    if uid + pid + pueid >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_eventGetHandleIdMethodKeepsNativeSemanticsWhileOpaqueHandleMethodUsesLuaShim.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "=\\s*__wurst_GetHandleId\\(");
+        assertContainsRegex(compiled, "handle_getHandleId\\(");
+        String helperBody = getFunctionBody(compiled, "handle_getHandleId");
+        assertTrue(helperBody.contains("return GetHandleId("));
+        assertFalse(helperBody.contains("__wurst_GetHandleId("));
+    }
+
+    @Test
+    public void eventHandleIdCallKeepsNativeGetHandleIdInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let eventId = GetHandleId(EVENT_PLAYER_LEAVE)",
+            "    if eventId >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_eventHandleIdCallKeepsNativeGetHandleIdInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "eventId\\s*=\\s*GetHandleId\\(EVENT_PLAYER_LEAVE\\)");
+        assertDoesNotContainRegex(compiled, "__wurst_GetHandleId\\(EVENT_PLAYER_LEAVE\\)");
+    }
+
+    @Test
+    public void eventTempHandleIdCallKeepsNativeGetHandleIdInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let ev = EVENT_PLAYER_UNIT_SPELL_EFFECT",
+            "    let id = GetHandleId(ev)",
+            "    if id >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_eventTempHandleIdCallKeepsNativeGetHandleIdInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "ev\\s*=\\s*EVENT_PLAYER_UNIT_SPELL_EFFECT");
+        assertContainsRegex(compiled, "id\\s*=\\s*GetHandleId\\(ev\\)");
+        assertDoesNotContainRegex(compiled, "id\\s*=\\s*__wurst_GetHandleId\\(ev\\)");
+    }
+
+    @Test
+    public void enumConvertCallsStayNativeInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let pe = ConvertPlayerEvent(311)",
+            "    let pc = ConvertPlayerColor(0)",
+            "    let et = ConvertEffectType(0)",
+            "    if GetHandleId(pe) >= 0 and GetHandleId(pc) >= 0 and GetHandleId(et) >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_enumConvertCallsStayNativeInLua.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "pe\\s*=\\s*ConvertPlayerEvent\\(311\\)");
+        assertContainsRegex(compiled, "pc\\s*=\\s*ConvertPlayerColor\\(0\\)");
+        assertContainsRegex(compiled, "et\\s*=\\s*ConvertEffectType\\(0\\)");
+        assertContainsRegex(compiled, "GetHandleId\\(pe\\)");
+        assertContainsRegex(compiled, "GetHandleId\\(pc\\)");
+        assertContainsRegex(compiled, "GetHandleId\\(et\\)");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_ConvertPlayerEvent\\s*\\(");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_ConvertPlayerColor\\s*\\(");
+        assertDoesNotContainRegex(compiled, "function\\s+__wurst_ConvertEffectType\\s*\\(");
+    }
+
+    @Test
+    public void conservativeLuaHandleIdLoweringDoesNotEmitCanonicalEnumHelpers() throws IOException {
+        requireSelectiveGetHandleIdShimming();
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "import MagicFunctions",
+            "init",
+            "    let u = GetTriggerUnit()",
+            "    let uid = GetHandleId(u)",
+            "    let eid = GetHandleId(EVENT_PLAYER_LEAVE)",
+            "    if uid + eid >= 0",
+            "        skip"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_conservativeLuaHandleIdLoweringDoesNotEmitCanonicalEnumHelpers.lua"), Charsets.UTF_8);
+
+        assertContainsRegex(compiled, "uid\\s*=\\s*__wurst_GetHandleId\\(u\\)");
+        assertContainsRegex(compiled, "eid\\s*=\\s*GetHandleId\\(EVENT_PLAYER_LEAVE\\)");
+        assertDoesNotContainRegex(compiled, "__wurst_registerCanonicalHandleId");
+        assertDoesNotContainRegex(compiled, "__wurst_tryRegisterKnownEventHandle");
+        assertDoesNotContainRegex(compiled, "__wurst_canonicalHandleIdByHandle");
+    }
+
+    @Test
+    public void getHandleIdAssertionOnlyRequiresPolyfillDefinitionWhenUsed() {
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function Foo:GetHandleId(x) return 0 end");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function Foo.GetHandleId(x) return 0 end");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("-- GetHandleId(x) is allowed for enum-like handles");
         try {
             de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
-                .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
-            fail("Expected RuntimeException for leaked GetHandleId call");
+                .assertNoLeakedGetHandleIdCalls("__wurst_GetHandleId(x)");
+            fail("Expected RuntimeException for missing __wurst_GetHandleId helper definition");
         } catch (RuntimeException e) {
-            assertTrue(e.getMessage().contains("GetHandleId"));
+            assertTrue(e.getMessage().contains("__wurst_GetHandleId"));
+        }
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)");
+    }
+
+    @Test
+    public void getHandleIdAssertionDetectsLeak() {
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
+        try {
+            de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+                .assertNoLeakedGetHandleIdCalls("__wurst_GetHandleId(x)");
+            fail("Expected RuntimeException for missing __wurst_GetHandleId helper definition");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("__wurst_GetHandleId"));
         }
     }
 
     @Test
     public void getHandleIdAssertionDoesNotFalsePositiveOnDeclarations() {
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("GetHandleId(x)");
         // A function declaration named GetHandleId (e.g. from a class method) must not
         // trigger the assertion — only actual calls should.
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
@@ -2260,9 +2464,11 @@ public class LuaTranslationTests extends WurstScriptTest {
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("function Foo.GetHandleId(x) return 0 end");
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
-            .assertNoLeakedGetHandleIdCalls("-- GetHandleId(x) is remapped");
+            .assertNoLeakedGetHandleIdCalls("-- GetHandleId(x) is allowed for enum-like handles");
         de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
             .assertNoLeakedGetHandleIdCalls("local s = \"GetHandleId(x)\"");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertNoLeakedGetHandleIdCalls("function __wurst_GetHandleId(h) return 0 end\n__wurst_GetHandleId(x)");
     }
 
     // ----- Null-safe extern native wrappers -----

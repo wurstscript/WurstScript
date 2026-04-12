@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
@@ -461,6 +462,10 @@ public class LuaTranslator {
         if (f.isNative()) {
             LuaNatives.get(lf);
         } else {
+            if (LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && rewriteGetHandleIdCompatFunction(f, lf)) {
+                luaModel.add(lf);
+                return;
+            }
             if (rewriteTypeCastingCompatFunction(f, lf)) {
                 luaModel.add(lf);
                 return;
@@ -508,6 +513,21 @@ public class LuaTranslator {
         } else {
             luaModel.add(lf);
         }
+    }
+
+    private boolean rewriteGetHandleIdCompatFunction(ImFunction f, LuaFunction lf) {
+        if (f.getParameters().size() != 1 || !f.getName().endsWith("_getHandleId") || f.getName().endsWith("_getTCHandleId")) {
+            return false;
+        }
+        ImVar firstParam = f.getParameters().get(0);
+        LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
+        // Only called when ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING is true.
+        // Shim opaque runtime handles; keep native GetHandleId for enum-like handles.
+        String targetFunction = LuaNativeLowering.usesLuaObjectIdentityHandleId(firstParam.getType())
+            ? "__wurst_GetHandleId" : "GetHandleId";
+        lf.getBody().clear();
+        lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallByName(targetFunction, LuaAst.LuaExprlist(arg))));
+        return true;
     }
 
     private boolean rewriteTypeCastingCompatFunction(ImFunction f, LuaFunction lf) {

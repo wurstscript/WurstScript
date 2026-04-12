@@ -35,7 +35,6 @@ public class LuaNatives {
         "LoadTextTagHandle", "LoadLightningHandle", "LoadImageHandle", "LoadUbersplatHandle", "LoadRegionHandle",
         "LoadFogStateHandle", "LoadFogModifierHandle", "LoadHashtableHandle", "LoadFrameHandle"
     };
-
     static {
         addNative("testSuccess", f -> {
             f.getBody().add(LuaAst.LuaLiteral("print(\"testSuccess\")"));

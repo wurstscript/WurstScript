@@ -12,17 +12,20 @@ import java.util.*;
  * <p>Three classes of WC3 BJ calls are transformed:
  * <ol>
  *   <li><b>GetHandleId</b> – replaced 1:1 by {@code __wurst_GetHandleId}, whose Lua
- *       implementation uses a stable table counter instead of the WC3 handle ID
- *       (which can desync in Lua mode).</li>
+ *       implementation uses a stable table counter for selected opaque runtime handle
+ *       families only. Enum-like handle families keep native semantics in Lua.</li>
  *   <li><b>Hashtable natives</b> ({@code SaveInteger}, {@code LoadBoolean}, …) and
  *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …) –
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
  *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.</li>
- *   <li><b>All other BJ calls with at least one handle-typed parameter</b> – wrapped
- *       by a generated IM function that first checks each handle param for {@code null}
- *       and returns the type-appropriate default (0 / 0.0 / false / "" / nil), then
- *       delegates to the original BJ function.  This matches Jass behavior, which
- *       silently returns defaults on null-handle calls instead of crashing.</li>
+ *   <li><b>Non-native blizzard.j BJ functions with at least one handle-typed parameter</b>
+ *       – wrapped by a generated IM function that first checks each handle param for
+ *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
+ *       then delegates to the original BJ function.  This matches Jass behavior, which
+ *       silently returns defaults on null-handle calls instead of crashing.
+ *       Common.j natives are intentionally excluded: they either accept {@code nil} natively
+ *       (e.g. {@code TriggerRegisterPlayerUnitEvent} with a null filter) or are already
+ *       covered by categories 1 and 2 above.</li>
  * </ol>
  *
  * <p>IS_NATIVE stubs added for category 1 and 2 are recognised by
@@ -69,6 +72,26 @@ public final class LuaNativeLowering {
         "EnumDestructablesInRect", "GetEnumDestructable"
     ));
 
+    /** True runtime-object handles that should use Lua-side object identity for GetHandleId. */
+    private static final Set<String> OPAQUE_RUNTIME_HANDLE_TYPES = new HashSet<>(Arrays.asList(
+        "unit", "item", "destructable", "effect", "lightning", "timer", "trigger",
+        "triggeraction", "triggercondition", "boolexpr", "force", "group", "location",
+        "rect", "region", "sound", "dialog", "button", "quest", "questitem",
+        "leaderboard", "multiboard", "multiboarditem", "trackable", "texttag",
+        "image", "ubersplat", "framehandle", "fogmodifier", "hashtable"
+    ));
+
+    /**
+     * When {@code true}, only opaque runtime-handle families (unit, item, timer, …)
+     * are shimmed via {@code __wurst_GetHandleId}; enum-like handle families
+     * (eventid, playerevent, …) keep native {@code GetHandleId} semantics.
+     *
+     * When {@code false} (safe default), ALL {@code GetHandleId} calls are shimmed
+     * unconditionally — this matches the pre-selective-shim behaviour and avoids
+     * any desync risk while the selective logic is being validated.
+     */
+    public static final boolean ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING = true;
+
     private LuaNativeLowering() {}
 
     /**
@@ -100,6 +123,7 @@ public final class LuaNativeLowering {
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();
+        Map<String, ImFunction> specialNativeStubs = new LinkedHashMap<>();
         // BJ functions that don't need a replacement (not GetHandleId, not hashtable/callback,
         // no handle params). Cached to avoid rechecking the same function at every call site.
         Set<ImFunction> noReplacement = new HashSet<>();
@@ -114,7 +138,37 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
+                if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && isCompatGetHandleIdFunction(f)) {
+                    if (shouldRewriteGetHandleId(call)) {
+                        ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
+                            name -> createNativeStub(name, f));
+                        if (!deferredAdditions.contains(replacement)) {
+                            deferredAdditions.add(replacement);
+                        }
+                        call.replaceBy(JassIm.ImFunctionCall(
+                            call.attrTrace(), replacement,
+                            JassIm.ImTypeArguments(),
+                            call.getArguments().copy(),
+                            false, CallType.NORMAL));
+                    }
+                    return;
+                }
                 if (!f.isBj()) return;
+                if ("GetHandleId".equals(f.getName())) {
+                    if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && shouldRewriteGetHandleId(call)) {
+                        ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
+                            name -> createNativeStub(name, f));
+                        if (!deferredAdditions.contains(replacement)) {
+                            deferredAdditions.add(replacement);
+                        }
+                        call.replaceBy(JassIm.ImFunctionCall(
+                            call.attrTrace(), replacement,
+                            JassIm.ImTypeArguments(),
+                            call.getArguments().copy(),
+                            false, CallType.NORMAL));
+                    }
+                    return;
+                }
                 if (noReplacement.contains(f)) return;
 
                 if (!replacements.containsKey(f)) {
@@ -139,13 +193,11 @@ public final class LuaNativeLowering {
 
             private ImFunction computeReplacement(ImFunction bj) {
                 String name = bj.getName();
-                if ("GetHandleId".equals(name)) {
-                    return createNativeStub("__wurst_GetHandleId", bj);
-                } else if (HASHTABLE_NATIVE_NAMES.contains(name)) {
+                if (HASHTABLE_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
                 } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
-                } else if (hasHandleParam(bj)) {
+                } else if (hasHandleParam(bj) && !bj.isNative()) {
                     return createNilSafeWrapper(bj);
                 }
                 return null;
@@ -250,6 +302,27 @@ public final class LuaNativeLowering {
         }
         String n = ((ImSimpleType) type).getTypename();
         return !n.equals("integer") && !n.equals("real") && !n.equals("boolean") && !n.equals("string");
+    }
+
+    private static boolean shouldRewriteGetHandleId(ImFunctionCall call) {
+        if (call.getArguments().size() != 1) {
+            return true;
+        }
+        return usesLuaObjectIdentityHandleId(call.getArguments().get(0).attrTyp());
+    }
+
+    public static boolean usesLuaObjectIdentityHandleId(ImType type) {
+        if (!(type instanceof ImSimpleType)) {
+            return false;
+        }
+        String typeName = ((ImSimpleType) type).getTypename();
+        return OPAQUE_RUNTIME_HANDLE_TYPES.contains(typeName);
+    }
+
+    private static boolean isCompatGetHandleIdFunction(ImFunction f) {
+        return f.getParameters().size() == 1
+            && f.getName().endsWith("_getHandleId")
+            && !f.getName().endsWith("_getTCHandleId");
     }
 
     /** Returns an IM expression representing the safe default for the given return type. */

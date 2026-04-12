@@ -7,12 +7,6 @@ import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.W
 /**
  * Builds and registers the Wurst Lua infrastructure functions that are always
  * emitted into the generated script, regardless of what user code looks like.
- *
- * These include object/string index maps, ensure-type coercers, array defaults,
- * hashtable helpers, and context-callback wrappers.
- *
- * All methods are static and take the active {@link LuaTranslator} as the first
- * argument, following the same convention as {@link ExprTranslation}.
  */
 class LuaPolyfillSetup {
 
@@ -55,29 +49,22 @@ class LuaPolyfillSetup {
     }
 
     static void createInstanceOfFunction(LuaTranslator tr) {
-        String[] code = {
-            "return x ~= nil and x." + WURST_SUPERTYPES + "[A]"
-        };
-
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
+        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("return x ~= nil and x." + WURST_SUPERTYPES + "[A]"));
         tr.luaModel.add(tr.instanceOfFunction);
     }
 
     static void createObjectIndexFunctions(LuaTranslator tr) {
-        String vName = "__wurst_objectIndexMap";
-        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaExprNull());
-        tr.luaModel.add(v);
-        tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(v), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+        LuaVariable objectIndexMap = LuaAst.LuaVariable("__wurst_objectIndexMap", LuaAst.LuaExprNull());
+        tr.luaModel.add(objectIndexMap);
+        tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectIndexMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
 
-        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
-        tr.luaModel.add(im);
-        tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(im), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+        LuaVariable numberWrapperMap = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaExprNull());
+        tr.luaModel.add(numberWrapperMap);
+        tr.deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(numberWrapperMap), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
             LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
         ))));
 
@@ -217,5 +204,4 @@ class LuaPolyfillSetup {
         tr.ensureStrFunction.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
         tr.luaModel.add(tr.ensureStrFunction);
     }
-
 }
