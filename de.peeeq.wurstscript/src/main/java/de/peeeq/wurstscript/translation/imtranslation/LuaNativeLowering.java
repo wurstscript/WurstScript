@@ -18,14 +18,14 @@ import java.util.*;
  *       <b>context-callback natives</b> ({@code ForForce}, {@code ForGroup}, …) –
  *       replaced 1:1 by their {@code __wurst_} prefixed equivalents, whose Lua
  *       implementations are provided by {@link de.peeeq.wurstscript.translation.lua.translation.LuaNatives}.</li>
- *   <li><b>Non-native blizzard.j BJ functions with at least one handle-typed parameter</b>
- *       – wrapped by a generated IM function that first checks each handle param for
+ *   <li><b>All other BJ calls with at least one handle-typed parameter</b> – wrapped
+ *       by a generated IM function that first checks each required handle param for
  *       {@code null} and returns the type-appropriate default (0 / 0.0 / false / "" / nil),
  *       then delegates to the original BJ function.  This matches Jass behavior, which
  *       silently returns defaults on null-handle calls instead of crashing.
- *       Common.j natives are intentionally excluded: they either accept {@code nil} natively
- *       (e.g. {@code TriggerRegisterPlayerUnitEvent} with a null filter) or are already
- *       covered by categories 1 and 2 above.</li>
+ *       {@code boolexpr} and {@code code} typed params are intentionally skipped: these
+ *       are optional/nullable in Jass (e.g. the filter arg of
+ *       {@code TriggerRegisterPlayerUnitEvent}) and passing {@code nil} is valid.</li>
  * </ol>
  *
  * <p>IS_NATIVE stubs added for category 1 and 2 are recognised by
@@ -197,7 +197,7 @@ public final class LuaNativeLowering {
                     return createNativeStub("__wurst_" + name, bj);
                 } else if (CONTEXT_CALLBACK_NATIVE_NAMES.contains(name)) {
                     return createNativeStub("__wurst_" + name, bj);
-                } else if (hasHandleParam(bj) && !bj.isNative()) {
+                } else if (hasHandleParam(bj)) {
                     return createNilSafeWrapper(bj);
                 }
                 return null;
@@ -247,10 +247,12 @@ public final class LuaNativeLowering {
 
         ImStmts body = JassIm.ImStmts();
 
-        // Null-check each handle param: if param == null then return <default> end
+        // Null-check each required handle param: if param == null then return <default> end
+        // boolexpr and code params are intentionally skipped — they are optional/nullable
+        // in Jass (e.g. the filter arg of TriggerRegisterPlayerUnitEvent).
         ImExpr returnDefault = defaultValueExpr(bjNative.getReturnType());
         for (ImVar param : paramVars) {
-            if (isHandleType(param.getType())) {
+            if (isHandleType(param.getType()) && !isNullableHandleType(param.getType())) {
                 ImExpr condition = JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
                     JassIm.ImVarAccess(param),
                     JassIm.ImNull(param.getType().copy())
@@ -304,6 +306,22 @@ public final class LuaNativeLowering {
         return !n.equals("integer") && !n.equals("real") && !n.equals("boolean") && !n.equals("string");
     }
 
+    /**
+     * Returns true for handle types that are valid to pass as {@code null} in Jass without
+     * triggering a null-handle crash.  These params are skipped in nil-safety wrappers.
+     *
+     * <p>{@code boolexpr} and {@code code} are the canonical optional types: every WC3
+     * API that takes them (filter, condition, action callbacks) accepts {@code null} to
+     * mean "no callback".
+     */
+    static boolean isNullableHandleType(ImType type) {
+        if (!(type instanceof ImSimpleType)) {
+            return false;
+        }
+        String n = ((ImSimpleType) type).getTypename();
+        return n.equals("boolexpr") || n.equals("code");
+    }
+
     private static boolean shouldRewriteGetHandleId(ImFunctionCall call) {
         if (call.getArguments().size() != 1) {
             return true;
@@ -320,9 +338,14 @@ public final class LuaNativeLowering {
     }
 
     private static boolean isCompatGetHandleIdFunction(ImFunction f) {
-        return f.getParameters().size() == 1
-            && f.getName().endsWith("_getHandleId")
-            && !f.getName().endsWith("_getTCHandleId");
+        if (f.getParameters().size() != 1
+            || !f.getName().endsWith("_getHandleId")
+            || f.getName().endsWith("_getTCHandleId")) {
+            return false;
+        }
+        // Restrict to WC3 simple handle types (ImSimpleType). User-defined Wurst classes
+        // use ImClassType and must not have their call sites replaced.
+        return isHandleType(f.getParameters().get(0).getType());
     }
 
     /** Returns an IM expression representing the safe default for the given return type. */

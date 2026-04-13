@@ -520,6 +520,11 @@ public class LuaTranslator {
             return false;
         }
         ImVar firstParam = f.getParameters().get(0);
+        // Restrict to WC3 simple handle types. User-defined Wurst classes use ImClassType
+        // and must not have their function body replaced.
+        if (!LuaNativeLowering.isHandleType(firstParam.getType())) {
+            return false;
+        }
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
         // Only called when ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING is true.
         // Shim opaque runtime handles; keep native GetHandleId for enum-like handles.

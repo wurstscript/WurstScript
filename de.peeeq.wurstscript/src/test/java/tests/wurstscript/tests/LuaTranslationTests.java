@@ -2475,7 +2475,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void externNativesWithHandleParamsGetNilSafetyWrapper() throws IOException {
-        // BJ natives (IS_BJ) with handle-type parameters must be wrapped at the IM level
+        // IS_BJ functions with handle-type parameters must be wrapped at the IM level
         // so that passing nil returns a safe default instead of crashing the Lua runtime.
         // GetUnitTypeId is a common.j native (IS_BJ) with a handle param, returns integer.
         // Result is used in print() so the optimizer does not dead-code-eliminate the call.
