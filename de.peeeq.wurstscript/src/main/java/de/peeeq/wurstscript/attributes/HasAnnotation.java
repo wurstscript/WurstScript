@@ -7,9 +7,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 public class HasAnnotation {
-    // OPTIMIZATION 1: Cache normalized annotations
+    // OPTIMIZATION 1: Cache normalized annotations (String→String: safe as static, strings are interned/small)
     private static final Map<String, String> normalizationCache = new HashMap<>();
 
     @NotNull
@@ -74,11 +75,19 @@ public class HasAnnotation {
         return null;
     }
 
-    // OPTIMIZATION 8: Cache normalized annotation types per Annotation object
-    private static final Map<Annotation, String> annotationTypeCache = new HashMap<>();
+    // OPTIMIZATION 8: Cache normalized annotation types per Annotation object.
+    // WeakHashMap: entries are collected automatically when the AST node (Annotation) is GC'd,
+    // preventing this static cache from pinning entire compilation trees across tests.
+    private static final Map<Annotation, String> annotationTypeCache = new WeakHashMap<>();
 
     private static String getNormalizedType(Annotation a) {
         return annotationTypeCache.computeIfAbsent(a,
             ann -> normalizeAnnotation(ann.getAnnotationType()));
+    }
+
+    /** Explicitly clear both caches. Called from GlobalCaches.clearAll() between tests. */
+    public static void clearCaches() {
+        annotationTypeCache.clear();
+        normalizationCache.clear();
     }
 }

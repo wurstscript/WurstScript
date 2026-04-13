@@ -298,7 +298,7 @@ public final class LuaNativeLowering {
     }
 
     /** Returns true for WC3 handle types (ImSimpleType that is not int/real/boolean/string). */
-    static boolean isHandleType(ImType type) {
+    public static boolean isHandleType(ImType type) {
         if (!(type instanceof ImSimpleType)) {
             return false;
         }
