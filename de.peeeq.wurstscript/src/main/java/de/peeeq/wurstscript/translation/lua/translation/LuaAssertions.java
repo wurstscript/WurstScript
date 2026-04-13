@@ -16,18 +16,18 @@ public class LuaAssertions {
     private LuaAssertions() {}
 
     /**
-     * Asserts that {@code luaCode} contains no raw call to {@code GetHandleId}.
+     * Asserts that every emitted call to {@code __wurst_GetHandleId} has a helper definition.
      *
-     * In Lua mode handle IDs can desync, so all uses of {@code GetHandleId} must
-     * be rewritten to {@code __wurst_GetHandleId} which uses a stable table-based
-     * counter instead.
+     * The Lua backend now rewrites only selected opaque runtime-handle families and
+     * intentionally leaves enum-like handle families on native {@code GetHandleId}.
      */
     public static void assertNoLeakedGetHandleIdCalls(String luaCode) {
         Set<String> called = collectCalledFunctionNames(luaCode);
-        if (called.contains("GetHandleId")) {
+        Set<String> defined = collectDefinedFunctionNames(luaCode);
+        if (called.contains("__wurst_GetHandleId") && !defined.contains("__wurst_GetHandleId")) {
             throw new RuntimeException(
-                "Wurst Lua backend assertion failed: raw GetHandleId() call found in generated Lua. "
-                + "Use the __wurst_GetHandleId polyfill (table-based) instead to avoid desync.");
+                "Wurst Lua backend assertion failed: __wurst_GetHandleId() call found in generated Lua "
+                + "without a matching helper definition.");
         }
     }
 

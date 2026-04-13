@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.HasAnnotation;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -142,6 +143,7 @@ public final class GlobalCaches {
         LOCAL_STATE_CACHE.clear();
         LOCAL_STATE_NOARG_CACHE.clear();
         lookupCache.clear();
+        HasAnnotation.clearCaches();
     }
 
     public enum LookupType {

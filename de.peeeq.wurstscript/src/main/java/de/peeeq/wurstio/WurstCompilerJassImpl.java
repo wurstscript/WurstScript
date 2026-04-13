@@ -645,12 +645,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     private void printDebugImProg(String debugFile) {
         if (!errorHandler.isUnitTestMode() || !errorHandler.isOutputTestSource()) {
-            // output only in unit test mode
             return;
         }
-
         try {
-            // TODO remove test output
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
             try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {

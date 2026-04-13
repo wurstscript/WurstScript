@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 
 import java.io.*;
@@ -63,6 +64,13 @@ public class WurstScriptTest {
 
     @BeforeMethod(alwaysRun = true)
     public void _clearBefore() {
+        GlobalCaches.clearAll();
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void _clearAfter() {
+        // Release all AST strong-refs held by caches so the GC can reclaim the
+        // stdlib copy from the previous test before the next test allocates its own.
         GlobalCaches.clearAll();
     }
 

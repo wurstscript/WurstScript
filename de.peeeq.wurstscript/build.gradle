@@ -39,6 +39,7 @@ def j25Launcher = toolchainSvc.launcherFor(java.toolchain)
 
 tasks.withType(JavaExec).configureEach {
     javaLauncher.set(j25Launcher)
+    jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
 }
 
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
@@ -244,6 +245,8 @@ test {
             '-Xmx2g',                         // local: give it room to finish and dump
             '-XX:MaxMetaspaceSize=256m',
             '-XX:+HeapDumpOnOutOfMemoryError',
+            '-XX:+UnlockExperimentalVMOptions', // needed for UseCompactObjectHeaders until it graduates
+            '-XX:+UseCompactObjectHeaders',    // Java 24+: 8-byte headers (vs 16) — big win for AST-heavy workloads
     )
 }
 
