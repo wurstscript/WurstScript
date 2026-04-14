@@ -3,7 +3,6 @@
 Wurstscript is a delicious programming language which compiles to Jass or Lua code that is used to power WarCraft III maps.
 
 [![Build](https://github.com/wurstscript/WurstScript/actions/workflows/build.yml/badge.svg)](https://github.com/wurstscript/WurstScript/actions/workflows/build.yml)
-[![Release](https://github.com/wurstscript/WurstScript/actions/workflows/release.yml/badge.svg)](https://github.com/wurstscript/WurstScript/actions/workflows/release.yml)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 [![Coverage Status](https://coveralls.io/repos/github/wurstscript/WurstScript/badge.svg?branch=master)](https://coveralls.io/github/wurstscript/WurstScript?branch=master)
