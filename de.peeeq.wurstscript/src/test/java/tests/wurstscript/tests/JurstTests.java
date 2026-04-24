@@ -380,6 +380,17 @@ public class JurstTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void jassFileWithUtf8Bom() {
+        testJurstWithJass(false, false,
+            "\uFEFFglobals\nendglobals\n",
+            Utils.string(
+                "package test",
+                "endpackage",
+                "")
+        );
+    }
+
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
         Map<String, String> inputs = ImmutableMap.of(
                 "example.j", jass,

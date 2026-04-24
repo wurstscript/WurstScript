@@ -48,6 +48,67 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void jassKeepsTypeIdGlobalsWhenDestroyGuardReadsThem() throws IOException {
+        testAssertOkLines(false,
+            "package test",
+            "    class Reference<T>",
+            "        T value",
+            "",
+            "    init",
+            "        let r = new Reference<int>",
+            "        destroy r",
+            "endpackage"
+        );
+
+        String opt = Files.readString(new File(TEST_OUTPUT_PATH + "ClassesTests_jassKeepsTypeIdGlobalsWhenDestroyGuardReadsThem_opt.j").toPath(), StandardCharsets.UTF_8);
+        assertTrue(opt.contains("integer array Reference_nextFree"),
+            "Expected generated Jass to keep the Reference_nextFree global declaration.\n" + opt);
+        assertTrue(opt.contains("integer Reference_firstFree=0"),
+            "Expected generated Jass to keep the Reference_firstFree global declaration.\n" + opt);
+        assertTrue(opt.contains("integer Reference_maxIndex=0"),
+            "Expected generated Jass to keep the Reference_maxIndex global declaration.\n" + opt);
+        assertTrue(opt.contains("integer array Reference_typeId"),
+            "Expected generated Jass to keep the Reference_typeId global declaration.\n" + opt);
+        assertTrue(opt.contains("Reference_typeId[obj]"),
+            "Expected generated Jass to still reference Reference_typeId in destroy/dispatch logic.");
+        assertTrue(opt.contains("Reference_nextFree[Reference_firstFree]"),
+            "Expected generated Jass to still reference the recycle stack globals.");
+    }
+
+    @Test
+    public void jassNewGenericsRebuildsClassManagementVarsAfterCompiletime() throws IOException {
+        test()
+            .runCompiletimeFunctions(true)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "    class Reference<T:>",
+                "        T val",
+                "        construct(T val)",
+                "            this.val = val",
+                "",
+                "    class Box",
+                "",
+                "    constant compiletimeRef = new Reference<int>(0)",
+                "",
+                "    init",
+                "        let r = new Reference<int>(1)",
+                "        destroy r",
+                "        let s = new Reference<bool>(true)",
+                "        destroy s",
+                "endpackage"
+            );
+
+        String opt = Files.readString(new File(TEST_OUTPUT_PATH + "ClassesTests_jassNewGenericsRebuildsClassManagementVarsAfterCompiletime_opt.j").toPath(), StandardCharsets.UTF_8);
+        assertTrue(opt.contains("integer array Reference_integer__typeId"),
+            "Expected generated Jass to declare integer-specialized class-management globals.\n" + opt);
+        assertTrue(opt.contains("integer array Reference_boolean__typeId"),
+            "Expected generated Jass to declare boolean-specialized class-management globals.\n" + opt);
+        assertFalse(opt.contains("Reference_typeId["),
+            "Expected specialized generic lifecycle code not to reference undeclared raw Reference_typeId.");
+    }
+
+    @Test
     public void dispatchNarrowingUsesStaticReceiverTypeInJass() throws IOException {
         testAssertOkLines(true,
             "package test",

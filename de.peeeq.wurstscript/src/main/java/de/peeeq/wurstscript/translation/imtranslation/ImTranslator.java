@@ -2102,6 +2102,31 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return classManagementVars;
     }
 
+    public void clearClassManagementVars() {
+        if (classManagementVars == null) {
+            return;
+        }
+        Set<ClassManagementVars> oldVars = Collections.newSetFromMap(new IdentityHashMap<>());
+        oldVars.addAll(classManagementVars.values());
+        for (ClassManagementVars vars : oldVars) {
+            removeClassManagementVar(vars.free);
+            removeClassManagementVar(vars.freeCount);
+            removeClassManagementVar(vars.maxIndex);
+            removeClassManagementVar(vars.typeId);
+        }
+        classManagementVars = null;
+    }
+
+    private void removeClassManagementVar(ImVar var) {
+        imProg.getGlobals().remove(var);
+        List<ImSet> inits = imProg.getGlobalInits().remove(var);
+        if (inits != null) {
+            for (ImSet init : inits) {
+                init.replaceBy(ImHelper.nullExpr());
+            }
+        }
+    }
+
     private Partitions<ImClass> buildClassPartitions() {
         Partitions<ImClass> p = new Partitions<>();
         for (ImClass c : imProg.getClasses()) {
