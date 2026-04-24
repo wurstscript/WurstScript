@@ -64,10 +64,8 @@ public class UsedVariables {
             if (expr instanceof ImVarAccess) {
                 // Write only, skip
             } else if (expr instanceof ImMemberAccess) {
-                result.add(((ImMemberAccess) expr).getVar());
                 ((ImMemberAccess) expr).getReceiver().accept(this);
             } else if (expr instanceof ImVarArrayAccess) {
-                result.add(((ImVarArrayAccess) expr).getVar());
                 ((ImVarArrayAccess) expr).getIndexes().accept(this);
             } else if (expr instanceof ImTupleSelection) {
                 handleLExprReads((ImLExpr) ((ImTupleSelection) expr).getTupleExpr());

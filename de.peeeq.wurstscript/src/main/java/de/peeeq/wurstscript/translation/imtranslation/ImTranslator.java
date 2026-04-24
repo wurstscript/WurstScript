@@ -2102,29 +2102,21 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return classManagementVars;
     }
 
-    public void clearClassManagementVars() {
+    public void clearStaleClassManagementVars() {
         if (classManagementVars == null) {
             return;
         }
-        Set<ClassManagementVars> oldVars = Collections.newSetFromMap(new IdentityHashMap<>());
-        oldVars.addAll(classManagementVars.values());
-        for (ClassManagementVars vars : oldVars) {
-            removeClassManagementVar(vars.free);
-            removeClassManagementVar(vars.freeCount);
-            removeClassManagementVar(vars.maxIndex);
-            removeClassManagementVar(vars.typeId);
+        if (classManagementVars.keySet().stream().anyMatch(c -> !imProg.getClasses().contains(c))
+                || classManagementVars.values().stream().anyMatch(this::hasStaleClassManagementVars)) {
+            classManagementVars = null;
         }
-        classManagementVars = null;
     }
 
-    private void removeClassManagementVar(ImVar var) {
-        imProg.getGlobals().remove(var);
-        List<ImSet> inits = imProg.getGlobalInits().remove(var);
-        if (inits != null) {
-            for (ImSet init : inits) {
-                init.replaceBy(ImHelper.nullExpr());
-            }
-        }
+    private boolean hasStaleClassManagementVars(ClassManagementVars vars) {
+        return !imProg.getGlobals().contains(vars.free)
+            || !imProg.getGlobals().contains(vars.freeCount)
+            || !imProg.getGlobals().contains(vars.maxIndex)
+            || !imProg.getGlobals().contains(vars.typeId);
     }
 
     private Partitions<ImClass> buildClassPartitions() {
