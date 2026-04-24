@@ -2102,6 +2102,23 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return classManagementVars;
     }
 
+    public void clearStaleClassManagementVars() {
+        if (classManagementVars == null) {
+            return;
+        }
+        if (classManagementVars.keySet().stream().anyMatch(c -> !imProg.getClasses().contains(c))
+                || classManagementVars.values().stream().anyMatch(this::hasStaleClassManagementVars)) {
+            classManagementVars = null;
+        }
+    }
+
+    private boolean hasStaleClassManagementVars(ClassManagementVars vars) {
+        return !imProg.getGlobals().contains(vars.free)
+            || !imProg.getGlobals().contains(vars.freeCount)
+            || !imProg.getGlobals().contains(vars.maxIndex)
+            || !imProg.getGlobals().contains(vars.typeId);
+    }
+
     private Partitions<ImClass> buildClassPartitions() {
         Partitions<ImClass> p = new Partitions<>();
         for (ImClass c : imProg.getClasses()) {

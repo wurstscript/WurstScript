@@ -292,17 +292,21 @@ shadowJar {
 }
 
 def fatJar = shadowJar.archiveFile.map { it.asFile }
+def wurstUserDir = "${System.properties['user.home']}/.wurst"
+def wurstCompilerDir = "${wurstUserDir}/wurst-compiler"
 
-tasks.register('make_for_userdir', Copy) {
-    dependsOn 'shadowJar', 'make_for_userdir_wurst_compiler'
-    from fatJar
-    into "${System.properties['user.home']}/.wurst/"
+tasks.register('delete_legacy_userdir_compiler_jar', Delete) {
+    delete "${wurstUserDir}/wurstscript.jar"
 }
 
-tasks.register('make_for_userdir_wurst_compiler', Copy) {
-    dependsOn 'shadowJar'
+tasks.register('make_for_userdir', Copy) {
+    dependsOn 'shadowJar', 'delete_legacy_userdir_compiler_jar'
     from fatJar
-    into "${System.properties['user.home']}/.wurst/wurst-compiler/"
+    into wurstCompilerDir
+}
+
+tasks.register('make_for_userdir_wurst_compiler') {
+    dependsOn 'make_for_userdir'
 }
 
 tasks.register('make_for_wurstpack', Copy) {

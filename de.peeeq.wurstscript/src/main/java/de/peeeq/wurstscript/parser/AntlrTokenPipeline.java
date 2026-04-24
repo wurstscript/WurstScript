@@ -38,6 +38,9 @@ public final class AntlrTokenPipeline {
     ) throws IOException {
 
         CharStream input = CharStreams.fromReader(reader);
+        if (input.LA(1) == '\uFEFF') {
+            input.consume();
+        }
 
         TS tokenSource = tokenSourceFactory.create(input);
         if (installLexerListener != null) {
