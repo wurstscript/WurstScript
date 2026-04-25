@@ -225,6 +225,11 @@ public class RunMap extends MapRequest {
             return Paths.get(customMapDataPath);
         }
 
+        if (Orient.isMacSystem()) {
+            return Paths.get(System.getProperty("user.home"),
+                "Library", "Application Support", "Blizzard", "Warcraft III", "CustomMapData");
+        }
+
         Path documents;
         try {
             documents = FileSystemView.getFileSystemView().getDefaultDirectory().toPath();
@@ -308,11 +313,17 @@ public class RunMap extends MapRequest {
 
         if (!new File(documentPath.get()).exists()) {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");
-            // Try wine default:
-            documentPath = Optional.of(System.getProperty("user.home")
-                + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III");
+            if (Orient.isMacSystem()) {
+                // macOS 1.29+: ~/Library/Application Support/Blizzard/Warcraft III
+                documentPath = Optional.of(System.getProperty("user.home")
+                    + "/Library/Application Support/Blizzard/Warcraft III");
+            } else {
+                // Linux: try Wine default path
+                documentPath = Optional.of(System.getProperty("user.home")
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III");
+            }
             if (!new File(documentPath.get()).exists()) {
-                WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
+                WLogger.severe("Severe: Warcraft folder " + documentPath + " does not exist.");
             }
         }
 
