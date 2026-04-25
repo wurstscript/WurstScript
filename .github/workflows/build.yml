@@ -107,14 +107,12 @@ jobs:
             chmod +x src/test/resources/lua53
           fi
 
-      - name: Install Lua 5.3 compiler (macOS)
+      - name: Install Lua compiler (macOS)
         if: runner.os == 'macOS'
         env:
           HOMEBREW_NO_AUTO_UPDATE: '1'
         shell: bash
-        run: |
-          brew install lua@5.3
-          echo "$(brew --prefix lua@5.3)/bin" >> "$GITHUB_PATH"
+        run: brew install lua
 
       - name: Run tests
         shell: bash

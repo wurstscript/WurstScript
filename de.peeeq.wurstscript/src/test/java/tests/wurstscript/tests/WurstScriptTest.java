@@ -696,7 +696,6 @@ public class WurstScriptTest {
                 candidates.add(cpUnix);
             }
             candidates.add("luac53");
-            candidates.add("luac5.3");
             candidates.add("luac");
         }
 
