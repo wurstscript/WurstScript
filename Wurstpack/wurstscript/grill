@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNTIME="$HOME/.wurst/wurst-runtime/bin/java"
-
-# Resolve script dir (absolute)
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNTIME="$DIR/wurst-runtime/bin/java"
 
-JAR="$DIR/grill/grill.jar"
+JAR="$DIR/grill-cli/grill.jar"
 if [[ ! -f "$JAR" ]]; then
-  JAR="$DIR/../grill/grill.jar"
+  JAR="$DIR/../grill-cli/grill.jar"
 fi
 
 if [[ ! -f "$JAR" ]]; then
   echo "[grill] ERROR: Missing jar. Searched:"
-  echo "  $DIR/grill/grill.jar"
-  echo "  $DIR/../grill/grill.jar"
+  echo "  $DIR/grill-cli/grill.jar"
+  echo "  $DIR/../grill-cli/grill.jar"
   exit 2
 fi
 
@@ -25,4 +23,4 @@ if [[ ! -x "$RUNTIME" ]]; then
   exit 3
 fi
 
-exec "$RUNTIME" -jar "$JAR" "$@"
+exec "$RUNTIME" -Dfile.encoding=UTF-8 -jar "$JAR" "$@"
