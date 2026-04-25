@@ -219,6 +219,7 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
         from("../Wurstpack/wurstscript/grill")           { into(".") }
     } else {
         from("../Wurstpack/wurstscript/wurstscript") { into(".") }
+        from("../Wurstpack/wurstscript/grill")       { into(".") }
     }
 }
 
