@@ -21,9 +21,9 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-latest"},{"os":"macos-15-intel"}]}' >> "$GITHUB_OUTPUT"
           else
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"}]}' >> "$GITHUB_OUTPUT"
           fi
 
   build:
@@ -175,8 +175,8 @@ jobs:
           shopt -s nullglob
           zips=(upload/*.zip)
           echo "Found ${#zips[@]} zip(s):"; ls -alh upload
-          if (( ${#zips[@]} < 3 )); then
-            echo "ERROR: expected Win + Linux + macOS arm64 zips (got ${#zips[@]})."
+          if (( ${#zips[@]} < 4 )); then
+            echo "ERROR: expected Win + Linux + macOS arm64 + macOS x64 zips (got ${#zips[@]})."
             exit 1
           fi
 
