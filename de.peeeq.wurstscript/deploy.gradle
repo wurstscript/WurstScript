@@ -185,12 +185,24 @@ tasks.register("jlinkRuntime25", Exec) {
 
 // 3) Assemble folder layout: jre + compiler.jar (no manifest)
 tasks.register("assembleSlimCompilerDist", Copy) {
-    description = "Assembles dist folder with slim JRE and compiler.jar (no manifest)."
+    description = "Assembles dist folder with JRE and compiler.jar (no manifest)."
     group = "distribution"
-    dependsOn("jlinkRuntime25", "shadowJar")
 
-    from(jreImageDir) { into("wurst-runtime") }
-    from(fatJar)      { into("wurst-compiler") }
+    if (os.isMacOsX()) {
+        // On macOS, skip jlink entirely. Copying the original Temurin JDK preserves
+        // Apple's codesignatures on dylibs/executables, which jlink would invalidate.
+        // jmods/ (jlink inputs, ~150 MB) and include/ (C headers) are dev-only.
+        dependsOn("shadowJar")
+        from(javaHomeProvider) {
+            into("wurst-runtime")
+            exclude("jmods/**", "include/**")
+        }
+    } else {
+        dependsOn("jlinkRuntime25", "shadowJar")
+        from(jreImageDir) { into("wurst-runtime") }
+    }
+
+    from(fatJar) { into("wurst-compiler") }
     into(distRoot)
 
     doLast {

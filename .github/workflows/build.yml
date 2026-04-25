@@ -21,9 +21,9 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-13"},{"os":"macos-14"}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"}]}' >> "$GITHUB_OUTPUT"
           else
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"}]}' >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-14"}]}' >> "$GITHUB_OUTPUT"
           fi
 
   build:
@@ -107,6 +107,15 @@ jobs:
             chmod +x src/test/resources/lua53
           fi
 
+      - name: Install Lua 5.3 compiler (macOS)
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        shell: bash
+        run: |
+          brew install lua@5.3
+          echo "$(brew --prefix lua@5.3)/bin" >> "$GITHUB_PATH"
+
       - name: Run tests
         shell: bash
         run: ./gradlew test --no-daemon --stacktrace
@@ -168,8 +177,8 @@ jobs:
           shopt -s nullglob
           zips=(upload/*.zip)
           echo "Found ${#zips[@]} zip(s):"; ls -alh upload
-          if (( ${#zips[@]} < 4 )); then
-            echo "ERROR: expected Win + Linux + macOS x64 + macOS arm64 zips (got ${#zips[@]})."
+          if (( ${#zips[@]} < 3 )); then
+            echo "ERROR: expected Win + Linux + macOS arm64 zips (got ${#zips[@]})."
             exit 1
           fi
 

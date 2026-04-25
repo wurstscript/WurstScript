@@ -59,14 +59,10 @@ public class W3InstallationData {
     public W3InstallationData(WurstLanguageServer languageServer, File wc3Path, boolean shouldAskForPath) {
         this.languageServer = languageServer;
         this.shouldAskForPath = shouldAskForPath;
-        if (!Orient.isWindowsSystem()) {
-            WLogger.warning("Game path configuration only works on windows");
-            discoverExePath();
-            discoverVersion();
-            return;
-        }
 
-        loadFromPath(wc3Path);
+        if (Orient.isWindowsSystem() || Orient.isMacSystem()) {
+            loadFromPath(wc3Path);
+        }
 
         if (!gameExe.isPresent()) {
             WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
@@ -77,7 +73,19 @@ public class W3InstallationData {
 
     private void loadFromPath(File wc3Path) {
         try {
-            gameExe = Optional.ofNullable(WinGameExeFinder.fromDirIgnoreVersion(wc3Path));
+            if (Orient.isWindowsSystem()) {
+                gameExe = Optional.ofNullable(WinGameExeFinder.fromDirIgnoreVersion(wc3Path));
+            } else if (Orient.isMacSystem()) {
+                // WC3 Reforged on macOS: <installDir>/x86_64/Warcraft III.app/Contents/MacOS/Warcraft III
+                // Older layout:           <installDir>/Warcraft III.app/Contents/MacOS/Warcraft III
+                File x64 = new File(wc3Path, "x86_64/Warcraft III.app/Contents/MacOS/Warcraft III");
+                File x32 = new File(wc3Path, "Warcraft III.app/Contents/MacOS/Warcraft III");
+                if (x64.exists()) {
+                    gameExe = Optional.of(x64);
+                } else if (x32.exists()) {
+                    gameExe = Optional.of(x32);
+                }
+            }
         } catch (NotFoundException e) {
             WLogger.severe(e);
         }
