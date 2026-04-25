@@ -64,7 +64,7 @@ public class W3InstallationData {
             loadFromPath(wc3Path);
         }
 
-        if (!gameExe.isPresent()) {
+        if (!gameExe.isPresent() || !version.isPresent()) {
             WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
             discoverExePath();
             discoverVersion();
