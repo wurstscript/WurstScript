@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.inwc3:wc3libs:cc49c8e63c'
+    implementation 'com.github.inwc3:wc3libs:a69318d921'
     implementation 'com.google.guava:guava:31.1-jre'
 }
 
