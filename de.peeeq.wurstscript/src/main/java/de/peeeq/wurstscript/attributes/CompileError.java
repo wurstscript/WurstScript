@@ -72,6 +72,11 @@ public class CompileError extends Error implements Serializable {
                 message;
     }
 
+    public String toCompactString() {
+        File file = new File(source.getFile());
+        return errorType + " " + file.getName() + ":" + source.getLine() + ": " + message.replace('\r', ' ').replace('\n', ' ');
+    }
+
     public ErrorType getErrorType() {
         return errorType;
     }

@@ -7,6 +7,15 @@ import de.peeeq.wurstscript.attributes.CompileError;
  */
 public class WurstGuiCliImpl extends WurstGui {
 
+    private final boolean compactOutput;
+
+    public WurstGuiCliImpl() {
+        this(false);
+    }
+
+    public WurstGuiCliImpl(boolean compactOutput) {
+        this.compactOutput = compactOutput;
+    }
 
     @Override
     public void sendError(CompileError err) {
@@ -19,6 +28,9 @@ public class WurstGuiCliImpl extends WurstGui {
 
     @Override
     public void sendFinished() {
+        if (compactOutput) {
+            return;
+        }
         System.out.println("compilation finished (errors: " + getErrorCount() + ", warnings: " + getWarningList().size() + ")");
     }
 

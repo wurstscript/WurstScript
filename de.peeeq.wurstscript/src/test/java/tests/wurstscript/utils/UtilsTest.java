@@ -3,6 +3,9 @@ package tests.wurstscript.utils;
 
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.parser.WPos;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -11,6 +14,18 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class UtilsTest {
+
+    @Test
+    public void compactOutputFlag() {
+        Assert.assertTrue(new RunArgs("-compactOutput").isCompactOutput());
+    }
+
+    @Test
+    public void compactCompileErrorIsSingleLine() {
+        CompileError error = new CompileError((WPos) null, "first line\nsecond line");
+        Assert.assertFalse(error.toCompactString().contains("\n"));
+        Assert.assertTrue(error.toCompactString().contains("first line second line"));
+    }
 
     @Test
     public void array() {
