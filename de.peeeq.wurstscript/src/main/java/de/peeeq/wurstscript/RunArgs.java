@@ -49,6 +49,7 @@ public class RunArgs {
     private final RunOption optionShowVersion;
     private final RunOption optionPrettyPrint;
     private final RunOption optionMeasureTimes;
+    private final RunOption optionCompactOutput;
     private final RunOption optionHotStartmap;
     private final RunOption optionHotReload;
     private final RunOption optionTestTimeout;
@@ -104,6 +105,7 @@ public class RunArgs {
                 + "some programming errors like null-pointer-dereferences or accessing of destroyed objects can no longer be detected. "
                 + "It is strongly recommended to not use this option, but it can give some performance benefits.");
         optionMeasureTimes = addOption("measure", "Measure how long each step of the translation process takes.");
+        optionCompactOutput = addOption("compactOutput", "Print compact CLI output for automated agents.");
         // tools
         optionAbout = addOption("-about", "Show the 'about' window.");
         optionFixInstall = addOption("-fixInstallation", "Checks your wc3 installation and applies compatibility fixes");
@@ -355,6 +357,10 @@ public class RunArgs {
 
     public boolean isMeasureTimes() {
         return optionMeasureTimes.isSet;
+    }
+
+    public boolean isCompactOutput() {
+        return optionCompactOutput.isSet;
     }
 
     public boolean isHotStartmap() {

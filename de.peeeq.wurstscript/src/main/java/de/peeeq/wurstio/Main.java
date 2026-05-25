@@ -31,7 +31,9 @@ import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
@@ -99,7 +101,7 @@ public class Main {
                 // use the error reporting with GUI
                 ErrorReporting.instance = new ErrorReportingIO();
             } else {
-                gui = new WurstGuiCliImpl();
+                gui = new WurstGuiCliImpl(runArgs.isCompactOutput());
             }
 
             if (runArgs.showLastErrors()) {
@@ -183,19 +185,46 @@ public class Main {
             if (gui != null) {
                 gui.sendFinished();
                 if (!runArgs.isGui()) {
-                    if (gui.getErrorCount() > 0) {
-                        // 	print error messages
-                        for (CompileError err : gui.getErrorList()) {
+                    if (runArgs.isCompactOutput()) {
+                        printCompactMessages(gui);
+                    } else {
+                        if (gui.getErrorCount() > 0) {
+                            // 	print error messages
+                            for (CompileError err : gui.getErrorList()) {
+                                System.out.println(err);
+                            }
+                            // signal that there was an error when compiling
+                            System.exit(1);
+                        }
+                        // print warnings:
+                        for (CompileError err : gui.getWarningList()) {
                             System.out.println(err);
                         }
-                        // signal that there was an error when compiling
+                    }
+                    if (gui.getErrorCount() > 0) {
                         System.exit(1);
                     }
-                    // print warnings:
-                    for (CompileError err : gui.getWarningList()) {
-                        System.out.println(err);
-                    }
                 }
+            }
+        }
+    }
+
+    private static void printCompactMessages(WurstGui gui) {
+        if (gui.getErrorCount() > 0) {
+            System.out.println("Errors: " + gui.getErrorCount());
+            for (CompileError err : gui.getErrorList()) {
+                System.out.println(err.toCompactString());
+            }
+        }
+        if (!gui.getWarningList().isEmpty()) {
+            Map<String, Integer> warningsByFile = new LinkedHashMap<>();
+            for (CompileError err : gui.getWarningList()) {
+                String file = new File(err.getSource().getFile()).getName();
+                warningsByFile.put(file, warningsByFile.getOrDefault(file, 0) + 1);
+            }
+            System.out.println("Warnings: " + gui.getWarningList().size());
+            for (Map.Entry<String, Integer> entry : warningsByFile.entrySet()) {
+                System.out.println("Warning " + entry.getKey() + ": " + entry.getValue());
             }
         }
     }

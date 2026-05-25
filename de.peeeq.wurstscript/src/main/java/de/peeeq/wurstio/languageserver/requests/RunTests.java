@@ -47,6 +47,7 @@ public class RunTests extends UserRequest<Object> {
     private final Optional<String> testName;
     private final int timeoutSeconds;
     private final Optional<String> testFilter;
+    private final boolean compactOutput;
 
     private final List<ImFunction> successTests = Lists.newArrayList();
     private final List<TestFailure> failTests = Lists.newArrayList();
@@ -98,12 +99,17 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds, Optional<String> testFilter) {
+        this(filename, line, column, testName, timeoutSeconds, testFilter, false);
+    }
+
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds, Optional<String> testFilter, boolean compactOutput) {
         this.filename = filename.map(WFile::create);
         this.line = line;
         this.column = column;
         this.testName = testName;
         this.timeoutSeconds = timeoutSeconds;
         this.testFilter = testFilter;
+        this.compactOutput = compactOutput;
     }
 
 
@@ -175,7 +181,7 @@ public class RunTests extends UserRequest<Object> {
 
         if (gui.getErrorCount() > 0) {
             for (CompileError compileError : gui.getErrorList()) {
-                println(compileError.toString());
+                println(compactOutput ? compileError.toCompactString() : compileError.toString());
             }
             println("There were some problem while running compiletime expressions and functions.");
             return new TestResult(0, 1);
@@ -196,7 +202,7 @@ public class RunTests extends UserRequest<Object> {
             }
             if (matched.isEmpty()) {
                 println("No tests match filter '" + testFilter.get() + "'.");
-            } else {
+            } else if (!compactOutput) {
                 println("Filter '" + testFilter.get() + "' matched " + matched.size() + " test(s):");
                 for (String name : matched) {
                     println("  " + name);
@@ -228,7 +234,9 @@ public class RunTests extends UserRequest<Object> {
                     WPos source = f.attrTrace().attrSource();
                     String file = new File(source.getFile()).toPath().normalize().toString();
                     String message = "Running " + file + ":" + source.getLine() + " - " + f.getName() + "..";
-                    println(message);
+                    if (!compactOutput) {
+                        println(message);
+                    }
                     WLogger.info(message);
 
                     try {
@@ -253,59 +261,95 @@ public class RunTests extends UserRequest<Object> {
 
                         if (gui.getErrorCount() > 0) {
                             StringBuilder sb = new StringBuilder();
+                            int appendedErrors = 0;
                             for (CompileError error : gui.getErrorList()) {
-                                sb.append(error).append("\n");
-                                println(error.getMessage());
+                                if (compactOutput) {
+                                    if (appendedErrors >= 3) {
+                                        continue;
+                                    }
+                                    if (sb.length() > 0) {
+                                        sb.append("; ");
+                                    }
+                                    sb.append(error.toCompactString());
+                                    appendedErrors++;
+                                } else {
+                                    sb.append(error).append("\n");
+                                }
+                                if (!compactOutput) {
+                                    println(error.getMessage());
+                                }
+                            }
+                            if (compactOutput && gui.getErrorCount() > appendedErrors) {
+                                sb.append("; +").append(gui.getErrorCount() - appendedErrors).append(" more");
                             }
                             gui.clearErrors();
                             TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), sb.toString());
                             failTests.add(failure);
                         } else {
                             successTests.add(f);
-                            println("\tOK!");
+                            if (!compactOutput) {
+                                println("\tOK!");
+                            }
                         }
                     } catch (TestSuccessException e) {
                         successTests.add(f);
-                        println("\tOK!");
+                        if (!compactOutput) {
+                            println("\tOK!");
+                        }
                     } catch (TestFailException e) {
                         TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
                         failTests.add(failure);
-                        println("\tFAILED assertion:");
-                        println("\t" + failure.getMessageWithStackFrame());
+                        if (!compactOutput) {
+                            println("\tFAILED assertion:");
+                            println("\t" + failure.getMessageWithStackFrame());
+                        }
                     } catch (TestTimeOutException e) {
                         failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                        println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
-                        println(interpreter.getStackFrames().toString());
+                        if (!compactOutput) {
+                            println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
+                            println(interpreter.getStackFrames().toString());
+                        }
                     } catch (InterpreterException e) {
                         TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
                         failTests.add(failure);
-                        println("\t" + failure.getMessageWithStackFrame());
+                        if (!compactOutput) {
+                            println("\t" + failure.getMessageWithStackFrame());
+                        }
                     } catch (Throwable e) {
                         failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                        println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
-                        println(interpreter.getStackFrames().toString());
-                        println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
-                        StringWriter sw = new StringWriter();
-                        PrintWriter pw = new PrintWriter(sw);
-                        e.printStackTrace(pw);
-                        String sStackTrace = sw.toString();
-                        println("\t" + e.getLocalizedMessage());
-                        println("\t" + sStackTrace);
+                        if (!compactOutput) {
+                            println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
+                            println(interpreter.getStackFrames().toString());
+                            println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
+                            StringWriter sw = new StringWriter();
+                            PrintWriter pw = new PrintWriter(sw);
+                            e.printStackTrace(pw);
+                            String sStackTrace = sw.toString();
+                            println("\t" + e.getLocalizedMessage());
+                            println("\t" + sStackTrace);
+                        }
                     }
                 }
             }
         } // Scheduler is automatically shut down here
 
-        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size() + failTests.size()));
-        if (failTests.size() == 0) {
-            println(">> All tests have passed successfully!");
+        if (compactOutput) {
+            println("Tests: " + successTests.size() + "/" + (successTests.size() + failTests.size()) + " passed");
+            for (TestFailure failure : failTests) {
+                println("FAILED " + qualifiedTestName(failure.getFunction()));
+            }
         } else {
-            println(">> " + failTests.size() + " Tests have failed!");
+            println("Tests succeeded: " + successTests.size() + "/" + (successTests.size() + failTests.size()));
+            if (failTests.size() == 0) {
+                println(">> All tests have passed successfully!");
+            } else {
+                println(">> " + failTests.size() + " Tests have failed!");
+            }
         }
         if (gui.getErrorCount() > 0) {
             println("There were some errors reported while running the tests.");
             for (CompileError error : gui.getErrorList()) {
-                println(error.toString());
+                println(compactOutput ? error.toCompactString() : error.toString());
             }
         }
 
@@ -319,19 +363,26 @@ public class RunTests extends UserRequest<Object> {
 
             @Override
             public void write(int b) throws IOException {
-                if (b > 0) {
+                if (!compactOutput && b > 0) {
                     println("" + (char) b);
                 }
             }
 
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
-                println(new String(b, off, len));
+                if (!compactOutput) {
+                    println(new String(b, off, len));
+                }
             }
 
 
         };
         globalState.setOutStream(new PrintStream(os));
+    }
+
+    private String qualifiedTestName(ImFunction f) {
+        String packageName = f.attrTrace().attrNearestPackage().tryGetNameDef().getName();
+        return packageName + "." + f.getName();
     }
 
     protected void println(String message) {

@@ -157,8 +157,10 @@ public class CompilationProcess {
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
-        System.out.println("Running tests");
-        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter) {
+        if (!runArgs.isCompactOutput()) {
+            System.out.println("Running tests");
+        }
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter, runArgs.isCompactOutput()) {
             @Override
             protected void print(String message) {
                 out.print(message);
@@ -176,6 +178,8 @@ public class CompilationProcess {
             }
         }
 
-        System.out.println("Finished running tests");
+        if (!runArgs.isCompactOutput()) {
+            System.out.println("Finished running tests");
+        }
     }
 }
