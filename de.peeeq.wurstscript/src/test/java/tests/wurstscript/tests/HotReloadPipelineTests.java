@@ -63,6 +63,44 @@ public class HotReloadPipelineTests {
     }
 
     @Test
+    public void mapScriptIsExtractedWhenWorkspaceScriptIsMissingDespiteStaticCacheHit() throws Exception {
+        File projectFolder = new File("./temp/testProject_extract_missing_script/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        File sourceMap = new File(projectFolder, "source_map.w3x");
+        Files.write(sourceMap.toPath(), new byte[] {0x01});
+
+        WurstLanguageServer langServer = new WurstLanguageServer();
+        TestMapRequest request = new TestMapRequest(
+            langServer,
+            Optional.of(sourceMap),
+            List.of(),
+            WFile.create(projectFolder),
+            Map.of(sourceMap, "fresh map script".getBytes(StandardCharsets.UTF_8))
+        );
+
+        MapRequest.mapLastModified = sourceMap.lastModified();
+        MapRequest.mapPath = sourceMap.getAbsolutePath();
+
+        File firstExtract = request.loadMapScriptForTest(
+            Optional.of(sourceMap),
+            new ModelManagerImpl(projectFolder, new BufferManager()),
+            new WurstGuiLogger()
+        );
+        assertEquals(Files.readString(firstExtract.toPath()), "fresh map script");
+
+        Files.delete(firstExtract.toPath());
+        File secondExtract = request.loadMapScriptForTest(
+            Optional.of(sourceMap),
+            new ModelManagerImpl(projectFolder, new BufferManager()),
+            new WurstGuiLogger()
+        );
+
+        assertEquals(Files.readString(secondExtract.toPath()), "fresh map script");
+    }
+
+    @Test
     public void cachedMapFileNameIsModeSpecific() throws Exception {
         File projectFolder = new File("./temp/testProject_cache_mode_specific/");
         File wurstFolder = new File(projectFolder, "wurst");

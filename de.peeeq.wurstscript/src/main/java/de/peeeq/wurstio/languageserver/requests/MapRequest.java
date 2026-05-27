@@ -808,7 +808,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                     "RunArg noExtractMapScript is set but no war3map.j is provided inside the wurst folder");
             }
         }
-        if (MapRequest.mapLastModified > lastMapModified || !MapRequest.mapPath.equals(lastMapPath)) {
+        if (shouldExtractMapScript(scriptFile)) {
             lastMapModified = MapRequest.mapLastModified;
             lastMapPath = MapRequest.mapPath;
             System.out.println("Map not cached yet, extracting script");
@@ -849,6 +849,19 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         return scriptFile;
+    }
+
+    private static boolean shouldExtractMapScript(File scriptFile) {
+        if (!scriptFile.exists()) {
+            return true;
+        }
+        if (!MapRequest.mapPath.equals(lastMapPath)) {
+            return true;
+        }
+        if (MapRequest.mapLastModified > lastMapModified) {
+            return true;
+        }
+        return MapRequest.mapLastModified > scriptFile.lastModified();
     }
 
     private static void ensureScriptIsSynced(ModelManager modelManager, File scriptFile) {
