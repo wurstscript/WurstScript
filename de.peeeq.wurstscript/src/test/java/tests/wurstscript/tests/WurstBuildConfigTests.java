@@ -35,6 +35,22 @@ public class WurstBuildConfigTests {
         assertEquals(config.fallbackGameVersion(), new GameVersion("1.28"));
         assertTrue(config.shouldUseClassicWindowArg(Optional.empty()));
         assertFalse(config.shouldUseReforgedLaunchArgs(Optional.empty()));
+        assertFalse(config.shouldUseInstallDirForMaps(Optional.empty()));
+    }
+
+    @Test
+    public void installDirMapPathIsOnlyForDetected127OrLower() throws Exception {
+        Path project = Files.createTempDirectory("wurst-build-config-map-path");
+        Files.writeString(project.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: pre1.29
+            """);
+
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+
+        assertTrue(config.shouldUseInstallDirForMaps(Optional.of(new GameVersion("1.27"))));
+        assertFalse(config.shouldUseInstallDirForMaps(Optional.of(new GameVersion("1.28"))));
+        assertFalse(config.shouldUseInstallDirForMaps(Optional.empty()));
     }
 
     @Test

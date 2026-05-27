@@ -136,9 +136,8 @@ public final class WurstBuildConfig {
     }
 
     public boolean shouldUseInstallDirForMaps(Optional<GameVersion> detectedVersion) {
-        return detectedVersion
-            .map(version -> version.compareTo(new GameVersion("1.27.9")) <= 0)
-            .orElse(wc3PatchOrReforged() == Wc3Patch.PRE_129);
+        return detectedVersion.orElseGet(this::fallbackGameVersion)
+            .compareTo(new GameVersion("1.27.9")) <= 0;
     }
 
     private static String stripComment(String line) {
