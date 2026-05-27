@@ -924,7 +924,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()),
                 this instanceof RunMap && !runArgs.isHotReload());
             if (w3data.getWc3PatchVersion().isEmpty()) {
-                throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
+                WLogger.warning("Could not determine Warcraft III version at specified path: " + wc3Path
+                    + ". Falling back to wurst.build patch target.");
             }
 
             return w3data;
