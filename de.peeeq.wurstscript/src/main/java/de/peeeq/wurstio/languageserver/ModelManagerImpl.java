@@ -443,23 +443,26 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
-        InputStream source = this.getClass().getResourceAsStream("/" + filename);
-        File sourceFile;
-        if (source == null) {
-            WLogger.severe("could not find " + filename + " in jar");
-            System.err.println("could not find " + filename + " in jar");
-            sourceFile = new File("./resources/" + filename);
+        File sourceFile = findProjectCoreJassFile(filename).orElse(null);
+        if (sourceFile != null) {
+            sourceFile = copyCoreJassToBuildRoot(sourceFile, filename);
         } else {
-            try {
-                File buildDir = getBuildDir();
-                //noinspection ResultOfMethodCallIgnored
-                buildDir.mkdirs();
-                sourceFile = new File(buildDir, filename);
-                if (!sourceFile.exists()) {
+            InputStream source = this.getClass().getResourceAsStream("/" + filename);
+            if (source == null) {
+                WLogger.severe("could not find " + filename + " in jar");
+                System.err.println("could not find " + filename + " in jar");
+                sourceFile = new File("./resources/" + filename);
+            } else {
+                try {
+                    File buildDir = getBuildDir();
+                    //noinspection ResultOfMethodCallIgnored
+                    buildDir.mkdirs();
+                    sourceFile = new File(buildDir, filename);
                     java.nio.file.Files.copy(source, sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    WLogger.info("Loaded bundled fallback " + filename);
+                } finally {
+                    source.close();
                 }
-            } finally {
-                source.close();
             }
         }
 
@@ -470,6 +473,26 @@ public class ModelManagerImpl implements ModelManager {
             cu.getCuInfo().setFile(getCanonicalPath(sourceFile));
             return cu;
         }
+    }
+
+    private Optional<File> findProjectCoreJassFile(String filename) {
+        File projectCopy = new File(getBuildDir(), filename);
+        if (projectCopy.exists()) {
+            return Optional.of(projectCopy);
+        }
+        return Optional.empty();
+    }
+
+    private File copyCoreJassToBuildRoot(File sourceFile, String filename) throws IOException {
+        File buildDir = getBuildDir();
+        //noinspection ResultOfMethodCallIgnored
+        buildDir.mkdirs();
+        File buildCopy = new File(buildDir, filename);
+        if (!sourceFile.getCanonicalFile().equals(buildCopy.getCanonicalFile())) {
+            java.nio.file.Files.copy(sourceFile.toPath(), buildCopy.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        WLogger.info("Loaded project " + filename + " from " + sourceFile.getAbsolutePath());
+        return buildCopy;
     }
 
     private File getBuildDir() {

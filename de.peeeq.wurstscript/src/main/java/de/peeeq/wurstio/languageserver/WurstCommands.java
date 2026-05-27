@@ -125,16 +125,19 @@ public class WurstCommands {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {
                 try (Stream<String> lines = Files.lines(configFile)) {
-                    return Stream.concat(
+                    List<String> args = Stream.concat(
                         lines.filter(s -> s.startsWith("-")),
                         Stream.of(additionalArgs)
                     ).collect(Collectors.toList());
+                    return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(args);
                 }
             } else {
 
                 String cfg = String.join("\n", defaultArgs) + "\n";
                 Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
-                return defaultArgs;
+                return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(
+                    Stream.concat(defaultArgs.stream(), Stream.of(additionalArgs)).collect(Collectors.toList())
+                );
             }
         } catch (IOException e) {
             throw new RuntimeException("Could not access wurst_run.args config file", e);

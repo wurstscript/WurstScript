@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
+import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
@@ -33,8 +34,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_31;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_32;
 
 /**
  * Created by peter on 16.05.16.
@@ -42,6 +41,7 @@ import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_32;
 public class RunMap extends MapRequest {
 
     private @Nullable File customTarget = null;
+    private @Nullable WurstBuildConfig buildConfig = null;
 
 
     public RunMap(WurstLanguageServer langServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
@@ -68,6 +68,7 @@ public class RunMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
                 "Please install your project using grill or the wurst setup tool.");
         }
+        buildConfig = WurstBuildConfig.fromProject(projectConfig, workspaceRoot);
 
         // TODO use normal compiler for this, avoid code duplication
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
@@ -139,11 +140,10 @@ public class RunMap extends MapRequest {
         gui.sendProgress("Starting Warcraft 3...");
 
         File mapCopy = cachedMapFile.get();
-        if (w3data.getWc3PatchVersion().isPresent()) {
-            GameVersion gameVersion = w3data.getWc3PatchVersion().get();
-            if (gameVersion.compareTo(GameVersion.VERSION_1_32) < 0) {
-                mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
-            }
+        WurstBuildConfig buildConfig = getBuildConfig();
+        Optional<GameVersion> detectedGameVersion = w3data.getWc3PatchVersion();
+        if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
+            mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
         }
 
 
@@ -158,17 +158,15 @@ public class RunMap extends MapRequest {
 
         if (!path.isEmpty()) {
             // now start the map
-            File gameExe = w3data.getGameExe().get();
-            if (!w3data.getWc3PatchVersion().isPresent()) {
-                throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
-            }
+            File gameExe = w3data.getGameExe()
+                .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
             List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
             Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
             if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
-                if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_32) >= 0) {
+                if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
                     cmd.add("-launch");
                 }
-                if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_31) < 0) {
+                if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {
                     cmd.add("-window");
                 } else {
                     cmd.add("-windowmode");
@@ -327,7 +325,7 @@ public class RunMap extends MapRequest {
             }
         }
 
-        if (w3data.getWc3PatchVersion().get().compareTo(new GameVersion("1.27.9")) <= 0) {
+        if (getBuildConfig().shouldUseInstallDirForMaps(w3data.getWc3PatchVersion())) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
@@ -344,5 +342,11 @@ public class RunMap extends MapRequest {
         return documentPath;
     }
 
+    private WurstBuildConfig getBuildConfig() {
+        if (buildConfig == null) {
+            buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
+        }
+        return buildConfig;
+    }
 
 }

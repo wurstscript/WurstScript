@@ -52,7 +52,7 @@ public class ProjectConfigBuilder {
         result.script = mapScript;
 
         // Calculate hash of the project config for caching
-        String configHash = calculateProjectConfigHash(projectConfig);
+        String configHash = calculateProjectConfigHash(projectConfig, buildDir);
 
         W3I w3I;
         boolean configNeedsApplying = false;
@@ -124,7 +124,7 @@ public class ProjectConfigBuilder {
     /**
      * Calculate a hash of the project configuration to detect changes
      */
-    private static String calculateProjectConfigHash(WurstProjectConfigData projectConfig) {
+    private static String calculateProjectConfigHash(WurstProjectConfigData projectConfig, File buildDir) {
         try {
             // Serialize the relevant parts of the config
             StringBuilder sb = new StringBuilder();
@@ -178,6 +178,9 @@ public class ProjectConfigBuilder {
                 .append(",").append(flags.getShowWavesOnCliffShores())
                 .append(",").append(flags.getShowWavesOnRollingShores())
                 .append("\n");
+            WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
+            sb.append("scriptMode:").append(buildConfig.scriptMode()).append("\n");
+            sb.append("wc3Patch:").append(buildConfig.wc3Patch()).append("\n");
 
             return ImportFile.calculateHash(sb.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -200,9 +203,9 @@ public class ProjectConfigBuilder {
             if (w3data.getWc3PatchVersion().isPresent()) {
                 w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
             } else {
-                GameVersion version = GameVersion.VERSION_1_32;
+                GameVersion version = buildConfigFromBuildDir(buildDir).fallbackGameVersion();
                 WLogger.info(
-                    "Failed to determine installed game version. Falling back to " + version
+                    "Failed to determine installed game version. Falling back to wurst.build patch target: " + version
                 );
                 w3I.injectConfigsInJassScript(inputStream, sw, version);
             }
@@ -210,6 +213,14 @@ public class ProjectConfigBuilder {
             byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
             Files.write(scriptBytes, result.script);
         }
+    }
+
+    private static WurstBuildConfig buildConfigFromBuildDir(File buildDir) {
+        java.nio.file.Path projectRoot = buildDir.toPath().getParent();
+        if (projectRoot == null) {
+            projectRoot = java.nio.file.Path.of(".");
+        }
+        return WurstBuildConfig.fromBuildFile(projectRoot.resolve(FILE_NAME));
     }
 
 

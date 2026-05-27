@@ -38,7 +38,7 @@ public class W3InstallationData {
             try {
                 this.version = Optional.ofNullable(GameExe.getVersion(this.gameExe.get()));
                 WLogger.info("Parsed game version from configured executable: " + this.version);
-            } catch (IOException e) {
+            } catch (IOException | RuntimeException e) {
                 WLogger.warning("Could not parse game version from configured executable", e);
             }
         }
@@ -64,7 +64,7 @@ public class W3InstallationData {
             loadFromPath(wc3Path);
         }
 
-        if (!gameExe.isPresent() || !version.isPresent()) {
+        if (!gameExe.isPresent()) {
             WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
             discoverExePath();
             discoverVersion();
@@ -94,8 +94,8 @@ public class W3InstallationData {
         version = gameExe.flatMap(exe -> {
             try {
                 return Optional.ofNullable(GameExe.getVersion(exe));
-            } catch (IOException e) {
-                WLogger.severe(e);
+            } catch (IOException | RuntimeException e) {
+                WLogger.warning("Could not parse game version from executable", e);
             }
 
             return Optional.empty();
