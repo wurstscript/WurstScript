@@ -6,8 +6,12 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 // Expose static fields only if you already have them there; otherwise, just clear via dedicated methods.
@@ -144,6 +148,28 @@ public final class GlobalCaches {
         LOCAL_STATE_NOARG_CACHE.clear();
         lookupCache.clear();
         HasAnnotation.clearCaches();
+    }
+
+    /**
+     * Clears lookup entries whose query element belongs to one of the changed roots.
+     * This keeps editor validation from throwing away hot lookup data for unchanged files.
+     */
+    public static void clearLookupCacheFor(Collection<? extends Element> roots) {
+        if (roots.isEmpty()) {
+            return;
+        }
+        Set<Element> affected = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        ArrayDeque<Element> todo = new ArrayDeque<>(roots);
+        while (!todo.isEmpty()) {
+            Element e = todo.removeLast();
+            if (!affected.add(e)) {
+                continue;
+            }
+            for (int i = 0; i < e.size(); i++) {
+                todo.add(e.get(i));
+            }
+        }
+        lookupCache.keySet().removeIf(key -> affected.contains(key.element));
     }
 
     public enum LookupType {
