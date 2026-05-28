@@ -31,7 +31,7 @@ if not exist "%JAVA%" (
     goto :restore
 )
 
-"%JAVA%" -Dfile.encoding=UTF-8 -jar "%GRILL_JAR%" %*
+"%JAVA%" -Dfile.encoding=UTF-8 --enable-native-access=ALL-UNNAMED -jar "%GRILL_JAR%" %*
 
 :restore
 rem Restore previous code page if we captured it
