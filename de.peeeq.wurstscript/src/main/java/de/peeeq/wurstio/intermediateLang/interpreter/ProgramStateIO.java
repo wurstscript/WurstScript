@@ -36,6 +36,7 @@ public class ProgramStateIO extends ProgramState {
     private @Nullable final MpqEditor mpqEditor;
     private final Map<ObjectFileType, ObjMod<? extends ObjMod.Obj>> dataStoreMap = Maps.newLinkedHashMap();
     private final Map<ObjectFileType, String> dataStoreHashes = Maps.newLinkedHashMap();
+    private final Map<String, Set<String>> createdObjectDefinitionIds = Maps.newLinkedHashMap();
     private int id = 0;
     private final Map<String, ObjMod.Obj> objDefinitions = Maps.newLinkedHashMap();
     private PrintStream outStream = System.err;
@@ -366,6 +367,11 @@ public class ProgramStateIO extends ProgramState {
 
     ObjMod.Obj getObjectDefinition(String key) {
         return objDefinitions.get(key);
+    }
+
+    boolean registerCreatedObjectDefinition(String fileExtension, String objId) {
+        Set<String> ids = createdObjectDefinitionIds.computeIfAbsent(fileExtension, k -> new LinkedHashSet<>());
+        return ids.add(objId);
     }
 
     /**
