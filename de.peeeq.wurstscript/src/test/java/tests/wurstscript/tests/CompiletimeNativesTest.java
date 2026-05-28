@@ -181,6 +181,29 @@ public class CompiletimeNativesTest {
         assertFalse(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("unam")));
     }
 
+    @Test
+    public void sameIdObjectDefinitionsMergeModsWithoutDuplicateError() throws Exception {
+        WurstGuiLogger gui = new WurstGuiLogger();
+        ProgramStateIO state = new ProgramStateIO(Optional.empty(), null, gui, emptyProg(), true);
+        CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
+        int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
+
+        var first = natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
+        natives.ObjectDefinition_setString(first, new ILconstString("unam"), new ILconstString("first"));
+        var second = natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
+        natives.ObjectDefinition_setString(second, new ILconstString("utip"), new ILconstString("second"));
+
+        Method getDataStore = ProgramStateIO.class.getDeclaredMethod("getDataStore", String.class);
+        getDataStore.setAccessible(true);
+        W3U w3u = (W3U) getDataStore.invoke(state, "w3u");
+
+        assertEquals(gui.getErrorCount(), 0);
+        assertEquals(w3u.getOrigObjs().size(), 1);
+        ObjMod.Obj obj = w3u.getOrigObjs().get(0);
+        assertTrue(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("unam")));
+        assertTrue(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("utip")));
+    }
+
     private ImProg emptyProg() {
         Element trace = Ast.NoExpr();
         return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());

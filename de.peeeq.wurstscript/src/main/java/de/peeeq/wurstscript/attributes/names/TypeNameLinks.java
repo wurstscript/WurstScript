@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import de.peeeq.wurstscript.ast.*;
 
@@ -67,37 +65,12 @@ public class TypeNameLinks {
         return result.build();
     }
 
-    public static ImmutableCollection<TypeLink> get(WPackage p, String name) {
-        ImmutableSet.Builder<TypeLink> result = ImmutableSet.builder();
-        for (WImport imp : p.getImports()) {
-            WPackage importedPackage = imp.attrImportedPackage();
-            if (importedPackage == null) {
-                continue;
-            }
-            result.addAll(Exports.exportedTypeNameLinks(importedPackage, name));
-        }
-        return result.build();
-    }
-
     public static ImmutableMultimap<String, TypeLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
             if (e instanceof TypeDef) {
                 TypeDef n = (TypeDef) e;
                 result.put(n.getName(), TypeLink.create(n, wEntities));
-            }
-        }
-        return result.build();
-    }
-
-    public static ImmutableCollection<TypeLink> get(WEntities wEntities, String name) {
-        ImmutableSet.Builder<TypeLink> result = ImmutableSet.builder();
-        for (WEntity e : wEntities) {
-            if (e instanceof TypeDef) {
-                TypeDef n = (TypeDef) e;
-                if (n.getName().equals(name)) {
-                    result.add(TypeLink.create(n, wEntities));
-                }
             }
         }
         return result.build();

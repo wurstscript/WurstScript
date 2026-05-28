@@ -21,22 +21,10 @@ public class NameResolution {
     }
 
     private static ImmutableCollection<DefLink> scopeNameLinks(WScope scope, String name) {
-        if (scope instanceof WPackage) {
-            return NameLinks.get((WPackage) scope, name);
-        }
-        if (scope instanceof WEntities) {
-            return NameLinks.get((WEntities) scope, name);
-        }
         return scope.attrNameLinks().get(name);
     }
 
     private static ImmutableCollection<TypeLink> scopeTypeLinks(WScope scope, String name) {
-        if (scope instanceof WPackage) {
-            return TypeNameLinks.get((WPackage) scope, name);
-        }
-        if (scope instanceof WEntities) {
-            return TypeNameLinks.get((WEntities) scope, name);
-        }
         return scope.attrTypeNameLinks().get(name);
     }
 

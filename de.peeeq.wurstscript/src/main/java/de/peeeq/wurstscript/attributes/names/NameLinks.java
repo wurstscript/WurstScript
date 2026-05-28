@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WLogger;
@@ -271,28 +268,6 @@ public class NameLinks {
         return result.build();
     }
 
-    public static ImmutableCollection<DefLink> get(WPackage p, String name) {
-        ImmutableSet.Builder<DefLink> result = ImmutableSet.builder();
-        for (WImport imp : p.getImports()) {
-            if (imp.getPackagename().equals("NoWurst")) {
-                continue;
-            }
-            WPackage importedPackage = imp.attrImportedPackage();
-            if (importedPackage == null) {
-                WLogger.info("could not resolve import: " + Utils.printElementWithSource(Optional.of(imp)));
-                continue;
-            }
-            if (p.getName().equals("WurstREPL")) {
-                addHidingPrivate(result, importedPackage.getElements().attrNameLinks().get(name));
-                result.addAll(get(importedPackage, name));
-            } else {
-                result.addAll(Exports.exportedNameLinks(importedPackage, name));
-            }
-        }
-        return result.build();
-    }
-
-
     public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
@@ -309,29 +284,6 @@ public class NameLinks {
                     typeParams = Collections.emptyList();
                 }
                 addHidingPrivate(result, scope.attrNameLinks(), typeParams);
-            }
-        }
-        return result.build();
-    }
-
-    public static ImmutableCollection<DefLink> get(WEntities wEntities, String name) {
-        ImmutableSet.Builder<DefLink> result = ImmutableSet.builder();
-        for (WEntity e : wEntities) {
-            if (e instanceof NameDef) {
-                NameDef n = (NameDef) e;
-                if (n.getName().equals(name)) {
-                    addNameDefDefLink(result::add, n, wEntities);
-                }
-            }
-            if (e instanceof WScope && !(e instanceof ModuleDef)) {
-                WScope scope = (WScope) e;
-                List<TypeParamDef> typeParams;
-                if (scope instanceof AstElementWithTypeParameters) {
-                    typeParams = ((AstElementWithTypeParameters) scope).getTypeParameters();
-                } else {
-                    typeParams = Collections.emptyList();
-                }
-                addHidingPrivate(result, scope.attrNameLinks().get(name), typeParams);
             }
         }
         return result.build();
@@ -443,24 +395,6 @@ public class NameLinks {
             result.put(e.getKey(), e.getValue().hidingPrivate().withGenericTypeParams(typeParams));
         }
 
-    }
-
-    private static void addHidingPrivate(ImmutableSet.Builder<DefLink> result, Iterable<? extends DefLink> adding) {
-        for (DefLink defLink : adding) {
-            if (defLink.getVisibility() == Visibility.LOCAL) {
-                continue;
-            }
-            result.add(defLink.hidingPrivate());
-        }
-    }
-
-    private static void addHidingPrivate(ImmutableSet.Builder<DefLink> result, Iterable<? extends DefLink> adding, List<TypeParamDef> typeParams) {
-        for (DefLink defLink : adding) {
-            if (defLink.getVisibility() == Visibility.LOCAL) {
-                continue;
-            }
-            result.add(defLink.hidingPrivate().withGenericTypeParams(typeParams));
-        }
     }
 
     public static void addHidingPrivate(Multimap<String, DefLink> result, Multimap<String, DefLink> adding) {
