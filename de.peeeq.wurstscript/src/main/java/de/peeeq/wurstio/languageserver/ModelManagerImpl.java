@@ -96,6 +96,7 @@ public class ModelManagerImpl implements ModelManager {
                     toRemove.add(compilationUnit);
                 }
             }
+            GlobalCaches.clearLookupCacheFor(toRemove);
             model2.removeAll(toRemove);
         }
 
@@ -419,6 +420,7 @@ public class ModelManagerImpl implements ModelManager {
                     Set<String> oldPackages = providedPackages(c);
                     Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), oldPackages, model2);
 
+                    GlobalCaches.clearLookupCacheFor(Collections.singletonList(c));
                     clearCompilationUnits(mustUpdate);
                     // replace old compilationunit with new one:
                     it.set(cu);

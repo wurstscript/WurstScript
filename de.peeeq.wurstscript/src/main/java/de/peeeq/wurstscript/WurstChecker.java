@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.attributes.names.DesugarArrayLength;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.validation.GlobalCaches;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
@@ -34,6 +35,7 @@ public class WurstChecker {
         if (errorHandler.getErrorCount() > 0) return;
 
         attachErrorHandler(root);
+        clearGlobalCaches(root, toCheck);
 
         expandModules(root);
 
@@ -48,6 +50,14 @@ public class WurstChecker {
         // validate the resource:
         WurstValidator validator = new WurstValidator(root);
         validator.validate(toCheck);
+    }
+
+    private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {
+        if (toCheck == root || toCheck.size() >= root.size()) {
+            GlobalCaches.clearAll();
+        } else {
+            GlobalCaches.clearLookupCacheFor(toCheck);
+        }
     }
 
     private void attachErrorHandler(WurstModel root) {

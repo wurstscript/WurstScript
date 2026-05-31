@@ -41,8 +41,8 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         String objIdString = ObjectHelper.objectIdIntToString(newUnitId.getVal());
         boolean isMeleeOverride = newUnitId.getVal() == deriveFrom.getVal();
 
-        if (!isMeleeOverride && dataStore.getObjs().containsKey(ObjId.valueOf(objIdString))) {
-            globalState.compilationError("Object definition with id " + objIdString + " already exists.");
+        if (!isMeleeOverride && !globalState.registerCreatedObjectDefinition(fileType.getVal(), objIdString)) {
+            globalState.compilationError("Object definition with id " + objIdString + " is defined more than once.");
         }
         ObjMod.Obj objDef = newDefFromFiletype(dataStore, deriveFrom.getVal(), newUnitId.getVal(), isMeleeOverride);
         if (!isMeleeOverride) {
@@ -59,10 +59,15 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         if (isMeleeOverride) {
             ObjId id = ObjId.valueOf(ObjectHelper.objectIdIntToString(newId));
             // same id => modify melee/original definition table
+            ObjMod.Obj existing = dataStore.getObjs().get(id);
+            if (existing != null) {
+                return existing;
+            }
             return dataStore.addObj(id, null);
         }
         ObjId baseIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(base));
         ObjId newIdS = ObjId.valueOf(ObjectHelper.objectIdIntToString(newId));
+        dataStore.removeObj(newIdS);
         return dataStore.addObj(newIdS, baseIdS);
     }
 

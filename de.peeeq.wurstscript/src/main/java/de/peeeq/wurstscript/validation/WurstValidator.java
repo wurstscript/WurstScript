@@ -64,11 +64,10 @@ public class WurstValidator {
 
     public void validate(Collection<CompilationUnit> toCheck) {
         try {
-            functionCount = countFunctions();
+            functionCount = countFunctions(toCheck);
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
-            GlobalCaches.clearAll();
 
             lightValidation(toCheck);
 
@@ -122,11 +121,6 @@ public class WurstValidator {
 
         for (CompilationUnit cu : toCheck) {
             walkTree(cu);
-        }
-
-        // Build CFG once for heavy phase (enables reachability/prev/next attrs)
-        for (CompilationUnit cu : toCheck) {
-            computeFlowAttributes(cu);
         }
     }
 
@@ -1174,16 +1168,19 @@ public class WurstValidator {
         // check range? ...
     }
 
-    private int countFunctions() {
+    private int countFunctions(Collection<CompilationUnit> toCheck) {
         final int[] functionCount = new int[1];
-        prog.accept(new WurstModel.DefaultVisitor() {
+        Element.DefaultVisitor visitor = new Element.DefaultVisitor() {
 
             @Override
             public void visit(FuncDef f) {
                 super.visit(f);
                 functionCount[0]++;
             }
-        });
+        };
+        for (CompilationUnit cu : toCheck) {
+            cu.accept(visitor);
+        }
         return functionCount[0];
     }
 

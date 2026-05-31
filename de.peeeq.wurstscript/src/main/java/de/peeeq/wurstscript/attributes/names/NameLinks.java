@@ -268,7 +268,6 @@ public class NameLinks {
         return result.build();
     }
 
-
     public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
