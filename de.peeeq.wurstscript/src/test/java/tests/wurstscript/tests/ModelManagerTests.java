@@ -366,6 +366,67 @@ public class ModelManagerTests {
     }
 
     @Test
+    public void replacingCompilationUnitClearsOldLookupCacheKeys() throws IOException {
+        GlobalCaches.clearAll();
+        File projectFolder = new File("./temp/testProject_replace_clears_lookup_cache/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(fileMain, string(
+            "package Main",
+            "public function foo()"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        CompilationUnit oldCu = manager.getCompilationUnit(fileMain);
+        assertNotNull(oldCu);
+
+        GlobalCaches.CacheKey oldKey = new GlobalCaches.CacheKey(oldCu, "foo", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.lookupCache.put(oldKey, oldCu);
+
+        manager.syncCompilationUnitContent(fileMain, string(
+            "package Main",
+            "public function bar()"
+        ));
+
+        assertEquals(GlobalCaches.lookupCache.containsKey(oldKey), false,
+            "replacing a CU must drop lookup keys that keep the old AST alive");
+    }
+
+    @Test
+    public void removingCompilationUnitClearsOldLookupCacheKeys() throws IOException {
+        GlobalCaches.clearAll();
+        File projectFolder = new File("./temp/testProject_remove_clears_lookup_cache/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileMain = WFile.create(new File(wurstFolder, "Main.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(fileMain, string(
+            "package Main",
+            "public function foo()"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+        CompilationUnit oldCu = manager.getCompilationUnit(fileMain);
+        assertNotNull(oldCu);
+
+        GlobalCaches.CacheKey oldKey = new GlobalCaches.CacheKey(oldCu, "foo", GlobalCaches.LookupType.FUNC);
+        GlobalCaches.lookupCache.put(oldKey, oldCu);
+
+        manager.removeCompilationUnit(fileMain);
+
+        assertEquals(GlobalCaches.lookupCache.containsKey(oldKey), false,
+            "removing a CU must drop lookup keys that keep the old AST alive");
+    }
+
+    @Test
     public void duplicatePackageReportsSingleClearMessage() throws IOException {
         File projectFolder = new File("./temp/testProject_duplicate_package_message/");
         File wurstFolder = new File(projectFolder, "wurst");
