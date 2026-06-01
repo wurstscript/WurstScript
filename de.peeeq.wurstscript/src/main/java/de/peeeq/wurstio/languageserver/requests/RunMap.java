@@ -145,7 +145,7 @@ public class RunMap extends MapRequest {
         }
         Optional<GameVersion> detectedGameVersion = launchData.getWc3PatchVersion();
         if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
-            mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
+            mapCopy = copyToWarcraftMapDir(cachedMapFile.get(), launchData);
         }
 
 
@@ -353,7 +353,7 @@ public class RunMap extends MapRequest {
      * <p>
      * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
-    private File copyToWarcraftMapDir(File testMap) throws IOException {
+    private File copyToWarcraftMapDir(File testMap, W3InstallationData launchData) throws IOException {
         String testMapName = "WurstTestMap.w3x";
         for (String arg : compileArgs) {
             if (arg.startsWith("-runmapTarget")) {
@@ -371,7 +371,7 @@ public class RunMap extends MapRequest {
         }
 
         File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
-        Optional<String> documentPath = findMapDocumentPath(testMapName, myDocumentsFolder);
+        Optional<String> documentPath = findMapDocumentPath(testMapName, myDocumentsFolder, launchData);
 
         // copy the map to the appropriate directory
         Optional<File> testFolder = documentPath.map(path -> new File(path, "Maps" + File.separator + "Test"));
@@ -404,7 +404,7 @@ public class RunMap extends MapRequest {
         return null;
     }
 
-    private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder) {
+    private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder, W3InstallationData launchData) {
         Optional<String> documentPath = Optional.of(
             langServer.getConfigProvider().getMapDocumentPath().orElseGet(
                 () -> myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III"));
@@ -425,13 +425,13 @@ public class RunMap extends MapRequest {
             }
         }
 
-        if (buildConfig.shouldUseInstallDirForMaps(w3data.getWc3PatchVersion())) {
+        if (buildConfig.shouldUseInstallDirForMaps(launchData.getWc3PatchVersion())) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
-            documentPath = wc3Path;
+            documentPath = mapInstallDirectoryForLegacyLaunch(launchData, wc3Path);
         } else {
             // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
-            Optional<File> oldFile = wc3Path.map(
+            Optional<File> oldFile = installRootForLaunchData(launchData).map(File::getAbsolutePath).or(() -> wc3Path).map(
                 w3p -> new File(w3p, "Maps" + File.separator + "Test" + File.separator + testMapName));
             if (oldFile.isPresent() && oldFile.get().exists()) {
                 if (!oldFile.get().delete()) {
@@ -440,5 +440,33 @@ public class RunMap extends MapRequest {
             }
         }
         return documentPath;
+    }
+
+    private static Optional<String> mapInstallDirectoryForLegacyLaunch(W3InstallationData launchData, Optional<String> fallbackWc3Path) {
+        Optional<File> launchRoot = installRootForLaunchData(launchData);
+        if (launchRoot.isPresent()) {
+            return launchRoot.map(File::getAbsolutePath);
+        }
+        return fallbackWc3Path;
+    }
+
+    private static Optional<File> installRootForLaunchData(W3InstallationData launchData) {
+        return launchData.getGameExe().map(RunMap::installRootForExecutable);
+    }
+
+    private static File installRootForExecutable(File executable) {
+        File parent = executable.getAbsoluteFile().getParentFile();
+        if (parent == null) {
+            return executable.getAbsoluteFile();
+        }
+        if (parent.getName().equalsIgnoreCase("x86") || parent.getName().equalsIgnoreCase("x86_64")) {
+            File maybeRetail = parent.getParentFile();
+            if (maybeRetail != null && (maybeRetail.getName().equalsIgnoreCase("_retail_") || maybeRetail.getName().equalsIgnoreCase("_ptr_"))) {
+                File installRoot = maybeRetail.getParentFile();
+                return installRoot != null ? installRoot : maybeRetail;
+            }
+            return maybeRetail != null ? maybeRetail : parent;
+        }
+        return parent;
     }
 }

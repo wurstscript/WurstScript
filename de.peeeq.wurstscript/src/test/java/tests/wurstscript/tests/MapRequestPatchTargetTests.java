@@ -87,6 +87,29 @@ public class MapRequestPatchTargetTests {
     }
 
     @Test
+    public void legacyRunMapPlacementUsesSelectedLaunchInstall() throws Exception {
+        Path selectedInstall = Files.createTempDirectory("warcraft-selected-legacy");
+        Path exe = Files.writeString(selectedInstall.resolve("war3.exe"), "not a PE file");
+        Path staleFallback = Files.createTempDirectory("warcraft-stale-fallback");
+        W3InstallationData launchData = new W3InstallationData(
+            Optional.of(exe.toFile()),
+            Optional.of(new GameVersion("1.27"))
+        );
+
+        Method placementRoot = RunMap.class.getDeclaredMethod(
+            "mapInstallDirectoryForLegacyLaunch",
+            W3InstallationData.class,
+            Optional.class
+        );
+        placementRoot.setAccessible(true);
+
+        @SuppressWarnings("unchecked")
+        Optional<String> result = (Optional<String>) placementRoot.invoke(null, launchData, Optional.of(staleFallback.toString()));
+
+        assertEquals(result.orElseThrow(), selectedInstall.toFile().getAbsolutePath());
+    }
+
+    @Test
     public void configuredVersionSurvivesManualPathLoad() throws Exception {
         W3InstallationData data = new W3InstallationData(Optional.empty(), Optional.of(new GameVersion("2.0")));
         Method loadFromPath = W3InstallationData.class.getDeclaredMethod("loadFromPath", File.class);

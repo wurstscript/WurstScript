@@ -244,7 +244,50 @@ This pipeline handles:
 
 ---
 
-## 8. Backend Parity and Lua Guardrails
+## 8. Shared Project Config, Patch Targets, and Run Behavior
+
+Recent Grill/compiler integration work moved `wurst.build` parsing rules into a tiny shared dependency. Keep compiler behavior aligned with that shared model.
+
+### Shared project config dependency
+
+* `de.peeeq.wurstscript/build.gradle` depends on `com.github.wurstscript:wurst-project-config`.
+* `de.peeeq.wurstio.languageserver.WurstBuildConfig` is a compiler adapter around the shared model, not a second config DAO.
+* Do not duplicate YAML parsing rules, patch aliases, or script-mode behavior in compiler-only code unless it is truly compiler-specific.
+* Preserve exact `wc3Patch` names for cache invalidation and diagnostics. Broad patch kind is useful for behavior choices, but not enough for hashes.
+
+### Patch target rules
+
+* Use the shared `Wc3PatchTarget` parser for `wc3Patch`.
+* Patch family boundaries:
+  * below `1.29` => pre-1.29 behavior
+  * `1.29` through `1.31` => classic
+  * `1.32+`, `1.36`, `2.0`, and `Reforged-*` => Reforged
+* Friendly names and jass-history dump names should resolve through shared config. Do not add one-off aliases in compiler code.
+* If jass-history has a broken folder name, fix `wurstscript/jass-history` instead of compensating here.
+
+### Build vs run
+
+* Build/typecheck should prefer pinned `wc3Patch` from `wurst.build` and should not parse the installed Warcraft executable just to decide target patch data.
+* Config injection should use the pinned project patch when available, not the locally installed game patch.
+* User-facing executable version parsing failures must stay short. Do not print PE parser stack traces unless explicit debug logging is requested.
+* Run/launch is different from build: the selected Warcraft executable controls launch arguments and map placement.
+* When project patch family and selected client family differ, warn and allow the user to choose a different Warcraft III folder.
+* If launch folder selection changes the client, all launch decisions must use that selected `W3InstallationData`, not stale request-level `w3data`.
+* Legacy clients that need install-dir map placement must copy to the selected launch install's `Maps/Test` folder.
+
+### Focused tests
+
+For config and run-pipeline changes, prefer these focused checks before broader test runs:
+
+```
+./gradlew test --tests tests.wurstscript.tests.WurstBuildConfigTests
+./gradlew test --tests tests.wurstscript.tests.MapRequestPatchTargetTests
+./gradlew make_for_userdir
+```
+
+---
+
+## 9. Backend Parity and Lua Guardrails
 
 Recent fixes established additional rules for backend work. Follow these for all future changes:
 
@@ -288,7 +331,7 @@ Recent fixes established additional rules for backend work. Follow these for all
 
 ---
 
-## 9. Virtual Slot Binding and Determinism (New Generics + Lua)
+## 10. Virtual Slot Binding and Determinism (New Generics + Lua)
 
 Recent regressions showed that virtual-slot binding can silently degrade to base/no-op implementations in generated Lua while still compiling. Follow these rules for all related changes:
 
