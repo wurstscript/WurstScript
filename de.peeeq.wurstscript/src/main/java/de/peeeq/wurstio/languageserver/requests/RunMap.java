@@ -5,10 +5,11 @@ import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -23,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -41,7 +43,6 @@ import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 public class RunMap extends MapRequest {
 
     private @Nullable File customTarget = null;
-    private @Nullable WurstBuildConfig buildConfig = null;
 
 
     public RunMap(WurstLanguageServer langServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
@@ -68,8 +69,6 @@ public class RunMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
                 "Please install your project using grill or the wurst setup tool.");
         }
-        buildConfig = WurstBuildConfig.fromProject(projectConfig, workspaceRoot);
-
         // TODO use normal compiler for this, avoid code duplication
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
@@ -140,10 +139,13 @@ public class RunMap extends MapRequest {
         gui.sendProgress("Starting Warcraft 3...");
 
         File mapCopy = cachedMapFile.get();
-        WurstBuildConfig buildConfig = getBuildConfig();
-        Optional<GameVersion> detectedGameVersion = w3data.getWc3PatchVersion();
+        W3InstallationData launchData = resolveLaunchData();
+        if (launchData == null) {
+            throw new RequestFailedException(MessageType.Info, "Run canceled.");
+        }
+        Optional<GameVersion> detectedGameVersion = launchData.getWc3PatchVersion();
         if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
-            mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
+            mapCopy = copyToWarcraftMapDir(cachedMapFile.get(), launchData);
         }
 
 
@@ -158,7 +160,7 @@ public class RunMap extends MapRequest {
 
         if (!path.isEmpty()) {
             // now start the map
-            File gameExe = w3data.getGameExe()
+            File gameExe = launchData.getGameExe()
                 .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
             List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
             Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
@@ -189,6 +191,104 @@ public class RunMap extends MapRequest {
             timeTaker.endPhase();
             timeTaker.printReport();
         }
+    }
+
+    private W3InstallationData resolveLaunchData() {
+        W3InstallationData launchData = w3data;
+        while (shouldWarnClientPatchMismatch(launchData)) {
+            String projectTarget = buildConfig.wc3PatchName().orElse("configured patch");
+            String clientTarget = launchData.getWc3PatchVersion()
+                .map(RunMap::describeClientVersion)
+                .orElse("unknown Warcraft III version");
+            String message = "This project targets " + projectTarget + ", but the selected Warcraft III client looks like "
+                + clientTarget + ". The map may not start correctly.";
+            WLogger.warning(message);
+
+            MismatchChoice choice = chooseMismatchAction(message);
+            if (choice == MismatchChoice.CANCEL) {
+                return null;
+            }
+            if (choice == MismatchChoice.CONTINUE) {
+                return launchData;
+            }
+            Optional<W3InstallationData> selected = chooseAlternateGamePath();
+            if (selected.isEmpty()) {
+                return null;
+            }
+            launchData = selected.get();
+        }
+        if (buildConfig.wc3Patch().isPresent() && launchData.getWc3PatchVersion().isEmpty()) {
+            WLogger.warning("Could not determine Warcraft III client version. If the map does not start, select a matching Warcraft III installation.");
+        }
+        return launchData;
+    }
+
+    private boolean shouldWarnClientPatchMismatch(W3InstallationData launchData) {
+        Optional<WurstBuildConfig.Wc3Patch> projectKind = buildConfig.wc3Patch();
+        Optional<GameVersion> clientVersion = launchData.getWc3PatchVersion();
+        if (projectKind.isEmpty() || clientVersion.isEmpty()) {
+            return false;
+        }
+        return projectKind.get() != kindForVersion(clientVersion.get());
+    }
+
+    private static WurstBuildConfig.Wc3Patch kindForVersion(GameVersion version) {
+        if (version.compareTo(new GameVersion("1.29")) < 0) {
+            return WurstBuildConfig.Wc3Patch.PRE_129;
+        }
+        if (version.compareTo(GameVersion.VERSION_1_32) < 0) {
+            return WurstBuildConfig.Wc3Patch.CLASSIC;
+        }
+        return WurstBuildConfig.Wc3Patch.REFORGED;
+    }
+
+    private static String describeClientVersion(GameVersion version) {
+        return kindForVersion(version) + " (" + version + ")";
+    }
+
+    private MismatchChoice chooseMismatchAction(String message) {
+        if (GraphicsEnvironment.isHeadless()) {
+            return MismatchChoice.CONTINUE;
+        }
+        Object[] options = {"Continue", "Choose Warcraft III folder", "Cancel"};
+        int result = JOptionPane.showOptionDialog(
+            null,
+            message,
+            "Warcraft III version mismatch",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[1]
+        );
+        if (result == 1) {
+            return MismatchChoice.CHOOSE_OTHER;
+        }
+        if (result == 2 || result == JOptionPane.CLOSED_OPTION) {
+            return MismatchChoice.CANCEL;
+        }
+        return MismatchChoice.CONTINUE;
+    }
+
+    private Optional<W3InstallationData> chooseAlternateGamePath() {
+        if (GraphicsEnvironment.isHeadless()) {
+            return Optional.empty();
+        }
+        JFileChooser fileChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileChooser.setDialogTitle("Select Warcraft III installation folder");
+        int result = fileChooser.showOpenDialog(null);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return Optional.empty();
+        }
+        File selectedFolder = fileChooser.getSelectedFile();
+        return Optional.of(new W3InstallationData(langServer, selectedFolder, true, Optional.empty()));
+    }
+
+    private enum MismatchChoice {
+        CONTINUE,
+        CHOOSE_OTHER,
+        CANCEL
     }
 
 
@@ -253,7 +353,7 @@ public class RunMap extends MapRequest {
      * <p>
      * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
-    private File copyToWarcraftMapDir(File testMap) throws IOException {
+    private File copyToWarcraftMapDir(File testMap, W3InstallationData launchData) throws IOException {
         String testMapName = "WurstTestMap.w3x";
         for (String arg : compileArgs) {
             if (arg.startsWith("-runmapTarget")) {
@@ -271,7 +371,7 @@ public class RunMap extends MapRequest {
         }
 
         File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
-        Optional<String> documentPath = findMapDocumentPath(testMapName, myDocumentsFolder);
+        Optional<String> documentPath = findMapDocumentPath(testMapName, myDocumentsFolder, launchData);
 
         // copy the map to the appropriate directory
         Optional<File> testFolder = documentPath.map(path -> new File(path, "Maps" + File.separator + "Test"));
@@ -304,7 +404,7 @@ public class RunMap extends MapRequest {
         return null;
     }
 
-    private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder) {
+    private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder, W3InstallationData launchData) {
         Optional<String> documentPath = Optional.of(
             langServer.getConfigProvider().getMapDocumentPath().orElseGet(
                 () -> myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III"));
@@ -325,13 +425,13 @@ public class RunMap extends MapRequest {
             }
         }
 
-        if (getBuildConfig().shouldUseInstallDirForMaps(w3data.getWc3PatchVersion())) {
+        if (buildConfig.shouldUseInstallDirForMaps(launchData.getWc3PatchVersion())) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
-            documentPath = wc3Path;
+            documentPath = mapInstallDirectoryForLegacyLaunch(launchData, wc3Path);
         } else {
             // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
-            Optional<File> oldFile = wc3Path.map(
+            Optional<File> oldFile = installRootForLaunchData(launchData).map(File::getAbsolutePath).or(() -> wc3Path).map(
                 w3p -> new File(w3p, "Maps" + File.separator + "Test" + File.separator + testMapName));
             if (oldFile.isPresent() && oldFile.get().exists()) {
                 if (!oldFile.get().delete()) {
@@ -342,11 +442,31 @@ public class RunMap extends MapRequest {
         return documentPath;
     }
 
-    private WurstBuildConfig getBuildConfig() {
-        if (buildConfig == null) {
-            buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
+    private static Optional<String> mapInstallDirectoryForLegacyLaunch(W3InstallationData launchData, Optional<String> fallbackWc3Path) {
+        Optional<File> launchRoot = installRootForLaunchData(launchData);
+        if (launchRoot.isPresent()) {
+            return launchRoot.map(File::getAbsolutePath);
         }
-        return buildConfig;
+        return fallbackWc3Path;
     }
 
+    private static Optional<File> installRootForLaunchData(W3InstallationData launchData) {
+        return launchData.getGameExe().map(RunMap::installRootForExecutable);
+    }
+
+    private static File installRootForExecutable(File executable) {
+        File parent = executable.getAbsoluteFile().getParentFile();
+        if (parent == null) {
+            return executable.getAbsoluteFile();
+        }
+        if (parent.getName().equalsIgnoreCase("x86") || parent.getName().equalsIgnoreCase("x86_64")) {
+            File maybeRetail = parent.getParentFile();
+            if (maybeRetail != null && (maybeRetail.getName().equalsIgnoreCase("_retail_") || maybeRetail.getName().equalsIgnoreCase("_ptr_"))) {
+                File installRoot = maybeRetail.getParentFile();
+                return installRoot != null ? installRoot : maybeRetail;
+            }
+            return maybeRetail != null ? maybeRetail : parent;
+        }
+        return parent;
+    }
 }

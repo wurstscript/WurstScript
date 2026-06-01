@@ -10,6 +10,7 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -62,6 +63,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
     protected final Optional<String> wc3Path;
+    protected final WurstBuildConfig buildConfig;
     protected final W3InstallationData w3data;
     protected final TimeTaker timeTaker;
 
@@ -104,8 +106,12 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
+        this.buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
-            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), Optional.empty());
+            Optional<GameVersion> configuredVersion = this instanceof RunMap
+                ? Optional.empty()
+                : buildConfig.configuredGameVersion();
+            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), configuredVersion);
         } else {
             this.w3data = getBestW3InstallationData();
         }
@@ -929,21 +935,31 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
+        Optional<GameVersion> configuredVersion = buildConfig.configuredGameVersion();
+        boolean needsGameExe = this instanceof RunMap && !runArgs.isHotReload();
+        if (configuredVersion.isPresent()) {
+            WLogger.info("Using wurst.build wc3Patch " + buildConfig.wc3PatchName().orElse(configuredVersion.get().toString())
+                + " (" + configuredVersion.get() + ").");
+        }
         if (Orient.isLinuxSystem()) {
             // no Warcraft installation supported on Linux
-            return new W3InstallationData(Optional.empty(), Optional.empty());
+            return new W3InstallationData(Optional.empty(), configuredVersion);
         }
+        if (!needsGameExe && configuredVersion.isPresent()) {
+            return new W3InstallationData(Optional.empty(), configuredVersion);
+        }
+        Optional<GameVersion> versionForDiscovery = needsGameExe ? Optional.empty() : configuredVersion;
         if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
             W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()),
-                this instanceof RunMap && !runArgs.isHotReload());
-            if (w3data.getWc3PatchVersion().isEmpty()) {
+                needsGameExe, versionForDiscovery);
+            if (w3data.getWc3PatchVersion().isEmpty() && !configuredVersion.isPresent()) {
                 WLogger.warning("Could not determine Warcraft III version at specified path: " + wc3Path
-                    + ". Falling back to wurst.build patch target.");
+                    + ". Falling back to default launch behavior.");
             }
 
             return w3data;
         } else {
-            return new W3InstallationData(langServer, this instanceof RunMap && !runArgs.isHotReload());
+            return new W3InstallationData(langServer, needsGameExe, versionForDiscovery);
         }
     }
 
