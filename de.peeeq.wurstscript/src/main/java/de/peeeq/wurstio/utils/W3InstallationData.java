@@ -32,24 +32,33 @@ public class W3InstallationData {
 
     public W3InstallationData(Optional<File> gameExe, Optional<GameVersion> version) {
         this.languageServer = null;
-        this.gameExe = gameExe;
-        this.version = version;
+        this.gameExe = gameExe == null ? Optional.empty() : gameExe;
+        this.version = version == null ? Optional.empty() : version;
         if (!this.version.isPresent() && this.gameExe.isPresent()) {
             try {
                 this.version = Optional.ofNullable(GameExe.getVersion(this.gameExe.get()));
                 WLogger.info("Parsed game version from configured executable: " + this.version);
             } catch (IOException | RuntimeException e) {
-                WLogger.warning("Could not parse game version from configured executable", e);
+                WLogger.warning("Could not parse game version from configured executable. Continuing without detected game version.");
+                WLogger.debug("Game version parser failed: " + e);
             }
         }
     }
 
     /** Evaluates the game path and version by discovering the system environment. */
     public W3InstallationData(WurstLanguageServer languageServer, boolean shouldAskForPath) {
+        this(languageServer, shouldAskForPath, Optional.empty());
+    }
+
+    /** Evaluates the game path and uses a configured version instead of probing the executable when supplied. */
+    public W3InstallationData(WurstLanguageServer languageServer, boolean shouldAskForPath, Optional<GameVersion> configuredVersion) {
         this.languageServer = languageServer;
         this.shouldAskForPath = shouldAskForPath;
+        this.version = configuredVersion == null ? Optional.empty() : configuredVersion;
         discoverExePath();
-        discoverVersion();
+        if (!this.version.isPresent()) {
+            discoverVersion();
+        }
     }
 
     /**
@@ -57,21 +66,33 @@ public class W3InstallationData {
      * system environment.
      */
     public W3InstallationData(WurstLanguageServer languageServer, File wc3Path, boolean shouldAskForPath) {
+        this(languageServer, wc3Path, shouldAskForPath, Optional.empty());
+    }
+
+    public W3InstallationData(WurstLanguageServer languageServer, File wc3Path, boolean shouldAskForPath,
+                              Optional<GameVersion> configuredVersion) {
         this.languageServer = languageServer;
         this.shouldAskForPath = shouldAskForPath;
+        this.version = configuredVersion == null ? Optional.empty() : configuredVersion;
 
         if (Orient.isWindowsSystem() || Orient.isMacSystem()) {
-            loadFromPath(wc3Path);
+            loadFromPath(wc3Path, !this.version.isPresent());
         }
 
         if (!gameExe.isPresent()) {
             WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
             discoverExePath();
-            discoverVersion();
+            if (!this.version.isPresent()) {
+                discoverVersion();
+            }
         }
     }
 
     private void loadFromPath(File wc3Path) {
+        loadFromPath(wc3Path, true);
+    }
+
+    private void loadFromPath(File wc3Path, boolean shouldParseVersion) {
         try {
             if (Orient.isWindowsSystem()) {
                 gameExe = Optional.ofNullable(WinGameExeFinder.fromDirIgnoreVersion(wc3Path));
@@ -87,15 +108,22 @@ public class W3InstallationData {
                 }
             }
         } catch (NotFoundException e) {
-            WLogger.severe(e);
+            WLogger.warning("Could not find Warcraft III executable in configured path: " + wc3Path);
+            WLogger.debug("Warcraft III executable lookup failed: " + e);
         }
         WLogger.info("Game Executable from path: " + gameExe);
+
+        if (!shouldParseVersion) {
+            WLogger.info("Using configured game version: " + version.map(Object::toString).orElse("unknown"));
+            return;
+        }
 
         version = gameExe.flatMap(exe -> {
             try {
                 return Optional.ofNullable(GameExe.getVersion(exe));
             } catch (IOException | RuntimeException e) {
-                WLogger.warning("Could not parse game version from executable", e);
+                WLogger.warning("Could not parse game version from executable. Continuing without detected game version.");
+                WLogger.debug("Game version parser failed: " + e);
             }
 
             return Optional.empty();
@@ -138,7 +166,8 @@ public class W3InstallationData {
                 languageServer.getRemoteEndpoint().notify("wurst/updateGamePath", selectedFolder.getAbsolutePath());
             }
         } catch (InterruptedException | InvocationTargetException ex) {
-            WLogger.warning("Choosing game path failed", ex);
+            WLogger.warning("Choosing game path failed.");
+            WLogger.debug("Choosing game path failed: " + ex);
         }
     }
 
@@ -147,7 +176,8 @@ public class W3InstallationData {
             version = Optional.ofNullable(new StdGameVersionFinder().get());
             WLogger.info("Parsed game version: " + version);
         } catch (NotFoundException e) {
-            WLogger.warning("Wurst compiler failed to determine game version", e);
+            WLogger.warning("Game version detection failed. Pin wc3Patch in wurst.build if launch arguments look wrong.");
+            WLogger.debug("Game version detection failed: " + e);
         } catch (UnsupportedPlatformException e) {
             WLogger.warning("Wurst compiler cannot determine game version: " + e.getMessage());
         }

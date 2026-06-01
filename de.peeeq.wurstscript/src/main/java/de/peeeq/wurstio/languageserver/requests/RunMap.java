@@ -5,7 +5,6 @@ import com.google.common.io.Files;
 import config.WurstProjectConfig;
 import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
@@ -41,7 +40,6 @@ import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 public class RunMap extends MapRequest {
 
     private @Nullable File customTarget = null;
-    private @Nullable WurstBuildConfig buildConfig = null;
 
 
     public RunMap(WurstLanguageServer langServer, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
@@ -68,8 +66,6 @@ public class RunMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
                 "Please install your project using grill or the wurst setup tool.");
         }
-        buildConfig = WurstBuildConfig.fromProject(projectConfig, workspaceRoot);
-
         // TODO use normal compiler for this, avoid code duplication
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
@@ -140,7 +136,6 @@ public class RunMap extends MapRequest {
         gui.sendProgress("Starting Warcraft 3...");
 
         File mapCopy = cachedMapFile.get();
-        WurstBuildConfig buildConfig = getBuildConfig();
         Optional<GameVersion> detectedGameVersion = w3data.getWc3PatchVersion();
         if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
             mapCopy = copyToWarcraftMapDir(cachedMapFile.get());
@@ -325,7 +320,7 @@ public class RunMap extends MapRequest {
             }
         }
 
-        if (getBuildConfig().shouldUseInstallDirForMaps(w3data.getWc3PatchVersion())) {
+        if (buildConfig.shouldUseInstallDirForMaps(w3data.getWc3PatchVersion())) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
@@ -341,12 +336,4 @@ public class RunMap extends MapRequest {
         }
         return documentPath;
     }
-
-    private WurstBuildConfig getBuildConfig() {
-        if (buildConfig == null) {
-            buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
-        }
-        return buildConfig;
-    }
-
 }

@@ -54,6 +54,101 @@ public class WurstBuildConfigTests {
     }
 
     @Test
+    public void understandsFriendlyAndJassHistoryPatchNames() throws Exception {
+        Path reforgedProject = Files.createTempDirectory("wurst-build-config-reforged");
+        Files.writeString(reforgedProject.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: v2.0
+            """);
+        WurstBuildConfig reforged = WurstBuildConfig.fromWorkspaceRoot(WFile.create(reforgedProject.toFile()));
+
+        assertEquals(reforged.wc3Patch().orElseThrow(), WurstBuildConfig.Wc3Patch.REFORGED);
+        assertEquals(reforged.wc3PatchName().orElseThrow(), "v2.0");
+        assertEquals(reforged.configuredGameVersion().orElseThrow(), new GameVersion("2.0"));
+        assertTrue(reforged.shouldUseReforgedLaunchArgs(Optional.empty()));
+
+        Path classicProject = Files.createTempDirectory("wurst-build-config-classic");
+        Files.writeString(classicProject.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: TFT-v1.31.1.12173
+            """);
+        WurstBuildConfig classic = WurstBuildConfig.fromWorkspaceRoot(WFile.create(classicProject.toFile()));
+
+        assertEquals(classic.wc3Patch().orElseThrow(), WurstBuildConfig.Wc3Patch.CLASSIC);
+        assertEquals(classic.configuredGameVersion().orElseThrow(), new GameVersion("1.31"));
+        assertFalse(classic.shouldUseReforgedLaunchArgs(Optional.empty()));
+        assertTrue(classic.shouldCopyRunMapToWarcraftMapDir(Optional.empty()));
+
+        Path legacyProject = Files.createTempDirectory("wurst-build-config-legacy");
+        Files.writeString(legacyProject.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: v1.27b
+            """);
+        WurstBuildConfig legacy = WurstBuildConfig.fromWorkspaceRoot(WFile.create(legacyProject.toFile()));
+
+        assertEquals(legacy.wc3Patch().orElseThrow(), WurstBuildConfig.Wc3Patch.PRE_129);
+        assertEquals(legacy.configuredGameVersion().orElseThrow(), new GameVersion("1.27"));
+        assertTrue(legacy.shouldUseClassicWindowArg(Optional.empty()));
+        assertTrue(legacy.shouldUseInstallDirForMaps(Optional.empty()));
+    }
+
+    @Test
+    public void acceptsOlderPatchSpellingAndAliases() throws Exception {
+        Path numericProject = Files.createTempDirectory("wurst-build-config-numeric");
+        Files.writeString(numericProject.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: 1.36
+            """);
+        WurstBuildConfig numeric = WurstBuildConfig.fromWorkspaceRoot(WFile.create(numericProject.toFile()));
+
+        assertEquals(numeric.wc3Patch().orElseThrow(), WurstBuildConfig.Wc3Patch.REFORGED);
+        assertEquals(numeric.configuredGameVersion().orElseThrow(), new GameVersion("1.36"));
+
+        Path classicProject = Files.createTempDirectory("wurst-build-config-classic-alias");
+        Files.writeString(classicProject.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: classic
+            """);
+        WurstBuildConfig classic = WurstBuildConfig.fromWorkspaceRoot(WFile.create(classicProject.toFile()));
+
+        assertEquals(classic.wc3Patch().orElseThrow(), WurstBuildConfig.Wc3Patch.CLASSIC);
+        assertEquals(classic.configuredGameVersion().orElseThrow(), new GameVersion("1.31"));
+    }
+
+    @Test
+    public void ignoresUnknownLegacyBuildSettings() throws Exception {
+        Path project = Files.createTempDirectory("wurst-build-config-unknown");
+        Files.writeString(project.resolve("wurst.build"), """
+            projectName: Test
+            oldSetting: whatever
+            scriptMode: not-a-mode
+            wc3Patch: some-old-custom-value
+            buildMapData:
+              staleNestedThing: true
+            """);
+
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+
+        assertFalse(config.scriptMode().isPresent());
+        assertFalse(config.wc3Patch().isPresent());
+        assertEquals(config.fallbackGameVersion(), GameVersion.VERSION_1_32);
+    }
+
+    @Test
+    public void preservesCommentsInsideQuotedPatchValues() throws Exception {
+        Path project = Files.createTempDirectory("wurst-build-config-quoted-comment");
+        Files.writeString(project.resolve("wurst.build"), """
+            scriptMode: "lua#not-a-comment"
+            wc3Patch: "1.36#not-a-comment"
+            """);
+
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+
+        assertFalse(config.scriptMode().isPresent());
+        assertEquals(config.configuredGameVersion().orElseThrow(), new GameVersion("1.36"));
+    }
+
+    @Test
     public void compileArgsFollowConfiguredScriptMode() throws Exception {
         Path project = Files.createTempDirectory("wurst-build-config-args");
         Files.writeString(project.resolve("wurst.build"), """

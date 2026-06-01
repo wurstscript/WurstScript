@@ -110,6 +110,7 @@ dependencies {
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
     implementation 'com.github.inwc3:jmpq3:e28f6999c0'
     implementation 'com.github.inwc3:wc3libs:a69318d921'
+    implementation 'com.github.wurstscript:wurst-project-config:2c7ccd1a5f'
     implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit.ssh.apache'
