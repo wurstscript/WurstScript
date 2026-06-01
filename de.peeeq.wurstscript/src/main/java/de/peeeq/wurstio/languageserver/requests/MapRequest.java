@@ -108,7 +108,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.wc3Path = wc3Path;
         this.buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
-            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), buildConfig.configuredGameVersion());
+            Optional<GameVersion> configuredVersion = this instanceof RunMap
+                ? Optional.empty()
+                : buildConfig.configuredGameVersion();
+            this.w3data = new W3InstallationData(Optional.of(new File(gameExePath.get())), configuredVersion);
         } else {
             this.w3data = getBestW3InstallationData();
         }
@@ -945,9 +948,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         if (!needsGameExe && configuredVersion.isPresent()) {
             return new W3InstallationData(Optional.empty(), configuredVersion);
         }
+        Optional<GameVersion> versionForDiscovery = needsGameExe ? Optional.empty() : configuredVersion;
         if (wc3Path.isPresent() && StringUtils.isNotBlank(wc3Path.get())) {
             W3InstallationData w3data = new W3InstallationData(langServer, new File(wc3Path.get()),
-                needsGameExe, configuredVersion);
+                needsGameExe, versionForDiscovery);
             if (w3data.getWc3PatchVersion().isEmpty() && !configuredVersion.isPresent()) {
                 WLogger.warning("Could not determine Warcraft III version at specified path: " + wc3Path
                     + ". Falling back to default launch behavior.");
@@ -955,7 +959,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
             return w3data;
         } else {
-            return new W3InstallationData(langServer, needsGameExe, configuredVersion);
+            return new W3InstallationData(langServer, needsGameExe, versionForDiscovery);
         }
     }
 

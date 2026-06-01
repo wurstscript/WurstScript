@@ -60,8 +60,30 @@ public class MapRequestPatchTargetTests {
 
         TestRunMap request = new TestRunMap(project, fakeExe.toString());
 
-        assertEquals(request.detectedVersion().orElseThrow(), new GameVersion("1.27"));
+        assertFalse(request.detectedVersion().isPresent());
         assertEquals(request.gameExe().orElseThrow().getAbsoluteFile(), fakeExe.toFile().getAbsoluteFile());
+    }
+
+    @Test
+    public void runMapInfersReforgedClientFromRetailExecutablePath() throws Exception {
+        Path project = projectWithPatch("v1.27b");
+        Path install = Files.createTempDirectory("warcraft-reforged");
+        Path exe = Files.createDirectories(install.resolve("_retail_").resolve("x86_64")).resolve("Warcraft III.exe");
+        Files.writeString(exe, "not a PE file");
+
+        TestRunMap request = new TestRunMap(project, exe.toString());
+
+        assertEquals(request.detectedVersion().orElseThrow(), GameVersion.VERSION_1_32);
+    }
+
+    @Test
+    public void runMapInfersClassicClientFromWar3ExecutablePath() throws Exception {
+        Path project = projectWithPatch("v2.0");
+        Path exe = Files.writeString(Files.createTempDirectory("warcraft-classic").resolve("war3.exe"), "not a PE file");
+
+        TestRunMap request = new TestRunMap(project, exe.toString());
+
+        assertEquals(request.detectedVersion().orElseThrow(), new GameVersion("1.28"));
     }
 
     @Test

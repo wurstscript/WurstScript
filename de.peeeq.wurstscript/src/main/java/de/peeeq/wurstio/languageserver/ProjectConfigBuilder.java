@@ -200,19 +200,27 @@ public class ProjectConfigBuilder {
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
             StringWriter sw = new StringWriter();
 
-            if (w3data.getWc3PatchVersion().isPresent()) {
-                w3I.injectConfigsInJassScript(inputStream, sw, w3data.getWc3PatchVersion().get());
+            WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
+            GameVersion version = effectiveConfigInjectionVersion(buildDir, w3data);
+            if (buildConfig.configuredGameVersion().isPresent()) {
+                WLogger.info("Using wurst.build patch target for map config injection: " + version);
+            } else if (w3data.getWc3PatchVersion().isPresent()) {
+                WLogger.info("Using detected game version for map config injection: " + version);
             } else {
-                GameVersion version = buildConfigFromBuildDir(buildDir).fallbackGameVersion();
-                WLogger.info(
-                    "Failed to determine installed game version. Falling back to wurst.build patch target: " + version
-                );
-                w3I.injectConfigsInJassScript(inputStream, sw, version);
+                WLogger.info("Failed to determine installed game version. Falling back to default patch target: " + version);
             }
+            w3I.injectConfigsInJassScript(inputStream, sw, version);
 
             byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
             Files.write(scriptBytes, result.script);
         }
+    }
+
+    private static GameVersion effectiveConfigInjectionVersion(File buildDir, W3InstallationData w3data) {
+        WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
+        return buildConfig.configuredGameVersion()
+            .or(() -> w3data.getWc3PatchVersion())
+            .orElseGet(buildConfig::fallbackGameVersion);
     }
 
     private static WurstBuildConfig buildConfigFromBuildDir(File buildDir) {
