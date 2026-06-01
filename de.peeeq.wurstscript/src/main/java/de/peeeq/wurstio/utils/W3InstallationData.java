@@ -89,7 +89,7 @@ public class W3InstallationData {
     }
 
     private void loadFromPath(File wc3Path) {
-        loadFromPath(wc3Path, true);
+        loadFromPath(wc3Path, !version.isPresent());
     }
 
     private void loadFromPath(File wc3Path, boolean shouldParseVersion) {
@@ -159,6 +159,10 @@ public class W3InstallationData {
                     WLogger.warning("No directory selected");
                 }
             });
+
+            if (selectedFolder == null) {
+                return;
+            }
 
             loadFromPath(selectedFolder);
 

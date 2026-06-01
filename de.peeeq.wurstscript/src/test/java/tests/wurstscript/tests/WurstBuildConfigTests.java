@@ -1,11 +1,15 @@
 package tests.wurstscript.tests;
 
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstCommands;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -13,6 +17,7 @@ import java.util.Optional;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 
 public class WurstBuildConfigTests {
@@ -161,5 +166,37 @@ public class WurstBuildConfigTests {
 
         assertTrue(args.contains("-runcompiletimefunctions"));
         assertFalse(args.contains("-lua"));
+    }
+
+    @Test
+    public void projectConfigHashIncludesExactPatchTarget() throws Exception {
+        Path project132 = Files.createTempDirectory("wurst-build-config-hash-132");
+        Files.createDirectories(project132.resolve("_build"));
+        Files.writeString(project132.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: v1.32
+            """);
+
+        Path project20 = Files.createTempDirectory("wurst-build-config-hash-20");
+        Files.createDirectories(project20.resolve("_build"));
+        Files.writeString(project20.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: v2.0
+            """);
+
+        String hash132 = calculateProjectConfigHash(project132.resolve("_build").toFile());
+        String hash20 = calculateProjectConfigHash(project20.resolve("_build").toFile());
+
+        assertNotEquals(hash132, hash20);
+    }
+
+    private static String calculateProjectConfigHash(File buildDir) throws Exception {
+        Method method = ProjectConfigBuilder.class.getDeclaredMethod(
+            "calculateProjectConfigHash",
+            WurstProjectConfigData.class,
+            File.class
+        );
+        method.setAccessible(true);
+        return (String) method.invoke(null, new WurstProjectConfigData(), buildDir);
     }
 }

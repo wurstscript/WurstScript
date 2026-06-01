@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,6 +64,16 @@ public class MapRequestPatchTargetTests {
         assertEquals(request.gameExe().orElseThrow().getAbsoluteFile(), fakeExe.toFile().getAbsoluteFile());
     }
 
+    @Test
+    public void configuredVersionSurvivesManualPathLoad() throws Exception {
+        W3InstallationData data = new W3InstallationData(Optional.empty(), Optional.of(new GameVersion("2.0")));
+        Method loadFromPath = W3InstallationData.class.getDeclaredMethod("loadFromPath", File.class);
+        loadFromPath.setAccessible(true);
+
+        loadFromPath.invoke(data, Files.createTempDirectory("not-warcraft-folder").toFile());
+
+        assertEquals(data.getWc3PatchVersion().orElseThrow(), new GameVersion("2.0"));
+    }
 
     @Test
     public void gameVersionParseFailurePrintsShortMessageOnly() throws Exception {

@@ -180,7 +180,7 @@ public class ProjectConfigBuilder {
                 .append("\n");
             WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
             sb.append("scriptMode:").append(buildConfig.scriptMode()).append("\n");
-            sb.append("wc3Patch:").append(buildConfig.wc3Patch()).append("\n");
+            sb.append("wc3Patch:").append(buildConfig.wc3PatchName()).append("\n");
 
             return ImportFile.calculateHash(sb.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
