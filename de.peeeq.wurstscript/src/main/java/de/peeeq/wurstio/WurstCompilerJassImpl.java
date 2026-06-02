@@ -81,7 +81,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
         this.parser = new WurstParser(errorHandler, gui);
-        this.checker = new WurstChecker(gui, errorHandler);
+        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
         this.mapFileMpq = mapFileMpq;
     }
 

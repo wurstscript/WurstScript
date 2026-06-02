@@ -107,6 +107,12 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
         this.buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
+        // Patches before 1.24 ship Blizzard common.j/blizzard.j with type mismatches
+        // that the Jass VM tolerates (e.g. real returned as integer). Relax Jass
+        // type checks and skip PJass for such targets so these stock scripts compile.
+        if (buildConfig.isPre124()) {
+            runArgs.setLegacyJassTypeChecks(true);
+        }
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
             Optional<GameVersion> configuredVersion = this instanceof RunMap
                 ? Optional.empty()
@@ -198,7 +204,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 File outFile = new File(buildDir, BUILD_COMPILED_JASS_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
 
-                if (!runArgs.isDisablePjass()) {
+                if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
                     gui.sendProgress("Running PJass");
                     timeTaker.beginPhase("Pjass execution");
                     Pjass.Result pJassResult = Pjass.runPjass(outFile,

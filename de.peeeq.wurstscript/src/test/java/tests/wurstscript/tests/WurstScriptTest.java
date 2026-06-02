@@ -90,6 +90,7 @@ public class WurstScriptTest {
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
+        private boolean legacyJassTypeChecks = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -149,6 +150,15 @@ public class WurstScriptTest {
 
         public TestConfig uncheckedDispatch(boolean b) {
             this.uncheckedDispatch = b;
+            return this;
+        }
+
+        public TestConfig legacyJassTypeChecks() {
+            return legacyJassTypeChecks(true);
+        }
+
+        public TestConfig legacyJassTypeChecks(boolean b) {
+            this.legacyJassTypeChecks = b;
             return this;
         }
 
@@ -220,6 +230,9 @@ public class WurstScriptTest {
             }
             if (runCompiletimeFunctions) {
                 runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+            if (legacyJassTypeChecks) {
+                runArgs.setLegacyJassTypeChecks(true);
             }
 
             WurstGui gui = new WurstGuiCliImpl();

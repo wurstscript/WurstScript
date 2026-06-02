@@ -107,7 +107,7 @@ public class CompilationProcess {
         File outputMapscript = timeTaker.measure("Print Jass",
                 () -> writeMapscript(mapScript));
 
-        if (!runArgs.isDisablePjass()) {
+        if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
             boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
             if (pjassError) return null;

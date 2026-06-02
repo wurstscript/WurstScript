@@ -88,6 +88,17 @@ public final class WurstBuildConfig {
         return wc3Patch().orElse(Wc3Patch.REFORGED);
     }
 
+    /**
+     * Whether the configured target is a patch before 1.24. These legacy patches ship
+     * Blizzard common.j/blizzard.j with return-type mismatches the Jass VM tolerates,
+     * so Jass type checks are relaxed and PJass is skipped for them.
+     */
+    public boolean isPre124() {
+        return configuredGameVersion()
+            .map(version -> version.compareTo(new GameVersion("1.24")) < 0)
+            .orElse(false);
+    }
+
     public GameVersion fallbackGameVersion() {
         return configuredGameVersion().orElse(GameVersion.VERSION_1_32);
     }
