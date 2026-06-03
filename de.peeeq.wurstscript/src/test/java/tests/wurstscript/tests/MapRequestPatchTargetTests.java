@@ -5,6 +5,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstio.utils.W3InstallationData;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.testng.annotations.Test;
@@ -211,6 +212,22 @@ public class MapRequestPatchTargetTests {
         return (boolean) method.invoke(null, projectKind, clientVersion);
     }
 
+    @Test
+    public void pre124PatchPropagatesLegacyJassChecksToCompileArgs() throws Exception {
+        // Pre-1.24: the flag must be carried in compileArgs so the fresh RunArgs that
+        // compileScript/compileMap build (RunArgs(compileArgs)) actually relaxes Jass checks + skips PJass.
+        TestMapRequest legacy = new TestMapRequest(projectWithPatch("v1.23"), Optional.empty(), Optional.empty());
+        assertTrue(legacy.exposedCompileArgs().contains("-legacyJassChecks"),
+            "pre-1.24 build must carry -legacyJassChecks in compileArgs: " + legacy.exposedCompileArgs());
+        assertTrue(new RunArgs(legacy.exposedCompileArgs().toArray(new String[0])).isLegacyJassTypeChecks(),
+            "a RunArgs rebuilt from compileArgs must report legacy Jass checks");
+
+        // Modern target: flag must not be injected.
+        TestMapRequest modern = new TestMapRequest(projectWithPatch("v2.0"), Optional.empty(), Optional.empty());
+        assertFalse(modern.exposedCompileArgs().contains("-legacyJassChecks"),
+            "modern build must not carry the legacy flag: " + modern.exposedCompileArgs());
+    }
+
     private static Path projectWithPatch(String patch) throws Exception {
         Path project = Files.createTempDirectory("wurst-map-request-patch");
         Files.createDirectories(project.resolve("wurst"));
@@ -232,6 +249,10 @@ public class MapRequestPatchTargetTests {
 
         Optional<File> gameExe() {
             return w3data.getGameExe();
+        }
+
+        List<String> exposedCompileArgs() {
+            return compileArgs;
         }
 
         @Override
