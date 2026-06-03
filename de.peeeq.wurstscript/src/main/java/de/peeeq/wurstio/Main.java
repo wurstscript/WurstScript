@@ -2,8 +2,8 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfig;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
@@ -124,7 +124,7 @@ public class Main {
                 if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
                     Path root = Paths.get(workspaceroot);
                     Path inputMap = root.resolve(runArgs.getInputmap());
-                    WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
+                    WurstProjectConfigData projectConfig = WurstProjectConfigReader.load(root.resolve(FILE_NAME));
                     if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
                         CliBuildMap cliBuildMap = new CliBuildMap(
                             WFile.create(root.toFile()),

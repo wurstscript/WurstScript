@@ -110,11 +110,7 @@ dependencies {
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
     implementation 'com.github.inwc3:jmpq3:e28f6999c0'
     implementation 'com.github.inwc3:wc3libs:548f34a424'
-    implementation 'com.github.wurstscript:wurst-project-config:2c7ccd1a5f'
-    implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
-        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
-        exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit.ssh.apache'
-    }
+    implementation 'com.github.wurstscript:wurst-project-config:348fcd4ef5'
     implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.20'
     testImplementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
@@ -290,6 +286,40 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/bytes/**'
     exclude 'it/unimi/dsi/fastutil/booleans/**'
     exclude 'it/unimi/dsi/fastutil/io/**'
+
+    // Within the kept objects/ints packages the compiler only uses the open-hash map/set, linked-open variants,
+    // array list and FIFO queue for Object2Object, Object2Int, Reference2Object, Reference2Boolean and Int2Object.
+    // Drop the rest (~4.6 MB): sorted (tree) maps, custom-hash maps, and the cross-primitive value families whose
+    // value-type packages are already excluded above. If you start using another fastutil collection, remove the
+    // matching exclude here.
+    exclude 'it/unimi/dsi/fastutil/**/*AVLTreeMap*'
+    exclude 'it/unimi/dsi/fastutil/**/*RBTreeMap*'
+    exclude 'it/unimi/dsi/fastutil/**/*OpenCustomHashMap*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Double*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Float*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Long*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Short*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Byte*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Char*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Boolean*'
+    exclude 'it/unimi/dsi/fastutil/objects/Object2Reference*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Double*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Float*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Long*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Short*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Byte*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Char*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Int*'
+    exclude 'it/unimi/dsi/fastutil/objects/Reference2Reference*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Double*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Float*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Long*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Short*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Byte*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Char*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Boolean*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Int*'
+    exclude 'it/unimi/dsi/fastutil/ints/Int2Reference*'
 
     // sqlite-jdbc bundles ~13.5 MB of native libs for 24 platforms. The compiler needs Java (64-bit only), so keep
     // only the desktop platforms it actually runs on (Windows/macOS/Linux on x86_64 + aarch64, incl. Apple Silicon)

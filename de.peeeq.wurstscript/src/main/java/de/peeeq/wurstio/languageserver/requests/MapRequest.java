@@ -2,7 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
@@ -793,8 +793,8 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private static File getBuildOutputMapFile(WurstProjectConfigData projectConfig, File buildDir) {
-        String fileName = projectConfig.getBuildMapData().getFileName();
-        return new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
+        String fileName = projectConfig.buildMapData().fileName();
+        return new File(buildDir, fileName.isEmpty() ? projectConfig.projectName() + ".w3x" : fileName + ".w3x");
     }
 
     private static boolean startsWith(byte[] data, byte[] prefix) {

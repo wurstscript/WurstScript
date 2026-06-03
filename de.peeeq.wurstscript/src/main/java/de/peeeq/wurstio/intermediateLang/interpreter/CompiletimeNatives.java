@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectHelper;
@@ -175,7 +175,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public ILconstString getMapName() {
-        return new ILconstString(projectConfigData.getBuildMapData().getName());
+        return new ILconstString(projectConfigData.buildMapData().name());
     }
 
     public ILconstString getBuildDate() {

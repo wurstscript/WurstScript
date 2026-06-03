@@ -1,12 +1,11 @@
 package de.peeeq.wurstio.languageserver;
 
-import config.WurstProjectConfigData;
 import de.peeeq.wurstscript.WLogger;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.wurstscript.projectconfig.Wc3PatchTarget;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -48,11 +47,9 @@ public final class WurstBuildConfig {
         if (projectConfig == null) {
             return fileConfig;
         }
-        Optional<org.wurstscript.projectconfig.ScriptMode> scriptMode = readStringGetter(projectConfig, "getScriptMode")
-            .flatMap(WurstBuildConfig::parseSharedScriptMode)
+        Optional<org.wurstscript.projectconfig.ScriptMode> scriptMode = Optional.ofNullable(projectConfig.scriptMode())
             .or(fileConfig.sharedConfig::scriptMode);
-        Optional<Wc3PatchTarget> wc3Patch = readStringGetter(projectConfig, "getWc3Patch")
-            .flatMap(Wc3PatchTarget::parse)
+        Optional<Wc3PatchTarget> wc3Patch = Wc3PatchTarget.parse(projectConfig.wc3Patch())
             .or(fileConfig.sharedConfig::wc3Patch);
         return new WurstBuildConfig(new org.wurstscript.projectconfig.WurstBuildConfig(scriptMode, wc3Patch));
     }
@@ -130,14 +127,6 @@ public final class WurstBuildConfig {
         return version == null ? Optional.empty() : version.map(GameVersion::toString);
     }
 
-    private static Optional<org.wurstscript.projectconfig.ScriptMode> parseSharedScriptMode(String value) {
-        try {
-            return Optional.of(org.wurstscript.projectconfig.ScriptMode.valueOf(value.trim().toUpperCase()));
-        } catch (IllegalArgumentException | NullPointerException e) {
-            return Optional.empty();
-        }
-    }
-
     private static Wc3Patch patchKind(Wc3PatchTarget target) {
         if (target.kind() == Wc3PatchTarget.Kind.PRE_129) {
             return Wc3Patch.PRE_129;
@@ -148,19 +137,4 @@ public final class WurstBuildConfig {
         return Wc3Patch.REFORGED;
     }
 
-    private static Optional<String> readStringGetter(WurstProjectConfigData projectConfig, String getterName) {
-        try {
-            Method getter = projectConfig.getClass().getMethod(getterName);
-            Object value = getter.invoke(projectConfig);
-            if (value == null) {
-                return Optional.empty();
-            }
-            return Optional.of(value.toString());
-        } catch (NoSuchMethodException ignored) {
-            return Optional.empty();
-        } catch (Exception e) {
-            WLogger.debug("Could not read " + getterName + " from wurst.build config: " + e);
-            return Optional.empty();
-        }
-    }
 }

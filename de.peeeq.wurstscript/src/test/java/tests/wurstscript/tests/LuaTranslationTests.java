@@ -2,7 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -166,7 +166,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
 
         compiler.translateProgToIm(model);
-        compiler.runCompiletime(new WurstProjectConfigData(), false, false);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
         LuaCompilationUnit luaCode = compiler.transformProgToLua();
 
         StringBuilder sb = new StringBuilder();

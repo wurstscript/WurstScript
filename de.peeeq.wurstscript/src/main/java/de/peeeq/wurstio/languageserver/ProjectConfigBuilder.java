@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import com.google.common.io.Files;
-import config.*;
+import org.wurstscript.projectconfig.*;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.map.importer.ImportFile;
@@ -43,11 +43,11 @@ public class ProjectConfigBuilder {
                                                      File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data,
                                                      String outputScriptName) throws IOException {
-        if (projectConfig.getProjectName().isEmpty()) {
+        if (projectConfig.projectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
 
-        WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
+        WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
         MapRequest.CompilationResult result = new MapRequest.CompilationResult();
         result.script = mapScript;
 
@@ -77,7 +77,7 @@ public class ProjectConfigBuilder {
         }
 
         // Only apply buildMapData if config changed or name is present
-        if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.getName())) {
+        if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.name())) {
             WLogger.info("Applying buildMapData config");
             applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
         } else if (!configNeedsApplying) {
@@ -91,7 +91,7 @@ public class ProjectConfigBuilder {
                 || mapScript.lastModified() > cachedInjectedScript.lastModified();
             if (!cachedScriptStale) {
                 result.script = cachedInjectedScript;
-            } else if (StringUtils.isNotBlank(buildMapData.getName())) {
+            } else if (StringUtils.isNotBlank(buildMapData.name())) {
                 WLogger.info("war3map.j changed or cached script missing, re-injecting config");
                 applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
             }
@@ -128,55 +128,55 @@ public class ProjectConfigBuilder {
         try {
             // Serialize the relevant parts of the config
             StringBuilder sb = new StringBuilder();
-            WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
+            WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
 
-            sb.append("name:").append(buildMapData.getName()).append("\n");
-            sb.append("author:").append(buildMapData.getAuthor()).append("\n");
+            sb.append("name:").append(buildMapData.name()).append("\n");
+            sb.append("author:").append(buildMapData.author()).append("\n");
 
             // Scenario data
-            WurstProjectBuildScenarioData scenario = buildMapData.getScenarioData();
-            sb.append("suggestedPlayers:").append(scenario.getSuggestedPlayers()).append("\n");
-            sb.append("description:").append(scenario.getDescription()).append("\n");
+            WurstProjectBuildScenarioData scenario = buildMapData.scenarioData();
+            sb.append("suggestedPlayers:").append(scenario.suggestedPlayers()).append("\n");
+            sb.append("description:").append(scenario.description()).append("\n");
 
-            if (scenario.getLoadingScreen() != null) {
-                WurstProjectBuildLoadingScreenData ls = scenario.getLoadingScreen();
-                sb.append("loadingScreen.model:").append(ls.getModel()).append("\n");
-                sb.append("loadingScreen.background:").append(ls.getBackground()).append("\n");
-                sb.append("loadingScreen.title:").append(ls.getTitle()).append("\n");
-                sb.append("loadingScreen.subtitle:").append(ls.getSubTitle()).append("\n");
-                sb.append("loadingScreen.text:").append(ls.getText()).append("\n");
+            if (scenario.loadingScreen() != null) {
+                WurstProjectBuildLoadingScreenData ls = scenario.loadingScreen();
+                sb.append("loadingScreen.model:").append(ls.model()).append("\n");
+                sb.append("loadingScreen.background:").append(ls.background()).append("\n");
+                sb.append("loadingScreen.title:").append(ls.title()).append("\n");
+                sb.append("loadingScreen.subtitle:").append(ls.subTitle()).append("\n");
+                sb.append("loadingScreen.text:").append(ls.text()).append("\n");
             }
 
             // Players
-            for (WurstProjectBuildPlayer player : buildMapData.getPlayers()) {
-                sb.append("player:").append(player.getId())
-                    .append(",").append(player.getName())
-                    .append(",").append(player.getRace())
-                    .append(",").append(player.getController())
-                    .append(",").append(player.getFixedStartLoc())
+            for (WurstProjectBuildPlayer player : buildMapData.players()) {
+                sb.append("player:").append(player.id())
+                    .append(",").append(player.name())
+                    .append(",").append(player.race())
+                    .append(",").append(player.controller())
+                    .append(",").append(player.fixedStartLoc())
                     .append("\n");
             }
 
             // Forces
-            for (WurstProjectBuildForce force : buildMapData.getForces()) {
-                sb.append("force:").append(force.getName())
-                    .append(",").append(force.getFlags().getAllied())
-                    .append(",").append(force.getFlags().getAlliedVictory())
-                    .append(",").append(force.getFlags().getSharedVision())
-                    .append(",").append(force.getFlags().getSharedControl())
-                    .append(",").append(force.getFlags().getSharedControlAdvanced())
+            for (WurstProjectBuildForce force : buildMapData.forces()) {
+                sb.append("force:").append(force.name())
+                    .append(",").append(force.flags().allied())
+                    .append(",").append(force.flags().alliedVictory())
+                    .append(",").append(force.flags().sharedVision())
+                    .append(",").append(force.flags().sharedControl())
+                    .append(",").append(force.flags().sharedControlAdvanced())
                     .append("players:");
-                for (int id : force.getPlayerIds()) {
+                for (int id : force.playerIds()) {
                     sb.append(id).append(",");
                 }
                 sb.append("\n");
             }
 
             // Option flags
-            WurstProjectBuildOptionFlagsData flags = buildMapData.getOptionsFlags();
-            sb.append("flags:").append(flags.getForcesFixed())
-                .append(",").append(flags.getShowWavesOnCliffShores())
-                .append(",").append(flags.getShowWavesOnRollingShores())
+            WurstProjectBuildOptionFlagsData flags = buildMapData.optionsFlags();
+            sb.append("flags:").append(flags.forcesFixed())
+                .append(",").append(flags.showWavesOnCliffShores())
+                .append(",").append(flags.showWavesOnRollingShores())
                 .append("\n");
             WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
             sb.append("scriptMode:").append(buildConfig.scriptMode()).append("\n");
@@ -233,70 +233,70 @@ public class ProjectConfigBuilder {
 
 
     private static void prepareW3I(WurstProjectConfigData projectConfig, W3I w3I) {
-        WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
-        if (StringUtils.isNotBlank(buildMapData.getName())) {
-            w3I.setMapName(buildMapData.getName());
+        WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            w3I.setMapName(buildMapData.name());
         }
-        if (StringUtils.isNotBlank(buildMapData.getAuthor())) {
-            w3I.setMapAuthor(buildMapData.getAuthor());
+        if (StringUtils.isNotBlank(buildMapData.author())) {
+            w3I.setMapAuthor(buildMapData.author());
         }
         applyScenarioData(w3I, buildMapData);
 
-        if (!buildMapData.getPlayers().isEmpty()) {
+        if (!buildMapData.players().isEmpty()) {
             applyPlayers(projectConfig, w3I);
         }
-        if (!buildMapData.getForces().isEmpty()) {
+        if (!buildMapData.forces().isEmpty()) {
             applyForces(projectConfig, w3I);
         }
         applyOptionFlags(projectConfig, w3I);
     }
 
     private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {
-        WurstProjectBuildOptionFlagsData optionsFlags = projectConfig.getBuildMapData().getOptionsFlags();
-        w3I.setFlag(MapFlag.HIDE_MINIMAP, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.HIDE_MINIMAP));
-        w3I.setFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING));
-        w3I.setFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE));
-        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES, optionsFlags.getShowWavesOnCliffShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES));
-        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES, optionsFlags.getShowWavesOnRollingShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES));
+        WurstProjectBuildOptionFlagsData optionsFlags = projectConfig.buildMapData().optionsFlags();
+        w3I.setFlag(MapFlag.HIDE_MINIMAP, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.HIDE_MINIMAP));
+        w3I.setFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING));
+        w3I.setFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE));
+        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES, optionsFlags.showWavesOnCliffShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES));
+        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES, optionsFlags.showWavesOnRollingShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES));
     }
 
     private static void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
-        WurstProjectBuildScenarioData scenarioData = buildMapData.getScenarioData();
-        if (StringUtils.isNotBlank(scenarioData.getSuggestedPlayers())) {
-            w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
+        WurstProjectBuildScenarioData scenarioData = buildMapData.scenarioData();
+        if (StringUtils.isNotBlank(scenarioData.suggestedPlayers())) {
+            w3I.setPlayersRecommendedAmount(scenarioData.suggestedPlayers());
         }
-        if (StringUtils.isNotBlank(scenarioData.getDescription())) {
-            w3I.setMapDescription(scenarioData.getDescription());
+        if (StringUtils.isNotBlank(scenarioData.description())) {
+            w3I.setMapDescription(scenarioData.description());
         }
-        if (scenarioData.getLoadingScreen() != null) {
-            applyLoadingScreen(w3I, scenarioData.getLoadingScreen());
+        if (scenarioData.loadingScreen() != null) {
+            applyLoadingScreen(w3I, scenarioData.loadingScreen());
         }
     }
 
     private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreenData) {
-        if (StringUtils.isNotBlank(loadingScreenData.getModel())) {
-            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreenData.getModel())));
-        } else if (StringUtils.isNotBlank(loadingScreenData.getBackground())) {
-            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreenData.getBackground()));
+        if (StringUtils.isNotBlank(loadingScreenData.model())) {
+            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreenData.model())));
+        } else if (StringUtils.isNotBlank(loadingScreenData.background())) {
+            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreenData.background()));
         }
 
-        w3I.getLoadingScreen().setTitle(loadingScreenData.getTitle());
-        w3I.getLoadingScreen().setSubtitle(loadingScreenData.getSubTitle());
-        w3I.getLoadingScreen().setText(loadingScreenData.getText());
+        w3I.getLoadingScreen().setTitle(loadingScreenData.title());
+        w3I.getLoadingScreen().setSubtitle(loadingScreenData.subTitle());
+        w3I.getLoadingScreen().setText(loadingScreenData.text());
     }
 
     private static void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
         w3I.clearForces();
-        ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
+        List<WurstProjectBuildForce> forces = projectConfig.buildMapData().forces();
         for (WurstProjectBuildForce wforce : forces) {
             W3I.Force force = new Force();
-            force.setName(wforce.getName());
-            force.setFlag(W3I.Force.Flags.Flag.ALLIED, wforce.getFlags().getAllied());
-            force.setFlag(W3I.Force.Flags.Flag.ALLIED_VICTORY, wforce.getFlags().getAlliedVictory());
-            force.setFlag(W3I.Force.Flags.Flag.SHARED_VISION, wforce.getFlags().getSharedVision());
-            force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL, wforce.getFlags().getSharedControl());
-            force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL_ADVANCED, wforce.getFlags().getSharedControlAdvanced());
-            force.addPlayerNums(wforce.getPlayerIds());
+            force.setName(wforce.name());
+            force.setFlag(W3I.Force.Flags.Flag.ALLIED, wforce.flags().allied());
+            force.setFlag(W3I.Force.Flags.Flag.ALLIED_VICTORY, wforce.flags().alliedVictory());
+            force.setFlag(W3I.Force.Flags.Flag.SHARED_VISION, wforce.flags().sharedVision());
+            force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL, wforce.flags().sharedControl());
+            force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL_ADVANCED, wforce.flags().sharedControlAdvanced());
+            force.addPlayerNums(wforce.playerIds().stream().mapToInt(Integer::intValue).toArray());
             w3I.addForce(force);
         }
         w3I.setFlag(MapFlag.USE_CUSTOM_FORCES, true);
@@ -305,17 +305,17 @@ public class ProjectConfigBuilder {
     private static void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
         List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
         w3I.getPlayers().clear();
-        ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
+        List<WurstProjectBuildPlayer> players = projectConfig.buildMapData().players();
         for (WurstProjectBuildPlayer wplayer : players) {
             Optional<Player> old = Optional.empty();
             for (Player player2 : existing) {
-                if (player2.getNum() == wplayer.getId()) {
+                if (player2.getNum() == wplayer.id()) {
                     old = Optional.of(player2);
                     break;
                 }
             }
             W3I.Player player = new Player();
-            player.setNum(wplayer.getId());
+            player.setNum(wplayer.id());
             w3I.addPlayer(player);
 
             old.ifPresent(player1 -> applyExistingPlayerConfig(player1, player));
@@ -335,36 +335,36 @@ public class ProjectConfigBuilder {
     }
 
     private static void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
-        if (wplayer.getName() != null) {
-            player.setName(wplayer.getName());
+        if (wplayer.name() != null) {
+            player.setName(wplayer.name());
         }
 
-        if (wplayer.getRace() != null) {
-            W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
+        if (wplayer.race() != null) {
+            W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.race().toString());
             if (val != null) {
                 player.setRace(val);
             }
         }
-        if (wplayer.getController() != null) {
-            net.moonlightflower.wc3libs.dataTypes.app.Controller val1 = Controller.valueOf(wplayer.getController().toString());
+        if (wplayer.controller() != null) {
+            net.moonlightflower.wc3libs.dataTypes.app.Controller val1 = Controller.valueOf(wplayer.controller().toString());
             if (val1 != null) {
                 player.setType(val1);
             }
         }
-        if (wplayer.getFixedStartLoc() != null) {
-            player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
+        if (wplayer.fixedStartLoc() != null) {
+            player.setStartPosFixed(wplayer.fixedStartLoc() ? 1 : 0);
         }
     }
 
     private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         boolean shouldWrite = false;
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        if (!projectConfig.getBuildMapData().getPlayers().isEmpty()) {
-            mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
+        if (!projectConfig.buildMapData().players().isEmpty()) {
+            mapHeader.setMaxPlayersCount(projectConfig.buildMapData().players().size());
             shouldWrite = true;
         }
-        if (StringUtils.isNotBlank(projectConfig.getBuildMapData().getName())) {
-            mapHeader.setMapName(projectConfig.getBuildMapData().getName());
+        if (StringUtils.isNotBlank(projectConfig.buildMapData().name())) {
+            mapHeader.setMapName(projectConfig.buildMapData().name());
             shouldWrite = true;
         }
         if (shouldWrite) {

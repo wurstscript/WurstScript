@@ -178,7 +178,7 @@ tasks.register("jlinkRuntime25", Exec) {
                 "--no-header-files",
                 "--no-man-pages",
                 "--strip-debug",
-                "--compress=zip-6",
+                "--compress=zip-9",
                 "--output", outDir.absolutePath
     }
 }
