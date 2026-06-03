@@ -109,7 +109,7 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
     implementation 'com.github.inwc3:jmpq3:e28f6999c0'
-    implementation 'com.github.inwc3:wc3libs:a69318d921'
+    implementation 'com.github.inwc3:wc3libs:548f34a424'
     implementation 'com.github.wurstscript:wurst-project-config:2c7ccd1a5f'
     implementation('com.github.wurstscript:wurstsetup:393cf5ea39') {
         exclude group: 'org.eclipse.jgit', module: 'org.eclipse.jgit'
@@ -290,6 +290,21 @@ shadowJar {
     exclude 'it/unimi/dsi/fastutil/bytes/**'
     exclude 'it/unimi/dsi/fastutil/booleans/**'
     exclude 'it/unimi/dsi/fastutil/io/**'
+
+    // sqlite-jdbc bundles ~13.5 MB of native libs for 24 platforms. The compiler needs Java (64-bit only), so keep
+    // only the desktop platforms it actually runs on (Windows/macOS/Linux on x86_64 + aarch64, incl. Apple Silicon)
+    // and drop the rest (~10 MB saved). Keep this list in sync if sqlite-jdbc adds platforms.
+    exclude 'org/sqlite/native/FreeBSD/**'
+    exclude 'org/sqlite/native/Linux-Android/**'
+    exclude 'org/sqlite/native/Linux-Musl/**'
+    exclude 'org/sqlite/native/Linux/ppc64/**'
+    exclude 'org/sqlite/native/Linux/riscv64/**'
+    exclude 'org/sqlite/native/Linux/arm/**'
+    exclude 'org/sqlite/native/Linux/armv6/**'
+    exclude 'org/sqlite/native/Linux/armv7/**'
+    exclude 'org/sqlite/native/Linux/x86/**'
+    exclude 'org/sqlite/native/Windows/armv7/**'
+    exclude 'org/sqlite/native/Windows/x86/**'
 }
 
 def fatJar = shadowJar.archiveFile.map { it.asFile }

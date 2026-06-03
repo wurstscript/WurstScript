@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstio.utils.W3InstallationData;
@@ -10,6 +11,7 @@ import org.testng.annotations.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -124,21 +126,89 @@ public class MapRequestPatchTargetTests {
     public void gameVersionParseFailurePrintsShortMessageOnly() throws Exception {
         Path fakeExe = Files.writeString(Files.createTempFile("bad-warcraft", ".exe"), "not a PE file");
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         PrintStream previousOut = System.out;
+        PrintStream previousErr = System.err;
         try {
             System.setOut(new PrintStream(stdout, true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(stderr, true, StandardCharsets.UTF_8));
             W3InstallationData data = new W3InstallationData(Optional.of(fakeExe.toFile()), Optional.empty());
 
             assertFalse(data.getWc3PatchVersion().isPresent());
         } finally {
             System.setOut(previousOut);
+            System.setErr(previousErr);
         }
 
         String output = stdout.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("Could not parse game version from configured executable"));
-        assertFalse(output.contains("VersionExtractionException"), output);
-        assertFalse(output.contains("dorkbox.peParser"), output);
-        assertFalse(output.contains("\tat "), output);
+
+        // The wc3libs PE-parser trace previously leaked to stderr via printStackTrace; it must not appear on
+        // either stream. This guards the wc3libs dependency pin from regressing back to the noisy behaviour.
+        String combined = output + stderr.toString(StandardCharsets.UTF_8);
+        assertFalse(combined.contains("VersionExtractionException"), combined);
+        assertFalse(combined.contains("dorkbox.peParser"), combined);
+        assertFalse(combined.contains("\tat "), combined);
+    }
+
+    @Test
+    public void launchFailureMessageIsActionableWithoutStackTrace() throws Exception {
+        File exe = new File("C:\\Program Files (x86)\\Warcraft III\\Warcraft III.exe");
+        IOException failure = new IOException("Cannot run program \"" + exe.getAbsolutePath()
+            + "\": CreateProcess error=216, This version of %1 is not compatible with the version of Windows you're running.");
+
+        String message = launchFailureMessage(exe, failure);
+
+        assertTrue(message.contains(exe.getAbsolutePath()), message);
+        assertTrue(message.contains("wc3path"), message);
+        assertTrue(message.contains("wc3Patch"), message);
+        assertTrue(message.contains("error=216"), message);
+        // Must stay short and human-readable: no leaked stack trace.
+        assertFalse(message.contains("\tat "), message);
+        assertFalse(message.contains("VersionExtractionException"), message);
+    }
+
+    @Test
+    public void launchFailureMessageHandlesUnknownExecutable() throws Exception {
+        String message = launchFailureMessage(null, new IOException("CreateProcess error=216"));
+
+        assertTrue(message.contains("Could not launch Warcraft III"), message);
+        assertTrue(message.contains("wc3path"), message);
+        assertFalse(message.contains("null"), message);
+    }
+
+    private static String launchFailureMessage(File gameExe, IOException failure) throws Exception {
+        Method method = RunMap.class.getDeclaredMethod("launchFailureMessage", File.class, IOException.class);
+        method.setAccessible(true);
+        return (String) method.invoke(null, gameExe, failure);
+    }
+
+    @Test
+    public void patchComplianceRequiresKnownMatchingClientWhenPinned() throws Exception {
+        // No pinned patch: nothing to validate against, so any auto-detected client is acceptable.
+        assertTrue(isPatchCompliant(Optional.empty(), Optional.of(new GameVersion("1.31"))));
+        assertTrue(isPatchCompliant(Optional.empty(), Optional.empty()));
+
+        // Pinned Reforged: only a Reforged-family client is compliant.
+        assertTrue(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.of(GameVersion.VERSION_1_32)));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.of(new GameVersion("1.31"))));
+
+        // Pinned Classic: a 1.31 client matches; a pre-1.29 client does not.
+        assertTrue(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.of(new GameVersion("1.31"))));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.of(new GameVersion("1.28"))));
+
+        // Pinned patch but undetectable client version: treated as non-compliant so the user is asked to choose,
+        // rather than blind-launching a possibly-wrong client.
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.empty()));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.empty()));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.PRE_129), Optional.empty()));
+    }
+
+    private static boolean isPatchCompliant(Optional<WurstBuildConfig.Wc3Patch> projectKind,
+                                            Optional<GameVersion> clientVersion) throws Exception {
+        Method method = RunMap.class.getDeclaredMethod("isPatchCompliant", Optional.class, Optional.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(null, projectKind, clientVersion);
     }
 
     private static Path projectWithPatch(String patch) throws Exception {
