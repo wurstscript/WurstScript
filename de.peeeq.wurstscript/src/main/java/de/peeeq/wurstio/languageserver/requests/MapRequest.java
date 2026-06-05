@@ -2,7 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
@@ -79,6 +79,9 @@ public abstract class MapRequest extends UserRequest<Object> {
     public static final String BUILD_COMPILED_LUA_NAME = "02_compiled.lua";
     public static final String BUILD_JHCR_SCRIPT_NAME = "03_jhcr_war3map.j";
 
+    /** RunArgs flag (see {@link RunArgs}) that relaxes Jass type checks and skips PJass; injected for pre-1.24 targets. */
+    private static final String LEGACY_JASS_CHECKS_ARG = "-legacyJassChecks";
+
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
@@ -102,11 +105,21 @@ public abstract class MapRequest extends UserRequest<Object> {
                       Optional<String> wc3Path, Optional<String> gameExePath) {
         this.langServer = langServer;
         this.map = map;
-        this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
-        this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
         this.buildConfig = WurstBuildConfig.fromWorkspaceRoot(workspaceRoot);
+        // Patches before 1.24 ship Blizzard common.j/blizzard.j with type mismatches that the
+        // Jass VM tolerates (e.g. a real returned where an integer is declared). Relax Jass type
+        // checks and skip PJass for such targets so these stock scripts compile. Carry the flag
+        // through compileArgs so every RunArgs rebuilt from it (compileScript/compileMap) sees it,
+        // not just this request-level field.
+        if (buildConfig.isPre124() && !compileArgs.contains(LEGACY_JASS_CHECKS_ARG)) {
+            List<String> legacyArgs = new ArrayList<>(compileArgs);
+            legacyArgs.add(LEGACY_JASS_CHECKS_ARG);
+            compileArgs = legacyArgs;
+        }
+        this.compileArgs = compileArgs;
+        this.runArgs = new RunArgs(compileArgs);
         if (gameExePath.isPresent() && StringUtils.isNotBlank(gameExePath.get())) {
             Optional<GameVersion> configuredVersion = this instanceof RunMap
                 ? Optional.empty()
@@ -198,7 +211,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 File outFile = new File(buildDir, BUILD_COMPILED_JASS_NAME);
                 Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
 
-                if (!runArgs.isDisablePjass()) {
+                if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
                     gui.sendProgress("Running PJass");
                     timeTaker.beginPhase("Pjass execution");
                     Pjass.Result pJassResult = Pjass.runPjass(outFile,
@@ -787,8 +800,8 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private static File getBuildOutputMapFile(WurstProjectConfigData projectConfig, File buildDir) {
-        String fileName = projectConfig.getBuildMapData().getFileName();
-        return new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
+        String fileName = projectConfig.buildMapData().fileName();
+        return new File(buildDir, fileName.isEmpty() ? projectConfig.projectName() + ".w3x" : fileName + ".w3x");
     }
 
     private static boolean startsWith(byte[] data, byte[] prefix) {

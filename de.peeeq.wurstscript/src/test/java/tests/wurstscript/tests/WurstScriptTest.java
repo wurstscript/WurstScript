@@ -2,7 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
@@ -90,6 +90,7 @@ public class WurstScriptTest {
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
+        private boolean legacyJassTypeChecks = false;
 
         TestConfig(String name) {
             this.name = name;
@@ -149,6 +150,15 @@ public class WurstScriptTest {
 
         public TestConfig uncheckedDispatch(boolean b) {
             this.uncheckedDispatch = b;
+            return this;
+        }
+
+        public TestConfig legacyJassTypeChecks() {
+            return legacyJassTypeChecks(true);
+        }
+
+        public TestConfig legacyJassTypeChecks(boolean b) {
+            this.legacyJassTypeChecks = b;
             return this;
         }
 
@@ -220,6 +230,9 @@ public class WurstScriptTest {
             }
             if (runCompiletimeFunctions) {
                 runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+            if (legacyJassTypeChecks) {
+                runArgs.setLegacyJassTypeChecks(true);
             }
 
             WurstGui gui = new WurstGuiCliImpl();
@@ -484,7 +497,7 @@ public class WurstScriptTest {
 
             compiler.translateProgToIm(model);
 
-            compiler.runCompiletime(new WurstProjectConfigData(), false, false);
+            compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             checkLuaRootPurity(luaCode);
@@ -903,7 +916,7 @@ public class WurstScriptTest {
             }
         }
 
-        compiler.runCompiletime(new WurstProjectConfigData(), false, false);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {

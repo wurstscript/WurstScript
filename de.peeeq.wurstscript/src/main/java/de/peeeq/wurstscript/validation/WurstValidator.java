@@ -58,8 +58,20 @@ public class WurstValidator {
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
 
+    /**
+     * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
+     * Jass contains return-type mismatches the Jass VM tolerates. Such mismatches in
+     * input Jass are reported as warnings instead of errors.
+     */
+    private final boolean legacyJassTypeChecks;
+
     public WurstValidator(WurstModel root) {
+        this(root, false);
+    }
+
+    public WurstValidator(WurstModel root, boolean legacyJassTypeChecks) {
         this.prog = root;
+        this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
     public void validate(Collection<CompilationUnit> toCheck) {
@@ -2103,6 +2115,17 @@ public class WurstValidator {
                         (returnType instanceof WurstTypeBoundTypeParam || returnType instanceof WurstTypeTypeParam)) {
                         // Allow null return for generic type parameters
                         // The translator will handle substituting default values for primitives
+                        return;
+                    }
+
+                    if (legacyJassTypeChecks && Utils.isJassCode(s)) {
+                        // Pre-1.24 Blizzard common.j/blizzard.j contain functions that
+                        // return a value whose type does not match the declared return type
+                        // (e.g. returning a trigger as event, a real as integer, or a widget
+                        // as destructable). The weakly-typed Jass VM tolerates these, and we
+                        // cannot edit the game-provided scripts, so for legacy targets we
+                        // downgrade to a warning for input Jass instead of failing the build.
+                        s.addWarning("Cannot return " + returnedType + ", expected expression of type " + returnType);
                         return;
                     }
 

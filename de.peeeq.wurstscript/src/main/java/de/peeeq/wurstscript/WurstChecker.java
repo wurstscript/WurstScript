@@ -16,10 +16,16 @@ public class WurstChecker {
 
     private final WurstGui gui;
     private final ErrorHandler errorHandler;
+    private final boolean legacyJassTypeChecks;
 
     public WurstChecker(WurstGui gui, ErrorHandler errorHandler) {
+        this(gui, errorHandler, false);
+    }
+
+    public WurstChecker(WurstGui gui, ErrorHandler errorHandler, boolean legacyJassTypeChecks) {
         this.gui = gui;
         this.errorHandler = errorHandler;
+        this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
     public void checkProg(WurstModel root, Collection<CompilationUnit> toCheck) {
@@ -48,7 +54,7 @@ public class WurstChecker {
 
 
         // validate the resource:
-        WurstValidator validator = new WurstValidator(root);
+        WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
         validator.validate(toCheck);
     }
 

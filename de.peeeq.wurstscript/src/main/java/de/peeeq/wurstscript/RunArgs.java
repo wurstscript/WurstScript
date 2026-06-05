@@ -46,6 +46,7 @@ public class RunArgs {
     private final RunOption optionFixInstall;
     private final RunOption optionCopyMap;
     private final RunOption optionDisablePjass;
+    private final RunOption optionLegacyJassChecks;
     private final RunOption optionShowVersion;
     private final RunOption optionPrettyPrint;
     private final RunOption optionMeasureTimes;
@@ -55,11 +56,22 @@ public class RunArgs {
     private final RunOption optionTestTimeout;
     private int functionSplitLimit = 10000;
 
+    /**
+     * When set, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
+     * common.j/blizzard.j contain type mismatches the weakly-typed Jass VM tolerates
+     * (e.g. returning a real where an integer is declared). For such targets, Jass
+     * return-type mismatches are downgraded to warnings and PJass is skipped on the
+     * generated script, since PJass would reject the same Blizzard code.
+     */
+    private boolean legacyJassTypeChecks = false;
+
     private final RunOption optionBuild;
 
     public RunArgs with(String... additionalArgs) {
-        return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
+        RunArgs result = new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
                 .toArray(String[]::new));
+        result.legacyJassTypeChecks = this.legacyJassTypeChecks;
+        return result;
     }
 
     private static class RunOption {
@@ -126,6 +138,8 @@ public class RunArgs {
 
         optionHelp = addOption("help", "Prints this help message.");
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
+        optionLegacyJassChecks = addOption("legacyJassChecks", "Relax Jass type checks for legacy (pre-1.24) targets whose Blizzard-provided "
+                + "common.j/blizzard.j contain return-type mismatches the Jass VM tolerates. Also skips PJass on the generated script.");
         optionHotStartmap = addOption("hotstart", "Uses Jass Hot Code Reload (JHCR) to start the map.");
         optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
 
@@ -242,6 +256,15 @@ public class RunArgs {
 
     public void setMapFile(String file) {
         mapFile = file;
+    }
+
+    /** See {@link #legacyJassTypeChecks}. Set via the {@code -legacyJassChecks} flag or programmatically. */
+    public boolean isLegacyJassTypeChecks() {
+        return legacyJassTypeChecks || optionLegacyJassChecks.isSet;
+    }
+
+    public void setLegacyJassTypeChecks(boolean legacyJassTypeChecks) {
+        this.legacyJassTypeChecks = legacyJassTypeChecks;
     }
 
     public @Nullable String getOutFile() {

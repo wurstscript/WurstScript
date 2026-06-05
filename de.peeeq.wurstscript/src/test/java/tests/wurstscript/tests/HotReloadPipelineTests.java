@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -228,7 +228,7 @@ public class HotReloadPipelineTests {
             new ModelManagerImpl(projectFolder, new BufferManager()),
             new WurstGuiLogger(),
             Optional.empty(),
-            new WurstProjectConfigData()
+            WurstProjectConfigData.empty()
         );
 
         assertEquals(result.script.getCanonicalFile(), war3mapJ.getCanonicalFile());

@@ -1,6 +1,6 @@
 package de.peeeq.wurstio;
 
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -85,7 +85,7 @@ public class CompilationProcess {
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout(), runArgs.getTestFilter()));
         }
 
-        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(new WurstProjectConfigData(), isProd, false));
+        timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(WurstProjectConfigData.empty(), isProd, false));
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
             compiler::transformProgToJass);
@@ -107,7 +107,7 @@ public class CompilationProcess {
         File outputMapscript = timeTaker.measure("Print Jass",
                 () -> writeMapscript(mapScript));
 
-        if (!runArgs.isDisablePjass()) {
+        if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
             boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
             if (pjassError) return null;

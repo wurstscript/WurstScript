@@ -2,8 +2,8 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import config.WurstProjectConfig;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -64,7 +64,7 @@ public class RunMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + modelManager.getFirstErrorDescription());
         }
 
-        WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
+        WurstProjectConfigData projectConfig = WurstProjectConfigReader.load(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
         if (projectConfig == null) {
             throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
                 "Please install your project using grill or the wurst setup tool.");
@@ -77,6 +77,9 @@ public class RunMap extends MapRequest {
         } catch (CompileError e) {
             WLogger.info(e);
             throw new RequestFailedException(MessageType.Error, "A compilation error occurred when running the map:\n" + e);
+        } catch (RequestFailedException e) {
+            // Already carries an actionable message and the intended MessageType; don't bury it in a generic wrapper.
+            throw e;
         } catch (Exception e) {
             WLogger.warning("Exception occurred", e);
             throw new RequestFailedException(MessageType.Error, "An exception was thrown when running the map:\n" + e);
@@ -138,70 +141,137 @@ public class RunMap extends MapRequest {
         timeTaker.beginPhase("Starting Warcraft 3");
         gui.sendProgress("Starting Warcraft 3...");
 
-        File mapCopy = cachedMapFile.get();
         W3InstallationData launchData = resolveLaunchData();
         if (launchData == null) {
             throw new RequestFailedException(MessageType.Info, "Run canceled.");
         }
-        Optional<GameVersion> detectedGameVersion = launchData.getWc3PatchVersion();
-        if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
-            mapCopy = copyToWarcraftMapDir(cachedMapFile.get(), launchData);
-        }
 
+        // The auto-detected installation may be stale/incompatible (e.g. an old root launcher stub that the OS
+        // refuses to start). When launching fails, surface an actionable message and let the user pick a different
+        // Warcraft III folder, then retry with that selection (which also re-decides map placement).
+        while (true) {
+            try {
+                launchGame(gui, launchData, cachedMapFile.get());
+                timeTaker.endPhase();
+                timeTaker.printReport();
+                return;
+            } catch (IOException e) {
+                WLogger.warning("Could not launch Warcraft III", e);
+                launchData = resolveLaunchData(recoverFromLaunchFailure(launchData, e));
+                if (launchData == null) {
+                    throw new RequestFailedException(MessageType.Info, "Run canceled.");
+                }
+            }
+        }
+    }
+
+    private void launchGame(WurstGui gui, W3InstallationData launchData, File cachedMapFile) throws IOException {
+        Optional<GameVersion> detectedGameVersion = launchData.getWc3PatchVersion();
+        File mapCopy = cachedMapFile;
+        if (buildConfig.shouldCopyRunMapToWarcraftMapDir(detectedGameVersion)) {
+            mapCopy = copyToWarcraftMapDir(cachedMapFile, launchData);
+        }
 
         WLogger.info("Starting wc3 ... ");
         String path = "";
         if (customTarget != null) {
-            path = new File(customTarget, cachedMapFile.get().getName()).getAbsolutePath();
+            path = new File(customTarget, cachedMapFile.getName()).getAbsolutePath();
         } else if (mapCopy != null) {
             path = mapCopy.getAbsolutePath();
         }
 
-
-        if (!path.isEmpty()) {
-            // now start the map
-            File gameExe = launchData.getGameExe()
-                .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
-            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
-            Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
-            if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
-                if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
-                    cmd.add("-launch");
-                }
-                if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {
-                    cmd.add("-window");
-                } else {
-                    cmd.add("-windowmode");
-                    cmd.add("windowed");
-                }
-            } else {
-                cmd.addAll(Arrays.asList(wc3RunArgs.get().split("\\s+")));
-            }
-            cmd.add("-loadfile");
-            cmd.add(path);
-
-            if (Orient.isLinuxSystem()) {
-                // run with wine
-                cmd.add(0, "wine");
-            }
-            timeTaker.endPhase();
-
-            gui.sendProgress("running " + cmd);
-            Runtime.getRuntime().exec(cmd.toArray(new String[0]));
-            timeTaker.endPhase();
-            timeTaker.printReport();
+        if (path.isEmpty()) {
+            return;
         }
+
+        // now start the map
+        File gameExe = launchData.getGameExe()
+            .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
+        List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion);
+
+        gui.sendProgress("running " + cmd);
+        Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+    }
+
+    private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion) {
+        List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
+        Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
+        if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
+            if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
+                cmd.add("-launch");
+            }
+            if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {
+                cmd.add("-window");
+            } else {
+                cmd.add("-windowmode");
+                cmd.add("windowed");
+            }
+        } else {
+            cmd.addAll(Arrays.asList(wc3RunArgs.get().split("\\s+")));
+        }
+        cmd.add("-loadfile");
+        cmd.add(mapPath);
+
+        if (Orient.isLinuxSystem()) {
+            // run with wine
+            cmd.add(0, "wine");
+        }
+        return cmd;
+    }
+
+    /**
+     * Turns a launch failure into something the user can act on. In interactive mode the user may pick a different
+     * Warcraft III folder to retry; otherwise (headless/CLI) a clear error is raised. Cancelling stops the run quietly.
+     */
+    private W3InstallationData recoverFromLaunchFailure(W3InstallationData launchData, IOException failure) {
+        String message = launchFailureMessage(launchData.getGameExe().orElse(null), failure);
+        WLogger.warning(message);
+        if (GraphicsEnvironment.isHeadless()) {
+            throw new RequestFailedException(MessageType.Error, message);
+        }
+        Object[] options = {"Choose Warcraft III folder", "Cancel"};
+        int result = JOptionPane.showOptionDialog(
+            null,
+            message,
+            "Could not launch Warcraft III",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.ERROR_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        if (result != 0) {
+            throw new RequestFailedException(MessageType.Info, "Run canceled.");
+        }
+        return chooseAlternateGamePath()
+            .orElseThrow(() -> new RequestFailedException(MessageType.Info, "Run canceled."));
+    }
+
+    static String launchFailureMessage(@Nullable File gameExe, IOException failure) {
+        String exeText = gameExe != null ? gameExe.getAbsolutePath() : "the auto-detected Warcraft III executable";
+        StringBuilder message = new StringBuilder();
+        message.append("Could not launch Warcraft III.\n\n");
+        message.append("Auto-detected executable: ").append(exeText).append("\n");
+        String reason = failure.getMessage();
+        if (reason != null && !reason.isBlank()) {
+            message.append("The operating system refused to start it: ").append(reason.trim()).append("\n");
+        }
+        message.append("\nThis usually means an outdated or incompatible Warcraft III installation was auto-detected. ");
+        message.append("Select a different Warcraft III folder, set \"wc3path\" in your Wurst settings, ");
+        message.append("or pin \"wc3Patch\" in wurst.build.");
+        return message.toString();
     }
 
     private W3InstallationData resolveLaunchData() {
-        W3InstallationData launchData = w3data;
-        while (shouldWarnClientPatchMismatch(launchData)) {
-            String projectTarget = buildConfig.wc3PatchName().orElse("configured patch");
-            String clientTarget = launchData.getWc3PatchVersion()
-                .map(RunMap::describeClientVersion)
-                .orElse("unknown Warcraft III version");
-            String message = "This project targets " + projectTarget + ", but the selected Warcraft III client looks like "
-                + clientTarget + ". The map may not start correctly.";
+        return resolveLaunchData(w3data);
+    }
+
+    @Nullable
+    protected W3InstallationData resolveLaunchData(W3InstallationData launchData) {
+        // When the project pins a wc3Patch, only auto-launch an install we can confirm is patch-compliant.
+        // A mismatching OR unverifiable client is delegated to the user instead of "randomly" launching and failing.
+        while (!isLaunchDataPatchCompliant(launchData)) {
+            String message = patchComplianceMessage(launchData);
             WLogger.warning(message);
 
             MismatchChoice choice = chooseMismatchAction(message);
@@ -217,19 +287,42 @@ public class RunMap extends MapRequest {
             }
             launchData = selected.get();
         }
-        if (buildConfig.wc3Patch().isPresent() && launchData.getWc3PatchVersion().isEmpty()) {
-            WLogger.warning("Could not determine Warcraft III client version. If the map does not start, select a matching Warcraft III installation.");
-        }
         return launchData;
     }
 
-    private boolean shouldWarnClientPatchMismatch(W3InstallationData launchData) {
-        Optional<WurstBuildConfig.Wc3Patch> projectKind = buildConfig.wc3Patch();
-        Optional<GameVersion> clientVersion = launchData.getWc3PatchVersion();
-        if (projectKind.isEmpty() || clientVersion.isEmpty()) {
+    private boolean isLaunchDataPatchCompliant(W3InstallationData launchData) {
+        return isPatchCompliant(buildConfig.wc3Patch(), launchData.getWc3PatchVersion());
+    }
+
+    /**
+     * A launch install is patch-compliant when the project pins no patch (nothing to validate against), or the
+     * detected client version is known and belongs to the same patch family as the pinned {@code wc3Patch}. An
+     * unknown client version against a pinned patch is treated as non-compliant so the user is asked to choose,
+     * rather than launching a client that may silently fail to start.
+     */
+    static boolean isPatchCompliant(Optional<WurstBuildConfig.Wc3Patch> projectKind, Optional<GameVersion> clientVersion) {
+        if (projectKind.isEmpty()) {
+            return true;
+        }
+        if (clientVersion.isEmpty()) {
             return false;
         }
-        return projectKind.get() != kindForVersion(clientVersion.get());
+        return projectKind.get() == kindForVersion(clientVersion.get());
+    }
+
+    private String patchComplianceMessage(W3InstallationData launchData) {
+        String projectTarget = buildConfig.wc3PatchName().orElse("configured patch");
+        Optional<GameVersion> clientVersion = launchData.getWc3PatchVersion();
+        if (clientVersion.isPresent()) {
+            return "This project targets " + projectTarget + ", but the selected Warcraft III client looks like "
+                + describeClientVersion(clientVersion.get()) + ".\n\n"
+                + "Choose a matching Warcraft III folder, or set \"wc3path\".";
+        }
+        String exe = launchData.getGameExe().map(File::getAbsolutePath).orElse("the auto-detected installation");
+        return "This project targets " + projectTarget + ", but the version of the auto-detected Warcraft III could not "
+            + "be determined:\n" + exe + "\n\n"
+            + "Choose your Warcraft III folder (or set \"wc3path\") so a matching client is used, "
+            + "instead of launching one that may not start.";
     }
 
     private static WurstBuildConfig.Wc3Patch kindForVersion(GameVersion version) {
@@ -246,7 +339,7 @@ public class RunMap extends MapRequest {
         return kindForVersion(version) + " (" + version + ")";
     }
 
-    private MismatchChoice chooseMismatchAction(String message) {
+    protected MismatchChoice chooseMismatchAction(String message) {
         if (GraphicsEnvironment.isHeadless()) {
             return MismatchChoice.CONTINUE;
         }
@@ -270,7 +363,7 @@ public class RunMap extends MapRequest {
         return MismatchChoice.CONTINUE;
     }
 
-    private Optional<W3InstallationData> chooseAlternateGamePath() {
+    protected Optional<W3InstallationData> chooseAlternateGamePath() {
         if (GraphicsEnvironment.isHeadless()) {
             return Optional.empty();
         }
@@ -285,7 +378,7 @@ public class RunMap extends MapRequest {
         return Optional.of(new W3InstallationData(langServer, selectedFolder, true, Optional.empty()));
     }
 
-    private enum MismatchChoice {
+    protected enum MismatchChoice {
         CONTINUE,
         CHOOSE_OTHER,
         CANCEL

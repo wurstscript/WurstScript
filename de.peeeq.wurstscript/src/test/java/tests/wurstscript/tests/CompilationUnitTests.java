@@ -138,4 +138,61 @@ public class CompilationUnitTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Pre-1.24 Blizzard common.j/blizzard.j contain return-type mismatches that the
+     * weakly-typed Jass VM tolerates (e.g. returning a real where an integer is declared).
+     * For legacy targets these must not fail the build for input Jass; they are reported
+     * as warnings instead.
+     */
+    @Test
+    public void jassReturnTypeMismatchIsWarningForLegacyTarget() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .legacyJassTypeChecks()
+            .expectWarning("Cannot return")
+            .compilationUnits(
+                compilationUnit("blizzard.j",
+                    // real returned where integer is declared (cf. GetFadeFromSeconds)
+                    "function getFadeFromSeconds takes real seconds returns integer",
+                    "    return 128 / seconds",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** Without a legacy target, the same Jass mismatch must remain a hard error. */
+    @Test
+    public void jassReturnTypeMismatchIsErrorByDefault() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectError("Cannot return")
+            .compilationUnits(
+                compilationUnit("blizzard.j",
+                    "function getFadeFromSeconds takes real seconds returns integer",
+                    "    return 128 / seconds",
+                    "endfunction"
+                )
+            );
+    }
+
+    /** The same return-type mismatch in user Wurst code must always be an error. */
+    @Test
+    public void wurstReturnTypeMismatchIsError() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .legacyJassTypeChecks()
+            .expectError("Cannot return")
+            .compilationUnits(
+                compilationUnit("mylib.wurst",
+                    "package mylib",
+                    "function badReturn() returns int",
+                    "    return 1.5",
+                    "endpackage"
+                )
+            );
+    }
+
 }

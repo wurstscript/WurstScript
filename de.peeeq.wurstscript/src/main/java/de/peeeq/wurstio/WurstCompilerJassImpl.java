@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -81,7 +81,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
         this.parser = new WurstParser(errorHandler, gui);
-        this.checker = new WurstChecker(gui, errorHandler);
+        this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
         this.mapFileMpq = mapFileMpq;
     }
 

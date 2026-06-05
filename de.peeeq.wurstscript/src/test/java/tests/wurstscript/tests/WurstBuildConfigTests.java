@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import config.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
@@ -230,7 +230,7 @@ public class WurstBuildConfigTests {
             File.class
         );
         method.setAccessible(true);
-        return (String) method.invoke(null, new WurstProjectConfigData(), buildDir);
+        return (String) method.invoke(null, WurstProjectConfigData.empty(), buildDir);
     }
 
     private static GameVersion effectiveConfigInjectionVersion(

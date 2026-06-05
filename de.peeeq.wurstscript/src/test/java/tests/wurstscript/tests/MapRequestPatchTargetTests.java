@@ -2,14 +2,17 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstio.utils.W3InstallationData;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -124,21 +127,129 @@ public class MapRequestPatchTargetTests {
     public void gameVersionParseFailurePrintsShortMessageOnly() throws Exception {
         Path fakeExe = Files.writeString(Files.createTempFile("bad-warcraft", ".exe"), "not a PE file");
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         PrintStream previousOut = System.out;
+        PrintStream previousErr = System.err;
         try {
             System.setOut(new PrintStream(stdout, true, StandardCharsets.UTF_8));
+            System.setErr(new PrintStream(stderr, true, StandardCharsets.UTF_8));
             W3InstallationData data = new W3InstallationData(Optional.of(fakeExe.toFile()), Optional.empty());
 
             assertFalse(data.getWc3PatchVersion().isPresent());
         } finally {
             System.setOut(previousOut);
+            System.setErr(previousErr);
         }
 
         String output = stdout.toString(StandardCharsets.UTF_8);
         assertTrue(output.contains("Could not parse game version from configured executable"));
-        assertFalse(output.contains("VersionExtractionException"), output);
-        assertFalse(output.contains("dorkbox.peParser"), output);
-        assertFalse(output.contains("\tat "), output);
+
+        // The wc3libs PE-parser trace previously leaked to stderr via printStackTrace; it must not appear on
+        // either stream. This guards the wc3libs dependency pin from regressing back to the noisy behaviour.
+        String combined = output + stderr.toString(StandardCharsets.UTF_8);
+        assertFalse(combined.contains("VersionExtractionException"), combined);
+        assertFalse(combined.contains("dorkbox.peParser"), combined);
+        assertFalse(combined.contains("\tat "), combined);
+    }
+
+    @Test
+    public void launchFailureMessageIsActionableWithoutStackTrace() throws Exception {
+        File exe = new File("C:\\Program Files (x86)\\Warcraft III\\Warcraft III.exe");
+        IOException failure = new IOException("Cannot run program \"" + exe.getAbsolutePath()
+            + "\": CreateProcess error=216, This version of %1 is not compatible with the version of Windows you're running.");
+
+        String message = launchFailureMessage(exe, failure);
+
+        assertTrue(message.contains(exe.getAbsolutePath()), message);
+        assertTrue(message.contains("wc3path"), message);
+        assertTrue(message.contains("wc3Patch"), message);
+        assertTrue(message.contains("error=216"), message);
+        // Must stay short and human-readable: no leaked stack trace.
+        assertFalse(message.contains("\tat "), message);
+        assertFalse(message.contains("VersionExtractionException"), message);
+    }
+
+    @Test
+    public void launchFailureMessageHandlesUnknownExecutable() throws Exception {
+        String message = launchFailureMessage(null, new IOException("CreateProcess error=216"));
+
+        assertTrue(message.contains("Could not launch Warcraft III"), message);
+        assertTrue(message.contains("wc3path"), message);
+        assertFalse(message.contains("null"), message);
+    }
+
+    private static String launchFailureMessage(File gameExe, IOException failure) throws Exception {
+        Method method = RunMap.class.getDeclaredMethod("launchFailureMessage", File.class, IOException.class);
+        method.setAccessible(true);
+        return (String) method.invoke(null, gameExe, failure);
+    }
+
+    @Test
+    public void patchComplianceRequiresKnownMatchingClientWhenPinned() throws Exception {
+        // No pinned patch: nothing to validate against, so any auto-detected client is acceptable.
+        assertTrue(isPatchCompliant(Optional.empty(), Optional.of(new GameVersion("1.31"))));
+        assertTrue(isPatchCompliant(Optional.empty(), Optional.empty()));
+
+        // Pinned Reforged: only a Reforged-family client is compliant.
+        assertTrue(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.of(GameVersion.VERSION_1_32)));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.of(new GameVersion("1.31"))));
+
+        // Pinned Classic: a 1.31 client matches; a pre-1.29 client does not.
+        assertTrue(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.of(new GameVersion("1.31"))));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.of(new GameVersion("1.28"))));
+
+        // Pinned patch but undetectable client version: treated as non-compliant so the user is asked to choose,
+        // rather than blind-launching a possibly-wrong client.
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.REFORGED), Optional.empty()));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.CLASSIC), Optional.empty()));
+        assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.PRE_129), Optional.empty()));
+    }
+
+    @Test
+    public void retryLaunchSelectionRechecksPatchCompliance() throws Exception {
+        Path project = projectWithPatch("v1.27b");
+        W3InstallationData reforgedRetry = installationData("warcraft-reforged-retry", "Warcraft III.exe", GameVersion.VERSION_1_32);
+        W3InstallationData legacySelection = installationData("warcraft-legacy-selection", "war3.exe", new GameVersion("1.27"));
+        Path fakeInitialExe = Files.writeString(Files.createTempFile("not-warcraft-initial", ".exe"), "not a PE file");
+
+        PatchComplianceRunMap request = new PatchComplianceRunMap(project, legacySelection, fakeInitialExe.toString());
+
+        W3InstallationData resolved = request.resolveAfterRetry(reforgedRetry);
+
+        assertEquals(request.mismatchPrompts, 1);
+        assertEquals(
+            resolved.getGameExe().orElseThrow().getAbsoluteFile(),
+            legacySelection.getGameExe().orElseThrow().getAbsoluteFile()
+        );
+    }
+
+    private static W3InstallationData installationData(String folderPrefix, String exeName, GameVersion version) throws IOException {
+        Path install = Files.createTempDirectory(folderPrefix);
+        Path exe = Files.writeString(install.resolve(exeName), "not a PE file");
+        return new W3InstallationData(Optional.of(exe.toFile()), Optional.of(version));
+    }
+
+    private static boolean isPatchCompliant(Optional<WurstBuildConfig.Wc3Patch> projectKind,
+                                            Optional<GameVersion> clientVersion) throws Exception {
+        Method method = RunMap.class.getDeclaredMethod("isPatchCompliant", Optional.class, Optional.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(null, projectKind, clientVersion);
+    }
+
+    @Test
+    public void pre124PatchPropagatesLegacyJassChecksToCompileArgs() throws Exception {
+        // Pre-1.24: the flag must be carried in compileArgs so the fresh RunArgs that
+        // compileScript/compileMap build (RunArgs(compileArgs)) actually relaxes Jass checks + skips PJass.
+        TestMapRequest legacy = new TestMapRequest(projectWithPatch("v1.23"), Optional.empty(), Optional.empty());
+        assertTrue(legacy.exposedCompileArgs().contains("-legacyJassChecks"),
+            "pre-1.24 build must carry -legacyJassChecks in compileArgs: " + legacy.exposedCompileArgs());
+        assertTrue(new RunArgs(legacy.exposedCompileArgs().toArray(new String[0])).isLegacyJassTypeChecks(),
+            "a RunArgs rebuilt from compileArgs must report legacy Jass checks");
+
+        // Modern target: flag must not be injected.
+        TestMapRequest modern = new TestMapRequest(projectWithPatch("v2.0"), Optional.empty(), Optional.empty());
+        assertFalse(modern.exposedCompileArgs().contains("-legacyJassChecks"),
+            "modern build must not carry the legacy flag: " + modern.exposedCompileArgs());
     }
 
     private static Path projectWithPatch(String patch) throws Exception {
@@ -164,6 +275,10 @@ public class MapRequestPatchTargetTests {
             return w3data.getGameExe();
         }
 
+        List<String> exposedCompileArgs() {
+            return compileArgs;
+        }
+
         @Override
         public Object execute(ModelManager modelManager) {
             return null;
@@ -181,6 +296,31 @@ public class MapRequestPatchTargetTests {
 
         Optional<File> gameExe() {
             return w3data.getGameExe();
+        }
+    }
+
+    private static final class PatchComplianceRunMap extends RunMap {
+        private final W3InstallationData alternateSelection;
+        private int mismatchPrompts = 0;
+
+        PatchComplianceRunMap(Path projectRoot, W3InstallationData alternateSelection, String gameExePath) {
+            super(null, WFile.create(projectRoot), Optional.empty(), Optional.empty(), List.of(), Optional.of(gameExePath));
+            this.alternateSelection = alternateSelection;
+        }
+
+        W3InstallationData resolveAfterRetry(W3InstallationData retrySelection) {
+            return resolveLaunchData(retrySelection);
+        }
+
+        @Override
+        protected MismatchChoice chooseMismatchAction(String message) {
+            mismatchPrompts++;
+            return MismatchChoice.CHOOSE_OTHER;
+        }
+
+        @Override
+        protected Optional<W3InstallationData> chooseAlternateGamePath() {
+            return Optional.of(alternateSelection);
         }
     }
 }
