@@ -157,7 +157,10 @@ public class RunMap extends MapRequest {
                 return;
             } catch (IOException e) {
                 WLogger.warning("Could not launch Warcraft III", e);
-                launchData = recoverFromLaunchFailure(launchData, e);
+                launchData = resolveLaunchData(recoverFromLaunchFailure(launchData, e));
+                if (launchData == null) {
+                    throw new RequestFailedException(MessageType.Info, "Run canceled.");
+                }
             }
         }
     }
@@ -260,7 +263,11 @@ public class RunMap extends MapRequest {
     }
 
     private W3InstallationData resolveLaunchData() {
-        W3InstallationData launchData = w3data;
+        return resolveLaunchData(w3data);
+    }
+
+    @Nullable
+    protected W3InstallationData resolveLaunchData(W3InstallationData launchData) {
         // When the project pins a wc3Patch, only auto-launch an install we can confirm is patch-compliant.
         // A mismatching OR unverifiable client is delegated to the user instead of "randomly" launching and failing.
         while (!isLaunchDataPatchCompliant(launchData)) {
@@ -332,7 +339,7 @@ public class RunMap extends MapRequest {
         return kindForVersion(version) + " (" + version + ")";
     }
 
-    private MismatchChoice chooseMismatchAction(String message) {
+    protected MismatchChoice chooseMismatchAction(String message) {
         if (GraphicsEnvironment.isHeadless()) {
             return MismatchChoice.CONTINUE;
         }
@@ -356,7 +363,7 @@ public class RunMap extends MapRequest {
         return MismatchChoice.CONTINUE;
     }
 
-    private Optional<W3InstallationData> chooseAlternateGamePath() {
+    protected Optional<W3InstallationData> chooseAlternateGamePath() {
         if (GraphicsEnvironment.isHeadless()) {
             return Optional.empty();
         }
@@ -371,7 +378,7 @@ public class RunMap extends MapRequest {
         return Optional.of(new W3InstallationData(langServer, selectedFolder, true, Optional.empty()));
     }
 
-    private enum MismatchChoice {
+    protected enum MismatchChoice {
         CONTINUE,
         CHOOSE_OTHER,
         CANCEL

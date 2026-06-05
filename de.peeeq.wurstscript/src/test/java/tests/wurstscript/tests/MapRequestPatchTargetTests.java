@@ -205,6 +205,30 @@ public class MapRequestPatchTargetTests {
         assertFalse(isPatchCompliant(Optional.of(WurstBuildConfig.Wc3Patch.PRE_129), Optional.empty()));
     }
 
+    @Test
+    public void retryLaunchSelectionRechecksPatchCompliance() throws Exception {
+        Path project = projectWithPatch("v1.27b");
+        W3InstallationData reforgedRetry = installationData("warcraft-reforged-retry", "Warcraft III.exe", GameVersion.VERSION_1_32);
+        W3InstallationData legacySelection = installationData("warcraft-legacy-selection", "war3.exe", new GameVersion("1.27"));
+        Path fakeInitialExe = Files.writeString(Files.createTempFile("not-warcraft-initial", ".exe"), "not a PE file");
+
+        PatchComplianceRunMap request = new PatchComplianceRunMap(project, legacySelection, fakeInitialExe.toString());
+
+        W3InstallationData resolved = request.resolveAfterRetry(reforgedRetry);
+
+        assertEquals(request.mismatchPrompts, 1);
+        assertEquals(
+            resolved.getGameExe().orElseThrow().getAbsoluteFile(),
+            legacySelection.getGameExe().orElseThrow().getAbsoluteFile()
+        );
+    }
+
+    private static W3InstallationData installationData(String folderPrefix, String exeName, GameVersion version) throws IOException {
+        Path install = Files.createTempDirectory(folderPrefix);
+        Path exe = Files.writeString(install.resolve(exeName), "not a PE file");
+        return new W3InstallationData(Optional.of(exe.toFile()), Optional.of(version));
+    }
+
     private static boolean isPatchCompliant(Optional<WurstBuildConfig.Wc3Patch> projectKind,
                                             Optional<GameVersion> clientVersion) throws Exception {
         Method method = RunMap.class.getDeclaredMethod("isPatchCompliant", Optional.class, Optional.class);
@@ -272,6 +296,31 @@ public class MapRequestPatchTargetTests {
 
         Optional<File> gameExe() {
             return w3data.getGameExe();
+        }
+    }
+
+    private static final class PatchComplianceRunMap extends RunMap {
+        private final W3InstallationData alternateSelection;
+        private int mismatchPrompts = 0;
+
+        PatchComplianceRunMap(Path projectRoot, W3InstallationData alternateSelection, String gameExePath) {
+            super(null, WFile.create(projectRoot), Optional.empty(), Optional.empty(), List.of(), Optional.of(gameExePath));
+            this.alternateSelection = alternateSelection;
+        }
+
+        W3InstallationData resolveAfterRetry(W3InstallationData retrySelection) {
+            return resolveLaunchData(retrySelection);
+        }
+
+        @Override
+        protected MismatchChoice chooseMismatchAction(String message) {
+            mismatchPrompts++;
+            return MismatchChoice.CHOOSE_OTHER;
+        }
+
+        @Override
+        protected Optional<W3InstallationData> chooseAlternateGamePath() {
+            return Optional.of(alternateSelection);
         }
     }
 }
