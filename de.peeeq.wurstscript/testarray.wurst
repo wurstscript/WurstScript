@@ -1,0 +1,6 @@
+package TestArray
+class SqlResult
+    string array cols
+    
+    function setCol(int i, string val)
+        cols[i] = val
