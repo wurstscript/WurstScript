@@ -113,6 +113,36 @@ public class ImTranslator {
         return false;
     }
 
+    private static String uniqueTypeVarName(ImTypeVars vars, TypeParamDef tp) {
+        String name = tp.getName();
+        if (!hasTypeVarNamed(vars, name)) {
+            return name;
+        }
+
+        String baseName = name + "$" + typeParamOwnerName(tp);
+        String candidate = baseName;
+        int suffix = 2;
+        while (hasTypeVarNamed(vars, candidate)) {
+            candidate = baseName + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private static String typeParamOwnerName(TypeParamDef tp) {
+        de.peeeq.wurstscript.ast.Element e = tp.getParent();
+        while (e != null) {
+            if (e instanceof FuncDef) {
+                return ((FuncDef) e).getName();
+            }
+            if (e instanceof NamedScope) {
+                return ((NamedScope) e).getName();
+            }
+            e = e.getParent();
+        }
+        return "type";
+    }
+
     public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassDef cd) {
         Map<TypeParamDef, ImTypeVar> m = capturedOwnerTypeVarsByStaticClass.get(cd);
         return (m == null) ? Collections.emptyMap() : m;
@@ -1027,11 +1057,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
             private void handleTypeParameter(TypeParamDef tp) {
                 if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                    ImTypeVar base = typeVariable.getFor(tp);
-                    if (hasTypeVarNamed(typeVars, base.getName())) {
-                        return;
-                    }
-                    ImTypeVar v = JassIm.ImTypeVar(base.getName());
+                    ImTypeVar v = JassIm.ImTypeVar(uniqueTypeVarName(typeVars, tp));
                     typeVariableReverse.put(v, tp);
                     typeVars.add(v);
                 }

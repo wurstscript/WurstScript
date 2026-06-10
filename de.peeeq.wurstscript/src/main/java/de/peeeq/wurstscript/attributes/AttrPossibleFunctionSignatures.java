@@ -37,7 +37,7 @@ public class AttrPossibleFunctionSignatures {
                 }
             } // TODO else check?
 
-            VariableBinding mapping = givenBinding(fc, sig.getDefinitionTypeVariables());
+            VariableBinding mapping = sig.getMapping().union(givenBinding(fc, sig.getDefinitionTypeVariables()));
             sig = sig.setTypeArgs(fc, mapping);
 
             resultBuilder.add(sig);
@@ -229,7 +229,7 @@ public class AttrPossibleFunctionSignatures {
             }
 
             // Apply explicit type args from the call-site (e.g., c.foo<T,...>(...))
-            VariableBinding explicit = GenericsHelper.givenBinding(mm, sig.getDefinitionTypeVariables());
+            VariableBinding explicit = sig.getMapping().union(GenericsHelper.givenBinding(mm, sig.getDefinitionTypeVariables()));
             sig = sig.setTypeArgs(mm, explicit);
 
             prepared.add(sig);
