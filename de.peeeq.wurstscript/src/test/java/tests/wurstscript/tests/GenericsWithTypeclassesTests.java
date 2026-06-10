@@ -1413,6 +1413,32 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericStaticArray_staticMethods_specializedTypeReceiver_runtime() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class Box<T:>",
+            "        private static T array store",
+            "        static function put(int i, T v)",
+            "            store[i] = v",
+            "        static function get(int i) returns T",
+            "            return store[i]",
+            "        static function getFirst() returns T",
+            "            return get(1)",
+            "        static function same(T v) returns T",
+            "            return v",
+            "    init",
+            "        Box<int>.put(1, 42)",
+            "        Box<int>.put(2, 7)",
+            "        Box<real>.put(1, 1.5)",
+            "        Box<real>.put(2, 2.5)",
+            "        if Box<int>.get(1) == 42 and Box<int>.get(2) == 7 and Box<int>.getFirst() == 42 and Box<int>.same(13) == 13 and Box<real>.get(1) == 1.5 and Box<real>.get(2) == 2.5 and Box<real>.getFirst() == 1.5 and Box<real>.same(3.5) == 3.5",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
     public void genericStaticTuple_runtime() {
         testAssertOkLines(true,
             "package test",

@@ -487,6 +487,10 @@ public class PrettyPrinter {
         sb.append("this");
     }
 
+    public static void prettyPrint(ExprTypeRef e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getTyp().prettyPrint(spacer, sb, indent);
+    }
+
     public static void prettyPrint(ExprTypeId e, Spacer spacer, StringBuilder sb, int indent) {
         e.getLeft().prettyPrint(spacer, sb, indent);
         sb.append(".typeId");

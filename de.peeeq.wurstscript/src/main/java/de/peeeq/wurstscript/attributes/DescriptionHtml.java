@@ -207,6 +207,10 @@ public class DescriptionHtml {
         return "this has type " + htmlType(e.attrTyp());
     }
 
+    public static String description(ExprTypeRef e) {
+        return "Type reference " + htmlType(e.attrTyp());
+    }
+
     public static String description(ExprTypeId exprTypeId) {
         return "typeId: returns the typeId of an object or class. The typeId is "
                 + "a unique number for each class in the same type hierarchy.";

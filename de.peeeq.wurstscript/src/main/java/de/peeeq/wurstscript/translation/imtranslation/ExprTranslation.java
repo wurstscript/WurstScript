@@ -86,6 +86,10 @@ public class ExprTranslation {
         return wrapTranslation(e, t, translateIntern(e, t, f));
     }
 
+    public static ImExpr translate(ExprTypeRef e, ImTranslator t, ImFunction f) {
+        throw new CompileError(e, "Type reference " + Utils.printTypeExpr(e.getTyp()) + " cannot be used as a value.");
+    }
+
     public static ImExpr translate(ExprInstanceOf e, ImTranslator t, ImFunction f) {
         return wrapTranslation(e, t, translateIntern(e, t, f));
     }

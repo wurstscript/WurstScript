@@ -350,7 +350,8 @@ indexes:
 
 
 expr:
-		exprPrimary	
+		receiverTypeName=ID receiverTypeTypeArgs=typeArgsNonEmpty dotsTypeCall=('.'|'..') typeFuncName=ID? typeCallTypeArgs=typeArgs typeCallArgs=argumentList
+	  | exprPrimary
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
@@ -442,6 +443,8 @@ stmtSkip:'skip';
 
 
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
+
+typeArgsNonEmpty: '<' args+=typeExpr (',' args+=typeExpr)* '>';
 
 exprList : exprs+=expr (',' exprs+=expr)*;
 

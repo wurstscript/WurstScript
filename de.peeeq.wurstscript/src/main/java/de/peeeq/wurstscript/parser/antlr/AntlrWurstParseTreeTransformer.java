@@ -1027,7 +1027,12 @@ public class AntlrWurstParseTreeTransformer {
     private ExprMemberMethod transformMemberMethodCall2(WPos source,
                                                         ExprContext receiver, Token dots, Token funcName,
                                                         TypeArgsContext typeArgs, ArgumentListContext args) {
-        Expr left = transformExpr(receiver);
+        return transformMemberMethodCall2(source, transformExpr(receiver), dots, funcName, typeArgs, args);
+    }
+
+    private ExprMemberMethod transformMemberMethodCall2(WPos source,
+                                                        Expr left, Token dots, Token funcName,
+                                                        TypeArgsContext typeArgs, ArgumentListContext args) {
         if (dots.getType() == WurstParser.DOT) {
             return Ast.ExprMemberMethodDot(source, left, text(funcName),
                     transformTypeArgs(typeArgs), transformArgumentList(args));
@@ -1091,6 +1096,12 @@ public class AntlrWurstParseTreeTransformer {
             } else if (e.castToType != null) {
                 return Ast.ExprCast(source, transformTypeExpr(e.castToType),
                         transformExpr(e.left));
+            } else if (e.dotsTypeCall != null) {
+                TypeExpr receiverType = Ast.TypeExprSimple(source(e.receiverTypeName),
+                        Ast.NoTypeExpr(), e.receiverTypeName.getText(), transformTypeArgs(e.receiverTypeTypeArgs));
+                Expr left = Ast.ExprTypeRef(receiverType.getSource(), receiverType);
+                return transformMemberMethodCall2(source, left, e.dotsTypeCall,
+                        e.typeFuncName, e.typeCallTypeArgs, e.typeCallArgs);
             } else if (e.dotsVar != null) {
                 return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
                         e.varName, e.indexes());
@@ -1372,6 +1383,14 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private TypeExprList transformTypeArgs(TypeArgsContext typeArgs) {
+        TypeExprList result = Ast.TypeExprList();
+        for (TypeExprContext e : typeArgs.args) {
+            result.add(transformTypeExpr(e));
+        }
+        return result;
+    }
+
+    private TypeExprList transformTypeArgs(TypeArgsNonEmptyContext typeArgs) {
         TypeExprList result = Ast.TypeExprList();
         for (TypeExprContext e : typeArgs.args) {
             result.add(transformTypeExpr(e));

@@ -112,6 +112,10 @@ public class ReadVariables {
         return ImmutableList.emptyList();
     }
 
+    public static ImmutableList<NameDef> calculate(ExprTypeRef exprTypeRef) {
+        return ImmutableList.emptyList();
+    }
+
     public static ImmutableList<NameDef> calculate(ExprTypeId e) {
         return e.getLeft().attrReadVariables();
     }
