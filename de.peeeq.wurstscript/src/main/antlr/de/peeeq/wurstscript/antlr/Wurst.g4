@@ -447,19 +447,15 @@ typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 typeArgsNonEmpty: '<' args+=typeExpr (',' args+=typeExpr)* '>';
 
 genericTypeReceiver:
-    receiverTypePrefixes+=genericTypeReceiverPrefixPart* receiverTypeGenericPart=genericTypeReceiverGenericPart receiverTypeSuffixes+=genericTypeReceiverSuffixPart*
+    receiverTypePrefixes+=genericTypeReceiverPrefixPart* receiverTypeGenericPart=genericTypeReceiverGenericPart
     ;
 
 genericTypeReceiverPrefixPart:
-    typeName=ID typeArgs '.'
+    typeName=ID '.'
     ;
 
 genericTypeReceiverGenericPart:
     typeName=ID typeArgsNonEmpty
-    ;
-
-genericTypeReceiverSuffixPart:
-    '.' typeName=ID typeArgs
     ;
 
 exprList : exprs+=expr (',' exprs+=expr)*;

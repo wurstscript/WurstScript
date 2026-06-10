@@ -1136,20 +1136,13 @@ public class AntlrWurstParseTreeTransformer {
 
         for (GenericTypeReceiverPrefixPartContext part : receiverType.receiverTypePrefixes) {
             result = Ast.TypeExprSimple(source(part.typeName), scopeType,
-                    part.typeName.getText(), transformTypeArgs(part.typeArgs()));
+                    part.typeName.getText(), Ast.TypeExprList());
             scopeType = result;
         }
 
         GenericTypeReceiverGenericPartContext genericPart = receiverType.receiverTypeGenericPart;
         result = Ast.TypeExprSimple(source(genericPart.typeName), scopeType,
                 genericPart.typeName.getText(), transformTypeArgs(genericPart.typeArgsNonEmpty()));
-        scopeType = result;
-
-        for (GenericTypeReceiverSuffixPartContext part : receiverType.receiverTypeSuffixes) {
-            result = Ast.TypeExprSimple(source(part.typeName), scopeType,
-                    part.typeName.getText(), transformTypeArgs(part.typeArgs()));
-            scopeType = result;
-        }
 
         return result;
     }
