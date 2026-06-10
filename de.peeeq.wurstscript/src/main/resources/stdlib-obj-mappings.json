@@ -3,7 +3,6 @@
     "Aabr": "AbilityDefinitionAuraRegenerationStatue",
     "Aabs": "AbilityDefinitionAbsorbMana",
     "Aadm": "AbilityDefinitionAbolishMagic",
-    "Aaha": "AbilityDefinitionAcolyteHarvest",
     "Aakb": "AbilityDefinitionAuraWarDrumsKodobeast",
     "Aall": "AbilityDefinitionShopSharing",
     "Aalr": "AbilityDefinitionAlarm",
@@ -23,7 +22,6 @@
     "Aatk": "AbilityDefinitionAttack",
     "Aatp": "AbilityDefinitionAttackTargetPriority",
     "Aave": "AbilityDefinitionAvengerForm",
-    "Aawa": "AbilityDefinitionAwaken",
     "Abdl": "AbilityDefinitionBlightDispelLarge",
     "Abds": "AbilityDefinitionBlightDispelSmall",
     "Abdt": "AbilityDefinitionBurrowDetectionFlyers",
@@ -43,7 +41,6 @@
     "Abur": "AbilityDefinitionBurrow",
     "ACac": "AbilityDefinitionAuraCommandCreep",
     "ACad": "AbilityDefinitionAnimateDeadcreep",
-    "ACah": "AbilityDefinitionThornsAuraCreep",
     "ACam": "AbilityDefinitionAntimagicShieldcreep",
     "Acan": "AbilityDefinitionCannibalize",
     "ACat": "AbilityDefinitionAuraTrueshotCreep",
@@ -61,7 +58,6 @@
     "ACc3": "AbilityDefinitionCrushingWaveLesser",
     "ACca": "AbilityDefinitionCarrionSwarmcreep",
     "ACcb": "AbilityDefinitionFrostBolt",
-    "ACce": "AbilityDefinitionCleavingAttackCreep",
     "ACch": "AbilityDefinitionCharm",
     "ACcl": "AbilityDefinitionChainLightningcreep",
     "ACcn": "AbilityDefinitionCannibalizecreep",
@@ -78,7 +74,6 @@
     "Acdh": "AbilityDefinitionChenDrunkenHaze",
     "ACdm": "AbilityDefinitionAbolishMagicCreep",
     "ACdr": "AbilityDefinitionDrainLifeCreep",
-    "ACds": "AbilityDefinitionDivineShieldCreep",
     "ACdv": "AbilityDefinitionDevourCreep",
     "Acef": "AbilityDefinitionChenStormEarthAndFire",
     "ACen": "AbilityDefinitionEnsnareCreep",
@@ -149,7 +144,6 @@
     "ACsk": "AbilityDefinitionResistantSkin31PosCreep",
     "ACsl": "AbilityDefinitionSleepcreep",
     "ACsm": "AbilityDefinitionSiphonManaCreep",
-    "ACsp": "AbilityDefinitionCreepSleep",
     "ACss": "AbilityDefinitionShadowStrikeCreep",
     "ACst": "AbilityDefinitionShockwaveTrap",
     "ACsw": "AbilityDefinitionSlowCreep",
@@ -172,8 +166,6 @@
     "Adet": "AbilityDefinitionAdet",
     "Adev": "AbilityDefinitionDevour",
     "Adis": "AbilityDefinitionDispelMagic",
-    "Adri": "AbilityDefinitionDropInstant",
-    "Adro": "AbilityDefinitionDrop",
     "Adsm": "AbilityDefinitionDispelMagiccreep",
     "Adt1": "AbilityDefinitionDetectSentryWard",
     "Adtg": "AbilityDefinitionDetectgeneral",
@@ -185,7 +177,6 @@
     "AEar": "AbilityDefinitionMoonPriestessTrueshotAura",
     "Aeat": "AbilityDefinitionEatTree",
     "AEbl": "AbilityDefinitionWardenBlink",
-    "AEbu": "AbilityDefinitionBuildNightElf",
     "AEer": "AbilityDefinitionKeeperoftheGroveEntanglingRoots",
     "AEev": "AbilityDefinitionDemonHunterEvasion",
     "AEfk": "AbilityDefinitionWardenFanofKnives",
@@ -240,7 +231,6 @@
     "Afrz": "AbilityDefinitionFreezingBreath",
     "Afsh": "AbilityDefinitionFragShards",
     "Afzy": "AbilityDefinitionFrenzy",
-    "AGbu": "AbilityDefinitionBuildNaga",
     "Agho": "AbilityDefinitionGhost",
     "Agld": "AbilityDefinitionGoldMine",
     "Agra": "AbilityDefinitionGrabTree",
@@ -254,7 +244,6 @@
     "AHav": "AbilityDefinitionMountainKingAvatar",
     "AHbh": "AbilityDefinitionMountainKingBash",
     "AHbn": "AbilityDefinitionBloodMageBanish",
-    "AHbu": "AbilityDefinitionBuildHuman",
     "AHbz": "AbilityDefinitionArchMageBlizzard",
     "AHca": "AbilityDefinitionRangerColdArrows",
     "AHdr": "AbilityDefinitionBloodMageSiphonMana",
@@ -338,9 +327,7 @@
     "AIdd": "AbilityDefinitionDefendItem",
     "AIde": "AbilityDefinitionAIde",
     "AIdf": "AbilityDefinitionOrbofDarkness",
-    "AIdg": "AbilityDefinitionItemRitualDaggerInstant",
     "AIdi": "AbilityDefinitionItemDispelAoe",
-    "AIdm": "AbilityDefinitionItemDamageAoe",
     "AIdn": "AbilityDefinitionShadowOrbAbility",
     "AIdp": "AbilityDefinitionDeathPactItem",
     "AIds": "AbilityDefinitionItemDispelAoeWithCooldown",
@@ -354,14 +341,9 @@
     "AIfa": "AbilityDefinitionFlareGun",
     "AIfb": "AbilityDefinitionFireDamageBonus",
     "AIfd": "AbilityDefinitionFigurineRedDrake",
-    "AIfe": "AbilityDefinitionFlagUndead",
     "AIff": "AbilityDefinitionFigurineFurbolg",
     "AIfg": "AbilityDefinitionCloudofFogItem",
     "AIfh": "AbilityDefinitionFigurineFelHound",
-    "AIfl": "AbilityDefinitionFlag",
-    "AIfm": "AbilityDefinitionFlagHuman",
-    "AIfn": "AbilityDefinitionFlagNightElf",
-    "AIfo": "AbilityDefinitionFlagOrc",
     "AIfr": "AbilityDefinitionFigurineRockGolem",
     "AIfs": "AbilityDefinitionFigurineSkeleton",
     "AIft": "AbilityDefinitionFrostguardFrostMelee",
@@ -369,7 +351,6 @@
     "AIfw": "AbilityDefinitionSearingBladeFireMelee",
     "AIfx": "AbilityDefinitionFlagOrcBattleStandard",
     "AIfz": "AbilityDefinitionFingerOfDeathItem",
-    "AIg2": "AbilityDefinitionItemRitualDaggerRegen",
     "AIgd": "AbilityDefinitionOrbOfGuldan",
     "AIgf": "AbilityDefinitionFortificationGlyph",
     "AIgm": "AbilityDefinitionAgilityModPlus2",
@@ -383,7 +364,6 @@
     "AIhb": "AbilityDefinitionItemHealAoeGreater",
     "AIhe": "AbilityDefinitionAIhe",
     "AIhl": "AbilityDefinitionHolyLightItem",
-    "AIhm": "AbilityDefinitionShadowMeldItem",
     "Aihn": "AbilityDefinitionInventory2SlotUnitHuman",
     "AIhw": "AbilityDefinitionHealingWardAIhw",
     "AIhx": "AbilityDefinitionItemHealLeastest",
@@ -426,7 +406,6 @@
     "AInd": "AbilityDefinitionAnimateDeaditemspecial",
     "Ainf": "AbilityDefinitionInnerFire",
     "AInm": "AbilityDefinitionStrengthModPlus2",
-    "AIno": "AbilityDefinitionSlow2",
     "AInv": "AbilityDefinitionInventory",
     "AIob": "AbilityDefinitionFrostDamageBonus",
     "Aion": "AbilityDefinitionInventory2SlotUnitOrc",
@@ -474,7 +453,6 @@
     "AIsi": "AbilityDefinitionSightBonus",
     "AIsl": "AbilityDefinitionScrollofLifeRegen",
     "AIsm": "AbilityDefinitionStrengthMod",
-    "AIso": "AbilityDefinitionSoulTrap",
     "AIsp": "AbilityDefinitionItemSpeed",
     "AIsr": "AbilityDefinitionRunedBracers",
     "AIsw": "AbilityDefinitionSentryWardAIsw",
@@ -509,7 +487,6 @@
     "AIvl": "AbilityDefinitionItemInvulLesser",
     "AIvm": "AbilityDefinitionReassignableAttributeBonusPlus1",
     "Aivs": "AbilityDefinitionInvisibility",
-    "AIvu": "AbilityDefinitionItemInvulNormal",
     "AIwb": "AbilityDefinitionItemWeb",
     "AIwd": "AbilityDefinitionItemAuraWarDrums",
     "AIwm": "AbilityDefinitionWateryMinionItem",
@@ -522,7 +499,6 @@
     "AIxm": "AbilityDefinitionPermanentAllPlus1",
     "AIxs": "AbilityDefinitionAntimagicShieldAIxs",
     "AIzb": "AbilityDefinitionFreezeDamageBonus",
-    "Alam": "AbilityDefinitionSacrificeAcolyte",
     "Aliq": "AbilityDefinitionLiquidFire",
     "Alit": "AbilityDefinitionLightningAttack",
     "Aloa": "AbilityDefinitionLoad",
@@ -534,13 +510,10 @@
     "Ambt": "AbilityDefinitionManaBattery",
     "Amdf": "AbilityDefinitionMagicDefense",
     "Amec": "AbilityDefinitionMechanicalCritter",
-    "Amed": "AbilityDefinitionMeatDrop",
-    "Amel": "AbilityDefinitionMeatLoad",
     "Amfl": "AbilityDefinitionManaFlare",
     "Amgi": "AbilityDefinitionBouncingMissileFilter",
     "Amgl": "AbilityDefinitionMoonGlaive",
     "Amgr": "AbilityDefinitionMoonGlaiveNoResearch",
-    "Amic": "AbilityDefinitionMilitiaConversion",
     "Amil": "AbilityDefinitionMilitia",
     "Amim": "AbilityDefinitionMagicImmunity",
     "Amin": "AbilityDefinitionMine",
@@ -551,7 +524,6 @@
     "Amov": "AbilityDefinitionMove",
     "Amrf": "AbilityDefinitionRavenFormMedivh",
     "ANab": "AbilityDefinitionAlchemistAcidBomb",
-    "ANak": "AbilityDefinitionOrbOfAnnihilationQuillSpray",
     "ANav": "AbilityDefinitionAvatarGarithos",
     "ANb2": "AbilityDefinitionBashmaulSPBearlevel3",
     "ANba": "AbilityDefinitionDarkRangerBlackArrow",
@@ -560,7 +532,6 @@
     "ANbl": "AbilityDefinitionBlinkBeastmasterBear",
     "ANbr": "AbilityDefinitionBattleRoar",
     "ANbs": "AbilityDefinitionOrbofDarknessBlackArrow",
-    "ANbu": "AbilityDefinitionBuildNeutral",
     "ANc1": "AbilityDefinitionTinkererClusterRocketsLevel1",
     "ANc2": "AbilityDefinitionTinkererClusterRocketsLevel2",
     "ANc3": "AbilityDefinitionTinkererClusterRocketsLevel3",
@@ -653,7 +624,6 @@
     "Aoar": "AbilityDefinitionAuraRegenerationHealingWard",
     "Aobk": "AbilityDefinitionPassiveOrcBerserkersRobk",
     "Aobs": "AbilityDefinitionPassiveOrcGruntBerserkRobs",
-    "AObu": "AbilityDefinitionBuildOrc",
     "AOcl": "AbilityDefinitionFarseerChainLightning",
     "AOcr": "AbilityDefinitionBladeMasterCriticalStrike",
     "AOeq": "AbilityDefinitionFarseerEarthquake",
@@ -673,9 +643,7 @@
     "AOsw": "AbilityDefinitionShadowHunterSerpentWard",
     "Aoth": "AbilityDefinitionPassiveOrcGhostIconOnlyOrcAethUnused",
     "Aotr": "AbilityDefinitionPassiveOrcTrollRegenerationRotr",
-    "AOvd": "AbilityDefinitionShadowHunterVoodooo",
     "AOw2": "AbilityDefinitionCairneWarStomp",
-    "AOwd": "AbilityDefinitionAOwd",
     "AOwk": "AbilityDefinitionBladeMasterWindWalk",
     "AOws": "AbilityDefinitionTaurenChieftainWarStomp",
     "AOww": "AbilityDefinitionBladeMasterBladestorm",
@@ -688,7 +656,6 @@
     "APh3": "AbilityDefinitionPowerupHealAoeGreater",
     "Aphx": "AbilityDefinitionPhoenix",
     "Apig": "AbilityDefinitionPermanentImmolationgraphic",
-    "Apit": "AbilityDefinitionPurchaseItem",
     "Apiv": "AbilityDefinitionPermanentInvisibility",
     "Aply": "AbilityDefinitionPolymorph",
     "Apmf": "AbilityDefinitionPermanentImmolationflying",
@@ -709,7 +676,6 @@
     "Apxf": "AbilityDefinitionPhoenixFire",
     "Ara2": "AbilityDefinitionRoarAra2",
     "Arai": "AbilityDefinitionRaiseDead",
-    "ARal": "AbilityDefinitionRally",
     "Arav": "AbilityDefinitionRavenFormDruidoftheTalon",
     "Arbr": "AbilityDefinitionReinforcedBurrows",
     "Arej": "AbilityDefinitionRejuvination",
@@ -717,7 +683,6 @@
     "Aren": "AbilityDefinitionRenew",
     "Arep": "AbilityDefinitionRepairOrc",
     "Aret": "AbilityDefinitionRetrain",
-    "Arev": "AbilityDefinitionRevive",
     "Argd": "AbilityDefinitionReturnGold",
     "Argl": "AbilityDefinitionReturnGoldLumber",
     "Arll": "AbilityDefinitionRegenLifeArll",
@@ -732,13 +697,11 @@
     "Arpl": "AbilityDefinitionReplenishLife",
     "Arpm": "AbilityDefinitionReplenishMana",
     "Arsg": "AbilityDefinitionRexxarSummonBear",
-    "Arsk": "AbilityDefinitionResistantSkin",
     "Arsp": "AbilityDefinitionRexxarStampede",
     "Arsq": "AbilityDefinitionRexxarSummonQuilbeast",
     "Arst": "AbilityDefinitionRestoration",
     "Arsw": "AbilityDefinitionRokhanSerpentWard",
     "Artn": "AbilityDefinitionArtn",
-    "Asac": "AbilityDefinitionSacrificeSacrificialPit",
     "Asal": "AbilityDefinitionPillage",
     "Asb1": "AbilityDefinitionSubmergeMyrmidon",
     "Asb2": "AbilityDefinitionSubmergeRoyalGuard",
@@ -750,12 +713,10 @@
     "Asel": "AbilityDefinitionSellUnit",
     "Ashm": "AbilityDefinitionShadowMeld",
     "Ashs": "AbilityDefinitionShadowSight",
-    "Asid": "AbilityDefinitionSellItem",
     "Asla": "AbilityDefinitionSleepAlways",
     "Aslo": "AbilityDefinitionSlow",
     "Aslp": "AbilityDefinitionSummonLobstrokPrawns",
     "Asod": "AbilityDefinitionSpawnOnDeathskeleton",
-    "Asou": "AbilityDefinitionSoulPossession",
     "Asp1": "AbilityDefinitionSphereSoVLevel1",
     "Asp2": "AbilityDefinitionSphereSoVLevel2",
     "Asp3": "AbilityDefinitionSphereSoVLevel3",
@@ -781,21 +742,17 @@
     "Aste": "AbilityDefinitionManaSteal",
     "Asth": "AbilityDefinitionStormHammers",
     "Astn": "AbilityDefinitionStoneForm",
-    "Asud": "AbilityDefinitionSellUnit",
     "Atau": "AbilityDefinitionTaunt",
     "Atdg": "AbilityDefinitionTornadoDamage",
     "Atdp": "AbilityDefinitionDropPilot",
     "Atlp": "AbilityDefinitionLoadPilot",
-    "Atol": "AbilityDefinitionTreeOfLifeForAttachingArt",
     "Atru": "AbilityDefinitionDetectShade",
     "Atsp": "AbilityDefinitionTornadoSpin",
     "Attu": "AbilityDefinitionTankTurret",
     "Atwa": "AbilityDefinitionTornadoWander",
-    "AUa2": "AbilityDefinitionDeathKnightAnimateDead1",
     "AUan": "AbilityDefinitionDeathKnightAnimateDead",
     "AUau": "AbilityDefinitionDeathKnightUnholyAura",
     "AUav": "AbilityDefinitionDreadlordVampiricAura",
-    "AUbu": "AbilityDefinitionBuildUndead",
     "AUcb": "AbilityDefinitionCryptLordCarrionScarabs",
     "Auco": "AbilityDefinitionUnstableConcoction",
     "AUcs": "AbilityDefinitionDreadlordCarrionSwarm",
@@ -872,7 +829,6 @@
     "AbilityDefinitionAbolishMagicNaga": "AbilityDefinition",
     "AbilityDefinitionAbsorbMana": "AbilityDefinition",
     "AbilityDefinitionAcha": "AbilityDefinition",
-    "AbilityDefinitionAcolyteHarvest": "AbilityDefinition",
     "AbilityDefinitionAdet": "AbilityDefinition",
     "AbilityDefinitionAerialShackles": "AbilityDefinition",
     "AbilityDefinitionAgilityBonusPlus1": "AbilityDefinition",
@@ -911,7 +867,6 @@
     "AbilityDefinitionAntimagicShieldcreep": "AbilityDefinition",
     "AbilityDefinitionAntimagicShieldMatrix": "AbilityDefinition",
     "AbilityDefinitionAnwm": "AbilityDefinition",
-    "AbilityDefinitionAOwd": "AbilityDefinition",
     "AbilityDefinitionArchMageBlizzard": "AbilityDefinition",
     "AbilityDefinitionArchMageBrillianceAura": "AbilityDefinition",
     "AbilityDefinitionArchMageMassTeleport": "AbilityDefinition",
@@ -956,7 +911,6 @@
     "AbilityDefinitionAuraWarDrumsKodobeast": "AbilityDefinition",
     "AbilityDefinitionAvatarGarithos": "AbilityDefinition",
     "AbilityDefinitionAvengerForm": "AbilityDefinition",
-    "AbilityDefinitionAwaken": "AbilityDefinition",
     "AbilityDefinitionBallsofFire": "AbilityDefinition",
     "AbilityDefinitionBanishCreep": "AbilityDefinition",
     "AbilityDefinitionBashBeastmasterBear": "AbilityDefinition",
@@ -1003,11 +957,6 @@
     "AbilityDefinitionBrewmasterDrunkenBrawler": "AbilityDefinition",
     "AbilityDefinitionBrewmasterDrunkenHaze": "AbilityDefinition",
     "AbilityDefinitionBrewmasterStormEarthandFire": "AbilityDefinition",
-    "AbilityDefinitionBuildHuman": "AbilityDefinition",
-    "AbilityDefinitionBuildNaga": "AbilityDefinition",
-    "AbilityDefinitionBuildNeutral": "AbilityDefinition",
-    "AbilityDefinitionBuildNightElf": "AbilityDefinition",
-    "AbilityDefinitionBuildOrc": "AbilityDefinition",
     "AbilityDefinitionBuildTinyAltar": "AbilityDefinition",
     "AbilityDefinitionBuildTinyBarracks": "AbilityDefinition",
     "AbilityDefinitionBuildTinyBlacksmith": "AbilityDefinition",
@@ -1016,7 +965,6 @@
     "AbilityDefinitionBuildTinyGreatHall": "AbilityDefinition",
     "AbilityDefinitionBuildTinyLumberMill": "AbilityDefinition",
     "AbilityDefinitionBuildTinyScoutTower": "AbilityDefinition",
-    "AbilityDefinitionBuildUndead": "AbilityDefinition",
     "AbilityDefinitionBurrow": "AbilityDefinition",
     "AbilityDefinitionBurrowBarbedArachnathid": "AbilityDefinition",
     "AbilityDefinitionBurrowDetectionFlyers": "AbilityDefinition",
@@ -1053,7 +1001,6 @@
     "AbilityDefinitionChenDrunkenBrawler": "AbilityDefinition",
     "AbilityDefinitionChenDrunkenHaze": "AbilityDefinition",
     "AbilityDefinitionChenStormEarthAndFire": "AbilityDefinition",
-    "AbilityDefinitionCleavingAttackCreep": "AbilityDefinition",
     "AbilityDefinitionCloudofFog": "AbilityDefinition",
     "AbilityDefinitionCloudofFogItem": "AbilityDefinition",
     "AbilityDefinitionColdArrows": "AbilityDefinition",
@@ -1066,7 +1013,6 @@
     "AbilityDefinitionCoupleHippogryph": "AbilityDefinition",
     "AbilityDefinitionCoupleInstantArcher": "AbilityDefinition",
     "AbilityDefinitionCoupleInstantHippogryph": "AbilityDefinition",
-    "AbilityDefinitionCreepSleep": "AbilityDefinition",
     "AbilityDefinitionCripple": "AbilityDefinition",
     "AbilityDefinitionCripplecreep": "AbilityDefinition",
     "AbilityDefinitionCrippleWarlock": "AbilityDefinition",
@@ -1100,7 +1046,6 @@
     "AbilityDefinitionDeathDamageAOEmineBIG": "AbilityDefinition",
     "AbilityDefinitionDeathDamageAOEsapper": "AbilityDefinition",
     "AbilityDefinitionDeathKnightAnimateDead": "AbilityDefinition",
-    "AbilityDefinitionDeathKnightAnimateDead1": "AbilityDefinition",
     "AbilityDefinitionDeathKnightDeathCoil": "AbilityDefinition",
     "AbilityDefinitionDeathKnightDeathPact": "AbilityDefinition",
     "AbilityDefinitionDeathKnightUnholyAura": "AbilityDefinition",
@@ -1135,16 +1080,13 @@
     "AbilityDefinitionDisenchantold": "AbilityDefinition",
     "AbilityDefinitionDispelMagic": "AbilityDefinition",
     "AbilityDefinitionDispelMagiccreep": "AbilityDefinition",
-    "AbilityDefinitionDivineShieldCreep": "AbilityDefinition",
     "AbilityDefinitionDivineShieldItem": "AbilityDefinition",
     "AbilityDefinitionDrainLifeCreep": "AbilityDefinition",
     "AbilityDefinitionDreadlordCarrionSwarm": "AbilityDefinition",
     "AbilityDefinitionDreadlordInferno": "AbilityDefinition",
     "AbilityDefinitionDreadlordSleep": "AbilityDefinition",
     "AbilityDefinitionDreadlordVampiricAura": "AbilityDefinition",
-    "AbilityDefinitionDrop": "AbilityDefinition",
     "AbilityDefinitionDrop1": "AbilityDefinition",
-    "AbilityDefinitionDropInstant": "AbilityDefinition",
     "AbilityDefinitionDropPilot": "AbilityDefinition",
     "AbilityDefinitionDustofAppearance": "AbilityDefinition",
     "AbilityDefinitionEatTree": "AbilityDefinition",
@@ -1203,12 +1145,7 @@
     "AbilityDefinitionFirelordSoulBurn": "AbilityDefinition",
     "AbilityDefinitionFirelordSummonLavaSpawn": "AbilityDefinition",
     "AbilityDefinitionFirelordVolcano": "AbilityDefinition",
-    "AbilityDefinitionFlag": "AbilityDefinition",
-    "AbilityDefinitionFlagHuman": "AbilityDefinition",
-    "AbilityDefinitionFlagNightElf": "AbilityDefinition",
-    "AbilityDefinitionFlagOrc": "AbilityDefinition",
     "AbilityDefinitionFlagOrcBattleStandard": "AbilityDefinition",
-    "AbilityDefinitionFlagUndead": "AbilityDefinition",
     "AbilityDefinitionFlakCannon": "AbilityDefinition",
     "AbilityDefinitionFlameStrikeCreep": "AbilityDefinition",
     "AbilityDefinitionFlameStrikeImprovedCreep": "AbilityDefinition",
@@ -1299,7 +1236,6 @@
     "AbilityDefinitionItemChangeTOD": "AbilityDefinition",
     "AbilityDefinitionItemCloakOfFlames": "AbilityDefinition",
     "AbilityDefinitionItemCommand": "AbilityDefinition",
-    "AbilityDefinitionItemDamageAoe": "AbilityDefinition",
     "AbilityDefinitionItemDefenseAoe": "AbilityDefinition",
     "AbilityDefinitionItemDefenseAoePlusHealing": "AbilityDefinition",
     "AbilityDefinitionItemDetectAoe": "AbilityDefinition",
@@ -1318,7 +1254,6 @@
     "AbilityDefinitionItemInvisLesser": "AbilityDefinition",
     "AbilityDefinitionItemInvulDivinity": "AbilityDefinition",
     "AbilityDefinitionItemInvulLesser": "AbilityDefinition",
-    "AbilityDefinitionItemInvulNormal": "AbilityDefinition",
     "AbilityDefinitionItemManaRestoreAoe": "AbilityDefinition",
     "AbilityDefinitionItemManaRestoreGreater": "AbilityDefinition",
     "AbilityDefinitionItemManaRestoreLesser": "AbilityDefinition",
@@ -1333,8 +1268,6 @@
     "AbilityDefinitionItemRestore": "AbilityDefinition",
     "AbilityDefinitionItemRestoreAoe": "AbilityDefinition",
     "AbilityDefinitionItemRevealMap": "AbilityDefinition",
-    "AbilityDefinitionItemRitualDaggerInstant": "AbilityDefinition",
-    "AbilityDefinitionItemRitualDaggerRegen": "AbilityDefinition",
     "AbilityDefinitionItemSpeed": "AbilityDefinition",
     "AbilityDefinitionItemSpeedAoe": "AbilityDefinition",
     "AbilityDefinitionItemTownPortal": "AbilityDefinition",
@@ -1390,11 +1323,8 @@
     "AbilityDefinitionMaxManaBonusLeastest": "AbilityDefinition",
     "AbilityDefinitionMaxManaBonusLeastestReally": "AbilityDefinition",
     "AbilityDefinitionMaxManaBonusMost": "AbilityDefinition",
-    "AbilityDefinitionMeatDrop": "AbilityDefinition",
-    "AbilityDefinitionMeatLoad": "AbilityDefinition",
     "AbilityDefinitionMechanicalCritter": "AbilityDefinition",
     "AbilityDefinitionMilitia": "AbilityDefinition",
-    "AbilityDefinitionMilitiaConversion": "AbilityDefinition",
     "AbilityDefinitionMindRot": "AbilityDefinition",
     "AbilityDefinitionMine": "AbilityDefinition",
     "AbilityDefinitionMonsoon": "AbilityDefinition",
@@ -1425,7 +1355,6 @@
     "AbilityDefinitionOnFireOrc": "AbilityDefinition",
     "AbilityDefinitionOnFireUndead": "AbilityDefinition",
     "AbilityDefinitionOrbofAnnihilation": "AbilityDefinition",
-    "AbilityDefinitionOrbOfAnnihilationQuillSpray": "AbilityDefinition",
     "AbilityDefinitionOrbofCorruption": "AbilityDefinition",
     "AbilityDefinitionOrbofDarkness": "AbilityDefinition",
     "AbilityDefinitionOrbofDarknessBlackArrow": "AbilityDefinition",
@@ -1496,7 +1425,6 @@
     "AbilityDefinitionPreservation": "AbilityDefinition",
     "AbilityDefinitionPulverize": "AbilityDefinition",
     "AbilityDefinitionPulverizecreep": "AbilityDefinition",
-    "AbilityDefinitionPurchaseItem": "AbilityDefinition",
     "AbilityDefinitionPurge": "AbilityDefinition",
     "AbilityDefinitionPurgeApg2": "AbilityDefinition",
     "AbilityDefinitionPurgeCreep": "AbilityDefinition",
@@ -1511,7 +1439,6 @@
     "AbilityDefinitionRaiseDead": "AbilityDefinition",
     "AbilityDefinitionRaiseDeadCreep": "AbilityDefinition",
     "AbilityDefinitionRaiseDeadItem": "AbilityDefinition",
-    "AbilityDefinitionRally": "AbilityDefinition",
     "AbilityDefinitionRangerColdArrows": "AbilityDefinition",
     "AbilityDefinitionRavenFormDruidoftheTalon": "AbilityDefinition",
     "AbilityDefinitionRavenFormMedivh": "AbilityDefinition",
@@ -1542,7 +1469,6 @@
     "AbilityDefinitionReturnLumber": "AbilityDefinition",
     "AbilityDefinitionRevealArcaneTower": "AbilityDefinition",
     "AbilityDefinitionRevenge": "AbilityDefinition",
-    "AbilityDefinitionRevive": "AbilityDefinition",
     "AbilityDefinitionRexxarStampede": "AbilityDefinition",
     "AbilityDefinitionRexxarStormBolt": "AbilityDefinition",
     "AbilityDefinitionRexxarSummonBear": "AbilityDefinition",
@@ -1569,8 +1495,6 @@
     "AbilityDefinitionRuneOfTheWatcher": "AbilityDefinition",
     "AbilityDefinitionRuneRestoreAoe": "AbilityDefinition",
     "AbilityDefinitionRuneSpeedAoe": "AbilityDefinition",
-    "AbilityDefinitionSacrificeAcolyte": "AbilityDefinition",
-    "AbilityDefinitionSacrificeSacrificialPit": "AbilityDefinition",
     "AbilityDefinitionSanctuary": "AbilityDefinition",
     "AbilityDefinitionScrollofLifeRegen": "AbilityDefinition",
     "AbilityDefinitionScrollofRejuvI": "AbilityDefinition",
@@ -1585,7 +1509,6 @@
     "AbilityDefinitionSelfDestruct2ClockwerkGoblins": "AbilityDefinition",
     "AbilityDefinitionSelfDestruct3ClockwerkGoblins": "AbilityDefinition",
     "AbilityDefinitionSelfDestructClockwerkGoblins": "AbilityDefinition",
-    "AbilityDefinitionSellItem": "AbilityDefinition",
     "AbilityDefinitionSellUnit": "AbilityDefinition",
     "AbilityDefinitionSentinel": "AbilityDefinition",
     "AbilityDefinitionSentinelNoResearch": "AbilityDefinition",
@@ -1595,11 +1518,9 @@
     "AbilityDefinitionShadowHunterHealingWave": "AbilityDefinition",
     "AbilityDefinitionShadowHunterHex": "AbilityDefinition",
     "AbilityDefinitionShadowHunterSerpentWard": "AbilityDefinition",
-    "AbilityDefinitionShadowHunterVoodooo": "AbilityDefinition",
     "AbilityDefinitionShadowMeld": "AbilityDefinition",
     "AbilityDefinitionShadowMeldAkama": "AbilityDefinition",
     "AbilityDefinitionShadowMeldInstant": "AbilityDefinition",
-    "AbilityDefinitionShadowMeldItem": "AbilityDefinition",
     "AbilityDefinitionShadowOrbAbility": "AbilityDefinition",
     "AbilityDefinitionShadowSight": "AbilityDefinition",
     "AbilityDefinitionShadowStrikeCreep": "AbilityDefinition",
@@ -1615,13 +1536,10 @@
     "AbilityDefinitionSleepcreep": "AbilityDefinition",
     "AbilityDefinitionSlow": "AbilityDefinition",
     "AbilityDefinitionSlow1": "AbilityDefinition",
-    "AbilityDefinitionSlow2": "AbilityDefinition",
     "AbilityDefinitionSlowAIos": "AbilityDefinition",
     "AbilityDefinitionSlowCreep": "AbilityDefinition",
     "AbilityDefinitionSlowPoison": "AbilityDefinition",
     "AbilityDefinitionSlowPoisonItem": "AbilityDefinition",
-    "AbilityDefinitionSoulPossession": "AbilityDefinition",
-    "AbilityDefinitionSoulTrap": "AbilityDefinition",
     "AbilityDefinitionSpawnHydra": "AbilityDefinition",
     "AbilityDefinitionSpawnHydraHatchling": "AbilityDefinition",
     "AbilityDefinitionSpawnOnDeathskeleton": "AbilityDefinition",
@@ -1672,7 +1590,6 @@
     "AbilityDefinitionTaurenChieftainReincarnation": "AbilityDefinition",
     "AbilityDefinitionTaurenChieftainShockWave": "AbilityDefinition",
     "AbilityDefinitionTaurenChieftainWarStomp": "AbilityDefinition",
-    "AbilityDefinitionThornsAuraCreep": "AbilityDefinition",
     "AbilityDefinitionThornyShieldCreep": "AbilityDefinition",
     "AbilityDefinitionThornyShieldDragonTurtle": "AbilityDefinition",
     "AbilityDefinitionThunderBoltCreep": "AbilityDefinition",
@@ -1700,7 +1617,6 @@
     "AbilityDefinitionTornadoDamage": "AbilityDefinition",
     "AbilityDefinitionTornadoSpin": "AbilityDefinition",
     "AbilityDefinitionTornadoWander": "AbilityDefinition",
-    "AbilityDefinitionTreeOfLifeForAttachingArt": "AbilityDefinition",
     "AbilityDefinitionUltravision": "AbilityDefinition",
     "AbilityDefinitionUltraVisionGlyph": "AbilityDefinition",
     "AbilityDefinitionUnholyAuracreep": "AbilityDefinition",
@@ -2757,6 +2673,16 @@
       ]
     },
     "AbilityDefinitionAnimateDeaditemspecial": {
+      "Cad1:1": [
+        "setNumberofCorpsesRaised",
+        true,
+        false
+      ],
+      "Hre2:2": [
+        "setRaisedUnitsAreInvulnerable",
+        true,
+        true
+      ],
       "Uan3:3": [
         "setInheritUpgrades",
         true,
@@ -2830,6 +2756,21 @@
       ]
     },
     "AbilityDefinitionAntimagicShieldMatrix": {
+      "Ams1:1": [
+        "setSummonedUnitDamage",
+        true,
+        false
+      ],
+      "Ams2:2": [
+        "setMagicDamageReduction",
+        true,
+        false
+      ],
+      "Ams3:3": [
+        "setShieldLife",
+        true,
+        false
+      ],
       "Ams4:4": [
         "setManaLoss",
         true,
@@ -2837,18 +2778,6 @@
       ]
     },
     "AbilityDefinitionAnwm": {
-      "Hwe1:0": [
-        "setSummonedUnitType",
-        true,
-        false
-      ],
-      "Hwe2:1": [
-        "setSummonedUnitCount",
-        true,
-        false
-      ]
-    },
-    "AbilityDefinitionAOwd": {
       "Hwe1:0": [
         "setSummonedUnitType",
         true,
@@ -3391,6 +3320,11 @@
         true,
         false
       ],
+      "Akb2:5": [
+        "setPlayChannelAnimation",
+        true,
+        true
+      ],
       "Ear2:2": [
         "setMeleeBonus",
         true,
@@ -3506,6 +3440,26 @@
       ]
     },
     "AbilityDefinitionBashBeastmasterBear": {
+      "Hbh1:1": [
+        "setChancetoBash",
+        true,
+        false
+      ],
+      "Hbh2:2": [
+        "setDamageMultiplier",
+        true,
+        false
+      ],
+      "Hbh3:3": [
+        "setDamageBonus",
+        true,
+        false
+      ],
+      "Hbh4:4": [
+        "setChancetoMiss",
+        true,
+        false
+      ],
       "Hbh5:5": [
         "setNeverMiss",
         true,
@@ -3540,6 +3494,26 @@
       ]
     },
     "AbilityDefinitionBashitem": {
+      "Hbh1:1": [
+        "setChancetoBash",
+        true,
+        false
+      ],
+      "Hbh2:2": [
+        "setDamageMultiplier",
+        true,
+        false
+      ],
+      "Hbh3:3": [
+        "setDamageBonus",
+        true,
+        false
+      ],
+      "Hbh4:4": [
+        "setChancetoMiss",
+        true,
+        false
+      ],
       "Hbh5:5": [
         "setNeverMiss",
         true,
@@ -3547,6 +3521,26 @@
       ]
     },
     "AbilityDefinitionBashmaulSPBearlevel3": {
+      "Hbh1:1": [
+        "setChancetoBash",
+        true,
+        false
+      ],
+      "Hbh2:2": [
+        "setDamageMultiplier",
+        true,
+        false
+      ],
+      "Hbh3:3": [
+        "setDamageBonus",
+        true,
+        false
+      ],
+      "Hbh4:4": [
+        "setChancetoMiss",
+        true,
+        false
+      ],
       "Hbh5:5": [
         "setNeverMiss",
         true,
@@ -3804,6 +3798,11 @@
         "setNeverMiss",
         true,
         true
+      ],
+      "Ocr6:6": [
+        "setExcludeItemDamage",
+        true,
+        true
       ]
     },
     "AbilityDefinitionBladeMasterMirrorImage": {
@@ -3846,6 +3845,11 @@
       ],
       "Owk4:4": [
         "setBackstabDamage",
+        true,
+        true
+      ],
+      "Owk5:5": [
+        "setStartCooldownWhenDecloak",
         true,
         true
       ]
@@ -4246,6 +4250,11 @@
       ],
       "Ocr5:5": [
         "setNeverMiss",
+        true,
+        true
+      ],
+      "Ocr6:6": [
+        "setExcludeItemDamage",
         true,
         true
       ]
@@ -4793,7 +4802,7 @@
         true
       ],
       "Ocr6:6": [
-        "setData",
+        "setExcludeItemDamage",
         true,
         true
       ]
@@ -4823,13 +4832,6 @@
     "AbilityDefinitionChenStormEarthAndFire": {
       "Nef1:1": [
         "setSummonedUnitTypes",
-        true,
-        false
-      ]
-    },
-    "AbilityDefinitionCleavingAttackCreep": {
-      "nca1:1": [
-        "setDistributedDamageFactor",
         true,
         false
       ]
@@ -5124,6 +5126,11 @@
         "setNeverMiss",
         true,
         true
+      ],
+      "Ocr6:6": [
+        "setExcludeItemDamage",
+        true,
+        true
       ]
     },
     "AbilityDefinitionCriticalStrikeItem": {
@@ -5153,7 +5160,7 @@
         true
       ],
       "Ocr6:6": [
-        "setData",
+        "setExcludeItemDamage",
         true,
         true
       ]
@@ -5298,6 +5305,16 @@
         "setAirTimeseconds",
         true,
         false
+      ],
+      "Uim5:5": [
+        "setUninterruptible",
+        true,
+        true
+      ],
+      "Uim6:6": [
+        "setAirborneTargetsVulnerable",
+        true,
+        true
       ]
     },
     "AbilityDefinitionCryptLordLocustSwarm": {
@@ -5508,6 +5525,11 @@
         "setBonusManaDecay",
         true,
         false
+      ],
+      "NdrA:10": [
+        "setNdrA",
+        true,
+        true
       ]
     },
     "AbilityDefinitionDarkRangerSilence": {
@@ -5623,23 +5645,6 @@
       ]
     },
     "AbilityDefinitionDeathKnightAnimateDead": {
-      "Hre2:2": [
-        "setRaisedUnitsAreInvulnerable",
-        true,
-        true
-      ],
-      "Uan1:1": [
-        "setNumberofCorpsesRaised",
-        true,
-        false
-      ],
-      "Uan3:3": [
-        "setInheritUpgrades",
-        true,
-        true
-      ]
-    },
-    "AbilityDefinitionDeathKnightAnimateDead1": {
       "Hre2:2": [
         "setRaisedUnitsAreInvulnerable",
         true,
@@ -6060,6 +6065,31 @@
       ]
     },
     "AbilityDefinitionDevourMagiccreep": {
+      "dvm1:1": [
+        "setLifePerUnit",
+        true,
+        false
+      ],
+      "dvm2:2": [
+        "setManaPerUnit",
+        true,
+        false
+      ],
+      "dvm3:3": [
+        "setLifePerBuff",
+        true,
+        false
+      ],
+      "dvm4:4": [
+        "setManaPerBuff",
+        true,
+        false
+      ],
+      "dvm5:5": [
+        "setSummonedUnitDamage",
+        true,
+        false
+      ],
       "dvm6:6": [
         "setIgnoreFriendlyBuffs",
         true,
@@ -6114,13 +6144,6 @@
         false
       ]
     },
-    "AbilityDefinitionDivineShieldCreep": {
-      "Hds1:1": [
-        "setCanDeactivate",
-        true,
-        true
-      ]
-    },
     "AbilityDefinitionDivineShieldItem": {
       "Hds1:1": [
         "setCanDeactivate",
@@ -6131,6 +6154,11 @@
     "AbilityDefinitionDrainLifeCreep": {
       "Ndr1:1": [
         "setHitPointsDrained",
+        true,
+        false
+      ],
+      "Ndr2:2": [
+        "setManaPointsDrained",
         true,
         false
       ],
@@ -6260,6 +6288,16 @@
       ],
       "Def2:2": [
         "setDamageDealt",
+        true,
+        false
+      ],
+      "Def3:3": [
+        "setMovementSpeedFactor",
+        true,
+        false
+      ],
+      "Def4:4": [
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -6640,6 +6678,26 @@
       ]
     },
     "AbilityDefinitionFeedbackSpiritBeast": {
+      "fbk1:1": [
+        "setMaxManaDrainedUnits",
+        true,
+        false
+      ],
+      "fbk2:2": [
+        "setDamageRatioUnits",
+        true,
+        false
+      ],
+      "fbk3:3": [
+        "setMaxManaDrainedHeros",
+        true,
+        false
+      ],
+      "fbk4:4": [
+        "setDamageRatioHeros",
+        true,
+        false
+      ],
       "fbk5:5": [
         "setSummonedDamage",
         true,
@@ -7462,6 +7520,11 @@
         "setSpecificTargetDamage",
         true,
         false
+      ],
+      "Ufn5:5": [
+        "setMaximumDamage",
+        true,
+        false
       ]
     },
     "AbilityDefinitionGarithosShockWave": {
@@ -7981,6 +8044,16 @@
         "setAirTimeseconds",
         true,
         false
+      ],
+      "Uim5:5": [
+        "setUninterruptible",
+        true,
+        true
+      ],
+      "Uim6:6": [
+        "setAirborneTargetsVulnerable",
+        true,
+        true
       ]
     },
     "AbilityDefinitionInciteUnholyFrenzy": {
@@ -8522,7 +8595,7 @@
         false
       ],
       "Akb2:5": [
-        "setData",
+        "setPlayChannelAnimation",
         true,
         true
       ],
@@ -8767,13 +8840,6 @@
         true
       ]
     },
-    "AbilityDefinitionItemInvulNormal": {
-      "AIvu:1": [
-        "setData",
-        true,
-        true
-      ]
-    },
     "AbilityDefinitionItemManaRestoreAoe": {
       "Impg:1": [
         "setManaPointsGained",
@@ -8915,60 +8981,6 @@
         false
       ]
     },
-    "AbilityDefinitionItemRitualDaggerInstant": {
-      "Idg1:2": [
-        "setData",
-        true,
-        true
-      ],
-      "Idg2:3": [
-        "setData1",
-        true,
-        true
-      ],
-      "Idg3:8": [
-        "setData2",
-        true,
-        false
-      ],
-      "Ihpg:1": [
-        "setHitPointsGained",
-        true,
-        false
-      ],
-      "Udp5:5": [
-        "setLeaveTargetAlive",
-        true,
-        true
-      ]
-    },
-    "AbilityDefinitionItemRitualDaggerRegen": {
-      "Idg1:2": [
-        "setData",
-        true,
-        true
-      ],
-      "Idg2:3": [
-        "setData1",
-        true,
-        true
-      ],
-      "Idg3:8": [
-        "setData2",
-        true,
-        false
-      ],
-      "Ihpg:1": [
-        "setHitPointsGained",
-        true,
-        false
-      ],
-      "Udp5:5": [
-        "setLeaveTargetAlive",
-        true,
-        true
-      ]
-    },
     "AbilityDefinitionItemSpeed": {
       "Ispi:1": [
         "setMovementSpeedIncrease",
@@ -9080,6 +9092,11 @@
         "setBuildingReduction",
         true,
         false
+      ],
+      "Etq4:4": [
+        "setInitialImmunityDuration",
+        true,
+        false
       ]
     },
     "AbilityDefinitionLevelMod": {
@@ -9162,6 +9179,11 @@
         "setSpecificTargetDamage",
         true,
         false
+      ],
+      "Ufn5:5": [
+        "setMaximumDamage",
+        true,
+        false
       ]
     },
     "AbilityDefinitionLightningAttack": {
@@ -9235,6 +9257,11 @@
     "AbilityDefinitionLightningShieldAIls": {
       "Idps:1": [
         "setDamagePerSecond",
+        true,
+        false
+      ],
+      "Lsh1:1": [
+        "setDamageperSecond",
         true,
         false
       ]
@@ -9845,7 +9872,7 @@
         true,
         false
       ],
-      "Htc5:1": [
+      "Htc5:5": [
         "setMaximumDamage",
         true,
         false
@@ -9983,6 +10010,21 @@
       ]
     },
     "AbilityDefinitionnullroarsummoner": {
+      "Roa1:1": [
+        "setDamageIncrease",
+        true,
+        false
+      ],
+      "Roa2:2": [
+        "setDefenseIncrease",
+        true,
+        false
+      ],
+      "Roa3:3": [
+        "setLifeRegenerationRate",
+        true,
+        false
+      ],
       "Roa4:4": [
         "setManaRegen",
         true,
@@ -10005,33 +10047,6 @@
       ]
     },
     "AbilityDefinitionOrbofAnnihilation": {
-      "fak1:1": [
-        "setDamageBonus",
-        true,
-        false
-      ],
-      "fak2:2": [
-        "setMediumDamageFactor",
-        true,
-        false
-      ],
-      "fak3:3": [
-        "setSmallDamageFactor",
-        true,
-        false
-      ],
-      "fak4:4": [
-        "setFullDamageRadius",
-        true,
-        false
-      ],
-      "fak5:5": [
-        "setHalfDamageRadius",
-        true,
-        false
-      ]
-    },
-    "AbilityDefinitionOrbOfAnnihilationQuillSpray": {
       "fak1:1": [
         "setDamageBonus",
         true,
@@ -10229,12 +10244,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -10304,12 +10319,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -10341,12 +10356,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -10567,6 +10582,16 @@
         true,
         false
       ],
+      "Ndo4:4": [
+        "setMaximumCreepLevel",
+        true,
+        false
+      ],
+      "Ndo5:5": [
+        "setMovementSpeedFactor",
+        true,
+        false
+      ],
       "Ndou:0": [
         "setSummonedUnitType",
         true,
@@ -10629,16 +10654,16 @@
         false
       ],
       "Poa3:3": [
-        "setAttackSpeedFactor",
-        true,
-        false
-      ],
-      "Poa4:4": [
         "setMovementSpeedFactor",
         true,
         false
       ],
-      "Poa5:4": [
+      "Poa4:4": [
+        "setAttackSpeedFactor",
+        true,
+        false
+      ],
+      "Poa5:5": [
         "setStackingType",
         true,
         false
@@ -10651,12 +10676,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -11062,6 +11087,31 @@
       ]
     },
     "AbilityDefinitionPurgeApg2": {
+      "Prg1:1": [
+        "setMovementUpdateFrequency",
+        true,
+        false
+      ],
+      "Prg2:2": [
+        "setAttackUpdateFrequency",
+        true,
+        false
+      ],
+      "Prg3:3": [
+        "setSummonedUnitDamage",
+        true,
+        false
+      ],
+      "Prg4:4": [
+        "setUnitPauseDuration",
+        true,
+        false
+      ],
+      "Prg5:5": [
+        "setHeroPauseDuration",
+        true,
+        false
+      ],
       "Prg6:6": [
         "setManaLoss",
         true,
@@ -11479,12 +11529,12 @@
         true,
         false
       ],
-      "idc2:1": [
+      "idc2:2": [
         "setSummonedUnitDamage",
         true,
         false
       ],
-      "idc3:1": [
+      "idc3:3": [
         "setMaximumDispelledUnits",
         true,
         false
@@ -12254,6 +12304,11 @@
       ]
     },
     "AbilityDefinitionRuneofGreaterResurrection": {
+      "Hre1:1": [
+        "setNumberofCorpsesRaised",
+        true,
+        false
+      ],
       "Hre2:2": [
         "setRaisedUnitsAreInvulnerable",
         true,
@@ -12261,6 +12316,11 @@
       ]
     },
     "AbilityDefinitionRuneofLesserResurrection": {
+      "Hre1:1": [
+        "setNumberofCorpsesRaised",
+        true,
+        false
+      ],
       "Hre2:2": [
         "setRaisedUnitsAreInvulnerable",
         true,
@@ -12270,6 +12330,11 @@
     "AbilityDefinitionRuneofSpiritLink": {
       "spl1:1": [
         "setDistributedDamageFactor",
+        true,
+        false
+      ],
+      "spl2:2": [
+        "setMaximumNumberofTargets",
         true,
         false
       ]
@@ -12523,6 +12588,31 @@
       ]
     },
     "AbilityDefinitionSelfDestruct2ClockwerkGoblins": {
+      "Dda1:1": [
+        "setFullDamageRadius",
+        true,
+        false
+      ],
+      "Dda2:2": [
+        "setFullDamageAmount",
+        true,
+        false
+      ],
+      "Dda3:3": [
+        "setPartialDamageRadius",
+        true,
+        false
+      ],
+      "Dda4:4": [
+        "setPartialDamageAmount",
+        true,
+        false
+      ],
+      "Sds1:5": [
+        "setBuildingDamageFactor",
+        true,
+        false
+      ],
       "Sds6:6": [
         "setExplodesonDeath",
         true,
@@ -12530,6 +12620,31 @@
       ]
     },
     "AbilityDefinitionSelfDestruct3ClockwerkGoblins": {
+      "Dda1:1": [
+        "setFullDamageRadius",
+        true,
+        false
+      ],
+      "Dda2:2": [
+        "setFullDamageAmount",
+        true,
+        false
+      ],
+      "Dda3:3": [
+        "setPartialDamageRadius",
+        true,
+        false
+      ],
+      "Dda4:4": [
+        "setPartialDamageAmount",
+        true,
+        false
+      ],
+      "Sds1:5": [
+        "setBuildingDamageFactor",
+        true,
+        false
+      ],
       "Sds6:6": [
         "setExplodesonDeath",
         true,
@@ -12537,6 +12652,31 @@
       ]
     },
     "AbilityDefinitionSelfDestructClockwerkGoblins": {
+      "Dda1:1": [
+        "setFullDamageRadius",
+        true,
+        false
+      ],
+      "Dda2:2": [
+        "setFullDamageAmount",
+        true,
+        false
+      ],
+      "Dda3:3": [
+        "setPartialDamageRadius",
+        true,
+        false
+      ],
+      "Dda4:4": [
+        "setPartialDamageAmount",
+        true,
+        false
+      ],
+      "Sds1:5": [
+        "setBuildingDamageFactor",
+        true,
+        false
+      ],
       "Sds6:6": [
         "setExplodesonDeath",
         true,
@@ -12563,6 +12703,11 @@
         "setNumberofOwls",
         true,
         false
+      ],
+      "Esn5:5": [
+        "setDurationOfOwls",
+        true,
+        false
       ]
     },
     "AbilityDefinitionSentinelNoResearch": {
@@ -12587,7 +12732,7 @@
         false
       ],
       "Esn5:5": [
-        "setData",
+        "setDurationOfOwls",
         true,
         false
       ]
@@ -12689,6 +12834,11 @@
         "setActionDuration",
         true,
         false
+      ],
+      "Shm4:4": [
+        "setPermanentCloak",
+        true,
+        true
       ]
     },
     "AbilityDefinitionShadowMeldAkama": {
@@ -12723,26 +12873,9 @@
         "setActionDuration",
         true,
         false
-      ]
-    },
-    "AbilityDefinitionShadowMeldItem": {
-      "Shm1:1": [
-        "setFadeDuration",
-        true,
-        false
-      ],
-      "Shm2:2": [
-        "setDayNightDuration",
-        true,
-        false
-      ],
-      "Shm3:3": [
-        "setActionDuration",
-        true,
-        false
       ],
       "Shm4:4": [
-        "setData",
+        "setPermanentCloak",
         true,
         true
       ]
@@ -12936,6 +13069,21 @@
       ]
     },
     "AbilityDefinitionSiphonManaCreep": {
+      "Ndr1:1": [
+        "setHitPointsDrained",
+        true,
+        false
+      ],
+      "Ndr2:2": [
+        "setManaPointsDrained",
+        true,
+        false
+      ],
+      "Ndr3:3": [
+        "setDrainIntervalseconds",
+        true,
+        false
+      ],
       "Ndr4:4": [
         "setLifeTransferredPerSecond",
         true,
@@ -13004,23 +13152,6 @@
       ]
     },
     "AbilityDefinitionSlow1": {
-      "Slo1:1": [
-        "setMovementSpeedFactor",
-        true,
-        false
-      ],
-      "Slo2:2": [
-        "setAttackSpeedFactor",
-        true,
-        false
-      ],
-      "Slo3:3": [
-        "setAlwaysAutocast",
-        true,
-        true
-      ]
-    },
-    "AbilityDefinitionSlow2": {
       "Slo1:1": [
         "setMovementSpeedFactor",
         true,
@@ -13662,6 +13793,16 @@
         "setMaxUnits",
         true,
         false
+      ],
+      "Tau4:4": [
+        "setNumberOfPulses",
+        true,
+        false
+      ],
+      "Tau5:5": [
+        "setIntervalBetweenPulses",
+        true,
+        false
       ]
     },
     "AbilityDefinitionTauntCreep": {
@@ -13677,6 +13818,16 @@
       ],
       "Tau3:3": [
         "setMaxUnits",
+        true,
+        false
+      ],
+      "Tau4:4": [
+        "setNumberOfPulses",
+        true,
+        false
+      ],
+      "Tau5:5": [
+        "setIntervalBetweenPulses",
         true,
         false
       ]
@@ -13727,18 +13878,6 @@
         "setDamage",
         true,
         false
-      ]
-    },
-    "AbilityDefinitionThornsAuraCreep": {
-      "Eah1:1": [
-        "setDamageDealttoAttackers",
-        true,
-        false
-      ],
-      "Eah2:2": [
-        "setDamageisPercentReceived",
-        true,
-        true
       ]
     },
     "AbilityDefinitionThornyShieldCreep": {
@@ -14614,12 +14753,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -14636,12 +14775,12 @@
         false
       ],
       "Poi2:2": [
-        "setAttackSpeedFactor",
+        "setMovementSpeedFactor",
         true,
         false
       ],
       "Poi3:3": [
-        "setMovementSpeedFactor",
+        "setAttackSpeedFactor",
         true,
         false
       ],
@@ -14863,6 +15002,11 @@
       ],
       "Owk4:4": [
         "setBackstabDamage",
+        true,
+        true
+      ],
+      "Owk5:5": [
+        "setStartCooldownWhenDecloak",
         true,
         true
       ]
