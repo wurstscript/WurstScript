@@ -1097,8 +1097,7 @@ public class AntlrWurstParseTreeTransformer {
                 return Ast.ExprCast(source, transformTypeExpr(e.castToType),
                         transformExpr(e.left));
             } else if (e.dotsTypeCall != null) {
-                TypeExpr receiverType = Ast.TypeExprSimple(source(e.receiverTypeName),
-                        Ast.NoTypeExpr(), e.receiverTypeName.getText(), transformTypeArgs(e.receiverTypeTypeArgs));
+                TypeExpr receiverType = transformGenericTypeReceiver(e.receiverType);
                 Expr left = Ast.ExprTypeRef(receiverType.getSource(), receiverType);
                 return transformMemberMethodCall2(source, left, e.dotsTypeCall,
                         e.typeFuncName, e.typeCallTypeArgs, e.typeCallArgs);
@@ -1129,6 +1128,30 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.ExprIncomplete(source(e), "Incomplete expression.");
         }
 
+    }
+
+    private TypeExpr transformGenericTypeReceiver(GenericTypeReceiverContext receiverType) {
+        OptTypeExpr scopeType = Ast.NoTypeExpr();
+        TypeExpr result = null;
+
+        for (GenericTypeReceiverPrefixPartContext part : receiverType.receiverTypePrefixes) {
+            result = Ast.TypeExprSimple(source(part.typeName), scopeType,
+                    part.typeName.getText(), transformTypeArgs(part.typeArgs()));
+            scopeType = result;
+        }
+
+        GenericTypeReceiverGenericPartContext genericPart = receiverType.receiverTypeGenericPart;
+        result = Ast.TypeExprSimple(source(genericPart.typeName), scopeType,
+                genericPart.typeName.getText(), transformTypeArgs(genericPart.typeArgsNonEmpty()));
+        scopeType = result;
+
+        for (GenericTypeReceiverSuffixPartContext part : receiverType.receiverTypeSuffixes) {
+            result = Ast.TypeExprSimple(source(part.typeName), scopeType,
+                    part.typeName.getText(), transformTypeArgs(part.typeArgs()));
+            scopeType = result;
+        }
+
+        return result;
     }
 
     private int beginPos(ParseTree left) {

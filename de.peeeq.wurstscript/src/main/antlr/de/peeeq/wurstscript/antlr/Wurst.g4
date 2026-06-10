@@ -350,7 +350,7 @@ indexes:
 
 
 expr:
-		receiverTypeName=ID receiverTypeTypeArgs=typeArgsNonEmpty dotsTypeCall=('.'|'..') typeFuncName=ID? typeCallTypeArgs=typeArgs typeCallArgs=argumentList
+		receiverType=genericTypeReceiver dotsTypeCall=('.'|'..') typeFuncName=ID? typeCallTypeArgs=typeArgs typeCallArgs=argumentList
 	  | exprPrimary
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
@@ -445,6 +445,22 @@ stmtSkip:'skip';
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 
 typeArgsNonEmpty: '<' args+=typeExpr (',' args+=typeExpr)* '>';
+
+genericTypeReceiver:
+    receiverTypePrefixes+=genericTypeReceiverPrefixPart* receiverTypeGenericPart=genericTypeReceiverGenericPart receiverTypeSuffixes+=genericTypeReceiverSuffixPart*
+    ;
+
+genericTypeReceiverPrefixPart:
+    typeName=ID typeArgs '.'
+    ;
+
+genericTypeReceiverGenericPart:
+    typeName=ID typeArgsNonEmpty
+    ;
+
+genericTypeReceiverSuffixPart:
+    '.' typeName=ID typeArgs
+    ;
 
 exprList : exprs+=expr (',' exprs+=expr)*;
 
