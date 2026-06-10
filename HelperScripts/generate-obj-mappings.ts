@@ -1,6 +1,6 @@
 #!/usr/bin/env deno run --allow-read --allow-write
 /**
- * Generates StdlibObjectMappings.java from WurstStdlib2 object editing wurst files.
+ * Generates stdlib-obj-mappings.json from WurstStdlib2 object editing wurst files.
  * Run this script after stdlib changes to regenerate the mappings used by the compiler
  * when producing enriched object editing output.
  *
@@ -14,12 +14,16 @@ function resolveStdlibBase(): string {
   return "./de.peeeq.wurstscript/temp/WurstStdlib2/wurst";
 }
 const STDLIB_BASE = resolveStdlibBase();
-const HELPER_ABILITY_FILE = "./HelperScripts/AbilityObjEditing.wurst";
-const UNIT_BALANCE_SLK = "./HelperScripts/unitbalance.slk";
+function resolveUnitBalanceSlk(): string {
+  const legacy = "./HelperScripts/unitbalance.slk";
+  try { Deno.statSync(legacy); return legacy; } catch (_) {}
+  return `${GAMEDATA_DIR}/unitbalance.slk`;
+}
 const OUT_FILE =
   "./de.peeeq.wurstscript/src/main/resources/stdlib-obj-mappings.json";
 const KB_OUT_FILE = "./HelperScripts/wc3-knowledge-base.json";
 const GAMEDATA_DIR = "./HelperScripts/gamedata";
+const UNIT_BALANCE_SLK = resolveUnitBalanceSlk();
 
 // ---------------------------------------------------------------------------
 // Types
@@ -822,33 +826,6 @@ const abilityClasses = parseObjEditingFile(
   Deno.readTextFileSync(`${STDLIB_BASE}/objediting/AbilityObjEditing.wurst`)
 );
 console.log(`Parsed ${abilityClasses.length} ability class definitions from stdlib`);
-
-// Supplement with HelperScripts generated file: add classes for base IDs not already
-// covered by the stdlib (these are abilities with only common fields — no specific fields).
-try {
-  const helperClasses = parseObjEditingFile(Deno.readTextFileSync(HELPER_ABILITY_FILE));
-  // Collect already-mapped base IDs from stdlib so we don't override them
-  const stdlibBaseIds = new Set<string>();
-  for (const cls of abilityClasses) {
-    if (cls.rawBaseId) stdlibBaseIds.add(cls.rawBaseId);
-    if (cls.abilityIdsConstant) {
-      const r = abilityIdMap.get(cls.abilityIdsConstant);
-      if (r) stdlibBaseIds.add(r);
-    }
-  }
-  let supplemented = 0;
-  for (const cls of helperClasses) {
-    const rid = cls.rawBaseId ?? (cls.abilityIdsConstant ? abilityIdMap.get(cls.abilityIdsConstant) : undefined);
-    if (rid && !stdlibBaseIds.has(rid)) {
-      abilityClasses.push(cls);
-      stdlibBaseIds.add(rid);
-      supplemented++;
-    }
-  }
-  console.log(`Supplemented ${supplemented} base IDs from HelperScripts`);
-} catch (_) {
-  console.log("HelperScripts/AbilityObjEditing.wurst not found, skipping supplement");
-}
 
 const unitClasses = parseObjEditingFile(
   Deno.readTextFileSync(`${STDLIB_BASE}/objediting/UnitObjEditing.wurst`)
