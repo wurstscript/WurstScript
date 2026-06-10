@@ -113,6 +113,36 @@ public class ImTranslator {
         return false;
     }
 
+    private static String uniqueTypeVarName(ImTypeVars vars, TypeParamDef tp) {
+        String name = tp.getName();
+        if (!hasTypeVarNamed(vars, name)) {
+            return name;
+        }
+
+        String baseName = name + "$" + typeParamOwnerName(tp);
+        String candidate = baseName;
+        int suffix = 2;
+        while (hasTypeVarNamed(vars, candidate)) {
+            candidate = baseName + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private static String typeParamOwnerName(TypeParamDef tp) {
+        de.peeeq.wurstscript.ast.Element e = tp.getParent();
+        while (e != null) {
+            if (e instanceof FuncDef) {
+                return ((FuncDef) e).getName();
+            }
+            if (e instanceof NamedScope) {
+                return ((NamedScope) e).getName();
+            }
+            e = e.getParent();
+        }
+        return "type";
+    }
+
     public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForClass(ClassDef cd) {
         Map<TypeParamDef, ImTypeVar> m = capturedOwnerTypeVarsByStaticClass.get(cd);
         return (m == null) ? Collections.emptyMap() : m;
@@ -136,6 +166,17 @@ public class ImTranslator {
 
     public @Nullable ImVar currentContinueFlag() {
         return continueFlagStack.peek();
+    }
+
+    public Map<TypeParamDef, ImTypeVar> getTypeVarOverridesForFunction(ImFunction f) {
+        Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
+        for (ImTypeVar tv : f.getTypeVariables()) {
+            TypeParamDef tp = typeVariableReverse.get(tv);
+            if (tp != null) {
+                result.put(tp, tv);
+            }
+        }
+        return result;
     }
 
 
@@ -930,7 +971,13 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
         ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
         ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
-        funcDef.imCreateFuncSkeleton(this, f);
+        Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
+        pushTypeVarOverrides(ov);
+        try {
+            funcDef.imCreateFuncSkeleton(this, f);
+        } finally {
+            popTypeVarOverrides(ov);
+        }
 
         addFunction(f, funcDef);
         functionMap.put(funcDef, f);
@@ -992,6 +1039,12 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         funcDef.match(new TranslatedToImFunction.MatcherVoid() {
             @Override
             public void case_FuncDef(FuncDef funcDef) {
+                if (funcDef.attrIsStatic()) {
+                    ClassOrInterface owner = funcDef.attrNearestClassOrInterface();
+                    if (owner != null) {
+                        handleTypeParameters(owner.getTypeParameters());
+                    }
+                }
                 handleTypeParameters(funcDef.getTypeParameters());
             }
 
@@ -1004,7 +1057,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
             private void handleTypeParameter(TypeParamDef tp) {
                 if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                    typeVars.add(typeVariable.getFor(tp));
+                    ImTypeVar v = JassIm.ImTypeVar(uniqueTypeVarName(typeVars, tp));
+                    typeVariableReverse.put(v, tp);
+                    typeVars.add(v);
                 }
             }
 
@@ -1172,7 +1227,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImVar getVarFor(VarDef varDef) {
         ImVar v = varMap.get(varDef);
         if (v == null) {
-            ImType type = varDef.attrTyp().imTranslateType(this);
+            Map<TypeParamDef, ImTypeVar> ov = getOwnerTypeVarOverridesForStaticClassVar(varDef);
+            pushTypeVarOverrides(ov);
+            ImType type;
+            try {
+                type = varDef.attrTyp().imTranslateType(this);
+            } finally {
+                popTypeVarOverrides(ov);
+            }
             String name = varDef.getName();
             if (isNamedScopeVar(varDef)) {
                 name = getNameFor(varDef.attrNearestNamedScope()) + "_" + name;
@@ -1182,6 +1244,25 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             varMap.put(varDef, v);
         }
         return v;
+    }
+
+    private Map<TypeParamDef, ImTypeVar> getOwnerTypeVarOverridesForStaticClassVar(VarDef varDef) {
+        if (!(varDef instanceof GlobalVarDef) || !varDef.attrIsStatic()) {
+            return Collections.emptyMap();
+        }
+        ClassOrInterface owner = varDef.attrNearestClassOrInterface();
+        if (owner == null) {
+            return Collections.emptyMap();
+        }
+        Map<TypeParamDef, ImTypeVar> result = new IdentityHashMap<>();
+        if (owner instanceof AstElementWithTypeParameters) {
+            for (TypeParamDef tp : ((AstElementWithTypeParameters) owner).getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                    result.put(tp, typeVariable.getFor(tp));
+                }
+            }
+        }
+        return result;
     }
 
     private boolean isNamedScopeVar(VarDef varDef) {
@@ -1217,10 +1298,16 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
         List<ImStmt> result = Lists.newArrayList();
-        for (WStatement s : statements) {
-            lasttranslatedThing = s;
-            ImStmt translated = s.imTranslateStmt(this, f);
-            result.add(translated);
+        Map<TypeParamDef, ImTypeVar> ov = getTypeVarOverridesForFunction(f);
+        pushTypeVarOverrides(ov);
+        try {
+            for (WStatement s : statements) {
+                lasttranslatedThing = s;
+                ImStmt translated = s.imTranslateStmt(this, f);
+                result.add(translated);
+            }
+        } finally {
+            popTypeVarOverrides(ov);
         }
         return result;
     }

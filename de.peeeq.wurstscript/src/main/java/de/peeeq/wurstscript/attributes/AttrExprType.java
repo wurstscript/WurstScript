@@ -45,6 +45,10 @@ public class AttrExprType {
         return WurstTypeCode.instance();
     }
 
+    public static WurstType calculate(ExprTypeRef term) {
+        return term.getTyp().attrTyp();
+    }
+
 
     public static WurstType calculate(ExprVarAccess term) {
         NameLink varDef = term.attrNameLink();

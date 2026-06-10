@@ -5,6 +5,8 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
+import de.peeeq.wurstscript.ast.ClassOrInterface;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -172,6 +174,15 @@ public class ILInterpreter implements AbstractInterpreter {
                         subst.put(fvars.get(i2), targs.get(i2).getType());
                     }
 
+                    ImClass sourceOwner = findSourceOwnerClass(f, globalState.getProg());
+                    if (sourceOwner != null) {
+                        ImTypeVars cvars = sourceOwner.getTypeVariables();
+                        int n2 = Math.min(cvars.size(), targs.size());
+                        for (int i2 = 0; i2 < n2; i2++) {
+                            subst.put(cvars.get(i2), targs.get(i2).getType());
+                        }
+                    }
+
                     // 2) If the function is inside a class, also bind class type vars with the same call type args
                     Element owner = f.getParent();
                     while (owner != null && !(owner instanceof ImClass)) {
@@ -247,6 +258,26 @@ public class ILInterpreter implements AbstractInterpreter {
             de.peeeq.wurstscript.ast.Element trace = getTrace(globalState, f);
             throw new InterpreterException(trace, "You encountered a bug in the interpreter: " + e, e).setStacktrace(msg);
         }
+    }
+
+    private static @Nullable ImClass findSourceOwnerClass(ImFunction f, ImProg prog) {
+        if (!(f.getTrace() instanceof FuncDef)) {
+            return null;
+        }
+        FuncDef fd = (FuncDef) f.getTrace();
+        if (!fd.attrIsStatic()) {
+            return null;
+        }
+        ClassOrInterface owner = fd.attrNearestClassOrInterface();
+        if (owner == null) {
+            return null;
+        }
+        for (ImClass c : prog.getClasses()) {
+            if (c.getTrace() == owner) {
+                return c;
+            }
+        }
+        return null;
     }
 
 

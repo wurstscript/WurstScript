@@ -689,6 +689,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ExprTypeRef(ExprTypeRef e) {
+            return typeExpr(e.getTyp());
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_Modifiers(Modifiers modifiers) {
             return string("Modifiers for this declaration.");
         }

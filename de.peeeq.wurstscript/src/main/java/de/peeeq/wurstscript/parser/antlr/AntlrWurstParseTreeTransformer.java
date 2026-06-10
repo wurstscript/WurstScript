@@ -1027,7 +1027,12 @@ public class AntlrWurstParseTreeTransformer {
     private ExprMemberMethod transformMemberMethodCall2(WPos source,
                                                         ExprContext receiver, Token dots, Token funcName,
                                                         TypeArgsContext typeArgs, ArgumentListContext args) {
-        Expr left = transformExpr(receiver);
+        return transformMemberMethodCall2(source, transformExpr(receiver), dots, funcName, typeArgs, args);
+    }
+
+    private ExprMemberMethod transformMemberMethodCall2(WPos source,
+                                                        Expr left, Token dots, Token funcName,
+                                                        TypeArgsContext typeArgs, ArgumentListContext args) {
         if (dots.getType() == WurstParser.DOT) {
             return Ast.ExprMemberMethodDot(source, left, text(funcName),
                     transformTypeArgs(typeArgs), transformArgumentList(args));
@@ -1091,6 +1096,11 @@ public class AntlrWurstParseTreeTransformer {
             } else if (e.castToType != null) {
                 return Ast.ExprCast(source, transformTypeExpr(e.castToType),
                         transformExpr(e.left));
+            } else if (e.dotsTypeCall != null) {
+                TypeExpr receiverType = transformGenericTypeReceiver(e.receiverType);
+                Expr left = Ast.ExprTypeRef(receiverType.getSource(), receiverType);
+                return transformMemberMethodCall2(source, left, e.dotsTypeCall,
+                        e.typeFuncName, e.typeCallTypeArgs, e.typeCallArgs);
             } else if (e.dotsVar != null) {
                 return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
                         e.varName, e.indexes());
@@ -1118,6 +1128,23 @@ public class AntlrWurstParseTreeTransformer {
             return Ast.ExprIncomplete(source(e), "Incomplete expression.");
         }
 
+    }
+
+    private TypeExpr transformGenericTypeReceiver(GenericTypeReceiverContext receiverType) {
+        OptTypeExpr scopeType = Ast.NoTypeExpr();
+        TypeExpr result = null;
+
+        for (GenericTypeReceiverPrefixPartContext part : receiverType.receiverTypePrefixes) {
+            result = Ast.TypeExprSimple(source(part.typeName), scopeType,
+                    part.typeName.getText(), Ast.TypeExprList());
+            scopeType = result;
+        }
+
+        GenericTypeReceiverGenericPartContext genericPart = receiverType.receiverTypeGenericPart;
+        result = Ast.TypeExprSimple(source(genericPart.typeName), scopeType,
+                genericPart.typeName.getText(), transformTypeArgs(genericPart.typeArgsNonEmpty()));
+
+        return result;
     }
 
     private int beginPos(ParseTree left) {
@@ -1372,6 +1399,14 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private TypeExprList transformTypeArgs(TypeArgsContext typeArgs) {
+        TypeExprList result = Ast.TypeExprList();
+        for (TypeExprContext e : typeArgs.args) {
+            result.add(transformTypeExpr(e));
+        }
+        return result;
+    }
+
+    private TypeExprList transformTypeArgs(TypeArgsNonEmptyContext typeArgs) {
         TypeExprList result = Ast.TypeExprList();
         for (TypeExprContext e : typeArgs.args) {
             result.add(transformTypeExpr(e));
