@@ -766,7 +766,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         File targetMapFile = getBuildOutputMapFile(projectConfig, buildDir);
         targetMapFile = ensureWritableBuildOutput(targetMapFile, false);
 
-        CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, true);
+        CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, isProductionBuild());
         injectMapData(gui, Optional.of(targetMapFile), result);
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
@@ -785,6 +785,10 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         gui.sendProgress("Done.");
         return targetMapFile;
+    }
+
+    protected boolean isProductionBuild() {
+        return !runArgs.isDevBuild();
     }
 
     protected File ensureWritableBuildOutput(File targetMapFile, boolean isFinalWrite) {

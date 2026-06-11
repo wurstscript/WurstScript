@@ -21,6 +21,12 @@ public class UtilsTest {
     }
 
     @Test
+    public void devBuildFlag() {
+        Assert.assertTrue(new RunArgs("-dev").isDevBuild());
+        Assert.assertFalse(new RunArgs().isDevBuild());
+    }
+
+    @Test
     public void compactCompileErrorIsSingleLine() {
         CompileError error = new CompileError((WPos) null, "first line\nsecond line");
         Assert.assertFalse(error.toCompactString().contains("\n"));
