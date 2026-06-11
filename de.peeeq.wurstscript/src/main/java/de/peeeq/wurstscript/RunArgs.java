@@ -54,6 +54,7 @@ public class RunArgs {
     private final RunOption optionHotStartmap;
     private final RunOption optionHotReload;
     private final RunOption optionTestTimeout;
+    private final RunOption optionDevBuild;
     private int functionSplitLimit = 10000;
 
     /**
@@ -144,6 +145,7 @@ public class RunArgs {
         optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
 
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
+        optionDevBuild = addOption("dev", "Builds an output map in development/run mode, so compiletime isProductionBuild() is false.");
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
@@ -396,6 +398,10 @@ public class RunArgs {
 
     public boolean isBuild() {
         return optionBuild.isSet;
+    }
+
+    public boolean isDevBuild() {
+        return optionDevBuild.isSet;
     }
 
     public String getWorkspaceroot() {

@@ -252,6 +252,15 @@ public class MapRequestPatchTargetTests {
             "modern build must not carry the legacy flag: " + modern.exposedCompileArgs());
     }
 
+    @Test
+    public void devBuildFlagMakesBuildPipelineNonProduction() throws Exception {
+        TestMapRequest dev = new TestMapRequest(projectWithPatch("v2.0"), Optional.empty(), Optional.empty(), List.of("-dev"));
+        assertFalse(dev.exposedIsProductionBuild(), "CLI build with -dev should expose isProductionBuild() = false to compiletime");
+
+        TestMapRequest release = new TestMapRequest(projectWithPatch("v2.0"), Optional.empty(), Optional.empty());
+        assertTrue(release.exposedIsProductionBuild(), "CLI build without -dev should remain production by default");
+    }
+
     private static Path projectWithPatch(String patch) throws Exception {
         Path project = Files.createTempDirectory("wurst-map-request-patch");
         Files.createDirectories(project.resolve("wurst"));
@@ -264,7 +273,11 @@ public class MapRequestPatchTargetTests {
 
     private static final class TestMapRequest extends MapRequest {
         TestMapRequest(Path projectRoot, Optional<String> wc3Path, Optional<String> gameExePath) {
-            super(null, Optional.empty(), List.of(), WFile.create(projectRoot), wc3Path, gameExePath);
+            this(projectRoot, wc3Path, gameExePath, List.of());
+        }
+
+        TestMapRequest(Path projectRoot, Optional<String> wc3Path, Optional<String> gameExePath, List<String> compileArgs) {
+            super(null, Optional.empty(), compileArgs, WFile.create(projectRoot), wc3Path, gameExePath);
         }
 
         Optional<GameVersion> detectedVersion() {
@@ -277,6 +290,10 @@ public class MapRequestPatchTargetTests {
 
         List<String> exposedCompileArgs() {
             return compileArgs;
+        }
+
+        boolean exposedIsProductionBuild() {
+            return isProductionBuild();
         }
 
         @Override
