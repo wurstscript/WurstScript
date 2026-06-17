@@ -63,6 +63,39 @@ public class ExportToWurstTest extends WurstScriptTest {
         testAssertOkLinesWithStdLib(false, source.split("\n"));
     }
 
+    private void assertUnitExportCompilesWithFixedUnitObjEditing(String exported) {
+        testAssertOk(false, false,
+            compilationUnit("ObjEditingNatives.wurst",
+                "package ObjEditingNatives",
+                "public class ObjectDefinition",
+                "\tfunction setInt(string modification, int value)",
+                "\t\tskip",
+                "public function createObjectDefinition(string fileType, int newId, int deriveFrom) returns ObjectDefinition",
+                "\treturn new ObjectDefinition()"
+            ),
+            compilationUnit("ObjEditingCommons.wurst",
+                "package ObjEditingCommons"
+            ),
+            compilationUnit("UnitObjEditing.wurst",
+                "package UnitObjEditing",
+                "import ObjEditingNatives",
+                "import ObjEditingCommons",
+                "public class UnitDefinition",
+                "\tObjectDefinition def",
+                "\tconstruct(int newId, int origUnitId)",
+                "\t\tdef = createObjectDefinition(\"w3u\", newId, origUnitId)",
+                "\tfunction setModelFileExtraVersions(int data)",
+                "\t\tdef.setInt(\"uver\", data)"
+            ),
+            compilationUnit("ExportedObjectsCompileTest.wurst",
+                ("package ExportedObjectsCompileTest\n"
+                    + "import ObjEditingNatives\n"
+                    + "import ObjEditingCommons\n"
+                    + "import UnitObjEditing\n\n"
+                    + exported).split("\n"))
+        );
+    }
+
     // -------------------------------------------------------------------------
     // Ability (w3a) — known base ID
     // -------------------------------------------------------------------------
@@ -280,7 +313,7 @@ public class ExportToWurstTest extends WurstScriptTest {
 
         assertFalse(out.contains("createObjectDefinition"), out);
         assertTrue(out.contains("..setModelFileExtraVersions(1)"), out);
-        assertExportCompiles(out, "import UnitObjEditing");
+        assertUnitExportCompilesWithFixedUnitObjEditing(out);
     }
 
     @Test
