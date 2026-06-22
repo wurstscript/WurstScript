@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.parser.WPos;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -31,6 +33,22 @@ public class UtilsTest {
         CompileError error = new CompileError((WPos) null, "first line\nsecond line");
         Assert.assertFalse(error.toCompactString().contains("\n"));
         Assert.assertTrue(error.toCompactString().contains("first line second line"));
+    }
+
+    @Test
+    public void compactCliSuppressesGeneratedJassNameResolutionWarnings() {
+        CompileError generatedWarning = new CompileError(
+                new WPos("C:/project/_build/grill/war3map.j", null, 0, 0),
+                "Error:  e:Could not find variable silverGladeCounter.",
+                ErrorType.WARNING);
+
+        WurstGuiCliImpl compactGui = new WurstGuiCliImpl(true);
+        compactGui.sendError(generatedWarning);
+        Assert.assertTrue(compactGui.getWarningList().isEmpty());
+
+        WurstGuiCliImpl regularGui = new WurstGuiCliImpl(false);
+        regularGui.sendError(generatedWarning);
+        Assert.assertEquals(regularGui.getWarningList().size(), 1);
     }
 
     @Test
