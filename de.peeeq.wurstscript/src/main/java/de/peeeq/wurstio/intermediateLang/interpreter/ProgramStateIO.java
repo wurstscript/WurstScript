@@ -21,6 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -556,6 +557,7 @@ public class ProgramStateIO extends ProgramState {
         try (BufferedWriter out = Files.newBufferedWriter(outFile, StandardCharsets.UTF_8)) {
             out.write("package WurstExportedObjects_" + fileType.getExt() + "\n");
             out.write("import ObjEditingNatives\n");
+            out.write("import ObjEditingCommons\n");
             // Add the appropriate stdlib wrapper import for the file type so generated
             // code using e.g. AbilityDefinitionSlow can reference that class directly.
             switch (fileType) {
@@ -675,6 +677,13 @@ public class ProgramStateIO extends ProgramState {
                 return false;
         }
 
+        for (ObjMod.Obj.Mod m : mods) {
+            StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(m, fileType));
+            if (info != null && !canUseWrapperForMod(m, info)) {
+                return false;
+            }
+        }
+
         out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
             .append("()\n");
         out.append("\tnew ").append(wrapperClass).append("(").append(constructorArgs).append(")\n");
@@ -686,7 +695,7 @@ public class ProgramStateIO extends ProgramState {
                 if (info.hasLevel() && m instanceof ObjMod.Obj.ExtendedMod) {
                     out.append(String.valueOf(((ObjMod.Obj.ExtendedMod) m).getLevel())).append(", ");
                 }
-                out.append(formatModValue(m, info.isBoolField())).append(")\n");
+                out.append(formatWrapperValue(m, info)).append(")\n");
             } else {
                 // No wrapper method for this field — emit as a commented raw call so the
                 // user can see what needs to be handled and add it manually.
@@ -714,6 +723,36 @@ public class ProgramStateIO extends ProgramState {
         return m.toString() + ":0";
     }
 
+    private static boolean canUseWrapperForMod(ObjMod.Obj.Mod m, StdlibObjectMappings.FieldMethodInfo info) {
+        if (!info.parameterType().isEmpty() && !isPrimitiveParameter(info.parameterType())
+                && !isEnumParameter(info.parameterType())) {
+            return false;
+        }
+        if (isEnumParameter(info.parameterType())) {
+            return enumConstantForObjectString(info.parameterType(), m.getVal().toString()) != null;
+        }
+        return true;
+    }
+
+    private static boolean isEnumParameter(String parameterType) {
+        return ENUM_OBJECT_STRING_TO_CONSTANT.containsKey(parameterType);
+    }
+
+    private static boolean isPrimitiveParameter(String parameterType) {
+        return switch (parameterType) {
+            case "int", "string", "real", "bool", "boolean" -> true;
+            default -> false;
+        };
+    }
+
+    private static String formatWrapperValue(ObjMod.Obj.Mod m, StdlibObjectMappings.FieldMethodInfo info) {
+        String enumConstant = enumConstantForObjectString(info.parameterType(), m.getVal().toString());
+        if (enumConstant != null) {
+            return enumConstant;
+        }
+        return formatModValue(m, info.isBoolField());
+    }
+
     /** Formats a mod value for use in generated Wurst source. */
     static String formatModValue(ObjMod.Obj.Mod m, boolean isBoolField) {
         if (isBoolField) {
@@ -722,8 +761,116 @@ public class ProgramStateIO extends ProgramState {
         if (m.getValType() == ObjMod.ValType.STRING) {
             return Utils.escapeString(m.getVal().toString());
         }
+        if (m.getValType() == ObjMod.ValType.REAL || m.getValType() == ObjMod.ValType.UNREAL) {
+            return formatRealLiteral(m.getVal().toString());
+        }
         return m.getVal().toString();
     }
+
+    private static String formatRealLiteral(String value) {
+        try {
+            String plain = new BigDecimal(value).toPlainString();
+            return plain.contains(".") ? plain : plain + ".0";
+        } catch (NumberFormatException e) {
+            return value;
+        }
+    }
+
+    private static @Nullable String enumConstantForObjectString(String parameterType, String value) {
+        Map<String, String> values = ENUM_OBJECT_STRING_TO_CONSTANT.get(parameterType);
+        if (values == null) {
+            return null;
+        }
+        String constant = values.get(value);
+        return constant == null ? null : parameterType + "." + constant;
+    }
+
+    private static Map<String, String> enumConstants(String... valueConstantPairs) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (int i = 0; i < valueConstantPairs.length; i += 2) {
+            result.put(valueConstantPairs[i], valueConstantPairs[i + 1]);
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    private static final Map<String, Map<String, String>> ENUM_OBJECT_STRING_TO_CONSTANT = Map.of(
+        "Race", enumConstants(
+            "commoner", "Commoner",
+            "creeps", "Creeps",
+            "critters", "Critters",
+            "demon", "Demon",
+            "human", "Human",
+            "naga", "Naga",
+            "nightelf", "Nightelf",
+            "orc", "Orc",
+            "other", "Other",
+            "undead", "Undead",
+            "unknown", "Unknown"
+        ),
+        "MovementType", enumConstants(
+            "", "None",
+            "foot", "Foot",
+            "horse", "Horse",
+            "fly", "Fly",
+            "hover", "Hover",
+            "float", "Float",
+            "amph", "Amphipic"
+        ),
+        "ArmorType", enumConstants(
+            "small", "Small",
+            "medium", "Medium",
+            "large", "Large",
+            "fort", "Fortified",
+            "normal", "Normal",
+            "hero", "Hero",
+            "divine", "Divine",
+            "none", "Unarmored"
+        ),
+        "AttackType", enumConstants(
+            "unknown", "Unknown",
+            "normal", "Normal",
+            "pierce", "Pierce",
+            "siege", "Siege",
+            "spells", "Spells",
+            "chaos", "Chaos",
+            "magic", "Magic",
+            "hero", "Hero"
+        ),
+        "WeaponType", enumConstants(
+            "_", "None",
+            "normal", "Normal",
+            "instant", "Instant",
+            "artillery", "Artillery",
+            "aline", "ArtilleryLine",
+            "missile", "Missile",
+            "msplash", "MissileSplash",
+            "mbounce", "MissileBounce",
+            "mline", "MissileLine"
+        ),
+        "WeaponSound", enumConstants(
+            "Nothing", "Nothing",
+            "AxeMediumChop", "AxeMediumChop",
+            "MetalHeavyBash", "MetalHeavyBash",
+            "MetalHeavyChop", "MetalHeavyChop",
+            "MetalHeavySlice", "MetalHeavySlice",
+            "MetalLightChop", "MetalLightChop",
+            "MetalLightSlice", "MetalLightSlice",
+            "MetalMediumBash", "MetalMediumBash",
+            "MetalMediumChop", "MetalMediumChop",
+            "MetalMediumSlice", "MetalMediumSlice",
+            "RockHeavyBash", "RockHeavyBash",
+            "WoodHeavyBash", "WoodHeavyBash",
+            "WoodLightBash", "WoodLightBash",
+            "WoodMediumBash", "WoodMediumBash"
+        ),
+        "ArmorSoundType", enumConstants(
+            "Ethereal", "Ethereal",
+            "Flesh", "Flesh",
+            "Wood", "Wood",
+            "Stone", "Stone",
+            "Metal", "Metal"
+        )
+    );
 
     /** Appends a single raw field-setter call (e.g. ..setLvlDataUnreal(...)) to {@code out}. */
     private static void appendRawMod(Appendable out, ObjMod.Obj.Mod m, ObjectFileType fileType) throws IOException {

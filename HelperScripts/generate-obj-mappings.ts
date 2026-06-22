@@ -36,6 +36,8 @@ interface MethodMapping {
   dataPtr: number;
   /** "Int", "Unreal", "String", "Boolean", "Real" as found in the wurst method call */
   wurstCallType: string;
+  /** Public setter parameter type used for the object value, e.g. "string" or "ArmorType" */
+  valueParamType: string;
   /** true if method signature has (int level, ...) */
   hasLevel: boolean;
 }
@@ -133,6 +135,7 @@ function parseObjEditingFile(content: string): ClassDef[] {
   let currentClass: ClassDef | null = null;
   let currentMethodName: string | null = null;
   let currentMethodHasLevel = false;
+  let currentMethodValueType = "";
   let insidePreset = false;
 
   for (const line of lines) {
@@ -174,14 +177,17 @@ function parseObjEditingFile(content: string): ClassDef[] {
       const fnName = funcMatch[1];
       if (fnName.startsWith("preset") || fnName.startsWith("get")) {
         currentMethodName = null;
+        currentMethodValueType = "";
         insidePreset = true;
       } else if (fnName.startsWith("set")) {
         insidePreset = false;
         currentMethodName = fnName;
         // Does the signature include "int level" as first parameter?
         currentMethodHasLevel = /\(int level[,)]/.test(line);
+        currentMethodValueType = parseValueParamType(line, currentMethodHasLevel);
       } else {
         currentMethodName = null;
+        currentMethodValueType = "";
         insidePreset = true; // skip non-set/get functions too
       }
       continue;
@@ -206,9 +212,11 @@ function parseObjEditingFile(content: string): ClassDef[] {
         fieldId,
         dataPtr,
         wurstCallType,
+        valueParamType: currentMethodValueType,
         hasLevel: currentMethodHasLevel,
       });
       currentMethodName = null; // one mapping per method
+      currentMethodValueType = "";
       continue;
     }
 
@@ -225,14 +233,29 @@ function parseObjEditingFile(content: string): ClassDef[] {
         fieldId,
         dataPtr: 0, // WC3 WE stores non-level fields as ExtendedMod with dataPtr=0
         wurstCallType,
+        valueParamType: currentMethodValueType,
         hasLevel: false,
       });
       currentMethodName = null;
+      currentMethodValueType = "";
       continue;
     }
   }
 
   return classes;
+}
+
+function parseValueParamType(functionLine: string, hasLevel: boolean): string {
+  const paramsMatch = functionLine.match(/\((.*)\)/);
+  if (!paramsMatch) return "";
+  const params = paramsMatch[1]
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  const valueParam = hasLevel ? params[1] : params[0];
+  if (!valueParam) return "";
+  const typeMatch = valueParam.match(/^(?:vararg\s+)?([A-Za-z_]\w*)\s+\w+$/);
+  return typeMatch ? typeMatch[1] : "";
 }
 
 // ---------------------------------------------------------------------------
@@ -287,11 +310,13 @@ function resolveAllMethods(
 //   "itemFieldMethods":  { ... }
 // }
 //
-// Field entry is a 3-element array [methodName, hasLevel, isBool] to keep the
+// Field entry is a compact array:
+// [methodName, hasLevel, isBool, storageValueType, parameterType].
+// The Java reader still accepts the old 3-element shape for compatibility.
 // file compact.
 // ---------------------------------------------------------------------------
 
-type FieldEntry = [string, boolean, boolean]; // [methodName, hasLevel, isBool]
+type FieldEntry = [string, boolean, boolean, string, string];
 
 function generateJson(
   abilityIdMap: Map<string, string>,
@@ -335,7 +360,7 @@ function generateJson(
       for (const m of cls.methods) {
         const key = `${m.fieldId}:${m.dataPtr}`;
         if (!(key in own)) {
-          own[key] = [m.methodName, m.hasLevel, m.wurstCallType === "Boolean"];
+          own[key] = [m.methodName, m.hasLevel, m.wurstCallType === "Boolean", m.wurstCallType, m.valueParamType];
         }
       }
       // sort by key for deterministic output
@@ -356,7 +381,7 @@ function generateJson(
     for (const m of all) {
       const key = `${m.fieldId}:${m.dataPtr}`;
       if (!(key in result)) {
-        result[key] = [m.methodName, m.hasLevel, m.wurstCallType === "Boolean"];
+        result[key] = [m.methodName, m.hasLevel, m.wurstCallType === "Boolean", m.wurstCallType, m.valueParamType];
       }
     }
     return Object.fromEntries(Object.entries(result).sort(([a], [b]) => a.localeCompare(b)));

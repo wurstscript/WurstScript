@@ -29,11 +29,14 @@ public final class StdlibObjectMappings {
     /**
      * Info about a wrapper method that sets a specific object field.
      *
-     * @param methodName  the Wurst method name, e.g. {@code "setCooldown"}
-     * @param hasLevel    true if the method signature is {@code setXxx(int level, T value)}
-     * @param isBoolField true if the Wurst method accepts a {@code bool} (stored as int 0/1)
+     * @param methodName       the Wurst method name, e.g. {@code "setCooldown"}
+     * @param hasLevel         true if the method signature is {@code setXxx(int level, T value)}
+     * @param isBoolField      true if the Wurst method accepts a {@code bool} (stored as int 0/1)
+     * @param storageValueType the underlying {@code def.set*} value type, e.g. {@code "String"}
+     * @param parameterType    the public setter value parameter type, e.g. {@code "ArmorType"}
      */
-    public record FieldMethodInfo(String methodName, boolean hasLevel, boolean isBoolField) {}
+    public record FieldMethodInfo(String methodName, boolean hasLevel, boolean isBoolField,
+                                  String storageValueType, String parameterType) {}
 
     /**
      * Maps base ability ID (4-char, e.g. {@code "Aslo"}) to the stdlib wrapper class name
@@ -179,10 +182,14 @@ public final class StdlibObjectMappings {
         Map<String, FieldMethodInfo> result = new LinkedHashMap<>(obj.size() * 2);
         for (Map.Entry<String, JsonElement> e : obj.entrySet()) {
             var arr = e.getValue().getAsJsonArray();
+            String storageValueType = arr.size() > 3 ? arr.get(3).getAsString() : "";
+            String parameterType = arr.size() > 4 ? arr.get(4).getAsString() : "";
             result.put(e.getKey(), new FieldMethodInfo(
                 arr.get(0).getAsString(),
                 arr.get(1).getAsBoolean(),
-                arr.get(2).getAsBoolean()
+                arr.get(2).getAsBoolean(),
+                storageValueType,
+                parameterType
             ));
         }
         return result;

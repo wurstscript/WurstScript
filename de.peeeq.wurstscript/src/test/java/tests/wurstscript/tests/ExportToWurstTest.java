@@ -21,7 +21,7 @@ import static org.testng.Assert.*;
  * wrapper-class output is produced for known types and that the raw fallback is
  * used when the base ID has no mapping or a field has no wrapper method.
  */
-public class ExportToWurstTest {
+public class ExportToWurstTest extends WurstScriptTest {
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -51,6 +51,49 @@ public class ExportToWurstTest {
         StringBuilder sb = new StringBuilder();
         ProgramStateIO.exportToWurst(List.of(obj), fileType, sb);
         return sb.toString();
+    }
+
+    private void assertExportCompiles(String exported, String... imports) {
+        String source = """
+            package ExportedObjectsCompileTest
+            import ObjEditingNatives
+            import ObjEditingCommons
+
+            """ + String.join("\n", imports) + "\n\n" + exported;
+        testAssertOkLinesWithStdLib(false, source.split("\n"));
+    }
+
+    private void assertUnitExportCompilesWithFixedUnitObjEditing(String exported) {
+        testAssertOk(false, false,
+            compilationUnit("ObjEditingNatives.wurst",
+                "package ObjEditingNatives",
+                "public class ObjectDefinition",
+                "\tfunction setInt(string modification, int value)",
+                "\t\tskip",
+                "public function createObjectDefinition(string fileType, int newId, int deriveFrom) returns ObjectDefinition",
+                "\treturn new ObjectDefinition()"
+            ),
+            compilationUnit("ObjEditingCommons.wurst",
+                "package ObjEditingCommons"
+            ),
+            compilationUnit("UnitObjEditing.wurst",
+                "package UnitObjEditing",
+                "import ObjEditingNatives",
+                "import ObjEditingCommons",
+                "public class UnitDefinition",
+                "\tObjectDefinition def",
+                "\tconstruct(int newId, int origUnitId)",
+                "\t\tdef = createObjectDefinition(\"w3u\", newId, origUnitId)",
+                "\tfunction setModelFileExtraVersions(int data)",
+                "\t\tdef.setInt(\"uver\", data)"
+            ),
+            compilationUnit("ExportedObjectsCompileTest.wurst",
+                ("package ExportedObjectsCompileTest\n"
+                    + "import ObjEditingNatives\n"
+                    + "import ObjEditingCommons\n"
+                    + "import UnitObjEditing\n\n"
+                    + exported).split("\n"))
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -170,6 +213,18 @@ public class ExportToWurstTest {
             "Bool field stored as int 1 should emit 'true', got:\n" + out);
     }
 
+    @Test
+    public void abilityEnumFieldEmitsEnumConstantAndCompiles() throws IOException {
+        W3A w3a = new W3A();
+        W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01N"), ObjId.valueOf("Aslo"));
+        addLvlMod(obj, "arac", ObjMod.ValType.STRING, 0, 0, "orc");
+
+        String out = export(obj, ObjectFileType.ABILITIES);
+
+        assertTrue(out.contains("..setRace(Race.Orc)"), out);
+        assertExportCompiles(out, "import AbilityObjEditing");
+    }
+
     // -------------------------------------------------------------------------
     // Unit (w3u)
     // -------------------------------------------------------------------------
@@ -205,6 +260,60 @@ public class ExportToWurstTest {
         assertTrue(out.contains("// TODO no wrapper:"),
             "Unmapped field should be commented out");
         assertFalse(out.contains("createObjectDefinition"));
+    }
+
+    @Test
+    public void unitEnumFieldsEmitEnumConstantsAndCompile() throws IOException {
+        W3U w3u = new W3U();
+        W3U.Obj obj = w3u.addObj(ObjId.valueOf("n010"), ObjId.valueOf("hfoo"));
+        addMod(obj, "unam", ObjMod.ValType.STRING, "Enum Unit");
+        addMod(obj, "udty", ObjMod.ValType.STRING, "small");
+        addMod(obj, "ua1t", ObjMod.ValType.STRING, "magic");
+        addMod(obj, "ua1w", ObjMod.ValType.STRING, "instant");
+        addMod(obj, "umvt", ObjMod.ValType.STRING, "foot");
+        addMod(obj, "ucs1", ObjMod.ValType.STRING, "AxeMediumChop");
+        addMod(obj, "uarm", ObjMod.ValType.STRING, "Metal");
+        addMod(obj, "urac", ObjMod.ValType.STRING, "orc");
+        addMod(obj, "uacq", ObjMod.ValType.UNREAL, 2.1474836E9);
+
+        String out = export(obj, ObjectFileType.UNITS);
+
+        assertTrue(out.contains("..setArmorType(ArmorType.Small)"), out);
+        assertTrue(out.contains("..setAttack1AttackType(AttackType.Magic)"), out);
+        assertTrue(out.contains("..setAttack1WeaponType(WeaponType.Instant)"), out);
+        assertTrue(out.contains("..setMovementType(MovementType.Foot)"), out);
+        assertTrue(out.contains("..setAttack1WeaponSound(WeaponSound.AxeMediumChop)"), out);
+        assertTrue(out.contains("..setArmorSoundType(ArmorSoundType.Metal)"), out);
+        assertTrue(out.contains("..setRace(Race.Orc)"), out);
+        assertTrue(out.contains("..setAcquisitionRange(2147483600.0)"), out);
+        assertFalse(out.contains("2.1474836E9"), out);
+        assertExportCompiles(out, "import UnitObjEditing");
+    }
+
+    @Test
+    public void emptyEnumValueFallsBackToRawExportAndCompiles() throws IOException {
+        W3U w3u = new W3U();
+        W3U.Obj obj = w3u.addObj(ObjId.valueOf("n011"), ObjId.valueOf("hfoo"));
+        addMod(obj, "ucs1", ObjMod.ValType.STRING, "");
+
+        String out = export(obj, ObjectFileType.UNITS);
+
+        assertTrue(out.contains("createObjectDefinition(\"w3u\", 'n011', 'hfoo')"), out);
+        assertTrue(out.contains("..setString(\"ucs1\", \"\")"), out);
+        assertExportCompiles(out, "import UnitObjEditing");
+    }
+
+    @Test
+    public void intFieldWithFixedWrapperEmitsWrapperCallAndCompiles() throws IOException {
+        W3U w3u = new W3U();
+        W3U.Obj obj = w3u.addObj(ObjId.valueOf("n012"), ObjId.valueOf("hfoo"));
+        addMod(obj, "uver", ObjMod.ValType.INT, 1);
+
+        String out = export(obj, ObjectFileType.UNITS);
+
+        assertFalse(out.contains("createObjectDefinition"), out);
+        assertTrue(out.contains("..setModelFileExtraVersions(1)"), out);
+        assertUnitExportCompilesWithFixedUnitObjEditing(out);
     }
 
     @Test
@@ -318,6 +427,18 @@ public class ExportToWurstTest {
         assertFalse(out.contains("createObjectDefinition"));
     }
 
+    @Test
+    public void itemEnumFieldEmitsEnumConstantAndCompiles() throws IOException {
+        W3T w3t = new W3T();
+        W3T.Obj obj = w3t.addObj(ObjId.valueOf("I002"), ObjId.valueOf("rat9"));
+        addMod(obj, "iarm", ObjMod.ValType.STRING, "small");
+
+        String out = export(obj, ObjectFileType.ITEMS);
+
+        assertTrue(out.contains("..setArmorType(ArmorType.Small)"), out);
+        assertExportCompiles(out, "import ItemObjEditing");
+    }
+
     // -------------------------------------------------------------------------
     // Inherited fields — child abilities that inherit specific fields from parent
     // -------------------------------------------------------------------------
@@ -355,7 +476,7 @@ public class ExportToWurstTest {
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A017"), ObjId.valueOf("ACpa"));
         addLvlMod(obj, "Npa6", ObjMod.ValType.UNREAL,  1, 0, 0.01);
         addLvlMod(obj, "Poi1", ObjMod.ValType.UNREAL,  1, 1, 0.0);
-        addLvlMod(obj, "Poi4", ObjMod.ValType.INT,     1, 4, 0);
+        addLvlMod(obj, "Poi4", ObjMod.ValType.STRING,  1, 4, "0");
         addLvlMod(obj, "ipmu", ObjMod.ValType.STRING,  1, 0, "nfbr");
 
         String out = export(obj, ObjectFileType.ABILITIES);
