@@ -476,7 +476,7 @@ public class ExportToWurstTest extends WurstScriptTest {
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A017"), ObjId.valueOf("ACpa"));
         addLvlMod(obj, "Npa6", ObjMod.ValType.UNREAL,  1, 0, 0.01);
         addLvlMod(obj, "Poi1", ObjMod.ValType.UNREAL,  1, 1, 0.0);
-        addLvlMod(obj, "Poi4", ObjMod.ValType.STRING,  1, 4, "0");
+        addLvlMod(obj, "Poi4", ObjMod.ValType.INT,     1, 4, 0);
         addLvlMod(obj, "ipmu", ObjMod.ValType.STRING,  1, 0, "nfbr");
 
         String out = export(obj, ObjectFileType.ABILITIES);
@@ -485,6 +485,32 @@ public class ExportToWurstTest extends WurstScriptTest {
             "ACpa should use wrapper, not raw fallback");
         assertFalse(out.contains("// TODO no wrapper"),
             "All ACpa fields should be mapped via inheritance, got:\n" + out);
+        assertTrue(out.contains("..setStackingType(1, 0)"), out);
+        assertExportCompiles(out, "import AbilityObjEditing");
+    }
+
+    @Test
+    public void abilityIntegerLevelFieldsWithWrapperMethodsCompile() throws IOException {
+        Object[][] cases = {
+            // baseId, fieldId, dataPtr, wrapper class, setter method, newId
+            {"ACpa", "Poi4", 4, "AbilityDefinitionParasiteEredar", "setStackingType", "Zp04"},
+            {"AIsz", "Spo4", 4, "AbilityDefinitionSlowPoisonItem", "setStackingType", "Zs04"},
+            {"Abu5", "Eme2", 2, "AbilityDefinitionBurrowBarbedArachnathid", "setMorphingFlags", "Ze02"},
+            {"Acdh", "Nsi1", 1, "AbilityDefinitionChenDrunkenHaze", "setAttacksPrevented", "Zn01"},
+            {"AHca", "Hca4", 4, "AbilityDefinitionRangerColdArrows", "setStackFlags", "Zh04"},
+        };
+
+        for (Object[] c : cases) {
+            W3A w3a = new W3A();
+            W3A.Obj obj = w3a.addObj(ObjId.valueOf((String) c[5]), ObjId.valueOf((String) c[0]));
+            addLvlMod(obj, (String) c[1], ObjMod.ValType.INT, 1, (int) c[2], 0);
+
+            String out = export(obj, ObjectFileType.ABILITIES);
+
+            assertTrue(out.contains("new " + c[3] + "('" + c[5] + "')"), out);
+            assertTrue(out.contains(".." + c[4] + "(1, 0)"), out);
+            assertExportCompiles(out, "import AbilityObjEditing");
+        }
     }
 
     // -------------------------------------------------------------------------

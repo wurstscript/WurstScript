@@ -5355,8 +5355,8 @@
         "setMorphingFlags",
         true,
         false,
-        "String",
-        "string"
+        "Int",
+        "int"
       ],
       "Eme3:3": [
         "setAltitudeAdjustmentDuration",
@@ -5932,8 +5932,8 @@
         "setAttacksPrevented",
         true,
         false,
-        "String",
-        "string"
+        "Int",
+        "int"
       ],
       "Nsi2:2": [
         "setChanceToMiss",
@@ -6052,8 +6052,8 @@
         "setStackFlags",
         true,
         false,
-        "String",
-        "string"
+        "Int",
+        "int"
       ]
     },
     "AbilityDefinitionColdArrowscreep": {
@@ -13439,8 +13439,8 @@
         "setStackingType",
         true,
         false,
-        "String",
-        "string"
+        "Int",
+        "int"
       ]
     },
     "AbilityDefinitionPenguinSqueek": {
@@ -17348,8 +17348,8 @@
         "setStackingType",
         true,
         false,
-        "String",
-        "string"
+        "Int",
+        "int"
       ]
     },
     "AbilityDefinitionSpawnHydra": {
