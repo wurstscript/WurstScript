@@ -41,6 +41,7 @@
     "Abur": "AbilityDefinitionBurrow",
     "ACac": "AbilityDefinitionAuraCommandCreep",
     "ACad": "AbilityDefinitionAnimateDeadcreep",
+    "ACah": "AbilityDefinitionThornsAuraCreep",
     "ACam": "AbilityDefinitionAntimagicShieldcreep",
     "Acan": "AbilityDefinitionCannibalize",
     "ACat": "AbilityDefinitionAuraTrueshotCreep",
@@ -58,6 +59,7 @@
     "ACc3": "AbilityDefinitionCrushingWaveLesser",
     "ACca": "AbilityDefinitionCarrionSwarmcreep",
     "ACcb": "AbilityDefinitionFrostBolt",
+    "ACce": "AbilityDefinitionCleavingAttackCreep",
     "ACch": "AbilityDefinitionCharm",
     "ACcl": "AbilityDefinitionChainLightningcreep",
     "ACcn": "AbilityDefinitionCannibalizecreep",
@@ -74,6 +76,7 @@
     "Acdh": "AbilityDefinitionChenDrunkenHaze",
     "ACdm": "AbilityDefinitionAbolishMagicCreep",
     "ACdr": "AbilityDefinitionDrainLifeCreep",
+    "ACds": "AbilityDefinitionDivineShieldCreep",
     "ACdv": "AbilityDefinitionDevourCreep",
     "Acef": "AbilityDefinitionChenStormEarthAndFire",
     "ACen": "AbilityDefinitionEnsnareCreep",
@@ -364,6 +367,7 @@
     "AIhb": "AbilityDefinitionItemHealAoeGreater",
     "AIhe": "AbilityDefinitionAIhe",
     "AIhl": "AbilityDefinitionHolyLightItem",
+    "AIhm": "AbilityDefinitionShadowMeldItem",
     "Aihn": "AbilityDefinitionInventory2SlotUnitHuman",
     "AIhw": "AbilityDefinitionHealingWardAIhw",
     "AIhx": "AbilityDefinitionItemHealLeastest",
@@ -524,6 +528,7 @@
     "Amov": "AbilityDefinitionMove",
     "Amrf": "AbilityDefinitionRavenFormMedivh",
     "ANab": "AbilityDefinitionAlchemistAcidBomb",
+    "ANak": "AbilityDefinitionOrbOfAnnihilationQuillSpray",
     "ANav": "AbilityDefinitionAvatarGarithos",
     "ANb2": "AbilityDefinitionBashmaulSPBearlevel3",
     "ANba": "AbilityDefinitionDarkRangerBlackArrow",
@@ -1001,6 +1006,7 @@
     "AbilityDefinitionChenDrunkenBrawler": "AbilityDefinition",
     "AbilityDefinitionChenDrunkenHaze": "AbilityDefinition",
     "AbilityDefinitionChenStormEarthAndFire": "AbilityDefinition",
+    "AbilityDefinitionCleavingAttackCreep": "AbilityDefinition",
     "AbilityDefinitionCloudofFog": "AbilityDefinition",
     "AbilityDefinitionCloudofFogItem": "AbilityDefinition",
     "AbilityDefinitionColdArrows": "AbilityDefinition",
@@ -1080,6 +1086,7 @@
     "AbilityDefinitionDisenchantold": "AbilityDefinition",
     "AbilityDefinitionDispelMagic": "AbilityDefinition",
     "AbilityDefinitionDispelMagiccreep": "AbilityDefinition",
+    "AbilityDefinitionDivineShieldCreep": "AbilityDefinition",
     "AbilityDefinitionDivineShieldItem": "AbilityDefinition",
     "AbilityDefinitionDrainLifeCreep": "AbilityDefinition",
     "AbilityDefinitionDreadlordCarrionSwarm": "AbilityDefinition",
@@ -1355,6 +1362,7 @@
     "AbilityDefinitionOnFireOrc": "AbilityDefinition",
     "AbilityDefinitionOnFireUndead": "AbilityDefinition",
     "AbilityDefinitionOrbofAnnihilation": "AbilityDefinition",
+    "AbilityDefinitionOrbOfAnnihilationQuillSpray": "AbilityDefinition",
     "AbilityDefinitionOrbofCorruption": "AbilityDefinition",
     "AbilityDefinitionOrbofDarkness": "AbilityDefinition",
     "AbilityDefinitionOrbofDarknessBlackArrow": "AbilityDefinition",
@@ -1521,6 +1529,7 @@
     "AbilityDefinitionShadowMeld": "AbilityDefinition",
     "AbilityDefinitionShadowMeldAkama": "AbilityDefinition",
     "AbilityDefinitionShadowMeldInstant": "AbilityDefinition",
+    "AbilityDefinitionShadowMeldItem": "AbilityDefinition",
     "AbilityDefinitionShadowOrbAbility": "AbilityDefinition",
     "AbilityDefinitionShadowSight": "AbilityDefinition",
     "AbilityDefinitionShadowStrikeCreep": "AbilityDefinition",
@@ -1590,6 +1599,7 @@
     "AbilityDefinitionTaurenChieftainReincarnation": "AbilityDefinition",
     "AbilityDefinitionTaurenChieftainShockWave": "AbilityDefinition",
     "AbilityDefinitionTaurenChieftainWarStomp": "AbilityDefinition",
+    "AbilityDefinitionThornsAuraCreep": "AbilityDefinition",
     "AbilityDefinitionThornyShieldCreep": "AbilityDefinition",
     "AbilityDefinitionThornyShieldDragonTurtle": "AbilityDefinition",
     "AbilityDefinitionThunderBoltCreep": "AbilityDefinition",
@@ -5966,6 +5976,15 @@
         "string"
       ]
     },
+    "AbilityDefinitionCleavingAttackCreep": {
+      "nca1:1": [
+        "setDistributedDamageFactor",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
     "AbilityDefinitionCloudofFog": {
       "Nsi1:1": [
         "setAttacksPrevented",
@@ -7732,6 +7751,15 @@
         false,
         "Unreal",
         "real"
+      ]
+    },
+    "AbilityDefinitionDivineShieldCreep": {
+      "Hds1:1": [
+        "setCanDeactivate",
+        true,
+        true,
+        "Boolean",
+        "bool"
       ]
     },
     "AbilityDefinitionDivineShieldItem": {
@@ -13037,6 +13065,43 @@
         "real"
       ]
     },
+    "AbilityDefinitionOrbOfAnnihilationQuillSpray": {
+      "fak1:1": [
+        "setDamageBonus",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "fak2:2": [
+        "setMediumDamageFactor",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "fak3:3": [
+        "setSmallDamageFactor",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "fak4:4": [
+        "setFullDamageRadius",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "fak5:5": [
+        "setHalfDamageRadius",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
     "AbilityDefinitionOrbofCorruption": {
       "Iarp:2": [
         "setArmorPenalty",
@@ -16854,6 +16919,36 @@
         "bool"
       ]
     },
+    "AbilityDefinitionShadowMeldItem": {
+      "Shm1:1": [
+        "setFadeDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Shm2:2": [
+        "setDayNightDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Shm3:3": [
+        "setActionDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Shm4:4": [
+        "setPermanentCloak",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
     "AbilityDefinitionShadowOrbAbility": {
       "Idam:1": [
         "setDamageBonus",
@@ -18208,6 +18303,22 @@
         false,
         "Unreal",
         "real"
+      ]
+    },
+    "AbilityDefinitionThornsAuraCreep": {
+      "Eah1:1": [
+        "setDamageDealttoAttackers",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Eah2:2": [
+        "setDamageisPercentReceived",
+        true,
+        true,
+        "Boolean",
+        "bool"
       ]
     },
     "AbilityDefinitionThornyShieldCreep": {

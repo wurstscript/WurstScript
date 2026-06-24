@@ -677,20 +677,13 @@ public class ProgramStateIO extends ProgramState {
                 return false;
         }
 
-        for (ObjMod.Obj.Mod m : mods) {
-            StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(m, fileType));
-            if (info != null && !canUseWrapperForMod(m, info)) {
-                return false;
-            }
-        }
-
         out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
             .append("()\n");
         out.append("\tnew ").append(wrapperClass).append("(").append(constructorArgs).append(")\n");
 
         for (ObjMod.Obj.Mod m : mods) {
             StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(m, fileType));
-            if (info != null) {
+            if (info != null && canUseWrapperForMod(m, info)) {
                 out.append("\t..").append(info.methodName()).append("(");
                 if (info.hasLevel() && m instanceof ObjMod.Obj.ExtendedMod) {
                     out.append(String.valueOf(((ObjMod.Obj.ExtendedMod) m).getLevel())).append(", ");
@@ -848,6 +841,7 @@ public class ProgramStateIO extends ProgramState {
             "mline", "MissileLine"
         ),
         "WeaponSound", enumConstants(
+            "", "Nothing",
             "Nothing", "Nothing",
             "AxeMediumChop", "AxeMediumChop",
             "MetalHeavyBash", "MetalHeavyBash",

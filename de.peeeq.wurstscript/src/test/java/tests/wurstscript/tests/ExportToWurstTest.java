@@ -118,6 +118,40 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     @Test
+    public void abilityAliasBaseIdsUseAliasSpecificWrapperClasses() throws IOException {
+        Object[][] cases = {
+            {"A9C1", "ACce", "AbilityDefinitionCleavingAttackCreep", "AbilityDefinitionPitLordCleavingAttack",
+                "nca1", ObjMod.ValType.UNREAL, 1, 1, 0.25, "..setDistributedDamageFactor(1, 0.25)"},
+            {"A9C2", "ACds", "AbilityDefinitionDivineShieldCreep", "AbilityDefinitionPaladinDivineShield",
+                "Hds1", ObjMod.ValType.INT, 1, 1, 1, "..setCanDeactivate(1, true)"},
+            {"A9C3", "ANak", "AbilityDefinitionOrbOfAnnihilationQuillSpray", "AbilityDefinitionOrbofAnnihilation",
+                "fak1", ObjMod.ValType.UNREAL, 1, 1, 15.0, "..setDamageBonus(1, 15.0)"},
+            {"A9C4", "AIhm", "AbilityDefinitionShadowMeldItem", "AbilityDefinitionShadowMeld",
+                "Shm1", ObjMod.ValType.UNREAL, 1, 1, 1.5, "..setFadeDuration(1, 1.5)"},
+            {"A9C5", "ACah", "AbilityDefinitionThornsAuraCreep", "AbilityDefinitionKeeperoftheGroveThornsAura",
+                "Eah1", ObjMod.ValType.UNREAL, 1, 1, 0.1, "..setDamageDealttoAttackers(1, 0.1)"}
+        };
+
+        for (Object[] c : cases) {
+            W3A w3a = new W3A();
+            String newId = (String) c[0];
+            String baseId = (String) c[1];
+            String expectedClass = (String) c[2];
+            String implementationCodeClass = (String) c[3];
+            W3A.Obj obj = w3a.addObj(ObjId.valueOf(newId), ObjId.valueOf(baseId));
+            addLvlMod(obj, (String) c[4], (ObjMod.ValType) c[5], (int) c[6], (int) c[7], c[8]);
+
+            String out = export(obj, ObjectFileType.ABILITIES);
+
+            assertTrue(out.contains("new " + expectedClass + "('" + newId + "')"), baseId + " export:\n" + out);
+            assertTrue(out.contains((String) c[9]), baseId + " export:\n" + out);
+            assertFalse(out.contains("new " + implementationCodeClass + "("), baseId + " must not export via implementation-code class:\n" + out);
+            assertFalse(out.contains("createObjectDefinition"), baseId + " must not fall back to raw export:\n" + out);
+            assertExportCompiles(out, "import AbilityObjEditing");
+        }
+    }
+
+    @Test
     public void abilityWrapperIncludesAllKnownFields() throws IOException {
         W3A w3a = new W3A();
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01M"), ObjId.valueOf("Aslo"));
@@ -225,6 +259,21 @@ public class ExportToWurstTest extends WurstScriptTest {
         assertExportCompiles(out, "import AbilityObjEditing");
     }
 
+    @Test
+    public void abilityUnknownEnumFieldDoesNotForceRawObjectFallback() throws IOException {
+        W3A w3a = new W3A();
+        W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01O"), ObjId.valueOf("Aslo"));
+        addLvlMod(obj, "arac", ObjMod.ValType.STRING, 0, 0, "not-a-race");
+
+        String out = export(obj, ObjectFileType.ABILITIES);
+
+        assertTrue(out.contains("new AbilityDefinitionSlow('A01O')"), out);
+        assertFalse(out.contains("createObjectDefinition"), out);
+        assertTrue(out.contains("// TODO no wrapper:"), out);
+        assertTrue(out.contains("arac"), out);
+        assertExportCompiles(out, "import AbilityObjEditing");
+    }
+
     // -------------------------------------------------------------------------
     // Unit (w3u)
     // -------------------------------------------------------------------------
@@ -291,15 +340,16 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     @Test
-    public void emptyEnumValueFallsBackToRawExportAndCompiles() throws IOException {
+    public void emptyWeaponSoundEnumValueKeepsTypedExportAndCompiles() throws IOException {
         W3U w3u = new W3U();
         W3U.Obj obj = w3u.addObj(ObjId.valueOf("n011"), ObjId.valueOf("hfoo"));
         addMod(obj, "ucs1", ObjMod.ValType.STRING, "");
 
         String out = export(obj, ObjectFileType.UNITS);
 
-        assertTrue(out.contains("createObjectDefinition(\"w3u\", 'n011', 'hfoo')"), out);
-        assertTrue(out.contains("..setString(\"ucs1\", \"\")"), out);
+        assertTrue(out.contains("new UnitDefinition('n011', 'hfoo')"), out);
+        assertTrue(out.contains("..setAttack1WeaponSound(WeaponSound.Nothing)"), out);
+        assertFalse(out.contains("createObjectDefinition"), out);
         assertExportCompiles(out, "import UnitObjEditing");
     }
 
