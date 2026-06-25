@@ -516,20 +516,11 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void replaceCompilationUnit(WFile filename) {
-        File f;
         try {
-            f = filename.getFile();
-        } catch (FileNotFoundException e) {
-            WLogger.info("Cannot replaceCompilationUnit for " + filename + "\n" + e);
-            return;
-        }
-        if (!f.exists()) {
-            removeCompilationUnit(filename);
-            return;
-        }
-        try {
-            String contents = Files.toString(f, Charsets.UTF_8);
-            bufferManager.updateFile(WFile.create(f), contents);
+            String contents = readCompilationUnitContents(filename, true);
+            if (contents == null) {
+                return;
+            }
             replaceCompilationUnit(filename, contents, true);
         } catch (IOException e) {
             WLogger.severe(e);
@@ -582,13 +573,10 @@ public class ModelManagerImpl implements ModelManager {
         WLogger.debug("syncCompilationUnit File " + f);
         String contents;
         try {
-            File file = f.getFile();
-            if (!file.exists()) {
-                removeCompilationUnit(f);
+            contents = readCompilationUnitContents(f, true);
+            if (contents == null) {
                 return Changes.empty();
             }
-            contents = Files.toString(file, Charsets.UTF_8);
-            bufferManager.updateFile(WFile.create(file), contents);
         } catch (IOException e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
@@ -606,6 +594,28 @@ public class ModelManagerImpl implements ModelManager {
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
         return new Changes(io.vavr.collection.HashSet.of(f), oldPackages);
+    }
+
+    private @Nullable String readCompilationUnitContents(WFile filename, boolean preferOpenBuffer) throws IOException {
+        if (preferOpenBuffer && bufferManager.getTextDocumentVersion(filename) >= 0) {
+            return bufferManager.getBuffer(filename);
+        }
+        File file;
+        try {
+            file = filename.getFile();
+        } catch (FileNotFoundException e) {
+            WLogger.info("Cannot read compilation unit for " + filename + "\n" + e);
+            return null;
+        }
+        if (!file.exists()) {
+            removeCompilationUnit(filename);
+            return null;
+        }
+        String contents = Files.toString(file, Charsets.UTF_8);
+        if (bufferManager.getTextDocumentVersion(filename) < 0) {
+            bufferManager.updateFile(WFile.create(file), contents);
+        }
+        return contents;
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {

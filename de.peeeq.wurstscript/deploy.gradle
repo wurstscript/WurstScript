@@ -249,8 +249,7 @@ tasks.register("generateAppCdsArchive", Exec) {
         args "-Xshare:off",
             "-XX:ArchiveClassesAtExit=${archiveFile.absolutePath}",
             "-jar", compilerJar.absolutePath,
-            "-languageServer"
-        standardInput = new ByteArrayInputStream(new byte[0])
+            "-languageServerAppCdsTrain"
 
         logger.lifecycle("[appcds] Training LS startup with ${runtimeJava.absolutePath}")
     }
