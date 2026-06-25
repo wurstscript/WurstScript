@@ -58,3 +58,5 @@ WurstSetup/proguard.map
 de.peeeq.wurstscript/output.txt
 /HelperScripts/gamedata
 /HelperScripts/.gradle
+/.gradle-user-home
+/gradle-home-temp

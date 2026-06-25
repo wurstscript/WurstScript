@@ -616,9 +616,11 @@ public class ProgramStateIO extends ProgramState {
      * <p>Fields that have no known wrapper method are emitted as commented-out raw
      * calls so the output is still useful even when coverage is incomplete.
      *
-     * <p>Returns {@code false} only when there is no wrapper class at all for this
+     * <p>Returns {@code false} when there is no wrapper class at all for this
      * object type / base ID (e.g. doodads, upgrades, or an unknown ability base ID),
-     * in which case the caller should fall back to the fully raw format.
+     * or when a mapped wrapper setter exists but its parameter type is not yet
+     * supported for source re-emission. In those cases the caller should fall back
+     * to the fully raw format so no object data is lost on re-export.
      */
     private static boolean tryExportWithWrapper(Appendable out, ObjectFileType fileType,
                                           String newId, String oldId,
@@ -677,6 +679,10 @@ public class ProgramStateIO extends ProgramState {
                 return false;
         }
 
+        if (hasUnsupportedMappedWrapperField(mods, fieldMethods, fileType)) {
+            return false;
+        }
+
         out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
             .append("()\n");
         out.append("\tnew ").append(wrapperClass).append("(").append(constructorArgs).append(")\n");
@@ -700,6 +706,21 @@ public class ProgramStateIO extends ProgramState {
         return true;
     }
 
+    private static boolean hasUnsupportedMappedWrapperField(List<ObjMod.Obj.Mod> mods,
+                                                            Map<String, StdlibObjectMappings.FieldMethodInfo> fieldMethods,
+                                                            ObjectFileType fileType) {
+        for (ObjMod.Obj.Mod mod : mods) {
+            StdlibObjectMappings.FieldMethodInfo info = fieldMethods.get(fieldKey(mod, fileType));
+            if (info == null) {
+                continue;
+            }
+            if (!supportsWrapperParameterType(info.parameterType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Returns the lookup key used to match a mod to a {@link StdlibObjectMappings.FieldMethodInfo}.
      * Uses the mod's actual dataPtr when it is an {@link ObjMod.Obj.ExtendedMod}, regardless of
@@ -717,14 +738,19 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private static boolean canUseWrapperForMod(ObjMod.Obj.Mod m, StdlibObjectMappings.FieldMethodInfo info) {
-        if (!info.parameterType().isEmpty() && !isPrimitiveParameter(info.parameterType())
-                && !isEnumParameter(info.parameterType())) {
+        if (!supportsWrapperParameterType(info.parameterType())) {
             return false;
         }
         if (isEnumParameter(info.parameterType())) {
             return enumConstantForObjectString(info.parameterType(), m.getVal().toString()) != null;
         }
         return true;
+    }
+
+    private static boolean supportsWrapperParameterType(String parameterType) {
+        return parameterType.isEmpty()
+            || isPrimitiveParameter(parameterType)
+            || isEnumParameter(parameterType);
     }
 
     private static boolean isEnumParameter(String parameterType) {

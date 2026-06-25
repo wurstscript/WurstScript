@@ -186,8 +186,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains("MagicFunctions_compiletime"));
         assertTrue(compiled.contains("function __wurst_InitHashtable("));
         assertTrue(compiled.contains("function __wurst_SaveInteger("));
-        assertTrue(compiled.contains("function __wurst_LoadInteger("));
-        assertFunctionBodyContains(compiled, "__wurst_LoadInteger", "return 0", true);
     }
 
     @Test

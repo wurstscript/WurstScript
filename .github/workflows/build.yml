@@ -34,6 +34,7 @@ jobs:
       matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     permissions:
+      checks: write
       contents: read
     env:
       JAVA_TOOL_OPTIONS: >-

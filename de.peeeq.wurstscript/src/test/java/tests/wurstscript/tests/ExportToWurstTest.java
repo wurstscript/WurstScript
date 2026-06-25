@@ -388,6 +388,22 @@ public class ExportToWurstTest extends WurstScriptTest {
         assertExportCompiles(out, "import AbilityObjEditing");
     }
 
+    @Test
+    public void abilityUnsupportedMappedWrapperParameterFallsBackToRawExport() throws IOException {
+        W3A w3a = new W3A();
+        W3A.Obj obj = w3a.addObj(ObjId.valueOf("A0RJ"), ObjId.valueOf("Arej"));
+        addLvlMod(obj, "acdn", ObjMod.ValType.UNREAL, 1, 0, 4.0);
+        addLvlMod(obj, "Rej3", ObjMod.ValType.INT, 1, 3, 1);
+
+        String out = export(obj, ObjectFileType.ABILITIES);
+
+        assertTrue(out.contains("createObjectDefinition(\"w3a\", 'A0RJ', 'Arej')"), out);
+        assertTrue(out.contains("..setLvlDataUnreal(\"acdn\", 1, 0, 4.0)"), out);
+        assertTrue(out.contains("..setLvlDataInt(\"Rej3\", 1, 3, 1)"), out);
+        assertFalse(out.contains("new AbilityDefinitionRejuvination('A0RJ')"), out);
+        assertFalse(out.contains("// TODO no wrapper:"), out);
+    }
+
     // -------------------------------------------------------------------------
     // Unit (w3u)
     // -------------------------------------------------------------------------
