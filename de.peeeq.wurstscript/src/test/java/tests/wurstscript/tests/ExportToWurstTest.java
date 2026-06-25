@@ -152,6 +152,120 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     @Test
+    public void abilityCoverageGapsFromPristineExportUseTypedWrappers() throws IOException {
+        W3A w3a = new W3A();
+        W3A.Obj resistantSkin = w3a.addObj(ObjId.valueOf("A07B"), ObjId.valueOf("Arsk"));
+        addLvlMod(resistantSkin, "arac", ObjMod.ValType.STRING, 0, 0, "human");
+        addLvlMod(resistantSkin, "areq", ObjMod.ValType.STRING, 0, 0, "");
+
+        String resistantSkinOut = export(resistantSkin, ObjectFileType.ABILITIES);
+
+        assertTrue(resistantSkinOut.contains("new AbilityDefinitionResistantSkin('A07B')"), resistantSkinOut);
+        assertTrue(resistantSkinOut.contains("..setRace(Race.Human)"), resistantSkinOut);
+        assertTrue(resistantSkinOut.contains("..setRequirements(\"\")"), resistantSkinOut);
+        assertFalse(resistantSkinOut.contains("createObjectDefinition"), resistantSkinOut);
+
+        W3A.Obj undeadBuild = w3a.addObj(ObjId.valueOf("AUbu"), null);
+        addLvlMod(undeadBuild, "aart", ObjMod.ValType.STRING, 0, 0,
+            "ReplaceableTextures\\CommandButtons\\BTNAdvStruct.blp");
+
+        String undeadBuildOut = export(undeadBuild, ObjectFileType.ABILITIES);
+
+        assertTrue(undeadBuildOut.contains("new AbilityDefinitionBuildUndead('AUbu')"), undeadBuildOut);
+        assertTrue(undeadBuildOut.contains("..setIconNormal(\"ReplaceableTextures\\\\CommandButtons\\\\BTNAdvStruct.blp\")"), undeadBuildOut);
+        assertFalse(undeadBuildOut.contains("createObjectDefinition"), undeadBuildOut);
+
+        W3A.Obj rally = w3a.addObj(ObjId.valueOf("ARal"), null);
+        addLvlMod(rally, "anam", ObjMod.ValType.STRING, 0, 0, "Sync");
+        addLvlMod(rally, "atp1", ObjMod.ValType.STRING, 0, 0, "");
+
+        String rallyOut = export(rally, ObjectFileType.ABILITIES);
+
+        assertTrue(rallyOut.contains("new AbilityDefinitionRally('ARal')"), rallyOut);
+        assertTrue(rallyOut.contains("..setName(\"Sync\")"), rallyOut);
+        assertTrue(rallyOut.contains("..setTooltipNormal(0, \"\")"), rallyOut);
+        assertFalse(rallyOut.contains("createObjectDefinition"), rallyOut);
+    }
+
+    @Test
+    public void abilityDataBaseIdsHaveWrapperCoverageForPreviouslyMissingRows() throws IOException {
+        Object[][] cases = {
+            {"AOvd", "AbilityDefinitionShadowHunterVoodooo"},
+            {"Aaha", "AbilityDefinitionAcolyteHarvest"},
+            {"Aawa", "AbilityDefinitionAwaken"},
+            {"ANbu", "AbilityDefinitionBuildNeutral"},
+            {"AHbu", "AbilityDefinitionBuildHuman"},
+            {"AObu", "AbilityDefinitionBuildOrc"},
+            {"AEbu", "AbilityDefinitionBuildNightElf"},
+            {"AGbu", "AbilityDefinitionBuildNaga"},
+            {"ACsp", "AbilityDefinitionCreepSleep"},
+            {"Adri", "AbilityDefinitionDropInstant"},
+            {"Adro", "AbilityDefinitionDrop"},
+            {"Amed", "AbilityDefinitionMeatDrop"},
+            {"Amel", "AbilityDefinitionMeatLoad"},
+            {"Amic", "AbilityDefinitionMilitiaConversion"},
+            {"Apit", "AbilityDefinitionPurchaseItem"},
+            {"Arev", "AbilityDefinitionRevive"},
+            {"Asac", "AbilityDefinitionSacrificeSacrificialPit"},
+            {"Alam", "AbilityDefinitionSacrificeAcolyte"},
+            {"Asid", "AbilityDefinitionSellItem"},
+            {"Asud", "AbilityDefinitionSellUnit"},
+            {"Atol", "AbilityDefinitionTreeOfLifeForAttachingArt"},
+            {"AIfl", "AbilityDefinitionFlag"},
+            {"AIfm", "AbilityDefinitionFlagHuman"},
+            {"AIfo", "AbilityDefinitionFlagOrc"},
+            {"AIfn", "AbilityDefinitionFlagNightElf"},
+            {"AIfe", "AbilityDefinitionFlagUndead"},
+            {"AIso", "AbilityDefinitionSoulTrap"},
+            {"Asou", "AbilityDefinitionSoulPossession"},
+            {"AIdm", "AbilityDefinitionItemDamageAoe"},
+            {"AIvu", "AbilityDefinitionItemInvulNormal"},
+            {"AIdg", "AbilityDefinitionItemRitualDaggerInstant"},
+            {"AIg2", "AbilityDefinitionItemRitualDaggerRegen"},
+            {"AIno", "AbilityDefinitionSlow2"},
+            {"AUa2", "AbilityDefinitionDeathKnightAnimateDead1"}
+        };
+
+        for (int i = 0; i < cases.length; i++) {
+            W3A w3a = new W3A();
+            String baseId = (String) cases[i][0];
+            String expectedClass = (String) cases[i][1];
+            String newId = String.format("Z%03d", i);
+            W3A.Obj obj = w3a.addObj(ObjId.valueOf(newId), ObjId.valueOf(baseId));
+
+            String out = export(obj, ObjectFileType.ABILITIES);
+
+            assertTrue(out.contains("new " + expectedClass + "('" + newId + "')"), baseId + " export:\n" + out);
+            assertFalse(out.contains("createObjectDefinition"), baseId + " must not fall back to raw export:\n" + out);
+        }
+    }
+
+    @Test
+    public void abilityDataBaseIdsWithSpecificFieldsUseTypedSetters() throws IOException {
+        Object[][] cases = {
+            {"AIvu", "AIvu", ObjMod.ValType.INT, 1, 1, 1, "..setData(1, true)"},
+            {"AIdg", "Idg1", ObjMod.ValType.INT, 1, 2, 1, "..setData(1, true)"},
+            {"AIg2", "Ihpg", ObjMod.ValType.INT, 1, 1, 50, "..setHitPointsGained(1, 50)"},
+            {"AIno", "Slo1", ObjMod.ValType.UNREAL, 1, 1, 0.5, "..setMovementSpeedFactor(1, 0.5)"},
+            {"AUa2", "Uan1", ObjMod.ValType.INT, 1, 1, 6, "..setNumberofCorpsesRaised(1, 6)"}
+        };
+
+        for (int i = 0; i < cases.length; i++) {
+            W3A w3a = new W3A();
+            String baseId = (String) cases[i][0];
+            String newId = String.format("Y%03d", i);
+            W3A.Obj obj = w3a.addObj(ObjId.valueOf(newId), ObjId.valueOf(baseId));
+            addLvlMod(obj, (String) cases[i][1], (ObjMod.ValType) cases[i][2],
+                (int) cases[i][3], (int) cases[i][4], cases[i][5]);
+
+            String out = export(obj, ObjectFileType.ABILITIES);
+
+            assertTrue(out.contains((String) cases[i][6]), baseId + " export:\n" + out);
+            assertFalse(out.contains("createObjectDefinition"), baseId + " must not fall back to raw export:\n" + out);
+        }
+    }
+
+    @Test
     public void abilityWrapperIncludesAllKnownFields() throws IOException {
         W3A w3a = new W3A();
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01M"), ObjId.valueOf("Aslo"));
