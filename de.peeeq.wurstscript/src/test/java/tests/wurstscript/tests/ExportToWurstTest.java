@@ -374,18 +374,17 @@ public class ExportToWurstTest extends WurstScriptTest {
     }
 
     @Test
-    public void abilityUnknownEnumFieldDoesNotForceRawObjectFallback() throws IOException {
+    public void abilityUnknownEnumFieldFallsBackToRawObjectExport() throws IOException {
         W3A w3a = new W3A();
         W3A.Obj obj = w3a.addObj(ObjId.valueOf("A01O"), ObjId.valueOf("Aslo"));
         addLvlMod(obj, "arac", ObjMod.ValType.STRING, 0, 0, "not-a-race");
 
         String out = export(obj, ObjectFileType.ABILITIES);
 
-        assertTrue(out.contains("new AbilityDefinitionSlow('A01O')"), out);
-        assertFalse(out.contains("createObjectDefinition"), out);
-        assertTrue(out.contains("// TODO no wrapper:"), out);
-        assertTrue(out.contains("arac"), out);
-        assertExportCompiles(out, "import AbilityObjEditing");
+        assertTrue(out.contains("createObjectDefinition(\"w3a\", 'A01O', 'Aslo')"), out);
+        assertTrue(out.contains("..setLvlDataString(\"arac\", 0, 0, \"not-a-race\")"), out);
+        assertFalse(out.contains("new AbilityDefinitionSlow('A01O')"), out);
+        assertFalse(out.contains("// TODO no wrapper:"), out);
     }
 
     @Test

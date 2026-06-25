@@ -714,7 +714,7 @@ public class ProgramStateIO extends ProgramState {
             if (info == null) {
                 continue;
             }
-            if (!supportsWrapperParameterType(info.parameterType())) {
+            if (!canUseWrapperForMod(mod, info)) {
                 return true;
             }
         }
