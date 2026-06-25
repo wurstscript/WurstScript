@@ -42,6 +42,7 @@ def jreImageDir    = layout.buildDirectory.dir("jre-wurst-25")
 
 def distRoot    = layout.buildDirectory.dir("dist/slim-${plat}")
 def releasesDir = layout.buildDirectory.dir("releases")
+def appCdsArchive = distRoot.map { it.file("wurst-runtime/wurst-lsp.jsa") }
 
 // ----------------------- Toolchain / tool paths (providers) -------------------------
 def toolchainSvc = extensions.getByType(JavaToolchainService)
@@ -223,11 +224,51 @@ tasks.named("assembleSlimCompilerDist", Copy) { t ->
     }
 }
 
+tasks.register("generateAppCdsArchive", Exec) {
+    description = "Best-effort AppCDS archive generation for language-server startup."
+    group = "distribution"
+    dependsOn("assembleSlimCompilerDist")
+
+    inputs.file(fatJar)
+    inputs.dir(distRoot)
+    outputs.file(appCdsArchive)
+    ignoreExitValue = true
+
+    doFirst {
+        def distDir = distRoot.get().asFile
+        def archiveFile = appCdsArchive.get().asFile
+        def runtimeJava = new File(distDir, "wurst-runtime/bin/java${os.isWindows() ? '.exe' : ''}")
+        def compilerJar = new File(distDir, "wurst-compiler/${fatJar.get().asFile.name}")
+
+        archiveFile.parentFile.mkdirs()
+        if (archiveFile.exists()) {
+            archiveFile.delete()
+        }
+
+        executable = runtimeJava.absolutePath
+        args "-Xshare:auto",
+            "-XX:ArchiveClassesAtExit=${archiveFile.absolutePath}",
+            "-jar", compilerJar.absolutePath,
+            "-languageServerAppCdsTrain"
+
+        logger.lifecycle("[appcds] Training LS startup with ${runtimeJava.absolutePath}")
+    }
+
+    doLast {
+        def archiveFile = appCdsArchive.get().asFile
+        if (executionResult.get().exitValue != 0 || !archiveFile.exists()) {
+            logger.warn("[appcds] Archive generation did not succeed on ${plat}; continuing without shipped AppCDS archive.")
+        } else {
+            logger.lifecycle("[appcds] Wrote ${archiveFile.absolutePath}")
+        }
+    }
+}
+
 // 4) Package ZIP on all platforms
 tasks.register("packageSlimCompilerDistZip", Zip) {
     description = "Packages slim dist as a ZIP archive (all platforms)."
     group = "distribution"
-    dependsOn("assembleSlimCompilerDist")
+    dependsOn("generateAppCdsArchive")
 
     from(distRoot)
     destinationDirectory.set(releasesDir)

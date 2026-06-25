@@ -42,6 +42,7 @@ public class RunArgs {
     private final RunOption optionExtractImports;
     private final RunOption optionStartServer;
     private final RunOption optionLanguageServer;
+    private final RunOption optionLanguageServerAppCdsTrain;
     private final RunOption optionNoExtractMapScript;
     private final RunOption optionFixInstall;
     private final RunOption optionCopyMap;
@@ -136,6 +137,7 @@ public class RunArgs {
 
         optionLanguageServer = addOption("languageServer", "Starts a language server which can be used by editors to get services "
                 + "like code completion, validations, and find declaration. The communication to the language server is via standard input output.");
+        optionLanguageServerAppCdsTrain = addOption("languageServerAppCdsTrain", "Starts and immediately stops a lightweight language-server startup path for AppCDS training.");
 
         optionHelp = addOption("help", "Prints this help message.");
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
@@ -350,6 +352,10 @@ public class RunArgs {
 
     public boolean isLanguageServer() {
         return optionLanguageServer.isSet;
+    }
+
+    public boolean isLanguageServerAppCdsTrain() {
+        return optionLanguageServerAppCdsTrain.isSet;
     }
 
     public boolean isNoExtractMapScript() {

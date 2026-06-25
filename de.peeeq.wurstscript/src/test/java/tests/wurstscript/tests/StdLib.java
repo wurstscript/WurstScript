@@ -23,7 +23,7 @@ public class StdLib {
     /**
      * version to use for the tests
      */
-    private final static String version = "85f9debf4f53207e1ffcc23ce2bf5e759a07ba06";
+    private final static String version = "16729fa07197bdc331dc5e30eb0f91d444eece85";
 
     /**
      * flag so that initialization in only done once

@@ -22,5 +22,15 @@ public class LanguageServerStarter {
         server.setRemoteEndpoint(launcher.getRemoteEndpoint());
     }
 
+    public static void trainForAppCds() {
+        WurstLanguageServer server = new WurstLanguageServer();
+        try {
+            server.getTextDocumentService();
+            server.getWorkspaceService();
+        } finally {
+            server.shutdown().join();
+        }
+    }
+
 
 }

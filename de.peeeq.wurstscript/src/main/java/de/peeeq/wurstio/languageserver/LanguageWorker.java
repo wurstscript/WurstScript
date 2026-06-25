@@ -58,6 +58,7 @@ public class LanguageWorker implements Runnable {
             lock.notify();
         }
     });
+    private boolean initialBuildPending = false;
     private final BufferManager bufferManager = new BufferManager();
     private LanguageClient languageClient;
 
@@ -200,9 +201,6 @@ public class LanguageWorker implements Runnable {
             changesToReconcile = ModelManager.Changes.empty();
             reconcileNowRequested = false;
             return new Workitem("reconcile files (save)", () -> modelManager.reconcile(changes));
-        } else if (!userRequests.isEmpty()) {
-            UserRequest<?> req = userRequests.remove();
-            return new Workitem(req.toString(), () -> req.run(modelManager));
         } else if (!changes.isEmpty()) {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
@@ -246,6 +244,12 @@ public class LanguageWorker implements Runnable {
             return new Workitem("reconcile files", () -> {
                 modelManager.reconcile(changes);
             });
+        } else if (initialBuildPending) {
+            initialBuildPending = false;
+            return new Workitem("initial full build", () -> doInitialBuild());
+        } else if (!userRequests.isEmpty()) {
+            UserRequest<?> req = userRequests.remove();
+            return new Workitem(req.toString(), () -> req.run(modelManager));
         }
         return null;
     }
@@ -271,11 +275,20 @@ public class LanguageWorker implements Runnable {
             log("Handle init " + rootPath);
             modelManager = new ModelManagerImpl(rootPath.getFile(), bufferManager);
             modelManager.onCompilationResult(this::onCompilationResult);
+            initialBuildPending = true;
+        } catch (Exception e) {
+            WLogger.severe(e);
+        }
+    }
 
-            log("Start building " + rootPath);
+    private void doInitialBuild() {
+        try {
+            if (modelManager == null || rootPath == null) {
+                return;
+            }
+            log("Start background full build " + rootPath);
             modelManager.buildProject();
-
-            log("Finished building " + rootPath);
+            log("Finished background full build " + rootPath);
         } catch (Exception e) {
             WLogger.severe(e);
         }
