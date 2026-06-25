@@ -246,7 +246,7 @@ tasks.register("generateAppCdsArchive", Exec) {
         }
 
         executable = runtimeJava.absolutePath
-        args "-Xshare:off",
+        args "-Xshare:auto",
             "-XX:ArchiveClassesAtExit=${archiveFile.absolutePath}",
             "-jar", compilerJar.absolutePath,
             "-languageServerAppCdsTrain"
