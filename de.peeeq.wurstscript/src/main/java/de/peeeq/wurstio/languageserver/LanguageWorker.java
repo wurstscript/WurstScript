@@ -244,12 +244,12 @@ public class LanguageWorker implements Runnable {
             return new Workitem("reconcile files", () -> {
                 modelManager.reconcile(changes);
             });
-        } else if (!userRequests.isEmpty()) {
-            UserRequest<?> req = userRequests.remove();
-            return new Workitem(req.toString(), () -> req.run(modelManager));
         } else if (initialBuildPending) {
             initialBuildPending = false;
             return new Workitem("initial full build", () -> doInitialBuild());
+        } else if (!userRequests.isEmpty()) {
+            UserRequest<?> req = userRequests.remove();
+            return new Workitem(req.toString(), () -> req.run(modelManager));
         }
         return null;
     }
