@@ -422,4 +422,66 @@ public class CompiletimeTests extends WurstScriptTest {
 
     }
 
+    @Test
+    public void testCompiletimeSQLite() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "import LinkedList",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_string(int stmt, int idx) returns string",
+                        "@extern native sqlite_column_count(int stmt) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "",
+                        "class SqlResult",
+                        "    string v1 = \"\"",
+                        "    string v2 = \"\"",
+                        "    string v3 = \"\"",
+                        "    string v4 = \"\"",
+                        "",
+                        "function sqlite_select(int db, string query) returns LinkedList<SqlResult>",
+                        "    let list = new LinkedList<SqlResult>()",
+                        "    let stmt = sqlite_prepare(db, query)",
+                        "    let cols = sqlite_column_count(stmt)",
+                        "    while sqlite_step(stmt)",
+                        "        let row = new SqlResult()",
+                        "        if cols > 0",
+                        "            row.v1 = sqlite_column_string(stmt, 0)",
+                        "        if cols > 1",
+                        "            row.v2 = sqlite_column_string(stmt, 1)",
+                        "        if cols > 2",
+                        "            row.v3 = sqlite_column_string(stmt, 2)",
+                        "        if cols > 3",
+                        "            row.v4 = sqlite_column_string(stmt, 3)",
+                        "        list.add(row)",
+                        "    sqlite_finalize(stmt)",
+                        "    return list",
+                        "",
+                        "function testSelect() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Jobs (id INTEGER, name TEXT, desc TEXT, val TEXT)\")",
+                        "    sqlite_exec(db, \"INSERT INTO Jobs VALUES (1, 'Warrior', 'Melee C', 'A')\")",
+                        "    sqlite_exec(db, \"INSERT INTO Jobs VALUES (2, 'Mage', 'Ranged C', 'B')\")",
+                        "    let res = sqlite_select(db, \"SELECT * FROM Jobs ORDER BY id ASC\")",
+                        "    int count = 0",
+                        "    if res.size() == 2",
+                        "        let first = res.get(0)",
+                        "        if first.v1 == \"1\" and first.v2 == \"Warrior\"",
+                        "            count++",
+                        "        let second = res.get(1)",
+                        "        if second.v1 == \"2\" and second.v2 == \"Mage\"",
+                        "            count++",
+                        "    return count",
+                        "",
+                        "let c = compiletime(testSelect())",
+                        "init",
+                        "    if c == 2",
+                        "        testSuccess()");
+    }
+
 }
