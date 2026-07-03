@@ -4,11 +4,19 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 
 public class ConversionProvider extends Provider {
+    private static final Map<String, IlConstHandle> enumHandles = new HashMap<>();
+
     public ConversionProvider(AbstractInterpreter interpreter) {
         super(interpreter);
+    }
+
+    public static IlConstHandle enumHandle(String typeName, int value) {
+        return enumHandles.computeIfAbsent(typeName + value, key -> new IlConstHandle(key, value));
     }
 
     public IlConstHandle ConvertRace(ILconstInt i) {
@@ -32,7 +40,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertPlayerState(ILconstInt i) {
-        return new IlConstHandle("playerstate" + i, new LinkedHashSet<>());
+        return enumHandle("playerstate", i.getVal());
     }
 
     public IlConstHandle ConvertPlayerScore(ILconstInt i) {
@@ -44,7 +52,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertUnitState(ILconstInt i) {
-        return new IlConstHandle("unitstate" + i, new LinkedHashSet<>());
+        return enumHandle("unitstate", i.getVal());
     }
 
     public IlConstHandle ConvertUnitIntegerField(ILconstInt i) {
@@ -128,7 +136,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertMapControl(ILconstInt i) {
-        return new IlConstHandle("mapcontrol" + i, new LinkedHashSet<>());
+        return enumHandle("mapcontrol", i.getVal());
     }
 
     public IlConstHandle ConvertPlayerColor(ILconstInt i) {
@@ -136,7 +144,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertPlayerSlotState(ILconstInt i) {
-        return new IlConstHandle("playerslotstate" + i, new LinkedHashSet<>());
+        return enumHandle("playerslotstate", i.getVal());
     }
 
     public IlConstHandle ConvertVolumeGroup(ILconstInt i) {

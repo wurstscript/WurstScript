@@ -23,6 +23,28 @@ public class PlayerProvider extends Provider {
         return p != null ? ((PlayerMock) p.getObj()).id : ILconstInt.create(-1);
     }
 
+    public void SetPlayerState(IlConstHandle player, IlConstHandle playerstate, ILconstInt value) {
+        if (player == null || playerstate == null) {
+            return;
+        }
+        ((PlayerMock) player.getObj()).playerStates.put(playerstate.print(), value);
+    }
+
+    public ILconstInt GetPlayerState(IlConstHandle player, IlConstHandle playerstate) {
+        if (player == null || playerstate == null) {
+            return ILconstInt.create(0);
+        }
+        return ((PlayerMock) player.getObj()).playerStates.getOrDefault(playerstate.print(), ILconstInt.create(0));
+    }
+
+    public IlConstHandle GetPlayerSlotState(IlConstHandle player) {
+        return ConversionProvider.enumHandle("playerslotstate", 1);
+    }
+
+    public IlConstHandle GetPlayerController(IlConstHandle player) {
+        return ConversionProvider.enumHandle("mapcontrol", 0);
+    }
+
     public ILconstInt GetPlayerNeutralPassive() {
         // fake value
         return new ILconstInt(31);

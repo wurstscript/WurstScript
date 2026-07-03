@@ -10,6 +10,7 @@ public class PlayerMock {
     public final ILconstInt id;
     public ILconst playerColor = ILconstNull.instance();
     public final HashMap<Integer, ILconstInt> techMaxAllowed = new HashMap<>();
+    public final HashMap<String, ILconstInt> playerStates = new HashMap<>();
 
     public PlayerMock(ILconstInt p) {
         this.id = p;
