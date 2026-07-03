@@ -19,6 +19,22 @@ public class DestructableProvider extends Provider {
     }
 
     public void KillDestructable(IlConstHandle destructable) {
+        DestructableMock destructableMock = destructableOrNull(destructable);
+        if (destructableMock != null) {
+            destructableMock.life = ILconstReal.create(0);
+        }
+    }
+
+    public void SetDestructableLife(IlConstHandle destructable, ILconstReal life) {
+        DestructableMock destructableMock = destructableOrNull(destructable);
+        if (destructableMock != null) {
+            destructableMock.life = life;
+        }
+    }
+
+    public ILconstReal GetDestructableLife(IlConstHandle destructable) {
+        DestructableMock destructableMock = destructableOrNull(destructable);
+        return destructableMock == null ? ILconstReal.create(0) : destructableMock.life;
     }
 
     public ILconstReal GetDestructableX(IlConstHandle destructable) {
@@ -27,5 +43,12 @@ public class DestructableProvider extends Provider {
 
     public ILconstReal GetDestructableY(IlConstHandle destructable) {
         return ((DestructableMock)destructable.getObj()).y;
+    }
+
+    private DestructableMock destructableOrNull(IlConstHandle destructable) {
+        if (destructable == null || !(destructable.getObj() instanceof DestructableMock)) {
+            return null;
+        }
+        return (DestructableMock) destructable.getObj();
     }
 }
