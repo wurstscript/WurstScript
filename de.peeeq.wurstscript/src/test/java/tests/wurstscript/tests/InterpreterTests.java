@@ -167,6 +167,29 @@ public class InterpreterTests extends WurstScriptTest {
     }
 
     @Test
+    public void destructableWidgetLifeNatives() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    let d = CreateDestructable('LTlt', 1.0, 2.0, 0.0, 1.0, 0)",
+            "    if GetWidgetLife(d) != 100.0",
+            "        testFail(\"default widget life\")",
+            "    SetWidgetLife(d, 72.0)",
+            "    if GetWidgetLife(d) != 72.0",
+            "        testFail(\"widget life\")",
+            "    if GetDestructableLife(d) != 72.0",
+            "        testFail(\"destructable life after widget set\")",
+            "    SetDestructableLife(d, 55.0)",
+            "    if GetWidgetLife(d) != 55.0",
+            "        testFail(\"widget life after destructable set\")",
+            "    KillDestructable(d)",
+            "    if GetWidgetLife(d) != 0.0",
+            "        testFail(\"kill destructable\")",
+            "    testSuccess()"
+        );
+    }
+
+    @Test
     public void unitAndAbilityInfoNatives() {
         test().withStdLib().executeProg(true).testLua(false).lines(
             "package Test",

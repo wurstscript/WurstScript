@@ -10,6 +10,7 @@ public class DestructableMock {
     public ILconstReal face;
     public ILconstReal scale;
     public ILconstInt variation;
+    public ILconstReal life = ILconstReal.create(100);
 
     public DestructableMock(ILconstInt objectId, ILconstReal x, ILconstReal y, ILconstReal face, ILconstReal scale, ILconstInt variation) {
         this.objectId = objectId;

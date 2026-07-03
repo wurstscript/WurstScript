@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.objectreader.ObjectHelper;
+import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
@@ -133,13 +134,22 @@ public class UnitProvider extends Provider {
 
     public ILconstReal GetWidgetLife(IlConstHandle widget) {
         UnitMock unitMock = unitOrNull(widget);
-        return unitMock == null ? ILconstReal.create(0) : unitMock.states.getOrDefault("unitstate0", ILconstReal.create(0));
+        if (unitMock != null) {
+            return unitMock.states.getOrDefault("unitstate0", ILconstReal.create(0));
+        }
+        DestructableMock destructableMock = destructableOrNull(widget);
+        return destructableMock == null ? ILconstReal.create(0) : destructableMock.life;
     }
 
     public void SetWidgetLife(IlConstHandle widget, ILconstReal newLife) {
         UnitMock unitMock = unitOrNull(widget);
         if (unitMock != null) {
             unitMock.states.put("unitstate0", newLife);
+            return;
+        }
+        DestructableMock destructableMock = destructableOrNull(widget);
+        if (destructableMock != null) {
+            destructableMock.life = newLife;
         }
     }
 
@@ -219,6 +229,13 @@ public class UnitProvider extends Provider {
             return null;
         }
         return (UnitMock) unit.getObj();
+    }
+
+    private DestructableMock destructableOrNull(IlConstHandle destructable) {
+        if (destructable == null || !(destructable.getObj() instanceof DestructableMock)) {
+            return null;
+        }
+        return (DestructableMock) destructable.getObj();
     }
 
     private String unitStateKey(IlConstHandle unitstate) {
