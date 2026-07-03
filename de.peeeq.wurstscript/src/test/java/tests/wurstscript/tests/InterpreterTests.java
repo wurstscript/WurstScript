@@ -167,6 +167,17 @@ public class InterpreterTests extends WurstScriptTest {
     }
 
     @Test
+    public void getOwningPlayerNullUnitReturnsWurstNull() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    if GetOwningPlayer(null) != null",
+            "        testFail(\"owning player null\")",
+            "    testSuccess()"
+        );
+    }
+
+    @Test
     public void destructableWidgetLifeNatives() {
         test().withStdLib().executeProg(true).testLua(false).lines(
             "package Test",

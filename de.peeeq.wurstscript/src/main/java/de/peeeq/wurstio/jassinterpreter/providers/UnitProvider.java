@@ -3,8 +3,10 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
@@ -23,9 +25,9 @@ public class UnitProvider extends Provider {
         return new IlConstHandle(NameProvider.getRandomName("unit"), new UnitMock(owner, unitid, x, y, face));
     }
 
-    public IlConstHandle GetOwningPlayer(IlConstHandle unit) {
+    public ILconst GetOwningPlayer(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
-        return unitMock == null ? null : unitMock.owner;
+        return unitMock == null ? ILconstNull.instance() : unitMock.owner;
     }
 
     public ILconstInt GetUnitTypeId(IlConstHandle unit) {
