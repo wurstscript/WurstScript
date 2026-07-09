@@ -554,6 +554,17 @@ public class ProgramStateIO extends ProgramState {
 
     public void exportToWurst(ObjMod<? extends ObjMod.Obj> dataStore,
                               ObjectFileType fileType, Path outFile) throws IOException {
+        exportToWurst(dataStore, fileType, outFile, true);
+    }
+
+    public void exportToWurst(ObjMod<? extends ObjMod.Obj> dataStore,
+                              ObjectFileType fileType, Path outFile, boolean useWrappers) throws IOException {
+        exportToWurstFile(dataStore, fileType, outFile, useWrappers);
+    }
+
+    public static void exportToWurstFile(ObjMod<? extends ObjMod.Obj> dataStore,
+                                         ObjectFileType fileType, Path outFile,
+                                         boolean useWrappers) throws IOException {
         try (BufferedWriter out = Files.newBufferedWriter(outFile, StandardCharsets.UTF_8)) {
             out.write("package WurstExportedObjects_" + fileType.getExt() + "\n");
             out.write("import ObjEditingNatives\n");
@@ -572,15 +583,20 @@ public class ProgramStateIO extends ProgramState {
             out.write("\n");
 
             out.write("// Modified Table (contains all custom objects)\n\n");
-            exportToWurst(dataStore.getCustomObjs(), fileType, out);
+            exportToWurst(dataStore.getCustomObjs(), fileType, out, useWrappers);
 
             out.write("// Original Table (contains all modified default/melee objects)\n" +
                 "// These are emitted when createObjectDefinition uses the same base/new id.\n\n");
-            exportToWurst(dataStore.getOrigObjs(), fileType, out);
+            exportToWurst(dataStore.getOrigObjs(), fileType, out, useWrappers);
         }
     }
 
     public static void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out) throws IOException {
+        exportToWurst(customObjs, fileType, out, true);
+    }
+
+    public static void exportToWurst(List<? extends ObjMod.Obj> customObjs, ObjectFileType fileType, Appendable out,
+                                     boolean useWrappers) throws IOException {
         for (ObjMod.Obj obj : customObjs) {
             // Original-table objects (melee overrides) have no base/new id in wc3libs.
             // For Wurst export we represent them as same-id overrides.
@@ -588,13 +604,13 @@ public class ProgramStateIO extends ProgramState {
             String oldId = (obj.getBaseId() != null ? obj.getBaseId().getVal() : objectId);
             String newId = (obj.getNewId() != null ? obj.getNewId().getVal() : objectId);
 
-            // Filter the internal "wurs" marker field — it is an implementation detail
-            // added by the compiler to tag generated objects and should not appear in output.
+            // Pretty wrapper exports hide the internal Wurst marker. Raw exports keep it
+            // because they are used for lossless object-data extraction.
             List<ObjMod.Obj.Mod> modsToExport = obj.getMods().stream()
-                .filter(m -> !m.toString().equals("wurs"))
+                .filter(m -> !useWrappers || !m.toString().equals("wurs"))
                 .collect(Collectors.toList());
 
-            if (!tryExportWithWrapper(out, fileType, newId, oldId, modsToExport)) {
+            if (!useWrappers || !tryExportWithWrapper(out, fileType, newId, oldId, modsToExport)) {
                 // Raw fallback: createObjectDefinition with direct field setters
                 out.append("@compiletime function create_").append(fileType.getExt()).append("_").append(newId)
                     .append("()\n");

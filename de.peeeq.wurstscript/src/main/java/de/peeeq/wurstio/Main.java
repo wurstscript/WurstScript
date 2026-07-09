@@ -13,6 +13,7 @@ import de.peeeq.wurstio.languageserver.requests.CliBuildMap;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.objectreader.ObjectExportService;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
@@ -98,6 +99,26 @@ public class Main {
             if (runArgs.isExtractImports()) {
                 File mapFile = new File(runArgs.getMapFile());
                 ImportFile.extractImportsFromMap(mapFile, runArgs);
+                return;
+            }
+
+            if (runArgs.isExportObjects()) {
+                String exportObjectsFile = runArgs.getExportObjectsFile();
+                if (exportObjectsFile == null || exportObjectsFile.isBlank()) {
+                    throw new RuntimeException("-exportobjects requires a map file or map folder.");
+                }
+                List<Path> written = ObjectExportService.exportObjects(
+                    new File(exportObjectsFile),
+                    runArgs.getExportObjectsOut().map(File::new)
+                );
+                if (written.isEmpty()) {
+                    System.out.println("No object editor data found.");
+                } else {
+                    System.out.println("Exported object editor data:");
+                    for (Path file : written) {
+                        System.out.println(file.toAbsolutePath());
+                    }
+                }
                 return;
             }
 
