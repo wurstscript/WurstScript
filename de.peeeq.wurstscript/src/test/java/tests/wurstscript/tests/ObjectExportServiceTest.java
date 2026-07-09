@@ -48,6 +48,25 @@ public class ObjectExportServiceTest {
         assertFalse(exported.contains("// TODO no wrapper"), exported);
     }
 
+    @Test
+    public void exportObjectsClearsStalePerTypeFiles() throws Exception {
+        Path mapFolder = Files.createTempDirectory("wurst-object-export-map");
+        Path outFolder = Files.createTempDirectory("wurst-object-export-out");
+        Path staleUnits = outFolder.resolve("WurstExportedObjects_w3u.wurst");
+        Files.writeString(staleUnits, "package StaleUnits\n");
+
+        W3A mapAbilities = new W3A();
+        W3A.Obj slow = mapAbilities.addObj(ObjId.valueOf("A001"), ObjId.valueOf("Aslo"));
+        addLvlReal(slow, "acdn", 1, 0, 10.0);
+        writeObjMod(mapFolder.resolve("war3map.w3a"), mapAbilities);
+
+        List<Path> written = ObjectExportService.exportObjects(mapFolder.toFile(), Optional.of(outFolder.toFile()));
+
+        assertEquals(written.size(), 1);
+        assertFalse(Files.exists(staleUnits), "stale per-type exports must not survive a later export");
+        assertTrue(Files.exists(outFolder.resolve("WurstExportedObjects_w3a.wurst")));
+    }
+
     private static void addLvlReal(W3A.Obj obj, String fieldId, int level, int dataPtr, double value) {
         obj.addMod(new ObjMod.Obj.ExtendedMod(
             MetaFieldId.valueOf(fieldId),

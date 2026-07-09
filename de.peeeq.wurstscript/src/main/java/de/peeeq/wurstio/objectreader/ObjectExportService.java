@@ -30,6 +30,7 @@ public final class ObjectExportService {
         }
         File outDir = outputDir.orElseGet(() -> defaultOutputDir(source));
         Files.createDirectories(outDir.toPath());
+        clearStaleExports(outDir.toPath());
 
         try (ObjectFileSource objectSource = openSource(source)) {
             WTS trigStrings = readTrigStrings(objectSource);
@@ -46,12 +47,18 @@ public final class ObjectExportService {
                     continue;
                 }
 
-                Path outFile = outDir.toPath().resolve("WurstExportedObjects_" + fileType.getExt() + ".wurst");
+                Path outFile = exportFile(outDir.toPath(), fileType);
                 ProgramStateIO.exportToWurstFile(dataStore, fileType, outFile, false);
                 written.add(outFile);
                 WLogger.info("Exported object file " + fileType.getExt() + " to " + outFile.toAbsolutePath());
             }
             return written;
+        }
+    }
+
+    private static void clearStaleExports(Path outDir) throws IOException {
+        for (ObjectFileType fileType : ObjectFileType.values()) {
+            Files.deleteIfExists(exportFile(outDir, fileType));
         }
     }
 
@@ -61,6 +68,10 @@ public final class ObjectExportService {
             parent = new File(".");
         }
         return new File(parent, "objectEditingOutput");
+    }
+
+    private static Path exportFile(Path outDir, ObjectFileType fileType) {
+        return outDir.resolve("WurstExportedObjects_" + fileType.getExt() + ".wurst");
     }
 
     private static ObjectFileSource openSource(File source) throws Exception {
