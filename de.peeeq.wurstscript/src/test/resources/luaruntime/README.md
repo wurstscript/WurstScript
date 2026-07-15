@@ -16,9 +16,8 @@ The generated script only installs its own fallback for a native if it is
 still undefined after these files are loaded (guarded `if X then ... end`),
 so real BJ implementations always win.
 
-Execution additionally requires a Lua 5.3 interpreter: either
-`src/test/resources/lua53.exe` (+ `lua53.dll`) on Windows /
-`src/test/resources/lua53` on Linux (official binaries from
-<https://luabinaries.sourceforge.net/>, version 5.3.6), or `lua53`/`lua` on
+Execution additionally requires a Lua 5.3 interpreter: on Windows
+`src/test/resources/lua53.exe` or `src/test/resources/lua.exe`
+(+ `lua53.dll`), on Linux `src/test/resources/lua53`, or `lua53`/`lua` on
 the PATH. If none is found, executeProg Lua tests are skipped with a
 SkipException.

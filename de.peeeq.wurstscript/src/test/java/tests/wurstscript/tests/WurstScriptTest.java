@@ -639,6 +639,7 @@ public class WurstScriptTest {
         }
 
         File bundledLuaWin = new File("src/test/resources/lua53.exe");
+        File bundledLuaWinPlain = new File("src/test/resources/lua.exe");
         File bundledLuaUnix = new File("src/test/resources/lua53");
         String osName = System.getProperty("os.name", "").toLowerCase();
         boolean isWindows = osName.contains("win");
@@ -647,6 +648,9 @@ public class WurstScriptTest {
         if (isWindows) {
             if (bundledLuaWin.exists()) {
                 candidates.add(bundledLuaWin.getPath());
+            }
+            if (bundledLuaWinPlain.exists()) {
+                candidates.add(bundledLuaWinPlain.getPath());
             }
             String cpWin = getOrExtractBundledLuaFromClasspath("lua53.exe", true, false);
             if (cpWin != null) {
