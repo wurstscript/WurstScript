@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
@@ -58,10 +59,12 @@ public class MathProvider extends Provider {
     }
 
     public ILconstInt ModuloInteger(ILconstInt a, ILconstInt b) {
-        return new ILconstInt(a.getVal() % b.getVal());
+        // must match Blizzard.j's ModuloInteger (truncated remainder, plus
+        // divisor if negative), which is what the game executes at runtime
+        return new ILconstInt(WurstOperator.moduloInteger(a.getVal(), b.getVal()));
     }
 
     public ILconstReal ModuloReal(ILconstReal a, ILconstReal b) {
-        return new ILconstReal(a.getVal() % b.getVal());
+        return new ILconstReal(WurstOperator.moduloReal(a.getVal(), b.getVal()));
     }
 }

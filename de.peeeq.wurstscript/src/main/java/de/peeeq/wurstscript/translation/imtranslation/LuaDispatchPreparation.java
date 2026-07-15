@@ -25,12 +25,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 public final class LuaDispatchPreparation {
-    private static final Set<String> LUA_RESERVED_NAMES = Set.of(
-        "print", "tostring", "error",
-        "main", "config",
-        "and", "break", "do", "else", "elseif", "end", "false", "for", "function",
-        "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"
-    );
+    private static final Set<String> LUA_RESERVED_NAMES =
+        de.peeeq.wurstscript.translation.lua.translation.LuaReservedNames.all();
 
     private LuaDispatchPreparation() {
     }

@@ -518,12 +518,32 @@ public class WurstScriptTest {
             checkLuaSyntax(luacExecutable, luaFile);
 
             if (executeProg) {
-                String luaExecutable = getLuaExecutable();
+                String luaExecutable;
+                try {
+                    luaExecutable = getLuaExecutable();
+                } catch (IllegalStateException e) {
+                    throw new org.testng.SkipException(
+                        "Skipped Lua execution (translation and luac syntax check still ran): " + e.getMessage());
+                }
                 String line;
+                // Preload the WC3 Lua runtime (Reforged blizzard.j dump + native shim)
+                // when available, so tests execute against real BJ implementations.
+                // The generated script only installs fallbacks for natives that are
+                // still undefined afterwards.
+                StringBuilder chunk = new StringBuilder();
+                File runtimeDir = new File("src/test/resources/luaruntime");
+                if (new File(runtimeDir, "wc3shim.lua").exists()) {
+                    for (String runtimeFile : new String[]{"wc3shim.lua", "common.j.lua", "blizzard.j.lua"}) {
+                        chunk.append("dofile('")
+                            .append(new File(runtimeDir, runtimeFile).getPath().replace('\\', '/'))
+                            .append("');");
+                    }
+                }
+                chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
+                chunk.append("main()");
                 String[] args = {
                     luaExecutable,
-                    "-l", luaFile.getPath().replace(".lua", ""),
-                    "-e", "main()"
+                    "-e", chunk.toString()
                 };
                 Process p = Runtime.getRuntime().exec(args);
                 StringBuilder errors = new StringBuilder();

@@ -25,7 +25,11 @@ import java.util.*;
  *       silently returns defaults on null-handle calls instead of crashing.
  *       {@code boolexpr} and {@code code} typed params are intentionally skipped: these
  *       are optional/nullable in Jass (e.g. the filter arg of
- *       {@code TriggerRegisterPlayerUnitEvent}) and passing {@code nil} is valid.</li>
+ *       {@code TriggerRegisterPlayerUnitEvent}) and passing {@code nil} is valid.
+ *       <p>KNOWN LIMITATION: natives where {@code null} in a non-boolexpr/code handle
+ *       param is a meaningful "clear/reset" argument are silently skipped by the
+ *       wrapper instead of being forwarded. If such a native is identified, add it
+ *       to an exemption list here rather than weakening the general nil-guard.</li>
  * </ol>
  *
  * <p>IS_NATIVE stubs added for category 1 and 2 are recognised by

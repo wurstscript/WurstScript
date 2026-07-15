@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -75,33 +74,7 @@ public class LuaTranslator {
     final LuaCompilationUnit luaModel;
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
-    private final Set<String> usedNames = new HashSet<>(Arrays.asList(
-        // reserved function names
-        "print", "tostring", "error",
-        "main", "config",
-        // keywords:
-        "and",
-        "break",
-        "do",
-        "else",
-        "elseif",
-        "end",
-        "false",
-        "for",
-        "function",
-        "if",
-        "in",
-        "local",
-        "nil",
-        "not",
-        "or",
-        "repeat",
-        "return",
-        "then",
-        "true",
-        "until",
-        "while"
-    ));
+    private final Set<String> usedNames = LuaReservedNames.all();
 
     private ImProg getProg() {
         return prog;
@@ -184,6 +157,9 @@ public class LuaTranslator {
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
+    LuaFunction intDivFunction = LuaAst.LuaFunction(uniqueName("intDiv"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    LuaFunction modFunction = LuaAst.LuaFunction(uniqueName("wurstMod"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
     LuaFunction ensureIntFunction = LuaAst.LuaFunction(uniqueName("intEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction ensureStrFunction = LuaAst.LuaFunction(uniqueName("stringEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction ensureBoolFunction = LuaAst.LuaFunction(uniqueName("boolEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -241,6 +217,7 @@ public class LuaTranslator {
 //        NormalizeNames.normalizeNames(prog);
 
         createArrayInitFunction();
+        createDivModFunctions();
         createStringConcatFunction();
         createInstanceOfFunction();
         createObjectIndexFunctions();
@@ -269,7 +246,7 @@ public class LuaTranslator {
             initClassTables(c);
         }
 
-        prependDeferredMainInitToMain();
+        createBootstrapFunction();
         cleanStatements();
         enforceLuaLocalLimits();
 
@@ -280,20 +257,47 @@ public class LuaTranslator {
         deferredMainInit.add(statement);
     }
 
-    private void prependDeferredMainInitToMain() {
+    /**
+     * Moves all deferred initialization (global defaults, class dispatch tables,
+     * typecasting maps) into a guarded bootstrap function that is called at the
+     * top of BOTH entry points. WC3 calls config() before main(), so config must
+     * see initialized globals too. The statements cannot run at the root of the
+     * script because WC3 natives are not available there yet.
+     */
+    private void createBootstrapFunction() {
         if (deferredMainInit.isEmpty()) {
             return;
         }
         ImFunction mainIm = imTr.getMainFunc();
-        if (mainIm == null) {
+        ImFunction confIm = imTr.getConfFunc();
+        if (mainIm == null && confIm == null) {
             return;
         }
-        LuaFunction mainLua = luaFunc.getFor(mainIm);
-        LuaStatements mainBody = mainLua.getBody();
-        for (int i = deferredMainInit.size() - 1; i >= 0; i--) {
-            LuaStatement stmt = deferredMainInit.remove(i);
-            mainBody.add(0, stmt);
+        LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
+        luaModel.add(doneFlag);
+        LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
+        boot.getBody().add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(doneFlag), LuaAst.LuaExprBoolVal(true)));
+        List<LuaStatement> stmts = new ArrayList<>();
+        while (!deferredMainInit.isEmpty()) {
+            stmts.add(deferredMainInit.remove(deferredMainInit.size() - 1));
         }
+        Collections.reverse(stmts);
+        for (LuaStatement stmt : stmts) {
+            boot.getBody().add(stmt);
+        }
+        luaModel.add(boot);
+
+        insertBootstrapCall(mainIm, boot);
+        insertBootstrapCall(confIm, boot);
+    }
+
+    private void insertBootstrapCall(ImFunction entryPoint, LuaFunction boot) {
+        if (entryPoint == null) {
+            return;
+        }
+        LuaFunction lf = luaFunc.getFor(entryPoint);
+        lf.getBody().add(0, LuaAst.LuaExprFunctionCall(boot, LuaAst.LuaExprlist()));
     }
 
     // Assertion helpers are implemented in LuaAssertions; kept here as public entry points
@@ -344,47 +348,51 @@ public class LuaTranslator {
         }
     }
 
-    private void normalizeMethodNames() {
-        Map<String, List<ImMethod>> groupedMethods = new TreeMap<>();
+    private void normalizeFieldNames() {
+        Set<ImClass> processed = new HashSet<>();
         for (ImClass c : prog.getClasses()) {
-            for (ImMethod m : c.getMethods()) {
-                groupedMethods.computeIfAbsent(dispatchGroupKey(m), ignored -> new ArrayList<>()).add(m);
-            }
-        }
-        List<List<ImMethod>> groups = new ArrayList<>(groupedMethods.values());
-        groups.sort(Comparator.comparing(g -> g.isEmpty() ? "" : methodSortKey(g.get(0))));
-        for (List<ImMethod> group : groups) {
-            if (group.isEmpty()) {
-                continue;
-            }
-            group.sort(Comparator.comparing(this::methodSortKey));
-            String name = uniqueName(group.get(0).getName());
-            for (ImMethod method : group) {
-                method.setName(name);
-            }
+            normalizeFieldNames(c, processed);
         }
     }
 
-    private void normalizeFieldNames() {
-        for (ImClass c : prog.getClasses()) {
-            Set<String> methodNames = new HashSet<>();
-            collectMethodNames(c, methodNames, new HashSet<>());
-            if (methodNames.isEmpty()) {
-                continue;
-            }
-            Set<String> reserved = new HashSet<>(methodNames);
-            for (ImVar field : c.getFields()) {
-                if (reserved.contains(field.getName())) {
-                    String base = field.getName() + "_field";
-                    String candidate = base;
-                    int i = 1;
-                    while (reserved.contains(candidate)) {
-                        candidate = base + i++;
-                    }
-                    field.setName(candidate);
+    private void normalizeFieldNames(ImClass c, Set<ImClass> processed) {
+        if (!processed.add(c)) {
+            return;
+        }
+        // Superclasses first: all fields of a hierarchy share one instance table,
+        // so a subclass field must be renamed around already-final ancestor names.
+        for (ImClassType sc : c.getSuperClasses()) {
+            normalizeFieldNames(sc.getClassDef(), processed);
+        }
+        // Field names become raw Lua table keys / field accesses, so they must not
+        // collide with Lua keywords, method dispatch slots, or inherited fields.
+        Set<String> reserved = new HashSet<>(LuaReservedNames.LUA_KEYWORDS);
+        collectMethodNames(c, reserved, new HashSet<>());
+        collectSuperFieldNames(c, reserved, new HashSet<>());
+        for (ImVar field : c.getFields()) {
+            if (reserved.contains(field.getName())) {
+                String base = field.getName() + "_field";
+                String candidate = base;
+                int i = 1;
+                while (reserved.contains(candidate)) {
+                    candidate = base + i++;
                 }
-                reserved.add(field.getName());
+                field.setName(candidate);
             }
+            reserved.add(field.getName());
+        }
+    }
+
+    private void collectSuperFieldNames(ImClass c, Set<String> out, Set<ImClass> visited) {
+        if (!visited.add(c)) {
+            return;
+        }
+        for (ImClassType sc : c.getSuperClasses()) {
+            ImClass superClass = sc.getClassDef();
+            for (ImVar field : superClass.getFields()) {
+                out.add(field.getName());
+            }
+            collectSuperFieldNames(superClass, out, visited);
         }
     }
 
@@ -399,6 +407,10 @@ public class LuaTranslator {
         for (ImClassType sc : c.getSuperClasses()) {
             collectMethodNames(sc.getClassDef(), methodNames, visited);
         }
+    }
+
+    private void createDivModFunctions() {
+        LuaPolyfillSetup.createDivModFunctions(this);
     }
 
     private void createStringConcatFunction() {
@@ -735,6 +747,14 @@ public class LuaTranslator {
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
+        // one shared instance metatable per class — allocating a fresh
+        // {__index = classVar} table per instance would be pure garbage
+        LuaVariable metaTableVar = luaClassMetaTableVar.getFor(c);
+        metaTableVar.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
+        )));
+        luaModel.add(metaTableVar);
+
         luaModel.add(initMethod);
 
         // translate functions
@@ -760,12 +780,10 @@ public class LuaTranslator {
 
 
         body.add(newInst);
-        // setmetatable(new_inst, {__index = classVar})
+        // setmetatable(new_inst, <shared class metatable>)
         body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
             LuaAst.LuaExprVarAccess(newInst),
-            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-                LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
-            ))
+            LuaAst.LuaExprVarAccess(luaClassMetaTableVar.getFor(c))
         )));
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
@@ -822,7 +840,8 @@ public class LuaTranslator {
 
         List<List<ImMethod>> groups = new ArrayList<>(groupedMethods.values());
         groups.sort(Comparator.comparing(group -> group.isEmpty() ? "" : methodSortKey(group.get(0))));
-        Map<String, ImMethod> slotToImpl = new TreeMap<>();
+        List<List<ImMethod>> preparedGroups = new ArrayList<>();
+        Map<List<ImMethod>, ImMethod> chosenByGroup = new LinkedHashMap<>();
         for (List<ImMethod> groupMethods : groups) {
             if (groupMethods == null || groupMethods.isEmpty()) {
                 continue;
@@ -832,16 +851,71 @@ public class LuaTranslator {
             if (chosen == null || chosen.getIsAbstract() || chosen.getImplementation() == null) {
                 continue;
             }
+            preparedGroups.add(groupMethods);
+            chosenByGroup.put(groupMethods, chosen);
+        }
+
+        // Slots are assigned in two passes: a slot name that is the (normalized)
+        // name of a method in a group is a DIRECT claim of that group — call sites
+        // dispatch through exactly these names. All other slot names (semantic
+        // aliases like ClassName_x, closure/generics bridging aliases) are DERIVED.
+        // A derived claim may take over a direct slot only when the two methods
+        // have the same runtime arity (that is how overrides of erased generic
+        // groups are bridged — their full signatures differ in the erased type
+        // parameter positions); otherwise an unrelated method whose name merely
+        // shares an underscore-suffix (my_x(int) vs x()) could steal a real slot.
+        Map<String, ImMethod> slotToImpl = new TreeMap<>();
+        Set<String> directSlots = new HashSet<>();
+        for (List<ImMethod> groupMethods : preparedGroups) {
+            ImMethod chosen = chosenByGroup.get(groupMethods);
+            Set<String> memberNames = new HashSet<>();
+            for (ImMethod m : groupMethods) {
+                memberNames.add(m.getName());
+            }
             Set<String> slotNames = collectDispatchSlotNames(c, groupMethods);
             for (String slotName : slotNames) {
+                if (!memberNames.contains(slotName)) {
+                    continue;
+                }
                 ImMethod current = slotToImpl.get(slotName);
+                if (current == null || !directSlots.contains(slotName)
+                    || compareDispatchCandidates(c, chosen, current) < 0) {
+                    slotToImpl.put(slotName, chosen);
+                }
+                directSlots.add(slotName);
+            }
+            debugDispatchGroup(c, groupMethods.get(0).getName(), slotNames, groupMethods, chosen);
+        }
+        for (List<ImMethod> groupMethods : preparedGroups) {
+            ImMethod chosen = chosenByGroup.get(groupMethods);
+            Set<String> memberNames = new HashSet<>();
+            for (ImMethod m : groupMethods) {
+                memberNames.add(m.getName());
+            }
+            for (String slotName : collectDispatchSlotNames(c, groupMethods)) {
+                if (memberNames.contains(slotName)) {
+                    continue;
+                }
+                ImMethod current = slotToImpl.get(slotName);
+                if (current != null && directSlots.contains(slotName)
+                    && implArity(chosen) != implArity(current)) {
+                    continue;
+                }
                 if (current == null || compareDispatchCandidates(c, chosen, current) < 0) {
                     slotToImpl.put(slotName, chosen);
                 }
             }
-            String debugKey = groupMethods.get(0).getName();
-            debugDispatchGroup(c, debugKey, slotNames, groupMethods, chosen);
         }
+
+        // Constructor helpers (create, create1, ...) live in the same class-table
+        // key namespace as dispatch slots. If a slot would overwrite this class's
+        // constructor at main() time, rename the constructor instead (allocation
+        // sites reference the shared LuaMethod object, so a rename is safe here).
+        LuaMethod initMethod = luaClassInitMethod.getFor(c);
+        while (slotToImpl.containsKey(initMethod.getName())) {
+            initMethod.setName(uniqueName(c.getName() + "_create"));
+        }
+
         for (Map.Entry<String, ImMethod> e : slotToImpl.entrySet()) {
             ImMethod impl = e.getValue();
             if (impl == null || impl.getImplementation() == null) {
@@ -915,6 +989,10 @@ public class LuaTranslator {
         for (ImClassType sc : superClasses) {
             collectMethodsInHierarchy(sc.getClassDef(), out, visited);
         }
+    }
+
+    private int implArity(ImMethod method) {
+        return method.getImplementation().getParameters().size();
     }
 
     private ImMethod chooseBestImplementationForClass(ImClass receiverClass, List<ImMethod> candidates) {
@@ -1069,11 +1147,6 @@ public class LuaTranslator {
         return c.getName();
     }
 
-    @NotNull
-    private LuaTableConstructor emptyTable() {
-        return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
-    }
-
     private void collectSuperClasses(LuaTableFields superClasses, ImClass c, Set<ImClass> visited) {
         if (visited.contains(c)) {
             return;
@@ -1215,3 +1288,4 @@ public class LuaTranslator {
         return null;
     }
 }
+

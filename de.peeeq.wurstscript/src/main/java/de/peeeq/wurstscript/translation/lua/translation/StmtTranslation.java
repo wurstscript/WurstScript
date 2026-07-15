@@ -31,11 +31,10 @@ public class StmtTranslation {
                 + " xpcall(function() " + ExprTranslation.callErrorFunc(tr, "tostring(err)") + " end,"
                 + " function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end"
                 + " BJDebugMsg(\"error reporting error: \" .. tostring(err2)) end) end";
-        res.add(LuaAst.LuaLiteral("do"));
-        res.add(LuaAst.LuaLiteral("  local __wurst_init_ok = xpcall(" + funcName + ", " + errHandler + ")"));
-        res.add(LuaAst.LuaLiteral("  if not __wurst_init_ok then"));
-        res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"") + ""));
-        res.add(LuaAst.LuaLiteral("  end"));
+        // no local/do-block: locals hidden in literals are invisible to the
+        // 200-locals accounting in enforceLuaLocalLimits
+        res.add(LuaAst.LuaLiteral("if not xpcall(" + funcName + ", " + errHandler + ") then"));
+        res.add(LuaAst.LuaLiteral("    " + ExprTranslation.callErrorFunc(tr, "\"Could not initialize package " + packageName + ".\"")));
         res.add(LuaAst.LuaLiteral("end"));
     }
 
@@ -82,14 +81,24 @@ public class StmtTranslation {
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
         LuaVariable loopVar = tr.luaVar.getFor(loop.getLoopVar());
-//        res.add(loopVar);
-        String argsName = tr.uniqueName("__args");
-        LuaVariable i = LuaAst.LuaVariable(tr.uniqueName("i"),  LuaAst.LuaExprIntVal("0"));
-        res.add(LuaAst.LuaLiteral("local " + argsName + " = table.pack(...)"));
-        res.add(LuaAst.LuaLiteral("for " + i.getName() + "=1," + argsName + ".n do"));
-        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar), LuaAst.LuaExprArrayAccess(LuaAst.LuaLiteral(argsName), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
-        tr.translateStatements(res, loop.getBody());
-        res.add(LuaAst.LuaLiteral("end"));
+        // The loop is built from real AST nodes (a while loop) instead of literal
+        // 'for ... do' / 'end' lines: the printer stops printing a statement list
+        // after a return/break (Lua forbids trailing statements), which would
+        // truncate a literal closing 'end' and produce unparseable output.
+        LuaVariable args = LuaAst.LuaVariable(tr.uniqueName("__args"), LuaAst.LuaLiteral("table.pack(...)"));
+        LuaVariable i = LuaAst.LuaVariable(tr.uniqueName("__i"), LuaAst.LuaExprIntVal("0"));
+        res.add(args);
+        res.add(i);
+        LuaStatements body = LuaAst.LuaStatements();
+        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(i),
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar),
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(args), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        tr.translateStatements(body, loop.getBody());
+        res.add(LuaAst.LuaWhile(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpLess(),
+                LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(args), "n")),
+            body));
     }
 
 }

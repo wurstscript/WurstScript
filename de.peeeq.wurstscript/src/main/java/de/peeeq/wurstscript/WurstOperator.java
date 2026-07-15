@@ -148,22 +148,10 @@ public enum WurstOperator {
                 return ((ILconstNum) left).lessEq((ILconstNum) right.get());
             case MINUS:
                 return ((ILconstNum) left).sub((ILconstNum) right.get());
-            case MOD_INT: {
-                int right2 = ((ILconstInt) right.get()).getVal();
-                int r = ((ILconstInt) left).getVal() % right2;
-                if (r < 0) {
-                    r += right2;
-                }
-                return new ILconstInt(r);
-            }
-            case MOD_REAL: {
-                float right2 = getReal(right.get());
-                float r = getReal(left) % right2;
-                if (r < 0) {
-                    r += right2;
-                }
-                return new ILconstReal(r);
-            }
+            case MOD_INT:
+                return new ILconstInt(moduloInteger(((ILconstInt) left).getVal(), ((ILconstInt) right.get()).getVal()));
+            case MOD_REAL:
+                return new ILconstReal(moduloReal(getReal(left), getReal(right.get())));
             case MULT:
                 return ((ILconstNum) left).mul((ILconstNum) right.get());
             case NOTEQ:
@@ -176,6 +164,29 @@ public enum WurstOperator {
         }
         throw new Error("cannot evaluate " + this);
 
+    }
+
+    /**
+     * Reference semantics for Wurst's integer {@code mod}: matches Blizzard.j's
+     * ModuloInteger (truncated remainder, plus divisor if the remainder is
+     * negative). All constant folding, interpretation, and backends must agree
+     * with this.
+     */
+    public static int moduloInteger(int a, int b) {
+        int r = a % b;
+        if (r < 0) {
+            r += b;
+        }
+        return r;
+    }
+
+    /** Reference semantics for Wurst's real {@code mod}; see {@link #moduloInteger}. */
+    public static float moduloReal(float a, float b) {
+        float r = a % b;
+        if (r < 0) {
+            r += b;
+        }
+        return r;
     }
 
     private static float getReal(ILconst c) {

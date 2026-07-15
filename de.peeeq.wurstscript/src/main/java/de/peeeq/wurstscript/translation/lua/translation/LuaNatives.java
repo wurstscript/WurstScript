@@ -77,7 +77,15 @@ public class LuaNatives {
 
         addNative("Player", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return { id = x }"));
+            // WC3 returns the same player handle for the same id, so handle
+            // identity comparisons (Player(0) == Player(0)) must hold here too.
+            f.getBody().add(LuaAst.LuaLiteral("__wurst_test_players = __wurst_test_players or {}"));
+            f.getBody().add(LuaAst.LuaLiteral("local p = __wurst_test_players[x]"));
+            f.getBody().add(LuaAst.LuaLiteral("if p == nil then"));
+            f.getBody().add(LuaAst.LuaLiteral("    p = { id = x }"));
+            f.getBody().add(LuaAst.LuaLiteral("    __wurst_test_players[x] = p"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("return p"));
         });
 
         addNative("GetPlayerId", f -> {
@@ -121,7 +129,13 @@ public class LuaNatives {
 
         addNative("R2I", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.modf(x)"));
+            // Truncate toward zero. Not math.modf: that returns TWO values
+            // (which expand into enclosing argument lists) and its integral
+            // part is a float (tostring would yield "3.0" instead of "3").
+            f.getBody().add(LuaAst.LuaLiteral("if x >= 0 then"));
+            f.getBody().add(LuaAst.LuaLiteral("    return math.floor(x)"));
+            f.getBody().add(LuaAst.LuaLiteral("end"));
+            f.getBody().add(LuaAst.LuaLiteral("return math.ceil(x)"));
         });
 
         addNative("__wurst_GetEnumPlayer", f -> {

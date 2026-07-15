@@ -473,7 +473,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     case MINUS: return JassIm.ImIntVal(l - r);
                     case MULT: return JassIm.ImIntVal(l * r);
                     case DIV_INT: if (r != 0) return JassIm.ImIntVal(l / r); break;
-                    case MOD_INT: if (r != 0) return JassIm.ImIntVal(l % r); break;
+                    case MOD_INT: if (r != 0) return JassIm.ImIntVal(WurstOperator.moduloInteger(l, r)); break;
                     // IMPORTANT: Return ImBoolVal for comparisons, not ImIntVal!
                     case EQ: return JassIm.ImBoolVal(l == r);
                     case NOTEQ: return JassIm.ImBoolVal(l != r);
