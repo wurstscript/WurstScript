@@ -925,7 +925,9 @@ public class AntlrWurstParseTreeTransformer {
                         indexes);
             }
         } else {
-            if (e_dots.getType() == WurstParser.DOT) {
+            if (e_dots.getType() == WurstParser.QUESTION) {
+                return Ast.ExprMemberVarQuestionDot(source, left, varName);
+            } else if (e_dots.getType() == WurstParser.DOT) {
                 return Ast.ExprMemberVarDot(source, left, varName);
             } else {
                 return Ast.ExprMemberVarDotDot(source, left, varName);
@@ -1033,7 +1035,10 @@ public class AntlrWurstParseTreeTransformer {
     private ExprMemberMethod transformMemberMethodCall2(WPos source,
                                                         Expr left, Token dots, Token funcName,
                                                         TypeArgsContext typeArgs, ArgumentListContext args) {
-        if (dots.getType() == WurstParser.DOT) {
+        if (dots.getType() == WurstParser.QUESTION) {
+            return Ast.ExprMemberMethodQuestionDot(source, left, text(funcName),
+                    transformTypeArgs(typeArgs), transformArgumentList(args));
+        } else if (dots.getType() == WurstParser.DOT) {
             return Ast.ExprMemberMethodDot(source, left, text(funcName),
                     transformTypeArgs(typeArgs), transformArgumentList(args));
         } else {
@@ -1106,6 +1111,12 @@ public class AntlrWurstParseTreeTransformer {
                         e.varName, e.indexes());
             } else if (e.dotsCall != null) {
                 return transformMemberMethodCall2(source, e.receiver, e.dotsCall,
+                        e.funcName, e.typeArgs(), e.argumentList());
+            } else if (e.qdotVar != null) {
+                return transformExprMemberVarAccess2(source, e.receiver, e.qdotVar,
+                        e.varName, e.indexes());
+            } else if (e.qdotCall != null) {
+                return transformMemberMethodCall2(source, e.receiver, e.qdotCall,
                         e.funcName, e.typeArgs(), e.argumentList());
             } else if (e.instaneofType != null) {
                 return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType),

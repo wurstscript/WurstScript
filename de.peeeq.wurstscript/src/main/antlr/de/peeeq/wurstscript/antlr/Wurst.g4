@@ -356,6 +356,10 @@ expr:
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
 	  | receiver=expr dotsVar=('.'|'..') varName=(ID|CONTINUE|SKIP_|BREAK)? indexes?
+	  // null-safe member access: '?' and '.' are separate tokens so that
+	  // ternaries with real literals (cond ? .5 : x) keep lexing as before
+	  | receiver=expr qdotCall='?' '.' funcName=ID? typeArgs argumentList
+	  | receiver=expr qdotVar='?' '.' varName=(ID|CONTINUE|SKIP_|BREAK)?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser

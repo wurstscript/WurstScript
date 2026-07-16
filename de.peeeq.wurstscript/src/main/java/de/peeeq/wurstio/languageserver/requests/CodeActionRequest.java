@@ -448,6 +448,11 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 case_Member(e);
             }
 
+            @Override
+            public void case_ExprMemberMethodQuestionDot(ExprMemberMethodQuestionDot e) {
+                case_Member(e);
+            }
+
             private void case_Member(ExprMemberMethod e) {
                 WurstType leftType = e.getLeft().attrTyp();
                 if (leftType instanceof WurstTypeClassOrInterface) {

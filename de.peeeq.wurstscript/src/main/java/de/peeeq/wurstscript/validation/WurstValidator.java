@@ -414,6 +414,10 @@ public class WurstValidator {
             }
             if (e instanceof ExprMemberMethod)
                 visit((ExprMemberMethod) e);
+            if (e instanceof ExprMemberMethodQuestionDot)
+                checkNullSafeAccess((ExprMemberMethodQuestionDot) e);
+            if (e instanceof ExprMemberVarQuestionDot)
+                checkNullSafeAccess((ExprMemberVarQuestionDot) e);
             if (e instanceof ExprMemberVar)
                 checkMemberVar((ExprMemberVar) e);
             if (e instanceof ExprMemberArrayVar)
@@ -1333,6 +1337,12 @@ public class WurstValidator {
             @Override
             public void case_ExprMemberVarDotDot(ExprMemberVarDotDot e) {
                 e.addError("Cannot assign to dot-dot-expression.");
+            }
+
+            @Override
+            public void case_ExprMemberVarQuestionDot(ExprMemberVarQuestionDot e) {
+                // unreachable via the grammar, but keep the matcher total
+                e.addError("Cannot assign to a null-safe '?.' expression.");
             }
         });
     }
@@ -2316,6 +2326,11 @@ public class WurstValidator {
             public VariableBinding case_ExprMemberMethodDotDot(ExprMemberMethodDotDot e) {
                 return e.attrTyp().getTypeArgBinding();
             }
+
+            @Override
+            public VariableBinding case_ExprMemberMethodQuestionDot(ExprMemberMethodQuestionDot e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
         });
         if (mapping == null) {
             return;
@@ -2780,6 +2795,33 @@ public class WurstValidator {
         // p = p.getParent().attrNearestPackage();
         // checkIfTypeDefExists(n, p);
         // }
+    }
+
+    /**
+     * Rules for the null-safe access operator '?.':
+     * the receiver must be of a type that can actually be null, and the
+     * result may only be used as a value if its own type can represent the
+     * null produced when the receiver is null.
+     */
+    private void checkNullSafeAccess(Expr e) {
+        Expr left = ((HasReceiver) e).getLeft();
+        WurstType receiverType = left.attrTyp();
+        if (receiverType.isStaticRef()) {
+            e.addError("The null-safe operator '?.' requires a dynamic receiver, "
+                + "but found a static reference to " + receiverType + ".");
+        } else if (!(receiverType instanceof WurstTypeUnknown) && !receiverType.canBeNull()) {
+            e.addError("The null-safe operator '?.' cannot be used on an expression of type "
+                + receiverType + ", because it can never be null.");
+        }
+        WurstType resultType = e.attrTyp();
+        boolean usedAsValue = !(e.getParent() instanceof WStatements);
+        if (usedAsValue
+            && !(resultType instanceof WurstTypeVoid)
+            && !(resultType instanceof WurstTypeUnknown)
+            && !resultType.canBeNull()) {
+            e.addError("The result of this null-safe access has type " + resultType
+                + ", which cannot represent null. It can only be used as a statement that discards the result.");
+        }
     }
 
     private void checkMemberVar(ExprMemberVar e) {

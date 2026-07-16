@@ -403,6 +403,16 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberVarDot term) {
+        return memberVarType(term);
+    }
+
+    public static WurstType calculate(ExprMemberVarQuestionDot term) {
+        // receiver/result nullability rules are checked in WurstValidator;
+        // the result type is the same as for a plain '.' access
+        return memberVarType(term);
+    }
+
+    private static WurstType memberVarType(ExprMemberVar term) {
         NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();

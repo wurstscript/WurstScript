@@ -518,6 +518,16 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ExprMemberVarQuestionDot(ExprMemberVarQuestionDot exprMemberVarQuestionDot) {
+            return description(exprMemberVarQuestionDot);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_ExprMemberMethodQuestionDot(ExprMemberMethodQuestionDot exprMemberMethodQuestionDot) {
+            return description(exprMemberMethodQuestionDot);
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
             return description(exprVarArrayAccess);
         }

@@ -248,7 +248,27 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(NameRef e, ImTranslator t, ImFunction f) {
+        if (e instanceof ExprMemberVarQuestionDot) {
+            return translateNullSafeMemberVar((ExprMemberVarQuestionDot) e, t, f);
+        }
         return translateNameDef(e, t, f);
+    }
+
+    private static ImExpr translateNullSafeMemberVar(ExprMemberVarQuestionDot e, ImTranslator t, ImFunction f) {
+        NameLink link = e.attrNameLink();
+        if (link == null || link instanceof OtherLink || !(link.getDef() instanceof VarDef)) {
+            throw new CompileError(e.getSource(),
+                "The null-safe operator '?.' is not supported for this kind of member access.");
+        }
+        Expr left = e.getLeft();
+        ImVar fieldVar = t.getVarFor((VarDef) link.getDef());
+
+        ImVar tempVar = JassIm.ImVar(left, left.attrTyp().imTranslateType(t), "receiver", false);
+        f.getLocals().add(tempVar);
+        ImStmts stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), left.imTranslateExpr(t, f)));
+        ImExpr access = JassIm.ImMemberAccess(e, ImVarAccess(tempVar), JassIm.ImTypeArguments(),
+            fieldVar, JassIm.ImExprs());
+        return nullSafeGuard(e, t, f, stmts, tempVar, left.attrTyp(), access);
     }
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
@@ -454,13 +474,15 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
         if (e instanceof ExprMemberMethodDotDot) {
-            return translateFunctionCall(e, t, f, true);
+            return translateFunctionCall(e, t, f, true, false);
+        } else if (e instanceof ExprMemberMethodQuestionDot) {
+            return translateFunctionCall(e, t, f, false, true);
         } else {
-            return translateFunctionCall(e, t, f, false);
+            return translateFunctionCall(e, t, f, false, false);
         }
     }
 
-    private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver) {
+    private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver, boolean nullSafe) {
 
         if (e.getFuncName().equals("getStackTraceString") && e.attrImplicitParameter() instanceof NoExpr
             && e.getArgs().size() == 0) {
@@ -552,7 +574,7 @@ public class ExprTranslation {
 
         ImStmts stmts = null;
         ImVar tempVar = null;
-        if (returnReveiver) {
+        if (returnReveiver || nullSafe) {
             if (leftExpr == null) {
                 throw new Error("impossible");
             }
@@ -584,8 +606,41 @@ public class ExprTranslation {
             }
             stmts.add(call);
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(tempVar));
+        } else if (nullSafe) {
+            if (stmts == null || leftExpr == null) {
+                throw new Error("impossible");
+            }
+            // guard the call so that it (including argument evaluation) only
+            // happens when the receiver is not null
+            return nullSafeGuard(e, t, f, stmts, tempVar, leftExpr.attrTyp(), call);
         } else {
             return call;
+        }
+    }
+
+    /**
+     * Completes the lowering of a null-safe access {@code a?.x} / {@code a?.foo()}:
+     * {@code stmts} already assigns the receiver to {@code tempVar}; the guarded
+     * {@code access} is only evaluated when the receiver is not null, otherwise
+     * the result is null (or the access is skipped entirely in statement position).
+     */
+    private static ImExpr nullSafeGuard(Expr e, ImTranslator t, ImFunction f,
+                                        ImStmts stmts, ImVar tempVar, WurstType receiverType, ImExpr access) {
+        ImExpr notNull = JassIm.ImOperatorCall(WurstOperator.NOTEQ,
+            JassIm.ImExprs(ImVarAccess(tempVar), JassIm.ImNull(receiverType.imTranslateType(t))));
+        WurstType resultType = e.attrTyp();
+        boolean resultUsed = !(resultType instanceof WurstTypeVoid)
+            && !(e.getParent() instanceof WStatements);
+        if (resultUsed) {
+            ImVar resultVar = JassIm.ImVar(e, resultType.imTranslateType(t), "nullSafeResult", false);
+            f.getLocals().add(resultVar);
+            stmts.add(JassIm.ImIf(e, notNull,
+                JassIm.ImStmts(ImSet(e, ImVarAccess(resultVar), access)),
+                JassIm.ImStmts(ImSet(e, ImVarAccess(resultVar), JassIm.ImNull(resultType.imTranslateType(t))))));
+            return JassIm.ImStatementExpr(stmts, ImVarAccess(resultVar));
+        } else {
+            stmts.add(JassIm.ImIf(e, notNull, JassIm.ImStmts(access), JassIm.ImStmts()));
+            return JassIm.ImStatementExpr(stmts, ImHelper.nullExpr());
         }
     }
 

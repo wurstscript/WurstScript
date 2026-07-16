@@ -254,6 +254,11 @@ public abstract class WurstType {
 
     protected abstract boolean isNullable();
 
+    /** whether values of this type can be null (e.g. as receiver of the '?.' operator) */
+    public final boolean canBeNull() {
+        return normalize().isNullable();
+    }
+
     public boolean isArray() {
         return this instanceof WurstTypeArray;
     }
