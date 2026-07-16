@@ -311,6 +311,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * The wc3shim's GetLocalPlayer used to return a generic enum-handle table
+     * ({handleKind, value}) while the generated Player/GetPlayerId fallbacks
+     * use {id = x} with their own cache — so GetPlayerId(GetLocalPlayer())
+     * returned nil and Player(0) was not identical to GetLocalPlayer().
+     */
+    @Test
+    public void localPlayerHandleIsCompatibleWithPlayerAndGetPlayerId() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "nativetype player",
+            "native Player(int id) returns player",
+            "native GetPlayerId(player p) returns int",
+            "native GetLocalPlayer() returns player",
+            "init",
+            "    if GetPlayerId(GetLocalPlayer()) == 0 and Player(0) == GetLocalPlayer()",
+            "        testSuccess()"
+        );
+    }
+
+    /**
      * {@code goto} is a reserved word in Lua 5.3 but was missing from the
      * translator's reserved-name list, so a Wurst local named {@code goto}
      * produced {@code local goto = ...} (a Lua syntax error).

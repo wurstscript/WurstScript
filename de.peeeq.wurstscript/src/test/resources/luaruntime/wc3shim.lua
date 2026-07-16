@@ -58,8 +58,25 @@ function GetPlayerNeutralPassive() return 27 end
 function CreateGroup() return { units = {} } end
 function CreateTimer() return {} end
 
+-- Player handles: one cached {id = x} table per id — the same shape and
+-- cache the generated LuaNatives fallback uses, so GetPlayerId(p) reads p.id
+-- and identity comparisons like Player(0) == GetLocalPlayer() hold.
+__wurst_test_players = __wurst_test_players or {}
+function Player(id)
+    local p = __wurst_test_players[id]
+    if p == nil then
+        p = { id = id }
+        __wurst_test_players[id] = p
+    end
+    return p
+end
+
+function GetPlayerId(p)
+    return p.id
+end
+
 -- text output: route to stdout so error handlers (BJDebugMsg) work in tests
-function GetLocalPlayer() return enumHandle("player", 0) end
+function GetLocalPlayer() return Player(0) end
 function DisplayTimedTextToPlayer(toPlayer, x, y, duration, message)
     print(message)
 end
