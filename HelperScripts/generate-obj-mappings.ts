@@ -658,7 +658,9 @@ function buildSchemas(
     return (v !== null && v !== undefined) ? String(v) : null;
   }
   function toCodes(v: string | number | null | undefined): string[] {
-    return v === null || v === undefined ? [] : String(v).split(",").map((s) => s.trim()).filter(Boolean);
+    // metadata uses both commas and dots as delimiters (e.g. "ACbl.Afzy"),
+    // matching GenAbilities.java's split on [,\.]+
+    return v === null || v === undefined ? [] : String(v).split(/[,.]+/).map((s) => s.trim()).filter(Boolean);
   }
 
   for (const row of rows) {
