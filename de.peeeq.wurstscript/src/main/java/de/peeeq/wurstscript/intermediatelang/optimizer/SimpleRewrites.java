@@ -362,7 +362,7 @@ public class SimpleRewrites implements OptimizerPass {
                 break;
             case MOD_REAL:
                 if (f2 != 0f) {
-                    resultVal = f1 % f2;
+                    resultVal = WurstOperator.moduloReal(f1, f2);
                     isArithmetic = true;
                 }
                 break;
@@ -547,7 +547,7 @@ public class SimpleRewrites implements OptimizerPass {
                 break;
             case MOD_INT:
                 if (i2 != 0) {
-                    resultVal = i1 % i2;
+                    resultVal = WurstOperator.moduloInteger(i1, i2);
                     isArithmetic = true;
                 }
                 break;
@@ -555,7 +555,7 @@ public class SimpleRewrites implements OptimizerPass {
                 float f1 = i1;
                 float f2 = i2;
                 if (f2 != 0f) {
-                    float resultF = f1 % f2;
+                    float resultF = WurstOperator.moduloReal(f1, f2);
                     String s = floatToStringWithDecimalDigits(resultF, 4);
                     if (Float.parseFloat(s) != resultF) {
                         s = floatToStringWithDecimalDigits(resultF, 9);

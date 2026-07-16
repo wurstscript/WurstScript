@@ -201,6 +201,7 @@ ExprMember =
 ExprMemberVar =
 	  ExprMemberVarDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId)
 	| ExprMemberVarDotDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId)
+	| ExprMemberVarQuestionDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId)
 
 ExprMemberArrayVar =
 	  ExprMemberArrayVarDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId, Indexes indexes)
@@ -209,6 +210,7 @@ ExprMemberArrayVar =
 ExprMemberMethod =
 	  ExprMemberMethodDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
 	| ExprMemberMethodDotDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
+	| ExprMemberMethodQuestionDot(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
 
 
 ExprAtomic =

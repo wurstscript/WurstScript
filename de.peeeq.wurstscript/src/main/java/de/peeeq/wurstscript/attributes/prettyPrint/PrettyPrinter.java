@@ -443,6 +443,29 @@ public class PrettyPrinter {
         sb.append(e.getVarName());
     }
 
+    public static void prettyPrint(ExprMemberVarQuestionDot e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append("?.");
+        sb.append(e.getVarName());
+    }
+
+    public static void prettyPrint(ExprMemberMethodQuestionDot e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        if (e.getLeft() instanceof ExprBinary) {
+            sb.append("(");
+            e.getLeft().prettyPrint(spacer, sb, indent);
+            sb.append(")");
+        } else {
+            e.getLeft().prettyPrint(spacer, sb, indent);
+        }
+        sb.append("?.");
+        sb.append(e.getFuncName());
+        sb.append("(");
+        e.getArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")");
+        printNewline(e, sb, indent);
+    }
+
     public static void prettyPrint(ExprNewObject e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("new");

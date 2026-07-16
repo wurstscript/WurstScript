@@ -21,7 +21,8 @@ function resolveUnitBalanceSlk(): string {
 }
 const OUT_FILE =
   "./de.peeeq.wurstscript/src/main/resources/stdlib-obj-mappings.json";
-const KB_OUT_FILE = "./HelperScripts/wc3-knowledge-base.json";
+const KB_OUT_FILE =
+  "./de.peeeq.wurstscript/src/main/resources/wc3-knowledge-base.json";
 const GAMEDATA_DIR = "./HelperScripts/gamedata";
 const UNIT_BALANCE_SLK = resolveUnitBalanceSlk();
 
@@ -571,7 +572,7 @@ function parseFuncTxt(content: string): Map<string, Record<string, string>> {
   return result;
 }
 
-/** Merge multiple func maps; first writer per key wins. */
+/** Merge profile/skin maps in WC3 load order; later skin files override earlier defaults. */
 function mergeFuncMaps(
   ...maps: Map<string, Record<string, string>>[]
 ): Map<string, Record<string, string>> {
@@ -581,7 +582,7 @@ function mergeFuncMaps(
       if (!result.has(id)) result.set(id, {});
       const target = result.get(id)!;
       for (const [k, v] of Object.entries(fields)) {
-        if (!(k in target)) target[k] = v;
+        if (v !== "") target[k] = v;
       }
     }
   }
@@ -600,7 +601,7 @@ interface KBFieldSchema {
   /** Source SLK tag, e.g. "unitData", "unitUI", "Profile", "ItemData" */
   slk: string;
   /** Level index (-1 = not leveled; ≥ 0 = explicit level base) */
-  index: number;
+  index: number | null;
   /** 1 = value repeats per level (ability leveled fields) */
   repeat: number;
   /** Ability data slot pointer */
@@ -620,6 +621,10 @@ interface KBFieldSchema {
   useBuilding: boolean;
   useItem: boolean;
   useCreep: boolean;
+  useSpecific: string[];
+  notSpecific: string[];
+  canBeEmpty: boolean;
+  forceNonNeg: boolean;
   section: string | null;
 }
 
@@ -644,8 +649,18 @@ function buildSchemas(
     const n = typeof v === "number" ? v : parseFloat(String(v));
     return isNaN(n) ? 0 : n;
   }
+  function toOptionalNum(v: string | number | null | undefined): number | null {
+    if (v === null || v === undefined || v === "") return null;
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    return isNaN(n) ? null : n;
+  }
   function toNullStr(v: string | number | null | undefined): string | null {
     return (v !== null && v !== undefined) ? String(v) : null;
+  }
+  function toCodes(v: string | number | null | undefined): string[] {
+    // metadata uses both commas and dots as delimiters (e.g. "ACbl.Afzy"),
+    // matching GenAbilities.java's split on [,\.]+
+    return v === null || v === undefined ? [] : String(v).split(/[,.]+/).map((s) => s.trim()).filter(Boolean);
   }
 
   for (const row of rows) {
@@ -655,7 +670,7 @@ function buildSchemas(
       id,
       field: resolveStr(row["field"]),
       slk: resolveStr(row["slk"]),
-      index: toNum(row["index"]),
+      index: toOptionalNum(row["index"]),
       repeat: toNum(row["repeat"]),
       data: toNum(row["data"]),
       category: resolveStr(row["category"]),
@@ -669,6 +684,10 @@ function buildSchemas(
       useBuilding: toBool(row["useBuilding"]),
       useItem: toBool(row["useItem"]),
       useCreep: toBool(row["useCreep"]),
+      useSpecific: toCodes(row["useSpecific"]),
+      notSpecific: toCodes(row["notSpecific"]),
+      canBeEmpty: toBool(row["canBeEmpty"]),
+      forceNonNeg: toBool(row["forceNonNeg"]),
       section: toNullStr(row["section"]),
     });
   }
@@ -705,11 +724,11 @@ function buildObjectMap(
       }
     }
 
-    // func.txt / skin.txt fields
+    // func.txt / skin.txt fields override SLK defaults, matching WC3 profile merge semantics.
     const funcRow = funcMap.get(id);
     if (funcRow) {
       for (const [k, v] of Object.entries(funcRow)) {
-        if (!(k in obj) && v !== "") obj[k] = v;
+        if (v !== "") obj[k] = v;
       }
     }
 
@@ -722,7 +741,11 @@ function buildObjectMap(
 // Top-level knowledge base builder
 // ---------------------------------------------------------------------------
 
-function generateKnowledgeBase(westrings: Map<string, string>): object {
+function generateKnowledgeBase(
+  westrings: Map<string, string>,
+  buildingBaseIds: Set<string>,
+  heroBaseIds: Set<string>,
+): object {
   function loadSLK(file: string): Map<string, SLKRow> {
     const c = tryRead(gdPath(file));
     return c ? slkToMap(c) : new Map();
@@ -805,6 +828,9 @@ function generateKnowledgeBase(westrings: Map<string, string>): object {
 
   // unitmetadata.slk covers units, heroes, buildings AND items; split by use-flags.
   return {
+    schemaVersion: 1,
+    buildingBaseIds: [...buildingBaseIds].sort(),
+    heroBaseIds: [...heroBaseIds].sort(),
     /**
      * Field schemas per object type.
      * Each entry describes one editable field: its 4-char ID, human-readable
@@ -924,7 +950,7 @@ if (!westringsContent) {
   const westrings = parseWEStrings(westringsContent);
   console.log(`Parsed ${westrings.size} WorldEditStrings entries`);
 
-  const kb = generateKnowledgeBase(westrings);
+  const kb = generateKnowledgeBase(westrings, buildingIds, heroIds);
   const kbJson = JSON.stringify(kb, null, 2);
   Deno.writeTextFileSync(KB_OUT_FILE, kbJson);
   console.log(`Generated: ${KB_OUT_FILE}`);

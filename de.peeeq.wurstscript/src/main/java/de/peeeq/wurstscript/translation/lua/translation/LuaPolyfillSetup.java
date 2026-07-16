@@ -13,13 +13,26 @@ class LuaPolyfillSetup {
     private LuaPolyfillSetup() {}
 
     static void createArrayInitFunction(LuaTranslator tr) {
+        // Table-typed defaults (nested arrays, tuples) need a fresh value per
+        // slot that is stored on first read, so slot identity is stable.
+        // Immutable defaults (numbers, strings, booleans, nil) are returned
+        // without storing: storing would permanently materialize an entry for
+        // every slot that is merely READ, growing sparse arrays unboundedly.
         String[] code = {
             "local t = {}",
-            "local mt = {__index = function (table, key)",
-            "    local v = d()",
-            "    table[key] = v",
-            "    return v",
-            "end}",
+            "local dv = d()",
+            "local mt",
+            "if type(dv) == \"table\" then",
+            "    mt = {__index = function (table, key)",
+            "        local v = d()",
+            "        table[key] = v",
+            "        return v",
+            "    end}",
+            "else",
+            "    mt = {__index = function (table, key)",
+            "        return dv",
+            "    end}",
+            "end",
             "setmetatable(t, mt)",
             "return t"
         };
@@ -29,6 +42,43 @@ class LuaPolyfillSetup {
             tr.arrayInitFunction.getBody().add(LuaAst.LuaLiteral(c));
         }
         tr.luaModel.add(tr.arrayInitFunction);
+    }
+
+    /**
+     * Integer division and modulo helpers matching the Jass runtime:
+     * div truncates toward zero (JASS integer division) and mod follows
+     * Blizzard.j's ModuloInteger/ModuloReal (truncated remainder, plus
+     * divisor when the remainder is negative). Lua's native {@code //} and
+     * {@code %} are floored and disagree for negative operands.
+     */
+    static void createDivModFunctions(LuaTranslator tr) {
+        tr.intDivFunction.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+        tr.intDivFunction.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+        String[] divCode = {
+            "local q = a // b",
+            "if q < 0 and q * b ~= a then",
+            "    q = q + 1",
+            "end",
+            "return q"
+        };
+        for (String c : divCode) {
+            tr.intDivFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        tr.luaModel.add(tr.intDivFunction);
+
+        tr.modFunction.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+        tr.modFunction.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+        String[] modCode = {
+            "local r = math.fmod(a, b)",
+            "if r < 0 then",
+            "    r = r + b",
+            "end",
+            "return r"
+        };
+        for (String c : modCode) {
+            tr.modFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        tr.luaModel.add(tr.modFunction);
     }
 
     static void createStringConcatFunction(LuaTranslator tr) {
@@ -55,6 +105,14 @@ class LuaPolyfillSetup {
         tr.luaModel.add(tr.instanceOfFunction);
     }
 
+    /**
+     * KNOWN LIMITATION: both index maps hold strong references in both
+     * directions, so every handle/object/string that ever crosses typecasting
+     * is retained for the rest of the game. Weak tables would break round
+     * trips (index -> object must survive as long as the index is stored
+     * anywhere, e.g. in a hashtable), so this is accepted for now; avoid
+     * typecasting handles in unbounded quantities.
+     */
     static void createObjectIndexFunctions(LuaTranslator tr) {
         LuaVariable objectIndexMap = LuaAst.LuaVariable("__wurst_objectIndexMap", LuaAst.LuaExprNull());
         tr.luaModel.add(objectIndexMap);

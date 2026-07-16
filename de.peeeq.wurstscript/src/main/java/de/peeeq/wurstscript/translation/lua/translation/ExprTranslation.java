@@ -47,7 +47,14 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        return LuaAst.LuaExprNull(); // TODO maybe call some finalizer?
+        // Deliberate no-op: Lua instances are garbage collected, so 'destroy'
+        // only runs onDestroy (emitted separately) and drops nothing here.
+        // KNOWN DIVERGENCE from the Jass backend: a destroyed object stays
+        // fully usable (fields, dispatch, instanceof, typeId), whereas the
+        // Jass backend recycles the instance id and (with runtime checks)
+        // errors on use-after-destroy. Use-after-destroy bugs therefore stay
+        // silent on Lua but crash on Jass.
+        return LuaAst.LuaExprNull();
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
@@ -101,6 +108,12 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
+        // String concatenation is lowered to imTr.stringConcatFunc at the IM level
+        // (see EliminateLocalTypes); route it explicitly to the Lua polyfill instead
+        // of relying on both sides happening to print the same function name.
+        if (e.getFunc() == tr.imTr.stringConcatFunc) {
+            return LuaAst.LuaExprFunctionCall(tr.stringConcatFunction, tr.translateExprList(e.getArguments()));
+        }
         String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
         if (tcFunc != null && !e.getArguments().isEmpty()) {
             LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
@@ -209,20 +222,14 @@ public class ExprTranslation {
             }
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
-            LuaOpBinary op;
-            if (e.getOp() == WurstOperator.MOD_INT) {
-                op = LuaAst.LuaOpMod();
-
-                return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
+            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL) {
+                // Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal.
+                return LuaAst.LuaExprFunctionCall(tr.modFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
             } else if (e.getOp() == WurstOperator.DIV_INT) {
-                op = LuaAst.LuaOpFloorDiv();
-                return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
-            } else {
-                // TODO special cases for integer division and modulo
-                op = e.getOp().luaTranslateBinary();
+                // Lua's // is floored; Jass integer division truncates toward zero.
+                return LuaAst.LuaExprFunctionCall(tr.intDivFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
             }
-
+            LuaOpBinary op = e.getOp().luaTranslateBinary();
             return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
         } else if (e.getArguments().size() == 1) {
             ImExpr arg = e.getArguments().get(0);
@@ -362,6 +369,28 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImStatementExpr e, LuaTranslator tr) {
+        // The statement-expr becomes an immediately-invoked closure. An exitwhen
+        // that targets a loop OUTSIDE the statement-expr would emit 'break' inside
+        // the closure, which is invalid Lua — fail loudly instead of emitting it.
+        // (flatten() normally hoists statement-exprs so this should not occur.)
+        e.getStatements().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImLoop loop) {
+                // breaks inside a nested loop are fine — do not descend
+            }
+
+            @Override
+            public void visit(ImVarargLoop loop) {
+                // breaks inside a nested loop are fine — do not descend
+            }
+
+            @Override
+            public void visit(ImExitwhen exitwhen) {
+                throw new de.peeeq.wurstscript.attributes.CompileError(e.attrTrace().attrSource(),
+                    "Lua backend: cannot translate a loop exit inside a statement-expression "
+                        + "(it would produce a 'break' inside a closure).");
+            }
+        });
         LuaStatements body = tr.translateStatements(e.getStatements());
         body.add(LuaAst.LuaReturn(e.getExpr().translateToLua(tr)));
         return LuaAst.LuaExprFunctionCallE(
@@ -411,6 +440,15 @@ public class ExprTranslation {
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
     }
 
+    /**
+     * Wraps primitive-typed array reads in a type-normalizing helper call.
+     * NOTE (perf): the defaultArray metatable already guarantees a typed,
+     * non-nil default on every miss, so this is defensive hardening against
+     * values written from outside typed Wurst code. It costs a function call
+     * per array read; if that ever shows up in profiles, this is the place to
+     * reconsider (a regression test asserts the current behavior:
+     * LuaTranslationTests.stringArrayReadIsEnsured).
+     */
     private static LuaExpr ensureByType(LuaExpr expr, ImType type, LuaTranslator tr) {
         if (TypesHelper.isStringType(type)) {
             return LuaAst.LuaExprFunctionCall(tr.ensureStrFunction, LuaAst.LuaExprlist(expr));

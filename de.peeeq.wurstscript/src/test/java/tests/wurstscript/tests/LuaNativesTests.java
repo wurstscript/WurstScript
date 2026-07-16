@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.translation.lua.translation.LuaNatives;
 import org.testng.annotations.Test;
 
+import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
 public class LuaNativesTests {
@@ -27,7 +28,18 @@ public class LuaNativesTests {
     @Test
     public void r2iUsesTruncationTowardZero() {
         String rendered = renderNative("R2I");
-        assertTrue(rendered.contains("return math.modf(x)"));
+        // math.modf must not be used: it returns two values (which expand
+        // into enclosing argument lists) and a float integral part
+        assertFalse(rendered.contains("math.modf"));
+        assertTrue(rendered.contains("return math.floor(x)"));
+        assertTrue(rendered.contains("return math.ceil(x)"));
+    }
+
+    @Test
+    public void playerHandlesAreCachedForIdentityComparisons() {
+        String rendered = renderNative("Player");
+        assertTrue(rendered.contains("__wurst_test_players"));
+        assertTrue(rendered.contains("return p"));
     }
 
     @Test

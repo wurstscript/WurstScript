@@ -191,7 +191,10 @@ public class RemoveGarbage {
         }
         used.addMethod(m);
         visitClass(m.getMethodClass().getClassDef(), used);
-        visitFunction(m.getImplementation(), used);
+        if (m.getImplementation() != null) {
+            // abstract methods can have no implementation
+            visitFunction(m.getImplementation(), used);
+        }
         for (ImMethod subMethod : m.getSubMethods()) {
             used.maybeVisitMethod(subMethod);
         }

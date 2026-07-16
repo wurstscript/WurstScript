@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.validation.GlobalCaches;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -72,6 +71,17 @@ public class LuaTranslationTests extends WurstScriptTest {
         if (!de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering.ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING) {
             throw new org.testng.SkipException("Skipped: selective GetHandleId shimming is disabled (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING=false)");
         }
+    }
+
+    /**
+     * Returns the text of the __wurst_init_bootstrap function (it is the last
+     * function in the generated output; getFunctionBody cannot be used because
+     * the guard line "if ... then return end" contains an early 'end').
+     */
+    private String bootstrapSection(String compiled) {
+        int pos = compiled.indexOf("function __wurst_init_bootstrap(");
+        assertTrue("expected a __wurst_init_bootstrap function", pos >= 0);
+        return compiled.substring(pos);
     }
 
     private String getFunctionBody(String output, String functionName) {
@@ -274,7 +284,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("continue flag helper should not be emitted when no continue is present", compiled.contains("continueFlag_"));
     }
 
-    @Ignore
     @Test
     public void testExecution() {
         test().testLua(true).executeProg().lines(
@@ -310,7 +319,6 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionCall(compiled, "takesString", "\"\"");
     }
 
-    @Ignore
     @Test
     public void nullString3() {
         test().testLua(true).executeProg().lines(
@@ -1031,13 +1039,15 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaHeavyBootstrapStateIsSeededFromMain.lua"), Charsets.UTF_8);
         int mainPos = compiled.indexOf("function main(");
         assertTrue(mainPos >= 0);
-        int configPos = compiled.indexOf("function config(", mainPos);
-        String mainSection = compiled.substring(mainPos, configPos > mainPos ? configPos : compiled.length());
         String beforeMain = compiled.substring(0, mainPos);
+        // heavy state must not be seeded at the root of the script
         assertFalse(beforeMain.contains("__wurst_objectIndexMap = ({"));
         assertFalse(beforeMain.contains("__wurst_string_index_map = ({"));
-        assertTrue(mainSection.contains("__wurst_objectIndexMap = ({"));
-        assertTrue(mainSection.contains("__wurst_string_index_map = ({"));
+        // it is seeded from the guarded bootstrap function, which main calls first
+        String bootstrap = bootstrapSection(compiled);
+        assertTrue(bootstrap.contains("__wurst_objectIndexMap = ({"));
+        assertTrue(bootstrap.contains("__wurst_string_index_map = ({"));
+        assertContainsRegex(compiled, "function main\\(\\)\\s*\\n\\s*__wurst_init_bootstrap\\(");
     }
 
     @Test
@@ -1055,14 +1065,16 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaClassDispatchTablesAreInitializedInsideMain.lua"), Charsets.UTF_8);
         int mainPos = compiled.indexOf("function main(");
         assertTrue(mainPos >= 0);
-        int configPos = compiled.indexOf("function config(", mainPos);
-        String mainSection = compiled.substring(mainPos, configPos > mainPos ? configPos : compiled.length());
         String beforeMain = compiled.substring(0, mainPos);
+        // dispatch tables must not be initialized at the root of the script
         assertFalse(beforeMain.contains("A.__wurst_supertypes ="));
         assertFalse(beforeMain.contains("A.__typeId__ ="));
-        assertTrue(mainSection.contains("A.__wurst_supertypes ="));
-        assertTrue(mainSection.contains("A.__typeId__ ="));
-        assertTrue(mainSection.contains("A.A_f ="));
+        // they are initialized by the guarded bootstrap function, called from main
+        String bootstrap = bootstrapSection(compiled);
+        assertTrue(bootstrap.contains("A.__wurst_supertypes ="));
+        assertTrue(bootstrap.contains("A.__typeId__ ="));
+        assertTrue(bootstrap.contains("A.A_f ="));
+        assertContainsRegex(compiled, "function main\\(\\)\\s*\\n\\s*__wurst_init_bootstrap\\(");
     }
 
     @Test
@@ -1083,11 +1095,14 @@ public class LuaTranslationTests extends WurstScriptTest {
         int configPos = compiled.indexOf("function config(", mainPos);
         String mainSection = compiled.substring(mainPos, configPos > mainPos ? configPos : compiled.length());
 
-        assertOccursBefore(mainSection, "__wurst_objectIndexMap = ({", "initGlobals()");
-        assertOccursBefore(mainSection, "__wurst_string_index_map = ({", "initGlobals()");
-        assertOccursBefore(mainSection, "C.__wurst_supertypes =", "initGlobals()");
-        assertOccursBefore(mainSection, "C.__typeId__ =", "initGlobals()");
-        assertOccursBefore(mainSection, "C.C_f =", "initGlobals()");
+        // main must run the deferred bootstrap before user global initializers
+        assertOccursBefore(mainSection, "__wurst_init_bootstrap(", "initGlobals()");
+        String bootstrap = bootstrapSection(compiled);
+        assertTrue(bootstrap.contains("__wurst_objectIndexMap = ({"));
+        assertTrue(bootstrap.contains("__wurst_string_index_map = ({"));
+        assertTrue(bootstrap.contains("C.__wurst_supertypes ="));
+        assertTrue(bootstrap.contains("C.__typeId__ ="));
+        assertTrue(bootstrap.contains("C.C_f ="));
     }
 
     @Test
@@ -1865,8 +1880,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stdLibInitUsesXpcallInsteadOfTriggerEvaluateInMain.lua"), Charsets.UTF_8);
         // Package inits use direct xpcall — no WC3 trigger handle overhead
-        assertTrue(compiled.contains("xpcall(init_"));
-        assertTrue(compiled.contains("__wurst_init_ok"));
+        assertTrue(compiled.contains("if not xpcall(init_"));
         // TriggerEvaluate pattern must NOT appear for init functions
         assertFalse(compiled.contains("if not(TriggerEvaluate("));
         assertFalse(compiled.contains("TriggerClearConditions"));

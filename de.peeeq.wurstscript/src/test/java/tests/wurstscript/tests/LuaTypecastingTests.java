@@ -255,11 +255,15 @@ public class LuaTypecastingTests extends WurstScriptTest {
             Pattern.MULTILINE
         );
         assertTrue(unitFromIndexUsesLuaHelper.matcher(compiled).find());
-        Pattern unitFromIndexSavesFog = Pattern.compile(
-            "function\\s+unitFromIndex\\([^)]*\\)[\\s\\S]*?Table_saveFogState[\\s\\S]*?\\nend",
+        // constrain to the function body (up to the first closing 'end'),
+        // otherwise the match can leak into later functions
+        Pattern unitFromIndexBody = Pattern.compile(
+            "function\\s+unitFromIndex\\([^)]*\\)\\s*\\n([\\s\\S]*?)\\nend",
             Pattern.MULTILINE
         );
-        assertFalse(unitFromIndexSavesFog.matcher(compiled).find());
+        java.util.regex.Matcher bodyMatcher = unitFromIndexBody.matcher(compiled);
+        assertTrue(bodyMatcher.find());
+        assertFalse(bodyMatcher.group(1).contains("Table_saveFogState"));
     }
 
     @Test
