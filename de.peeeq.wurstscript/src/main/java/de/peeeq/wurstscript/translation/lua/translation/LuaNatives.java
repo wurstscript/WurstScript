@@ -138,6 +138,45 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.ceil(x)"));
         });
 
+        addNative("__wurst_rawFloorDivInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return a // b"));
+        });
+
+        addNative("__wurst_rawFmodInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
+        });
+
+        addNative("__wurst_rawFmodReal", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
+        });
+
+        addNative(Arrays.asList("__wurst_rawToNumberInt", "__wurst_rawToNumberReal"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
+        });
+
+        addNative("__wurst_rawToInteger", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.tointeger(x)"));
+        });
+
+        addNative("__wurst_rawToString", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
+        });
+
+        addNative("__wurst_rawConcat", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return x .. y"));
+        });
+
         addNative("__wurst_GetEnumPlayer", f -> {
             // Prefer the native enum player when inside an active native ForForce callback.
             // This preserves Jass semantics for nested enumerations.

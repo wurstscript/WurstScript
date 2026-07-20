@@ -109,11 +109,10 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
         // String concatenation is lowered to imTr.stringConcatFunc at the IM level
-        // (see EliminateLocalTypes); route it explicitly to the Lua polyfill instead
-        // of relying on both sides happening to print the same function name.
-        if (e.getFunc() == tr.imTr.stringConcatFunc) {
-            return LuaAst.LuaExprFunctionCall(tr.stringConcatFunction, tr.translateExprList(e.getArguments()));
-        }
+        // (see EliminateLocalTypes). It is a plain, portable, uniquely-named IM
+        // function now (see LuaEnsureFunctions), so it needs no special-casing
+        // here - the generic function-call translation below handles it, the same
+        // way it handles any other Wurst-internal function.
         String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
         if (tcFunc != null && !e.getArguments().isEmpty()) {
             LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
@@ -220,15 +219,17 @@ public class ExprTranslation {
             } else if (e.getOp() == WurstOperator.NOTEQ) {
                 return LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), translateEquals(left, right, tr));
             }
+            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL || e.getOp() == WurstOperator.DIV_INT) {
+                // LuaNativeLowering.lowerDivMod rewrites every DIV_INT/MOD_INT/MOD_REAL
+                // into a call against a portable IM function before the optimizer runs
+                // (so it can be inlined/constant-folded there). It should never survive
+                // to here - falling through to the default binary-op path below would
+                // silently use Lua's floored // and % instead of the truncating/
+                // Blizzard.j semantics Jass requires.
+                throw new Error("unexpected " + e.getOp() + " in Lua backend - should have been lowered by LuaNativeLowering.lowerDivMod");
+            }
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
-            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL) {
-                // Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal.
-                return LuaAst.LuaExprFunctionCall(tr.modFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            } else if (e.getOp() == WurstOperator.DIV_INT) {
-                // Lua's // is floored; Jass integer division truncates toward zero.
-                return LuaAst.LuaExprFunctionCall(tr.intDivFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            }
             LuaOpBinary op = e.getOp().luaTranslateBinary();
             return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
         } else if (e.getArguments().size() == 1) {
@@ -427,9 +428,18 @@ public class ExprTranslation {
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
+    /**
+     * Primitive-typed array reads are wrapped in a type-normalizing helper
+     * call at the IM level, before the optimizer runs (see
+     * LuaNativeLowering#lowerPrimitiveArrayEnsure), by rewriting the read into
+     * a call against ImTranslator#ensureIntFunc and friends - so by the time
+     * an ImVarArrayAccess reaches this method, it is already either a
+     * genuine lvalue/raw access or an access whose type never needed
+     * wrapping (e.g. class/handle-typed arrays, which default to nil the
+     * same way an untouched Lua table key already does).
+     */
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
-        LuaExpr access = translateArrayAccessRaw(e, tr);
-        return ensureByType(access, e.attrTyp(), tr);
+        return translateArrayAccessRaw(e, tr);
     }
 
     public static LuaExpr translateArrayAccessRaw(ImVarArrayAccess e, LuaTranslator tr) {
@@ -438,31 +448,6 @@ public class ExprTranslation {
             indexes.add(ie.translateToLua(tr));
         }
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
-    }
-
-    /**
-     * Wraps primitive-typed array reads in a type-normalizing helper call.
-     * NOTE (perf): the defaultArray metatable already guarantees a typed,
-     * non-nil default on every miss, so this is defensive hardening against
-     * values written from outside typed Wurst code. It costs a function call
-     * per array read; if that ever shows up in profiles, this is the place to
-     * reconsider (a regression test asserts the current behavior:
-     * LuaTranslationTests.stringArrayReadIsEnsured).
-     */
-    private static LuaExpr ensureByType(LuaExpr expr, ImType type, LuaTranslator tr) {
-        if (TypesHelper.isStringType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureStrFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isIntType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureIntFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isBoolType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureBoolFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isRealType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureRealFunction, LuaAst.LuaExprlist(expr));
-        }
-        return expr;
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {

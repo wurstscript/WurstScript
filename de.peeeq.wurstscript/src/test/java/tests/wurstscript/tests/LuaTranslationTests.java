@@ -467,7 +467,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    SetPlayerName(Player(i), playerName[i])"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*stringEnsure\\(");
+        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*__wurst_ensureStr\\(");
     }
 
     @Test
@@ -1346,7 +1346,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
         assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "stringEnsure(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(c.C_x)", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }
@@ -2169,6 +2169,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The abort must be the sentinel, not a raw //0 that Lua would crash on at runtime
         assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
         assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        // Nor lowered to a runtime-crashing div helper call (LuaNativeLowering#lowerDivMod
+        // must carve out an exception for this exact I2S(1 div 0) shape)
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*__wurst_intDiv\\s*\\(\\s*1\\s*,\\s*0\\s*\\)\\s*\\)");
         assertTrue(compiled.contains("__wurst_abort_thread"));
         // tostring() must still be used for the normal I2S call
         assertContainsRegex(compiled, "tostring\\s*\\(");
