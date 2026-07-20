@@ -55,10 +55,10 @@ final class LuaEnsureFunctions {
         ImStmts body = JassIm.ImStmts(
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(n), call(rawToNumber, JassIm.ImVarAccess(x))),
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImIntVal(0)),
-            JassIm.ImIf(TRACE, notNull(n, intType),
+            JassIm.ImIf(TRACE, notNull(n),
                 JassIm.ImStmts(
                     JassIm.ImSet(TRACE, JassIm.ImVarAccess(i), call(rawToInteger, JassIm.ImVarAccess(n))),
-                    JassIm.ImIf(TRACE, notNull(i, intType),
+                    JassIm.ImIf(TRACE, notNull(i),
                         JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(i))),
                         JassIm.ImStmts())
                 ),
@@ -79,7 +79,7 @@ final class LuaEnsureFunctions {
 
         ImStmts body = JassIm.ImStmts(
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImBoolVal(false)),
-            JassIm.ImIf(TRACE, notNull(x, boolType),
+            JassIm.ImIf(TRACE, notNull(x),
                 JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(x))),
                 JassIm.ImStmts()),
             JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
@@ -103,7 +103,7 @@ final class LuaEnsureFunctions {
         ImStmts body = JassIm.ImStmts(
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(n), call(rawToNumber, JassIm.ImVarAccess(x))),
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImRealVal("0.")),
-            JassIm.ImIf(TRACE, notNull(n, realType),
+            JassIm.ImIf(TRACE, notNull(n),
                 JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(n))),
                 JassIm.ImStmts()),
             JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
@@ -125,7 +125,7 @@ final class LuaEnsureFunctions {
 
         ImStmts body = JassIm.ImStmts(
             JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImStringVal("")),
-            JassIm.ImIf(TRACE, notNull(x, stringType),
+            JassIm.ImIf(TRACE, notNull(x),
                 JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), call(rawToString, JassIm.ImVarAccess(x)))),
                 JassIm.ImStmts()),
             JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
@@ -152,8 +152,8 @@ final class LuaEnsureFunctions {
         ImVar result = JassIm.ImVar(TRACE, stringType.copy(), "result", false);
 
         ImStmts body = JassIm.ImStmts(
-            JassIm.ImIf(TRACE, notNull(x, stringType),
-                JassIm.ImStmts(JassIm.ImIf(TRACE, notNull(y, stringType),
+            JassIm.ImIf(TRACE, notNull(x),
+                JassIm.ImStmts(JassIm.ImIf(TRACE, notNull(y),
                     JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), call(rawConcat, JassIm.ImVarAccess(x), JassIm.ImVarAccess(y)))),
                     JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(x))))),
                 JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(y)))),
@@ -176,8 +176,24 @@ final class LuaEnsureFunctions {
             JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
     }
 
-    private static ImExpr notNull(ImVar v, ImType type) {
-        return JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImNull(type.copy())));
+    /**
+     * {@code v ~= nil}, tagged as a null of {@link ImAnyType} rather than
+     * v's own declared type. This matters specifically for string: {@code
+     * EliminateLocalTypes#transformProgram} runs after these functions are
+     * built and unconditionally rewrites every string-typed {@code ImNull}
+     * node in the program to {@code ImStringVal("")} (Wurst's "null string
+     * == empty string" convention for ordinary user code) - tagging with the
+     * declared type here would silently turn this into an
+     * {@code x ~= ""} check, so a genuinely-nil Lua value (e.g. an
+     * uninitialized bound-generic string field) would read as "not nil" and
+     * skip normalization. An ImAnyType-tagged null is exempt from that
+     * rewrite while still printing as plain Lua {@code nil} either way (see
+     * {@code lua.translation.ExprTranslation#translate(ImNull, ...)}), and
+     * the comparison's Lua translation only ever looks at the *left*
+     * operand's type, so this has no effect on the emitted code.
+     */
+    private static ImExpr notNull(ImVar v) {
+        return JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImNull(JassIm.ImAnyType())));
     }
 
     private static ImFunctionCall call(ImFunction f, ImExpr... args) {

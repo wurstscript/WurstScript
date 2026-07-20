@@ -186,6 +186,47 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * EliminateLocalTypes#transformProgram runs after LuaEnsureFunctions
+     * builds __wurst_ensureStr's/__wurst_stringConcat's bodies, and
+     * unconditionally rewrites every string-typed ImNull node in the whole
+     * program - including inside those functions themselves - into
+     * ImStringVal(""). If their own "x ~= nil" checks were tagged with the
+     * string type, that rewrite would silently turn them into "x ~= \"\"",
+     * so a genuinely nil Lua value (e.g. an unset bound-generic string
+     * field) would read as "not nil", skip normalization, and come out as
+     * the literal string "nil" via tostring() instead of "" - or, for
+     * stringConcat, get passed straight into raw ".." concatenation.
+     * LuaEnsureFunctions#notNull tags its ImNull sentinel with ImAnyType
+     * specifically to stay exempt from that rewrite.
+     */
+    @Test
+    public void ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "string array names",
+            "function join(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    if names[5] == \"\" and join(\"a\", \"b\") == \"ab\"",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes");
+        assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_ensureStr(");
+        assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_stringConcat(");
+    }
+
+    private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {
+        int fnStart = compiled.indexOf("function " + functionNamePrefix);
+        assertTrue("expected " + functionNamePrefix + " to be present", fnStart >= 0);
+        int fnEnd = compiled.indexOf("\nend", fnStart);
+        String fnBody = compiled.substring(fnStart, fnEnd);
+        assertTrue(functionNamePrefix + " must check for real nil", fnBody.contains("== nil"));
+        assertFalse(functionNamePrefix + "'s nil check must not be corrupted into an empty-string check",
+            fnBody.contains("== \"\""));
+    }
+
+    /**
      * The Lua backend used to emit floored {@code //} for div and
      * {@code math.floor(a % b)} for mod, which disagree with the Jass
      * backend and the interpreter for negative operands
