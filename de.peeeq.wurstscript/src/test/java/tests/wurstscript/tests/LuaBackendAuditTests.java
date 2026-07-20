@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 
@@ -189,17 +190,77 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * {@code math.floor(a % b)} for mod, which disagree with the Jass
      * backend and the interpreter for negative operands
      * (e.g. -7 div 2 was -4 instead of -3, and 7 mod -2 was -1 instead of 1).
+     *
+     * Div/mod are now lowered to portable IM functions before the optimizer
+     * runs (see LuaNativeLowering#lowerDivMod), so calls with constant
+     * arguments - like the ones below - may get inlined away entirely rather
+     * than showing up as a helper call in the output. The floor-div/fmod
+     * *native* they delegate to (Wurst has no such IM operator) always
+     * survives somewhere in the output, inlined or not, so checking for it
+     * is robust regardless of the inliner's decision.
      */
     @Test
     public void integerDivModMatchJassSemanticsInLua() throws IOException {
         test().testLua(true).executeProg().lines(DIV_MOD_PROG);
         String compiled = compiledLua("integerDivModMatchJassSemanticsInLua");
-        assertTrue("div must go through the truncating intDiv helper",
-            compiled.contains("return intDiv("));
-        assertTrue("mod must go through the ModuloInteger-compatible wurstMod helper",
-            compiled.contains("return wurstMod("));
-        assertFalse("mod must not use math.floor over Lua's floored %",
+        assertTrue("div must go through the truncating floor-div correction",
+            compiled.contains("__wurst_rawFloorDivInt("));
+        assertTrue("mod must go through the ModuloInteger-compatible fmod correction",
+            compiled.contains("__wurst_rawFmodInt("));
+        assertFalse("mod/div must not use math.floor directly",
             compiled.contains("math.floor"));
+    }
+
+    /**
+     * Div/mod helpers are real IM functions now, created only when the
+     * program actually uses div/mod, instead of unconditionally-emitted Lua
+     * source (as before) - so a program that never divides/mods must not
+     * carry any of this machinery in its output.
+     */
+    @Test
+    public void divModHelpersAreOmittedWhenUnused() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    if 1 + 1 == 2",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("divModHelpersAreOmittedWhenUnused");
+        assertFalse("unused div helper must not be emitted",
+            compiled.contains("__wurst_intDiv"));
+        assertFalse("unused mod helpers must not be emitted",
+            compiled.contains("__wurst_mod"));
+        assertFalse("unused raw floor-div/fmod natives must not be emitted",
+            compiled.contains("__wurst_rawF"));
+    }
+
+    /**
+     * A non-constant div/mod call (parameters, not literals) has no
+     * constant-folding upside, so the inliner leaves it as a call to the
+     * shared helper - proving div/mod is optimizable at all now (it used to
+     * be opaque, always-emitted Lua source the IM optimizer never saw).
+     */
+    @Test
+    public void nonConstantDivModCallsUseSharedHelper() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function d(int a, int b) returns int",
+            "    return a div b",
+            "function m(int a, int b) returns int",
+            "    return a mod b",
+            "init",
+            "    int x = 7",
+            "    int y = -2",
+            "    if d(x, y) == -3 and m(x, y) == 1 and d(y, x) == 0 and m(y, x) == 5",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("nonConstantDivModCallsUseSharedHelper");
+        assertEquals("expected exactly one shared int-div helper definition",
+            1, countOccurrences(compiled, "function __wurst_intDiv("));
+        assertEquals("expected exactly one shared int-mod helper definition",
+            1, countOccurrences(compiled, "function __wurst_modInt("));
     }
 
     /**
@@ -284,11 +345,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * The defaultArray metatable used to store the default value on every
-     * read miss, so merely probing a sparse array permanently materialized an
-     * entry per probed key. Immutable defaults are now returned without
-     * storing; only table-typed defaults (tuples, nested arrays) keep the
-     * store-on-first-read behavior for slot identity.
+     * Reading a never-written array slot must not permanently store an entry
+     * for it - merely probing a sparse array would otherwise grow it
+     * unboundedly. Immutable (primitive) defaults are served by a dedicated
+     * index function that never writes back into the array table; only
+     * table-typed defaults (tuples, nested arrays) store on first read,
+     * because each slot needs its own, independently mutable default value.
      */
     @Test
     public void primitiveArrayReadsDoNotMaterializeEntries() throws IOException {
@@ -306,8 +368,78 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()"
         );
         String compiled = compiledLua("primitiveArrayReadsDoNotMaterializeEntries");
-        assertTrue("defaultArray must branch on the default value's type",
-            compiled.contains("local dv = d()"));
+        int fnStart = compiled.indexOf("function __wurst_arrIndex_integer(");
+        assertTrue("expected a dedicated index function for int array defaults", fnStart >= 0);
+        int fnEnd = compiled.indexOf("\nend", fnStart);
+        assertTrue("could not find end of int array index function", fnEnd >= 0);
+        assertFalse("primitive array default reads must not write back into the array table",
+            compiled.substring(fnStart, fnEnd).contains("="));
+
+        assertTrue("tuple array defaults must still be lazily materialized per-slot for identity",
+            compiled.contains("function __wurst_arrIndex("));
+    }
+
+    /**
+     * Array-default infrastructure (metatable + index function) is shared
+     * across every array with the same entry type, not allocated fresh per
+     * array instance - mirrors the shared per-class instance metatable
+     * ({@link #classInstancesShareOneMetatablePerClass}).
+     */
+    @Test
+    public void arraysOfSameEntryTypeShareDefaultMetatable() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array a",
+            "int array b",
+            "int array c",
+            "init",
+            "    a[1] = 1",
+            "    b[1] = 2",
+            "    c[1] = 3",
+            "    if a[1] + b[1] + c[1] == 6 and a[9] == 0 and b[9] == 0",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("arraysOfSameEntryTypeShareDefaultMetatable");
+        assertEquals("expected exactly one shared metatable declaration for all int arrays",
+            1, countOccurrences(compiled, "__wurst_arrMt_integer = "));
+        assertEquals("expected exactly one shared index function for all int arrays",
+            1, countOccurrences(compiled, "function __wurst_arrIndex_integer("));
+        assertEquals("expected one setmetatable call per array instance",
+            3, countOccurrences(compiled, "setmetatable(({}), __wurst_arrMt_integer)"));
+    }
+
+    /**
+     * Handle-typed arrays (WC3 native types, not user classes) default to
+     * nil, same as an untouched Lua table key - they must not pay for any
+     * metatable machinery at all.
+     */
+    @Test
+    public void handleTypedArraysAllocateNoMetatable() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "nativetype customHandle",
+            "customHandle array hs",
+            "init",
+            "    if hs[3] == null",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("handleTypedArraysAllocateNoMetatable");
+        assertFalse("a nil-default array must not allocate any array-default metatable",
+            compiled.contains("__wurst_arrMt"));
+        assertFalse("a nil-default array must not allocate any array-default index function",
+            compiled.contains("__wurst_arrIndex"));
+    }
+
+    private static int countOccurrences(String haystack, String needle) {
+        int count = 0;
+        int idx = 0;
+        while ((idx = haystack.indexOf(needle, idx)) >= 0) {
+            count++;
+            idx += needle.length();
+        }
+        return count;
     }
 
     /**

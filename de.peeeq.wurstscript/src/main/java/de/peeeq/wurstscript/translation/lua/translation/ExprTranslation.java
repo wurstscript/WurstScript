@@ -220,15 +220,17 @@ public class ExprTranslation {
             } else if (e.getOp() == WurstOperator.NOTEQ) {
                 return LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), translateEquals(left, right, tr));
             }
+            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL || e.getOp() == WurstOperator.DIV_INT) {
+                // LuaNativeLowering.lowerDivMod rewrites every DIV_INT/MOD_INT/MOD_REAL
+                // into a call against a portable IM function before the optimizer runs
+                // (so it can be inlined/constant-folded there). It should never survive
+                // to here - falling through to the default binary-op path below would
+                // silently use Lua's floored // and % instead of the truncating/
+                // Blizzard.j semantics Jass requires.
+                throw new Error("unexpected " + e.getOp() + " in Lua backend - should have been lowered by LuaNativeLowering.lowerDivMod");
+            }
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
-            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL) {
-                // Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal.
-                return LuaAst.LuaExprFunctionCall(tr.modFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            } else if (e.getOp() == WurstOperator.DIV_INT) {
-                // Lua's // is floored; Jass integer division truncates toward zero.
-                return LuaAst.LuaExprFunctionCall(tr.intDivFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            }
             LuaOpBinary op = e.getOp().luaTranslateBinary();
             return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
         } else if (e.getArguments().size() == 1) {
@@ -442,8 +444,9 @@ public class ExprTranslation {
 
     /**
      * Wraps primitive-typed array reads in a type-normalizing helper call.
-     * NOTE (perf): the defaultArray metatable already guarantees a typed,
-     * non-nil default on every miss, so this is defensive hardening against
+     * NOTE (perf): the shared per-type array metatable (see
+     * LuaTranslator#newDefaultArray) already guarantees a typed, non-nil
+     * default on every miss, so this is defensive hardening against
      * values written from outside typed Wurst code. It costs a function call
      * per array read; if that ever shows up in profiles, this is the place to
      * reconsider (a regression test asserts the current behavior:

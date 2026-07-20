@@ -82,6 +82,22 @@ public class LuaTranslator {
 
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
+
+    // Array-default infrastructure (metatables/helper functions) shared across
+    // every array of a given entry type, instead of allocated per array
+    // instance - see newDefaultArray().
+    private final Map<String, LuaVariable> primitiveArrayMetatables = new HashMap<>();
+    private final List<LazyArrayDefault> lazyArrayDefaults = new ArrayList<>();
+
+    private static final class LazyArrayDefault {
+        final ImType entryType;
+        final LuaVariable metatableVar;
+
+        LazyArrayDefault(ImType entryType, LuaVariable metatableVar) {
+            this.entryType = entryType;
+            this.metatableVar = metatableVar;
+        }
+    }
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
@@ -145,8 +161,6 @@ public class LuaTranslator {
         }
     };
 
-    LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
     LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -156,9 +170,6 @@ public class LuaTranslator {
     LuaFunction stringFromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
-    LuaFunction intDivFunction = LuaAst.LuaFunction(uniqueName("intDiv"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction modFunction = LuaAst.LuaFunction(uniqueName("wurstMod"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction ensureIntFunction = LuaAst.LuaFunction(uniqueName("intEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction ensureStrFunction = LuaAst.LuaFunction(uniqueName("stringEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -216,8 +227,6 @@ public class LuaTranslator {
 
 //        NormalizeNames.normalizeNames(prog);
 
-        createArrayInitFunction();
-        createDivModFunctions();
         createStringConcatFunction();
         createInstanceOfFunction();
         createObjectIndexFunctions();
@@ -409,10 +418,6 @@ public class LuaTranslator {
         }
     }
 
-    private void createDivModFunctions() {
-        LuaPolyfillSetup.createDivModFunctions(this);
-    }
-
     private void createStringConcatFunction() {
         LuaPolyfillSetup.createStringConcatFunction(this);
     }
@@ -427,10 +432,6 @@ public class LuaTranslator {
 
     private void createStringIndexFunctions() {
         LuaPolyfillSetup.createStringIndexFunctions(this);
-    }
-
-    private void createArrayInitFunction() {
-        LuaPolyfillSetup.createArrayInitFunction(this);
     }
 
     private void createEnsureTypeFunctions() {
@@ -1208,14 +1209,7 @@ public class LuaTranslator {
                     arraySizes.remove(0);
                     baseType = JassIm.ImArrayTypeMulti(at.getEntryType(), arraySizes);
                 }
-                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
-                    LuaAst.LuaExprlist(
-                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
-                            LuaAst.LuaStatements(
-                                LuaAst.LuaReturn(defaultValue(baseType))
-                            )
-                        )
-                    ));
+                return newDefaultArray(baseType);
             }
 
             @Override
@@ -1235,14 +1229,7 @@ public class LuaTranslator {
             @Override
             public LuaExpr case_ImArrayType(ImArrayType imArrayType) {
                 ImType baseType = imArrayType.getEntryType();
-                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
-                    LuaAst.LuaExprlist(
-                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
-                            LuaAst.LuaStatements(
-                                LuaAst.LuaReturn(defaultValue(baseType))
-                            )
-                        )
-                    ));
+                return newDefaultArray(baseType);
             }
 
             @Override
@@ -1250,6 +1237,123 @@ public class LuaTranslator {
                 return LuaAst.LuaExprNull();
             }
         });
+    }
+
+    /**
+     * Builds a fresh array table whose reads of never-written slots yield the
+     * default value for {@code entryType}, matching Jass's fully-initialized
+     * arrays. The metatable/helper-function infrastructure that makes this
+     * work is shared across every array with the same entry type - only the
+     * per-array table itself (and, for table-typed defaults, each lazily
+     * materialized slot) is allocated per array instance. Mirrors the shared
+     * per-class instance metatable in translateClass().
+     */
+    private LuaExpr newDefaultArray(ImType entryType) {
+        if (isAlwaysNilDefault(entryType)) {
+            // An untouched Lua table key already reads as nil - no metatable needed.
+            return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
+        }
+        if (entryType instanceof ImSimpleType) {
+            return setmetatableCall(getOrCreatePrimitiveArrayMetatable((ImSimpleType) entryType));
+        }
+        // Table-typed default (tuple / nested array): each slot needs its own,
+        // separately mutable default value, materialized lazily on first read.
+        return setmetatableCall(getOrCreateLazyArrayMetatable(entryType));
+    }
+
+    private LuaExpr setmetatableCall(LuaVariable metatableVar) {
+        return LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()),
+            LuaAst.LuaExprVarAccess(metatableVar)
+        ));
+    }
+
+    /** True for entry types whose Wurst default value is nil / not yet allocated. */
+    private boolean isAlwaysNilDefault(ImType t) {
+        if (t instanceof ImClassType || t instanceof ImAnyType || t instanceof ImTypeVarRef || t instanceof ImVoid) {
+            return true;
+        }
+        if (t instanceof ImSimpleType) {
+            // WC3 handle types (unit, player, timer, ...) are ImSimpleType too,
+            // and default to nil just like user classes - only the four true
+            // primitives below have a non-nil default.
+            ImSimpleType st = (ImSimpleType) t;
+            return !TypesHelper.isIntType(st) && !TypesHelper.isBoolType(st)
+                && !TypesHelper.isRealType(st) && !TypesHelper.isStringType(st);
+        }
+        return false;
+    }
+
+    /**
+     * One shared metatable per primitive kind (int/real/bool/string), for the
+     * whole program. The default is immutable, so reads never need to store
+     * anything back into the array table.
+     */
+    private LuaVariable getOrCreatePrimitiveArrayMetatable(ImSimpleType st) {
+        String key = TypesHelper.isIntType(st) ? "integer"
+            : TypesHelper.isBoolType(st) ? "boolean"
+            : TypesHelper.isRealType(st) ? "real"
+            : TypesHelper.isStringType(st) ? "string"
+            : null;
+        if (key == null) {
+            // Defensive fallback; isAlwaysNilDefault() should have routed anything
+            // else away from this method.
+            return getOrCreateLazyArrayMetatable(st);
+        }
+        LuaVariable existing = primitiveArrayMetatables.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        LuaFunction indexFn = LuaAst.LuaFunction(uniqueName("__wurst_arrIndex_" + key),
+            LuaAst.LuaParams(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()), LuaAst.LuaVariable("k", LuaAst.LuaNoExpr())),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(defaultValue(st))));
+        luaModel.add(indexFn);
+
+        LuaVariable mt = LuaAst.LuaVariable(uniqueName("__wurst_arrMt_" + key), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
+        )));
+        luaModel.add(mt);
+        primitiveArrayMetatables.put(key, mt);
+        return mt;
+    }
+
+    /**
+     * One shared metatable (and default-value factory) per distinct entry
+     * type that needs a fresh, independently mutable default per slot
+     * (tuples, nested arrays). Memoized like {@link ExprTranslation#getTupleCopyFunc}.
+     */
+    private LuaVariable getOrCreateLazyArrayMetatable(ImType entryType) {
+        for (LazyArrayDefault info : lazyArrayDefaults) {
+            if (info.entryType.equalsType(entryType)) {
+                return info.metatableVar;
+            }
+        }
+        LuaVariable mt = LuaAst.LuaVariable(uniqueName("__wurst_arrMt"), LuaAst.LuaNoExpr());
+        // Register before building the (possibly recursive, e.g. nested arrays) body.
+        lazyArrayDefaults.add(new LazyArrayDefault(entryType, mt));
+
+        LuaFunction thunk = LuaAst.LuaFunction(uniqueName("__wurst_arrDefault"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        thunk.getBody().add(LuaAst.LuaReturn(defaultValue(entryType)));
+        luaModel.add(thunk);
+
+        LuaVariable tParam = LuaAst.LuaVariable("t", LuaAst.LuaNoExpr());
+        LuaVariable kParam = LuaAst.LuaVariable("k", LuaAst.LuaNoExpr());
+        LuaVariable vLocal = LuaAst.LuaVariable("v", LuaAst.LuaExprFunctionCall(thunk, LuaAst.LuaExprlist()));
+        LuaFunction indexFn = LuaAst.LuaFunction(uniqueName("__wurst_arrIndex"), LuaAst.LuaParams(tParam, kParam),
+            LuaAst.LuaStatements(
+                vLocal,
+                LuaAst.LuaAssignment(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tParam), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(kParam))),
+                    LuaAst.LuaExprVarAccess(vLocal)),
+                LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(vLocal))
+            ));
+        luaModel.add(indexFn);
+
+        mt.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
+        )));
+        luaModel.add(mt);
+        return mt;
     }
 
     public LuaExprOpt translateOptional(ImExprOpt e) {

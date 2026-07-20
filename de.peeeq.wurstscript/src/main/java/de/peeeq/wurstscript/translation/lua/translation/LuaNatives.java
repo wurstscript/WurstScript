@@ -138,6 +138,24 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.ceil(x)"));
         });
 
+        addNative("__wurst_rawFloorDivInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return a // b"));
+        });
+
+        addNative("__wurst_rawFmodInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
+        });
+
+        addNative("__wurst_rawFmodReal", f -> {
+            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
+        });
+
         addNative("__wurst_GetEnumPlayer", f -> {
             // Prefer the native enum player when inside an active native ForForce callback.
             // This preserves Jass semantics for nested enumerations.

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
 
@@ -124,6 +125,8 @@ public final class LuaNativeLowering {
             }
         }
 
+        lowerDivMod(prog);
+
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
         Map<ImFunction, ImFunction> replacements = new LinkedHashMap<>();
@@ -211,6 +214,189 @@ public final class LuaNativeLowering {
         // Add all generated functions after the traversal so their bodies are not visited
         // by the replacement visitor above.
         prog.getFunctions().addAll(deferredAdditions);
+    }
+
+    private static final de.peeeq.wurstscript.ast.Element SYNTHETIC_TRACE = de.peeeq.wurstscript.ast.Ast.NoExpr();
+
+    /**
+     * Rewrites {@code DIV_INT}/{@code MOD_INT}/{@code MOD_REAL} operator calls
+     * into calls against small, portable IM functions (not natives), instead
+     * of them being lowered directly to opaque, always-emitted Lua helper
+     * functions at Lua-emission time (after {@code ImOptimizer} has already
+     * run). Because these functions now live in the IM tree before inlining
+     * and dead-code elimination, non-constant div/mod at a hot call site can
+     * actually get inlined, and the helpers disappear entirely from programs
+     * that never use div/mod - both of which were previously impossible.
+     *
+     * <p>Constant-constant div/mod already folds away earlier (see
+     * {@code SimpleRewrites}/{@code ConstantAndCopyPropagation}) and never
+     * reaches this rewrite; this only applies to runtime-value operands.
+     */
+    private static void lowerDivMod(ImProg prog) {
+        DivModFunctions funcs = new DivModFunctions();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImOperatorCall call) {
+                super.visit(call);
+                if (call.getArguments().size() != 2) {
+                    return;
+                }
+                ImFunction target;
+                if (call.getOp() == WurstOperator.DIV_INT) {
+                    target = funcs.intDiv();
+                } else if (call.getOp() == WurstOperator.MOD_INT) {
+                    target = funcs.modInt();
+                } else if (call.getOp() == WurstOperator.MOD_REAL) {
+                    target = funcs.modReal();
+                } else {
+                    return;
+                }
+                List<ImExpr> args = call.getArguments().removeAll();
+                call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), target,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(args), false, CallType.NORMAL));
+            }
+        });
+        // Added only after the traversal completes - prog.getFunctions() is
+        // being iterated by the accept() call above, same reasoning as
+        // deferredAdditions in transform().
+        prog.getFunctions().addAll(funcs.createdFunctions());
+    }
+
+    /**
+     * Lazily builds (and memoizes) the div/mod helper functions and the tiny
+     * raw-Lua-primitive natives they delegate to (Wurst's IM has no
+     * floor-division/fmod operator of its own).
+     */
+    private static final class DivModFunctions {
+        private final List<ImFunction> created = new ArrayList<>();
+        private ImFunction rawFloorDivInt;
+        private ImFunction rawFmodInt;
+        private ImFunction rawFmodReal;
+        private ImFunction intDiv;
+        private ImFunction modInt;
+        private ImFunction modReal;
+
+        List<ImFunction> createdFunctions() {
+            return created;
+        }
+
+        ImFunction intDiv() {
+            if (intDiv == null) {
+                intDiv = buildIntDiv(rawFloorDivInt());
+                created.add(intDiv);
+            }
+            return intDiv;
+        }
+
+        ImFunction modInt() {
+            if (modInt == null) {
+                modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0), rawFmodInt());
+                created.add(modInt);
+            }
+            return modInt;
+        }
+
+        ImFunction modReal() {
+            if (modReal == null) {
+                modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                created.add(modReal);
+            }
+            return modReal;
+        }
+
+        private ImFunction rawFloorDivInt() {
+            if (rawFloorDivInt == null) {
+                rawFloorDivInt = rawNative("__wurst_rawFloorDivInt", TypesHelper.imInt());
+                created.add(rawFloorDivInt);
+            }
+            return rawFloorDivInt;
+        }
+
+        private ImFunction rawFmodInt() {
+            if (rawFmodInt == null) {
+                rawFmodInt = rawNative("__wurst_rawFmodInt", TypesHelper.imInt());
+                created.add(rawFmodInt);
+            }
+            return rawFmodInt;
+        }
+
+        private ImFunction rawFmodReal() {
+            if (rawFmodReal == null) {
+                rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
+                created.add(rawFmodReal);
+            }
+            return rawFmodReal;
+        }
+
+        /** A native leaf with two params and a return, all of the same primitive type. Body supplied by LuaNatives. */
+        private static ImFunction rawNative(String name, ImType numType) {
+            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
+            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
+            return JassIm.ImFunction(SYNTHETIC_TRACE, name, JassIm.ImTypeVars(), JassIm.ImVars(a, b), numType.copy(),
+                JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        }
+
+        /**
+         * local q = rawFloorDiv(a, b)
+         * if q < 0 and q * b ~= a then q = q + 1 end
+         * return q
+         * (Lua's // truncates toward -inf; Jass integer division truncates toward zero.)
+         */
+        private static ImFunction buildIntDiv(ImFunction rawFloorDiv) {
+            ImType intType = TypesHelper.imInt();
+            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, intType.copy(), "a", false);
+            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, intType.copy(), "b", false);
+            ImVar q = JassIm.ImVar(SYNTHETIC_TRACE, intType.copy(), "q", false);
+
+            ImStmts body = JassIm.ImStmts(
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(q), call(rawFloorDiv, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
+                JassIm.ImIf(SYNTHETIC_TRACE,
+                    JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(
+                        JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(q), JassIm.ImIntVal(0))),
+                        JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(
+                            JassIm.ImOperatorCall(WurstOperator.MULT, JassIm.ImExprs(JassIm.ImVarAccess(q), JassIm.ImVarAccess(b))),
+                            JassIm.ImVarAccess(a)
+                        ))
+                    )),
+                    JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(q),
+                        JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(q), JassIm.ImIntVal(1))))),
+                    JassIm.ImStmts()
+                ),
+                JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(q))
+            );
+            return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_intDiv", JassIm.ImTypeVars(), JassIm.ImVars(a, b), intType.copy(),
+                JassIm.ImVars(q), body, Collections.emptyList());
+        }
+
+        /**
+         * local r = rawFmod(a, b)
+         * if r < 0 then r = r + b end
+         * return r
+         * (Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal:
+         * truncated remainder, plus the divisor when the remainder is negative.)
+         */
+        private static ImFunction buildMod(String name, ImType numType, ImExpr zeroLiteral, ImFunction rawFmod) {
+            ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
+            ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
+            ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "r", false);
+
+            ImStmts body = JassIm.ImStmts(
+                JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), call(rawFmod, JassIm.ImVarAccess(a), JassIm.ImVarAccess(b))),
+                JassIm.ImIf(SYNTHETIC_TRACE,
+                    JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(r), zeroLiteral)),
+                    JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r),
+                        JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(r), JassIm.ImVarAccess(b))))),
+                    JassIm.ImStmts()
+                ),
+                JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r))
+            );
+            return JassIm.ImFunction(SYNTHETIC_TRACE, name, JassIm.ImTypeVars(), JassIm.ImVars(a, b), numType.copy(),
+                JassIm.ImVars(r), body, Collections.emptyList());
+        }
+
+        private static ImFunctionCall call(ImFunction f, ImExpr... args) {
+            return JassIm.ImFunctionCall(SYNTHETIC_TRACE, f, JassIm.ImTypeArguments(), JassIm.ImExprs(args), false, CallType.NORMAL);
+        }
     }
 
     /**
