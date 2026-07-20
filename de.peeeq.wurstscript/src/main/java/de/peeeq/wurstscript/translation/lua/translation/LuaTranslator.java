@@ -161,8 +161,6 @@ public class LuaTranslator {
         }
     };
 
-    LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -170,11 +168,6 @@ public class LuaTranslator {
     LuaFunction stringFromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
-    LuaFunction ensureIntFunction = LuaAst.LuaFunction(uniqueName("intEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureStrFunction = LuaAst.LuaFunction(uniqueName("stringEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureBoolFunction = LuaAst.LuaFunction(uniqueName("boolEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureRealFunction = LuaAst.LuaFunction(uniqueName("realEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
         this.getProg().getFunctions().stream()
@@ -227,11 +220,9 @@ public class LuaTranslator {
 
 //        NormalizeNames.normalizeNames(prog);
 
-        createStringConcatFunction();
         createInstanceOfFunction();
         createObjectIndexFunctions();
         createStringIndexFunctions();
-        createEnsureTypeFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -418,10 +409,6 @@ public class LuaTranslator {
         }
     }
 
-    private void createStringConcatFunction() {
-        LuaPolyfillSetup.createStringConcatFunction(this);
-    }
-
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
@@ -432,10 +419,6 @@ public class LuaTranslator {
 
     private void createStringIndexFunctions() {
         LuaPolyfillSetup.createStringIndexFunctions(this);
-    }
-
-    private void createEnsureTypeFunctions() {
-        LuaPolyfillSetup.createEnsureTypeFunctions(this);
     }
 
     private void cleanStatements() {

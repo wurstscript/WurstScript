@@ -200,16 +200,14 @@ public class ImTranslator {
                     false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             if(isLuaTarget()) {
-                ensureIntFunc = JassIm.ImFunction(emptyTrace, "intEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeInt.instance().imTranslateType(this), "x", false)), WurstTypeInt.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureBoolFunc = JassIm.ImFunction(emptyTrace, "boolEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeBool.instance().imTranslateType(this), "x", false)), WurstTypeBool.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureRealFunc = JassIm.ImFunction(emptyTrace, "realEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeReal.instance().imTranslateType(this), "x", false)), WurstTypeReal.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureStrFunc = JassIm.ImFunction(emptyTrace, "stringEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                stringConcatFunc =JassIm.ImFunction(emptyTrace, "stringConcat", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false),JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "y", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                addFunction(ensureIntFunc);
-                addFunction(ensureBoolFunc);
-                addFunction(ensureRealFunc);
-                addFunction(ensureStrFunc);
-                addFunction(stringConcatFunc);
+                // Portable IM bodies (not IS_NATIVE stubs) - see LuaEnsureFunctions for why.
+                List<ImFunction> luaHelperFunctions = new ArrayList<>();
+                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions);
+                ensureBoolFunc = LuaEnsureFunctions.buildEnsureBool(luaHelperFunctions);
+                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions);
+                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions);
+                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions);
+                luaHelperFunctions.forEach(this::addFunction);
             }
 
             calculateCompiletimeOrder();

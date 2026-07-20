@@ -467,7 +467,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    SetPlayerName(Player(i), playerName[i])"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*stringEnsure\\(");
+        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*__wurst_ensureStr\\(");
     }
 
     @Test
@@ -1346,7 +1346,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
         assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "stringEnsure(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(c.C_x)", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }

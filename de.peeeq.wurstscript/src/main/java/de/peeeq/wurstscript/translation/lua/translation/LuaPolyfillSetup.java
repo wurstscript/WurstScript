@@ -12,23 +12,6 @@ class LuaPolyfillSetup {
 
     private LuaPolyfillSetup() {}
 
-    static void createStringConcatFunction(LuaTranslator tr) {
-        String[] code = {
-            "if x then",
-            "    if y then return x .. y else return x end",
-            "else",
-            "    return y",
-            "end"
-        };
-
-        tr.stringConcatFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.stringConcatFunction.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            tr.stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        tr.luaModel.add(tr.stringConcatFunction);
-    }
-
     static void createInstanceOfFunction(LuaTranslator tr) {
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
@@ -168,29 +151,4 @@ class LuaPolyfillSetup {
         }
     }
 
-    static void createEnsureTypeFunctions(LuaTranslator tr) {
-        tr.ensureIntFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0 end"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local i = math.tointeger(n)"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if i == nil then return 0 end"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("return i"));
-        tr.luaModel.add(tr.ensureIntFunction);
-
-        tr.ensureBoolFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return false end"));
-        tr.ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("return x"));
-        tr.luaModel.add(tr.ensureBoolFunction);
-
-        tr.ensureRealFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0.0 end"));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("return n"));
-        tr.luaModel.add(tr.ensureRealFunction);
-
-        tr.ensureStrFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureStrFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return \"\" end"));
-        tr.ensureStrFunction.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
-        tr.luaModel.add(tr.ensureStrFunction);
-    }
 }

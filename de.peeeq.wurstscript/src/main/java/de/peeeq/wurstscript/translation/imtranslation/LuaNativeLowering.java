@@ -110,7 +110,7 @@ public final class LuaNativeLowering {
      * creating wrappers for every BJ function in the IM (common.j declares hundreds of
      * functions, most of which are unreachable in any given program).
      */
-    public static void transform(ImProg prog) {
+    public static void transform(ImProg prog, ImTranslator translator) {
         // Replace all reads of MagicFunctions_isLua with true.
         // This must happen before any optimizer passes so that dead-code elimination
         // can remove Jass-only branches at compile time.
@@ -126,6 +126,7 @@ public final class LuaNativeLowering {
         }
 
         lowerDivMod(prog);
+        lowerPrimitiveArrayEnsure(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -260,6 +261,54 @@ public final class LuaNativeLowering {
         // being iterated by the accept() call above, same reasoning as
         // deferredAdditions in transform().
         prog.getFunctions().addAll(funcs.createdFunctions());
+    }
+
+    /**
+     * Rewrites reads (never writes - see {@link LValues#isUsedAsLValue}) of
+     * primitive-typed ({@code int}/{@code bool}/{@code real}/{@code string})
+     * array slots into calls against the portable {@code ensureXxx} IM
+     * functions ({@link ImTranslator#ensureIntFunc} and friends), instead of
+     * that normalization being applied later as opaque, always-emitted Lua
+     * source at Lua-emission time. Same treatment as {@link #lowerDivMod}:
+     * this makes a hot read optimizable (inlinable, foldable) instead of a
+     * fixed per-read function-call cost, and lets the helper disappear
+     * entirely from programs whose arrays are never read this way.
+     *
+     * <p>The shared per-type array-default metatable (see {@code
+     * LuaTranslator#newDefaultArray}) already guarantees a typed, non-nil
+     * default on every miss, so this remains defensive hardening against
+     * values written from outside typed Wurst code, not a correctness
+     * requirement for pure Wurst-authored programs.
+     */
+    private static void lowerPrimitiveArrayEnsure(ImProg prog, ImTranslator translator) {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                super.visit(access);
+                if (LValues.isUsedAsLValue(access)) {
+                    return;
+                }
+                ImFunction ensureFunc = ensureFunctionFor(access.attrTyp(), translator);
+                if (ensureFunc == null) {
+                    return;
+                }
+                access.replaceBy(JassIm.ImFunctionCall(access.attrTrace(), ensureFunc,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(access.copy()), false, CallType.NORMAL));
+            }
+        });
+    }
+
+    private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {
+        if (TypesHelper.isIntType(type)) {
+            return translator.ensureIntFunc;
+        } else if (TypesHelper.isBoolType(type)) {
+            return translator.ensureBoolFunc;
+        } else if (TypesHelper.isRealType(type)) {
+            return translator.ensureRealFunc;
+        } else if (TypesHelper.isStringType(type)) {
+            return translator.ensureStrFunc;
+        }
+        return null;
     }
 
     /**

@@ -264,10 +264,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * String concatenation is lowered to a synthetic stringConcat IM function;
-     * the Lua polyfill and the call sites used to be linked only by both
-     * happening to print the same name. This guards that a user function named
-     * stringConcat neither breaks concatenation nor gets hijacked.
+     * String concatenation is lowered to a synthetic stringConcat IM function.
+     * The polyfill and its call sites used to be linked only by both happening
+     * to print the same Lua name "stringConcat" - a user function also named
+     * stringConcat could hijack it, or get renamed away by the collision. The
+     * polyfill now has its own permanently distinct internal name
+     * (__wurst_stringConcat, see LuaEnsureFunctions), so a user-defined
+     * stringConcat no longer collides with it at all and needs no renaming.
      */
     @Test
     public void userFunctionNamedStringConcatDoesNotBreakConcatenation() throws IOException {
@@ -283,8 +286,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()"
         );
         String compiled = compiledLua("userFunctionNamedStringConcatDoesNotBreakConcatenation");
-        assertTrue("user stringConcat must be renamed away from the polyfill",
-            compiled.contains("function stringConcat1("));
+        assertTrue("user stringConcat no longer collides with the internal polyfill and keeps its own name",
+            compiled.contains("function stringConcat("));
+        assertFalse("the internal polyfill must not leak the bare 'stringConcat' name",
+            compiled.contains("function __wurst_stringConcat1("));
     }
 
     /**
