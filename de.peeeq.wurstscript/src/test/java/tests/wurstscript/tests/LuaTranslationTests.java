@@ -2169,6 +2169,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The abort must be the sentinel, not a raw //0 that Lua would crash on at runtime
         assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*//\\s*0\\s*\\)");
         assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*1\\s*/\\s*0\\s*\\)");
+        // Nor lowered to a runtime-crashing div helper call (LuaNativeLowering#lowerDivMod
+        // must carve out an exception for this exact I2S(1 div 0) shape)
+        assertDoesNotContainRegex(compiled, "tostring\\s*\\(\\s*__wurst_intDiv\\s*\\(\\s*1\\s*,\\s*0\\s*\\)\\s*\\)");
         assertTrue(compiled.contains("__wurst_abort_thread"));
         // tostring() must still be used for the normal I2S call
         assertContainsRegex(compiled, "tostring\\s*\\(");

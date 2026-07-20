@@ -212,6 +212,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * ErrorHandling.error()'s deliberate {@code I2S(1 div 0)} crash trap
+     * relies on {@code lua.translation.ExprTranslation#isIntentionalThreadAbortCall}
+     * pattern-matching the exact {@code ImOperatorCall(DIV_INT, [1, 0])} shape
+     * as I2S's sole argument, to turn it into the {@code __wurst_abort_thread}
+     * sentinel every callback xpcall handler ignores. The div/mod lowering
+     * (LuaNativeLowering#lowerDivMod) runs before that check and rewrites
+     * every DIV_INT it sees into a __wurst_intDiv(...) call - which would
+     * destroy that exact shape and replace the sentinel with a real Lua
+     * {@code n//0} runtime error, breaking every callback error handler's
+     * "was this an intentional abort" check. This guards that the lowering
+     * carves out an exception for precisely this pattern.
+     */
+    @Test
+    public void i2sDivByZeroAbortTrapSurvivesDivModLowering() throws IOException {
+        test().testLua(true).lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int i) returns string",
+            "native print(string s)",
+            "function crashTrap() returns string",
+            "    return I2S(1 div 0)",
+            "init",
+            "    print(crashTrap())",
+            "    testSuccess()"
+        );
+        String compiled = compiledLua("i2sDivByZeroAbortTrapSurvivesDivModLowering");
+        assertTrue("the abort trap must still produce the sentinel error call",
+            compiled.contains("error(\"__wurst_abort_thread\", 0)"));
+        assertFalse("the abort trap's 1 div 0 must not be lowered to a helper call",
+            compiled.contains("__wurst_intDiv(1, 0)"));
+    }
+
+    /**
      * Div/mod helpers are real IM functions now, created only when the
      * program actually uses div/mod, instead of unconditionally-emitted Lua
      * source (as before) - so a program that never divides/mods must not

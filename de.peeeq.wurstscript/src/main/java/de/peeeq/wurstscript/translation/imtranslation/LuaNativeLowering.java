@@ -232,6 +232,19 @@ public final class LuaNativeLowering {
      * <p>Constant-constant div/mod already folds away earlier (see
      * {@code SimpleRewrites}/{@code ConstantAndCopyPropagation}) and never
      * reaches this rewrite; this only applies to runtime-value operands.
+     *
+     * <p>Exception: {@code I2S(1 div 0)} is ErrorHandling's deliberate,
+     * always-non-constant-looking crash trap - {@code
+     * lua.translation.ExprTranslation#translate(ImFunctionCall, ...)} pattern
+     * matches that exact {@code ImOperatorCall(DIV_INT, [1, 0])} shape as the
+     * sole argument of an {@code I2S} call and turns it into the {@code
+     * __wurst_abort_thread} sentinel every callback xpcall handler ignores.
+     * Lowering it here first would replace that shape with a call to the
+     * portable {@code __wurst_intDiv} helper, which the sentinel check does
+     * not recognize - the trap would then raise a real Lua {@code n//0}
+     * runtime error instead of the sentinel, breaking every callback error
+     * handler's "was this an intentional abort" check. Leave that one
+     * expression untouched so the existing recognition still fires.
      */
     private static void lowerDivMod(ImProg prog) {
         DivModFunctions funcs = new DivModFunctions();
@@ -244,6 +257,9 @@ public final class LuaNativeLowering {
                 }
                 ImFunction target;
                 if (call.getOp() == WurstOperator.DIV_INT) {
+                    if (isIntentionalThreadAbortDivByZero(call)) {
+                        return;
+                    }
                     target = funcs.intDiv();
                 } else if (call.getOp() == WurstOperator.MOD_INT) {
                     target = funcs.modInt();
@@ -261,6 +277,37 @@ public final class LuaNativeLowering {
         // being iterated by the accept() call above, same reasoning as
         // deferredAdditions in transform().
         prog.getFunctions().addAll(funcs.createdFunctions());
+    }
+
+    /**
+     * True for exactly the {@code ImOperatorCall(DIV_INT, [1, 0])} shape that
+     * is the sole argument of a call to the native {@code I2S} - mirrors
+     * {@code lua.translation.ExprTranslation#isIntentionalThreadAbortCall}
+     * from the operator-call side, so both stay in agreement about what
+     * counts as the deliberate crash trap.
+     */
+    private static boolean isIntentionalThreadAbortDivByZero(ImOperatorCall call) {
+        ImExpr left = call.getArguments().get(0);
+        ImExpr right = call.getArguments().get(1);
+        if (!(left instanceof ImIntVal) || ((ImIntVal) left).getValI() != 1) {
+            return false;
+        }
+        if (!(right instanceof ImIntVal) || ((ImIntVal) right).getValI() != 0) {
+            return false;
+        }
+        // call's direct parent is the ImExprs argument-list container, not
+        // the ImFunctionCall itself - go up one more level to reach it (the
+        // same double getParent() pattern this codebase uses elsewhere for
+        // list-contained IM/AST elements).
+        Element argsList = call.getParent();
+        Element parent = argsList == null ? null : argsList.getParent();
+        if (!(parent instanceof ImFunctionCall)) {
+            return false;
+        }
+        ImFunctionCall parentCall = (ImFunctionCall) parent;
+        return parentCall.getArguments().size() == 1
+            && parentCall.getArguments().get(0) == call
+            && "I2S".equals(parentCall.getFunc().getName());
     }
 
     /**
