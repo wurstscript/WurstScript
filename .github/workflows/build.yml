@@ -194,18 +194,25 @@ jobs:
           done
           echo "Renamed to:"; ls -alh upload
 
-      - name: Publish Nightly Release (upload assets)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: nightly
-          prerelease: true
-          draft: false
-          make_latest: "false"
-          name: Nightly Build (master)
-          body: |
-            Nightly build for the latest commit on `master`.
-            This release is automatically updated on each push.
-          files: upload/**
-          fail_on_unmatched_files: false
+      # Keep the existing release metadata and stable download URLs. The release
+      # action PATCHes the release before uploading, which GitHub currently
+      # rejects for the Actions integration even with contents: write.
+      - name: Ensure Nightly Release exists
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view nightly >/dev/null 2>&1; then
+            gh release create nightly \
+              --verify-tag \
+              --prerelease \
+              --title "Nightly Build (master)" \
+              --notes $'Nightly build for the latest commit on `master`.\nThis release is automatically updated on each push.'
+          fi
+
+      - name: Publish Nightly Release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload nightly upload/*.zip --clobber
