@@ -2,10 +2,17 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
@@ -23,6 +30,23 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compiledLua(String testName) throws IOException {
         return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
+    }
+
+    private String compileOptimizedLua(String testName, String... lines) {
+        RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations");
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        WurstModel model = parseFiles(Collections.emptyList(),
+            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), false, compiler);
+        assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        LuaCompilationUnit luaCode = compiler.transformProgToLua();
+        StringBuilder result = new StringBuilder();
+        luaCode.print(result, 0);
+        return result.toString();
     }
 
     /**
@@ -364,6 +388,112 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("function stringConcat("));
         assertFalse("the internal polyfill must not leak the bare 'stringConcat' name",
             compiled.contains("function __wurst_stringConcat1("));
+    }
+
+    /**
+     * Inlining starts with garbage collection, while string PLUS used to be
+     * lowered into __wurst_stringConcat only after inlining. Once the helper
+     * became an ordinary IM function, that ordering removed its definition
+     * before its first call was introduced.
+     */
+    @Test
+    public void optimizedStringConcatKeepsItsHelperDefinition() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_optimizedStringConcatKeepsItsHelperDefinition",
+            "package Test",
+            "native print(string message)",
+            "function join1(string a, string b) returns string",
+            "    return a + b",
+            "function join2(string a, string b) returns string",
+            "    return a + b",
+            "function join3(string a, string b) returns string",
+            "    return a + b",
+            "function join4(string a, string b) returns string",
+            "    return a + b",
+            "function join5(string a, string b) returns string",
+            "    return a + b",
+            "function join6(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    print(join1(\"a\", \"b\"))",
+            "    print(join2(\"a\", \"b\"))",
+            "    print(join3(\"a\", \"b\"))",
+            "    print(join4(\"a\", \"b\"))",
+            "    print(join5(\"a\", \"b\"))",
+            "    print(join6(\"a\", \"b\"))"
+        );
+        assertTrue("optimized Lua must retain the helper called by lowered string concatenation",
+            compiled.contains("function __wurst_stringConcat("));
+        assertTrue("repro must contain calls in addition to the helper definition",
+            countOccurrences(compiled, "__wurst_stringConcat(") > 1);
+    }
+
+    /**
+     * All portable Lua helpers now live in IM and may be inlined or removed
+     * when unused. Any helper call that remains, however, must still target a
+     * function rooted in the final IM program. LuaTranslator checks that
+     * invariant for every function call/reference before emitting source.
+     */
+    @Test
+    public void optimizedMovedImHelpersHaveNoDanglingReferences() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_optimizedMovedImHelpersHaveNoDanglingReferences",
+            "package Test",
+            "native print(string message)",
+            "native I2S(int value) returns string",
+            "native R2S(real value) returns string",
+            "int array ints",
+            "bool array bools",
+            "real array reals",
+            "string array strings",
+            "function readInt(int index) returns int",
+            "    return ints[index]",
+            "function readBool(int index) returns bool",
+            "    return bools[index]",
+            "function readReal(int index) returns real",
+            "    return reals[index]",
+            "function readString(int index) returns string",
+            "    return strings[index]",
+            "function intDiv(int a, int b) returns int",
+            "    return a div b",
+            "function intMod(int a, int b) returns int",
+            "    return a mod b",
+            "function realMod(real a, real b) returns real",
+            "    return a % b",
+            "init",
+            "    ints[1] = 7",
+            "    bools[1] = true",
+            "    reals[1] = 7.5",
+            "    strings[1] = \"value=\"",
+            "    if readBool(1)",
+            "        print(readString(1) + I2S(intDiv(readInt(1), 2)))",
+            "        print(I2S(intMod(readInt(1), 2)))",
+            "        print(R2S(realMod(readReal(1), 2.)))"
+        );
+
+        String[] helperNames = {
+            "__wurst_ensureInt", "__wurst_ensureBool", "__wurst_ensureReal", "__wurst_ensureStr",
+            "__wurst_stringConcat", "__wurst_intDiv", "__wurst_modInt", "__wurst_modReal",
+            "__wurst_rawToNumberInt", "__wurst_rawToInteger", "__wurst_rawToNumberReal",
+            "__wurst_rawToString", "__wurst_rawConcat", "__wurst_rawFloorDivInt",
+            "__wurst_rawFmodInt", "__wurst_rawFmodReal"
+        };
+        for (String helperName : helperNames) {
+            assertHelperDefinedWhenCalled(compiled, helperName);
+        }
+        assertTrue("repro must exercise integer ensure lowering", compiled.contains("__wurst_rawToNumberInt"));
+        assertTrue("repro must exercise real ensure lowering", compiled.contains("__wurst_rawToNumberReal"));
+        assertTrue("repro must exercise string ensure lowering", compiled.contains("__wurst_rawToString"));
+        assertTrue("repro must exercise string concat lowering", compiled.contains("__wurst_rawConcat"));
+        assertTrue("repro must exercise integer div lowering", compiled.contains("__wurst_rawFloorDivInt"));
+        assertTrue("repro must exercise integer mod lowering", compiled.contains("__wurst_rawFmodInt"));
+        assertTrue("repro must exercise real mod lowering", compiled.contains("__wurst_rawFmodReal"));
+    }
+
+    private void assertHelperDefinedWhenCalled(String compiled, String helperName) {
+        int definitions = countOccurrences(compiled, "function " + helperName + "(");
+        int calls = countOccurrences(compiled, helperName + "(") - definitions;
+        assertTrue("dangling call to " + helperName, calls == 0 || definitions == 1);
     }
 
     /**

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -214,6 +215,7 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
+        assertNoDanglingFunctionReferences(prog);
         collectPredefinedNames();
 
         normalizeFieldNames();
@@ -251,6 +253,43 @@ public class LuaTranslator {
         enforceLuaLocalLimits();
 
         return luaModel;
+    }
+
+    /**
+     * Rejects calls/references to functions that an earlier optimizer pass
+     * detached from the IM program. Without this invariant the Lua printer
+     * can emit a valid-looking call with no corresponding definition, which
+     * only fails once Warcraft executes that path.
+     */
+    static void assertNoDanglingFunctionReferences(ImProg prog) {
+        Set<ImFunction> rootedFunctions = Collections.newSetFromMap(new IdentityHashMap<>());
+        rootedFunctions.addAll(ImHelper.calculateFunctionsOfProg(prog));
+        prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            private void requireRooted(de.peeeq.wurstscript.jassIm.Element reference, ImFunction target) {
+                if (!rootedFunctions.contains(target)) {
+                    throw new Error("Lua IM contains a dangling reference to removed function '"
+                        + target.getName() + "' in " + reference);
+                }
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                requireRooted(call, call.getFunc());
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImFuncRef ref) {
+                requireRooted(ref, ref.getFunc());
+                super.visit(ref);
+            }
+
+            @Override
+            public void visit(ImMethod method) {
+                requireRooted(method, method.getImplementation());
+                super.visit(method);
+            }
+        });
     }
 
     void deferMainInit(LuaStatement statement) {
@@ -1375,4 +1414,3 @@ public class LuaTranslator {
         return null;
     }
 }
-

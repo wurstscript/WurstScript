@@ -125,6 +125,7 @@ public final class LuaNativeLowering {
             }
         }
 
+        lowerStringConcatenation(prog, translator);
         lowerDivMod(prog);
         lowerPrimitiveArrayEnsure(prog, translator);
 
@@ -215,6 +216,28 @@ public final class LuaNativeLowering {
         // Add all generated functions after the traversal so their bodies are not visited
         // by the replacement visitor above.
         prog.getFunctions().addAll(deferredAdditions);
+    }
+
+    /**
+     * Rewrites string PLUS before the optimizer's first garbage-collection
+     * pass. The concat helper is an ordinary IM function, so introducing its
+     * calls only later in EliminateLocalTypes would let the optimizer remove
+     * its definition first and leave dangling Lua calls behind.
+     */
+    private static void lowerStringConcatenation(ImProg prog, ImTranslator translator) {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImOperatorCall call) {
+                super.visit(call);
+                ImExprs args = call.getArguments();
+                if (call.getOp() == WurstOperator.PLUS && args.size() == 2
+                    && TypesHelper.isStringType(args.get(0).attrTyp())
+                    && TypesHelper.isStringType(args.get(1).attrTyp())) {
+                    call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), translator.stringConcatFunc,
+                        JassIm.ImTypeArguments(), args.copy(), false, CallType.NORMAL));
+                }
+            }
+        });
     }
 
     private static final de.peeeq.wurstscript.ast.Element SYNTHETIC_TRACE = de.peeeq.wurstscript.ast.Ast.NoExpr();
