@@ -162,17 +162,19 @@ public class RunTests extends UserRequest<Object> {
     public TestResult runTests(ImTranslator translator, ImProg imProg, Optional<FuncDef> funcToTest, Optional<CompilationUnit> cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
-            CompiletimeFunctions, WurstProjectConfigData.empty(), false, false);
-        ILInterpreter interpreter = cfr.getInterpreter();
-        ProgramState globalState = cfr.getGlobalState();
-        if (globalState == null) {
-            globalState = new ProgramState(gui, imProg, true);
-        }
-        if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
-            interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
-        }
+        // Use try-with-resources to ensure NativeProvider resources (e.g. SQLite database connections and file handles)
+        // created during test execution are automatically closed when the language server finishes processing the request.
+        try (CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
+            CompiletimeFunctions, WurstProjectConfigData.empty(), false, false)) {
+            ILInterpreter interpreter = cfr.getInterpreter();
+            ProgramState globalState = cfr.getGlobalState();
+            if (globalState == null) {
+                globalState = new ProgramState(gui, imProg, true);
+            }
+            if (interpreter == null) {
+                interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
+                interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
+            }
 
         redirectInterpreterOutput(globalState);
 
@@ -355,6 +357,7 @@ public class RunTests extends UserRequest<Object> {
 
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
+        }
     }
 
 

@@ -422,4 +422,60 @@ public class CompiletimeTests extends WurstScriptTest {
 
     }
 
+    @Test
+    public void testCompiletimeSQLite() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "import LinkedList",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_string(int stmt, int idx) returns string",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_real(int stmt, int idx) returns real",
+                        "@extern native sqlite_column_count(int stmt) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_real(int stmt, int idx, real value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testFullSQLiteApi() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT, price REAL)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    sqlite_bind_real(insert, 3, 15.5)",
+                        "    let s1 = sqlite_step(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_reset(insert)",
+                        "    sqlite_bind_int(insert, 1, 102)",
+                        "    sqlite_bind_string(insert, 2, \"Shield\")",
+                        "    sqlite_bind_real(insert, 3, 25.0)",
+                        "    let s3 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let query = sqlite_prepare(db, \"SELECT id, name, price FROM Items ORDER BY id ASC\")",
+                        "    let cols = sqlite_column_count(query)",
+                        "    int count = 0",
+                        "    if not s1 and not s2 and not s3 and cols == 3 and sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 101 and sqlite_column_string(query, 1) == \"Sword\" and sqlite_column_real(query, 2) == 15.5",
+                        "            count++",
+                        "    if sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 102 and sqlite_column_string(query, 1) == \"Shield\" and sqlite_column_real(query, 2) == 25.0",
+                        "            count++",
+                        "    sqlite_finalize(query)",
+                        "    sqlite_close(db)",
+                        "    return count",
+                        "",
+                        "let c = compiletime(testFullSQLiteApi())",
+                        "init",
+                        "    if c == 2",
+                        "        testSuccess()");
+    }
 }

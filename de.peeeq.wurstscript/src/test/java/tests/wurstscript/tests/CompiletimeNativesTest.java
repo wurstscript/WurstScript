@@ -204,6 +204,44 @@ public class CompiletimeNativesTest {
         assertTrue(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("utip")));
     }
 
+    @Test
+    public void testCloseSqliteResourcesOnProviderClose() {
+        CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
+        ILconstInt connHandle = natives.sqlite_open(new ILconstString(":memory:"));
+        natives.sqlite_exec(connHandle, new ILconstString("CREATE TABLE Test (id INT);"));
+        ILconstInt stmtHandle = natives.sqlite_prepare(connHandle, new ILconstString("INSERT INTO Test VALUES (1);"));
+        natives.sqlite_step(stmtHandle);
+
+        natives.close();
+
+        try {
+            natives.sqlite_prepare(connHandle, new ILconstString("SELECT * FROM Test;"));
+            org.testng.Assert.fail("Expected InterpreterException for invalid connection handle after close");
+        } catch (de.peeeq.wurstio.jassinterpreter.InterpreterException e) {
+            assertTrue(e.getMessage().contains("Invalid SQLite connection handle"));
+        }
+    }
+
+    @Test
+    public void testCloseSqliteResourcesFromProgramStateClose() throws Exception {
+        WurstGuiLogger gui = new WurstGuiLogger();
+        ProgramStateIO state = new ProgramStateIO(Optional.empty(), null, gui, emptyProg(), true);
+        CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
+        state.addNativeProvider(natives);
+
+        ILconstInt connHandle = natives.sqlite_open(new ILconstString(":memory:"));
+        natives.sqlite_exec(connHandle, new ILconstString("CREATE TABLE Test (id INT);"));
+
+        state.close();
+
+        try {
+            natives.sqlite_prepare(connHandle, new ILconstString("SELECT * FROM Test;"));
+            org.testng.Assert.fail("Expected InterpreterException for invalid connection handle after ProgramState close");
+        } catch (de.peeeq.wurstio.jassinterpreter.InterpreterException e) {
+            assertTrue(e.getMessage().contains("Invalid SQLite connection handle"));
+        }
+    }
+
     private ImProg emptyProg() {
         Element trace = Ast.NoExpr();
         return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());

@@ -20,7 +20,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ProgramState extends State {
+public class ProgramState extends State implements AutoCloseable {
 
     public static final int GENERATED_BY_WURST = 42;
     private de.peeeq.wurstscript.jassIm.Element lastStatement;
@@ -183,6 +183,20 @@ public class ProgramState extends State {
 
     public Iterable<NativesProvider> getNativeProviders() {
         return nativeProviders;
+    }
+
+    /**
+     * Closes all registered NativesProvider instances to release external native resources (such as SQLite connections).
+     */
+    @Override
+    public void close() {
+        for (NativesProvider provider : nativeProviders) {
+            try {
+                provider.close();
+            } catch (Exception e) {
+                WLogger.severe(e);
+            }
+        }
     }
 
     public @Nullable NativesProvider getCachedNativeProvider(String funcName) {
