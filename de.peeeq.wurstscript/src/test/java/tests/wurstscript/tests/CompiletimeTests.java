@@ -478,4 +478,65 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    if c == 2",
                         "        testSuccess()");
     }
+
+    @Test
+    public void testCompiletimeSQLiteResetPreservesBindings() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
+                        "@extern native sqlite_clear_bindings(int stmt)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testResetPreservesBindings() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    let s1 = sqlite_step(insert)",
+                        // reset then step again WITHOUT rebinding: bindings must be preserved,
+                        // so the same row (101, Sword) is inserted a second time.
+                        "    sqlite_reset(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let count = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 101 AND name = 'Sword'\")",
+                        "    int preserved = 0",
+                        "    if not s1 and not s2 and sqlite_step(count)",
+                        "        preserved = sqlite_column_int(count, 0)",
+                        "    sqlite_finalize(count)",
+                        // sqlite_clear_bindings clears parameters back to NULL, so the next insert
+                        // writes a NULL id that will not match the id = 999 filter.
+                        "    let insert2 = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert2, 1, 999)",
+                        "    sqlite_bind_string(insert2, 2, \"Cleared\")",
+                        "    sqlite_clear_bindings(insert2)",
+                        "    let s3 = sqlite_step(insert2)",
+                        "    sqlite_finalize(insert2)",
+                        "    let cleared = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 999\")",
+                        "    int clearedCount = 1",
+                        "    if not s3 and sqlite_step(cleared)",
+                        "        clearedCount = sqlite_column_int(cleared, 0)",
+                        "    sqlite_finalize(cleared)",
+                        "    sqlite_close(db)",
+                        // expect 2 rows preserved by reset and 0 rows for id 999 after clear_bindings
+                        "    if preserved == 2 and clearedCount == 0",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testResetPreservesBindings())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
 }

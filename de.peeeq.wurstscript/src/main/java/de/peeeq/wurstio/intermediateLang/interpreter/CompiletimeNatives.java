@@ -342,14 +342,26 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public void sqlite_reset(ILconstInt statement) {
-        PreparedStatement stmt = sqliteStatement(statement.getVal());
+        // Mirror SQLite's sqlite3_reset(): reset execution state so the statement can be
+        // stepped again, but leave bound parameters in place. Clearing bindings here would
+        // break the common reuse pattern of binding once and re-stepping. Use
+        // sqlite_clear_bindings to explicitly clear parameters (sqlite3_clear_bindings()).
+        sqliteStatement(statement.getVal());
         try {
             ResultSet rs = sqliteResultSets.remove(statement.getVal());
             if (rs != null) rs.close();
             sqliteExecutedStatements.remove(statement.getVal());
-            stmt.clearParameters();
         } catch (SQLException e) {
             throw new InterpreterException("Failed to reset SQLite statement: " + e.getMessage());
+        }
+    }
+
+    public void sqlite_clear_bindings(ILconstInt statement) {
+        PreparedStatement stmt = sqliteStatement(statement.getVal());
+        try {
+            stmt.clearParameters();
+        } catch (SQLException e) {
+            throw new InterpreterException("Failed to clear SQLite statement bindings: " + e.getMessage());
         }
     }
 
