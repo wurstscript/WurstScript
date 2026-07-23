@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.sqlite.SQLiteConfig;
+import org.sqlite.SQLiteConnection;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -224,12 +225,14 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     public ILconstInt sqlite_open(ILconstString path) {
         String dbPath = path.getVal();
-        // Reject smuggled JDBC/URI query parameters (e.g. "?enable_load_extension=true").
-        // Without this a caller could turn on SQLite extension loading and then dlopen an
-        // arbitrary shared object via load_extension(), i.e. run native code on the build
-        // machine at compiletime. A legitimate file path or ":memory:" never needs a "?".
-        if (dbPath.indexOf('?') >= 0) {
-            throw new InterpreterException("Invalid SQLite database path (query parameters are not allowed): " + dbPath);
+        // SQLite "file:" URI paths can carry query parameters such as
+        // "?enable_load_extension=true" that would turn on extension loading and let
+        // load_extension() dlopen arbitrary native code on the build machine at compiletime.
+        // Reject query parameters on the URI form. Plain file paths may legitimately contain
+        // '?' (e.g. on Linux), so only the URI form is restricted; the explicit
+        // enableLoadExtension(false) below is the defense-in-depth backstop for every path.
+        if (dbPath.startsWith("file:") && dbPath.indexOf('?') >= 0) {
+            throw new InterpreterException("Invalid SQLite database URI (query parameters are not allowed): " + dbPath);
         }
         try {
             // Defense-in-depth: explicitly disable extension loading regardless of the path.
@@ -261,7 +264,9 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
      * Invalidates any prior execution of the statement so that the next sqlite_step
      * re-executes it. Called after a parameter is (re)bound: without this, binding new
      * values after a step (but before a sqlite_reset) would be silently ignored and the
-     * new values never queried/written.
+     * new values never queried/written. Note this also closes any open result set, so a
+     * column must be read before the next bind — the contract is bind, step, read, then
+     * (re)bind and step again.
      */
     private void markStatementForReexecution(int handle) {
         sqliteExecutedStatements.remove(handle);
@@ -459,68 +464,17 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     public void sqlite_exec(ILconstInt connection, ILconstString query) {
         Connection conn = sqliteConnection(connection.getVal());
-        try (java.sql.Statement stmt = conn.createStatement()) {
-            // JDBC's Statement.execute runs only the FIRST statement of a ';'-separated
-            // script (the xerial driver silently discards the rest), whereas sqlite3_exec
-            // runs them all. Split into individual statements and execute each so
-            // multi-statement scripts behave as callers expect.
-            for (String single : splitSqlStatements(query.getVal())) {
-                stmt.execute(single);
-            }
+        try {
+            // Delegate to SQLite's native sqlite3_exec (via the xerial driver's low-level
+            // DB handle) so SQLite's own parser handles statement boundaries. JDBC's
+            // Statement.execute runs only the FIRST statement of a ';'-separated script,
+            // and a hand-rolled splitter cannot correctly handle trigger BEGIN...END
+            // bodies, CASE...END, or every identifier-quoting form ([id], `id`, "id").
+            SQLiteConnection sqliteConn = conn.unwrap(SQLiteConnection.class);
+            sqliteConn.getDatabase()._exec(query.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to exec SQLite query: " + e.getMessage());
         }
-    }
-
-    /**
-     * Splits a SQL script into its individual ';'-separated statements, respecting single-
-     * quoted string literals, double-quoted identifiers (with doubled-quote escapes), and
-     * line ({@code --}) / block ({@code / * ... * /}) comments so that semicolons inside
-     * those are not treated as separators. Comments are dropped; empty statements are skipped.
-     */
-    public static List<String> splitSqlStatements(String sql) {
-        List<String> statements = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        int i = 0;
-        int n = sql.length();
-        while (i < n) {
-            char c = sql.charAt(i);
-            if (c == '\'' || c == '"') {
-                char quote = c;
-                current.append(c);
-                i++;
-                while (i < n) {
-                    char d = sql.charAt(i);
-                    current.append(d);
-                    i++;
-                    if (d == quote) {
-                        if (i < n && sql.charAt(i) == quote) {
-                            current.append(quote); // doubled quote = escaped quote, not a terminator
-                            i++;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            } else if (c == '-' && i + 1 < n && sql.charAt(i + 1) == '-') {
-                while (i < n && sql.charAt(i) != '\n') i++; // line comment: drop to end of line
-            } else if (c == '/' && i + 1 < n && sql.charAt(i + 1) == '*') {
-                i += 2;
-                while (i + 1 < n && !(sql.charAt(i) == '*' && sql.charAt(i + 1) == '/')) i++;
-                i = Math.min(i + 2, n); // consume the closing */
-            } else if (c == ';') {
-                String trimmed = current.toString().trim();
-                if (!trimmed.isEmpty()) statements.add(trimmed);
-                current.setLength(0);
-                i++;
-            } else {
-                current.append(c);
-                i++;
-            }
-        }
-        String trailing = current.toString().trim();
-        if (!trailing.isEmpty()) statements.add(trailing);
-        return statements;
     }
 
     @Override

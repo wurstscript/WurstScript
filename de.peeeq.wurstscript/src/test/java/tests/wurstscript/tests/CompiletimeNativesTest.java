@@ -243,39 +243,32 @@ public class CompiletimeNativesTest {
     }
 
     @Test
-    public void splitSqlStatementsSplitsTopLevelSemicolons() {
-        assertEquals(
-                CompiletimeNatives.splitSqlStatements("CREATE TABLE A (id INT); CREATE TABLE B (id INT)"),
-                List.of("CREATE TABLE A (id INT)", "CREATE TABLE B (id INT)"));
-    }
+    public void sqliteExecRunsMultiStatementScriptWithTrigger() {
+        WurstGuiLogger gui = new WurstGuiLogger();
+        ProgramStateIO state = new ProgramStateIO(Optional.empty(), null, gui, emptyProg(), true);
+        CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
+        state.addNativeProvider(natives);
 
-    @Test
-    public void splitSqlStatementsHandlesSingleStatementWithoutTrailingSemicolon() {
-        assertEquals(
-                CompiletimeNatives.splitSqlStatements("SELECT 1"),
-                List.of("SELECT 1"));
-    }
+        ILconstInt db = natives.sqlite_open(new ILconstString(":memory:"));
+        // Multi-statement script including a trigger BEGIN...END body (whose inner ';'
+        // terminators would break a naive splitter) and a bracket-quoted identifier
+        // containing ';'. sqlite3_exec delegates to SQLite's own parser, so both work.
+        natives.sqlite_exec(db, new ILconstString(
+                "CREATE TABLE src (id INTEGER);"
+                        + "CREATE TABLE dst (id INTEGER);"
+                        + "CREATE TRIGGER mirror AFTER INSERT ON src BEGIN INSERT INTO dst VALUES (NEW.id); END;"
+                        + "CREATE TABLE [we;ird] (x INTEGER);"
+                        + "INSERT INTO src VALUES (1); INSERT INTO src VALUES (2);"));
 
-    @Test
-    public void splitSqlStatementsIgnoresSemicolonsInsideStringLiterals() {
-        // The ';' and the doubled '' escape inside the literal must not split or terminate.
-        assertEquals(
-                CompiletimeNatives.splitSqlStatements("INSERT INTO T VALUES ('a;b''c'); SELECT 1"),
-                List.of("INSERT INTO T VALUES ('a;b''c')", "SELECT 1"));
-    }
-
-    @Test
-    public void splitSqlStatementsIgnoresSemicolonsInsideQuotedIdentifiers() {
-        assertEquals(
-                CompiletimeNatives.splitSqlStatements("SELECT \"weird;col\" FROM T; SELECT 2"),
-                List.of("SELECT \"weird;col\" FROM T", "SELECT 2"));
-    }
-
-    @Test
-    public void splitSqlStatementsDropsCommentsAndSkipsEmptyStatements() {
-        assertEquals(
-                CompiletimeNatives.splitSqlStatements("SELECT 1; -- a comment; still comment\n;; /* block; comment */ SELECT 2;"),
-                List.of("SELECT 1", "SELECT 2"));
+        ILconstInt q = natives.sqlite_prepare(db, new ILconstString(
+                "SELECT (SELECT COUNT(*) FROM dst), "
+                        + "(SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='we;ird')"));
+        assertTrue(natives.sqlite_step(q).getVal());
+        assertEquals(natives.sqlite_column_int(q, new ILconstInt(0)).getVal(), 2); // trigger mirrored both inserts
+        assertEquals(natives.sqlite_column_int(q, new ILconstInt(1)).getVal(), 1); // weird-named table created
+        natives.sqlite_finalize(q);
+        natives.sqlite_close(db);
+        state.close();
     }
 
     private ImProg emptyProg() {
