@@ -21,10 +21,14 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.sqlite.SQLiteConfig;
+
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -219,13 +223,24 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public ILconstInt sqlite_open(ILconstString path) {
+        String dbPath = path.getVal();
+        // Reject smuggled JDBC/URI query parameters (e.g. "?enable_load_extension=true").
+        // Without this a caller could turn on SQLite extension loading and then dlopen an
+        // arbitrary shared object via load_extension(), i.e. run native code on the build
+        // machine at compiletime. A legitimate file path or ":memory:" never needs a "?".
+        if (dbPath.indexOf('?') >= 0) {
+            throw new InterpreterException("Invalid SQLite database path (query parameters are not allowed): " + dbPath);
+        }
         try {
-            Connection conn = DriverManager.getConnection("jdbc:sqlite:" + path.getVal());
+            // Defense-in-depth: explicitly disable extension loading regardless of the path.
+            SQLiteConfig config = new SQLiteConfig();
+            config.enableLoadExtension(false);
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath, config.toProperties());
             int handle = ++sqliteHandleCounter;
             sqliteConnections.put(handle, conn);
             return new ILconstInt(handle);
         } catch (SQLException e) {
-            throw new InterpreterException("Failed to open SQLite database " + path.getVal() + ": " + e.getMessage());
+            throw new InterpreterException("Failed to open SQLite database " + dbPath + ": " + e.getMessage());
         }
     }
 
@@ -242,10 +257,26 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         }
     }
 
+    /**
+     * Invalidates any prior execution of the statement so that the next sqlite_step
+     * re-executes it. Called after a parameter is (re)bound: without this, binding new
+     * values after a step (but before a sqlite_reset) would be silently ignored and the
+     * new values never queried/written.
+     */
+    private void markStatementForReexecution(int handle) {
+        sqliteExecutedStatements.remove(handle);
+        ResultSet rs = sqliteResultSets.remove(handle);
+        if (rs != null) {
+            try { rs.close(); } catch (SQLException ignored) {}
+        }
+    }
+
+    // Parameter indices are 1-based, mirroring the SQLite C API (sqlite3_bind_*).
     public void sqlite_bind_int(ILconstInt statement, ILconstInt index, ILconstInt value) {
         PreparedStatement stmt = sqliteStatement(statement.getVal());
         try {
             stmt.setInt(index.getVal(), value.getVal());
+            markStatementForReexecution(statement.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to bind int: " + e.getMessage());
         }
@@ -255,6 +286,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         PreparedStatement stmt = sqliteStatement(statement.getVal());
         try {
             stmt.setDouble(index.getVal(), (double) value.getVal());
+            markStatementForReexecution(statement.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to bind real: " + e.getMessage());
         }
@@ -264,6 +296,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         PreparedStatement stmt = sqliteStatement(statement.getVal());
         try {
             stmt.setString(index.getVal(), value.getVal());
+            markStatementForReexecution(statement.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to bind string: " + e.getMessage());
         }
@@ -310,10 +343,14 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         }
     }
 
+    // Column indices are 0-based, mirroring the SQLite C API (sqlite3_column_*); the +1
+    // converts to JDBC's 1-based ResultSet indexing. Note this asymmetry with the 1-based
+    // bind indices above — both match the C API.
     public ILconstInt sqlite_column_int(ILconstInt statement, ILconstInt index) {
         ResultSet rs = sqliteResultSets.get(statement.getVal());
         if (rs == null) throw new InterpreterException("No result set for statement handle: " + statement.getVal());
         try {
+            // WurstScript int is 32-bit; a 64-bit SQLite INTEGER is truncated by getInt.
             return new ILconstInt(rs.getInt(index.getVal() + 1));
         } catch (SQLException e) {
             throw new InterpreterException("Failed to get column int: " + e.getMessage());
@@ -334,10 +371,23 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         ResultSet rs = sqliteResultSets.get(statement.getVal());
         if (rs == null) throw new InterpreterException("No result set for statement handle: " + statement.getVal());
         try {
+            // A SQL NULL maps to "" here; use sqlite_column_is_null to distinguish NULL
+            // from an empty string / zero value.
             String val = rs.getString(index.getVal() + 1);
             return new ILconstString(val == null ? "" : val);
         } catch (SQLException e) {
             throw new InterpreterException("Failed to get column string: " + e.getMessage());
+        }
+    }
+
+    public ILconstBool sqlite_column_is_null(ILconstInt statement, ILconstInt index) {
+        ResultSet rs = sqliteResultSets.get(statement.getVal());
+        if (rs == null) throw new InterpreterException("No result set for statement handle: " + statement.getVal());
+        try {
+            rs.getObject(index.getVal() + 1);
+            return rs.wasNull() ? ILconstBool.TRUE : ILconstBool.FALSE;
+        } catch (SQLException e) {
+            throw new InterpreterException("Failed to check column null: " + e.getMessage());
         }
     }
 
@@ -382,26 +432,95 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public void sqlite_close(ILconstInt connection) {
         Connection conn = sqliteConnections.remove(connection.getVal());
         if (conn == null) throw new InterpreterException("Invalid SQLite connection handle: " + connection.getVal());
+        // Finalize every statement belonging to this connection, then always close the
+        // connection itself. A failure finalizing one statement must not abort the loop or
+        // skip conn.close() — otherwise the connection (already removed from the map above)
+        // would leak permanently, unreachable even by closeAllSqliteResources().
+        List<String> errors = new ArrayList<>();
         for (int statement : sqliteStatementConnections.entrySet().stream()
                 .filter(entry -> entry.getValue().intValue() == connection.getVal())
                 .map(Map.Entry::getKey)
                 .toList()) {
-            sqlite_finalize(new ILconstInt(statement));
+            try {
+                sqlite_finalize(new ILconstInt(statement));
+            } catch (InterpreterException e) {
+                errors.add(e.getMessage());
+            }
         }
         try {
             conn.close();
         } catch (SQLException e) {
-            throw new InterpreterException("Failed to close SQLite connection: " + e.getMessage());
+            errors.add("Failed to close SQLite connection: " + e.getMessage());
+        }
+        if (!errors.isEmpty()) {
+            throw new InterpreterException("Errors while closing SQLite connection: " + String.join("; ", errors));
         }
     }
 
     public void sqlite_exec(ILconstInt connection, ILconstString query) {
         Connection conn = sqliteConnection(connection.getVal());
         try (java.sql.Statement stmt = conn.createStatement()) {
-            stmt.execute(query.getVal());
+            // JDBC's Statement.execute runs only the FIRST statement of a ';'-separated
+            // script (the xerial driver silently discards the rest), whereas sqlite3_exec
+            // runs them all. Split into individual statements and execute each so
+            // multi-statement scripts behave as callers expect.
+            for (String single : splitSqlStatements(query.getVal())) {
+                stmt.execute(single);
+            }
         } catch (SQLException e) {
             throw new InterpreterException("Failed to exec SQLite query: " + e.getMessage());
         }
+    }
+
+    /**
+     * Splits a SQL script into its individual ';'-separated statements, respecting single-
+     * quoted string literals, double-quoted identifiers (with doubled-quote escapes), and
+     * line ({@code --}) / block ({@code / * ... * /}) comments so that semicolons inside
+     * those are not treated as separators. Comments are dropped; empty statements are skipped.
+     */
+    public static List<String> splitSqlStatements(String sql) {
+        List<String> statements = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int i = 0;
+        int n = sql.length();
+        while (i < n) {
+            char c = sql.charAt(i);
+            if (c == '\'' || c == '"') {
+                char quote = c;
+                current.append(c);
+                i++;
+                while (i < n) {
+                    char d = sql.charAt(i);
+                    current.append(d);
+                    i++;
+                    if (d == quote) {
+                        if (i < n && sql.charAt(i) == quote) {
+                            current.append(quote); // doubled quote = escaped quote, not a terminator
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            } else if (c == '-' && i + 1 < n && sql.charAt(i + 1) == '-') {
+                while (i < n && sql.charAt(i) != '\n') i++; // line comment: drop to end of line
+            } else if (c == '/' && i + 1 < n && sql.charAt(i + 1) == '*') {
+                i += 2;
+                while (i + 1 < n && !(sql.charAt(i) == '*' && sql.charAt(i + 1) == '/')) i++;
+                i = Math.min(i + 2, n); // consume the closing */
+            } else if (c == ';') {
+                String trimmed = current.toString().trim();
+                if (!trimmed.isEmpty()) statements.add(trimmed);
+                current.setLength(0);
+                i++;
+            } else {
+                current.append(c);
+                i++;
+            }
+        }
+        String trailing = current.toString().trim();
+        if (!trailing.isEmpty()) statements.add(trailing);
+        return statements;
     }
 
     @Override
@@ -428,6 +547,8 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
             try { conn.close(); } catch (SQLException ignored) {}
         }
         sqliteConnections.clear();
-        sqliteHandleCounter = 0;
+        // Deliberately do NOT reset sqliteHandleCounter: keeping it monotonic means a stale
+        // handle from a previous run can never silently alias a freshly-allocated resource
+        // if this provider instance is ever reused after close().
     }
 }

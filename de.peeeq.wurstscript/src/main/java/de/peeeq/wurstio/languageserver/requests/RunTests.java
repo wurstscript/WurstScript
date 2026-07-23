@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.RunArgs;
@@ -166,15 +165,11 @@ public class RunTests extends UserRequest<Object> {
         // created during test execution are automatically closed when the language server finishes processing the request.
         try (CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
             CompiletimeFunctions, WurstProjectConfigData.empty(), false, false)) {
+            // CompiletimeFunctionRunner always constructs both, and cfr.close() (the
+            // try-with-resources above) owns their lifecycle. Building local replacements
+            // here would be dead code that also escaped that cleanup, so use the runner's.
             ILInterpreter interpreter = cfr.getInterpreter();
             ProgramState globalState = cfr.getGlobalState();
-            if (globalState == null) {
-                globalState = new ProgramState(gui, imProg, true);
-            }
-            if (interpreter == null) {
-                interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
-                interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
-            }
 
         redirectInterpreterOutput(globalState);
 

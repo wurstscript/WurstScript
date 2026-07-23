@@ -539,4 +539,66 @@ public class CompiletimeTests extends WurstScriptTest {
                         "    if c == 1",
                         "        testSuccess()");
     }
+
+    @Test
+    public void testCompiletimeSQLiteExecMultiStatementAndNulls() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_is_null(int stmt, int idx) returns boolean",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testExecMultiAndNulls() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        // multi-statement exec must create BOTH tables (only the first runs
+                        // under a naive Statement.execute)
+                        "    sqlite_exec(db, \"CREATE TABLE A (id INTEGER); CREATE TABLE B (id INTEGER, name TEXT)\")",
+                        // multi-statement DML: both inserts must run
+                        "    sqlite_exec(db, \"INSERT INTO A VALUES (1); INSERT INTO A VALUES (2)\")",
+                        "    let ca = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA = 0",
+                        "    if sqlite_step(ca)",
+                        "        countA = sqlite_column_int(ca, 0)",
+                        "    sqlite_finalize(ca)",
+                        // rebind WITHOUT an intervening sqlite_reset must force re-execution,
+                        // so both id 3 and id 4 get inserted (4 rows total in A)
+                        "    let ins = sqlite_prepare(db, \"INSERT INTO A VALUES (?)\")",
+                        "    sqlite_bind_int(ins, 1, 3)",
+                        "    let b1 = sqlite_step(ins)",
+                        "    sqlite_bind_int(ins, 1, 4)",
+                        "    let b2 = sqlite_step(ins)",
+                        "    sqlite_finalize(ins)",
+                        "    let ca2 = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA2 = 0",
+                        "    if sqlite_step(ca2)",
+                        "        countA2 = sqlite_column_int(ca2, 0)",
+                        "    sqlite_finalize(ca2)",
+                        // NULL detection: a genuine SQL NULL must be distinguishable
+                        "    sqlite_exec(db, \"INSERT INTO B VALUES (7, NULL)\")",
+                        "    let q = sqlite_prepare(db, \"SELECT id, name FROM B WHERE id = 7\")",
+                        "    boolean idNotNull = false",
+                        "    boolean nameIsNull = false",
+                        "    if not b1 and not b2 and sqlite_step(q)",
+                        "        idNotNull = not sqlite_column_is_null(q, 0)",
+                        "        nameIsNull = sqlite_column_is_null(q, 1)",
+                        "    sqlite_finalize(q)",
+                        "    sqlite_close(db)",
+                        "    if countA == 2 and countA2 == 4 and idNotNull and nameIsNull",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testExecMultiAndNulls())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
 }

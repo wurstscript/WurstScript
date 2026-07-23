@@ -242,6 +242,42 @@ public class CompiletimeNativesTest {
         }
     }
 
+    @Test
+    public void splitSqlStatementsSplitsTopLevelSemicolons() {
+        assertEquals(
+                CompiletimeNatives.splitSqlStatements("CREATE TABLE A (id INT); CREATE TABLE B (id INT)"),
+                List.of("CREATE TABLE A (id INT)", "CREATE TABLE B (id INT)"));
+    }
+
+    @Test
+    public void splitSqlStatementsHandlesSingleStatementWithoutTrailingSemicolon() {
+        assertEquals(
+                CompiletimeNatives.splitSqlStatements("SELECT 1"),
+                List.of("SELECT 1"));
+    }
+
+    @Test
+    public void splitSqlStatementsIgnoresSemicolonsInsideStringLiterals() {
+        // The ';' and the doubled '' escape inside the literal must not split or terminate.
+        assertEquals(
+                CompiletimeNatives.splitSqlStatements("INSERT INTO T VALUES ('a;b''c'); SELECT 1"),
+                List.of("INSERT INTO T VALUES ('a;b''c')", "SELECT 1"));
+    }
+
+    @Test
+    public void splitSqlStatementsIgnoresSemicolonsInsideQuotedIdentifiers() {
+        assertEquals(
+                CompiletimeNatives.splitSqlStatements("SELECT \"weird;col\" FROM T; SELECT 2"),
+                List.of("SELECT \"weird;col\" FROM T", "SELECT 2"));
+    }
+
+    @Test
+    public void splitSqlStatementsDropsCommentsAndSkipsEmptyStatements() {
+        assertEquals(
+                CompiletimeNatives.splitSqlStatements("SELECT 1; -- a comment; still comment\n;; /* block; comment */ SELECT 2;"),
+                List.of("SELECT 1", "SELECT 2"));
+    }
+
     private ImProg emptyProg() {
         Element trace = Ast.NoExpr();
         return JassIm.ImProg(trace, JassIm.ImVars(), JassIm.ImFunctions(), JassIm.ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new HashMap<>());
