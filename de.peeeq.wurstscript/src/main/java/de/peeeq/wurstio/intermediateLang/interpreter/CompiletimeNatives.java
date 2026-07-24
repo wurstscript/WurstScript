@@ -415,6 +415,11 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         PreparedStatement stmt = sqliteStatement(statement.getVal());
         try {
             stmt.clearParameters();
+            // Clearing bindings mutates the parameters (all become NULL), so it must
+            // invalidate any prior execution just like sqlite_bind_* — otherwise a
+            // step after clearing on an already-executed statement would return false
+            // and silently skip re-running with the now-NULL parameters.
+            markStatementForReexecution(statement.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to clear SQLite statement bindings: " + e.getMessage());
         }

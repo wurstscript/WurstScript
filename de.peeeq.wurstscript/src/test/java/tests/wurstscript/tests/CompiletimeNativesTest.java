@@ -402,6 +402,50 @@ public class CompiletimeNativesTest {
     }
 
     @Test
+    public void sqliteClearBindingsAfterStepReexecutesWithoutReset() {
+        // Regression: sqlite_clear_bindings must invalidate a prior execution just like
+        // sqlite_bind_*, so a step after clearing re-runs the statement with NULL params
+        // WITHOUT an explicit sqlite_reset. Otherwise the second step silently no-ops.
+        CompiletimeNatives n = newSqliteNatives();
+        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
+        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (v INTEGER)"));
+        ILconstInt ins = n.sqlite_prepare(db, new ILconstString("INSERT INTO T VALUES (?)"));
+        n.sqlite_bind_int(ins, i(1), i(100));
+        assertFalse(n.sqlite_step(ins).getVal());   // inserts 100
+        n.sqlite_clear_bindings(ins);               // no explicit reset
+        assertFalse(n.sqlite_step(ins).getVal());   // must re-execute → inserts NULL
+        n.sqlite_finalize(ins);
+
+        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT count(*), count(v) FROM T"));
+        assertTrue(n.sqlite_step(q).getVal());
+        assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 2); // two rows total
+        assertEquals(n.sqlite_column_int(q, i(1)).getVal(), 1); // one non-NULL (the 100)
+        n.sqlite_finalize(q);
+        n.sqlite_close(db);
+    }
+
+    @Test
+    public void sqliteClearBindingsAfterStepDiscardsOldResultSet() {
+        // Companion to the above for the SELECT path: after a step opens a result set,
+        // clear_bindings must discard it so the next step RE-RUNS the query with the now
+        // NULL parameter, rather than continuing to walk the stale result set.
+        CompiletimeNatives n = newSqliteNatives();
+        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
+        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (v INTEGER)"));
+        n.sqlite_exec(db, new ILconstString("INSERT INTO T VALUES (1), (2), (3)"));
+        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT v FROM T WHERE v <> ? ORDER BY v"));
+        n.sqlite_bind_int(q, i(1), i(2));           // excludes 2 → rows {1, 3}
+        assertTrue(n.sqlite_step(q).getVal());
+        assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 1);
+        // Without the fix, the next step continues the old result set and returns row 3.
+        // With the fix, it re-executes: "v <> NULL" matches nothing → no rows.
+        n.sqlite_clear_bindings(q);
+        assertFalse(n.sqlite_step(q).getVal());
+        n.sqlite_finalize(q);
+        n.sqlite_close(db);
+    }
+
+    @Test
     public void sqliteFinalizeInvalidatesStatementHandle() {
         CompiletimeNatives n = newSqliteNatives();
         ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
