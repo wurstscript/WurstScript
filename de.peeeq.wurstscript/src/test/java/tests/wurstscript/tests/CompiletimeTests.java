@@ -422,4 +422,183 @@ public class CompiletimeTests extends WurstScriptTest {
 
     }
 
+    @Test
+    public void testCompiletimeSQLite() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "import LinkedList",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_string(int stmt, int idx) returns string",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_real(int stmt, int idx) returns real",
+                        "@extern native sqlite_column_count(int stmt) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_real(int stmt, int idx, real value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testFullSQLiteApi() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT, price REAL)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    sqlite_bind_real(insert, 3, 15.5)",
+                        "    let s1 = sqlite_step(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_reset(insert)",
+                        "    sqlite_bind_int(insert, 1, 102)",
+                        "    sqlite_bind_string(insert, 2, \"Shield\")",
+                        "    sqlite_bind_real(insert, 3, 25.0)",
+                        "    let s3 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let query = sqlite_prepare(db, \"SELECT id, name, price FROM Items ORDER BY id ASC\")",
+                        "    let cols = sqlite_column_count(query)",
+                        "    int count = 0",
+                        "    if not s1 and not s2 and not s3 and cols == 3 and sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 101 and sqlite_column_string(query, 1) == \"Sword\" and sqlite_column_real(query, 2) == 15.5",
+                        "            count++",
+                        "    if sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 102 and sqlite_column_string(query, 1) == \"Shield\" and sqlite_column_real(query, 2) == 25.0",
+                        "            count++",
+                        "    sqlite_finalize(query)",
+                        "    sqlite_close(db)",
+                        "    return count",
+                        "",
+                        "let c = compiletime(testFullSQLiteApi())",
+                        "init",
+                        "    if c == 2",
+                        "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeSQLiteResetPreservesBindings() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
+                        "@extern native sqlite_clear_bindings(int stmt)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testResetPreservesBindings() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    let s1 = sqlite_step(insert)",
+                        // reset then step again WITHOUT rebinding: bindings must be preserved,
+                        // so the same row (101, Sword) is inserted a second time.
+                        "    sqlite_reset(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let count = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 101 AND name = 'Sword'\")",
+                        "    int preserved = 0",
+                        "    if not s1 and not s2 and sqlite_step(count)",
+                        "        preserved = sqlite_column_int(count, 0)",
+                        "    sqlite_finalize(count)",
+                        // sqlite_clear_bindings clears parameters back to NULL, so the next insert
+                        // writes a NULL id that will not match the id = 999 filter.
+                        "    let insert2 = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert2, 1, 999)",
+                        "    sqlite_bind_string(insert2, 2, \"Cleared\")",
+                        "    sqlite_clear_bindings(insert2)",
+                        "    let s3 = sqlite_step(insert2)",
+                        "    sqlite_finalize(insert2)",
+                        "    let cleared = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 999\")",
+                        "    int clearedCount = 1",
+                        "    if not s3 and sqlite_step(cleared)",
+                        "        clearedCount = sqlite_column_int(cleared, 0)",
+                        "    sqlite_finalize(cleared)",
+                        "    sqlite_close(db)",
+                        // expect 2 rows preserved by reset and 0 rows for id 999 after clear_bindings
+                        "    if preserved == 2 and clearedCount == 0",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testResetPreservesBindings())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeSQLiteExecMultiStatementAndNulls() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_is_null(int stmt, int idx) returns boolean",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testExecMultiAndNulls() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        // multi-statement exec must create BOTH tables (only the first runs
+                        // under a naive Statement.execute)
+                        "    sqlite_exec(db, \"CREATE TABLE A (id INTEGER); CREATE TABLE B (id INTEGER, name TEXT)\")",
+                        // multi-statement DML: both inserts must run
+                        "    sqlite_exec(db, \"INSERT INTO A VALUES (1); INSERT INTO A VALUES (2)\")",
+                        "    let ca = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA = 0",
+                        "    if sqlite_step(ca)",
+                        "        countA = sqlite_column_int(ca, 0)",
+                        "    sqlite_finalize(ca)",
+                        // rebind WITHOUT an intervening sqlite_reset must force re-execution,
+                        // so both id 3 and id 4 get inserted (4 rows total in A)
+                        "    let ins = sqlite_prepare(db, \"INSERT INTO A VALUES (?)\")",
+                        "    sqlite_bind_int(ins, 1, 3)",
+                        "    let b1 = sqlite_step(ins)",
+                        "    sqlite_bind_int(ins, 1, 4)",
+                        "    let b2 = sqlite_step(ins)",
+                        "    sqlite_finalize(ins)",
+                        "    let ca2 = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA2 = 0",
+                        "    if sqlite_step(ca2)",
+                        "        countA2 = sqlite_column_int(ca2, 0)",
+                        "    sqlite_finalize(ca2)",
+                        // NULL detection: a genuine SQL NULL must be distinguishable
+                        "    sqlite_exec(db, \"INSERT INTO B VALUES (7, NULL)\")",
+                        "    let q = sqlite_prepare(db, \"SELECT id, name FROM B WHERE id = 7\")",
+                        "    boolean idNotNull = false",
+                        "    boolean nameIsNull = false",
+                        "    if not b1 and not b2 and sqlite_step(q)",
+                        "        idNotNull = not sqlite_column_is_null(q, 0)",
+                        "        nameIsNull = sqlite_column_is_null(q, 1)",
+                        "    sqlite_finalize(q)",
+                        "    sqlite_close(db)",
+                        "    if countA == 2 and countA2 == 4 and idNotNull and nameIsNull",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testExecMultiAndNulls())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
 }

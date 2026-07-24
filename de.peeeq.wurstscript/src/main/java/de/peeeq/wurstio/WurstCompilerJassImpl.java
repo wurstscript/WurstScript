@@ -111,11 +111,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
-                CompiletimeFunctions, projectConfigData, isProd, cache);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.setOutputStream(new PrintStream(System.err));
-            ctr.run();
+            // Use try-with-resources to release open native resources (e.g., SQLite DB handles) after compiletime execution finishes.
+            try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+                CompiletimeFunctions, projectConfigData, isProd, cache)) {
+                ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.setOutputStream(new PrintStream(System.err));
+                ctr.run();
+            }
         }
 
         if (gui.getErrorCount() > 0) {

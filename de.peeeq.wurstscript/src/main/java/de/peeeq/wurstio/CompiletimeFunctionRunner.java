@@ -40,7 +40,7 @@ import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CompiletimeFunctionRunner {
+public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private final ImProg imProg;
     private final ILInterpreter interpreter;
@@ -657,6 +657,19 @@ public class CompiletimeFunctionRunner {
 
     public void setOutputStream(PrintStream printStream) {
         interpreter.getGlobalState().setOutStream(printStream);
+    }
+
+    /**
+     * Releases any resources held by the interpreter or global state (such as open SQLite connections and statements)
+     * created during compiletime function execution.
+     */
+    @Override
+    public void close() {
+        if (interpreter != null) {
+            interpreter.close();
+        } else if (globalState != null) {
+            globalState.close();
+        }
     }
 
 }

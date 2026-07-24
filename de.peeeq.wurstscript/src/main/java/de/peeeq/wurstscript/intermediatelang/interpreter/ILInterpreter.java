@@ -32,7 +32,7 @@ import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsR
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_NOARG_CACHE;
 
-public class ILInterpreter implements AbstractInterpreter {
+public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     private ImProg prog;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
@@ -569,5 +569,15 @@ public class ILInterpreter implements AbstractInterpreter {
             }
         }
         return (int) count;
+    }
+
+    /**
+     * Closes the interpreter by shutting down its global ProgramState and releasing registered native provider resources.
+     */
+    @Override
+    public void close() {
+        if (globalState != null) {
+            globalState.close();
+        }
     }
 }
