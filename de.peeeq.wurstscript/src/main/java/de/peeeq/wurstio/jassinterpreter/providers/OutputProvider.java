@@ -18,6 +18,10 @@ public class OutputProvider extends Provider {
         super(interpreter);
     }
 
+    public void setOutStream(PrintStream outStream) {
+        this.outStream = outStream;
+    }
+
     public void DisplayTextToForce(IlConstHandle force, ILconstString msg) {
         outStream.println(msg.getVal());
     }
