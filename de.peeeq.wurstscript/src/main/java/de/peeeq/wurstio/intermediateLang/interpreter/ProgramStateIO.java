@@ -40,7 +40,6 @@ public class ProgramStateIO extends ProgramState {
     private final Map<String, Set<String>> createdObjectDefinitionIds = Maps.newLinkedHashMap();
     private int id = 0;
     private final Map<String, ObjMod.Obj> objDefinitions = Maps.newLinkedHashMap();
-    private PrintStream outStream = System.err;
     private @Nullable WTS trigStrings = null;
     private final Optional<File> mapFile;
 
@@ -946,13 +945,4 @@ public class ProgramStateIO extends ProgramState {
         return folder;
     }
 
-    @Override
-    public PrintStream getOutStream() {
-        return outStream;
-    }
-
-    @Override
-    public void setOutStream(PrintStream os) {
-        outStream = os;
-    }
 }

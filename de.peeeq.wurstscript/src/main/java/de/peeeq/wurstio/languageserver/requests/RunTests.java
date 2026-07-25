@@ -29,6 +29,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -47,6 +48,15 @@ public class RunTests extends UserRequest<Object> {
     private final int timeoutSeconds;
     private final Optional<String> testFilter;
     private final boolean compactOutput;
+    private final boolean testQuiet;
+
+    /**
+     * In quiet mode the output of the test currently running is collected here instead of
+     * being printed directly. It is flushed when the test fails and discarded when it passes.
+     * Synchronized, because a test that timed out keeps running on the test executor thread
+     * while this thread already flushes the buffer.
+     */
+    private final StringBuffer pendingOutput = new StringBuffer();
 
     private final List<ImFunction> successTests = Lists.newArrayList();
     private final List<TestFailure> failTests = Lists.newArrayList();
@@ -102,6 +112,11 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds, Optional<String> testFilter, boolean compactOutput) {
+        this(filename, line, column, testName, timeoutSeconds, testFilter, compactOutput, false);
+    }
+
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds, Optional<String> testFilter, boolean compactOutput, boolean testQuiet) {
+        this.testQuiet = testQuiet;
         this.filename = filename.map(WFile::create);
         this.line = line;
         this.column = column;
@@ -177,12 +192,16 @@ public class RunTests extends UserRequest<Object> {
         cfr.run();
 
         if (gui.getErrorCount() > 0) {
+            // compiletime output is relevant context for these errors, so keep it
+            flushPendingOutput();
             for (CompileError compileError : gui.getErrorList()) {
                 println(compactOutput ? compileError.toCompactString() : compileError.toString());
             }
             println("There were some problem while running compiletime expressions and functions.");
             return new TestResult(0, 1);
         }
+        // output of successful compiletime functions does not belong to any test
+        discardPendingOutput();
 
         WLogger.info("Ran compiletime functions");
 
@@ -232,7 +251,7 @@ public class RunTests extends UserRequest<Object> {
                     String file = new File(source.getFile()).toPath().normalize().toString();
                     String message = "Running " + file + ":" + source.getLine() + " - " + f.getName() + "..";
                     if (!compactOutput) {
-                        println(message);
+                        testPrintln(message);
                     }
                     WLogger.info(message);
 
@@ -257,6 +276,7 @@ public class RunTests extends UserRequest<Object> {
                         }
 
                         if (gui.getErrorCount() > 0) {
+                            flushPendingOutput();
                             StringBuilder sb = new StringBuilder();
                             int appendedErrors = 0;
                             for (CompileError error : gui.getErrorList()) {
@@ -285,15 +305,18 @@ public class RunTests extends UserRequest<Object> {
                         } else {
                             successTests.add(f);
                             if (!compactOutput) {
-                                println("\tOK!");
+                                testPrintln("\tOK!");
                             }
+                            discardPendingOutput();
                         }
                     } catch (TestSuccessException e) {
                         successTests.add(f);
                         if (!compactOutput) {
-                            println("\tOK!");
+                            testPrintln("\tOK!");
                         }
+                        discardPendingOutput();
                     } catch (TestFailException e) {
+                        flushPendingOutput();
                         TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
                         failTests.add(failure);
                         if (!compactOutput) {
@@ -301,18 +324,21 @@ public class RunTests extends UserRequest<Object> {
                             println("\t" + failure.getMessageWithStackFrame());
                         }
                     } catch (TestTimeOutException e) {
+                        flushPendingOutput();
                         failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                         if (!compactOutput) {
                             println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
                             println(interpreter.getStackFrames().toString());
                         }
                     } catch (InterpreterException e) {
+                        flushPendingOutput();
                         TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
                         failTests.add(failure);
                         if (!compactOutput) {
                             println("\t" + failure.getMessageWithStackFrame());
                         }
                     } catch (Throwable e) {
+                        flushPendingOutput();
                         failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
                         if (!compactOutput) {
                             println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
@@ -362,20 +388,22 @@ public class RunTests extends UserRequest<Object> {
             @Override
             public void write(int b) throws IOException {
                 if (!compactOutput && b > 0) {
-                    println("" + (char) b);
+                    testPrintln("" + (char) b);
                 }
             }
 
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 if (!compactOutput) {
-                    println(new String(b, off, len));
+                    testPrintln(new String(b, off, len, StandardCharsets.UTF_8));
                 }
             }
 
 
         };
-        globalState.setOutStream(new PrintStream(os));
+        // autoflush, so that output of a test is delivered while that test is still running
+        // and not left in the buffer of the PrintStream
+        globalState.setOutStream(new PrintStream(os, true, StandardCharsets.UTF_8));
     }
 
     private String qualifiedTestName(ImFunction f) {
@@ -386,6 +414,36 @@ public class RunTests extends UserRequest<Object> {
     protected void println(String message) {
         print(message);
         print(System.lineSeparator());
+    }
+
+    /**
+     * Prints output belonging to a single test. In quiet mode the output is buffered, so that
+     * it can be dropped if the test passes, or printed as usual if the test fails.
+     */
+    private void testPrintln(String message) {
+        if (testQuiet) {
+            // appended in one call, so that a concurrent flush cannot split the line
+            pendingOutput.append(message + System.lineSeparator());
+        } else {
+            println(message);
+        }
+    }
+
+    /** Prints the buffered output of the current test, used when the test turned out to fail. */
+    private void flushPendingOutput() {
+        String pending;
+        synchronized (pendingOutput) {
+            pending = pendingOutput.toString();
+            pendingOutput.setLength(0);
+        }
+        if (!pending.isEmpty()) {
+            print(pending);
+        }
+    }
+
+    /** Drops the buffered output of the current test, used when the test passed. */
+    private void discardPendingOutput() {
+        pendingOutput.setLength(0);
     }
 
     protected void print(String message) {

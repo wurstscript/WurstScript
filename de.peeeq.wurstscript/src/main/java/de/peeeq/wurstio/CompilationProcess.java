@@ -160,7 +160,7 @@ public class CompilationProcess {
         if (!runArgs.isCompactOutput()) {
             System.out.println("Running tests");
         }
-        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter, runArgs.isCompactOutput()) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter, runArgs.isCompactOutput(), runArgs.isTestQuiet()) {
             @Override
             protected void print(String message) {
                 out.print(message);
