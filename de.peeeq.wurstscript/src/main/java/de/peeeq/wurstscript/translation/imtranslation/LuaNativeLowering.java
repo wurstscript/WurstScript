@@ -233,8 +233,7 @@ public final class LuaNativeLowering {
                 if (call.getOp() == WurstOperator.PLUS && args.size() == 2
                     && TypesHelper.isStringType(args.get(0).attrTyp())
                     && TypesHelper.isStringType(args.get(1).attrTyp())) {
-                    call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), translator.stringConcatFunc,
-                        JassIm.ImTypeArguments(), args.copy(), false, CallType.NORMAL));
+                    call.replaceBy(callWithStacktrace(call.attrTrace(), translator.stringConcatFunc, args.copy()));
                 }
             }
         });
@@ -362,10 +361,27 @@ public final class LuaNativeLowering {
                 if (ensureFunc == null) {
                     return;
                 }
-                access.replaceBy(JassIm.ImFunctionCall(access.attrTrace(), ensureFunc,
-                    JassIm.ImTypeArguments(), JassIm.ImExprs(access.copy()), false, CallType.NORMAL));
+                access.replaceBy(callWithStacktrace(access.attrTrace(), ensureFunc, JassIm.ImExprs(access.copy())));
             }
         });
+    }
+
+    private static ImFunctionCall callWithStacktrace(de.peeeq.wurstscript.ast.Element trace, ImFunction f, ImExprs args) {
+        int stacktraceIndex = stacktraceParamIndex(f);
+        if (stacktraceIndex >= 0) {
+            args.add(stacktraceIndex, JassIm.ImStringVal("when calling " + f.getName()
+                + StackTraceInjector2.getCallPos(trace.attrErrorPos())));
+        }
+        return JassIm.ImFunctionCall(trace, f, JassIm.ImTypeArguments(), args, false, CallType.NORMAL);
+    }
+
+    private static int stacktraceParamIndex(ImFunction f) {
+        for (int i = 0; i < f.getParameters().size(); i++) {
+            if (StackTraceInjector2.STACK_POS_PARAM.equals(f.getParameters().get(i).getName())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {

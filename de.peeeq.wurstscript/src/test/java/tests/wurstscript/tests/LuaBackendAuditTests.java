@@ -34,6 +34,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compileOptimizedLua(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations");
+        return compileLuaWithRunArgs(testName, runArgs, lines);
+    }
+
+    private String compileLuaWithRunArgs(String testName, RunArgs runArgs, String... lines) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         WurstModel model = parseFiles(Collections.emptyList(),
@@ -488,6 +492,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("repro must exercise integer div lowering", compiled.contains("__wurst_rawFloorDivInt"));
         assertTrue("repro must exercise integer mod lowering", compiled.contains("__wurst_rawFmodInt"));
         assertTrue("repro must exercise real mod lowering", compiled.contains("__wurst_rawFmodReal"));
+    }
+
+    /**
+     * Stacktrace injection runs before Lua-native lowering. The lowering pass
+     * introduces fresh calls to existing IM helpers, so those calls must carry
+     * the injected stacktrace argument when the helper signature already has it.
+     */
+    @Test
+    public void stacktracedLuaLoweringPassesHelperStacktraceArguments() {
+        compileLuaWithRunArgs(
+            "LuaBackendAuditTests_stacktracedLuaLoweringPassesHelperStacktraceArguments",
+            new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces"),
+            "package Test",
+            "native print(string message)",
+            "native I2S(int value) returns string",
+            "int array values",
+            "function readValue(int index) returns int",
+            "    return values[index]",
+            "function join(string left, string right) returns string",
+            "    return left + right",
+            "init",
+            "    values[1] = 7",
+            "    print(join(\"value=\", I2S(readValue(1))))"
+        );
     }
 
     private void assertHelperDefinedWhenCalled(String compiled, String helperName) {
