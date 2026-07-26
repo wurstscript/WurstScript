@@ -39,9 +39,11 @@ public class FunctionSplitter {
         Preconditions.checkArgument(func.getReturnType() instanceof ImVoid, "func must return void");
         // run some basic optimizations first:
         func.flatten(tr);
-        new ConstantAndCopyPropagation().optimizeFunc(func);
+        LocalPlayerContextAnalyzer localPlayerContextAnalyzer =
+            new LocalPlayerContextAnalyzer(tr.getImProg());
+        new ConstantAndCopyPropagation().optimizeFunc(func, localPlayerContextAnalyzer);
 //        new TempMerger().optimizeFunc(func);
-        new LocalMerger().optimizeFunc(func);
+        new LocalMerger().optimizeFunc(func, localPlayerContextAnalyzer);
         Set<ImVar> usedVars = UsedVariables.calculate(func);
         func.getLocals().removeIf(v -> !usedVars.contains(v));
         func.flatten(tr);

@@ -205,10 +205,10 @@ public class SimpleRewrites implements OptimizerPass {
                 opc.replaceBy(JassIm.ImBoolVal(result));
             } else if (left instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) left).getValB();
-                wasViable = replaceBoolTerm(opc, right, b1);
+                wasViable = replaceBoolTerm(opc, right, b1, true);
             } else if (right instanceof ImBoolVal) {
                 boolean b2 = ((ImBoolVal) right).getValB();
-                wasViable = replaceBoolTerm(opc, left, b2);
+                wasViable = replaceBoolTerm(opc, left, b2, false);
             } else if (isNumberLiteral(left) && isNumberLiteral(right)) {
                 // If any side is real (or the op is a real op), fold as real; otherwise fold as int.
                 boolean foldAsReal =
@@ -613,10 +613,16 @@ public class SimpleRewrites implements OptimizerPass {
         return wasViable;
     }
 
-    private boolean replaceBoolTerm(ImOperatorCall opc, ImExpr expr, boolean b2) {
+    private boolean replaceBoolTerm(ImOperatorCall opc, ImExpr expr, boolean constant, boolean constantOnLeft) {
         switch (opc.getOp()) {
             case OR:
-                if (b2) {
+                if (constant) {
+                    if (!constantOnLeft) {
+                        // x or true still evaluates x. Replacing the expression
+                        // with true would discard calls, traps, allocations, and
+                        // local-player-dependent reads.
+                        return false;
+                    }
                     opc.replaceBy(JassIm.ImBoolVal(true));
                 } else {
                     expr.setParent(null);
@@ -624,10 +630,14 @@ public class SimpleRewrites implements OptimizerPass {
                 }
                 break;
             case AND:
-                if (b2) {
+                if (constant) {
                     expr.setParent(null);
                     opc.replaceBy(expr);
                 } else {
+                    if (!constantOnLeft) {
+                        // x and false still evaluates x.
+                        return false;
+                    }
                     opc.replaceBy(JassIm.ImBoolVal(false));
                 }
                 break;

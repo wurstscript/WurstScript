@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.ListIterator;
@@ -11,15 +10,17 @@ import java.util.ListIterator;
  * <p>
  * the input must be a flattened program
  */
-public class BranchMerger  implements OptimizerPass {
+public class BranchMerger implements LocalPlayerAwareOptimizerPass {
     private SideEffectAnalyzer sideEffectAnalyzer;
+    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
     public int branchesMerged = 0;
 
     @Override
-    public int optimize(ImTranslator trans) {
+    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         branchesMerged = 0;
         ImProg prog = trans.getImProg();
         this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
+        this.localPlayerContextAnalyzer = analyzer;
 
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
@@ -52,6 +53,7 @@ public class BranchMerger  implements OptimizerPass {
                             // if first statement in both branches is the same
                             // and has no side-effects that could affect the if-condition:
                             if (firstStmtThen.structuralEquals(firstStmtElse)
+                                    && !localPlayerContextAnalyzer.isLocalPlayerDependent(ifStmt.getCondition())
                                     && !sideEffectAnalyzer.mightAffect(firstStmtThen, ifStmt.getCondition())) {
                                 // remove statements
                                 ifStmt.getThenBlock().remove(0);
