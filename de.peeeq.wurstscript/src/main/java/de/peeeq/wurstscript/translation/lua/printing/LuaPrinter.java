@@ -41,7 +41,7 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprArrayAccess e, StringBuilder sb, int indent) {
-        e.getLeft().print(sb, indent);
+        printPostfixReceiver(e.getLeft(), sb, indent);
         for (LuaExpr i : e.getIndexes()) {
             sb.append("[");
             i.print(sb, indent);
@@ -64,7 +64,7 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprFieldAccess e, StringBuilder sb, int indent) {
-        e.getReceiver().print(sb, indent);
+        printPostfixReceiver(e.getReceiver(), sb, indent);
         sb.append(".");
         sb.append(e.getFieldName());
     }
@@ -126,12 +126,26 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprMethodCall e, StringBuilder sb, int indent) {
-        e.getReceiver().print(sb, indent);
+        printPostfixReceiver(e.getReceiver(), sb, indent);
         sb.append(":");
         sb.append(e.getMethod().getName());
         sb.append("(");
         e.getArguments().print(sb, indent);
         sb.append(")");
+    }
+
+    private static void printPostfixReceiver(LuaExpr receiver, StringBuilder sb, int indent) {
+        if (receiver instanceof LuaExprVarAccess
+            || receiver instanceof LuaExprFuncRef
+            || receiver instanceof LuaExprFieldAccess
+            || receiver instanceof LuaExprArrayAccess
+            || receiver instanceof LuaCallExpr) {
+            receiver.print(sb, indent);
+        } else {
+            sb.append("(");
+            receiver.print(sb, indent);
+            sb.append(")");
+        }
     }
 
     public static void print(LuaExprNull e, StringBuilder sb, int indent) {

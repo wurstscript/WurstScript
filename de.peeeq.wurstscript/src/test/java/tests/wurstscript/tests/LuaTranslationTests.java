@@ -8,7 +8,10 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.luaAst.LuaExpr;
+import de.peeeq.wurstscript.luaAst.LuaMethod;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import org.testng.annotations.Test;
 
@@ -182,6 +185,25 @@ public class LuaTranslationTests extends WurstScriptTest {
         StringBuilder sb = new StringBuilder();
         luaCode.print(sb, 0);
         return sb.toString();
+    }
+
+    @Test
+    public void literalPostfixReceiversAreAlwaysValidLua() {
+        LuaMethod method = LuaAst.LuaMethod(
+            LuaAst.LuaExprNull(), "run", LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+        assertEquals("(nil):run()", renderLuaExpr(LuaAst.LuaExprMethodCall(
+            LuaAst.LuaExprNull(), method, LuaAst.LuaExprlist())));
+        assertEquals("(nil).field", renderLuaExpr(
+            LuaAst.LuaExprFieldAccess(LuaAst.LuaExprNull(), "field")));
+        assertEquals("(nil)[1]", renderLuaExpr(LuaAst.LuaExprArrayAccess(
+            LuaAst.LuaExprNull(), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("1")))));
+    }
+
+    private String renderLuaExpr(LuaExpr expr) {
+        StringBuilder rendered = new StringBuilder();
+        expr.print(rendered, 0);
+        return rendered.toString();
     }
 
     @Test
