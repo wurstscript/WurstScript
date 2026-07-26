@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -1913,6 +1914,87 @@ public class OptimizerTests extends WurstScriptTest {
             "functions using GetLocalPlayer must remain explicit calls");
         assertTrue(inlined.contains("call consume(forwardedPlayer())"),
             "transitive GetLocalPlayer wrappers must remain explicit calls");
+    }
+
+    @Test(timeOut = 10_000)
+    public void deeplyNestedIndependentCallsDoNotCauseExponentialLocalPlayerAnalysis() {
+        String nestedCall = "Player(0)";
+        for (int i = 0; i < 30; i++) {
+            nestedCall = "passthrough(" + nestedCall + ")";
+        }
+
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "@noinline function passthrough(player p) returns player",
+            "    return p",
+            "init",
+            "    if " + nestedCall + " == Player(0)",
+            "        print(1)"
+        );
+    }
+
+    @Test(timeOut = 10_000)
+    public void reverseOrderedCallChainUsesLocalPlayerWorklist() {
+        Element trace = Ast.NoExpr();
+        ImFunctions functions = JassIm.ImFunctions();
+        for (int i = 0; i < 4_000; i++) {
+            functions.add(JassIm.ImFunction(
+                trace,
+                "chain" + i,
+                JassIm.ImTypeVars(),
+                JassIm.ImVars(),
+                TypesHelper.imInt(),
+                JassIm.ImVars(),
+                JassIm.ImStmts(),
+                Collections.emptyList()
+            ));
+        }
+        ImFunction getLocalPlayer = JassIm.ImFunction(
+            trace,
+            "GetLocalPlayer",
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            TypesHelper.imInt(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE)
+        );
+        functions.add(getLocalPlayer);
+
+        for (int i = 0; i < functions.size() - 1; i++) {
+            ImFunction caller = functions.get(i);
+            ImFunction callee = functions.get(i + 1);
+            caller.getBody().add(JassIm.ImReturn(
+                trace,
+                JassIm.ImFunctionCall(
+                    trace,
+                    callee,
+                    JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(),
+                    false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL
+                )
+            ));
+        }
+
+        ImProg prog = JassIm.ImProg(
+            trace,
+            JassIm.ImVars(),
+            functions,
+            JassIm.ImMethods(),
+            JassIm.ImClasses(),
+            JassIm.ImTypeClassFuncs(),
+            new java.util.HashMap<>()
+        );
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        assertTrue(analyzer.functionInliningIsLocalPlayerSensitive(functions.get(0)),
+            "GetLocalPlayer dependency must propagate through the complete call chain");
+        assertTrue(analyzer.functionUsesLocalPlayer(functions.get(0)),
+            "GetLocalPlayer usage must propagate through the complete call chain");
     }
 
     private static int countOccurrences(String text, String needle) {

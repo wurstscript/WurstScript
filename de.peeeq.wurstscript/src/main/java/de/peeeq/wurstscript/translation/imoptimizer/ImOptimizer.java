@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
@@ -73,8 +75,25 @@ public class ImOptimizer {
         int finalItr = 0;
         for (int i = 1; i <= 10 && optCount > 0; i++) {
             optCount = 0;
+            LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
             for (OptimizerPass pass : localPasses) {
-                int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
+                int count;
+                if (pass instanceof LocalPlayerAwareOptimizerPass) {
+                    if (localPlayerContextAnalyzer == null) {
+                        localPlayerContextAnalyzer =
+                            new LocalPlayerContextAnalyzer(trans.getImProg());
+                    }
+                    LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
+                    LocalPlayerAwareOptimizerPass localPlayerAwarePass =
+                        (LocalPlayerAwareOptimizerPass) pass;
+                    count = timeTaker.measure(
+                        pass.getName(),
+                        () -> localPlayerAwarePass.optimize(trans, analyzer));
+                } else {
+                    count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
+                    // A general mutating pass may invalidate dependency edges.
+                    localPlayerContextAnalyzer = null;
+                }
                 optCount += count;
                 totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
             }

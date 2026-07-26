@@ -5,7 +5,6 @@ import de.peeeq.datastructures.NodeWorklist;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -17,13 +16,13 @@ import java.util.*;
 
 import static de.peeeq.wurstscript.WurstOperator.*;
 
-public class ConstantAndCopyPropagation implements OptimizerPass {
+public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass {
     private int totalPropagated = 0;
     private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
-    public int optimize(ImTranslator trans) {
+    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         ImProg prog = trans.getImProg();
-        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        localPlayerContextAnalyzer = analyzer;
 
         totalPropagated = 0;
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {

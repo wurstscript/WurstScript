@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -14,14 +13,14 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
-public class LocalMerger implements OptimizerPass {
+public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     private int totalLocalsMerged = 0;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
     @Override
-    public int optimize(ImTranslator trans) {
+    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         ImProg prog = trans.getImProg();
-        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
         for (ImFunction func : de.peeeq.wurstscript.translation.imtranslation.ImHelper.calculateFunctionsOfProg(prog)) {
             if (!func.isNative() && !func.isBj()) {

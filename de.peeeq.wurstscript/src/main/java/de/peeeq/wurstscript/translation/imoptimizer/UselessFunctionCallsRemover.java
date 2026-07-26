@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -17,14 +18,14 @@ import java.util.ListIterator;
  * <p>
  * when the result is not used
  */
-public class UselessFunctionCallsRemover implements OptimizerPass {
+public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPass {
     public int totalCallsRemoved = 0;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
-    public int optimize(ImTranslator trans) {
+    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         totalCallsRemoved = 0;
         ImProg prog = trans.getImProg();
-        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        localPlayerContextAnalyzer = analyzer;
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func, trans);
         }

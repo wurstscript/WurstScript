@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.ListIterator;
@@ -11,17 +10,17 @@ import java.util.ListIterator;
  * <p>
  * the input must be a flattened program
  */
-public class BranchMerger  implements OptimizerPass {
+public class BranchMerger implements LocalPlayerAwareOptimizerPass {
     private SideEffectAnalyzer sideEffectAnalyzer;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
     public int branchesMerged = 0;
 
     @Override
-    public int optimize(ImTranslator trans) {
+    public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         branchesMerged = 0;
         ImProg prog = trans.getImProg();
         this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
-        this.localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        this.localPlayerContextAnalyzer = analyzer;
 
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
