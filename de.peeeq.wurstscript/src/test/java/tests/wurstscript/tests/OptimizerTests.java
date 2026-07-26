@@ -1921,6 +1921,68 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void branchMergerMustTrackLocalPlayerDependentArrayIndexWrites() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native GetPlayerId(player p) returns integer",
+            "native print(integer i)",
+            "integer array values",
+            "integer result = 0",
+            "init",
+            "    values[GetPlayerId(GetLocalPlayer())] = 1",
+            "    if values[0] == 1",
+            "        result = 31",
+            "    else",
+            "        result = 31",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustTrackLocalPlayerDependentArrayIndexWrites_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 31") >= 2,
+            "an array written through a local-player-dependent index must remain local-player-dependent");
+    }
+
+    @Test
+    public void branchMergerMustTrackLocalPlayerDependentMemberReceiverWrites() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "class Box",
+            "    integer value",
+            "Box first",
+            "Box second",
+            "integer result = 0",
+            "init",
+            "    first = new Box",
+            "    second = new Box",
+            "    Box selected",
+            "    if GetLocalPlayer() == Player(0)",
+            "        selected = first",
+            "    else",
+            "        selected = second",
+            "    selected.value = 1",
+            "    if first.value == 1",
+            "        result = 37",
+            "    else",
+            "        result = 37",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustTrackLocalPlayerDependentMemberReceiverWrites_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 37") >= 2,
+            "a member written through a local-player-dependent receiver must remain local-player-dependent");
+    }
+
+    @Test
     public void localPlayerControlMustPropagateThroughCalledFunctions() throws Exception {
         test().lines(
             "type player extends handle",

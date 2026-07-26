@@ -213,6 +213,7 @@ public final class LocalPlayerContextAnalyzer {
         if (element instanceof ImSet) {
             ImSet set = (ImSet) element;
             forEachAssignedVariable(set.getLeft(), variable -> {
+                addDependency(set.getLeft(), variableFact(variable));
                 addDependency(set.getRight(), variableFact(variable));
                 addEnclosingControlDependency(controlContext, variableFact(variable));
             });
