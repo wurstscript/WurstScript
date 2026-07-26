@@ -53,6 +53,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return result.toString();
     }
 
+    @Test
+    public void localPlayerEffectfulBooleanOperandSurvivesOptimization() {
+        String compiled = compileOptimizedLua(
+            "localPlayerEffectfulBooleanOperandSurvivesOptimization",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "integer calls = 0",
+            "@noinline function localProbe() returns boolean",
+            "    calls++",
+            "    return GetLocalPlayer() == Player(0)",
+            "init",
+            "    if localProbe() or true",
+            "        print(calls)"
+        );
+
+        int definitionOrCall = compiled.indexOf("localProbe()");
+        assertTrue("optimized Lua must emit the local-player probe",
+            definitionOrCall >= 0);
+        assertTrue("optimized Lua must retain the call to the local-player probe",
+            compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
+    }
+
     /**
      * A bare {@code return} inside a vararg loop used to truncate the literal
      * {@code end} that closed the loop, producing unparseable Lua

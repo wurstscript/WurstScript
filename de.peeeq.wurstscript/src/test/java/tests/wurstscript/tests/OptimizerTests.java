@@ -1755,4 +1755,174 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
     }
 
+    @Test
+    public void effectfulBooleanOperandsMustNotBeDiscarded() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "integer calls = 0",
+            "@noinline function probeOr() returns boolean",
+            "    calls++",
+            "    return GetLocalPlayer() == Player(0)",
+            "@noinline function probeAnd() returns boolean",
+            "    calls++",
+            "    return GetLocalPlayer() == Player(0)",
+            "init",
+            "    if probeOr() or true",
+            "        print(calls)",
+            "    if probeAnd() and false",
+            "        print(calls)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_effectfulBooleanOperandsMustNotBeDiscarded_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(optimized.contains("if probeOr() or true"),
+            "x or true must still evaluate effectful x");
+        assertTrue(optimized.contains("if probeAnd() and false"),
+            "x and false must still evaluate effectful x");
+    }
+
+    @Test
+    public void directGetLocalPlayerConditionMustNotBeDiscarded() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "init",
+            "    if (GetLocalPlayer() == Player(0)) or true",
+            "        print(1)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_directGetLocalPlayerConditionMustNotBeDiscarded_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(optimized.contains("GetLocalPlayer()"),
+            "local-player-dependent expressions must not be discarded");
+    }
+
+    @Test
+    public void synchronizedValueMustNotMoveIntoLocalPlayerBranch() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "type unit extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "@extern native CreateUnit(player p, integer id, real x, real y, real face) returns unit",
+            "native print(unit u)",
+            "init",
+            "    unit u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    player localPlayer = GetLocalPlayer()",
+            "    player playerZero = Player(0)",
+            "    if localPlayer == playerZero",
+            "        print(u)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_synchronizedValueMustNotMoveIntoLocalPlayerBranch_inlopt.j"),
+            Charsets.UTF_8);
+        int createUnit = optimized.indexOf("CreateUnit(");
+        int localCondition = optimized.indexOf("if ");
+        int use = optimized.indexOf("print(u)");
+        assertTrue(createUnit >= 0 && localCondition > createUnit && use > localCondition,
+            "CreateUnit must remain in synchronized context before the local-player branch");
+    }
+
+    @Test
+    public void branchMergerMustNotHoistAcrossStoredLocalPlayerCondition() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "integer result = 0",
+            "init",
+            "    player localPlayer = GetLocalPlayer()",
+            "    player alias = localPlayer",
+            "    player playerZero = Player(0)",
+            "    if alias == playerZero",
+            "        result = 7",
+            "    else",
+            "        result = 7",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustNotHoistAcrossStoredLocalPlayerCondition_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 7") >= 2,
+            "identical branches controlled by local-player data must remain separate");
+    }
+
+    @Test
+    public void branchMergerMustTrackLocalPlayerThroughFunctionParameters() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player remembered",
+            "integer result = 0",
+            "@noinline function remember(player p)",
+            "    remembered = p",
+            "init",
+            "    remember(GetLocalPlayer())",
+            "    player playerZero = Player(0)",
+            "    if remembered == playerZero",
+            "        result = 9",
+            "    else",
+            "        result = 9",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustTrackLocalPlayerThroughFunctionParameters_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 9") >= 2,
+            "GetLocalPlayer taint must flow through call arguments and parameters");
+    }
+
+    @Test
+    public void functionUsingGetLocalPlayerMustNotBeInlined() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@inline function currentPlayer() returns player",
+            "    return GetLocalPlayer()",
+            "@inline function forwardedPlayer() returns player",
+            "    return currentPlayer()",
+            "native consume(player p)",
+            "init",
+            "    consume(currentPlayer())",
+            "    consume(forwardedPlayer())"
+        );
+
+        String inlined = Files.toString(
+            new File("test-output/OptimizerTests_functionUsingGetLocalPlayerMustNotBeInlined_inl.j"),
+            Charsets.UTF_8);
+        assertTrue(inlined.contains("call consume(currentPlayer())"),
+            "functions using GetLocalPlayer must remain explicit calls");
+        assertTrue(inlined.contains("call consume(forwardedPlayer())"),
+            "transitive GetLocalPlayer wrappers must remain explicit calls");
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int count = 0;
+        int from = 0;
+        while ((from = text.indexOf(needle, from)) >= 0) {
+            count++;
+            from += needle.length();
+        }
+        return count;
+    }
+
 }

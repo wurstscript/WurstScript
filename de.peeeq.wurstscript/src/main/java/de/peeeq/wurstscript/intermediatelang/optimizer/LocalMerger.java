@@ -16,10 +16,12 @@ import java.util.*;
 
 public class LocalMerger implements OptimizerPass {
     private int totalLocalsMerged = 0;
+    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
     @Override
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         totalLocalsMerged = 0;
         for (ImFunction func : de.peeeq.wurstscript.translation.imtranslation.ImHelper.calculateFunctionsOfProg(prog)) {
             if (!func.isNative() && !func.isBj()) {
@@ -36,6 +38,11 @@ public class LocalMerger implements OptimizerPass {
         Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, func);
+    }
+
+    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
+        localPlayerContextAnalyzer = analyzer;
+        optimizeFunc(func);
     }
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
@@ -63,6 +70,11 @@ public class LocalMerger implements OptimizerPass {
 
             for (ImVar color : colors) {
                 if (!canMerge(color.getType(), v.getType())) continue;
+                if (localPlayerContextAnalyzer != null
+                    && (localPlayerContextAnalyzer.isLocalPlayerDependent(v)
+                    || localPlayerContextAnalyzer.isLocalPlayerDependent(color))) {
+                    continue;
+                }
 
                 boolean conflict = false;
                 for (ImVar neigh : interference.get(v)) {

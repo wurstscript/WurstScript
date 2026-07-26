@@ -19,9 +19,11 @@ import static de.peeeq.wurstscript.WurstOperator.*;
 
 public class ConstantAndCopyPropagation implements OptimizerPass {
     private int totalPropagated = 0;
+    private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
 
         totalPropagated = 0;
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
@@ -142,6 +144,11 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Knowledge> knowledge = calculateKnowledge(cfg);
         rewriteCode(cfg, knowledge);
+    }
+
+    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
+        localPlayerContextAnalyzer = analyzer;
+        optimizeFunc(func);
     }
 
     private void rewriteCode(ControlFlowGraph cfg, Map<Node, Knowledge> knowledge) {
@@ -311,7 +318,13 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
                             // Constant folding is intentionally centralized in SimpleRewrites.
                             // This pass performs propagation only to keep fold semantics in one place.
-                            if (right instanceof ImConst) {
+                            if (localPlayerContextAnalyzer != null
+                                && localPlayerContextAnalyzer.isLocalPlayerDependent(right)) {
+                                // Keep GetLocalPlayer-derived values at their original
+                                // variable boundary. This is deliberately conservative:
+                                // later rewrites must still be able to see that boundary.
+                                newValue = null;
+                            } else if (right instanceof ImConst) {
                                 newValue = Value.tryValue(right);
                             } else if (right instanceof ImVarAccess) {
                                 ImVar varRight = ((ImVarAccess) right).getVar();

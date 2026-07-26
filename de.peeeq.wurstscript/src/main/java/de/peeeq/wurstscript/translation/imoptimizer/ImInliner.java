@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -30,6 +31,7 @@ public class ImInliner {
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
     private final double inlineTreshold = 50;
+    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
     static {
         dontInline.add("SetPlayerAllianceStateAllyBJ");
@@ -44,6 +46,7 @@ public class ImInliner {
 
     public void doInlining() {
         prog.flatten(translator);
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         collectInlinableFunctions();
         rateInlinableFunctions();
         inlineFunctions();
@@ -118,6 +121,9 @@ public class ImInliner {
         }
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             return "lua_callback_funcref_barrier";
+        }
+        if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
+            return "local_player_context_barrier";
         }
         if (!inlinableFunctions.contains(f)) {
             return "not_in_inlinable_set";
@@ -338,6 +344,12 @@ public class ImInliner {
         if (translator.isLuaTarget() && containsFuncRef(f)) {
             // Functions that build callback refs are lowered with Lua-specific wrappers/xpcall.
             // Keeping them as standalone calls avoids callback context/vararg scope breakage.
+            return false;
+        }
+        if (localPlayerContextAnalyzer.functionInliningIsLocalPlayerSensitive(f)) {
+            // Keep the call boundary around GetLocalPlayer-dependent code.
+            // Inlining is normally context-preserving, but future local
+            // rewrites must not gain an opportunity to move its body.
             return false;
         }
         if (isLuaTypeCastingCompatFunction(f)) {

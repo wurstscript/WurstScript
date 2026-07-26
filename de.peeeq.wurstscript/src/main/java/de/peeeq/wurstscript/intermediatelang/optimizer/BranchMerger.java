@@ -13,6 +13,7 @@ import java.util.ListIterator;
  */
 public class BranchMerger  implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalyzer;
+    private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
     public int branchesMerged = 0;
 
     @Override
@@ -20,6 +21,7 @@ public class BranchMerger  implements OptimizerPass {
         branchesMerged = 0;
         ImProg prog = trans.getImProg();
         this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
+        this.localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
 
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
@@ -52,6 +54,7 @@ public class BranchMerger  implements OptimizerPass {
                             // if first statement in both branches is the same
                             // and has no side-effects that could affect the if-condition:
                             if (firstStmtThen.structuralEquals(firstStmtElse)
+                                    && !localPlayerContextAnalyzer.isLocalPlayerDependent(ifStmt.getCondition())
                                     && !sideEffectAnalyzer.mightAffect(firstStmtThen, ifStmt.getCondition())) {
                                 // remove statements
                                 ifStmt.getThenBlock().remove(0);
