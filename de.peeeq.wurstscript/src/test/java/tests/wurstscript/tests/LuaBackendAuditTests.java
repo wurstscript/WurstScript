@@ -78,6 +78,33 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
     }
 
+    @Test
+    public void localPlayerTaintFlowsThroughVarargLoopValues() {
+        String compiled = compileOptimizedLua(
+            "localPlayerTaintFlowsThroughVarargLoopValues",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "@noinline function selectLast(vararg player players)",
+            "    for p in players",
+            "        selected = p",
+            "init",
+            "    selectLast(Player(1), GetLocalPlayer())",
+            "    if selected == Player(0)",
+            "        result = 31",
+            "    else",
+            "        result = 31",
+            "    print(result)"
+        );
+
+        assertTrue("vararg loop values must retain local-player dependence",
+            countOccurrences(compiled, "result = 31") >= 2);
+    }
+
     /**
      * A bare {@code return} inside a vararg loop used to truncate the literal
      * {@code end} that closed the loop, producing unparseable Lua

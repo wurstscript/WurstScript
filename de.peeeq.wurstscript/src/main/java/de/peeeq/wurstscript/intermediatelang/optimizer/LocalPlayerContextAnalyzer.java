@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
+
 /**
  * Conservative, flow-insensitive analysis for values and functions which may
  * depend on {@code GetLocalPlayer()}.
@@ -40,6 +42,7 @@ public final class LocalPlayerContextAnalyzer {
     private final Map<ImFunction, Fact> returnFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> useFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> entryControlFacts = new IdentityHashMap<>();
+    private final Map<Element, Boolean> containsReturnCache = new IdentityHashMap<>();
     private final Set<Object> sourceFacts =
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Fact unknownDispatchSource = new Fact(FactKind.SOURCE, null);
@@ -162,6 +165,11 @@ public final class LocalPlayerContextAnalyzer {
             addLoopExitDependencies(loop.getBody(), loopControl);
         }
 
+        if (element instanceof ImStmts) {
+            indexStatementSequence((ImStmts) element, owner, controlContext);
+            return;
+        }
+
         for (int i = 0; i < element.size(); i++) {
             Element child = element.get(i);
             if (element instanceof ImOperatorCall
@@ -193,6 +201,13 @@ public final class LocalPlayerContextAnalyzer {
             addDependency(variableFact(((ImVarArrayAccess) element).getVar()), element);
         } else if (element instanceof ImMemberAccess) {
             addDependency(variableFact(((ImMemberAccess) element).getVar()), element);
+        } else if (element instanceof ImVarargLoop) {
+            ImVar varargParameter = varargParameter(owner);
+            if (varargParameter != null) {
+                addDependency(
+                    variableFact(varargParameter),
+                    variableFact(((ImVarargLoop) element).getLoopVar()));
+            }
         }
 
         if (element instanceof ImSet) {
@@ -212,6 +227,45 @@ public final class LocalPlayerContextAnalyzer {
         } else if (element instanceof ImMethodCall) {
             indexMethodCall((ImMethodCall) element, owner, controlContext);
         }
+    }
+
+    private void indexStatementSequence(ImStmts statements,
+                                        ImFunction owner,
+                                        Object controlContext) {
+        Object continuationControl = controlContext;
+        for (ImStmt statement : statements) {
+            indexElement(statement, owner, continuationControl);
+            addDependency(statement, statements);
+
+            if (containsFunctionReturn(statement)) {
+                Fact followingStatementControl =
+                    new Fact(FactKind.CONTROL, statement);
+                addEnclosingControlDependency(
+                    continuationControl,
+                    followingStatementControl);
+                addDependency(statement, followingStatementControl);
+                continuationControl = followingStatementControl;
+            }
+        }
+    }
+
+    private boolean containsFunctionReturn(Element element) {
+        Boolean cached = containsReturnCache.get(element);
+        if (cached != null) {
+            return cached;
+        }
+        if (element instanceof ImReturn) {
+            containsReturnCache.put(element, true);
+            return true;
+        }
+        for (int i = 0; i < element.size(); i++) {
+            if (containsFunctionReturn(element.get(i))) {
+                containsReturnCache.put(element, true);
+                return true;
+            }
+        }
+        containsReturnCache.put(element, false);
+        return false;
     }
 
     private void indexShortCircuitArguments(ImExprs arguments,
@@ -248,11 +302,29 @@ public final class LocalPlayerContextAnalyzer {
             addLocalPlayerSource(called);
         }
 
-        int count = Math.min(call.getArguments().size(), called.getParameters().size());
-        for (int i = 0; i < count; i++) {
+        int fixedParameterCount = called.getParameters().size();
+        if (called.hasFlag(IS_VARARG) && fixedParameterCount > 0) {
+            fixedParameterCount--;
+        }
+        int positionalCount = Math.min(call.getArguments().size(), fixedParameterCount);
+        for (int i = 0; i < positionalCount; i++) {
             addDependency(call.getArguments().get(i),
                 variableFact(called.getParameters().get(i)));
         }
+        ImVar varargParameter = varargParameter(called);
+        if (varargParameter != null) {
+            for (int i = fixedParameterCount; i < call.getArguments().size(); i++) {
+                addDependency(call.getArguments().get(i),
+                    variableFact(varargParameter));
+            }
+        }
+    }
+
+    private ImVar varargParameter(ImFunction function) {
+        if (function.hasFlag(IS_VARARG) && !function.getParameters().isEmpty()) {
+            return function.getParameters().get(function.getParameters().size() - 1);
+        }
+        return null;
     }
 
     private void indexMethodCall(ImMethodCall call, ImFunction owner, Object controlContext) {
@@ -286,15 +358,22 @@ public final class LocalPlayerContextAnalyzer {
         }
     }
 
-    private void addLoopExitDependencies(Element element, Object loopControl) {
+    private boolean addLoopExitDependencies(Element element, Object loopControl) {
         if (element instanceof ImExitwhen) {
             addDependency(((ImExitwhen) element).getCondition(), loopControl);
+            return true;
         } else if (element instanceof ImLoop || element instanceof ImVarargLoop) {
-            return;
+            return false;
         }
+
+        boolean containsExit = false;
         for (int i = 0; i < element.size(); i++) {
-            addLoopExitDependencies(element.get(i), loopControl);
+            containsExit |= addLoopExitDependencies(element.get(i), loopControl);
         }
+        if (containsExit && element instanceof ImIf) {
+            addDependency(((ImIf) element).getCondition(), loopControl);
+        }
+        return containsExit;
     }
 
     private boolean collectMethodImplementations(ImMethod method,

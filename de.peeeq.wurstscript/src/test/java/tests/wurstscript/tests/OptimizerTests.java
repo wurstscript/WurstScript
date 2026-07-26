@@ -1982,6 +1982,36 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void statementsAfterLocalEarlyReturnMustRemainLocallyControlled() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "@noinline function updateUnlessLocalPlayerZero()",
+            "    if GetLocalPlayer() == Player(0)",
+            "        return",
+            "    selected = Player(1)",
+            "init",
+            "    updateUnlessLocalPlayerZero()",
+            "    if selected == Player(1)",
+            "        result = 29",
+            "    else",
+            "        result = 29",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_statementsAfterLocalEarlyReturnMustRemainLocallyControlled_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 29") >= 2,
+            "statements reached after a local early return must remain locally controlled");
+    }
+
+    @Test
     public void andRightOperandMustInheritLocalPlayerControl() throws Exception {
         test().lines(
             "type player extends handle",
