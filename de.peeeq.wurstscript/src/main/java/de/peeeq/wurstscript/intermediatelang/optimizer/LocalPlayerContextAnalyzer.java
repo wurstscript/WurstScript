@@ -39,6 +39,7 @@ public final class LocalPlayerContextAnalyzer {
     private final Map<ImVar, Fact> variableFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> returnFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> useFacts = new IdentityHashMap<>();
+    private final Map<ImFunction, Fact> entryControlFacts = new IdentityHashMap<>();
     private final Set<Object> sourceFacts =
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Fact unknownDispatchSource = new Fact(FactKind.SOURCE, null);
@@ -120,7 +121,7 @@ public final class LocalPlayerContextAnalyzer {
             if (isGetLocalPlayer(function)) {
                 addLocalPlayerSource(function);
             } else if (!function.isNative()) {
-                indexElement(function.getBody(), function);
+                indexElement(function.getBody(), function, entryControlFact(function));
                 addDependency(function.getBody(), useFact(function));
             }
         }
@@ -142,11 +143,37 @@ public final class LocalPlayerContextAnalyzer {
         return false;
     }
 
-    private void indexElement(Element element, ImFunction owner) {
+    private void indexElement(Element element, ImFunction owner, Object controlContext) {
         indexedElements.add(element);
+
+        Object branchControl = null;
+        if (element instanceof ImIf) {
+            ImIf ifStmt = (ImIf) element;
+            branchControl = new Fact(FactKind.CONTROL, ifStmt);
+            addDependency(ifStmt.getCondition(), branchControl);
+            addEnclosingControlDependency(controlContext, branchControl);
+        }
+
+        Object loopControl = null;
+        if (element instanceof ImLoop) {
+            ImLoop loop = (ImLoop) element;
+            loopControl = new Fact(FactKind.CONTROL, loop);
+            addEnclosingControlDependency(controlContext, loopControl);
+            addLoopExitDependencies(loop.getBody(), loopControl);
+        }
+
         for (int i = 0; i < element.size(); i++) {
             Element child = element.get(i);
-            indexElement(child, owner);
+            Object childControl = controlContext;
+            if (element instanceof ImIf
+                && (child == ((ImIf) element).getThenBlock()
+                || child == ((ImIf) element).getElseBlock())) {
+                childControl = branchControl;
+            } else if (element instanceof ImLoop
+                && child == ((ImLoop) element).getBody()) {
+                childControl = loopControl;
+            }
+            indexElement(child, owner, childControl);
             addDependency(child, element);
         }
 
@@ -160,24 +187,30 @@ public final class LocalPlayerContextAnalyzer {
 
         if (element instanceof ImSet) {
             ImSet set = (ImSet) element;
-            forEachAssignedVariable(set.getLeft(),
-                variable -> addDependency(set.getRight(), variableFact(variable)));
+            forEachAssignedVariable(set.getLeft(), variable -> {
+                addDependency(set.getRight(), variableFact(variable));
+                addEnclosingControlDependency(controlContext, variableFact(variable));
+            });
         } else if (element instanceof ImReturn) {
             ImReturn returnStmt = (ImReturn) element;
             if (returnStmt.getReturnValue() instanceof ImExpr) {
                 addDependency(returnStmt.getReturnValue(), returnFact(owner));
+                addEnclosingControlDependency(controlContext, returnFact(owner));
             }
         } else if (element instanceof ImFunctionCall) {
-            indexFunctionCall((ImFunctionCall) element, owner);
+            indexFunctionCall((ImFunctionCall) element, owner, controlContext);
         } else if (element instanceof ImMethodCall) {
-            indexMethodCall((ImMethodCall) element, owner);
+            indexMethodCall((ImMethodCall) element, owner, controlContext);
         }
     }
 
-    private void indexFunctionCall(ImFunctionCall call, ImFunction owner) {
+    private void indexFunctionCall(ImFunctionCall call, ImFunction owner, Object controlContext) {
         ImFunction called = call.getFunc();
         addDependency(returnFact(called), call);
         addDependency(useFact(called), useFact(owner));
+        if (!called.isNative()) {
+            addEnclosingControlDependency(controlContext, entryControlFact(called));
+        }
         if (isGetLocalPlayer(called)) {
             functionsDirectlyUsingLocalPlayer.add(owner);
             addLocalPlayerSource(called);
@@ -190,7 +223,7 @@ public final class LocalPlayerContextAnalyzer {
         }
     }
 
-    private void indexMethodCall(ImMethodCall call, ImFunction owner) {
+    private void indexMethodCall(ImMethodCall call, ImFunction owner, Object controlContext) {
         Set<ImFunction> implementations =
             Collections.newSetFromMap(new IdentityHashMap<>());
         boolean allImplementationsKnown = collectMethodImplementations(
@@ -205,12 +238,30 @@ public final class LocalPlayerContextAnalyzer {
         for (ImFunction implementation : implementations) {
             addDependency(returnFact(implementation), call);
             addDependency(useFact(implementation), useFact(owner));
+            addEnclosingControlDependency(controlContext, entryControlFact(implementation));
             for (ImVar parameter : implementation.getParameters()) {
                 addDependency(call.getReceiver(), variableFact(parameter));
                 for (ImExpr argument : call.getArguments()) {
                     addDependency(argument, variableFact(parameter));
                 }
             }
+        }
+    }
+
+    private void addEnclosingControlDependency(Object controlContext, Object dependent) {
+        if (controlContext != null) {
+            addDependency(controlContext, dependent);
+        }
+    }
+
+    private void addLoopExitDependencies(Element element, Object loopControl) {
+        if (element instanceof ImExitwhen) {
+            addDependency(((ImExitwhen) element).getCondition(), loopControl);
+        } else if (element instanceof ImLoop || element instanceof ImVarargLoop) {
+            return;
+        }
+        for (int i = 0; i < element.size(); i++) {
+            addLoopExitDependencies(element.get(i), loopControl);
         }
     }
 
@@ -301,6 +352,7 @@ public final class LocalPlayerContextAnalyzer {
             case USE:
                 functionsUsingLocalPlayer.add((ImFunction) typedFact.subject);
                 break;
+            case CONTROL:
             case SOURCE:
                 break;
         }
@@ -321,10 +373,16 @@ public final class LocalPlayerContextAnalyzer {
             ignored -> new Fact(FactKind.USE, function));
     }
 
+    private Fact entryControlFact(ImFunction function) {
+        return entryControlFacts.computeIfAbsent(function,
+            ignored -> new Fact(FactKind.CONTROL, function));
+    }
+
     private enum FactKind {
         VARIABLE,
         RETURN,
         USE,
+        CONTROL,
         SOURCE
     }
 

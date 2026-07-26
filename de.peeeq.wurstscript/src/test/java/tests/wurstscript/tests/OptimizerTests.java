@@ -1892,6 +1892,96 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void branchMergerMustTrackLocalPlayerControlDependentAssignments() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        selected = Player(0)",
+            "    else",
+            "        selected = Player(1)",
+            "    if selected == Player(0)",
+            "        result = 11",
+            "    else",
+            "        result = 11",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustTrackLocalPlayerControlDependentAssignments_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 11") >= 2,
+            "values assigned under local-player control must remain local-player-dependent");
+    }
+
+    @Test
+    public void localPlayerControlMustPropagateThroughCalledFunctions() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "@noinline function select(player p)",
+            "    selected = p",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        select(Player(0))",
+            "    else",
+            "        select(Player(1))",
+            "    if selected == Player(0)",
+            "        result = 13",
+            "    else",
+            "        result = 13",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_localPlayerControlMustPropagateThroughCalledFunctions_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 13") >= 2,
+            "callee assignments must inherit local-player control from their call sites");
+    }
+
+    @Test
+    public void localPlayerControlMustPropagateIntoFunctionReturns() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "integer result = 0",
+            "@noinline function selectedPlayer() returns player",
+            "    if GetLocalPlayer() == Player(0)",
+            "        return Player(0)",
+            "    else",
+            "        return Player(1)",
+            "init",
+            "    player selected = selectedPlayer()",
+            "    if selected == Player(0)",
+            "        result = 17",
+            "    else",
+            "        result = 17",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_localPlayerControlMustPropagateIntoFunctionReturns_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 17") >= 2,
+            "returns selected under local-player control must remain local-player-dependent");
+    }
+
+    @Test
     public void functionUsingGetLocalPlayerMustNotBeInlined() throws Exception {
         test().lines(
             "type player extends handle",
