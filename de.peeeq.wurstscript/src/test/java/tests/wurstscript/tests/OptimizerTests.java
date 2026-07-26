@@ -1982,6 +1982,66 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void andRightOperandMustInheritLocalPlayerControl() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "@noinline function updateSelectedState() returns boolean",
+            "    selected = Player(0)",
+            "    return true",
+            "init",
+            "    if (GetLocalPlayer() == Player(0)) and updateSelectedState()",
+            "        print(0)",
+            "    if selected == Player(0)",
+            "        result = 19",
+            "    else",
+            "        result = 19",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_andRightOperandMustInheritLocalPlayerControl_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 19") >= 2,
+            "the right operand of local-player-dependent AND must be locally controlled");
+    }
+
+    @Test
+    public void orRightOperandMustInheritLocalPlayerControl() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native print(integer i)",
+            "player selected",
+            "integer result = 0",
+            "@noinline function updateSelectedState() returns boolean",
+            "    selected = Player(0)",
+            "    return false",
+            "init",
+            "    if (GetLocalPlayer() == Player(0)) or updateSelectedState()",
+            "        print(0)",
+            "    if selected == Player(0)",
+            "        result = 23",
+            "    else",
+            "        result = 23",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_orRightOperandMustInheritLocalPlayerControl_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 23") >= 2,
+            "the right operand of local-player-dependent OR must be locally controlled");
+    }
+
+    @Test
     public void functionUsingGetLocalPlayerMustNotBeInlined() throws Exception {
         test().lines(
             "type player extends handle",

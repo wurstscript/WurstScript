@@ -164,6 +164,16 @@ public final class LocalPlayerContextAnalyzer {
 
         for (int i = 0; i < element.size(); i++) {
             Element child = element.get(i);
+            if (element instanceof ImOperatorCall
+                && ((ImOperatorCall) element).getOp().isLazy()
+                && child == ((ImOperatorCall) element).getArguments()) {
+                indexShortCircuitArguments(
+                    ((ImOperatorCall) element).getArguments(),
+                    owner,
+                    controlContext);
+                addDependency(child, element);
+                continue;
+            }
             Object childControl = controlContext;
             if (element instanceof ImIf
                 && (child == ((ImIf) element).getThenBlock()
@@ -201,6 +211,28 @@ public final class LocalPlayerContextAnalyzer {
             indexFunctionCall((ImFunctionCall) element, owner, controlContext);
         } else if (element instanceof ImMethodCall) {
             indexMethodCall((ImMethodCall) element, owner, controlContext);
+        }
+    }
+
+    private void indexShortCircuitArguments(ImExprs arguments,
+                                            ImFunction owner,
+                                            Object controlContext) {
+        indexedElements.add(arguments);
+        Object operandControl = controlContext;
+        for (int i = 0; i < arguments.size(); i++) {
+            ImExpr argument = arguments.get(i);
+            indexElement(argument, owner, operandControl);
+            addDependency(argument, arguments);
+
+            if (i + 1 < arguments.size()) {
+                Fact followingOperandControl =
+                    new Fact(FactKind.CONTROL, argument);
+                addEnclosingControlDependency(
+                    operandControl,
+                    followingOperandControl);
+                addDependency(argument, followingOperandControl);
+                operandControl = followingOperandControl;
+            }
         }
     }
 
