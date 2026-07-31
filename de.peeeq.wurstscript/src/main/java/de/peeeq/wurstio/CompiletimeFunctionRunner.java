@@ -559,12 +559,29 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
                 emitCompiletimeArrayEntries(var, (ILconstArray) entry.getValue(), nextIndexes,
                     ((ImArrayLikeType) entryType).getEntryType());
-            } else {
+            } else if (isPersistableCompiletimeValue(entry.getValue())) {
                 addCompiletimeStateInit(JassIm.ImSet(var.getTrace(),
                     JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
                     constantToExpr(var.getTrace(), entry.getValue(), entryType)));
             }
         }
+    }
+
+    private boolean isPersistableCompiletimeValue(ILconst value) {
+        if (value instanceof ILconstBool || value instanceof ILconstInt || value instanceof ILconstReal
+            || value instanceof ILconstString || value instanceof ILconstObject) {
+            return true;
+        }
+        if (value instanceof ILconstTuple) {
+            for (ILconst element : ((ILconstTuple) value).values()) {
+                if (!isPersistableCompiletimeValue(element)) return false;
+            }
+            return true;
+        }
+        if (value instanceof IlConstHandle) {
+            return ((IlConstHandle) value).getObj() instanceof LinkedListMultimap;
+        }
+        return false;
     }
 
     /**
