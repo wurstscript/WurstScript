@@ -4,6 +4,28 @@ import org.testng.annotations.Test;
 
 public class VarargTests extends WurstScriptTest {
 
+    private String arguments(int count) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 1; i <= count; i++) {
+            if (i > 1) {
+                result.append(",");
+            }
+            result.append(i);
+        }
+        return result.toString();
+    }
+
+    private String tupleArguments(int count) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                result.append(",");
+            }
+            result.append("pair(1,2)");
+        }
+        return result.toString();
+    }
+
 
     @Test
     public void testVarargSyntax() {
@@ -42,6 +64,134 @@ public class VarargTests extends WurstScriptTest {
                 "function foo(vararg int ints)",
                 "init",
                 "    foo(1,2,3)"
+        );
+    }
+
+    @Test
+    public void varargAllows31JassParameters() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "    foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void stacktracedVarargRejectsMoreThan31JassParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "function getStackTraceString() returns string",
+                "    return \"\"",
+                "function foo(vararg int ints)",
+                "    getStackTraceString()",
+                "init",
+                "    foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void stacktracedVarargAllows31JassParameters() {
+        testAssertOkLines(false,
+                "package Test",
+                "function getStackTraceString() returns string",
+                "    return \"\"",
+                "function foo(vararg int ints)",
+                "    getStackTraceString()",
+                "init",
+                "    foo(" + arguments(30) + ")"
+        );
+    }
+
+    @Test
+    public void varargRejectsMoreThan31JassParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "    foo(" + arguments(32) + ")"
+        );
+    }
+
+    @Test
+    public void varargCountsFlattenedTupleParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "tuple pair(int x, int y)",
+                "function foo(vararg pair pairs)",
+                "init",
+                "    foo(" + tupleArguments(16) + ")"
+        );
+    }
+
+    @Test
+    public void varargAllowsFlattenedTupleParametersWithinLimit() {
+        testAssertOkLines(false,
+                "package Test",
+                "tuple pair(int x, int y)",
+                "function foo(vararg pair pairs)",
+                "init",
+                "    foo(" + tupleArguments(15) + ")"
+        );
+    }
+
+    @Test
+    public void varargAllowsMoreThan31ArgumentsInLua() {
+        test().testLua(true).executeProg().lines(
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 528",
+                "        testSuccess()",
+                "init",
+                "    foo(" + arguments(32) + ")"
+        );
+    }
+
+    @Test
+    public void varargReceiverCountsAsJassParameter() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    function foo(vararg int ints)",
+                "init",
+                "    new C.foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void varargReceiverAllows31JassParametersWithStacktraces() {
+        testAssertOkLines(false,
+                "package Test",
+                "class C",
+                "    function foo(vararg int ints)",
+                "init",
+                "    new C.foo(" + arguments(29) + ")"
+        );
+    }
+
+    @Test
+    public void varargConstructedObjectCountsAsJassParameter() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    construct(vararg int ints)",
+                "init",
+                "    new C(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void varargDelegatingConstructorCountsConstructedObject() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    construct()",
+                "        this(" + arguments(31) + ")",
+                "    construct(vararg int ints)"
         );
     }
 
