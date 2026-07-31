@@ -1988,6 +1988,40 @@ public class ClassesTests extends WurstScriptTest {
             );
     }
 
+    @Test
+    public void readonlyModuleMemberCanBeWrittenByModuleMethod() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "module Values",
+            "    public readonly int value",
+            "    function setValue(int newValue)",
+            "        value = newValue",
+            "class C",
+            "    use Values",
+            "init",
+            "    let c = new C()",
+            "    c.setValue(42)",
+            "    if c.value == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyModuleMemberRejectsConsumingClassAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring module",
+            "package test",
+            "module Values",
+            "    public readonly int value",
+            "class C",
+            "    use Values",
+            "    function mutate()",
+            "        value = 42",
+            "init",
+            "    new C().mutate()"
+        );
+    }
+
 
 
 

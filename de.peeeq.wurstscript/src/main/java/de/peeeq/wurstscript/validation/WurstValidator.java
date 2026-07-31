@@ -1358,6 +1358,15 @@ public class WurstValidator {
             return;
         }
 
+        ModuleInstanciation moduleOwner = nearestModuleInstanciation(var);
+        if (moduleOwner != null) {
+            if (nearestModuleInstanciation(left) != moduleOwner) {
+                left.addError("Readonly member " + var.getName()
+                    + " can only be assigned from its declaring module.");
+            }
+            return;
+        }
+
         ClassOrModule owner = var.attrNearestClassOrModule();
         if (owner != null) {
             if (left.attrNearestClassOrModule() != owner) {
@@ -1369,6 +1378,16 @@ public class WurstValidator {
             left.addError("Readonly variable " + var.getName()
                 + " can only be assigned from its declaring package.");
         }
+    }
+
+    private @Nullable ModuleInstanciation nearestModuleInstanciation(Element element) {
+        while (element != null) {
+            if (element instanceof ModuleInstanciation) {
+                return (ModuleInstanciation) element;
+            }
+            element = element.getParent();
+        }
+        return null;
     }
 
     private void checkVarNotConstant(NameRef left, @Nullable NameLink link) {
