@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.validation.controlflow;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
@@ -62,7 +63,13 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
 
         // 4. Analyze each SCC in topological order
         for (List<WStatement> scc : sccs) {
-            analyzeComponent(scc);
+            // Nodes are popped from the SCC stack in reverse discovery order.
+            // Restore forward CFG order so facts propagate through the component
+            // without requiring a separate pass for nearly every statement.
+            Collections.reverse(scc);
+            if (!analyzeComponent(scc)) {
+                return;
+            }
         }
 
 
@@ -72,19 +79,25 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
         method.checkFinal(finalState);
     }
 
-    private void analyzeComponent(List<WStatement> scc) {
+    private boolean analyzeComponent(List<WStatement> scc) {
         Queue<WStatement> worklist = new ArrayDeque<>(scc);
+        Set<WStatement> queued = new ObjectOpenHashSet<>(scc);
+        Set<WStatement> componentMembers = new ObjectOpenHashSet<>(scc);
 
         int iterations = 0;
         int maxIterations = scc.size() * scc.size() + 100; // Heuristic limit to prevent infinite loops
 
         while (!worklist.isEmpty()) {
             if (iterations++ > maxIterations) {
-                // This should ideally not happen in a correct CFG with a monotonic transfer function
-                throw new RuntimeException("Dataflow analysis did not converge. Possible infinite loop in component.");
+                f.addError("Internal compiler error: " + method.getClass().getSimpleName()
+                    + " did not converge while analyzing " + Utils.printElement(f)
+                    + " (component size " + scc.size() + ", " + iterations
+                    + " worklist iterations). Further dataflow checks for this body were skipped.");
+                return false;
             }
 
             WStatement s = worklist.poll();
+            queued.remove(s);
 
             // Merge states from all predecessors
             Collection<T> predecessorStates = get(s.attrPreviousStatements());
@@ -98,12 +111,13 @@ public class SccForwardExecution<T, Target extends AstElementWithBody> {
 
                 // If the value changed, add successors within the same SCC to the worklist
                 for (WStatement succ : s.attrNextStatements()) {
-                    if (scc.contains(succ)) {
+                    if (componentMembers.contains(succ) && queued.add(succ)) {
                         worklist.add(succ);
                     }
                 }
             }
         }
+        return true;
     }
 
     private List<WStatement> getAllStatements() {
