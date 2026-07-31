@@ -14,8 +14,8 @@ public class ModifiersHelper {
         return containsType(e.getModifiers(), VisibilityProtected.class);
     }
 
-    public static boolean isPublicRead(HasModifier e) {
-        return containsType(e.getModifiers(), VisibilityPublicread.class);
+    public static boolean isReadonly(HasModifier e) {
+        return containsType(e.getModifiers(), ModReadonly.class);
     }
 
     public static boolean isPrivate(HasModifier e) {

@@ -804,8 +804,8 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
-        public List<Either<String, MarkedString>> case_VisibilityPublicread(VisibilityPublicread visibilityPublicread) {
-            return string("This variable can be read from everywhere but only written to in this scope.");
+        public List<Either<String, MarkedString>> case_ModReadonly(ModReadonly readonly) {
+            return string("This variable can only be written from its declaring scope.");
         }
 
         @Override

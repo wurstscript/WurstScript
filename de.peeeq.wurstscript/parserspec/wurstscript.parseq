@@ -297,7 +297,6 @@ NameDef = NamedScope | VarDef | TypeDef | ModuleDef | ModuleInstanciation | Func
 VisibilityModifier =
 	  VisibilityPublic(de.peeeq.wurstscript.parser.WPos source)
 	| VisibilityPrivate(de.peeeq.wurstscript.parser.WPos source)
-	| VisibilityPublicread(de.peeeq.wurstscript.parser.WPos source)
 	| VisibilityProtected(de.peeeq.wurstscript.parser.WPos source)
 	| VisibilityDefault(de.peeeq.wurstscript.parser.WPos source)
 
@@ -310,6 +309,7 @@ Modifier =
 	| ModOverride(de.peeeq.wurstscript.parser.WPos source)
 	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
 	| ModConstant(de.peeeq.wurstscript.parser.WPos source)
+	| ModReadonly(de.peeeq.wurstscript.parser.WPos source)
 	| WurstDoc(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, String rawComment)
 	| ModVararg(de.peeeq.wurstscript.parser.WPos source)
 
@@ -582,9 +582,9 @@ HasModifier.attrIsPublic()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic
 
-HasModifier.attrIsPublicRead()
+HasModifier.attrIsReadonly()
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isReadonly
 
 HasModifier.attrIsPrivate()
 	returns boolean
