@@ -132,4 +132,45 @@ public class FlowAnalysisTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void dataflowConvergesForManyMutatedLoopLocals() {
+        testAssertOkLines(false,
+                "package test",
+                "function probe()",
+                "    int a01 = 0",
+                "    int a02 = 0",
+                "    int a03 = 0",
+                "    int a04 = 0",
+                "    int a05 = 0",
+                "    int a06 = 0",
+                "    int a07 = 0",
+                "    int a08 = 0",
+                "    int a09 = 0",
+                "    int a10 = 0",
+                "    int a11 = 0",
+                "    int a12 = 0",
+                "    int a13 = 0",
+                "    int a14 = 0",
+                "    int a15 = 0",
+                "    int a16 = 0",
+                "    while true",
+                "        a01++",
+                "        a02++",
+                "        a03++",
+                "        a04++",
+                "        a05++",
+                "        a06++",
+                "        a07++",
+                "        a08++",
+                "        a09++",
+                "        a10++",
+                "        a11++",
+                "        a12++",
+                "        a13++",
+                "        a14++",
+                "        a15++",
+                "        a16++"
+        );
+    }
+
 }
