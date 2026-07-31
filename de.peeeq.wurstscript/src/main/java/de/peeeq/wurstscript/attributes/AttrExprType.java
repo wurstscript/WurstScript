@@ -315,6 +315,7 @@ public class AttrExprType {
                         "operands " + leftType + " and " + rightType);
                 return WurstTypeUnknown.instance();
             case MOD_INT:
+            case JASS_MOD_INT:
             case DIV_INT:
                 if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
                     return leftType;

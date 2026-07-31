@@ -368,8 +368,8 @@ public class AntlrJassParseTreeTransformer {
                 return WurstOperator.MULT;
             case JassParser.DIV_REAL:
                 return WurstOperator.DIV_REAL;
-            case JassParser.MOD_REAL:
-                return WurstOperator.MOD_REAL;
+            case JassParser.MOD_INT:
+                return WurstOperator.JASS_MOD_INT;
             case JassParser.NOT:
                 return WurstOperator.NOT;
         }

@@ -219,8 +219,9 @@ public class ExprTranslation {
             } else if (e.getOp() == WurstOperator.NOTEQ) {
                 return LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), translateEquals(left, right, tr));
             }
-            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL || e.getOp() == WurstOperator.DIV_INT) {
-                // LuaNativeLowering.lowerDivMod rewrites every DIV_INT/MOD_INT/MOD_REAL
+            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL
+                || e.getOp() == WurstOperator.JASS_MOD_INT || e.getOp() == WurstOperator.DIV_INT) {
+                // LuaNativeLowering.lowerDivMod rewrites every DIV_INT/MOD_INT/MOD_REAL/JASS_MOD_INT
                 // into a call against a portable IM function before the optimizer runs
                 // (so it can be inlined/constant-folded there). It should never survive
                 // to here - falling through to the default binary-op path below would

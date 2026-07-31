@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
@@ -50,7 +51,7 @@ public class LuaEnsureTypeProvider extends Provider {
     }
 
     public ILconstInt __wurst_rawFmodInt(ILconstInt a, ILconstInt b) {
-        return ILconstInt.create(a.getVal() % b.getVal());
+        return ILconstInt.create(WurstOperator.jassModuloInteger(a.getVal(), b.getVal()));
     }
 
     public ILconstReal __wurst_rawFmodReal(ILconstReal a, ILconstReal b) {

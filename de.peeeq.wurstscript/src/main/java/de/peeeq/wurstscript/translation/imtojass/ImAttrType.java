@@ -66,6 +66,7 @@ public class ImAttrType {
                 return WurstTypeReal.instance().imTranslateType();
             case DIV_INT:
             case MOD_INT:
+            case JASS_MOD_INT:
                 return WurstTypeInt.instance().imTranslateType();
             case AND:
             case OR:
