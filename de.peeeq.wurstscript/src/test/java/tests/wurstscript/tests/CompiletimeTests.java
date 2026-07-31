@@ -62,12 +62,26 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
+    @Test
+    public void testCompiletimeArrayState() {
+        test().executeProg(true)
+            .runCompiletimeFunctions(true)
+            .executeProgOnlyAfterTransforms()
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source",
+                   "@compiletime function fill()",
+                   "    source[3] = 42",
+                   "init",
+                   "    if source[3] == 42",
+                       "        testSuccess()");
+    }
+
 
     @Test
     public void testCompiletimeHashtable() {
-        test().executeProg(true)
+        test()
                 .runCompiletimeFunctions(true)
-                .executeProgOnlyAfterTransforms()
                 .lines("type agent extends handle",
                         "type hashtable extends agent",
                         "package Test",
@@ -175,6 +189,26 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if a.x == \"schwardemage\" and a.y == 42",
                         "        testSuccess()");
+    }
+
+    @Test
+    public void testPersistCompiletimeNewGenericClass() {
+        // Translation is the assertion here: executing the synthesized generic
+        // runtime global through the interpreter still needs a separate attachment fix.
+        test()
+                .runCompiletimeFunctions(true)
+                .lines("package Test",
+                        "class PureMap<T:>",
+                        "    T value",
+                        "    function put(T value)",
+                        "        this.value = value",
+                        "    function get() returns T",
+                        "        return value",
+                        "function compiletime<T:>(T value) returns T",
+                        "    return value",
+                        "PureMap<int> map = compiletime(new PureMap<int>)",
+                        "@compiletime function populate()",
+                        "    map.put(42)");
     }
 
     @Test

@@ -762,6 +762,11 @@ public class ProgramState extends State implements AutoCloseable {
         return r;
     }
 
+    /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
+    public ILconstArray getArrayValue(ImVar v) {
+        return getArray(v);
+    }
+
 
     public Collection<ILconstObject> getAllObjects() {
         List<ILconstObject> values = new ArrayList<>();

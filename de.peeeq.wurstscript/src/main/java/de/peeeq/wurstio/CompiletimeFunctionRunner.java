@@ -113,6 +113,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             execute(toExecute);
             long tExecuted = System.nanoTime();
 
+            if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
+                emitCompiletimeState();
+            }
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
@@ -396,6 +399,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     };
 
     private ImExpr constantToExpr(Element trace, ILconst value) {
+        return constantToExpr(trace, value, null);
+    }
+
+    private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
         if (value instanceof ILconstBool) {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
         } else if (value instanceof ILconstInt) {
@@ -533,6 +540,31 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     // insert at the end
     private void addCompiletimeStateInit(ImStmt stmt) {
         getCompiletimeStateInitFunction().getBody().add(stmt);
+    }
+
+    private void emitCompiletimeState() {
+        for (ImVar var : imProg.getGlobals()) {
+            if (!(var.getType() instanceof ImArrayLikeType)) {
+                continue;
+            }
+            ILconstArray values = globalState.getArrayValue(var);
+            emitCompiletimeArrayEntries(var, values, new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType());
+        }
+    }
+
+    private void emitCompiletimeArrayEntries(ImVar var, ILconstArray values, List<ImExpr> indexes, ImType entryType) {
+        for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
+            List<ImExpr> nextIndexes = new ArrayList<>(indexes);
+            nextIndexes.add(JassIm.ImIntVal(entry.getIntKey()));
+            if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
+                emitCompiletimeArrayEntries(var, (ILconstArray) entry.getValue(), nextIndexes,
+                    ((ImArrayLikeType) entryType).getEntryType());
+            } else {
+                addCompiletimeStateInit(JassIm.ImSet(var.getTrace(),
+                    JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
+                    constantToExpr(var.getTrace(), entry.getValue(), entryType)));
+            }
+        }
     }
 
     /**
