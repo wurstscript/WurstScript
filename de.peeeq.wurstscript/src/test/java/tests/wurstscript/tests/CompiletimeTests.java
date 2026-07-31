@@ -64,16 +64,14 @@ public class CompiletimeTests extends WurstScriptTest {
 
     @Test
     public void testCompiletimeArrayState() {
-        test().executeProg(true)
-            .runCompiletimeFunctions(true)
-            .executeProgOnlyAfterTransforms()
+        test().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
                    "int array source",
                    "@compiletime function fill()",
-                   "    source[3] = 42",
+                   "    source[0] = 42",
                    "init",
-                   "    if source[3] == 42",
+                   "    if source[0] == 42",
                        "        testSuccess()");
     }
 

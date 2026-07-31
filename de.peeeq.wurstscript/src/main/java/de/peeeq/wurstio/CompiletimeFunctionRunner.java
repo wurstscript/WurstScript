@@ -411,6 +411,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             return JassIm.ImRealVal("" + ((ILconstReal) value).getVal());
         } else if (value instanceof ILconstString) {
             return JassIm.ImStringVal(((ILconstString) value).getVal());
+        } else if (value instanceof ILconstNull) {
+            return ImHelper.nullExpr();
         } else if (value instanceof ILconstTuple) {
             List<ImExpr> list = new ArrayList<>();
             for (ILconst e : ((ILconstTuple) value).values()) {
@@ -501,6 +503,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private ImFunction compiletimeStateInitFunction = null;
+    private ImFunction compiletimeArrayStateInitFunction = null;
 
     private ImFunction getCompiletimeStateInitFunction() {
         ImFunction res = this.compiletimeStateInitFunction;
@@ -542,6 +545,42 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         getCompiletimeStateInitFunction().getBody().add(stmt);
     }
 
+    private void addCompiletimeArrayStateInit(ImStmt stmt) {
+        getCompiletimeArrayStateInitFunction().getBody().add(stmt);
+    }
+
+    private ImFunction getCompiletimeArrayStateInitFunction() {
+        if (compiletimeArrayStateInitFunction == null) {
+            Element trace = imProg.getTrace();
+            ImFunction res = JassIm.ImFunction(trace, "initCompiletimeArrayState", JassIm.ImTypeVars(), JassIm.ImVars(),
+                JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+            imProg.getFunctions().add(res);
+            compiletimeArrayStateInitFunction = res;
+            ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
+            ListIterator<ImStmt> iterator = translator.getMainFunc().getBody().listIterator();
+            while (iterator.hasNext()) {
+                ImStmt stmt = iterator.next();
+                if (stmt instanceof ImFunctionCall
+                    && ((ImFunctionCall) stmt).getFunc().getName().equals("DestroyTrigger")) {
+                    iterator.previous();
+                    iterator.add(call);
+                    return compiletimeArrayStateInitFunction;
+                }
+            }
+            ListIterator<ImStmt> endIterator = translator.getMainFunc().getBody().listIterator();
+            while (endIterator.hasNext()) {
+                ImStmt stmt = endIterator.next();
+                if (stmt instanceof ImReturn) {
+                    endIterator.previous();
+                    endIterator.add(call);
+                    return compiletimeArrayStateInitFunction;
+                }
+            }
+            translator.getMainFunc().getBody().add(call);
+        }
+        return compiletimeArrayStateInitFunction;
+    }
+
     private void emitCompiletimeState() {
         // constantToExpr may materialize object handles as additional globals.
         // Iterate over a snapshot to avoid modifying the collection in-flight.
@@ -562,7 +601,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 emitCompiletimeArrayEntries(var, (ILconstArray) entry.getValue(), nextIndexes,
                     ((ImArrayLikeType) entryType).getEntryType());
             } else if (isPersistableCompiletimeValue(entry.getValue())) {
-                addCompiletimeStateInit(JassIm.ImSet(var.getTrace(),
+                addCompiletimeArrayStateInit(JassIm.ImSet(var.getTrace(),
                     JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
                     constantToExpr(var.getTrace(), entry.getValue(), entryType)));
             }
@@ -571,7 +610,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private boolean isPersistableCompiletimeValue(ILconst value) {
         if (value instanceof ILconstBool || value instanceof ILconstInt || value instanceof ILconstReal
-            || value instanceof ILconstString || value instanceof ILconstObject) {
+            || value instanceof ILconstString || value instanceof ILconstNull || value instanceof ILconstObject) {
             return true;
         }
         if (value instanceof ILconstTuple) {
