@@ -152,6 +152,17 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void varargDelegatingConstructorCountsConstructedObject() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    construct()",
+                "        this(" + arguments(31) + ")",
+                "    construct(vararg int ints)"
+        );
+    }
+
+    @Test
     public void testVarargForeach() {
         testAssertOkLines(true,
                 "package Test",
