@@ -68,4 +68,9 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
         return true;
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 }

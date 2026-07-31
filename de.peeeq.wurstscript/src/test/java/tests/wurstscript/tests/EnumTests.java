@@ -67,4 +67,59 @@ public class EnumTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void enumCannotBeAssignedNull() {
+        testAssertErrorsLines(false, "Cannot assign null to Blub",
+            "package test",
+            "enum Blub",
+            "    A",
+            "    B",
+            "init",
+            "    Blub value = null"
+        );
+    }
+
+    @Test
+    public void enumCannotBeComparedWithNull() {
+        testAssertErrorsLines(false, "Cannot compare types Blub with null",
+            "package test",
+            "enum Blub",
+            "    A",
+            "    B",
+            "init",
+            "    if Blub.A == null",
+            "        skip"
+        );
+    }
+
+    @Test
+    public void nullCannotBeComparedWithEnum() {
+        testAssertErrorsLines(false, "Cannot compare types null with Blub",
+            "package test",
+            "enum Blub",
+            "    A",
+            "    B",
+            "init",
+            "    if null != Blub.B",
+            "        skip"
+        );
+    }
+
+    @Test
+    public void enumDefaultValueRemainsFirstMember() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "enum Blub",
+            "    A",
+            "    B",
+            "class Holder",
+            "    Blub value",
+            "init",
+            "    let holder = new Holder()",
+            "    if holder.value == Blub.A",
+            "        testSuccess()"
+        );
+    }
+
 }
