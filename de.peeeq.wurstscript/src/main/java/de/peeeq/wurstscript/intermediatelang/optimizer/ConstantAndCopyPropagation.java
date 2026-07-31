@@ -486,6 +486,7 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                     case MULT: return JassIm.ImIntVal(l * r);
                     case DIV_INT: if (r != 0) return JassIm.ImIntVal(l / r); break;
                     case MOD_INT: if (r != 0) return JassIm.ImIntVal(WurstOperator.moduloInteger(l, r)); break;
+                    case JASS_MOD_INT: if (r != 0) return JassIm.ImIntVal(WurstOperator.jassModuloInteger(l, r)); break;
                     // IMPORTANT: Return ImBoolVal for comparisons, not ImIntVal!
                     case EQ: return JassIm.ImBoolVal(l == r);
                     case NOTEQ: return JassIm.ImBoolVal(l != r);

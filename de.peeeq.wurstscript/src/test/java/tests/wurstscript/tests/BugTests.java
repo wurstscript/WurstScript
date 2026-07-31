@@ -119,6 +119,54 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
+    public void jassModuloUsesTruncatingIntegerRemainder() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassModulo takes integer a, integer b returns integer",
+                "\treturn a % b",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassModulo(5, 3) == 2 and jassModulo(-5, 3) == -2 and jassModulo(5, -3) == 2 and jassModulo(-5, -3) == -2",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+        String compiled = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_jassModuloUsesTruncatingIntegerRemainder_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(compiled.contains("return a % b"), compiled);
+    }
+
+    @Test
+    public void jassModuloUsesTruncatingIntegerRemainderInLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassModulo takes integer a, integer b returns integer",
+                "\treturn a % b",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassModulo(5, 3) == 2 and jassModulo(-5, 3) == -2 and jassModulo(5, -3) == 2 and jassModulo(-5, -3) == -2",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+        String compiled = Files.toString(new File(TEST_OUTPUT_PATH
+            + "lua/BugTests_jassModuloUsesTruncatingIntegerRemainderInLua.lua"), Charsets.UTF_8);
+        Assert.assertTrue(compiled.contains("return math.fmod(a, b)"), compiled);
+    }
+
+    @Test
+    public void jassModuloRejectsRealOperands() {
+        test().executeProg(false)
+            .expectError("Operator % is not defined for operands real and real")
+            .compilationUnits(compilationUnit("input.j",
+                "function jassModulo takes real a, real b returns real",
+                "\treturn a % b",
+                "endfunction"));
+    }
+
+    @Test
     public void test_init_order_jass_warning() {
         testAssertErrorsLines(false, "Variable b may not have been initialized",
                 "function foo takes nothing returns integer",

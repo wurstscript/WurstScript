@@ -242,7 +242,7 @@ public final class LuaNativeLowering {
     private static final de.peeeq.wurstscript.ast.Element SYNTHETIC_TRACE = de.peeeq.wurstscript.ast.Ast.NoExpr();
 
     /**
-     * Rewrites {@code DIV_INT}/{@code MOD_INT}/{@code MOD_REAL} operator calls
+     * Rewrites {@code DIV_INT}/{@code MOD_INT}/{@code MOD_REAL}/{@code JASS_MOD_INT} operator calls
      * into calls against small, portable IM functions (not natives), instead
      * of them being lowered directly to opaque, always-emitted Lua helper
      * functions at Lua-emission time (after {@code ImOptimizer} has already
@@ -287,6 +287,8 @@ public final class LuaNativeLowering {
                     target = funcs.modInt();
                 } else if (call.getOp() == WurstOperator.MOD_REAL) {
                     target = funcs.modReal();
+                } else if (call.getOp() == WurstOperator.JASS_MOD_INT) {
+                    target = funcs.jassModInt();
                 } else {
                     return;
                 }
@@ -437,6 +439,10 @@ public final class LuaNativeLowering {
                 created.add(modReal);
             }
             return modReal;
+        }
+
+        ImFunction jassModInt() {
+            return rawFmodInt();
         }
 
         private ImFunction rawFloorDivInt() {

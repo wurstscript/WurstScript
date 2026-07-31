@@ -2,6 +2,7 @@ package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
@@ -308,6 +309,12 @@ public class JassInterpreter implements AbstractInterpreter {
                     @Override
                     public ILconst case_JassOpDiv(JassOpDiv jassOpDiv) {
                         return getLeftNum().div(getRightNum());
+                    }
+
+                    @Override
+                    public ILconst case_JassOpMod(JassOpMod jassOpMod) {
+                        return new ILconstInt(WurstOperator.jassModuloInteger(
+                            ((ILconstInt) getLeft()).getVal(), ((ILconstInt) getRight()).getVal()));
                     }
 
                     @Override

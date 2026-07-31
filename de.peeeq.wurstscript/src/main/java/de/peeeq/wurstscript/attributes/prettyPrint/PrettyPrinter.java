@@ -236,6 +236,7 @@ public class PrettyPrinter {
             case DIV_REAL:
             case MOD_INT:
             case MOD_REAL:
+            case JASS_MOD_INT:
                 return 4;
 
             case PLUS:

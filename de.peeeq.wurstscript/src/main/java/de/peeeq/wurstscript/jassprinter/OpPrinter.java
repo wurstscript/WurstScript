@@ -77,6 +77,10 @@ public class OpPrinter {
         return "/";
     }
 
+    public static String asString(JassOpMod jassOpMod) {
+        return "%";
+    }
+
 
     public static String asString(JassOpAnd jassOpAnd) {
         return "and";

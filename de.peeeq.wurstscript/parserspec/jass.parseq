@@ -75,6 +75,7 @@ JassOpBinary =
 	| JassOpMinus()
 	| JassOpMult()
 	| JassOpDiv()
+	| JassOpMod()
 	
 JassOpUnary = 
 	  JassOpNot()

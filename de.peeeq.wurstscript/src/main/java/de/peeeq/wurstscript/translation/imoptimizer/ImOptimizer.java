@@ -260,7 +260,8 @@ public class ImOptimizer {
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opCall = (ImOperatorCall) elem;
             WurstOperator op = opCall.getOp();
-            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT) && opCall.getArguments().size() >= 2) {
+            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT || op == WurstOperator.JASS_MOD_INT)
+                && opCall.getArguments().size() >= 2) {
                 ImExpr denominator = opCall.getArguments().get(1);
                 // Preserve integer div/mod unless denominator is provably non-zero.
                 if (!(denominator instanceof ImIntVal) || ((ImIntVal) denominator).getValI() == 0) {

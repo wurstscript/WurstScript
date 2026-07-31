@@ -27,6 +27,7 @@ public enum WurstOperator {
     DIV_INT("div", 2),
     MOD_REAL("%", 2),
     MOD_INT("mod", 2),
+    JASS_MOD_INT("%", 2),
     NOT("not", 1),
     UNARY_MINUS("-", 1);
 
@@ -75,6 +76,8 @@ public enum WurstOperator {
             case MOD_INT:
             case MOD_REAL:
                 throw new Error("Cannot translate modulo");
+            case JASS_MOD_INT:
+                return JassAst.JassOpMod();
             case MULT:
                 return JassAst.JassOpMult();
             case NOTEQ:
@@ -110,6 +113,7 @@ public enum WurstOperator {
             case MOD_REAL:
                 return LuaAst.LuaOpMod();
             case MOD_INT:
+            case JASS_MOD_INT:
                 throw new Error("Cannot translate modulo int");
             case MULT:
                 return LuaAst.LuaOpMult();
@@ -150,6 +154,8 @@ public enum WurstOperator {
                 return ((ILconstNum) left).sub((ILconstNum) right.get());
             case MOD_INT:
                 return new ILconstInt(moduloInteger(((ILconstInt) left).getVal(), ((ILconstInt) right.get()).getVal()));
+            case JASS_MOD_INT:
+                return new ILconstInt(jassModuloInteger(((ILconstInt) left).getVal(), ((ILconstInt) right.get()).getVal()));
             case MOD_REAL:
                 return new ILconstReal(moduloReal(getReal(left), getReal(right.get())));
             case MULT:
@@ -178,6 +184,11 @@ public enum WurstOperator {
             r += b;
         }
         return r;
+    }
+
+    /** Native Jass {@code %}: integer-only remainder truncated toward zero. */
+    public static int jassModuloInteger(int a, int b) {
+        return a % b;
     }
 
     /** Reference semantics for Wurst's real {@code mod}; see {@link #moduloInteger}. */

@@ -551,6 +551,12 @@ public class SimpleRewrites implements OptimizerPass {
                     isArithmetic = true;
                 }
                 break;
+            case JASS_MOD_INT:
+                if (i2 != 0) {
+                    resultVal = WurstOperator.jassModuloInteger(i1, i2);
+                    isArithmetic = true;
+                }
+                break;
             case MOD_REAL: {
                 float f1 = i1;
                 float f2 = i2;
