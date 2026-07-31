@@ -204,7 +204,7 @@ modifier:
 		  'public' 
 		| 'private'
 		| 'protected'
-		| 'publicread'
+		| 'readonly'
 		| 'static'
 		| 'override'
 		| 'abstract' 
@@ -491,7 +491,7 @@ ENDPACKAGE: 'endpackage';
 FUNCTION: 'function';
 RETURNS: 'returns';
 PUBLIC: 'public';
-PULBICREAD: 'publicread';
+READONLY: 'readonly';
 PRIVATE: 'private';
 PROTECTED: 'protected';
 IMPORT: 'import';

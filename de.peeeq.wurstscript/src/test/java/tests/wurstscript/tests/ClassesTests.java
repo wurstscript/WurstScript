@@ -1854,6 +1854,174 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void readonlyMemberCanBeReadExternallyAndWrittenByOwner() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Counter",
+            "    public readonly int value",
+            "    function setValue(int newValue)",
+            "        value = newValue",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.setValue(1)",
+            "    counter.setValue(42)",
+            "    if counter.value == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsExternalAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Counter",
+            "    public readonly int value",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.value = 42"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsExternalIncrement() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Counter",
+            "    public readonly int value",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.value++"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsSubclassAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Parent",
+            "    public readonly int value",
+            "class Child extends Parent",
+            "    function mutate()",
+            "        value = 42",
+            "init",
+            "    new Child().mutate()"
+        );
+    }
+
+    @Test
+    public void readonlyStaticArrayCanOnlyBeWrittenByOwner() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Values",
+            "    public static readonly int array entries",
+            "    static function put(int index, int value)",
+            "        entries[index] = value",
+            "init",
+            "    Values.put(3, 42)",
+            "    if Values.entries[3] == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyStaticArrayRejectsExternalElementAssignment() {
+        testAssertErrorsLines(false, "Readonly member entries can only be assigned from its declaring class",
+            "package test",
+            "class Values",
+            "    public static readonly int array entries",
+            "init",
+            "    Values.entries[3] = 42"
+        );
+    }
+
+    @Test
+    public void publicreadIsNoLongerReserved() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    let publicread = 42",
+            "    if publicread == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyPackageVariableCanBeReadExternallyAndWrittenByOwner() {
+        test().executeProg().compilationUnits(
+            compilationUnit("owner.wurst",
+                "package owner",
+                "public readonly int value",
+                "public function setValue(int newValue)",
+                "    value = newValue",
+                "endpackage"),
+            compilationUnit("consumer.wurst",
+                "package consumer",
+                "import owner",
+                "native testSuccess()",
+                "init",
+                "    setValue(42)",
+                "    if value == 42",
+                "        testSuccess()",
+                "endpackage")
+        );
+    }
+
+    @Test
+    public void readonlyPackageVariableRejectsExternalAssignment() {
+        test().executeProg(false)
+            .expectError("Readonly variable value can only be assigned from its declaring package")
+            .compilationUnits(
+                compilationUnit("owner.wurst",
+                    "package owner",
+                    "public readonly int value",
+                    "endpackage"),
+                compilationUnit("consumer.wurst",
+                    "package consumer",
+                    "import owner",
+                    "init",
+                    "    value = 42",
+                    "endpackage")
+            );
+    }
+
+    @Test
+    public void readonlyModuleMemberCanBeWrittenByModuleMethod() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "module Values",
+            "    public readonly int value",
+            "    function setValue(int newValue)",
+            "        value = newValue",
+            "class C",
+            "    use Values",
+            "init",
+            "    let c = new C()",
+            "    c.setValue(42)",
+            "    if c.value == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyModuleMemberRejectsConsumingClassAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring module",
+            "package test",
+            "module Values",
+            "    public readonly int value",
+            "class C",
+            "    use Values",
+            "    function mutate()",
+            "        value = 42",
+            "init",
+            "    new C().mutate()"
+        );
+    }
+
 
 
 

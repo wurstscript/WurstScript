@@ -433,8 +433,8 @@ public class AntlrWurstParseTreeTransformer {
                 return Ast.VisibilityPrivate(src);
             case WurstParser.PROTECTED:
                 return Ast.VisibilityProtected(src);
-            case WurstParser.PULBICREAD:
-                return Ast.VisibilityPublicread(src);
+            case WurstParser.READONLY:
+                return Ast.ModReadonly(src);
             case WurstParser.STATIC:
                 return Ast.ModStatic(src);
             case WurstParser.OVERRIDE:

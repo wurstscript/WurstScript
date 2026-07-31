@@ -1295,8 +1295,8 @@ public class PrettyPrinter {
         sb.append("public");
     }
 
-    public static void prettyPrint(VisibilityPublicread e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("publicread");
+    public static void prettyPrint(ModReadonly e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("readonly");
     }
 
     public static void prettyPrint(WBlock wBlock, Spacer spacer, StringBuilder sb, int indent) {

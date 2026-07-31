@@ -203,7 +203,6 @@ modifier:
 		  'public' 
 		| 'private'
 		| 'protected'
-		| 'publicread'
 		| 'readonly'
 		| 'static'
 		| 'override'
@@ -488,7 +487,6 @@ ENDPACKAGE: 'endpackage';
 FUNCTION: 'function';
 RETURNS: 'returns';
 PUBLIC: 'public';
-PULBICREAD: 'publicread';
 READONLY: 'readonly';
 DELEGATE: 'delegate';
 STUB: 'stub';

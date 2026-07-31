@@ -379,8 +379,8 @@ public class DescriptionHtml {
         return "public: can be used in other packages";
     }
 
-    public static @Nullable String description(VisibilityPublicread visibilityPublicread) {
-        return null;
+    public static String description(ModReadonly readonly) {
+        return "readonly: can only be written from its declaring scope";
     }
 
     public static @Nullable String description(WBlock wBlock) {

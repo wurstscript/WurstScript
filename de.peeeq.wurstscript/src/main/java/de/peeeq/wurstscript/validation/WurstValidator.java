@@ -1240,7 +1240,7 @@ public class WurstValidator {
                     return;
                 }
                 checkAssignment(Utils.isJassCode(s), s, setOverload.getParameterType(1), rightType);
-                checkIfAssigningToConstant(s.getUpdatedExpr());
+                checkIfAssigningToRestrictedVariable(s.getUpdatedExpr());
                 checkIfNoEffectAssignment(s);
                 return;
             }
@@ -1248,7 +1248,7 @@ public class WurstValidator {
         WurstType leftType = s.getUpdatedExpr().attrTyp();
         checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 
-        checkIfAssigningToConstant(s.getUpdatedExpr());
+        checkIfAssigningToRestrictedVariable(s.getUpdatedExpr());
 
         checkIfNoEffectAssignment(s);
     }
@@ -1294,17 +1294,18 @@ public class WurstValidator {
         return false;
     }
 
-    private void checkIfAssigningToConstant(final LExpr left) {
+    private void checkIfAssigningToRestrictedVariable(final LExpr left) {
         left.match(new LExpr.MatcherVoid() {
 
             @Override
             public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
-
+                checkVarNotReadonly(e, e.attrNameLink());
             }
 
             @Override
             public void case_ExprVarAccess(ExprVarAccess e) {
                 checkVarNotConstant(e, e.attrNameLink());
+                checkVarNotReadonly(e, e.attrNameLink());
             }
 
             @Override
@@ -1315,18 +1316,19 @@ public class WurstValidator {
                     if (e.getLeft() instanceof ExprThis) {
                         e.addError("Cannot change 'this'. Tuples are not classes.");
                     } else if (e.getLeft() instanceof NameRef) {
-                        checkIfAssigningToConstant((NameRef) e.getLeft());
+                        checkIfAssigningToRestrictedVariable((NameRef) e.getLeft());
                     } else {
                         e.addError(
                                 "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
                     }
                 }
                 checkVarNotConstant(e, e.attrNameLink());
+                checkVarNotReadonly(e, e.attrNameLink());
             }
 
             @Override
             public void case_ExprMemberArrayVarDot(ExprMemberArrayVarDot e) {
-
+                checkVarNotReadonly(e, e.attrNameLink());
             }
 
             @Override
@@ -1345,6 +1347,47 @@ public class WurstValidator {
                 e.addError("Cannot assign to a null-safe '?.' expression.");
             }
         });
+    }
+
+    private void checkVarNotReadonly(NameRef left, @Nullable NameLink link) {
+        if (link == null || !(link.getDef() instanceof GlobalVarDef)) {
+            return;
+        }
+        GlobalVarDef var = (GlobalVarDef) link.getDef();
+        if (!var.attrIsReadonly()) {
+            return;
+        }
+
+        ModuleInstanciation moduleOwner = nearestModuleInstanciation(var);
+        if (moduleOwner != null) {
+            if (nearestModuleInstanciation(left) != moduleOwner) {
+                left.addError("Readonly member " + var.getName()
+                    + " can only be assigned from its declaring module.");
+            }
+            return;
+        }
+
+        ClassOrModule owner = var.attrNearestClassOrModule();
+        if (owner != null) {
+            if (left.attrNearestClassOrModule() != owner) {
+                left.addError("Readonly member " + var.getName()
+                    + " can only be assigned from its declaring "
+                    + (owner instanceof ClassDef ? "class" : "module") + ".");
+            }
+        } else if (left.attrNearestPackage() != var.attrNearestPackage()) {
+            left.addError("Readonly variable " + var.getName()
+                + " can only be assigned from its declaring package.");
+        }
+    }
+
+    private @Nullable ModuleInstanciation nearestModuleInstanciation(Element element) {
+        while (element != null) {
+            if (element instanceof ModuleInstanciation) {
+                return (ModuleInstanciation) element;
+            }
+            element = element.getParent();
+        }
+        return null;
     }
 
     private void checkVarNotConstant(NameRef left, @Nullable NameLink link) {
@@ -2589,10 +2632,10 @@ public class WurstValidator {
                 @Override
                 public void case_GlobalVarDef(GlobalVarDef g) {
                     if (g.attrNearestClassOrModule() != null) {
-                        check(VisibilityPrivate.class, VisibilityProtected.class,
-                            ModStatic.class, ModConstant.class, Annotation.class);
+                        check(VisibilityPublic.class, VisibilityPrivate.class, VisibilityProtected.class,
+                            ModStatic.class, ModConstant.class, ModReadonly.class, Annotation.class);
                     } else {
-                        check(VisibilityPublic.class, ModConstant.class, Annotation.class);
+                        check(VisibilityPublic.class, ModConstant.class, ModReadonly.class, Annotation.class);
                     }
                     if (g.hasAnnotation("@compiletime")) {
                         g.getAnnotation("@compiletime")

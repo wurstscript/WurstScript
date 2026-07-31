@@ -349,9 +349,8 @@ public class AntlrJurstParseTreeTransformer {
                 return Ast.VisibilityPrivate(src);
             case JurstParser.PROTECTED:
                 return Ast.VisibilityProtected(src);
-            case JurstParser.PULBICREAD:
             case JurstParser.READONLY:
-                return Ast.VisibilityPublicread(src);
+                return Ast.ModReadonly(src);
             case JurstParser.STATIC:
                 return Ast.ModStatic(src);
             case JurstParser.OVERRIDE:
