@@ -407,6 +407,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
         timeTaker.endPhase();
 
+        if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
+            beginPhase(4, "add stack traces");
+            new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
+            timeTaker.endPhase();
+        }
+
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         imTranslator2.assertProperties();
@@ -417,14 +423,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg2);
             timeTaker.endPhase();
-        } else {
-            // debug: add stacktraces
-            if (runArgs.isIncludeStacktraces()) {
-                beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
-                timeTaker.endPhase();
-            }
         }
+
         imTranslator2.assertProperties();
 
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);

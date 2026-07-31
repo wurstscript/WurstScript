@@ -67,6 +67,32 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void stacktracedVarargRejectsMoreThan31JassParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "function getStackTraceString() returns string",
+                "    return \"\"",
+                "function foo(vararg int ints)",
+                "    getStackTraceString()",
+                "init",
+                "    foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void stacktracedVarargAllows31JassParameters() {
+        testAssertOkLines(false,
+                "package Test",
+                "function getStackTraceString() returns string",
+                "    return \"\"",
+                "function foo(vararg int ints)",
+                "    getStackTraceString()",
+                "init",
+                "    foo(" + arguments(30) + ")"
+        );
+    }
+
+    @Test
     public void varargRejectsMoreThan31JassParameters() {
         testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
                 "package Test",
@@ -104,13 +130,13 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
-    public void varargReceiverAllows31JassParameters() {
+    public void varargReceiverAllows31JassParametersWithStacktraces() {
         testAssertOkLines(false,
                 "package Test",
                 "class C",
                 "    function foo(vararg int ints)",
                 "init",
-                "    new C.foo(" + arguments(30) + ")"
+                "    new C.foo(" + arguments(29) + ")"
         );
     }
 
