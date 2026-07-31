@@ -15,6 +15,17 @@ public class VarargTests extends WurstScriptTest {
         return result.toString();
     }
 
+    private String tupleArguments(int count) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                result.append(",");
+            }
+            result.append("pair(1,2)");
+        }
+        return result.toString();
+    }
+
 
     @Test
     public void testVarargSyntax() {
@@ -99,6 +110,28 @@ public class VarargTests extends WurstScriptTest {
                 "function foo(vararg int ints)",
                 "init",
                 "    foo(" + arguments(32) + ")"
+        );
+    }
+
+    @Test
+    public void varargCountsFlattenedTupleParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "tuple pair(int x, int y)",
+                "function foo(vararg pair pairs)",
+                "init",
+                "    foo(" + tupleArguments(16) + ")"
+        );
+    }
+
+    @Test
+    public void varargAllowsFlattenedTupleParametersWithinLimit() {
+        testAssertOkLines(false,
+                "package Test",
+                "tuple pair(int x, int y)",
+                "function foo(vararg pair pairs)",
+                "init",
+                "    foo(" + tupleArguments(15) + ")"
         );
     }
 

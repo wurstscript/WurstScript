@@ -71,8 +71,11 @@ public class VarargEliminator {
     private void generateVarargFunc(ImFunctionCall sourceCall) {
         ImFunction func = sourceCall.getFunc();
         int numberOfParams = sourceCall.getArguments().size();
-        if (numberOfParams > JASS_MAX_PARAMETERS) {
-            throw new CompileError(sourceCall, "Vararg call would generate " + numberOfParams
+        int jassParameterCount = sourceCall.getArguments().stream()
+            .mapToInt(argument -> flattenedJassArity(argument.attrTyp()))
+            .sum();
+        if (jassParameterCount > JASS_MAX_PARAMETERS) {
+            throw new CompileError(sourceCall, "Vararg call would generate " + jassParameterCount
                 + " Jass parameters; the maximum is " + JASS_MAX_PARAMETERS
                 + ". Use multiple calls (for example with the cascade operator) or pass a collection instead.");
         }
@@ -142,6 +145,15 @@ public class VarargEliminator {
         // Add new function to prog
         prog.getFunctions().add(newFunc);
         varargFuncs.put(func, numberOfParams, newFunc);
+    }
+
+    private int flattenedJassArity(ImType type) {
+        if (type instanceof ImTupleType) {
+            return ((ImTupleType) type).getTypes().stream()
+                .mapToInt(this::flattenedJassArity)
+                .sum();
+        }
+        return 1;
     }
 
     @NotNull
