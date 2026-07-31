@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,6 +19,7 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
  */
 public class VarargEliminator {
 
+    private static final int JASS_MAX_PARAMETERS = 31;
     private final ImProg prog;
     // original + number of args --> new function
     private final Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
@@ -30,7 +32,7 @@ public class VarargEliminator {
         // create new vararg functions
         for (ImFunctionCall c : collectVarargCalls()) {
             if (c.getFunc().hasFlag(IS_VARARG)) {
-                generateVarargFunc(c.getFunc(), c.getArguments().size());
+                generateVarargFunc(c);
             }
         }
 
@@ -66,7 +68,14 @@ public class VarargEliminator {
      * Generates a function based on the vararg function with the appropriate amount of parameters
      * for the function call.
      */
-    private void generateVarargFunc(ImFunction func, int numberOfParams) {
+    private void generateVarargFunc(ImFunctionCall sourceCall) {
+        ImFunction func = sourceCall.getFunc();
+        int numberOfParams = sourceCall.getArguments().size();
+        if (numberOfParams > JASS_MAX_PARAMETERS) {
+            throw new CompileError(sourceCall, "Vararg call would generate " + numberOfParams
+                + " Jass parameters; the maximum is " + JASS_MAX_PARAMETERS
+                + ". Use multiple calls (for example with the cascade operator) or pass a collection instead.");
+        }
         if (varargFuncs.contains(func, numberOfParams)) {
             // already generated
             return;
@@ -118,7 +127,7 @@ public class VarargEliminator {
             params.addAll(list);
 
             // generate function for this new call
-            generateVarargFunc(call.getFunc(), call.getArguments().size());
+            generateVarargFunc(call);
         }
 
 

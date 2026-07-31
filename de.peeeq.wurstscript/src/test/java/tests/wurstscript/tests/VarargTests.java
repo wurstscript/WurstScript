@@ -77,6 +77,22 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void varargAllowsMoreThan31ArgumentsInLua() {
+        test().testLua(true).executeProg().lines(
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 528",
+                "        testSuccess()",
+                "init",
+                "    foo(" + arguments(32) + ")"
+        );
+    }
+
+    @Test
     public void varargReceiverCountsAsJassParameter() {
         testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
                 "package Test",
