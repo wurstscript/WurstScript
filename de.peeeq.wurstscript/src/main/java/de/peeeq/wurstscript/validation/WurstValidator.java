@@ -41,6 +41,8 @@ import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
  * attributes
  */
 public class WurstValidator {
+    private static final int JASS_MAX_PARAMETERS = 31;
+
     private enum Phase { LIGHT, HEAVY }
     private Phase phase = Phase.LIGHT;
     private boolean isHeavy() { return phase == Phase.HEAVY; }
@@ -1852,7 +1854,24 @@ public class WurstValidator {
             throw new Error("unhandled case: " + Utils.printElement(call));
         }
 
-        call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+        FunctionSignature signature = call.attrFunctionSignature();
+        call.attrCallSignature().checkSignatureCompatibility(signature, funcName, call);
+        checkVarargJassParameterLimit(call, signature);
+    }
+
+    private void checkVarargJassParameterLimit(StmtCall call, FunctionSignature signature) {
+        if (!signature.isVararg()) {
+            return;
+        }
+        int generatedParameterCount = call.getArgs().size();
+        if (signature.getReceiverType() != null || call instanceof ExprNewObject) {
+            generatedParameterCount++;
+        }
+        if (generatedParameterCount > JASS_MAX_PARAMETERS) {
+            call.addError("Vararg call would generate " + generatedParameterCount
+                + " Jass parameters; the maximum is " + JASS_MAX_PARAMETERS
+                + ". Use multiple calls (for example with the cascade operator) or pass a collection instead.");
+        }
     }
 
     /** Error when a field in this class hides a field from a superclass. */

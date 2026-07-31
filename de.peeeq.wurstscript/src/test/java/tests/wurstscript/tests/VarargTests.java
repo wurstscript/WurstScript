@@ -4,6 +4,17 @@ import org.testng.annotations.Test;
 
 public class VarargTests extends WurstScriptTest {
 
+    private String arguments(int count) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 1; i <= count; i++) {
+            if (i > 1) {
+                result.append(",");
+            }
+            result.append(i);
+        }
+        return result.toString();
+    }
+
 
     @Test
     public void testVarargSyntax() {
@@ -42,6 +53,59 @@ public class VarargTests extends WurstScriptTest {
                 "function foo(vararg int ints)",
                 "init",
                 "    foo(1,2,3)"
+        );
+    }
+
+    @Test
+    public void varargAllows31JassParameters() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "    foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void varargRejectsMoreThan31JassParameters() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "    foo(" + arguments(32) + ")"
+        );
+    }
+
+    @Test
+    public void varargReceiverCountsAsJassParameter() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    function foo(vararg int ints)",
+                "init",
+                "    new C.foo(" + arguments(31) + ")"
+        );
+    }
+
+    @Test
+    public void varargReceiverAllows31JassParameters() {
+        testAssertOkLines(false,
+                "package Test",
+                "class C",
+                "    function foo(vararg int ints)",
+                "init",
+                "    new C.foo(" + arguments(30) + ")"
+        );
+    }
+
+    @Test
+    public void varargConstructedObjectCountsAsJassParameter() {
+        testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
+                "package Test",
+                "class C",
+                "    construct(vararg int ints)",
+                "init",
+                "    new C(" + arguments(31) + ")"
         );
     }
 
