@@ -10,6 +10,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Lazily allocates internal maps ONLY when needed.
@@ -19,6 +21,7 @@ public abstract class State {
     // in State:
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
+    private final Set<ImVar> modifiedArrays = new HashSet<>();
 
 
     private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
@@ -77,11 +80,16 @@ public abstract class State {
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        modifiedArrays.add(v);
         ILconstArray ar = getArray(v);
         for (int i = 0; i < indexes.size() - 1; i++) {
             ar = (ILconstArray) ar.get(indexes.get(i));
         }
         ar.set(indexes.get(indexes.size() - 1), val);
+    }
+
+    public Set<ImVar> getModifiedArrays() {
+        return modifiedArrays;
     }
 
     public @Nullable ILconst getArrayVal(ImVar v, List<Integer> indexes) {

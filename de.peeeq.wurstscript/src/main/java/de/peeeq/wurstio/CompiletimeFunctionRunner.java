@@ -584,7 +584,10 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private void emitCompiletimeState() {
         // constantToExpr may materialize object handles as additional globals.
         // Iterate over a snapshot to avoid modifying the collection in-flight.
-        for (ImVar var : new ArrayList<>(imProg.getGlobals())) {
+        for (ImVar var : new ArrayList<>(globalState.getModifiedArrays())) {
+            if (!imProg.getGlobals().contains(var)) {
+                continue;
+            }
             if (!(var.getType() instanceof ImArrayLikeType)) {
                 continue;
             }
