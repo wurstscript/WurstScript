@@ -76,8 +76,39 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeGenericArrayState() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Box<T:>",
+                   "    static T array store",
+                   "    static function set(int index, T value)",
+                   "        store[index] = value",
+                   "    static function get(int index) returns T",
+                   "        return store[index]",
+                   "@compiletime function fill()",
+                   "    Box<int>.set(0, 42)",
+                   "init",
+                   "    if Box<int>.get(0) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
                    "class Box<T:>",
@@ -96,7 +127,7 @@ public class CompiletimeTests extends WurstScriptTest {
 
     @Test
     public void testCompiletimeHashtable() {
-        test()
+        test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)
                 .lines("type agent extends handle",
                         "type hashtable extends agent",
