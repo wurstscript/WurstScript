@@ -240,6 +240,22 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeArrayReplayPrecedesDependentInitializer() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array first = [1]",
+                   "int observed = first[0]",
+                   "int array second = [2]",
+                   "@compiletime function fill()",
+                   "    first[0] = 42",
+                   "    second[0] = 9",
+                   "init",
+                   "    if observed == 42 and first[0] == 42 and second[0] == 9",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeHashtable() {
         test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)
