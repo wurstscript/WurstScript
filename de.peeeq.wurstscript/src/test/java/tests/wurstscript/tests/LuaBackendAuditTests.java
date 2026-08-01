@@ -107,6 +107,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void compiletimeScalarReplaySplittingIsDeterministicAcrossPackages() {
+        RunArgs runArgs = new RunArgs().with(
+            "-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1");
+        String[] source = {
+            "package A", "public int a", "@compiletime function fillA()", "    a = 10", "endpackage",
+            "package B", "public int b", "@compiletime function fillB()", "    b = 20", "endpackage",
+            "package C", "public int c", "@compiletime function fillC()", "    c = 30", "endpackage",
+            "package D", "public int d", "@compiletime function fillD()", "    d = 40", "endpackage",
+            "package Test", "import A", "import B", "import C", "import D", "native testSuccess()", "init",
+            "    if a + b + c + d == 100", "        testSuccess()"
+        };
+
+        String first = compileLuaWithRunArgs("compiletimeScalarReplaySplittingIsDeterministicAcrossPackages", runArgs, source);
+        String second = compileLuaWithRunArgs("compiletimeScalarReplaySplittingIsDeterministicAcrossPackages", runArgs, source);
+        assertEquals("compiletime scalar replay splitting must be deterministic", first, second);
+
+        java.util.regex.Matcher replayBody = java.util.regex.Pattern
+            .compile("function initCompiletimeScalarState[^\\n]*\\n(.*?)\\nend", java.util.regex.Pattern.DOTALL)
+            .matcher(first);
+        int persistedAssignments = 0;
+        while (replayBody.find()) {
+            int assignmentsInFunction = 0;
+            for (int value : new int[]{10, 20, 30, 40}) {
+                assignmentsInFunction += countOccurrences(replayBody.group(1), " = " + value);
+            }
+            assertTrue("each scalar replay leaf must honor the configured split limit:\n" + replayBody.group(),
+                assignmentsInFunction <= 1);
+            persistedAssignments += assignmentsInFunction;
+        }
+        assertEquals("all compiletime scalar values must still be emitted", 4, persistedAssignments);
+    }
+
+    @Test
     public void localPlayerEffectfulBooleanOperandSurvivesOptimization() {
         String compiled = compileOptimizedLua(
             "localPlayerEffectfulBooleanOperandSurvivesOptimization",

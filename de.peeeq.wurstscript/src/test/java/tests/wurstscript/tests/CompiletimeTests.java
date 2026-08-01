@@ -1,6 +1,16 @@
 package tests.wurstscript.tests;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
+
+import java.util.List;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class CompiletimeTests extends WurstScriptTest {
 
@@ -60,6 +70,140 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if ar[0] == 1 and ar[1] == 2 and x == 2",
                         "        testSuccess()");
+    }
+
+    @Test
+    public void testUnsupportedCompiletimeArrayWarningIsAggregatedAndReadable() {
+        Logger logger = (Logger) LoggerFactory.getLogger("default");
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true)
+                .lines("package Test",
+                    "init",
+                    "    let _firstPlayer = players[0]");
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        List<String> playerWarnings = appender.list.stream()
+            .map(ILoggingEvent::getFormattedMessage)
+            .filter(message -> message.contains("Player_players"))
+            .toList();
+        assertEquals(playerWarnings.size(), 1, "expected one warning for the entire array");
+        String warning = playerWarnings.get(0);
+        assertTrue(warning.contains("28 unsupported compiletime entries"), warning);
+        assertTrue(warning.contains("Player, line"), warning);
+        assertFalse(warning.contains("GlobalVarDef"), warning);
+    }
+
+    @Test
+    public void testCompiletimePackageScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int source = 1",
+                   "@compiletime function fill()",
+                   "    source = 42",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int observed = source",
+                   "init",
+                   "    if source == 42 and observed == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectAndNullScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class A",
+                   "    int value",
+                   "A source",
+                   "string cleared = \"value\"",
+                   "@compiletime function fill()",
+                   "    source = new A",
+                   "    source.value = 42",
+                   "    cleared = null",
+                   "init",
+                   "    if source.value == 42 and cleared == null",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeScalarReplayOnlyWrittenValues() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int seed = 1",
+                   "init",
+                   "    seed = 2",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int observed = seed",
+                   "int migrated = 0",
+                   "@compiletime function fill()",
+                   "    let snapshot = observed",
+                   "    migrated = snapshot + 41",
+                   "init",
+                   "    if observed == 2 and migrated == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeScalarRuntimeWriteRemainsAuthoritative() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int source = 1",
+                   "@compiletime function fill()",
+                   "    source = 42",
+                   "init",
+                   "    source = 7",
+                   "    if source == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeClassStaticScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Counter",
+                   "    static int value = 1",
+                   "    static function setValue(int newValue)",
+                   "        value = newValue",
+                   "    static function getValue() returns int",
+                   "        return value",
+                   "int observed = Counter.getValue()",
+                   "@compiletime function fill()",
+                   "    Counter.setValue(42)",
+                   "init",
+                   "    if Counter.getValue() == 42 and observed == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericClassStaticScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Counter<T:>",
+                   "    static T value",
+                   "    static function setValue(T newValue)",
+                   "        value = newValue",
+                   "    static function getValue() returns T",
+                   "        return value",
+                   "@compiletime function fill()",
+                   "    Counter<int>.setValue(42)",
+                   "init",
+                   "    if Counter<int>.getValue() == 42",
+                   "        testSuccess()");
     }
 
     @Test

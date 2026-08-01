@@ -39,6 +39,9 @@ public class ProgramState extends State implements AutoCloseable {
 
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
+    private final Set<ImVar> modifiedScalars = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<String> modifiedGenericScalars = new HashSet<>();
+    private final Map<String, List<ImTypeArgument>> genericScalarTypeArguments = new HashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
     private final Set<String> modifiedGenericArrays = new HashSet<>();
     private final Map<String, Set<List<Integer>>> modifiedGenericArrayIndexes = new HashMap<>();
@@ -681,9 +684,22 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
+        modifiedScalars.add(v);
         String key = genericStaticKey(v);
         if (key != null) {
             WLogger.trace(() -> "[GENSTATIC] set " + key + " = " + val);
+            genericStaticScalarVals.put(key, val);
+            modifiedGenericScalars.add(key);
+            genericScalarTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+            return;
+        }
+        super.setVal(v, val);
+    }
+
+    public void setValUntracked(ImVar v, ILconst val) {
+        String key = genericStaticKey(v);
+        if (key != null) {
+            WLogger.trace(() -> "[GENSTATIC] initialize " + key + " = " + val);
             genericStaticScalarVals.put(key, val);
             return;
         }
@@ -853,6 +869,57 @@ public class ProgramState extends State implements AutoCloseable {
         public Set<List<Integer>> getModifiedIndexes() {
             return modifiedIndexes;
         }
+    }
+
+    public static final class ScalarState {
+        private final ILconst value;
+        private final List<ImTypeArgument> typeArguments;
+        private final boolean generic;
+
+        private ScalarState(ILconst value, List<ImTypeArgument> typeArguments, boolean generic) {
+            this.value = value;
+            this.typeArguments = Collections.unmodifiableList(new ArrayList<>(typeArguments));
+            this.generic = generic;
+        }
+
+        public ILconst getValue() {
+            return value;
+        }
+
+        public List<ImTypeArgument> getTypeArguments() {
+            return typeArguments;
+        }
+
+        public boolean isGeneric() {
+            return generic;
+        }
+    }
+
+    public Set<ImVar> getModifiedScalars() {
+        return Collections.unmodifiableSet(modifiedScalars);
+    }
+
+    public Collection<ScalarState> getScalarStates(ImVar v) {
+        String prefix = v.getName() + "|";
+        List<String> keys = new ArrayList<>(modifiedGenericScalars);
+        Collections.sort(keys);
+        List<ScalarState> result = new ArrayList<>();
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                ILconst value = genericStaticScalarVals.get(key);
+                if (value != null) {
+                    result.add(new ScalarState(value,
+                        genericScalarTypeArguments.getOrDefault(key, Collections.emptyList()), true));
+                }
+            }
+        }
+        if (result.isEmpty() && genericStaticKey(v) == null) {
+            ILconst value = getVal(v);
+            if (value != null) {
+                result.add(new ScalarState(value, Collections.emptyList(), false));
+            }
+        }
+        return result;
     }
 
     public Collection<ArrayState> getArrayStates(ImVar v) {
