@@ -608,6 +608,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 addCompiletimeArrayStateInit(JassIm.ImSet(var.getTrace(),
                     JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
                     constantToExpr(var.getTrace(), entry.getValue(), entryType)));
+            } else {
+                WLogger.warning("Skipping unsupported compiletime array entry at index " + entry.getIntKey()
+                    + " (" + entry.getValue() + ") at " + var.getTrace());
             }
         }
     }
