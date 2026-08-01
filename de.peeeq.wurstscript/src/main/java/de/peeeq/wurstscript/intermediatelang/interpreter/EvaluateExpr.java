@@ -140,7 +140,7 @@ public class EvaluateExpr {
                 } else {
                     throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initialized.");
                 }
-                globalState.setVal(var, r);
+                globalState.setValUntracked(var, r);
             }
             return r;
         } else {
