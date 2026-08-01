@@ -48,6 +48,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
+    private int untrackedWriteDepth;
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -684,13 +685,18 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
-        modifiedScalars.add(v);
+        boolean trackWrite = untrackedWriteDepth == 0;
+        if (trackWrite) {
+            modifiedScalars.add(v);
+        }
         String key = genericStaticKey(v);
         if (key != null) {
             WLogger.trace(() -> "[GENSTATIC] set " + key + " = " + val);
             genericStaticScalarVals.put(key, val);
-            modifiedGenericScalars.add(key);
-            genericScalarTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+            if (trackWrite) {
+                modifiedGenericScalars.add(key);
+                genericScalarTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+            }
             return;
         }
         super.setVal(v, val);
@@ -719,7 +725,7 @@ public class ProgramState extends State implements AutoCloseable {
             // lazy init from global inits (e.g. foo = 1)
             List<ImSet> inits = prog.getGlobalInits().get(v);
             if (inits != null && !inits.isEmpty()) {
-                ILconst initVal = inits.get(inits.size() - 1).getRight().evaluate(this, EMPTY_LOCAL_STATE);
+                ILconst initVal = evaluateUntracked(inits.get(inits.size() - 1).getRight(), EMPTY_LOCAL_STATE);
                 genericStaticScalarVals.put(key, initVal);
                 WLogger.trace(() -> "[GENSTATIC] get " + key + " -> (init) " + initVal);
                 return initVal;
@@ -731,6 +737,15 @@ public class ProgramState extends State implements AutoCloseable {
         }
 
         return super.getVal(v);
+    }
+
+    public ILconst evaluateUntracked(ImExpr expr, LocalState localState) {
+        untrackedWriteDepth++;
+        try {
+            return expr.evaluate(this, localState);
+        } finally {
+            untrackedWriteDepth--;
+        }
     }
 
 
@@ -755,7 +770,7 @@ public class ProgramState extends State implements AutoCloseable {
             if (inits != null && !inits.isEmpty()) {
                 final LocalState ls = EMPTY_LOCAL_STATE;
                 for (int i = 0; i < inits.size(); i++) {
-                    ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                    ILconst val = evaluateUntracked(inits.get(i).getRight(), ls);
                     r.set(i, val);
                 }
             }
@@ -774,7 +789,7 @@ public class ProgramState extends State implements AutoCloseable {
         if (inits != null && !inits.isEmpty()) {
             final LocalState ls = EMPTY_LOCAL_STATE;
             for (int i = 0; i < inits.size(); i++) {
-                ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                ILconst val = evaluateUntracked(inits.get(i).getRight(), ls);
                 r.set(i, val);
             }
         }
@@ -783,6 +798,10 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        if (untrackedWriteDepth > 0) {
+            setArrayValUntracked(v, indexes, val);
+            return;
+        }
         String key = genericStaticKey(v);
         super.setArrayVal(v, indexes, val);
         if (key != null) {

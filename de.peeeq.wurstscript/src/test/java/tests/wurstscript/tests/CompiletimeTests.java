@@ -156,6 +156,25 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testLazyScalarInitializerSideEffectsAreNotReplayed() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int counter = 0",
+                   "function bump() returns int",
+                   "    counter++",
+                   "    return counter",
+                   "int observed = bump()",
+                   "int migrated",
+                   "@compiletime function fill()",
+                   "    let _snapshot = observed",
+                   "    migrated = 42",
+                   "init",
+                   "    if counter == 1 and observed == 1 and migrated == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeScalarRuntimeWriteRemainsAuthoritative() {
         test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",

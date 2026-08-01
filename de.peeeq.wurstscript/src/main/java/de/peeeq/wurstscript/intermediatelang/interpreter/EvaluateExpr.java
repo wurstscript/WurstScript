@@ -136,7 +136,7 @@ public class EvaluateExpr {
             if (r == null) {
                 List<ImSet> initExpr = globalState.getProg().getGlobalInits().get(var);
                 if (initExpr != null) {
-                    r = initExpr.get(0).getRight().evaluate(globalState, localState);
+                    r = globalState.evaluateUntracked(initExpr.get(0).getRight(), localState);
                 } else {
                     throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initialized.");
                 }
