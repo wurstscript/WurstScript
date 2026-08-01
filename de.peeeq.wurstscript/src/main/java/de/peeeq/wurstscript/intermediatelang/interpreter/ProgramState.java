@@ -40,6 +40,9 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+    private final Set<String> modifiedGenericArrays = new HashSet<>();
+    private final Map<String, Set<List<Integer>>> modifiedGenericArrayIndexes = new HashMap<>();
+    private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
 
@@ -760,6 +763,117 @@ public class ProgramState extends State implements AutoCloseable {
             }
         }
         return r;
+    }
+
+    @Override
+    public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        String key = genericStaticKey(v);
+        super.setArrayVal(v, indexes, val);
+        if (key != null) {
+            modifiedGenericArrays.add(key);
+            modifiedGenericArrayIndexes.computeIfAbsent(key, ignored -> new HashSet<>())
+                .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
+            genericArrayTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+        }
+    }
+
+    private List<ImTypeArgument> genericStaticTypeArguments(ImVar v) {
+        ImClass owner = genericStaticOwner.get(v);
+        if (owner == null) {
+            return Collections.emptyList();
+        }
+
+        ImClassType receiver = currentReceiverInstantiationFor(owner);
+        if (receiver != null && receiver.getClassDef() == owner) {
+            return copyTypeArguments(receiver.getTypeArguments());
+        }
+
+        List<ImTypeArgument> result = new ArrayList<>();
+        for (ImTypeVar typeVar : owner.getTypeVariables()) {
+            ImType resolved = resolveType(JassIm.ImTypeVarRef(typeVar));
+            if (resolved instanceof ImTypeVarRef) {
+                return Collections.emptyList();
+            }
+            result.add(JassIm.ImTypeArgument(resolved, Collections.emptyMap()));
+        }
+        return result;
+    }
+
+    private static List<ImTypeArgument> copyTypeArguments(ImTypeArguments typeArguments) {
+        List<ImTypeArgument> result = new ArrayList<>(typeArguments.size());
+        for (ImTypeArgument typeArgument : typeArguments) {
+            result.add(typeArgument.copy());
+        }
+        return result;
+    }
+
+    /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
+    public ILconstArray getArrayValue(ImVar v) {
+        return getArray(v);
+    }
+
+    public static final class ArrayState {
+        private final ILconstArray value;
+        private final List<ImTypeArgument> typeArguments;
+        private final boolean generic;
+        private final Set<List<Integer>> modifiedIndexes;
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments) {
+            this(value, typeArguments, !typeArguments.isEmpty(), Collections.emptySet());
+        }
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments, boolean generic) {
+            this(value, typeArguments, generic, Collections.emptySet());
+        }
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments, boolean generic,
+                          Set<List<Integer>> modifiedIndexes) {
+            this.value = value;
+            this.typeArguments = Collections.unmodifiableList(new ArrayList<>(typeArguments));
+            this.generic = generic;
+            Set<List<Integer>> indexSnapshot = new HashSet<>();
+            for (List<Integer> indexes : modifiedIndexes) {
+                indexSnapshot.add(Collections.unmodifiableList(new ArrayList<>(indexes)));
+            }
+            this.modifiedIndexes = Collections.unmodifiableSet(indexSnapshot);
+        }
+
+        public ILconstArray getValue() {
+            return value;
+        }
+
+        public List<ImTypeArgument> getTypeArguments() {
+            return typeArguments;
+        }
+
+        public boolean isGeneric() {
+            return generic;
+        }
+
+        public Set<List<Integer>> getModifiedIndexes() {
+            return modifiedIndexes;
+        }
+    }
+
+    public Collection<ArrayState> getArrayStates(ImVar v) {
+        String prefix = v.getName() + "|";
+        List<String> keys = new ArrayList<>(modifiedGenericArrays);
+        Collections.sort(keys);
+        List<ArrayState> result = new ArrayList<>();
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                ILconstArray value = genericStaticArrays.get(key);
+                if (value != null) {
+                    result.add(new ArrayState(value,
+                        genericArrayTypeArguments.getOrDefault(key, Collections.emptyList()), true,
+                        modifiedGenericArrayIndexes.getOrDefault(key, Collections.emptySet())));
+                }
+            }
+        }
+        if (result.isEmpty() && genericStaticKey(v) == null) {
+            result.add(new ArrayState(getArray(v), Collections.emptyList(), false, getModifiedArrayIndexes(v)));
+        }
+        return result;
     }
 
 

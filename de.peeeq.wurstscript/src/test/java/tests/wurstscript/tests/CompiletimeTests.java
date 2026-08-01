@@ -62,12 +62,222 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
+    @Test
+    public void testCompiletimeArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                       "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAfterSourceInitializer() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source = [1]",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source = [1]",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Box<T:>",
+                   "    static T array store",
+                   "    static function set(int index, T value)",
+                   "        store[index] = value",
+                   "    static function get(int index) returns T",
+                   "        return store[index]",
+                   "@compiletime function fill()",
+                   "    Box<int>.set(0, 42)",
+                   "init",
+                   "    if Box<int>.get(0) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Box<T:>",
+                   "    static T array store",
+                   "    static function set(int index, T value)",
+                   "        store[index] = value",
+                   "    static function get(int index) returns T",
+                   "        return store[index]",
+                   "@compiletime function fill()",
+                   "    Box<int>.set(0, 42)",
+                   "init",
+                   "    if Box<int>.get(0) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class A",
+                   "    int value",
+                   "A array source",
+                   "@compiletime function fill()",
+                   "    source[0] = new A",
+                   "    source[0].value = 42",
+                   "init",
+                   "    if source[0].value == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeHashtableArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("type agent extends handle",
+                   "type hashtable extends agent",
+                   "package Test",
+                   "native testSuccess()",
+                   "@extern native InitHashtable() returns hashtable",
+                   "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+                   "@extern native SaveInteger(hashtable h, int p, int c, int i)",
+                   "hashtable array source",
+                   "@compiletime function fill()",
+                   "    source[0] = InitHashtable()",
+                   "    SaveInteger(source[0], 2, 3, 42)",
+                   "init",
+                   "    if LoadInteger(source[0], 2, 3) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeNullArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "string array source = [\"value\"]",
+                   "@compiletime function clear()",
+                   "    source[0] = null",
+                   "init",
+                   "    if source[0] == null",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeTupleArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "tuple pair(int left, int right)",
+                   "pair array source",
+                   "@compiletime function fill()",
+                   "    source[0] = pair(42, 7)",
+                   "init",
+                   "    if source[0].left == 42 and source[0].right == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAcrossPackages() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAcrossPackagesWithTwoInitializers() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "int array other = [2]",
+                   "@compiletime function fillB()",
+                   "    other[0] = 9",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7 and other[0] == 9",
+                   "        testSuccess()",
+                   "endpackage");
+    }
+
+    @Test
+    public void testCompiletimeArrayReplayPrecedesDependentInitializer() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array first = [1]",
+                   "int observed = first[0]",
+                   "int array second = [2]",
+                   "@compiletime function fill()",
+                   "    first[0] = 42",
+                   "    second[0] = 9",
+                   "init",
+                   "    if observed == 42 and first[0] == 42 and second[0] == 9",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayReplayOnlyWrittenEntries() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int seed = 1",
+                   "init",
+                   "    seed = 2",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int array source = [seed, 0]",
+                   "@compiletime function fill()",
+                   "    source[1] = 42",
+                   "init",
+                   "    if source[0] == 2 and source[1] == 42",
+                   "        testSuccess()");
+    }
 
     @Test
     public void testCompiletimeHashtable() {
-        test().executeProg(true)
+        test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)
-                .executeProgOnlyAfterTransforms()
                 .lines("type agent extends handle",
                         "type hashtable extends agent",
                         "package Test",
@@ -175,6 +385,26 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if a.x == \"schwardemage\" and a.y == 42",
                         "        testSuccess()");
+    }
+
+    @Test
+    public void testPersistCompiletimeNewGenericClass() {
+        // Translation is the assertion here: executing the synthesized generic
+        // runtime global through the interpreter still needs a separate attachment fix.
+        test()
+                .runCompiletimeFunctions(true)
+                .lines("package Test",
+                        "class PureMap<T:>",
+                        "    T value",
+                        "    function put(T value)",
+                        "        this.value = value",
+                        "    function get() returns T",
+                        "        return value",
+                        "function compiletime<T:>(T value) returns T",
+                        "    return value",
+                        "PureMap<int> map = compiletime(new PureMap<int>)",
+                        "@compiletime function populate()",
+                        "    map.put(42)");
     }
 
     @Test
