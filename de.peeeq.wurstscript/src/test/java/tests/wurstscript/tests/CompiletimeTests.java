@@ -256,6 +256,25 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeArrayReplayOnlyWrittenEntries() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int seed = 1",
+                   "init",
+                   "    seed = 2",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int array source = [seed, 0]",
+                   "@compiletime function fill()",
+                   "    source[1] = 42",
+                   "init",
+                   "    if source[0] == 2 and source[1] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeHashtable() {
         test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)

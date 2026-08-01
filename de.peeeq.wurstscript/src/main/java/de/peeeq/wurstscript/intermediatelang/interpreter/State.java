@@ -8,10 +8,13 @@ import de.peeeq.wurstscript.jassIm.*;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 
 /**
  * Lazily allocates internal maps ONLY when needed.
@@ -21,7 +24,7 @@ public abstract class State {
     // in State:
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconst> values;
     private @Nullable Object2ObjectOpenHashMap<ImVar, ILconstArray> arrayValues;
-    private final Set<ImVar> modifiedArrays = new HashSet<>();
+    private final Map<ImVar, Set<List<Integer>>> modifiedArrayIndexes = new IdentityHashMap<>();
 
 
     private Object2ObjectOpenHashMap<ImVar, ILconst> ensureValues() {
@@ -80,7 +83,8 @@ public abstract class State {
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
-        modifiedArrays.add(v);
+        modifiedArrayIndexes.computeIfAbsent(v, ignored -> new HashSet<>())
+            .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
         ILconstArray ar = getArray(v);
         for (int i = 0; i < indexes.size() - 1; i++) {
             ar = (ILconstArray) ar.get(indexes.get(i));
@@ -89,7 +93,11 @@ public abstract class State {
     }
 
     public Set<ImVar> getModifiedArrays() {
-        return modifiedArrays;
+        return modifiedArrayIndexes.keySet();
+    }
+
+    public Set<List<Integer>> getModifiedArrayIndexes(ImVar v) {
+        return modifiedArrayIndexes.getOrDefault(v, Collections.emptySet());
     }
 
     public @Nullable ILconst getArrayVal(ImVar v, List<Integer> indexes) {

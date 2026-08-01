@@ -691,7 +691,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             for (ProgramState.ArrayState state : globalState.getArrayStates(var)) {
                 if (!state.isGeneric()) {
                     emitCompiletimeArrayEntries(replayFunction, var, state.getValue(),
-                        new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites);
+                        new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites,
+                        state.getModifiedIndexes());
                 } else if (state.getTypeArguments().isEmpty()) {
                     throw new InterpreterException(var.getTrace(),
                         "Could not determine the generic specialization for compiletime array " + var.getName());
@@ -744,29 +745,40 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             JassIm.ImStmts(), Collections.emptyList());
         imProg.getFunctions().add(replay);
         arrayStateSplitTargets.add(replay);
-        emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType, runtimeArrayWrites);
+        emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType,
+            runtimeArrayWrites, state.getModifiedIndexes());
         if (!replay.getBody().isEmpty()) {
             replayFunction.getBody().add(JassIm.ImFunctionCall(
                 var.getTrace(), replay, JassIm.ImTypeArguments(state.getTypeArguments()), JassIm.ImExprs(), true, CallType.NORMAL));
         }
     }
 
-    private void emitCompiletimeArrayEntries(ImFunction target, ImVar var, ILconstArray values, List<ImExpr> indexes,
-                                             ImType entryType, Set<RuntimeArrayWrite> runtimeArrayWrites) {
+    private void emitCompiletimeArrayEntries(ImFunction target, ImVar var, ILconstArray values, List<Integer> indexes,
+                                             ImType entryType, Set<RuntimeArrayWrite> runtimeArrayWrites,
+                                             Set<List<Integer>> modifiedIndexes) {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
-            List<ImExpr> nextIndexes = new ArrayList<>(indexes);
-            nextIndexes.add(JassIm.ImIntVal(entry.getIntKey()));
+            List<Integer> nextIndexes = new ArrayList<>(indexes);
+            nextIndexes.add(entry.getIntKey());
             if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
                 emitCompiletimeArrayEntries(target, var, (ILconstArray) entry.getValue(), nextIndexes,
-                    ((ImArrayLikeType) entryType).getEntryType(), runtimeArrayWrites);
+                    ((ImArrayLikeType) entryType).getEntryType(), runtimeArrayWrites, modifiedIndexes);
+            } else if (!modifiedIndexes.contains(nextIndexes)) {
+                continue;
             } else if (isPersistableCompiletimeValue(entry.getValue())) {
+                ImExprs indexExpressions = JassIm.ImExprs();
+                for (Integer index : nextIndexes) {
+                    indexExpressions.add(JassIm.ImIntVal(index));
+                }
                 target.getBody().add(JassIm.ImSet(var.getTrace(),
-                    JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
+                    JassIm.ImVarArrayAccess(var.getTrace(), var, indexExpressions),
                     constantToExpr(var.getTrace(), entry.getValue(), entryType)));
             } else {
                 String message = "Unsupported compiletime array entry at index " + entry.getIntKey()
                     + " (" + entry.getValue() + ")";
-                RuntimeArrayWrite runtimeWrite = runtimeArrayWrite(var, nextIndexes);
+                List<ImExpr> indexExpressions = nextIndexes.stream()
+                    .map(JassIm::ImIntVal)
+                    .collect(Collectors.toList());
+                RuntimeArrayWrite runtimeWrite = runtimeArrayWrite(var, indexExpressions);
                 if (runtimeWrite != null && runtimeArrayWrites.stream().anyMatch(runtimeWrite::matches)) {
                     WLogger.warning(message + "; runtime initialization of " + var.getName()
                         + " remains authoritative at " + var.getTrace());
