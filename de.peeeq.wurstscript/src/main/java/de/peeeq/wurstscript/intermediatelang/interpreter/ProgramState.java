@@ -49,6 +49,8 @@ public class ProgramState extends State implements AutoCloseable {
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
+    private int trackedWriteDepth;
+    private long compiletimeConstantReadVersion;
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -685,7 +687,7 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
-        boolean trackWrite = untrackedWriteDepth == 0;
+        boolean trackWrite = writesAreTracked();
         if (trackWrite) {
             modifiedScalars.add(v);
         }
@@ -748,6 +750,33 @@ public class ProgramState extends State implements AutoCloseable {
         }
     }
 
+    void markCompiletimeConstantRead() {
+        compiletimeConstantReadVersion++;
+    }
+
+    long getCompiletimeConstantReadVersion() {
+        return compiletimeConstantReadVersion;
+    }
+
+    void runWithTrackedWrites(Runnable action) {
+        trackedWriteDepth++;
+        try {
+            action.run();
+        } finally {
+            trackedWriteDepth--;
+        }
+    }
+
+    private boolean writesAreTracked() {
+        // A compiletime-dependent branch cancels one enclosing lazy-initializer suppression scope.
+        // A nested lazy initializer therefore becomes untracked again until its own such branch.
+        return untrackedWriteDepth == 0 || trackedWriteDepth >= untrackedWriteDepth;
+    }
+
+    boolean writesAreSuppressed() {
+        return !writesAreTracked();
+    }
+
 
     public boolean isCompiletime() {
         return isCompiletime;
@@ -798,7 +827,7 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
-        if (untrackedWriteDepth > 0) {
+        if (!writesAreTracked()) {
             setArrayValUntracked(v, indexes, val);
             return;
         }

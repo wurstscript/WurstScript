@@ -175,6 +175,39 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeOnlyLazyInitializerSideEffectsAreReplayed() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package MagicFunctions",
+                   "public constant compiletime = false",
+                   "endpackage",
+                   "package Test",
+                   "import MagicFunctions",
+                   "native testSuccess()",
+                   "int runtimeCounter = 0",
+                   "int compiletimeValue = 0",
+                   "int array compiletimeValues = [0]",
+                   "int nestedCounter = 0",
+                   "function initializeNested() returns int",
+                   "    nestedCounter++",
+                   "    return nestedCounter",
+                   "int nestedObserved = initializeNested()",
+                   "function initialize() returns int",
+                   "    runtimeCounter++",
+                   "    if compiletime",
+                   "        compiletimeValue = 42",
+                   "        compiletimeValues[0] = 7",
+                   "    return runtimeCounter",
+                   "int observed = initialize()",
+                   "@compiletime function fill()",
+                   "    let _snapshot = observed",
+                   "    if compiletime",
+                   "        let _nestedSnapshot = nestedObserved",
+                   "init",
+                   "    if runtimeCounter == 1 and observed == 1 and compiletimeValue == 42 and compiletimeValues[0] == 7 and nestedCounter == 1 and nestedObserved == 1",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeScalarRuntimeWriteRemainsAuthoritative() {
         test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",

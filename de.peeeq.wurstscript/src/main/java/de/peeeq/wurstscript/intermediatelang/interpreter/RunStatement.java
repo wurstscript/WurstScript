@@ -23,11 +23,16 @@ public class RunStatement {
     }
 
     public static void run(ImIf s, ProgramState globalState, LocalState localState) {
+        long compiletimeReadsBefore = globalState.getCompiletimeConstantReadVersion();
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
-        if (c.getVal()) {
-            s.getThenBlock().runStatements(globalState, localState);
+        ImStmts selectedBlock = c.getVal() ? s.getThenBlock() : s.getElseBlock();
+        // Runtime repeats ordinary lazy-initializer branches, but not a branch selected using
+        // MagicFunctions.compiletime. Preserve writes from the latter for state migration.
+        if (globalState.writesAreSuppressed()
+            && globalState.getCompiletimeConstantReadVersion() != compiletimeReadsBefore) {
+            globalState.runWithTrackedWrites(() -> selectedBlock.runStatements(globalState, localState));
         } else {
-            s.getElseBlock().runStatements(globalState, localState);
+            selectedBlock.runStatements(globalState, localState);
         }
 
     }
