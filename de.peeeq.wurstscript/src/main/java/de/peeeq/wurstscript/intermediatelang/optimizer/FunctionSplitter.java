@@ -34,7 +34,6 @@ public class FunctionSplitter {
     }
 
     private void optimize() {
-        Preconditions.checkArgument(func.getTypeVariables().isEmpty(), "func must not be generic");
         Preconditions.checkArgument(func.getParameters().isEmpty(), "func parameters must be empty");
         Preconditions.checkArgument(func.getReturnType() instanceof ImVoid, "func must return void");
         // run some basic optimizations first:
@@ -47,6 +46,10 @@ public class FunctionSplitter {
         Set<ImVar> usedVars = UsedVariables.calculate(func);
         func.getLocals().removeIf(v -> !usedVars.contains(v));
         func.flatten(tr);
+        boolean generic = !func.getTypeVariables().isEmpty();
+        Preconditions.checkArgument(!generic || func.getLocals().isEmpty(),
+            "generic split functions must not have locals");
+        ImFunction genericTemplate = generic ? func.copyWithRefs() : null;
         List<List<ImStmt>> splitResult = split(func.getBody().removeAll());
 
         ImProg prog = tr.getImProg();
@@ -55,19 +58,29 @@ public class FunctionSplitter {
 
         // create helper functions
         List<ImFunction> helperFuncs = new ArrayList<>();
+        int statementOffset = 0;
         for (int i = 0; i < splitResult.size(); i++) {
             List<ImStmt> stmts = splitResult.get(i);
-            ImFunction helperFunc = JassIm.ImFunction(
-                func.getTrace(),
-                func.getName() + "_" + i,
-                JassIm.ImTypeVars(),
-                JassIm.ImVars(),
-                JassIm.ImVoid(),
-                JassIm.ImVars(),
-                JassIm.ImStmts(stmts),
-                Collections.emptyList()
-            );
+            ImFunction helperFunc;
+            if (generic) {
+                helperFunc = genericTemplate.copyWithRefs();
+                List<ImStmt> copiedStatements = helperFunc.getBody().removeAll();
+                helperFunc.getBody().addAll(copiedStatements.subList(statementOffset, statementOffset + stmts.size()));
+                helperFunc.setName(func.getName() + "_" + i);
+            } else {
+                helperFunc = JassIm.ImFunction(
+                    func.getTrace(),
+                    func.getName() + "_" + i,
+                    JassIm.ImTypeVars(),
+                    JassIm.ImVars(),
+                    JassIm.ImVoid(),
+                    JassIm.ImVars(),
+                    JassIm.ImStmts(stmts),
+                    Collections.emptyList()
+                );
+            }
             helperFuncs.add(helperFunc);
+            statementOffset += stmts.size();
         }
         prog.getFunctions().addAll(helperFuncs);
 
@@ -76,12 +89,20 @@ public class FunctionSplitter {
             func.getBody().add(JassIm.ImFunctionCall(
                 func.getTrace(),
                 helperFunc,
-                JassIm.ImTypeArguments(),
+                typeArgumentsForCurrentFunction(),
                 JassIm.ImExprs(),
                 false,
                 CallType.EXECUTE
             ));
         }
+    }
+
+    private ImTypeArguments typeArgumentsForCurrentFunction() {
+        ImTypeArguments result = JassIm.ImTypeArguments();
+        for (ImTypeVar typeVar : func.getTypeVariables()) {
+            result.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar), Collections.emptyMap()));
+        }
+        return result;
     }
 
     private List<List<ImStmt>> split(List<ImStmt> body) {

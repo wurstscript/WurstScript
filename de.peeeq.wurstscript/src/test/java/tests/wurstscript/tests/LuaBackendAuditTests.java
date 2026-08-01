@@ -54,6 +54,59 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void compiletimeGenericArrayReplayLeavesAreSplit() {
+        String compiled = compileLuaWithRunArgs(
+            "compiletimeGenericArrayReplayLeavesAreSplit",
+            new RunArgs().with("-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1"),
+            "package Test",
+            "class Box<T:>",
+            "    static T array store",
+            "    static function set(int index, T value)",
+            "        store[index] = value",
+            "    static function get(int index) returns T",
+            "        return store[index]",
+            "@compiletime function fill()",
+            "    Box<int>.set(0, 10)",
+            "    Box<int>.set(1, 20)",
+            "    Box<int>.set(2, 30)",
+            "native testSuccess()",
+            "init",
+            "    if Box<int>.get(0) + Box<int>.get(1) + Box<int>.get(2) == 60",
+            "        testSuccess()"
+        );
+
+        java.util.regex.Matcher replayBody = java.util.regex.Pattern
+            .compile("function initCompiletimeArrayState[^\\n]*\\n(.*?)\\nend", java.util.regex.Pattern.DOTALL)
+            .matcher(compiled);
+        int persistedAssignments = 0;
+        while (replayBody.find()) {
+            int assignmentsInFunction = countOccurrences(replayBody.group(1), "Box_store[");
+            assertTrue("each generic replay leaf must honor the configured split limit:\n" + replayBody.group(),
+                assignmentsInFunction <= 1);
+            persistedAssignments += assignmentsInFunction;
+        }
+        assertEquals("all generic compiletime array entries must still be emitted", 3, persistedAssignments);
+    }
+
+    @Test
+    public void compiletimeArrayReplaySplittingIsDeterministicAcrossPackages() {
+        RunArgs runArgs = new RunArgs().with(
+            "-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1");
+        String[] source = {
+            "package A", "public int array a = [1]", "@compiletime function fillA()", "    a[0] = 10", "endpackage",
+            "package B", "public int array b = [1]", "@compiletime function fillB()", "    b[0] = 20", "endpackage",
+            "package C", "public int array c = [1]", "@compiletime function fillC()", "    c[0] = 30", "endpackage",
+            "package D", "public int array d = [1]", "@compiletime function fillD()", "    d[0] = 40", "endpackage",
+            "package Test", "import A", "import B", "import C", "import D", "native testSuccess()", "init",
+            "    if a[0] + b[0] + c[0] + d[0] == 100", "        testSuccess()"
+        };
+
+        String first = compileLuaWithRunArgs("compiletimeArrayReplaySplittingIsDeterministicAcrossPackages", runArgs, source);
+        String second = compileLuaWithRunArgs("compiletimeArrayReplaySplittingIsDeterministicAcrossPackages", runArgs, source);
+        assertEquals("compiletime replay splitting must not depend on identity-hash iteration", first, second);
+    }
+
+    @Test
     public void localPlayerEffectfulBooleanOperandSurvivesOptimization() {
         String compiled = compileOptimizedLua(
             "localPlayerEffectfulBooleanOperandSurvivesOptimization",

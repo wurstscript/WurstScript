@@ -201,7 +201,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         if (compiletimeStateInitFunction != null) {
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
         }
-        for (ImFunction arrayStateFunction : arrayStateInitFunctions.values()) {
+        List<ImFunction> splitTargets = new ArrayList<>(arrayStateSplitTargets);
+        splitTargets.sort(Comparator.comparing(ImFunction::getName));
+        for (ImFunction arrayStateFunction : splitTargets) {
             if (!arrayStateFunction.getBody().isEmpty()) {
                 FunctionSplitter.splitFunc(translator, arrayStateFunction);
             }
@@ -517,6 +519,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private ImFunction compiletimeArrayStateInitFunction = null;
     private final Map<ImFunction, ImFunction> arrayStateInitFunctions = new IdentityHashMap<>();
     private final Map<ImFunction, Set<ImSet>> arrayStateInitializers = new IdentityHashMap<>();
+    private final List<ImFunction> arrayStateSplitTargets = new ArrayList<>();
     private int genericArrayStateInitCounter;
 
     private ImFunction getCompiletimeStateInitFunction() {
@@ -571,6 +574,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         ImFunction result = JassIm.ImFunction(trace, name, JassIm.ImTypeVars(), JassIm.ImVars(),
             JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
         imProg.getFunctions().add(result);
+        arrayStateSplitTargets.add(result);
         arrayStateInitFunctions.put(replayTarget, result);
         if (replayTarget == null) {
             compiletimeArrayStateInitFunction = result;
@@ -629,7 +633,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         for (int i = 0; i < function.getBody().size(); i++) {
             if (function.getBody().get(i) instanceof ImSet
                 && modifiedArrayInitializers.contains(function.getBody().get(i))) {
-                insertionIndex = i + 1;
+                insertionIndex = i;
             }
         }
         return insertionIndex;
@@ -718,6 +722,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             JassIm.ImTypeVars(typeVars), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(),
             JassIm.ImStmts(), Collections.emptyList());
         imProg.getFunctions().add(replay);
+        arrayStateSplitTargets.add(replay);
         emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType, runtimeArrayWrites);
         if (!replay.getBody().isEmpty()) {
             replayFunction.getBody().add(JassIm.ImFunctionCall(
