@@ -198,14 +198,12 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void partitionCompiletimeStateInitFunction() {
-        if (compiletimeStateInitFunction == null) {
-            if (compiletimeArrayStateInitFunction != null) {
-                FunctionSplitter.splitFunc(translator, compiletimeArrayStateInitFunction);
-            }
-        } else {
+        if (compiletimeStateInitFunction != null) {
             FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
-            if (compiletimeArrayStateInitFunction != null) {
-                FunctionSplitter.splitFunc(translator, compiletimeArrayStateInitFunction);
+        }
+        for (ImFunction arrayStateFunction : arrayStateInitFunctions.values()) {
+            if (!arrayStateFunction.getBody().isEmpty()) {
+                FunctionSplitter.splitFunc(translator, arrayStateFunction);
             }
         }
     }
@@ -517,6 +515,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private ImFunction compiletimeStateInitFunction = null;
     private ImFunction compiletimeArrayStateInitFunction = null;
+    private final Map<ImFunction, ImFunction> arrayStateInitFunctions = new IdentityHashMap<>();
+    private final Map<ImFunction, Set<ImSet>> arrayStateInitializers = new IdentityHashMap<>();
     private int genericArrayStateInitCounter;
 
     private ImFunction getCompiletimeStateInitFunction() {
@@ -559,51 +559,53 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         getCompiletimeStateInitFunction().getBody().add(stmt);
     }
 
-    private ImFunction getCompiletimeArrayStateInitFunction() {
-        if (compiletimeArrayStateInitFunction == null) {
-            Element trace = imProg.getTrace();
-            ImFunction res = JassIm.ImFunction(trace, "initCompiletimeArrayState", JassIm.ImTypeVars(), JassIm.ImVars(),
-                JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
-            imProg.getFunctions().add(res);
-            compiletimeArrayStateInitFunction = res;
+    private ImFunction getCompiletimeArrayStateInitFunction(@Nullable ImFunction replayTarget) {
+        ImFunction existing = arrayStateInitFunctions.get(replayTarget);
+        if (existing != null) {
+            return existing;
         }
-        return compiletimeArrayStateInitFunction;
+        Element trace = imProg.getTrace();
+        String name = replayTarget == null
+            ? "initCompiletimeArrayState"
+            : "initCompiletimeArrayState_" + genericArrayStateInitCounter++;
+        ImFunction result = JassIm.ImFunction(trace, name, JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        imProg.getFunctions().add(result);
+        arrayStateInitFunctions.put(replayTarget, result);
+        if (replayTarget == null) {
+            compiletimeArrayStateInitFunction = result;
+        }
+        return result;
     }
 
     private void insertCompiletimeArrayStateInitCalls() {
-        if (compiletimeArrayStateInitFunction == null || compiletimeArrayStateInitFunction.getBody().isEmpty()) {
+        if (arrayStateInitFunctions.isEmpty()) {
             return;
         }
-
-        Set<ImSet> modifiedArrayInitializers = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImVar var : globalState.getModifiedArrays()) {
-            for (ImSet initializer : imProg.getGlobalInits().getOrDefault(var, Collections.emptyList())) {
-                modifiedArrayInitializers.add(initializer);
-            }
-        }
-
         ImFunction globalInitFunction = translator.getGlobalInitFunc();
-        boolean insertedIntoPackage = false;
-        if (!modifiedArrayInitializers.isEmpty()
-            && insertReplayAfterInitializers(globalInitFunction, modifiedArrayInitializers)) {
-            insertedIntoPackage = true;
-        }
-        for (ImFunction initFunction : translator.initFuncMap.values()) {
-            if (initFunction.getBody().isEmpty()) {
+        List<ImFunction> packageTargets = new ArrayList<>(arrayStateInitFunctions.keySet());
+        packageTargets.remove(null);
+        packageTargets.sort(Comparator.comparing(ImFunction::getName));
+        for (ImFunction target : packageTargets) {
+            ImFunction replay = arrayStateInitFunctions.get(target);
+            if (replay.getBody().isEmpty()) {
                 continue;
             }
-            insertReplayAfterInitializers(initFunction, modifiedArrayInitializers);
-            insertedIntoPackage = true;
+            int insertionIndex = findLastArrayInitializer(target, arrayStateInitializers.get(target));
+            if (insertionIndex >= 0) {
+                target.getBody().add(insertionIndex + 1, newCompiletimeArrayStateInitCall(replay));
+            }
         }
 
-        if (!insertedIntoPackage) {
+        ImFunction mainReplay = arrayStateInitFunctions.get(null);
+        if (mainReplay != null && !mainReplay.getBody().isEmpty()) {
             ImStmts mainBody = translator.getMainFunc().getBody();
             ImFunction stateInit = compiletimeStateInitFunction;
             if (stateInit != null) {
                 for (int i = 0; i < mainBody.size(); i++) {
                     ImStmt stmt = mainBody.get(i);
                     if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == stateInit) {
-                        mainBody.add(i + 1, newCompiletimeArrayStateInitCall());
+                        mainBody.add(i + 1, newCompiletimeArrayStateInitCall(mainReplay));
                         return;
                     }
                 }
@@ -611,17 +613,17 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             for (int i = 0; i < mainBody.size(); i++) {
                 ImStmt stmt = mainBody.get(i);
                 if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc() == globalInitFunction) {
-                    mainBody.add(i + 1, newCompiletimeArrayStateInitCall());
+                    mainBody.add(i + 1, newCompiletimeArrayStateInitCall(mainReplay));
                     return;
                 }
             }
-            mainBody.add(0, newCompiletimeArrayStateInitCall());
+            mainBody.add(0, newCompiletimeArrayStateInitCall(mainReplay));
         }
     }
 
-    private boolean insertReplayAfterInitializers(ImFunction function, Set<ImSet> modifiedArrayInitializers) {
+    private int findLastArrayInitializer(ImFunction function, Set<ImSet> modifiedArrayInitializers) {
         if (function == null || function.getBody().isEmpty()) {
-            return false;
+            return -1;
         }
         int insertionIndex = -1;
         for (int i = 0; i < function.getBody().size(); i++) {
@@ -630,22 +632,18 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 insertionIndex = i + 1;
             }
         }
-        if (insertionIndex < 0) {
-            insertionIndex = 0;
-        }
-        function.getBody().add(insertionIndex, newCompiletimeArrayStateInitCall());
-        return true;
+        return insertionIndex;
     }
 
-    private ImFunctionCall newCompiletimeArrayStateInitCall() {
-        return JassIm.ImFunctionCall(imProg.getTrace(), compiletimeArrayStateInitFunction,
+    private ImFunctionCall newCompiletimeArrayStateInitCall(ImFunction replayFunction) {
+        return JassIm.ImFunctionCall(imProg.getTrace(), replayFunction,
             JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
     }
 
     private void emitCompiletimeState() {
         // constantToExpr may materialize object handles as additional globals.
         // Iterate over a snapshot to avoid modifying the collection in-flight.
-        Set<ImVar> runtimeArrayWrites = findRuntimeArrayWrites();
+        Set<RuntimeArrayWrite> runtimeArrayWrites = findRuntimeArrayWrites();
         List<ImVar> modifiedArrays = new ArrayList<>(globalState.getModifiedArrays());
         Map<ImVar, Integer> globalOrder = new IdentityHashMap<>();
         for (int i = 0; i < imProg.getGlobals().size(); i++) {
@@ -661,22 +659,56 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (!(var.getType() instanceof ImArrayLikeType)) {
                 continue;
             }
+            ImFunction replayTarget = findArrayReplayTarget(var);
+            ImFunction replayFunction = getCompiletimeArrayStateInitFunction(replayTarget);
             for (ProgramState.ArrayState state : globalState.getArrayStates(var)) {
                 if (!state.isGeneric()) {
-                    emitCompiletimeArrayEntries(getCompiletimeArrayStateInitFunction(), var, state.getValue(),
+                    emitCompiletimeArrayEntries(replayFunction, var, state.getValue(),
                         new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites);
                 } else if (state.getTypeArguments().isEmpty()) {
                     throw new InterpreterException(var.getTrace(),
                         "Could not determine the generic specialization for compiletime array " + var.getName());
                 } else {
-                    emitCompiletimeGenericArrayState(var, state, ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites);
+                    emitCompiletimeGenericArrayState(replayFunction, var, state,
+                        ((ImArrayLikeType) var.getType()).getEntryType(), runtimeArrayWrites);
                 }
             }
         }
     }
 
-    private void emitCompiletimeGenericArrayState(ImVar var, ProgramState.ArrayState state, ImType entryType,
-                                                  Set<ImVar> runtimeArrayWrites) {
+    private @Nullable ImFunction findArrayReplayTarget(ImVar var) {
+        List<ImSet> initializers = imProg.getGlobalInits().getOrDefault(var, Collections.emptyList());
+        if (initializers.isEmpty()) {
+            return null;
+        }
+        List<ImFunction> candidates = new ArrayList<>();
+        candidates.add(translator.getGlobalInitFunc());
+        candidates.addAll(translator.initFuncMap.values());
+        for (ImFunction candidate : candidates) {
+            Set<ImSet> matching = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImSet initializer : initializers) {
+                for (ImStmt statement : candidate.getBody()) {
+                    if (statement == initializer) {
+                        matching.add(initializer);
+                        break;
+                    }
+                }
+            }
+            if (!matching.isEmpty()) {
+                if (candidate != translator.getGlobalInitFunc()) {
+                    arrayStateInitializers.computeIfAbsent(candidate,
+                        ignored -> Collections.newSetFromMap(new IdentityHashMap<>())).addAll(matching);
+                    return candidate;
+                }
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private void emitCompiletimeGenericArrayState(ImFunction replayFunction, ImVar var,
+                                                   ProgramState.ArrayState state, ImType entryType,
+                                                  Set<RuntimeArrayWrite> runtimeArrayWrites) {
         List<ImTypeVar> typeVars = new ArrayList<>();
         for (int i = 0; i < state.getTypeArguments().size(); i++) {
             typeVars.add(JassIm.ImTypeVar("T" + i));
@@ -687,12 +719,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             JassIm.ImStmts(), Collections.emptyList());
         imProg.getFunctions().add(replay);
         emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType, runtimeArrayWrites);
-        getCompiletimeArrayStateInitFunction().getBody().add(JassIm.ImFunctionCall(
-            var.getTrace(), replay, JassIm.ImTypeArguments(state.getTypeArguments()), JassIm.ImExprs(), true, CallType.NORMAL));
+        if (!replay.getBody().isEmpty()) {
+            replayFunction.getBody().add(JassIm.ImFunctionCall(
+                var.getTrace(), replay, JassIm.ImTypeArguments(state.getTypeArguments()), JassIm.ImExprs(), true, CallType.NORMAL));
+        }
     }
 
     private void emitCompiletimeArrayEntries(ImFunction target, ImVar var, ILconstArray values, List<ImExpr> indexes,
-                                             ImType entryType, Set<ImVar> runtimeArrayWrites) {
+                                             ImType entryType, Set<RuntimeArrayWrite> runtimeArrayWrites) {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
             List<ImExpr> nextIndexes = new ArrayList<>(indexes);
             nextIndexes.add(JassIm.ImIntVal(entry.getIntKey()));
@@ -706,7 +740,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             } else {
                 String message = "Unsupported compiletime array entry at index " + entry.getIntKey()
                     + " (" + entry.getValue() + ")";
-                if (runtimeArrayWrites.contains(var)) {
+                RuntimeArrayWrite runtimeWrite = runtimeArrayWrite(var, nextIndexes);
+                if (runtimeWrite != null && runtimeArrayWrites.stream().anyMatch(runtimeWrite::matches)) {
                     WLogger.warning(message + "; runtime initialization of " + var.getName()
                         + " remains authoritative at " + var.getTrace());
                 } else {
@@ -716,8 +751,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
     }
 
-    private Set<ImVar> findRuntimeArrayWrites() {
-        Set<ImVar> result = Collections.newSetFromMap(new IdentityHashMap<>());
+    private Set<RuntimeArrayWrite> findRuntimeArrayWrites() {
+        Set<RuntimeArrayWrite> result = new HashSet<>();
         Set<ImFunction> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         Deque<ImFunction> pending = new ArrayDeque<>(translator.initFuncMap.values());
         pending.add(translator.getMainFunc());
@@ -731,13 +766,62 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 public void visit(ImSet set) {
                     super.visit(set);
                     if (set.getLeft() instanceof ImVarArrayAccess) {
-                        result.add(((ImVarArrayAccess) set.getLeft()).getVar());
+                        ImVarArrayAccess access = (ImVarArrayAccess) set.getLeft();
+                        List<Integer> indexes = new ArrayList<>();
+                        for (ImExpr index : access.getIndexes()) {
+                            indexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+                        }
+                        result.add(new RuntimeArrayWrite(access.getVar(), indexes));
                     }
                 }
             });
             pending.addAll(UsedFunctions.calculate(function));
         }
         return result;
+    }
+
+    private static final class RuntimeArrayWrite {
+        private final ImVar var;
+        private final List<Integer> indexes;
+
+        private RuntimeArrayWrite(ImVar var, List<Integer> indexes) {
+            this.var = var;
+            this.indexes = new ArrayList<>(indexes);
+        }
+
+        private boolean matches(RuntimeArrayWrite other) {
+            if (var != other.var || indexes.size() != other.indexes.size()) {
+                return false;
+            }
+            for (int i = 0; i < indexes.size(); i++) {
+                Integer expected = indexes.get(i);
+                Integer actual = other.indexes.get(i);
+                if (expected != null && actual != null && !expected.equals(actual)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RuntimeArrayWrite)) return false;
+            RuntimeArrayWrite that = (RuntimeArrayWrite) other;
+            return var == that.var && indexes.equals(that.indexes);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * System.identityHashCode(var) + indexes.hashCode();
+        }
+    }
+
+    private static RuntimeArrayWrite runtimeArrayWrite(ImVar var, List<ImExpr> indexes) {
+        List<Integer> constantIndexes = new ArrayList<>();
+        for (ImExpr index : indexes) {
+            constantIndexes.add(index instanceof ImIntVal ? ((ImIntVal) index).getValI() : null);
+        }
+        return new RuntimeArrayWrite(var, constantIndexes);
     }
 
     private boolean isPersistableCompiletimeValue(ILconst value) {

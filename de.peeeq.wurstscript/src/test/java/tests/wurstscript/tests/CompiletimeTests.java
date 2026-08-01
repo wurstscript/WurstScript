@@ -200,6 +200,46 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeArrayStateAcrossPackages() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAcrossPackagesWithTwoInitializers() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "int array other = [2]",
+                   "@compiletime function fillB()",
+                   "    other[0] = 9",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7 and other[0] == 9",
+                   "        testSuccess()",
+                   "endpackage");
+    }
+
+    @Test
     public void testCompiletimeHashtable() {
         test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)
