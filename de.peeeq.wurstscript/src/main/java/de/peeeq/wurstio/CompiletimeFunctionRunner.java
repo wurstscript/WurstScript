@@ -115,6 +115,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 emitCompiletimeState();
+                insertCompiletimeArrayStateInitCalls();
             }
 
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
@@ -553,19 +554,71 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                 JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
             imProg.getFunctions().add(res);
             compiletimeArrayStateInitFunction = res;
-            ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
-            ImFunction globalInitFunc = translator.getGlobalInitFunc();
+        }
+        return compiletimeArrayStateInitFunction;
+    }
+
+    private void insertCompiletimeArrayStateInitCalls() {
+        if (compiletimeArrayStateInitFunction == null) {
+            return;
+        }
+
+        Set<ImSet> modifiedArrayInitializers = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImVar var : globalState.getModifiedArrays()) {
+            for (ImSet initializer : imProg.getGlobalInits().getOrDefault(var, Collections.emptyList())) {
+                modifiedArrayInitializers.add(initializer);
+            }
+        }
+
+        ImFunction globalInitFunction = translator.getGlobalInitFunc();
+        boolean insertedIntoPackage = false;
+        if (!modifiedArrayInitializers.isEmpty()
+            && insertReplayAfterInitializers(globalInitFunction, modifiedArrayInitializers)) {
+            insertedIntoPackage = true;
+        }
+        for (ImFunction initFunction : translator.initFuncMap.values()) {
+            if (initFunction.getBody().isEmpty()) {
+                continue;
+            }
+            insertReplayAfterInitializers(initFunction, modifiedArrayInitializers);
+            insertedIntoPackage = true;
+        }
+
+        if (!insertedIntoPackage) {
             ImStmts mainBody = translator.getMainFunc().getBody();
             for (int i = 0; i < mainBody.size(); i++) {
                 ImStmt stmt = mainBody.get(i);
-                if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc().getName().equals(globalInitFunc.getName())) {
-                    mainBody.add(i + 1, call);
-                    return compiletimeArrayStateInitFunction;
+                if (stmt instanceof ImFunctionCall
+                    && ((ImFunctionCall) stmt).getFunc().getName().equals(globalInitFunction.getName())) {
+                    mainBody.add(i + 1, newCompiletimeArrayStateInitCall());
+                    return;
                 }
             }
-            mainBody.add(0, call);
+            mainBody.add(0, newCompiletimeArrayStateInitCall());
         }
-        return compiletimeArrayStateInitFunction;
+    }
+
+    private boolean insertReplayAfterInitializers(ImFunction function, Set<ImSet> modifiedArrayInitializers) {
+        if (function == null || function.getBody().isEmpty()) {
+            return false;
+        }
+        int insertionIndex = -1;
+        for (int i = 0; i < function.getBody().size(); i++) {
+            if (function.getBody().get(i) instanceof ImSet
+                && modifiedArrayInitializers.contains(function.getBody().get(i))) {
+                insertionIndex = i + 1;
+            }
+        }
+        if (insertionIndex < 0) {
+            insertionIndex = 0;
+        }
+        function.getBody().add(insertionIndex, newCompiletimeArrayStateInitCall());
+        return true;
+    }
+
+    private ImFunctionCall newCompiletimeArrayStateInitCall() {
+        return JassIm.ImFunctionCall(imProg.getTrace(), compiletimeArrayStateInitFunction,
+            JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
     }
 
     private void emitCompiletimeState() {

@@ -76,11 +76,24 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeArrayStateAfterSourceInitializer() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int array source = [1]",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeArrayStateLua() {
         test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int array source",
+                   "int array source = [1]",
                    "@compiletime function fill()",
                    "    source[0] = 42",
                    "init",
