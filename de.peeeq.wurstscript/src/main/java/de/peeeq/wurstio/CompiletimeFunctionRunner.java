@@ -591,8 +591,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             if (!(var.getType() instanceof ImArrayLikeType)) {
                 continue;
             }
-            ILconstArray values = globalState.getArrayValue(var);
-            emitCompiletimeArrayEntries(var, values, new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType());
+            for (ILconstArray values : globalState.getArrayValues(var)) {
+                emitCompiletimeArrayEntries(var, values, new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType());
+            }
         }
     }
 

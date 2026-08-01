@@ -40,6 +40,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+    private final Set<String> modifiedGenericArrays = new HashSet<>();
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
 
@@ -762,9 +763,33 @@ public class ProgramState extends State implements AutoCloseable {
         return r;
     }
 
+    @Override
+    public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        String key = genericStaticKey(v);
+        super.setArrayVal(v, indexes, val);
+        if (key != null) {
+            modifiedGenericArrays.add(key);
+        }
+    }
+
     /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
     public ILconstArray getArrayValue(ImVar v) {
         return getArray(v);
+    }
+
+    public Collection<ILconstArray> getArrayValues(ImVar v) {
+        String prefix = v.getName() + "|";
+        List<ILconstArray> result = new ArrayList<>();
+        for (String key : modifiedGenericArrays) {
+            if (key.startsWith(prefix)) {
+                ILconstArray value = genericStaticArrays.get(key);
+                if (value != null) result.add(value);
+            }
+        }
+        if (result.isEmpty() && genericStaticKey(v) == null) {
+            result.add(getArray(v));
+        }
+        return result;
     }
 
 
