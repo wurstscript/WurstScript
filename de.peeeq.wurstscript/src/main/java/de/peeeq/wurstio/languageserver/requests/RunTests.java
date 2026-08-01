@@ -29,6 +29,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -369,13 +370,15 @@ public class RunTests extends UserRequest<Object> {
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 if (!compactOutput) {
-                    println(new String(b, off, len));
+                    print(new String(b, off, len, StandardCharsets.UTF_8));
                 }
             }
 
 
         };
-        globalState.setOutStream(new PrintStream(os));
+        // autoflush, so that the output of a test is delivered while that test is running
+        // instead of being left in the buffer of the PrintStream
+        globalState.setOutStream(new PrintStream(os, true, StandardCharsets.UTF_8));
     }
 
     private String qualifiedTestName(ImFunction f) {
