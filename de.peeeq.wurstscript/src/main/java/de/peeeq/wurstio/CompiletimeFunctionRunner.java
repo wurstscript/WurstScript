@@ -571,7 +571,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void insertCompiletimeArrayStateInitCalls() {
-        if (compiletimeArrayStateInitFunction == null) {
+        if (compiletimeArrayStateInitFunction == null || compiletimeArrayStateInitFunction.getBody().isEmpty()) {
             return;
         }
 
