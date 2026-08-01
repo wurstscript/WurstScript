@@ -41,6 +41,7 @@ public class ProgramState extends State implements AutoCloseable {
 
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
     private final Set<String> modifiedGenericArrays = new HashSet<>();
+    private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
 
@@ -769,7 +770,38 @@ public class ProgramState extends State implements AutoCloseable {
         super.setArrayVal(v, indexes, val);
         if (key != null) {
             modifiedGenericArrays.add(key);
+            genericArrayTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
         }
+    }
+
+    private List<ImTypeArgument> genericStaticTypeArguments(ImVar v) {
+        ImClass owner = genericStaticOwner.get(v);
+        if (owner == null) {
+            return Collections.emptyList();
+        }
+
+        ImClassType receiver = currentReceiverInstantiationFor(owner);
+        if (receiver != null && receiver.getClassDef() == owner) {
+            return copyTypeArguments(receiver.getTypeArguments());
+        }
+
+        List<ImTypeArgument> result = new ArrayList<>();
+        for (ImTypeVar typeVar : owner.getTypeVariables()) {
+            ImType resolved = resolveType(JassIm.ImTypeVarRef(typeVar));
+            if (resolved instanceof ImTypeVarRef) {
+                return Collections.emptyList();
+            }
+            result.add(JassIm.ImTypeArgument(resolved, Collections.emptyMap()));
+        }
+        return result;
+    }
+
+    private static List<ImTypeArgument> copyTypeArguments(ImTypeArguments typeArguments) {
+        List<ImTypeArgument> result = new ArrayList<>(typeArguments.size());
+        for (ImTypeArgument typeArgument : typeArguments) {
+            result.add(typeArgument.copy());
+        }
+        return result;
     }
 
     /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
@@ -777,17 +809,39 @@ public class ProgramState extends State implements AutoCloseable {
         return getArray(v);
     }
 
-    public Collection<ILconstArray> getArrayValues(ImVar v) {
+    public static final class ArrayState {
+        private final ILconstArray value;
+        private final List<ImTypeArgument> typeArguments;
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments) {
+            this.value = value;
+            this.typeArguments = typeArguments;
+        }
+
+        public ILconstArray getValue() {
+            return value;
+        }
+
+        public List<ImTypeArgument> getTypeArguments() {
+            return typeArguments;
+        }
+    }
+
+    public Collection<ArrayState> getArrayStates(ImVar v) {
         String prefix = v.getName() + "|";
-        List<ILconstArray> result = new ArrayList<>();
-        for (String key : modifiedGenericArrays) {
+        List<String> keys = new ArrayList<>(modifiedGenericArrays);
+        Collections.sort(keys);
+        List<ArrayState> result = new ArrayList<>();
+        for (String key : keys) {
             if (key.startsWith(prefix)) {
                 ILconstArray value = genericStaticArrays.get(key);
-                if (value != null) result.add(value);
+                if (value != null) {
+                    result.add(new ArrayState(value, genericArrayTypeArguments.getOrDefault(key, Collections.emptyList())));
+                }
             }
         }
         if (result.isEmpty() && genericStaticKey(v) == null) {
-            result.add(getArray(v));
+            result.add(new ArrayState(getArray(v), Collections.emptyList()));
         }
         return result;
     }

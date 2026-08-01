@@ -504,6 +504,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
 
     private ImFunction compiletimeStateInitFunction = null;
     private ImFunction compiletimeArrayStateInitFunction = null;
+    private int genericArrayStateInitCounter;
 
     private ImFunction getCompiletimeStateInitFunction() {
         ImFunction res = this.compiletimeStateInitFunction;
@@ -545,10 +546,6 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         getCompiletimeStateInitFunction().getBody().add(stmt);
     }
 
-    private void addCompiletimeArrayStateInit(ImStmt stmt) {
-        getCompiletimeArrayStateInitFunction().getBody().add(stmt);
-    }
-
     private ImFunction getCompiletimeArrayStateInitFunction() {
         if (compiletimeArrayStateInitFunction == null) {
             Element trace = imProg.getTrace();
@@ -557,26 +554,16 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             imProg.getFunctions().add(res);
             compiletimeArrayStateInitFunction = res;
             ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
-            ListIterator<ImStmt> iterator = translator.getMainFunc().getBody().listIterator();
-            while (iterator.hasNext()) {
-                ImStmt stmt = iterator.next();
-                if (stmt instanceof ImFunctionCall
-                    && ((ImFunctionCall) stmt).getFunc().getName().equals("DestroyTrigger")) {
-                    iterator.previous();
-                    iterator.add(call);
+            ImFunction globalInitFunc = translator.getGlobalInitFunc();
+            ImStmts mainBody = translator.getMainFunc().getBody();
+            for (int i = 0; i < mainBody.size(); i++) {
+                ImStmt stmt = mainBody.get(i);
+                if (stmt instanceof ImFunctionCall && ((ImFunctionCall) stmt).getFunc().getName().equals(globalInitFunc.getName())) {
+                    mainBody.add(i + 1, call);
                     return compiletimeArrayStateInitFunction;
                 }
             }
-            ListIterator<ImStmt> endIterator = translator.getMainFunc().getBody().listIterator();
-            while (endIterator.hasNext()) {
-                ImStmt stmt = endIterator.next();
-                if (stmt instanceof ImReturn) {
-                    endIterator.previous();
-                    endIterator.add(call);
-                    return compiletimeArrayStateInitFunction;
-                }
-            }
-            translator.getMainFunc().getBody().add(call);
+            mainBody.add(0, call);
         }
         return compiletimeArrayStateInitFunction;
     }
@@ -584,28 +571,56 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     private void emitCompiletimeState() {
         // constantToExpr may materialize object handles as additional globals.
         // Iterate over a snapshot to avoid modifying the collection in-flight.
-        for (ImVar var : new ArrayList<>(globalState.getModifiedArrays())) {
+        List<ImVar> modifiedArrays = new ArrayList<>(globalState.getModifiedArrays());
+        Map<ImVar, Integer> globalOrder = new IdentityHashMap<>();
+        for (int i = 0; i < imProg.getGlobals().size(); i++) {
+            globalOrder.put(imProg.getGlobals().get(i), i);
+        }
+        modifiedArrays.sort(Comparator
+            .comparingInt((ImVar var) -> globalOrder.getOrDefault(var, Integer.MAX_VALUE))
+            .thenComparing(ImVar::getName));
+        for (ImVar var : modifiedArrays) {
             if (!imProg.getGlobals().contains(var)) {
                 continue;
             }
             if (!(var.getType() instanceof ImArrayLikeType)) {
                 continue;
             }
-            for (ILconstArray values : globalState.getArrayValues(var)) {
-                emitCompiletimeArrayEntries(var, values, new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType());
+            for (ProgramState.ArrayState state : globalState.getArrayStates(var)) {
+                if (state.getTypeArguments().isEmpty()) {
+                    emitCompiletimeArrayEntries(getCompiletimeArrayStateInitFunction(), var, state.getValue(),
+                        new ArrayList<>(), ((ImArrayLikeType) var.getType()).getEntryType());
+                } else {
+                    emitCompiletimeGenericArrayState(var, state, ((ImArrayLikeType) var.getType()).getEntryType());
+                }
             }
         }
     }
 
-    private void emitCompiletimeArrayEntries(ImVar var, ILconstArray values, List<ImExpr> indexes, ImType entryType) {
+    private void emitCompiletimeGenericArrayState(ImVar var, ProgramState.ArrayState state, ImType entryType) {
+        List<ImTypeVar> typeVars = new ArrayList<>();
+        for (int i = 0; i < state.getTypeArguments().size(); i++) {
+            typeVars.add(JassIm.ImTypeVar("T" + i));
+        }
+        ImFunction replay = JassIm.ImFunction(var.getTrace(),
+            "initCompiletimeArrayState_" + genericArrayStateInitCounter++,
+            JassIm.ImTypeVars(typeVars), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(),
+            JassIm.ImStmts(), Collections.emptyList());
+        imProg.getFunctions().add(replay);
+        emitCompiletimeArrayEntries(replay, var, state.getValue(), new ArrayList<>(), entryType);
+        getCompiletimeArrayStateInitFunction().getBody().add(JassIm.ImFunctionCall(
+            var.getTrace(), replay, JassIm.ImTypeArguments(state.getTypeArguments()), JassIm.ImExprs(), true, CallType.NORMAL));
+    }
+
+    private void emitCompiletimeArrayEntries(ImFunction target, ImVar var, ILconstArray values, List<ImExpr> indexes, ImType entryType) {
         for (it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry<ILconst> entry : values.entries()) {
             List<ImExpr> nextIndexes = new ArrayList<>(indexes);
             nextIndexes.add(JassIm.ImIntVal(entry.getIntKey()));
             if (entry.getValue() instanceof ILconstArray && entryType instanceof ImArrayLikeType) {
-                emitCompiletimeArrayEntries(var, (ILconstArray) entry.getValue(), nextIndexes,
+                emitCompiletimeArrayEntries(target, var, (ILconstArray) entry.getValue(), nextIndexes,
                     ((ImArrayLikeType) entryType).getEntryType());
             } else if (isPersistableCompiletimeValue(entry.getValue())) {
-                addCompiletimeArrayStateInit(JassIm.ImSet(var.getTrace(),
+                target.getBody().add(JassIm.ImSet(var.getTrace(),
                     JassIm.ImVarArrayAccess(var.getTrace(), var, JassIm.ImExprs(nextIndexes)),
                     constantToExpr(var.getTrace(), entry.getValue(), entryType)));
             } else {
