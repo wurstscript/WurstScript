@@ -370,7 +370,7 @@ public class RunTests extends UserRequest<Object> {
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 if (!compactOutput) {
-                    println(new String(b, off, len, StandardCharsets.UTF_8));
+                    print(new String(b, off, len, StandardCharsets.UTF_8));
                 }
             }
 

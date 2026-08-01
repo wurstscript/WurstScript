@@ -36,8 +36,9 @@ public class RunTestsOutputRedirectTests extends WurstScriptTest {
     @Test
     public void interpreterOutputIsRedirected() {
         String output = runTests(false);
-        assertTrue(output.contains("output of the passing test"), output);
-        assertTrue(output.contains("output of the failing test"), output);
+        String lineSeparator = System.lineSeparator();
+        assertTrue(output.contains("output of the passing test" + lineSeparator + "\tOK!"), output);
+        assertTrue(output.contains("output of the failing test" + lineSeparator + "\tFAILED assertion:"), output);
     }
 
     @Test
