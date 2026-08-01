@@ -137,6 +137,67 @@ public class CompiletimeTests extends WurstScriptTest {
                    "        testSuccess()");
     }
 
+    @Test
+    public void testCompiletimeObjectArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class A",
+                   "    int value",
+                   "A array source",
+                   "@compiletime function fill()",
+                   "    source[0] = new A",
+                   "    source[0].value = 42",
+                   "init",
+                   "    if source[0].value == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeHashtableArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("type agent extends handle",
+                   "type hashtable extends agent",
+                   "package Test",
+                   "native testSuccess()",
+                   "@extern native InitHashtable() returns hashtable",
+                   "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+                   "@extern native SaveInteger(hashtable h, int p, int c, int i)",
+                   "hashtable array source",
+                   "@compiletime function fill()",
+                   "    source[0] = InitHashtable()",
+                   "    SaveInteger(source[0], 2, 3, 42)",
+                   "init",
+                   "    if LoadInteger(source[0], 2, 3) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeNullArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "string array source = [\"value\"]",
+                   "@compiletime function clear()",
+                   "    source[0] = null",
+                   "init",
+                   "    if source[0] == null",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeTupleArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "tuple pair(int left, int right)",
+                   "pair array source",
+                   "@compiletime function fill()",
+                   "    source[0] = pair(42, 7)",
+                   "init",
+                   "    if source[0].left == 42 and source[0].right == 7",
+                   "        testSuccess()");
+    }
 
     @Test
     public void testCompiletimeHashtable() {

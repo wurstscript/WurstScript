@@ -812,10 +812,16 @@ public class ProgramState extends State implements AutoCloseable {
     public static final class ArrayState {
         private final ILconstArray value;
         private final List<ImTypeArgument> typeArguments;
+        private final boolean generic;
 
         public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments) {
+            this(value, typeArguments, !typeArguments.isEmpty());
+        }
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments, boolean generic) {
             this.value = value;
-            this.typeArguments = typeArguments;
+            this.typeArguments = Collections.unmodifiableList(new ArrayList<>(typeArguments));
+            this.generic = generic;
         }
 
         public ILconstArray getValue() {
@@ -824,6 +830,10 @@ public class ProgramState extends State implements AutoCloseable {
 
         public List<ImTypeArgument> getTypeArguments() {
             return typeArguments;
+        }
+
+        public boolean isGeneric() {
+            return generic;
         }
     }
 
@@ -836,7 +846,7 @@ public class ProgramState extends State implements AutoCloseable {
             if (key.startsWith(prefix)) {
                 ILconstArray value = genericStaticArrays.get(key);
                 if (value != null) {
-                    result.add(new ArrayState(value, genericArrayTypeArguments.getOrDefault(key, Collections.emptyList())));
+                    result.add(new ArrayState(value, genericArrayTypeArguments.getOrDefault(key, Collections.emptyList()), true));
                 }
             }
         }
