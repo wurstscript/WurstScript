@@ -37,7 +37,7 @@ public class AttrExprExpectedType {
             } else if (parent instanceof StmtSet) {
                 StmtSet stmtSet = (StmtSet) parent;
                 if (stmtSet.getRight() == expr) {
-                    return stmtSet.getUpdatedExpr().attrTyp();
+                    return stmtSet.getUpdatedExpr().attrTypRaw();
                 } else if (stmtSet.getUpdatedExpr() == expr) {
                     return WurstTypeUnknown.instance();
                 }

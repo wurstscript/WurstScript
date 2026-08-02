@@ -1374,6 +1374,25 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void legacyGenericToIndexFieldAssignmentRoundTripsInLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class C<T>",
+            "    T x",
+            "function stringToIndex(string s) returns int",
+            "    return 42",
+            "function stringFromIndex(int i) returns string",
+            "    return \"42\"",
+            "init",
+            "    C<string> c = new C<string>",
+            "    c.x = \"42\"",
+            "    if c.x == \"42\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void genericOverrideChainBindsRootSlotToMostSpecificImplInLua() throws IOException {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
