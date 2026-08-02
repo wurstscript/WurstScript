@@ -41,6 +41,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
     private final Set<ImVar> modifiedScalars = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImVar> suppressedScalarWrites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<String> modifiedGenericScalars = new HashSet<>();
     private final Map<String, List<ImTypeArgument>> genericScalarTypeArguments = new HashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
@@ -691,6 +692,8 @@ public class ProgramState extends State implements AutoCloseable {
         boolean trackWrite = writesAreTracked();
         if (trackWrite) {
             modifiedScalars.add(v);
+        } else {
+            suppressedScalarWrites.add(v);
         }
         String key = genericStaticKey(v);
         if (key != null) {
@@ -796,6 +799,10 @@ public class ProgramState extends State implements AutoCloseable {
 
     boolean writesAreSuppressed() {
         return !writesAreTracked();
+    }
+
+    boolean wasWrittenWhileSuppressed(ImVar var) {
+        return suppressedScalarWrites.contains(var);
     }
 
     boolean isInCompiletimeOnlyPath() {

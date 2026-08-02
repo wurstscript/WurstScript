@@ -176,6 +176,9 @@ public class EvaluateExpr {
             initialized.add(variable);
             return true;
         }
+        if (sourceState.wasWrittenWhileSuppressed(variable)) {
+            return false;
+        }
         if (!initializing.add(variable)) {
             return false;
         }

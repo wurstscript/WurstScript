@@ -303,6 +303,14 @@ public class CompiletimeTests extends WurstScriptTest {
                    "        localArrayCounter++",
                    "    return localArrayCounter",
                    "int localArrayObserved = initializeLocalArray()",
+                   "boolean priorWriteGuard = false",
+                   "int priorWriteCounter = 0",
+                   "function initializePriorWrite() returns int",
+                   "    priorWriteGuard = true",
+                   "    if priorWriteGuard",
+                   "        priorWriteCounter++",
+                   "    return priorWriteCounter",
+                   "int priorWriteObserved = initializePriorWrite()",
                    "int loopCounter = 0",
                    "function initializeLoop() returns int",
                    "    var i = 0",
@@ -321,9 +329,10 @@ public class CompiletimeTests extends WurstScriptTest {
                    "    let _divergentIntSnapshot = divergentIntObserved",
                    "    let _luaTargetSnapshot = luaTargetObserved",
                    "    let _localArraySnapshot = localArrayObserved",
+                   "    let _priorWriteSnapshot = priorWriteObserved",
                    "    let _loopSnapshot = loopObserved",
                    "init",
-                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and oppositeCounter == 1 and oppositeObserved == 1 and stableLocalCounter == 1 and stableLocalObserved == 1 and stableGlobalCounter == 1 and stableGlobalObserved == 1 and divergentLocalCounter == 1 and divergentLocalObserved == 1 and divergentIntCounter == 1 and divergentIntObserved == 1 and luaTargetCounter == 1 and luaTargetObserved == 1 and localArrayCounter == 1 and localArrayObserved == 1 and loopCounter == 1 and loopObserved == 1",
+                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and oppositeCounter == 1 and oppositeObserved == 1 and stableLocalCounter == 1 and stableLocalObserved == 1 and stableGlobalCounter == 1 and stableGlobalObserved == 1 and divergentLocalCounter == 1 and divergentLocalObserved == 1 and divergentIntCounter == 1 and divergentIntObserved == 1 and luaTargetCounter == 1 and luaTargetObserved == 1 and localArrayCounter == 1 and localArrayObserved == 1 and priorWriteCounter == 1 and priorWriteObserved == 1 and loopCounter == 1 and loopObserved == 1",
                    "        testSuccess()");
     }
 
