@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -82,13 +84,53 @@ public class EvaluateExpr {
             ImExpr right = arguments.get(1);
             ILconstBool shortCircuitedRight = right instanceof ImBoolVal
                 ? ILconstBool.instance(((ImBoolVal) right).getValB())
-                : null;
+                : evaluateSkippedRuntimeOperand(op, left, right, globalState, localState);
             return op.evaluateBinaryOperator(left,
                 () -> evaluateRightOperand(op, left, right, globalState, localState), shortCircuitedRight);
         } else if (arguments.size() == 1 && op.isUnaryOp()) {
             return op.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
         } else {
             throw new Error();
+        }
+    }
+
+    private static @Nullable ILconstBool evaluateSkippedRuntimeOperand(WurstOperator op, ILconst left, ImExpr right,
+                                                                        ProgramState globalState, LocalState localState) {
+        if (!(left instanceof ILconstBool)) {
+            return null;
+        }
+        ILconstBool leftBool = (ILconstBool) left;
+        boolean runtimeEvaluatesRight = leftBool.isRuntimeValKnown()
+            && ((op == WurstOperator.AND && !leftBool.getVal() && leftBool.getRuntimeVal())
+                || (op == WurstOperator.OR && leftBool.getVal() && !leftBool.getRuntimeVal()));
+        if (!runtimeEvaluatesRight) {
+            return null;
+        }
+
+        SideEffectAnalyzer effects = new SideEffectAnalyzer(globalState.getProg());
+        if (!effects.calledNatives(right).isEmpty()) {
+            return null;
+        }
+        Set<ImVar> usedVariables = effects.usedVariables(right);
+        if (usedVariables.stream().anyMatch(ImVar::isGlobal)) {
+            return null;
+        }
+
+        LocalState runtimeLocals = new LocalState();
+        for (ImVar variable : usedVariables) {
+            ILconst value = localState.getVal(variable);
+            if (value == null) {
+                continue;
+            }
+            if (!(value instanceof ILconstBool) || !((ILconstBool) value).isRuntimeValKnown()) {
+                return null;
+            }
+            runtimeLocals.setVal(variable, ILconstBool.instance(((ILconstBool) value).getRuntimeVal()));
+        }
+
+        try (ProgramState runtimeState = new ProgramState(globalState.getGui(), globalState.getProg(), false)) {
+            ILconst runtimeValue = right.evaluate(runtimeState, runtimeLocals);
+            return runtimeValue instanceof ILconstBool ? (ILconstBool) runtimeValue : null;
         }
     }
 

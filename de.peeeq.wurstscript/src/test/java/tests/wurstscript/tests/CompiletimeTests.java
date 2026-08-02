@@ -248,6 +248,12 @@ public class CompiletimeTests extends WurstScriptTest {
                    "        unresolvedCounter++",
                    "    return unresolvedCounter",
                    "int unresolvedObserved = initializeUnresolved()",
+                   "int oppositeCounter = 0",
+                   "function initializeOpposite() returns int",
+                   "    if compiletime or runtimeFalse()",
+                   "        oppositeCounter++",
+                   "    return oppositeCounter",
+                   "int oppositeObserved = initializeOpposite()",
                    "int loopCounter = 0",
                    "function initializeLoop() returns int",
                    "    var i = 0",
@@ -259,9 +265,10 @@ public class CompiletimeTests extends WurstScriptTest {
                    "@compiletime function fill()",
                    "    let _conditionSnapshot = conditionObserved",
                    "    let _unresolvedSnapshot = unresolvedObserved",
+                   "    let _oppositeSnapshot = oppositeObserved",
                    "    let _loopSnapshot = loopObserved",
                    "init",
-                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and loopCounter == 1 and loopObserved == 1",
+                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and oppositeCounter == 1 and oppositeObserved == 1 and loopCounter == 1 and loopObserved == 1",
                    "        testSuccess()");
     }
 
