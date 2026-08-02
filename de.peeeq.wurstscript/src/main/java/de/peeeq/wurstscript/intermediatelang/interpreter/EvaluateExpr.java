@@ -122,16 +122,28 @@ public class EvaluateExpr {
             if (value == null) {
                 continue;
             }
-            if (!(value instanceof ILconstBool) || !((ILconstBool) value).isRuntimeValKnown()) {
+            ILconst runtimeValue = runtimeProbeValue(value);
+            if (runtimeValue == null) {
                 return null;
             }
-            runtimeLocals.setVal(variable, ILconstBool.instance(((ILconstBool) value).getRuntimeVal()));
+            runtimeLocals.setVal(variable, runtimeValue);
         }
 
         try (ProgramState runtimeState = new ProgramState(globalState.getGui(), globalState.getProg(), false)) {
             ILconst runtimeValue = right.evaluate(runtimeState, runtimeLocals);
             return runtimeValue instanceof ILconstBool ? (ILconstBool) runtimeValue : null;
         }
+    }
+
+    private static @Nullable ILconst runtimeProbeValue(ILconst value) {
+        if (value instanceof ILconstBool) {
+            ILconstBool boolValue = (ILconstBool) value;
+            return boolValue.isRuntimeValKnown() ? ILconstBool.instance(boolValue.getRuntimeVal()) : null;
+        }
+        if (value instanceof ILconstNum || value instanceof ILconstString || value instanceof ILconstNull) {
+            return value;
+        }
+        return null;
     }
 
     private static ILconst evaluateRightOperand(WurstOperator op, ILconst left, ImExpr right,

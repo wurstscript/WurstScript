@@ -254,6 +254,12 @@ public class CompiletimeTests extends WurstScriptTest {
                    "        oppositeCounter++",
                    "    return oppositeCounter",
                    "int oppositeObserved = initializeOpposite()",
+                   "int stableLocalCounter = 0",
+                   "function initializeStableLocal(int guard) returns int",
+                   "    if compiletime or guard == 0",
+                   "        stableLocalCounter++",
+                   "    return stableLocalCounter",
+                   "int stableLocalObserved = initializeStableLocal(1)",
                    "int loopCounter = 0",
                    "function initializeLoop() returns int",
                    "    var i = 0",
@@ -266,9 +272,10 @@ public class CompiletimeTests extends WurstScriptTest {
                    "    let _conditionSnapshot = conditionObserved",
                    "    let _unresolvedSnapshot = unresolvedObserved",
                    "    let _oppositeSnapshot = oppositeObserved",
+                   "    let _stableLocalSnapshot = stableLocalObserved",
                    "    let _loopSnapshot = loopObserved",
                    "init",
-                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and oppositeCounter == 1 and oppositeObserved == 1 and loopCounter == 1 and loopObserved == 1",
+                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and oppositeCounter == 1 and oppositeObserved == 1 and stableLocalCounter == 1 and stableLocalObserved == 1 and loopCounter == 1 and loopObserved == 1",
                    "        testSuccess()");
     }
 
