@@ -221,6 +221,51 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testCompiletimeLazyInitializerControlFlowEdges() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package MagicFunctions",
+                   "public constant compiletime = false",
+                   "endpackage",
+                   "package Test",
+                   "import MagicFunctions",
+                   "native testSuccess()",
+                   "int conditionCounter = 0",
+                   "function mark() returns boolean",
+                   "    conditionCounter++",
+                   "    return true",
+                   "function initializeCondition() returns int",
+                   "    if compiletime and mark()",
+                   "        skip",
+                   "    return conditionCounter",
+                   "int conditionObserved = initializeCondition()",
+                   "int unresolvedCounter = 0",
+                   "function runtimeFalse() returns boolean",
+                   "    return false",
+                   "function initializeUnresolved() returns int",
+                   "    if not compiletime and runtimeFalse()",
+                   "        skip",
+                   "    else",
+                   "        unresolvedCounter++",
+                   "    return unresolvedCounter",
+                   "int unresolvedObserved = initializeUnresolved()",
+                   "int loopCounter = 0",
+                   "function initializeLoop() returns int",
+                   "    var i = 0",
+                   "    while compiletime and i == 0",
+                   "        loopCounter++",
+                   "        i++",
+                   "    return loopCounter",
+                   "int loopObserved = initializeLoop()",
+                   "@compiletime function fill()",
+                   "    let _conditionSnapshot = conditionObserved",
+                   "    let _unresolvedSnapshot = unresolvedObserved",
+                   "    let _loopSnapshot = loopObserved",
+                   "init",
+                   "    if conditionCounter == 1 and conditionObserved == 1 and unresolvedCounter == 1 and unresolvedObserved == 1 and loopCounter == 1 and loopObserved == 1",
+                   "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeScalarRuntimeWriteRemainsAuthoritative() {
         test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",

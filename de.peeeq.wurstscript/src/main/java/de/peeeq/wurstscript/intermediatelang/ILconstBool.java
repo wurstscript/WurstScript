@@ -48,8 +48,8 @@ public class ILconstBool extends ILconstAbstract {
         return runtimeValKnown;
     }
 
-    public boolean canDifferAtRuntime() {
-        return !runtimeValKnown || val != runtimeVal;
+    public boolean isKnownToDifferAtRuntime() {
+        return runtimeValKnown && val != runtimeVal;
     }
 
     @Override

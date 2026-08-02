@@ -78,12 +78,32 @@ public class EvaluateExpr {
         final ImExprs arguments = e.getArguments();
         WurstOperator op = e.getOp();
         if (arguments.size() == 2 && op.isBinaryOp()) {
-            return op.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), () -> arguments.get(1).evaluate(globalState, localState));
+            ILconst left = arguments.get(0).evaluate(globalState, localState);
+            ImExpr right = arguments.get(1);
+            ILconstBool shortCircuitedRight = right instanceof ImBoolVal
+                ? ILconstBool.instance(((ImBoolVal) right).getValB())
+                : null;
+            return op.evaluateBinaryOperator(left,
+                () -> evaluateRightOperand(op, left, right, globalState, localState), shortCircuitedRight);
         } else if (arguments.size() == 1 && op.isUnaryOp()) {
             return op.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
         } else {
             throw new Error();
         }
+    }
+
+    private static ILconst evaluateRightOperand(WurstOperator op, ILconst left, ImExpr right,
+                                                ProgramState globalState, LocalState localState) {
+        if (globalState.writesAreSuppressed() && left instanceof ILconstBool) {
+            ILconstBool leftBool = (ILconstBool) left;
+            boolean compiletimeOnly = leftBool.isRuntimeValKnown()
+                && ((op == WurstOperator.AND && leftBool.getVal() && !leftBool.getRuntimeVal())
+                    || (op == WurstOperator.OR && !leftBool.getVal() && leftBool.getRuntimeVal()));
+            if (compiletimeOnly) {
+                return globalState.evaluateWithTrackedWrites(() -> right.evaluate(globalState, localState));
+            }
+        }
+        return right.evaluate(globalState, localState);
     }
 
     public static ILconst eval(ImRealVal e, ProgramState globalState, LocalState localState) {

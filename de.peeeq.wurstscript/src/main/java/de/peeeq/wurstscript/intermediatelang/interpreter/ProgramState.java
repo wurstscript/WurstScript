@@ -19,6 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class ProgramState extends State implements AutoCloseable {
 
@@ -50,6 +51,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
     private int trackedWriteDepth;
+    private final Deque<Boolean> trackedLoopIterations = new ArrayDeque<>();
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -754,6 +756,34 @@ public class ProgramState extends State implements AutoCloseable {
         try {
             action.run();
         } finally {
+            trackedWriteDepth--;
+        }
+    }
+
+    <T> T evaluateWithTrackedWrites(Supplier<T> action) {
+        trackedWriteDepth++;
+        try {
+            return action.get();
+        } finally {
+            trackedWriteDepth--;
+        }
+    }
+
+    void beginLoopIteration() {
+        trackedLoopIterations.push(false);
+    }
+
+    void trackCurrentLoopIterationWrites() {
+        if (!trackedLoopIterations.pop()) {
+            trackedLoopIterations.push(true);
+            trackedWriteDepth++;
+        } else {
+            trackedLoopIterations.push(true);
+        }
+    }
+
+    void endLoopIteration() {
+        if (trackedLoopIterations.pop()) {
             trackedWriteDepth--;
         }
     }

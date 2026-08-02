@@ -131,11 +131,16 @@ public enum WurstOperator {
 
     public ILconst evaluateBinaryOperator(ILconst left,
                                           Supplier<ILconst> right) {
+        return evaluateBinaryOperator(left, right, null);
+    }
+
+    public ILconst evaluateBinaryOperator(ILconst left, Supplier<ILconst> right,
+                                          @Nullable ILconstBool shortCircuitedRight) {
         switch (this) {
             case AND:
-                return evaluateBooleanAnd((ILconstBool) left, right);
+                return evaluateBooleanAnd((ILconstBool) left, right, shortCircuitedRight);
             case OR:
-                return evaluateBooleanOr((ILconstBool) left, right);
+                return evaluateBooleanOr((ILconstBool) left, right, shortCircuitedRight);
             case DIV_INT:
                 return new ILconstInt(((ILconstInt) left).getVal() / ((ILconstInt) right.get()).getVal());
             case DIV_REAL:
@@ -172,10 +177,15 @@ public enum WurstOperator {
 
     }
 
-    private static ILconstBool evaluateBooleanAnd(ILconstBool left, Supplier<ILconst> right) {
+    private static ILconstBool evaluateBooleanAnd(ILconstBool left, Supplier<ILconst> right,
+                                                  @Nullable ILconstBool shortCircuitedRight) {
         if (!left.getVal()) {
             if (left.isRuntimeValKnown() && !left.getRuntimeVal()) {
                 return ILconstBool.FALSE;
+            }
+            if (left.isRuntimeValKnown() && shortCircuitedRight != null
+                && shortCircuitedRight.isRuntimeValKnown()) {
+                return ILconstBool.withRuntimeValue(false, shortCircuitedRight.getRuntimeVal());
             }
             return ILconstBool.withUnknownRuntimeValue(false);
         }
@@ -194,10 +204,15 @@ public enum WurstOperator {
         return ILconstBool.withUnknownRuntimeValue(value);
     }
 
-    private static ILconstBool evaluateBooleanOr(ILconstBool left, Supplier<ILconst> right) {
+    private static ILconstBool evaluateBooleanOr(ILconstBool left, Supplier<ILconst> right,
+                                                 @Nullable ILconstBool shortCircuitedRight) {
         if (left.getVal()) {
             if (left.isRuntimeValKnown() && left.getRuntimeVal()) {
                 return ILconstBool.TRUE;
+            }
+            if (left.isRuntimeValKnown() && shortCircuitedRight != null
+                && shortCircuitedRight.isRuntimeValKnown()) {
+                return ILconstBool.withRuntimeValue(true, shortCircuitedRight.getRuntimeVal());
             }
             return ILconstBool.withUnknownRuntimeValue(true);
         }
