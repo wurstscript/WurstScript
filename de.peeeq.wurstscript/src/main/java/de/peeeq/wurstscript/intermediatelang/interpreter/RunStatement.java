@@ -17,6 +17,9 @@ public class RunStatement {
 
     public static void run(ImExitwhen s, ProgramState globalState, LocalState localState) {
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
+        if (globalState.writesAreSuppressed()) {
+            c = EvaluateExpr.refineRuntimeCondition(s.getCondition(), c, globalState, localState);
+        }
         if (c.getVal()) {
             throw ExitwhenException.instance();
         }
@@ -27,6 +30,9 @@ public class RunStatement {
 
     public static void run(ImIf s, ProgramState globalState, LocalState localState) {
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
+        if (globalState.writesAreSuppressed()) {
+            c = EvaluateExpr.refineRuntimeCondition(s.getCondition(), c, globalState, localState);
+        }
         ImStmts selectedBlock = c.getVal() ? s.getThenBlock() : s.getElseBlock();
         // Runtime repeats ordinary lazy-initializer branches, but not a branch selected using
         // MagicFunctions.compiletime. Preserve writes from the latter for state migration.

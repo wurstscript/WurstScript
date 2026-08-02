@@ -53,6 +53,8 @@ public class LocalState extends State {
     public @Nullable ILconst getVal(ImVar v) {
         ILconst val = super.getVal(v);
         if (!(val instanceof ILconstBool)) {
+            // Other IL constants cannot carry a second value. Conditions that consume them are
+            // re-evaluated with getRuntimeVal() by EvaluateExpr.refineRuntimeCondition instead.
             return val;
         }
         if (unknownRuntimeValues.contains(v)) {

@@ -109,11 +109,26 @@ public class EvaluateExpr {
             return null;
         }
 
+        return evaluateRuntimeBooleanExpression(right, globalState, localState);
+    }
+
+    static ILconstBool refineRuntimeCondition(ImExpr condition, ILconstBool compiletimeValue,
+                                              ProgramState globalState, LocalState localState) {
+        ILconstBool runtimeValue = evaluateRuntimeBooleanExpression(condition, globalState, localState);
+        if (runtimeValue == null) {
+            return compiletimeValue;
+        }
+        return ILconstBool.withRuntimeValue(compiletimeValue.getVal(), runtimeValue.getVal());
+    }
+
+    private static @Nullable ILconstBool evaluateRuntimeBooleanExpression(ImExpr expression,
+                                                                           ProgramState globalState,
+                                                                           LocalState localState) {
         SideEffectAnalyzer effects = new SideEffectAnalyzer(globalState.getProg());
-        if (!effects.calledNatives(right).isEmpty()) {
+        if (!effects.calledNatives(expression).isEmpty()) {
             return null;
         }
-        Set<ImVar> usedVariables = effects.usedVariables(right);
+        Set<ImVar> usedVariables = effects.usedVariables(expression);
         LocalState runtimeLocals = new LocalState();
         for (ImVar variable : usedVariables) {
             if (variable.isGlobal()) {
@@ -135,20 +150,30 @@ public class EvaluateExpr {
             Set<ImVar> initializingGlobals = Collections.newSetFromMap(new IdentityHashMap<>());
             for (ImVar variable : usedVariables) {
                 if (variable.isGlobal()
-                    && !prepareRuntimeProbeGlobal(variable, runtimeState, effects,
+                    && !prepareRuntimeProbeGlobal(variable, globalState, runtimeState, effects,
                     initializedGlobals, initializingGlobals)) {
                     return null;
                 }
             }
-            ILconst runtimeValue = right.evaluate(runtimeState, runtimeLocals);
+            ILconst runtimeValue = expression.evaluate(runtimeState, runtimeLocals);
             return runtimeValue instanceof ILconstBool ? (ILconstBool) runtimeValue : null;
         }
     }
 
-    private static boolean prepareRuntimeProbeGlobal(ImVar variable, ProgramState runtimeState,
+    private static boolean prepareRuntimeProbeGlobal(ImVar variable, ProgramState sourceState,
+                                                     ProgramState runtimeState,
                                                      SideEffectAnalyzer effects, Set<ImVar> initialized,
                                                      Set<ImVar> initializing) {
         if (isMagicCompiletimeConstant(variable) || initialized.contains(variable)) {
+            return true;
+        }
+        if (isMagicFunctionsConstant(variable, "isLua")) {
+            ILconst runtimeValue = runtimeProbeValue(sourceState.getVal(variable));
+            if (runtimeValue == null) {
+                return false;
+            }
+            runtimeState.setValUntracked(variable, runtimeValue);
+            initialized.add(variable);
             return true;
         }
         if (!initializing.add(variable)) {
@@ -166,7 +191,8 @@ public class EvaluateExpr {
         }
         for (ImVar dependency : effects.usedVariables(initializer)) {
             if (dependency.isGlobal()
-                && !prepareRuntimeProbeGlobal(dependency, runtimeState, effects, initialized, initializing)) {
+                && !prepareRuntimeProbeGlobal(dependency, sourceState, runtimeState, effects,
+                initialized, initializing)) {
                 initializing.remove(variable);
                 return false;
             }
@@ -270,9 +296,13 @@ public class EvaluateExpr {
     }
 
     private static boolean isMagicCompiletimeConstant(ImVar var) {
+        return isMagicFunctionsConstant(var, "compiletime");
+    }
+
+    private static boolean isMagicFunctionsConstant(ImVar var, String name) {
         if (var.getTrace() instanceof VarDef) {
             VarDef varDef = (VarDef) var.getTrace();
-            if (varDef.getName().equals("compiletime")) {
+            if (varDef.getName().equals(name)) {
                 PackageOrGlobal nearestPackage = varDef.attrNearestPackage();
                 if (nearestPackage instanceof WPackage) {
                     WPackage p = (WPackage) nearestPackage;
