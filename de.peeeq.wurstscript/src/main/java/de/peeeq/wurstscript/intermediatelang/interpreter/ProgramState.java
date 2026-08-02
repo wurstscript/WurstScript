@@ -50,7 +50,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
     private int trackedWriteDepth;
-    private long compiletimeConstantReadVersion;
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -748,14 +747,6 @@ public class ProgramState extends State implements AutoCloseable {
         } finally {
             untrackedWriteDepth--;
         }
-    }
-
-    void markCompiletimeConstantRead() {
-        compiletimeConstantReadVersion++;
-    }
-
-    long getCompiletimeConstantReadVersion() {
-        return compiletimeConstantReadVersion;
     }
 
     void runWithTrackedWrites(Runnable action) {

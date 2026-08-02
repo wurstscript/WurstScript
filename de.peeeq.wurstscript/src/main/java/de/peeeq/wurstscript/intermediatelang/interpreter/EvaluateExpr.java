@@ -130,8 +130,7 @@ public class EvaluateExpr {
         ImVar var = e.getVar();
         if (var.isGlobal()) {
             if (isMagicCompiletimeConstant(var)) {
-                globalState.markCompiletimeConstantRead();
-                return ILconstBool.instance(globalState.isCompiletime());
+                return ILconstBool.withRuntimeValue(globalState.isCompiletime(), false);
             }
             ILconst r = globalState.getVal(var);
             if (r == null) {

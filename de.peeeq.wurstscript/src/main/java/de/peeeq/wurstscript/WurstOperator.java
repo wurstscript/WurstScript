@@ -133,15 +133,15 @@ public enum WurstOperator {
                                           Supplier<ILconst> right) {
         switch (this) {
             case AND:
-                return ILconstBool.instance(((ILconstBool) left).getVal() && ((ILconstBool) right.get()).getVal());
+                return evaluateBooleanAnd((ILconstBool) left, right);
             case OR:
-                return ILconstBool.instance(((ILconstBool) left).getVal() || ((ILconstBool) right.get()).getVal());
+                return evaluateBooleanOr((ILconstBool) left, right);
             case DIV_INT:
                 return new ILconstInt(((ILconstInt) left).getVal() / ((ILconstInt) right.get()).getVal());
             case DIV_REAL:
                 return new ILconstReal(getReal(left) / getReal(right.get()));
             case EQ:
-                return ILconstBool.instance(left.equals(right.get()));
+                return evaluateEquality(left, right.get(), false);
             case GREATER:
                 return ((ILconstNum) left).greater((ILconstNum) right.get());
             case GREATER_EQ:
@@ -161,7 +161,7 @@ public enum WurstOperator {
             case MULT:
                 return ((ILconstNum) left).mul((ILconstNum) right.get());
             case NOTEQ:
-                return ILconstBool.instance(!left.equals(right.get()));
+                return evaluateEquality(left, right.get(), true);
             case PLUS:
                 return ((ILconstAddable) left).add((ILconstAddable) right.get());
             case NOT:
@@ -170,6 +170,64 @@ public enum WurstOperator {
         }
         throw new Error("cannot evaluate " + this);
 
+    }
+
+    private static ILconstBool evaluateBooleanAnd(ILconstBool left, Supplier<ILconst> right) {
+        if (!left.getVal()) {
+            if (left.isRuntimeValKnown() && !left.getRuntimeVal()) {
+                return ILconstBool.FALSE;
+            }
+            return ILconstBool.withUnknownRuntimeValue(false);
+        }
+        ILconstBool rightBool = (ILconstBool) right.get();
+        boolean value = rightBool.getVal();
+        if (left.isRuntimeValKnown()) {
+            if (!left.getRuntimeVal()) {
+                return ILconstBool.withRuntimeValue(value, false);
+            }
+            if (rightBool.isRuntimeValKnown()) {
+                return ILconstBool.withRuntimeValue(value, rightBool.getRuntimeVal());
+            }
+        } else if (rightBool.isRuntimeValKnown() && !rightBool.getRuntimeVal()) {
+            return ILconstBool.withRuntimeValue(value, false);
+        }
+        return ILconstBool.withUnknownRuntimeValue(value);
+    }
+
+    private static ILconstBool evaluateBooleanOr(ILconstBool left, Supplier<ILconst> right) {
+        if (left.getVal()) {
+            if (left.isRuntimeValKnown() && left.getRuntimeVal()) {
+                return ILconstBool.TRUE;
+            }
+            return ILconstBool.withUnknownRuntimeValue(true);
+        }
+        ILconstBool rightBool = (ILconstBool) right.get();
+        boolean value = rightBool.getVal();
+        if (left.isRuntimeValKnown()) {
+            if (left.getRuntimeVal()) {
+                return ILconstBool.withRuntimeValue(value, true);
+            }
+            if (rightBool.isRuntimeValKnown()) {
+                return ILconstBool.withRuntimeValue(value, rightBool.getRuntimeVal());
+            }
+        } else if (rightBool.isRuntimeValKnown() && rightBool.getRuntimeVal()) {
+            return ILconstBool.withRuntimeValue(value, true);
+        }
+        return ILconstBool.withUnknownRuntimeValue(value);
+    }
+
+    private static ILconstBool evaluateEquality(ILconst left, ILconst right, boolean negated) {
+        boolean value = left.equals(right) != negated;
+        if (left instanceof ILconstBool && right instanceof ILconstBool) {
+            ILconstBool leftBool = (ILconstBool) left;
+            ILconstBool rightBool = (ILconstBool) right;
+            if (leftBool.isRuntimeValKnown() && rightBool.isRuntimeValKnown()) {
+                boolean runtimeValue = (leftBool.getRuntimeVal() == rightBool.getRuntimeVal()) != negated;
+                return ILconstBool.withRuntimeValue(value, runtimeValue);
+            }
+            return ILconstBool.withUnknownRuntimeValue(value);
+        }
+        return ILconstBool.instance(value);
     }
 
     /**
