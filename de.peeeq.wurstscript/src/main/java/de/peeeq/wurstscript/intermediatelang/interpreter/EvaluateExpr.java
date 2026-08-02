@@ -15,7 +15,9 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,17 +114,16 @@ public class EvaluateExpr {
             return null;
         }
         Set<ImVar> usedVariables = effects.usedVariables(right);
-        if (usedVariables.stream().anyMatch(ImVar::isGlobal)) {
-            return null;
-        }
-
         LocalState runtimeLocals = new LocalState();
         for (ImVar variable : usedVariables) {
+            if (variable.isGlobal()) {
+                continue;
+            }
             ILconst value = localState.getVal(variable);
             if (value == null) {
                 continue;
             }
-            ILconst runtimeValue = runtimeProbeValue(value);
+            ILconst runtimeValue = runtimeProbeValue(localState.getRuntimeVal(variable));
             if (runtimeValue == null) {
                 return null;
             }
@@ -130,12 +131,58 @@ public class EvaluateExpr {
         }
 
         try (ProgramState runtimeState = new ProgramState(globalState.getGui(), globalState.getProg(), false)) {
+            Set<ImVar> initializedGlobals = Collections.newSetFromMap(new IdentityHashMap<>());
+            Set<ImVar> initializingGlobals = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (ImVar variable : usedVariables) {
+                if (variable.isGlobal()
+                    && !prepareRuntimeProbeGlobal(variable, runtimeState, effects,
+                    initializedGlobals, initializingGlobals)) {
+                    return null;
+                }
+            }
             ILconst runtimeValue = right.evaluate(runtimeState, runtimeLocals);
             return runtimeValue instanceof ILconstBool ? (ILconstBool) runtimeValue : null;
         }
     }
 
-    private static @Nullable ILconst runtimeProbeValue(ILconst value) {
+    private static boolean prepareRuntimeProbeGlobal(ImVar variable, ProgramState runtimeState,
+                                                     SideEffectAnalyzer effects, Set<ImVar> initialized,
+                                                     Set<ImVar> initializing) {
+        if (isMagicCompiletimeConstant(variable) || initialized.contains(variable)) {
+            return true;
+        }
+        if (!initializing.add(variable)) {
+            return false;
+        }
+        List<ImSet> initializers = runtimeState.getProg().getGlobalInits().get(variable);
+        if (initializers == null || initializers.isEmpty()) {
+            initializing.remove(variable);
+            return false;
+        }
+        ImExpr initializer = initializers.get(0).getRight();
+        if (!effects.calledNatives(initializer).isEmpty()) {
+            initializing.remove(variable);
+            return false;
+        }
+        for (ImVar dependency : effects.usedVariables(initializer)) {
+            if (dependency.isGlobal()
+                && !prepareRuntimeProbeGlobal(dependency, runtimeState, effects, initialized, initializing)) {
+                initializing.remove(variable);
+                return false;
+            }
+        }
+        ILconst value = runtimeProbeValue(initializer.evaluate(runtimeState, new LocalState()));
+        if (value == null) {
+            initializing.remove(variable);
+            return false;
+        }
+        runtimeState.setValUntracked(variable, value);
+        initializing.remove(variable);
+        initialized.add(variable);
+        return true;
+    }
+
+    private static @Nullable ILconst runtimeProbeValue(@Nullable ILconst value) {
         if (value instanceof ILconstBool) {
             ILconstBool boolValue = (ILconstBool) value;
             return boolValue.isRuntimeValKnown() ? ILconstBool.instance(boolValue.getRuntimeVal()) : null;
@@ -390,7 +437,11 @@ public class EvaluateExpr {
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
-                state.setVal(v, value);
+                if (!v.isGlobal() && globalState.isInCompiletimeOnlyPath()) {
+                    localState.setValCompiletimeOnly(v, value);
+                } else {
+                    state.setVal(v, value);
+                }
             }
 
             @Override

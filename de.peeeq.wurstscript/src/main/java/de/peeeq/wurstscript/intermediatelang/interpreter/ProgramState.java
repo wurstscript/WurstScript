@@ -798,6 +798,10 @@ public class ProgramState extends State implements AutoCloseable {
         return !writesAreTracked();
     }
 
+    boolean isInCompiletimeOnlyPath() {
+        return trackedWriteDepth > 0;
+    }
+
 
     public boolean isCompiletime() {
         return isCompiletime;
