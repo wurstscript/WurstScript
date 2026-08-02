@@ -124,7 +124,7 @@ public class EvaluateExpr {
     private static @Nullable ILconstBool evaluateRuntimeBooleanExpression(ImExpr expression,
                                                                            ProgramState globalState,
                                                                            LocalState localState) {
-        SideEffectAnalyzer effects = new SideEffectAnalyzer(globalState.getProg());
+        SideEffectAnalyzer effects = globalState.getSideEffectAnalyzer();
         if (!effects.calledNatives(expression).isEmpty()) {
             return null;
         }

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
@@ -31,6 +32,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Object2ObjectOpenHashMap<String, NativesProvider> nativeProviderByFunc = new Object2ObjectOpenHashMap<>();
     private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
+    private final SideEffectAnalyzer sideEffectAnalyzer;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
@@ -41,7 +43,7 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
     private final Set<ImVar> modifiedScalars = Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<ImVar> suppressedScalarWrites = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImVar> suppressedWrites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<String> modifiedGenericScalars = new HashSet<>();
     private final Map<String, List<ImTypeArgument>> genericScalarTypeArguments = new HashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
@@ -100,6 +102,7 @@ public class ProgramState extends State implements AutoCloseable {
         this.gui = gui;
         this.prog = prog;
         this.isCompiletime = isCompiletime;
+        this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
 
         buildClassKeyLookup();
         identifyGenericStaticGlobals();
@@ -693,7 +696,7 @@ public class ProgramState extends State implements AutoCloseable {
         if (trackWrite) {
             modifiedScalars.add(v);
         } else {
-            suppressedScalarWrites.add(v);
+            suppressedWrites.add(v);
         }
         String key = genericStaticKey(v);
         if (key != null) {
@@ -802,7 +805,11 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
     boolean wasWrittenWhileSuppressed(ImVar var) {
-        return suppressedScalarWrites.contains(var);
+        return suppressedWrites.contains(var);
+    }
+
+    SideEffectAnalyzer getSideEffectAnalyzer() {
+        return sideEffectAnalyzer;
     }
 
     boolean isInCompiletimeOnlyPath() {
@@ -860,6 +867,7 @@ public class ProgramState extends State implements AutoCloseable {
     @Override
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
         if (!writesAreTracked()) {
+            suppressedWrites.add(v);
             setArrayValUntracked(v, indexes, val);
             return;
         }
