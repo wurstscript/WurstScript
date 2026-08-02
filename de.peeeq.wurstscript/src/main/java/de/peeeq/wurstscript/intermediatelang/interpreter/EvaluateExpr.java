@@ -8,19 +8,15 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -82,158 +78,12 @@ public class EvaluateExpr {
         final ImExprs arguments = e.getArguments();
         WurstOperator op = e.getOp();
         if (arguments.size() == 2 && op.isBinaryOp()) {
-            ILconst left = arguments.get(0).evaluate(globalState, localState);
-            ImExpr right = arguments.get(1);
-            ILconstBool shortCircuitedRight = right instanceof ImBoolVal
-                ? ILconstBool.instance(((ImBoolVal) right).getValB())
-                : evaluateSkippedRuntimeOperand(op, left, right, globalState, localState);
-            return op.evaluateBinaryOperator(left,
-                () -> evaluateRightOperand(op, left, right, globalState, localState), shortCircuitedRight);
+            return op.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), () -> arguments.get(1).evaluate(globalState, localState));
         } else if (arguments.size() == 1 && op.isUnaryOp()) {
             return op.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
         } else {
             throw new Error();
         }
-    }
-
-    private static @Nullable ILconstBool evaluateSkippedRuntimeOperand(WurstOperator op, ILconst left, ImExpr right,
-                                                                        ProgramState globalState, LocalState localState) {
-        if (!(left instanceof ILconstBool)) {
-            return null;
-        }
-        ILconstBool leftBool = (ILconstBool) left;
-        boolean runtimeEvaluatesRight = leftBool.isRuntimeValKnown()
-            && ((op == WurstOperator.AND && !leftBool.getVal() && leftBool.getRuntimeVal())
-                || (op == WurstOperator.OR && leftBool.getVal() && !leftBool.getRuntimeVal()));
-        if (!runtimeEvaluatesRight) {
-            return null;
-        }
-
-        return evaluateRuntimeBooleanExpression(right, globalState, localState);
-    }
-
-    static ILconstBool refineRuntimeCondition(ImExpr condition, ILconstBool compiletimeValue,
-                                              ProgramState globalState, LocalState localState) {
-        ILconstBool runtimeValue = evaluateRuntimeBooleanExpression(condition, globalState, localState);
-        if (runtimeValue == null) {
-            return compiletimeValue;
-        }
-        return ILconstBool.withRuntimeValue(compiletimeValue.getVal(), runtimeValue.getVal());
-    }
-
-    private static @Nullable ILconstBool evaluateRuntimeBooleanExpression(ImExpr expression,
-                                                                           ProgramState globalState,
-                                                                           LocalState localState) {
-        SideEffectAnalyzer effects = globalState.getSideEffectAnalyzer();
-        if (!effects.calledNatives(expression).isEmpty()) {
-            return null;
-        }
-        Set<ImVar> usedVariables = effects.usedVariables(expression);
-        LocalState runtimeLocals = new LocalState();
-        for (ImVar variable : usedVariables) {
-            if (variable.isGlobal()) {
-                continue;
-            }
-            ILconst value = localState.getVal(variable);
-            if (value == null) {
-                return null;
-            }
-            ILconst runtimeValue = runtimeProbeValue(localState.getRuntimeVal(variable));
-            if (runtimeValue == null) {
-                return null;
-            }
-            runtimeLocals.setVal(variable, runtimeValue);
-        }
-
-        try (ProgramState runtimeState = new ProgramState(globalState.getGui(), globalState.getProg(), false)) {
-            Set<ImVar> initializedGlobals = Collections.newSetFromMap(new IdentityHashMap<>());
-            Set<ImVar> initializingGlobals = Collections.newSetFromMap(new IdentityHashMap<>());
-            for (ImVar variable : usedVariables) {
-                if (variable.isGlobal()
-                    && !prepareRuntimeProbeGlobal(variable, globalState, runtimeState, effects,
-                    initializedGlobals, initializingGlobals)) {
-                    return null;
-                }
-            }
-            ILconst runtimeValue = expression.evaluate(runtimeState, runtimeLocals);
-            return runtimeValue instanceof ILconstBool ? (ILconstBool) runtimeValue : null;
-        }
-    }
-
-    private static boolean prepareRuntimeProbeGlobal(ImVar variable, ProgramState sourceState,
-                                                     ProgramState runtimeState,
-                                                     SideEffectAnalyzer effects, Set<ImVar> initialized,
-                                                     Set<ImVar> initializing) {
-        if (isMagicCompiletimeConstant(variable) || initialized.contains(variable)) {
-            return true;
-        }
-        if (isMagicFunctionsConstant(variable, "isLua")) {
-            ILconst runtimeValue = runtimeProbeValue(sourceState.getVal(variable));
-            if (runtimeValue == null) {
-                return false;
-            }
-            runtimeState.setValUntracked(variable, runtimeValue);
-            initialized.add(variable);
-            return true;
-        }
-        if (sourceState.wasWrittenWhileSuppressed(variable)) {
-            return false;
-        }
-        if (!initializing.add(variable)) {
-            return false;
-        }
-        List<ImSet> initializers = runtimeState.getProg().getGlobalInits().get(variable);
-        if (initializers == null || initializers.isEmpty()) {
-            initializing.remove(variable);
-            return false;
-        }
-        ImExpr initializer = initializers.get(0).getRight();
-        if (!effects.calledNatives(initializer).isEmpty()) {
-            initializing.remove(variable);
-            return false;
-        }
-        for (ImVar dependency : effects.usedVariables(initializer)) {
-            if (dependency.isGlobal()
-                && !prepareRuntimeProbeGlobal(dependency, sourceState, runtimeState, effects,
-                initialized, initializing)) {
-                initializing.remove(variable);
-                return false;
-            }
-        }
-        ILconst value = runtimeProbeValue(initializer.evaluate(runtimeState, new LocalState()));
-        if (value == null) {
-            initializing.remove(variable);
-            return false;
-        }
-        runtimeState.setValUntracked(variable, value);
-        initializing.remove(variable);
-        initialized.add(variable);
-        return true;
-    }
-
-    private static @Nullable ILconst runtimeProbeValue(@Nullable ILconst value) {
-        if (value instanceof ILconstBool) {
-            ILconstBool boolValue = (ILconstBool) value;
-            return boolValue.isRuntimeValKnown() ? ILconstBool.instance(boolValue.getRuntimeVal()) : null;
-        }
-        if (value instanceof ILconstNum || value instanceof ILconstString || value instanceof ILconstNull) {
-            return value;
-        }
-        return null;
-    }
-
-    private static ILconst evaluateRightOperand(WurstOperator op, ILconst left, ImExpr right,
-                                                ProgramState globalState, LocalState localState) {
-        if (globalState.writesAreSuppressed() && left instanceof ILconstBool) {
-            ILconstBool leftBool = (ILconstBool) left;
-            boolean compiletimeOnly = leftBool.isRuntimeValKnown()
-                && ((op == WurstOperator.AND && leftBool.getVal() && !leftBool.getRuntimeVal())
-                    || (op == WurstOperator.OR && !leftBool.getVal() && leftBool.getRuntimeVal()));
-            if (compiletimeOnly) {
-                return globalState.evaluateWithTrackedWrites(() -> right.evaluate(globalState, localState));
-            }
-        }
-        return right.evaluate(globalState, localState);
     }
 
     public static ILconst eval(ImRealVal e, ProgramState globalState, LocalState localState) {
@@ -280,7 +130,7 @@ public class EvaluateExpr {
         ImVar var = e.getVar();
         if (var.isGlobal()) {
             if (isMagicCompiletimeConstant(var)) {
-                return ILconstBool.withRuntimeValue(globalState.isCompiletime(), false);
+                return ILconstBool.instance(globalState.isCompiletime());
             }
             ILconst r = globalState.getVal(var);
             if (r == null) {
@@ -299,13 +149,9 @@ public class EvaluateExpr {
     }
 
     private static boolean isMagicCompiletimeConstant(ImVar var) {
-        return isMagicFunctionsConstant(var, "compiletime");
-    }
-
-    private static boolean isMagicFunctionsConstant(ImVar var, String name) {
         if (var.getTrace() instanceof VarDef) {
             VarDef varDef = (VarDef) var.getTrace();
-            if (varDef.getName().equals(name)) {
+            if (varDef.getName().equals("compiletime")) {
                 PackageOrGlobal nearestPackage = varDef.attrNearestPackage();
                 if (nearestPackage instanceof WPackage) {
                     WPackage p = (WPackage) nearestPackage;
@@ -470,11 +316,7 @@ public class EvaluateExpr {
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
-                if (!v.isGlobal() && globalState.isInCompiletimeOnlyPath()) {
-                    localState.setValCompiletimeOnly(v, value);
-                } else {
-                    state.setVal(v, value);
-                }
+                state.setVal(v, value);
             }
 
             @Override

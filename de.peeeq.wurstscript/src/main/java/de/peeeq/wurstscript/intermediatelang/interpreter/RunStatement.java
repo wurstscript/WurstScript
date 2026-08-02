@@ -17,29 +17,17 @@ public class RunStatement {
 
     public static void run(ImExitwhen s, ProgramState globalState, LocalState localState) {
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
-        if (globalState.writesAreSuppressed()) {
-            c = EvaluateExpr.refineRuntimeCondition(s.getCondition(), c, globalState, localState);
-        }
         if (c.getVal()) {
             throw ExitwhenException.instance();
-        }
-        if (globalState.writesAreSuppressed() && c.isKnownToDifferAtRuntime()) {
-            globalState.trackCurrentLoopIterationWrites();
         }
     }
 
     public static void run(ImIf s, ProgramState globalState, LocalState localState) {
         ILconstBool c = (ILconstBool) s.getCondition().evaluate(globalState, localState);
-        if (globalState.writesAreSuppressed()) {
-            c = EvaluateExpr.refineRuntimeCondition(s.getCondition(), c, globalState, localState);
-        }
-        ImStmts selectedBlock = c.getVal() ? s.getThenBlock() : s.getElseBlock();
-        // Runtime repeats ordinary lazy-initializer branches, but not a branch selected using
-        // MagicFunctions.compiletime. Preserve writes from the latter for state migration.
-        if (globalState.writesAreSuppressed() && c.isKnownToDifferAtRuntime()) {
-            globalState.runWithTrackedWrites(() -> selectedBlock.runStatements(globalState, localState));
+        if (c.getVal()) {
+            s.getThenBlock().runStatements(globalState, localState);
         } else {
-            selectedBlock.runStatements(globalState, localState);
+            s.getElseBlock().runStatements(globalState, localState);
         }
 
     }
@@ -50,12 +38,7 @@ public class RunStatement {
                 if (Thread.currentThread().isInterrupted()) {
                     throw new InterpreterException(globalState, "Execution interrupted");
                 }
-                globalState.beginLoopIteration();
-                try {
-                    s.getBody().runStatements(globalState, localState);
-                } finally {
-                    globalState.endLoopIteration();
-                }
+                s.getBody().runStatements(globalState, localState);
             }
         } catch (ExitwhenException e) {
             // end of loop

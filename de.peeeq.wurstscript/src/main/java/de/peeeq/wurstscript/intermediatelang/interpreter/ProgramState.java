@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
@@ -20,7 +19,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
 import java.util.*;
-import java.util.function.Supplier;
 
 public class ProgramState extends State implements AutoCloseable {
 
@@ -32,7 +30,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final Object2ObjectOpenHashMap<String, NativesProvider> nativeProviderByFunc = new Object2ObjectOpenHashMap<>();
     private final Set<String> missingNativeFuncs = new HashSet<>();
     private ImProg prog;
-    private final SideEffectAnalyzer sideEffectAnalyzer;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
     private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
@@ -43,7 +40,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
     private final Set<ImVar> modifiedScalars = Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<ImVar> suppressedWrites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<String> modifiedGenericScalars = new HashSet<>();
     private final Map<String, List<ImTypeArgument>> genericScalarTypeArguments = new HashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
@@ -53,8 +49,6 @@ public class ProgramState extends State implements AutoCloseable {
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
-    private int trackedWriteDepth;
-    private final Deque<Boolean> trackedLoopIterations = new ArrayDeque<>();
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -102,7 +96,6 @@ public class ProgramState extends State implements AutoCloseable {
         this.gui = gui;
         this.prog = prog;
         this.isCompiletime = isCompiletime;
-        this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
 
         buildClassKeyLookup();
         identifyGenericStaticGlobals();
@@ -692,11 +685,9 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
-        boolean trackWrite = writesAreTracked();
+        boolean trackWrite = untrackedWriteDepth == 0;
         if (trackWrite) {
             modifiedScalars.add(v);
-        } else {
-            suppressedWrites.add(v);
         }
         String key = genericStaticKey(v);
         if (key != null) {
@@ -748,6 +739,12 @@ public class ProgramState extends State implements AutoCloseable {
         return super.getVal(v);
     }
 
+    /**
+     * Evaluates a lazy global initializer without recording its side effects for state migration.
+     * Runtime repeats initializer execution, so replaying those writes would duplicate them.
+     * Compiletime-only side effects hidden inside an initializer are intentionally unsupported;
+     * persistent mutations must be performed by an explicit compiletime function instead.
+     */
     public ILconst evaluateUntracked(ImExpr expr, LocalState localState) {
         untrackedWriteDepth++;
         try {
@@ -755,65 +752,6 @@ public class ProgramState extends State implements AutoCloseable {
         } finally {
             untrackedWriteDepth--;
         }
-    }
-
-    void runWithTrackedWrites(Runnable action) {
-        trackedWriteDepth++;
-        try {
-            action.run();
-        } finally {
-            trackedWriteDepth--;
-        }
-    }
-
-    <T> T evaluateWithTrackedWrites(Supplier<T> action) {
-        trackedWriteDepth++;
-        try {
-            return action.get();
-        } finally {
-            trackedWriteDepth--;
-        }
-    }
-
-    void beginLoopIteration() {
-        trackedLoopIterations.push(false);
-    }
-
-    void trackCurrentLoopIterationWrites() {
-        if (!trackedLoopIterations.pop()) {
-            trackedLoopIterations.push(true);
-            trackedWriteDepth++;
-        } else {
-            trackedLoopIterations.push(true);
-        }
-    }
-
-    void endLoopIteration() {
-        if (trackedLoopIterations.pop()) {
-            trackedWriteDepth--;
-        }
-    }
-
-    private boolean writesAreTracked() {
-        // A compiletime-dependent branch cancels one enclosing lazy-initializer suppression scope.
-        // A nested lazy initializer therefore becomes untracked again until its own such branch.
-        return untrackedWriteDepth == 0 || trackedWriteDepth >= untrackedWriteDepth;
-    }
-
-    boolean writesAreSuppressed() {
-        return !writesAreTracked();
-    }
-
-    boolean wasWrittenWhileSuppressed(ImVar var) {
-        return suppressedWrites.contains(var);
-    }
-
-    SideEffectAnalyzer getSideEffectAnalyzer() {
-        return sideEffectAnalyzer;
-    }
-
-    boolean isInCompiletimeOnlyPath() {
-        return trackedWriteDepth > 0;
     }
 
 
@@ -866,8 +804,7 @@ public class ProgramState extends State implements AutoCloseable {
 
     @Override
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
-        if (!writesAreTracked()) {
-            suppressedWrites.add(v);
+        if (untrackedWriteDepth > 0) {
             setArrayValUntracked(v, indexes, val);
             return;
         }
