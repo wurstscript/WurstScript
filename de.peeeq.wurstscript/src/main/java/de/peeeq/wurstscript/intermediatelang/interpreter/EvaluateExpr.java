@@ -136,7 +136,7 @@ public class EvaluateExpr {
             }
             ILconst value = localState.getVal(variable);
             if (value == null) {
-                continue;
+                return null;
             }
             ILconst runtimeValue = runtimeProbeValue(localState.getRuntimeVal(variable));
             if (runtimeValue == null) {
