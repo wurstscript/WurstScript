@@ -90,6 +90,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
+        initializeBackendConstants();
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
         interpreter.addNativeProvider(new CompiletimeNatives(globalState, projectConfigData, isProd));
@@ -98,6 +99,14 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         this.functionFlag = flag;
     }
 
+    private void initializeBackendConstants() {
+        for (ImVar global : imProg.getGlobals()) {
+            if (global.getName().equals("MagicFunctions_isLua")) {
+                globalState.setValUntracked(global, ILconstBool.instance(translator.isLuaTarget()));
+                return;
+            }
+        }
+    }
 
     public void run() {
         try {

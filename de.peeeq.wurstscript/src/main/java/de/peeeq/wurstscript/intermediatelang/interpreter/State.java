@@ -85,6 +85,10 @@ public abstract class State {
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
         modifiedArrayIndexes.computeIfAbsent(v, ignored -> new HashSet<>())
             .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
+        setArrayValUntracked(v, indexes, val);
+    }
+
+    protected void setArrayValUntracked(ImVar v, List<Integer> indexes, ILconst val) {
         ILconstArray ar = getArray(v);
         for (int i = 0; i < indexes.size() - 1; i++) {
             ar = (ILconstArray) ar.get(indexes.get(i));

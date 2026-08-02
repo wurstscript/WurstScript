@@ -140,6 +140,34 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void compiletimeInterpreterSeesLuaTarget() {
+        String compiled = compileLuaWithRunArgs(
+            "compiletimeInterpreterSeesLuaTarget",
+            new RunArgs().with("-lua", "-runcompiletimefunctions"),
+            "package MagicFunctions",
+            "public constant isLua = false",
+            "endpackage",
+            "package Test",
+            "import MagicFunctions",
+            "int observedBackend",
+            "@compiletime function detectBackend()",
+            "    if isLua",
+            "        observedBackend = 1",
+            "    else",
+            "        observedBackend = 2",
+            "native testSuccess()",
+            "init",
+            "    if observedBackend == 1",
+            "        testSuccess()"
+        );
+
+        assertTrue("compiletime execution must take the Lua branch:\n" + compiled,
+            compiled.contains("Test_observedBackend = 1"));
+        assertFalse("compiletime execution must not persist the Jass branch:\n" + compiled,
+            compiled.contains("Test_observedBackend = 2"));
+    }
+
+    @Test
     public void localPlayerEffectfulBooleanOperandSurvivesOptimization() {
         String compiled = compileOptimizedLua(
             "localPlayerEffectfulBooleanOperandSurvivesOptimization",
