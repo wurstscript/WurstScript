@@ -2,12 +2,13 @@ package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
-import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -2086,6 +2087,28 @@ public class WurstValidator {
     private void visit(ExprMemberMethod stmtCall) {
         // calculating the exprType should reveal all errors:
         stmtCall.attrTyp();
+        if (stmtCall.attrCompilationUnit().getCuInfo().isLibrary()) {
+            return;
+        }
+        if (!(stmtCall instanceof ExprMemberMethodDot)
+                || !stmtCall.getFuncName().equals("toString")
+                || !stmtCall.getArgs().isEmpty()
+                || !(stmtCall.getParent() instanceof ExprBinary)) {
+            return;
+        }
+        ExprBinary concat = (ExprBinary) stmtCall.getParent();
+        if (concat.getOp() != WurstOperator.PLUS) {
+            return;
+        }
+        Expr other = concat.getLeft() == stmtCall ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return;
+        }
+        FuncLink explicit = stmtCall.attrFuncLink();
+        FuncLink inferred = AttrFuncDef.findToStringConversion(stmtCall.getLeft());
+        if (explicit != null && explicit.equals(inferred)) {
+            stmtCall.addWarning(AttrFuncDef.REDUNDANT_TO_STRING_WARNING);
+        }
     }
 
     private void visit(ExprNewObject stmtCall) {

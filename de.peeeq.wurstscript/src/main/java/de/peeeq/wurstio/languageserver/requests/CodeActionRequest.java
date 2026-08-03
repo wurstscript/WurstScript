@@ -1,10 +1,12 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -153,6 +155,21 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                     )));
                 }
             });
+        }
+
+        if (e.isPresent() && hasDiagnosticMessage(AttrFuncDef.REDUNDANT_TO_STRING_WARNING::equals)) {
+            findNearest(e.get(), ExprMemberMethodDot.class)
+                .filter(call -> call.getFuncName().equals("toString") && call.getArgs().isEmpty())
+                .ifPresent(call -> {
+                    Range receiverRange = Convert.range(call.getLeft());
+                    Range callRange = Convert.range(call);
+                    TextEdit edit = new TextEdit(
+                        new Range(receiverRange.getEnd(), callRange.getEnd()), "");
+                    result.add(Either.forRight(makeQuickFix(
+                        "Remove redundant .toString()",
+                        workspaceEdit(filename.getUriString(), edit)
+                    )));
+                });
         }
 
         if (hasDiagnosticMessage(msg -> msg.startsWith("The import ") && msg.endsWith(UNUSED_IMPORT_WARNING_SUFFIX))) {

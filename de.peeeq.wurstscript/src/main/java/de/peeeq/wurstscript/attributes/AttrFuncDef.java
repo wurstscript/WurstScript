@@ -27,6 +27,8 @@ import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberF
  * this attribute find the variable definition for every variable reference
  */
 public class AttrFuncDef {
+    public static final String REDUNDANT_TO_STRING_WARNING =
+        "Explicit .toString() is redundant in this string concatenation.";
 
     // TODO just use the attr function signature to get the def
 
@@ -74,7 +76,7 @@ public class AttrFuncDef {
         return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
     }
 
-    /** Finds the same zero-argument string conversion that an explicit operand.toString() call would use. */
+    /** Returns the implicit conversion for a non-string operand next to a string in a + expression. */
     public static @Nullable FuncLink implicitToStringForConcatOperand(ExprBinary concat, Expr operand) {
         if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
             return null;
@@ -84,6 +86,11 @@ public class AttrFuncDef {
             return null;
         }
 
+        return findToStringConversion(operand);
+    }
+
+    /** Resolves the same zero-argument string conversion that an explicit operand.toString() call would use. */
+    public static @Nullable FuncLink findToStringConversion(Expr operand) {
         Collection<FuncLink> raw = NameResolution.lookupMemberFuncs(
             operand, operand.attrTyp(), "toString", false);
         List<FuncLink> methods = new ArrayList<>();

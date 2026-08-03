@@ -202,6 +202,46 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void codeActionCanRemoveRedundantToStringFromConcatenation() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "init",
+            "    let v = new Vec",
+            "    let message = \"value: \" + v.toStr|ing()",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("Explicit .toString() is redundant in this string concatenation.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Remove redundant .toString()".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected toString removal quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        String sourceLine = data.buffer.split("\\r?\\n", -1)[data.line];
+        int suffixStart = sourceLine.indexOf(".toString()");
+        assertEquals(edit.getRange().getStart(), new Position(data.line, suffixStart));
+        assertEquals(edit.getRange().getEnd(), new Position(data.line, suffixStart + ".toString()".length()));
+        assertEquals(edit.getNewText(), "");
+    }
+
+    @Test
     public void codeActionCanRemoveUnusedImport() throws IOException {
         CompletionTestData data = input(
             "package test",

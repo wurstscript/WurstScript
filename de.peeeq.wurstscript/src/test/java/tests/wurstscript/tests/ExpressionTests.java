@@ -37,6 +37,19 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void redundantToStringInStringConcatenation() {
+        testAssertWarningsLines(false, "Explicit .toString() is redundant in this string concatenation.",
+            "package test",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "init",
+            "    let v = new Vec",
+            "    let message = \"value: \" + v.toString()"
+        );
+    }
+
+    @Test
     public void real1() {
         assertOk(".3 + .7 == 1.");
     }
