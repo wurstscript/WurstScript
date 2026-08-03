@@ -168,6 +168,20 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void inferredToStringReportsDeprecation() {
+        testAssertWarningsLines(false, "<toString> is deprecated. use explicit formatting",
+            "package test",
+            "@annotation function annotation()",
+            "@annotation function deprecated(string _message)",
+            "class A",
+            "@deprecated(\"use explicit formatting\") function A.toString() returns string",
+            "    return \"a\"",
+            "init",
+            "    let _message = \"value: \" + new A"
+        );
+    }
+
+    @Test
     public void real1() {
         assertOk(".3 + .7 == 1.");
     }

@@ -2091,6 +2091,9 @@ public class WurstValidator {
             FunctionSignature sig = FunctionSignature.fromNameLink(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
+        } else {
+            checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getLeft()));
+            checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getRight()));
         }
     }
 
