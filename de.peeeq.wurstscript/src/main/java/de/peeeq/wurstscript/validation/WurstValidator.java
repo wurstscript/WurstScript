@@ -2118,6 +2118,13 @@ public class WurstValidator {
             return;
         }
         FuncLink explicit = stmtCall.attrFuncLink();
+        if (explicit != null
+                && stmtCall.getLeft() instanceof ExprThis
+                && explicit.getDef() == stmtCall.attrNearestFuncDef()) {
+            // Explicit recursive calls on this are lowered statically. Removing the call would
+            // make the implicit conversion dispatch virtually and could select an override.
+            return;
+        }
         FuncLink inferred = AttrFuncDef.findToStringConversion(stmtCall.getLeft());
         if (explicit != null && explicit.equals(inferred)) {
             stmtCall.addWarning(AttrFuncDef.REDUNDANT_TO_STRING_WARNING);

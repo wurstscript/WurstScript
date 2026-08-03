@@ -70,6 +70,22 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void recursiveSelfToStringIsNotReportedAsRedundant() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class Base",
+            "    function toString() returns string",
+            "        return \"base: \" + this.toString()",
+            "class Child extends Base",
+            "    override function toString() returns string",
+            "        return \"child\""
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
     public void inferredToStringCountsAsImportUsage() {
         CompilationResult result = test().setStopOnFirstError(false).compilationUnits(
             compilationUnit("Conversions.wurst",
