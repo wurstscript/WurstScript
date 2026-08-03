@@ -285,6 +285,10 @@ public class AttrExprType {
                 if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
                     return WurstTypeString.instance();
                 }
+                if (AttrFuncDef.implicitToStringForConcatOperand(term, term.getLeft()) != null
+                        || AttrFuncDef.implicitToStringForConcatOperand(term, term.getRight()) != null) {
+                    return WurstTypeString.instance();
+                }
                 if (bothTypesRealOrInt(term)) {
                     return caseMathOperation(term);
                 } else {

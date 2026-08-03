@@ -11,6 +11,32 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void inferToStringInStringConcatenation() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "class FancyVec extends Vec",
+            "    override function toString() returns string",
+            "        return \"fancy\"",
+            "class Box<T:>",
+            "    function toString() returns string",
+            "        return \"box\"",
+            "function int.toString() returns string",
+            "    if this == 7",
+            "        return \"seven\"",
+            "    return \"other\"",
+            "init",
+            "    Vec v = new FancyVec",
+            "    let box = new Box<int>",
+            "    if \"before \" + v + \" after\" == \"before fancy after\" and v + \"!\" == \"fancy!\" and \"number \" + 7 == \"number seven\" and box + \"ed\" == \"boxed\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void real1() {
         assertOk(".3 + .7 == 1.");
     }

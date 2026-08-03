@@ -172,6 +172,10 @@ public class ExprTranslation {
         ImExpr left = e.getLeft().imTranslateExpr(t, f);
         ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
+        if (op == WurstOperator.PLUS) {
+            left = wrapImplicitToString(e, e.getLeft(), left, t);
+            right = wrapImplicitToString(e, e.getRight(), right, t);
+        }
         if (e.attrFuncLink() != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
@@ -197,6 +201,30 @@ public class ExprTranslation {
             }
         }
         return ImOperatorCall(op, ImExprs(left, right));
+    }
+
+    private static ImExpr wrapImplicitToString(ExprBinary concat, Expr operand, ImExpr translated,
+                                               ImTranslator t) {
+        FuncLink toString = AttrFuncDef.implicitToStringForConcatOperand(concat, operand);
+        if (toString == null) {
+            return translated;
+        }
+
+        FunctionDefinition calledFunc = toString.getDef().attrRealFuncDef();
+        FunctionSignature signature = FunctionSignature.fromNameLink(toString);
+        if (calledFunc instanceof FuncDef
+                && !((FuncDef) calledFunc).attrIsStatic()
+                && operand.attrTyp().allowsDynamicDispatch()) {
+            ImMethod method = t.getMethodFor((FuncDef) calledFunc);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(
+                t, signature, operand, method.getImplementation().getTypeVariables());
+            return ImMethodCall(operand, method, typeArguments, translated, ImExprs(), false);
+        }
+
+        ImFunction calledImFunc = t.getFuncFor(calledFunc);
+        ImTypeArguments typeArguments = getFunctionCallTypeArguments(
+            t, signature, operand, calledImFunc.getTypeVariables());
+        return ImFunctionCall(operand, calledImFunc, typeArguments, ImExprs(translated), false, CallType.NORMAL);
     }
 
     public static ImExpr translateIntern(ExprUnary e, ImTranslator t, ImFunction f) {

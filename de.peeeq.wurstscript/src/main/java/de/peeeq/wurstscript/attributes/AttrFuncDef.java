@@ -67,7 +67,52 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(ExprBinary node) {
+        if (implicitToStringForConcatOperand(node, node.getLeft()) != null
+                || implicitToStringForConcatOperand(node, node.getRight()) != null) {
+            return null;
+        }
         return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+    }
+
+    /** Finds the same zero-argument string conversion that an explicit operand.toString() call would use. */
+    public static @Nullable FuncLink implicitToStringForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+
+        Collection<FuncLink> raw = NameResolution.lookupMemberFuncs(
+            operand, operand.attrTyp(), "toString", false);
+        List<FuncLink> methods = new ArrayList<>();
+        List<FuncLink> extensions = new ArrayList<>();
+        for (FuncLink candidate : raw) {
+            if (!isVisible(candidate)
+                    || (candidate.getDef() instanceof FuncDef && ((FuncDef) candidate.getDef()).attrIsStatic())) {
+                continue;
+            }
+            FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+                .matchAgainstArgs(Collections.emptyList(), operand);
+            if (matched == null || !matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
+                continue;
+            }
+            FuncLink adapted = candidate.withTypeArgBinding(operand, matched.getMapping());
+            if (isExtension(adapted)) {
+                extensions.add(adapted);
+            } else {
+                methods.add(adapted);
+            }
+        }
+
+        if (!methods.isEmpty()) {
+            return keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand).get(0);
+        }
+        if (!extensions.isEmpty()) {
+            return keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand).get(0);
+        }
+        return null;
     }
 
     public static @Nullable FuncLink calculate(final ExprMemberMethod node) {
