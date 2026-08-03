@@ -121,7 +121,6 @@ public class AttrFuncDef {
             operand, operand.attrTyp(), "toString", false);
         List<FuncLink> methods = new ArrayList<>();
         List<FuncLink> extensions = new ArrayList<>();
-        String inferenceError = null;
         for (FuncLink candidate : raw) {
             if (!isVisible(candidate)
                     || (candidate.getDef() instanceof FuncDef && ((FuncDef) candidate.getDef()).attrIsStatic())) {
@@ -129,45 +128,51 @@ public class AttrFuncDef {
             }
             FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
                 .matchAgainstArgs(Collections.emptyList(), operand);
-            if (matched == null || !matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
+            if (matched == null) {
                 continue;
             }
-            if (matched.getMapping().hasUnboundTypeVars()) {
-                if (inferenceError == null) {
-                    inferenceError = "Cannot infer type for type parameter "
-                        + matched.getMapping().printUnboundTypeVars();
-                }
-                continue;
-            }
-            FuncLink adapted = candidate.withTypeArgBinding(operand, matched.getMapping());
-            if (isExtension(adapted)) {
-                if (!extensions.contains(adapted)) {
-                    extensions.add(adapted);
+            if (isExtension(candidate)) {
+                if (!extensions.contains(candidate)) {
+                    extensions.add(candidate);
                 }
             } else {
-                if (!methods.contains(adapted)) {
-                    methods.add(adapted);
+                if (!methods.contains(candidate)) {
+                    methods.add(candidate);
                 }
             }
         }
 
         if (!methods.isEmpty()) {
-            return selectUniqueToStringConversion(
-                keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand));
+            return selectToStringConversion(
+                keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand), operand);
         }
         if (!extensions.isEmpty()) {
-            return selectUniqueToStringConversion(
-                keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand));
+            return selectToStringConversion(
+                keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand), operand);
         }
-        return new ToStringConversionResolution(null, inferenceError);
+        return new ToStringConversionResolution(null, null);
     }
 
-    private static ToStringConversionResolution selectUniqueToStringConversion(List<FuncLink> candidates) {
-        if (candidates.size() == 1) {
-            return new ToStringConversionResolution(candidates.get(0), null);
+    private static ToStringConversionResolution selectToStringConversion(List<FuncLink> candidates, Expr operand) {
+        if (candidates.size() != 1) {
+            return new ToStringConversionResolution(null,
+                "Call to function toString is ambiguous. Alternatives are:\n" + Utils.printAlternatives(candidates));
         }
-        return new ToStringConversionResolution(null,
-            "Call to function toString is ambiguous. Alternatives are:\n" + Utils.printAlternatives(candidates));
+        FuncLink candidate = candidates.get(0);
+        FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+            .matchAgainstArgs(Collections.emptyList(), operand);
+        if (matched == null) {
+            return new ToStringConversionResolution(null, null);
+        }
+        if (matched.getMapping().hasUnboundTypeVars()) {
+            return new ToStringConversionResolution(null,
+                "Cannot infer type for type parameter " + matched.getMapping().printUnboundTypeVars());
+        }
+        if (!matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
+            return new ToStringConversionResolution(null, null);
+        }
+        return new ToStringConversionResolution(
+            candidate.withTypeArgBinding(operand, matched.getMapping()), null);
     }
 
     private static class ToStringConversionResolution {

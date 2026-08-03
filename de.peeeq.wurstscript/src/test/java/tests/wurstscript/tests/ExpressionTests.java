@@ -120,6 +120,20 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void inferredToStringPreservesMemberPrecedenceOverExtension() {
+        testAssertErrorsLines(false, "No operator overloading function for operator + was found",
+            "package test",
+            "class C",
+            "    function toString() returns int",
+            "        return 1",
+            "function C.toString() returns string",
+            "    return \"extension\"",
+            "init",
+            "    let message = \"value: \" + new C"
+        );
+    }
+
+    @Test
     public void real1() {
         assertOk(".3 + .7 == 1.");
     }
