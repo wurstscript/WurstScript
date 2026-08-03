@@ -99,9 +99,15 @@ public class AttrFuncDef {
         return resolveToStringConversion(operand).conversion;
     }
 
-    /** Whether removing an explicit conversion could expose a left-hand plus overload. */
-    public static boolean hasPotentialPlusOverload(Expr operand) {
-        return !operand.lookupMemberFuncs(operand.attrTyp(), overloadingPlus).isEmpty();
+    /** Whether replacing the right operand with the given type could expose a left-hand plus overload. */
+    public static boolean hasApplicablePlusOverload(Expr leftOperand, WurstType rightType) {
+        List<WurstType> argumentTypes = Collections.singletonList(rightType);
+        for (FuncLink candidate : leftOperand.lookupMemberFuncs(leftOperand.attrTyp(), overloadingPlus)) {
+            if (matchesArguments(leftOperand, candidate, argumentTypes)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Returns why an otherwise applicable implicit conversion cannot be selected. */

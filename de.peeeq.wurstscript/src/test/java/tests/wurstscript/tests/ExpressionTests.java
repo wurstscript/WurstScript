@@ -70,6 +70,24 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void rightHandToStringIsNotRedundantWhenRemovalExposesLeftPlusOverload() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class A",
+            "    function toString() returns string",
+            "        return \"converted\"",
+            "function string.op_plus(A value) returns string",
+            "    return \"overloaded\"",
+            "init",
+            "    let a = new A",
+            "    let message = \"prefix\" + a.toString()"
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
     public void recursiveSelfToStringIsNotReportedAsRedundant() {
         CompilationResult result = test().setStopOnFirstError(false).lines(
             "package test",

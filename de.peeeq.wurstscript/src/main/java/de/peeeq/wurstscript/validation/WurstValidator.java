@@ -2114,7 +2114,13 @@ public class WurstValidator {
         if (!(other.attrTyp() instanceof WurstTypeString)) {
             return;
         }
-        if (concat.getLeft() == stmtCall && AttrFuncDef.hasPotentialPlusOverload(stmtCall.getLeft())) {
+        Expr replacement = stmtCall.getLeft();
+        if (concat.getLeft() == stmtCall
+                && AttrFuncDef.hasApplicablePlusOverload(replacement, concat.getRight().attrTyp())) {
+            return;
+        }
+        if (concat.getRight() == stmtCall
+                && AttrFuncDef.hasApplicablePlusOverload(concat.getLeft(), replacement.attrTyp())) {
             return;
         }
         FuncLink explicit = stmtCall.attrFuncLink();
