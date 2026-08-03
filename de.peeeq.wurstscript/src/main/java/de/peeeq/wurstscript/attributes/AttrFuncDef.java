@@ -91,10 +91,27 @@ public class AttrFuncDef {
 
     /** Resolves the same zero-argument string conversion that an explicit operand.toString() call would use. */
     public static @Nullable FuncLink findToStringConversion(Expr operand) {
+        return resolveToStringConversion(operand).conversion;
+    }
+
+    /** Returns why an otherwise applicable implicit conversion cannot be selected. */
+    public static @Nullable String implicitToStringErrorForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+        return resolveToStringConversion(operand).error;
+    }
+
+    private static ToStringConversionResolution resolveToStringConversion(Expr operand) {
         Collection<FuncLink> raw = NameResolution.lookupMemberFuncs(
             operand, operand.attrTyp(), "toString", false);
         List<FuncLink> methods = new ArrayList<>();
         List<FuncLink> extensions = new ArrayList<>();
+        String inferenceError = null;
         for (FuncLink candidate : raw) {
             if (!isVisible(candidate)
                     || (candidate.getDef() instanceof FuncDef && ((FuncDef) candidate.getDef()).attrIsStatic())) {
@@ -105,21 +122,52 @@ public class AttrFuncDef {
             if (matched == null || !matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
                 continue;
             }
+            if (matched.getMapping().hasUnboundTypeVars()) {
+                if (inferenceError == null) {
+                    inferenceError = "Cannot infer type for type parameter "
+                        + matched.getMapping().printUnboundTypeVars();
+                }
+                continue;
+            }
             FuncLink adapted = candidate.withTypeArgBinding(operand, matched.getMapping());
             if (isExtension(adapted)) {
-                extensions.add(adapted);
+                if (!extensions.contains(adapted)) {
+                    extensions.add(adapted);
+                }
             } else {
-                methods.add(adapted);
+                if (!methods.contains(adapted)) {
+                    methods.add(adapted);
+                }
             }
         }
 
         if (!methods.isEmpty()) {
-            return keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand).get(0);
+            return selectUniqueToStringConversion(
+                keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand));
         }
         if (!extensions.isEmpty()) {
-            return keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand).get(0);
+            return selectUniqueToStringConversion(
+                keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand));
         }
-        return null;
+        return new ToStringConversionResolution(null, inferenceError);
+    }
+
+    private static ToStringConversionResolution selectUniqueToStringConversion(List<FuncLink> candidates) {
+        if (candidates.size() == 1) {
+            return new ToStringConversionResolution(candidates.get(0), null);
+        }
+        return new ToStringConversionResolution(null,
+            "Call to function toString is ambiguous. Alternatives are:\n" + Utils.printAlternatives(candidates));
+    }
+
+    private static class ToStringConversionResolution {
+        private final @Nullable FuncLink conversion;
+        private final @Nullable String error;
+
+        private ToStringConversionResolution(@Nullable FuncLink conversion, @Nullable String error) {
+            this.conversion = conversion;
+            this.error = error;
+        }
     }
 
     public static @Nullable FuncLink calculate(final ExprMemberMethod node) {

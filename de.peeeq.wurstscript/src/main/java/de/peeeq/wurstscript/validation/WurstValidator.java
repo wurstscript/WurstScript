@@ -334,6 +334,14 @@ public class WurstValidator {
                 if (def != null) {
                     used.add(def.getDef().attrNearestPackage());
                 }
+                FuncLink leftConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getLeft());
+                if (leftConversion != null) {
+                    used.add(leftConversion.getDef().attrNearestPackage());
+                }
+                FuncLink rightConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getRight());
+                if (rightConversion != null) {
+                    used.add(rightConversion.getDef().attrNearestPackage());
+                }
             }
 
             if (e instanceof Expr) {

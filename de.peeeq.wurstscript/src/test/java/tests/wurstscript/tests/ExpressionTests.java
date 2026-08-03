@@ -3,6 +3,8 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstio.UtilsIO;
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertFalse;
+
 public class ExpressionTests extends WurstScriptTest {
 
     @Test
@@ -46,6 +48,56 @@ public class ExpressionTests extends WurstScriptTest {
             "init",
             "    let v = new Vec",
             "    let message = \"value: \" + v.toString()"
+        );
+    }
+
+    @Test
+    public void inferredToStringCountsAsImportUsage() {
+        CompilationResult result = test().setStopOnFirstError(false).compilationUnits(
+            compilationUnit("Conversions.wurst",
+                "package Conversions",
+                "public function int.toString() returns string",
+                "    return \"converted\""),
+            compilationUnit("Test.wurst",
+                "package Test",
+                "import Conversions",
+                "init",
+                "    let message = \"value: \" + 1")
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("The import Conversions is never used")));
+    }
+
+    @Test
+    public void inferredToStringRejectsUninferredTypeParameters() {
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+            "package test",
+            "class C",
+            "    function toString<T>() returns string",
+            "        return \"c\"",
+            "init",
+            "    let message = \"value: \" + new C"
+        );
+    }
+
+    @Test
+    public void inferredToStringRejectsAmbiguousExtensions() {
+        test().expectError("Call to function toString is ambiguous").compilationUnits(
+            compilationUnit("First.wurst",
+                "package First",
+                "public function int.toString() returns string",
+                "    return \"first\""),
+            compilationUnit("Second.wurst",
+                "package Second",
+                "public function int.toString() returns string",
+                "    return \"second\""),
+            compilationUnit("Test.wurst",
+                "package Test",
+                "import First",
+                "import Second",
+                "init",
+                "    let message = \"value: \" + 1")
         );
     }
 
