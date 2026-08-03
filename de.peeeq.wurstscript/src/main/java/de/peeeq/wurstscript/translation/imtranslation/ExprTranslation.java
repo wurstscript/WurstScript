@@ -172,11 +172,12 @@ public class ExprTranslation {
         ImExpr left = e.getLeft().imTranslateExpr(t, f);
         ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
-        if (op == WurstOperator.PLUS) {
+        FuncLink overloadedOperator = e.attrFuncLink();
+        if (op == WurstOperator.PLUS && overloadedOperator == null) {
             left = wrapImplicitToString(e, e.getLeft(), left, t);
             right = wrapImplicitToString(e, e.getRight(), right, t);
         }
-        if (e.attrFuncLink() != null) {
+        if (overloadedOperator != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
             return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);

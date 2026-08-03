@@ -69,11 +69,16 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(ExprBinary node) {
+        FuncLink overloadedOperator = getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        if (overloadedOperator != null && matchesArguments(node, overloadedOperator,
+                Collections.singletonList(node.getRight().attrTyp()))) {
+            return overloadedOperator;
+        }
         if (implicitToStringForConcatOperand(node, node.getLeft()) != null
                 || implicitToStringForConcatOperand(node, node.getRight()) != null) {
             return null;
         }
-        return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        return overloadedOperator;
     }
 
     /** Returns the implicit conversion for a non-string operand next to a string in a + expression. */
@@ -92,6 +97,11 @@ public class AttrFuncDef {
     /** Resolves the same zero-argument string conversion that an explicit operand.toString() call would use. */
     public static @Nullable FuncLink findToStringConversion(Expr operand) {
         return resolveToStringConversion(operand).conversion;
+    }
+
+    /** Whether removing an explicit conversion could expose a left-hand plus overload. */
+    public static boolean hasPotentialPlusOverload(Expr operand) {
+        return !operand.lookupMemberFuncs(operand.attrTyp(), overloadingPlus).isEmpty();
     }
 
     /** Returns why an otherwise applicable implicit conversion cannot be selected. */

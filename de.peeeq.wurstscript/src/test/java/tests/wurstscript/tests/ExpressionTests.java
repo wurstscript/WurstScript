@@ -52,6 +52,24 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void explicitToStringIsNotRedundantWhenRemovalExposesPlusOverload() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class A",
+            "    function toString() returns string",
+            "        return \"converted\"",
+            "    function op_plus(string suffix) returns string",
+            "        return \"overloaded\" + suffix",
+            "init",
+            "    let a = new A",
+            "    let message = a.toString() + \"x\""
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
     public void inferredToStringCountsAsImportUsage() {
         CompilationResult result = test().setStopOnFirstError(false).compilationUnits(
             compilationUnit("Conversions.wurst",

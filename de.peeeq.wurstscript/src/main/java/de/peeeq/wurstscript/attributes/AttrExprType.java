@@ -285,6 +285,9 @@ public class AttrExprType {
                 if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
                     return WurstTypeString.instance();
                 }
+                if (term.attrFuncLink() != null) {
+                    return handleOperatorOverloading(term);
+                }
                 if (AttrFuncDef.implicitToStringForConcatOperand(term, term.getLeft()) != null
                         || AttrFuncDef.implicitToStringForConcatOperand(term, term.getRight()) != null) {
                     return WurstTypeString.instance();

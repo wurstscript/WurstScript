@@ -334,13 +334,15 @@ public class WurstValidator {
                 if (def != null) {
                     used.add(def.getDef().attrNearestPackage());
                 }
-                FuncLink leftConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getLeft());
-                if (leftConversion != null) {
-                    used.add(leftConversion.getDef().attrNearestPackage());
-                }
-                FuncLink rightConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getRight());
-                if (rightConversion != null) {
-                    used.add(rightConversion.getDef().attrNearestPackage());
+                if (def == null) {
+                    FuncLink leftConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getLeft());
+                    if (leftConversion != null) {
+                        used.add(leftConversion.getDef().attrNearestPackage());
+                    }
+                    FuncLink rightConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getRight());
+                    if (rightConversion != null) {
+                        used.add(rightConversion.getDef().attrNearestPackage());
+                    }
                 }
             }
 
@@ -2110,6 +2112,9 @@ public class WurstValidator {
         }
         Expr other = concat.getLeft() == stmtCall ? concat.getRight() : concat.getLeft();
         if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return;
+        }
+        if (concat.getLeft() == stmtCall && AttrFuncDef.hasPotentialPlusOverload(stmtCall.getLeft())) {
             return;
         }
         FuncLink explicit = stmtCall.attrFuncLink();
