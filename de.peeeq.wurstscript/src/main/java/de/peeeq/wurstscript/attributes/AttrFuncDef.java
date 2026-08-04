@@ -27,6 +27,8 @@ import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberF
  * this attribute find the variable definition for every variable reference
  */
 public class AttrFuncDef {
+    public static final String REDUNDANT_TO_STRING_WARNING =
+        "Explicit .toString() is redundant in this string concatenation.";
 
     // TODO just use the attr function signature to get the def
 
@@ -67,7 +69,126 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(ExprBinary node) {
-        return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        FuncLink overloadedOperator = getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        if (overloadedOperator != null && matchesArguments(node, overloadedOperator,
+                Collections.singletonList(node.getRight().attrTyp()))) {
+            return overloadedOperator;
+        }
+        if (implicitToStringForConcatOperand(node, node.getLeft()) != null
+                || implicitToStringForConcatOperand(node, node.getRight()) != null) {
+            return null;
+        }
+        return overloadedOperator;
+    }
+
+    /** Returns the implicit conversion for a non-string operand next to a string in a + expression. */
+    public static @Nullable FuncLink implicitToStringForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+
+        return findToStringConversion(operand);
+    }
+
+    /** Resolves the same zero-argument string conversion that an explicit operand.toString() call would use. */
+    public static @Nullable FuncLink findToStringConversion(Expr operand) {
+        return resolveToStringConversion(operand).conversion;
+    }
+
+    /** Whether replacing the right operand with the given type could expose a left-hand plus overload. */
+    public static boolean hasApplicablePlusOverload(Expr leftOperand, WurstType rightType) {
+        List<WurstType> argumentTypes = Collections.singletonList(rightType);
+        for (FuncLink candidate : leftOperand.lookupMemberFuncs(leftOperand.attrTyp(), overloadingPlus)) {
+            if (matchesArguments(leftOperand, candidate, argumentTypes)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Returns why an otherwise applicable implicit conversion cannot be selected. */
+    public static @Nullable String implicitToStringErrorForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+        return resolveToStringConversion(operand).error;
+    }
+
+    private static ToStringConversionResolution resolveToStringConversion(Expr operand) {
+        Collection<FuncLink> raw = NameResolution.lookupMemberFuncs(
+            operand, operand.attrTyp(), "toString", false);
+        List<FuncLink> methods = new ArrayList<>();
+        List<FuncLink> extensions = new ArrayList<>();
+        for (FuncLink candidate : raw) {
+            if (!isVisible(candidate)
+                    || (candidate.getDef() instanceof FuncDef && ((FuncDef) candidate.getDef()).attrIsStatic())) {
+                continue;
+            }
+            FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+                .matchAgainstArgs(Collections.emptyList(), operand);
+            if (matched == null) {
+                continue;
+            }
+            if (isExtension(candidate)) {
+                if (!extensions.contains(candidate)) {
+                    extensions.add(candidate);
+                }
+            } else {
+                if (!methods.contains(candidate)) {
+                    methods.add(candidate);
+                }
+            }
+        }
+
+        if (!methods.isEmpty()) {
+            return selectToStringConversion(
+                keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand), operand);
+        }
+        if (!extensions.isEmpty()) {
+            return selectToStringConversion(
+                keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand), operand);
+        }
+        return new ToStringConversionResolution(null, null);
+    }
+
+    private static ToStringConversionResolution selectToStringConversion(List<FuncLink> candidates, Expr operand) {
+        if (candidates.size() != 1) {
+            return new ToStringConversionResolution(null,
+                "Call to function toString is ambiguous. Alternatives are:\n" + Utils.printAlternatives(candidates));
+        }
+        FuncLink candidate = candidates.get(0);
+        FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+            .matchAgainstArgs(Collections.emptyList(), operand);
+        if (matched == null) {
+            return new ToStringConversionResolution(null, null);
+        }
+        if (matched.getMapping().hasUnboundTypeVars()) {
+            return new ToStringConversionResolution(null,
+                "Cannot infer type for type parameter " + matched.getMapping().printUnboundTypeVars());
+        }
+        if (!matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
+            return new ToStringConversionResolution(null, null);
+        }
+        return new ToStringConversionResolution(
+            candidate.withTypeArgBinding(operand, matched.getMapping()), null);
+    }
+
+    private static class ToStringConversionResolution {
+        private final @Nullable FuncLink conversion;
+        private final @Nullable String error;
+
+        private ToStringConversionResolution(@Nullable FuncLink conversion, @Nullable String error) {
+            this.conversion = conversion;
+            this.error = error;
+        }
     }
 
     public static @Nullable FuncLink calculate(final ExprMemberMethod node) {

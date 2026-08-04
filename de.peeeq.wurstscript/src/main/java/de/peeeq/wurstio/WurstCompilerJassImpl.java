@@ -336,7 +336,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Is your dependency present in _build/dependencies?"));
             return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
-            return addCompilationUnit.apply(file);
+            CompilationUnit lib = addCompilationUnit.apply(file);
+            lib.getCuInfo().setLibrary(true);
+            return lib;
         }
     }
 

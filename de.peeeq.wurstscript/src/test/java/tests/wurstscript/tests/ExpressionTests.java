@@ -3,11 +3,197 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstio.UtilsIO;
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertFalse;
+
 public class ExpressionTests extends WurstScriptTest {
 
     @Test
     public void plus() {
         assertOk("3 + 7 == 10");
+    }
+
+    @Test
+    public void inferToStringInStringConcatenation() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "class FancyVec extends Vec",
+            "    override function toString() returns string",
+            "        return \"fancy\"",
+            "class Box<T:>",
+            "    function toString() returns string",
+            "        return \"box\"",
+            "function int.toString() returns string",
+            "    if this == 7",
+            "        return \"seven\"",
+            "    return \"other\"",
+            "init",
+            "    Vec v = new FancyVec",
+            "    let box = new Box<int>",
+            "    if \"before \" + v + \" after\" == \"before fancy after\" and v + \"!\" == \"fancy!\" and \"number \" + 7 == \"number seven\" and box + \"ed\" == \"boxed\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void redundantToStringInStringConcatenation() {
+        testAssertWarningsLines(false, "Explicit .toString() is redundant in this string concatenation.",
+            "package test",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "init",
+            "    let v = new Vec",
+            "    let message = \"value: \" + v.toString()"
+        );
+    }
+
+    @Test
+    public void explicitToStringIsNotRedundantWhenRemovalExposesPlusOverload() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class A",
+            "    function toString() returns string",
+            "        return \"converted\"",
+            "    function op_plus(string suffix) returns string",
+            "        return \"overloaded\" + suffix",
+            "init",
+            "    let a = new A",
+            "    let message = a.toString() + \"x\""
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
+    public void rightHandToStringIsNotRedundantWhenRemovalExposesLeftPlusOverload() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class A",
+            "    function toString() returns string",
+            "        return \"converted\"",
+            "function string.op_plus(A value) returns string",
+            "    return \"overloaded\"",
+            "init",
+            "    let a = new A",
+            "    let message = \"prefix\" + a.toString()"
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
+    public void stringToStringIsNotReportedAsRedundant() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "function string.toString() returns string",
+            "    return this + \"!\"",
+            "init",
+            "    string value = \"value\"",
+            "    let _message = \"prefix: \" + value.toString()"
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
+    public void recursiveSelfToStringIsNotReportedAsRedundant() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "class Base",
+            "    function toString() returns string",
+            "        return \"base: \" + this.toString()",
+            "class Child extends Base",
+            "    override function toString() returns string",
+            "        return \"child\""
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
+    public void inferredToStringCountsAsImportUsage() {
+        CompilationResult result = test().setStopOnFirstError(false).compilationUnits(
+            compilationUnit("Conversions.wurst",
+                "package Conversions",
+                "public function int.toString() returns string",
+                "    return \"converted\""),
+            compilationUnit("Test.wurst",
+                "package Test",
+                "import Conversions",
+                "init",
+                "    let message = \"value: \" + 1")
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("The import Conversions is never used")));
+    }
+
+    @Test
+    public void inferredToStringRejectsUninferredTypeParameters() {
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+            "package test",
+            "class C",
+            "    function toString<T>() returns string",
+            "        return \"c\"",
+            "init",
+            "    let message = \"value: \" + new C"
+        );
+    }
+
+    @Test
+    public void inferredToStringRejectsAmbiguousExtensions() {
+        test().expectError("Call to function toString is ambiguous").compilationUnits(
+            compilationUnit("First.wurst",
+                "package First",
+                "public function int.toString() returns string",
+                "    return \"first\""),
+            compilationUnit("Second.wurst",
+                "package Second",
+                "public function int.toString() returns string",
+                "    return \"second\""),
+            compilationUnit("Test.wurst",
+                "package Test",
+                "import First",
+                "import Second",
+                "init",
+                "    let message = \"value: \" + 1")
+        );
+    }
+
+    @Test
+    public void inferredToStringPreservesMemberPrecedenceOverExtension() {
+        testAssertErrorsLines(false, "No operator overloading function for operator + was found",
+            "package test",
+            "class C",
+            "    function toString() returns int",
+            "        return 1",
+            "function C.toString() returns string",
+            "    return \"extension\"",
+            "init",
+            "    let message = \"value: \" + new C"
+        );
+    }
+
+    @Test
+    public void inferredToStringReportsDeprecation() {
+        testAssertWarningsLines(false, "<toString> is deprecated. use explicit formatting",
+            "package test",
+            "@annotation function annotation()",
+            "@annotation function deprecated(string _message)",
+            "class A",
+            "@deprecated(\"use explicit formatting\") function A.toString() returns string",
+            "    return \"a\"",
+            "init",
+            "    let _message = \"value: \" + new A"
+        );
     }
 
     @Test

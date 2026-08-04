@@ -4,6 +4,29 @@ import org.testng.annotations.Test;
 
 public class OpOverloading extends WurstScriptTest {
 
+    @Test
+    public void plusOverloadTakesPrecedenceOverImplicitToString() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    function toString() returns string",
+            "        return \"converted\"",
+            "    function op_plus(string suffix) returns string",
+            "        return \"overloaded\" + suffix",
+            "class B",
+            "    function toString() returns string",
+            "        return \"fallback\"",
+            "    function op_plus(int value) returns string",
+            "        return \"wrong overload\"",
+            "init",
+            "    let a = new A",
+            "    let b = new B",
+            "    if a + \"x\" == \"overloadedx\" and b + \"x\" == \"fallbackx\"",
+            "        testSuccess()"
+        );
+    }
+
 
     @Test
     public void testOverloading1() {

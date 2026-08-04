@@ -644,6 +644,9 @@ public class ModelManagerImpl implements ModelManager {
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
         cu.getCuInfo().setFile(filename.toString());
+        if (isUnderDependenciesFolder(filename)) {
+            cu.getCuInfo().setLibrary(true);
+        }
         updateModel(cu, gui);
         fileHashcodes.put(filename, newHash);
         if (reportErrors) {

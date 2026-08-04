@@ -2,12 +2,13 @@ package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
-import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -332,6 +333,16 @@ public class WurstValidator {
                 FuncLink def = binop.attrFuncLink();
                 if (def != null) {
                     used.add(def.getDef().attrNearestPackage());
+                }
+                if (def == null) {
+                    FuncLink leftConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getLeft());
+                    if (leftConversion != null) {
+                        used.add(leftConversion.getDef().attrNearestPackage());
+                    }
+                    FuncLink rightConversion = AttrFuncDef.implicitToStringForConcatOperand(binop, binop.getRight());
+                    if (rightConversion != null) {
+                        used.add(rightConversion.getDef().attrNearestPackage());
+                    }
                 }
             }
 
@@ -2080,12 +2091,58 @@ public class WurstValidator {
             FunctionSignature sig = FunctionSignature.fromNameLink(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
+        } else {
+            checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getLeft()));
+            checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getRight()));
         }
     }
 
     private void visit(ExprMemberMethod stmtCall) {
         // calculating the exprType should reveal all errors:
         stmtCall.attrTyp();
+        if (stmtCall.attrCompilationUnit().getCuInfo().isLibrary()) {
+            return;
+        }
+        if (!(stmtCall instanceof ExprMemberMethodDot)
+                || !stmtCall.getFuncName().equals("toString")
+                || !stmtCall.getArgs().isEmpty()
+                || !(stmtCall.getParent() instanceof ExprBinary)) {
+            return;
+        }
+        ExprBinary concat = (ExprBinary) stmtCall.getParent();
+        if (concat.getOp() != WurstOperator.PLUS) {
+            return;
+        }
+        Expr other = concat.getLeft() == stmtCall ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return;
+        }
+        if (stmtCall.getLeft().attrTyp() instanceof WurstTypeString) {
+            // Removing the explicit call would leave an ordinary string operand, so the
+            // implicit conversion path would not invoke this potentially non-identity method.
+            return;
+        }
+        Expr replacement = stmtCall.getLeft();
+        if (concat.getLeft() == stmtCall
+                && AttrFuncDef.hasApplicablePlusOverload(replacement, concat.getRight().attrTyp())) {
+            return;
+        }
+        if (concat.getRight() == stmtCall
+                && AttrFuncDef.hasApplicablePlusOverload(concat.getLeft(), replacement.attrTyp())) {
+            return;
+        }
+        FuncLink explicit = stmtCall.attrFuncLink();
+        if (explicit != null
+                && stmtCall.getLeft() instanceof ExprThis
+                && explicit.getDef() == stmtCall.attrNearestFuncDef()) {
+            // Explicit recursive calls on this are lowered statically. Removing the call would
+            // make the implicit conversion dispatch virtually and could select an override.
+            return;
+        }
+        FuncLink inferred = AttrFuncDef.findToStringConversion(stmtCall.getLeft());
+        if (explicit != null && explicit.equals(inferred)) {
+            stmtCall.addWarning(AttrFuncDef.REDUNDANT_TO_STRING_WARNING);
+        }
     }
 
     private void visit(ExprNewObject stmtCall) {

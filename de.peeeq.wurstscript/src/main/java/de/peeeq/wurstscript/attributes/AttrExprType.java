@@ -285,6 +285,21 @@ public class AttrExprType {
                 if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
                     return WurstTypeString.instance();
                 }
+                if (term.attrFuncLink() != null) {
+                    return handleOperatorOverloading(term);
+                }
+                if (AttrFuncDef.implicitToStringForConcatOperand(term, term.getLeft()) != null
+                        || AttrFuncDef.implicitToStringForConcatOperand(term, term.getRight()) != null) {
+                    return WurstTypeString.instance();
+                }
+                String conversionError = AttrFuncDef.implicitToStringErrorForConcatOperand(term, term.getLeft());
+                if (conversionError == null) {
+                    conversionError = AttrFuncDef.implicitToStringErrorForConcatOperand(term, term.getRight());
+                }
+                if (conversionError != null) {
+                    term.addError(conversionError);
+                    return WurstTypeUnknown.instance();
+                }
                 if (bothTypesRealOrInt(term)) {
                     return caseMathOperation(term);
                 } else {
