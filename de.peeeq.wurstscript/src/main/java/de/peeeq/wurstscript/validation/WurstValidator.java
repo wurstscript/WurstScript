@@ -447,6 +447,8 @@ public class WurstValidator {
                 visit((ExtensionFuncDef) e);
             if (e instanceof FuncDef)
                 visit((FuncDef) e);
+            if (e instanceof NativeFunc)
+                checkBenchmark((NativeFunc) e);
             if (e instanceof FuncRef)
                 checkFuncRef((FuncRef) e);
             if (e instanceof FunctionLike)
@@ -1727,6 +1729,7 @@ public class WurstValidator {
         func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
         checkFunctionName(func);
+        checkBenchmark(func);
         if (func.attrIsAbstract()) {
             if (!func.attrHasEmptyBody()) {
                 func.addError("Abstract function " + func.getName() + " must not have a body.");
@@ -1734,6 +1737,25 @@ public class WurstValidator {
             if (func.attrIsPrivate()) {
                 func.addError("Abstract functions must not be private.");
             }
+        }
+    }
+
+    private void checkBenchmark(FunctionDefinition func) {
+        if (!func.attrHasAnnotation("benchmark")) return;
+        if (func.attrNearestStructureDef() != null
+            || !func.getParameters().isEmpty()
+            || !func.attrReturnTyp().equalsType(WurstTypeInt.instance(), func)) {
+            func.addError("@benchmark functions must be package-level, parameterless functions returning int.");
+        }
+        if (func instanceof NativeFunc
+            || func.attrHasAnnotation("extern")
+            || func.attrHasAnnotation("compiletimenative")
+            || func.attrIsAbstract()
+            || (func instanceof FuncDef && ((FuncDef) func).attrHasEmptyBody())) {
+            func.addError("@benchmark functions must be executable by the compiletime IL interpreter; native, extern, and compiletimenative declarations are not supported.");
+        }
+        if (func.attrIsCompiletime()) {
+            func.addError("@benchmark cannot be combined with @compiletime.");
         }
     }
 

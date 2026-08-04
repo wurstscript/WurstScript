@@ -1,6 +1,10 @@
 package de.peeeq.wurstio;
 
 import org.wurstscript.projectconfig.WurstProjectConfigData;
+import de.peeeq.wurstio.benchmark.BenchmarkOptions;
+import de.peeeq.wurstio.benchmark.BenchmarkResult;
+import de.peeeq.wurstio.benchmark.BenchmarkWorkerOutput;
+import de.peeeq.wurstio.benchmark.RunBenchmarks;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -19,6 +23,8 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -80,6 +86,11 @@ public class CompilationProcess {
             return null;
         }
 
+        if (runArgs.isRunBenchmarks()) {
+            timeTaker.measure("Run benchmark worker", () -> runBenchmarks(compiler));
+            return null;
+        }
+
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
                     () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout(), runArgs.getTestFilter()));
@@ -114,6 +125,32 @@ public class CompilationProcess {
         }
         timeTaker.printReport();
         return mapScript;
+    }
+
+    private void runBenchmarks(WurstCompilerJassImpl compiler) {
+        try {
+            RunBenchmarks runner = new RunBenchmarks();
+            Path output = Paths.get(runArgs.getBenchmarkOutput());
+            if (runArgs.isBenchmarkList()) {
+                BenchmarkWorkerOutput.writeDiscovery(
+                    output,
+                    runner.discover(compiler.getImProg(), Optional.ofNullable(runArgs.getBenchmarkFilter())));
+            } else {
+                BenchmarkResult result = runner.run(
+                    compiler.getImTranslator(),
+                    compiler.getImProg(),
+                    runArgs.getBenchmarkName(),
+                    new BenchmarkOptions(runArgs.getBenchmarkWarmup(), runArgs.getBenchmarkIterations(), 1_000_000L));
+                BenchmarkWorkerOutput.writeResult(output, result);
+            }
+        } catch (Throwable e) {
+            String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            gui.sendError(new CompileError(
+                null,
+                "Benchmark worker failed: " + message,
+                CompileError.ErrorType.ERROR,
+                e));
+        }
     }
 
     private boolean runPjass(File outputMapscript) {

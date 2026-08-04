@@ -55,12 +55,47 @@ public class RunTestsOutputRedirectTests extends WurstScriptTest {
         assertTrue(output.contains("assertion message"), output);
     }
 
+    @Test
+    public void normalTestModeNeverExecutesBenchmarks() {
+        String output = runTests(false, new String[] {
+            "package test",
+            "native println(string msg)",
+            "@benchmark function benchmarkOnly() returns int",
+            "\tprintln(\"benchmark output\")",
+            "\treturn 42",
+            "@test function passingTest()",
+            "\tprintln(\"test output\")",
+        });
+
+        assertFalse(output.contains("benchmark output"), output);
+        assertTrue(output.contains("test output"), output);
+        assertTrue(output.contains("Tests succeeded: 1/1"), output);
+    }
+
+    @Test
+    public void dualAnnotatedFunctionRunsAsNormalTest() {
+        String output = runTests(false, new String[] {
+            "package test",
+            "native println(string msg)",
+            "@test @benchmark function checkedWork() returns int",
+            "\tprintln(\"dual test output\")",
+            "\treturn 42",
+        });
+
+        assertTrue(output.contains("dual test output"), output);
+        assertTrue(output.contains("Tests succeeded: 1/1"), output);
+    }
+
     private String runTests(boolean compactOutput) {
+        return runTests(compactOutput, PROGRAM);
+    }
+
+    private String runTests(boolean compactOutput, String[] program) {
         RunArgs runArgs = new RunArgs();
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         WurstModel model = parseFiles(null,
-            Collections.singletonList(new CU("test", Utils.join(PROGRAM, "\n") + "\n")), false, compiler);
+            Collections.singletonList(new CU("test", Utils.join(program, "\n") + "\n")), false, compiler);
         compiler.checkProg(model);
         if (!gui.getErrorList().isEmpty()) {
             throw gui.getErrorList().get(0);
