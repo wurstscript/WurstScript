@@ -88,6 +88,21 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void stringToStringIsNotReportedAsRedundant() {
+        CompilationResult result = test().setStopOnFirstError(false).lines(
+            "package test",
+            "function string.toString() returns string",
+            "    return this + \"!\"",
+            "init",
+            "    string value = \"value\"",
+            "    let _message = \"prefix: \" + value.toString()"
+        );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("Explicit .toString() is redundant")));
+    }
+
+    @Test
     public void recursiveSelfToStringIsNotReportedAsRedundant() {
         CompilationResult result = test().setStopOnFirstError(false).lines(
             "package test",

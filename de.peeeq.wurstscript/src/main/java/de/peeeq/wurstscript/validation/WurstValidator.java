@@ -2117,6 +2117,11 @@ public class WurstValidator {
         if (!(other.attrTyp() instanceof WurstTypeString)) {
             return;
         }
+        if (stmtCall.getLeft().attrTyp() instanceof WurstTypeString) {
+            // Removing the explicit call would leave an ordinary string operand, so the
+            // implicit conversion path would not invoke this potentially non-identity method.
+            return;
+        }
         Expr replacement = stmtCall.getLeft();
         if (concat.getLeft() == stmtCall
                 && AttrFuncDef.hasApplicablePlusOverload(replacement, concat.getRight().attrTyp())) {
