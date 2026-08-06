@@ -20,6 +20,8 @@ import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import org.eclipse.lsp4j.InlayHint;
@@ -108,7 +110,7 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
         if (e instanceof ExprNewObject) {
             ExprNewObject exprNew = (ExprNewObject) e;
             ConstructorDef constructorDef = exprNew.attrConstructorDef();
-            if (constructorDef == null) {
+            if (constructorDef == null || isModuleGeneratedConstructor(constructorDef)) {
                 return;
             }
             List<String> paramNames = new ArrayList<>();
@@ -118,6 +120,11 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
                     .collect(Collectors.toList());
             addParameterHints(hints, exprNew.getArgs(), paramNames, paramTypes);
         }
+    }
+
+    private boolean isModuleGeneratedConstructor(ConstructorDef constructorDef) {
+        ClassDef classDef = constructorDef.attrNearestClassDef();
+        return classDef != null && classDef.getParent() instanceof ModuleInstanciation;
     }
 
     private void addParameterHints(List<InlayHint> hints, Arguments args, List<String> paramNames, List<String> paramTypes) {

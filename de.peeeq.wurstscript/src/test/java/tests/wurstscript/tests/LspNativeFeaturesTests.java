@@ -521,6 +521,32 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void inlayHintsIgnoreConstructorsFromUsedModules() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "module M",
+                "    static class Iterator",
+                "        construct(bool destroyOnClose)",
+                "class C",
+                "    use M",
+                "init",
+                "    let iterator = new C.Iterator(false)",
+                "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+        List<String> labels = hints.stream()
+                .map(h -> h.getLabel().isLeft() ? h.getLabel().getLeft() : "")
+                .collect(Collectors.toList());
+        assertFalse(labels.contains("destroyOnClose:"), "module-generated constructor parameters are not source-call parameters");
+    }
+
+    @Test
     public void inlayHintForMemberAccessStartsAtReceiver() throws IOException {
         CompletionTestData data = input(
                 "package test",
