@@ -3,6 +3,7 @@ package de.peeeq.wurstscript;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 
 import java.util.*;
 
@@ -24,9 +25,17 @@ public class SyntacticSugar {
         }
         rewriteNegatedInts(root);
         addDefaultConstructors(root);
-        expandFieldIterations(root);
         addEndFunctionStatements(root);
         replaceTypeIdUse(root);
+    }
+
+    /**
+     * Expands field iteration after module methods have been copied into their consuming classes.
+     * This must run after {@link ModuleExpander#expandModules(CompilationUnit)} so a module callback can
+     * see all fields of the concrete class using it.
+     */
+    public void expandFieldIterations(CompilationUnit root) {
+        expandFieldIterationsInTree(root);
     }
 
     /**
@@ -39,7 +48,7 @@ public class SyntacticSugar {
      * __wurst_mapFields((name, value) -> reader.read(name, value))
      * </pre>
      */
-    private void expandFieldIterations(CompilationUnit root) {
+    private void expandFieldIterationsInTree(CompilationUnit root) {
         List<ExprFunctionCall> calls = new ArrayList<>();
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
@@ -63,7 +72,18 @@ public class SyntacticSugar {
             return;
         }
         ClassDef classDef = call.attrNearestClassDef();
-        if (classDef == null || !call.attrIsDynamicContext()) {
+        ClassOrModule owner = call.attrNearestClassOrModule();
+        if (!call.attrIsDynamicContext()) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
+            return;
+        }
+        if (owner instanceof ModuleDef) {
+            // Module bodies are templates. Their copies were made by ModuleExpander; validate and
+            // expand those concrete copies instead of type-checking this uninstantiated template.
+            statements.remove(call);
+            return;
+        }
+        if (classDef == null) {
             call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
             return;
         }
@@ -95,12 +115,7 @@ public class SyntacticSugar {
             call.addError("forFields closure must produce a statement expression.");
             return;
         }
-        List<GlobalVarDef> fields = new ArrayList<>();
-        for (GlobalVarDef field : classDef.getVars()) {
-            if (!field.attrIsStatic()) {
-                fields.add(field);
-            }
-        }
+        List<GlobalVarDef> fields = collectInstanceFields(classDef, owner);
         if (fields.isEmpty()) {
             call.addError(call.getFuncName() + " requires at least one instance field.");
             return;
@@ -119,6 +134,36 @@ public class SyntacticSugar {
                 expanded = (WStatement) implementation;
             }
             statements.add(statementIndex++, expanded);
+        }
+    }
+
+    private List<GlobalVarDef> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
+        List<GlobalVarDef> fields = new ArrayList<>();
+        if (classDef != null) {
+            collectInheritedFields(classDef.attrTypC(), fields, Collections.newSetFromMap(new IdentityHashMap<>()));
+        } else if (owner instanceof ModuleDef moduleDef) {
+            addInstanceFields(moduleDef.getVars(), fields);
+        }
+        return fields;
+    }
+
+    private void collectInheritedFields(WurstTypeClass type,
+                                        List<GlobalVarDef> fields, Set<ClassDef> visited) {
+        if (!visited.add(type.getClassDef())) {
+            return;
+        }
+        WurstTypeClass superType = type.extendedClass();
+        if (superType != null) {
+            collectInheritedFields(superType, fields, visited);
+        }
+        addInstanceFields(type.getClassDef().getVars(), fields);
+    }
+
+    private void addInstanceFields(Iterable<GlobalVarDef> declarations, List<GlobalVarDef> fields) {
+        for (GlobalVarDef field : declarations) {
+            if (!field.attrIsStatic()) {
+                fields.add(field);
+            }
         }
     }
 

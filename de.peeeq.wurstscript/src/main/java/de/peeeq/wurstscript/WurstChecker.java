@@ -47,6 +47,10 @@ public class WurstChecker {
 
         if (errorHandler.getErrorCount() > 0) return;
 
+        for (CompilationUnit cu : toCheck) {
+            new SyntacticSugar().expandFieldIterations(cu);
+        }
+
         // compute the flow attributes
         for (CompilationUnit cu : toCheck) {
             WurstValidator.computeFlowAttributes(cu);

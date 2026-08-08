@@ -276,4 +276,64 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void includesInheritedInstanceFields() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Acc",
+                "        int total = 0",
+                "        function add(int value)",
+                "            total = total + value",
+                "    class Base",
+                "        int inherited = 1",
+                "    class Data extends Base",
+                "        int local = 2",
+                "",
+                "        function save(Acc acc)",
+                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "",
+                "    init",
+                "        let acc = new Acc",
+                "        let data = new Data",
+                "        data.save(acc)",
+                "        if acc.total == 3",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void expandsFieldIterationInModuleMethodsAfterInstantiation() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Acc",
+                "        int total = 0",
+                "        function add(int value)",
+                "            total = total + value",
+                "    module Serializer",
+                "        function save(Acc acc)",
+                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "",
+                "    class Data",
+                "        use Serializer",
+                "        int inherited = 1",
+                "        int local = 2",
+                "        int count = 0",
+                "",
+                "    init",
+                "        let acc = new Acc",
+                "        let data = new Data",
+                "        data.save(acc)",
+                "        if acc.total == 3",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
 }
