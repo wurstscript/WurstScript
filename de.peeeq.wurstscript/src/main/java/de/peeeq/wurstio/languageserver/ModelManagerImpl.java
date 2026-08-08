@@ -7,6 +7,7 @@ import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.SyntacticSugar;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -97,6 +98,7 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
             GlobalCaches.clearLookupCacheFor(toRemove);
+            toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
             model2.removeAll(toRemove);
         }
 
@@ -117,6 +119,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void clean() {
+        SyntacticSugar.clearDirectFieldIterations();
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
@@ -267,6 +270,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void clearCompilationUnit(CompilationUnit cu) {
+        SyntacticSugar.restoreDirectFieldIterations(cu);
         cu.clearAttributes();
         // clear module instantiations
         for (WPackage p : cu.getPackages()) {

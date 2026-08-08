@@ -18,16 +18,42 @@ public class SyntacticSugar {
     /** Compiler-reserved spelling keeps ordinary user functions named forFields/mapFields valid. */
     private static final String FOR_FIELDS = "__wurst_forFields";
     private static final String MAP_FIELDS = "__wurst_mapFields";
+    private static final Map<CompilationUnit, List<DeferredModuleCall>> DETACHED_DIRECT_CALLS =
+        Collections.synchronizedMap(new WeakHashMap<>());
 
     public static final class DeferredModuleCall {
         private final WStatements statements;
         private final int index;
         private final ExprFunctionCall call;
+        private final List<WStatement> generatedStatements;
 
         private DeferredModuleCall(WStatements statements, int index, ExprFunctionCall call) {
+            this(statements, index, call, List.of());
+        }
+
+        private DeferredModuleCall(WStatements statements, int index, ExprFunctionCall call,
+                                   List<WStatement> generatedStatements) {
             this.statements = statements;
             this.index = index;
             this.call = call;
+            this.generatedStatements = generatedStatements;
+        }
+    }
+
+    private static final class FieldInfo {
+        private final GlobalVarDef declaration;
+        private final List<String> modulePath;
+
+        private FieldInfo(GlobalVarDef declaration, List<String> modulePath) {
+            this.declaration = declaration;
+            this.modulePath = List.copyOf(modulePath);
+        }
+
+        private String key() {
+            if (modulePath.isEmpty()) {
+                return declaration.getName();
+            }
+            return String.join(".", modulePath) + "." + declaration.getName();
         }
     }
 
@@ -57,7 +83,23 @@ public class SyntacticSugar {
      * see all fields of the concrete class using it.
      */
     public void expandFieldIterations(CompilationUnit root) {
-        expandFieldIterationsInTree(root);
+        List<DeferredModuleCall> detached = expandFieldIterationsInTree(root);
+        if (!detached.isEmpty()) {
+            DETACHED_DIRECT_CALLS.put(root, detached);
+        }
+    }
+
+    /** Restores source intrinsics before an incremental compilation-unit recheck. */
+    public static void restoreDirectFieldIterations(CompilationUnit root) {
+        List<DeferredModuleCall> detached = DETACHED_DIRECT_CALLS.remove(root);
+        if (detached != null) {
+            new SyntacticSugar().restoreModuleTemplateFieldIterations(detached);
+        }
+    }
+
+    /** Drops saved source intrinsics when the whole language-server model is discarded. */
+    public static void clearDirectFieldIterations() {
+        DETACHED_DIRECT_CALLS.clear();
     }
 
     /** Temporarily removes template intrinsics while validation runs; callers must restore them. */
@@ -84,6 +126,9 @@ public class SyntacticSugar {
     public void restoreModuleTemplateFieldIterations(List<DeferredModuleCall> detached) {
         for (int i = detached.size() - 1; i >= 0; i--) {
             DeferredModuleCall state = detached.get(i);
+            for (WStatement generated : state.generatedStatements) {
+                state.statements.remove(generated);
+            }
             int index = Math.min(state.index, state.statements.size());
             state.statements.add(index, state.call);
         }
@@ -99,7 +144,7 @@ public class SyntacticSugar {
      * __wurst_mapFields((name, value) -> reader.read(name, value))
      * </pre>
      */
-    private void expandFieldIterationsInTree(CompilationUnit root) {
+    private List<DeferredModuleCall> expandFieldIterationsInTree(CompilationUnit root) {
         List<ExprFunctionCall> calls = new ArrayList<>();
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
@@ -111,12 +156,16 @@ public class SyntacticSugar {
             }
         });
 
+        List<DeferredModuleCall> detached = new ArrayList<>();
         for (ExprFunctionCall call : calls) {
-            expandFieldIteration(call, MAP_FIELDS.equals(call.getFuncName()));
+            expandFieldIteration(call, MAP_FIELDS.equals(call.getFuncName()), detached);
         }
+        return detached;
     }
 
-    private void expandFieldIteration(ExprFunctionCall call, boolean assignsResult) {
+    private void expandFieldIteration(ExprFunctionCall call,
+                                      boolean assignsResult,
+                                      List<DeferredModuleCall> detached) {
         if (!(call.getParent() instanceof WStatements statements)) {
             call.addError(call.getFuncName() + " can only be used as a statement.");
             return;
@@ -164,42 +213,48 @@ public class SyntacticSugar {
             call.addError("forFields closure must produce a statement expression.");
             return;
         }
-        List<GlobalVarDef> fields = collectInstanceFields(classDef, owner);
+        List<FieldInfo> fields = collectInstanceFields(classDef, owner);
         if (fields.isEmpty()) {
             call.addError(call.getFuncName() + " requires at least one instance field.");
             return;
         }
         int statementIndex = statements.indexOf(call);
+        detached.add(new DeferredModuleCall(statements, statementIndex, call));
         statements.remove(statementIndex);
 
-        for (GlobalVarDef field : fields) {
-            Expr fieldAccess = fieldAccess(call.getSource(), field.getName());
+        List<WStatement> generatedStatements = new ArrayList<>(fields.size());
+        for (FieldInfo field : fields) {
+            String fieldKey = field.key();
+            Expr fieldAccess = fieldAccess(call.getSource(), field);
             Expr implementation = substituteFieldParameters(
-                closure.getImplementation().copy(), nameParameter, valueParameter, field.getName());
+                closure.getImplementation().copy(), nameParameter, valueParameter, fieldKey, field);
             WStatement expanded;
             if (assignsResult) {
                 expanded = Ast.StmtSet(call.getSource(), (LExpr) fieldAccess, implementation);
             } else {
                 expanded = (WStatement) implementation;
             }
+            generatedStatements.add(expanded);
             statements.add(statementIndex++, expanded);
         }
+        detached.set(detached.size() - 1,
+            new DeferredModuleCall(statements, statementIndex - fields.size(), call, generatedStatements));
     }
 
-    private List<GlobalVarDef> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
-        List<GlobalVarDef> fields = new ArrayList<>();
+    private List<FieldInfo> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
+        List<FieldInfo> fields = new ArrayList<>();
         if (classDef != null) {
             collectInheritedFields(classDef.attrTypC(), fields, classDef,
                 Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()));
         } else if (owner instanceof ModuleDef moduleDef) {
-            addInstanceFields(moduleDef.getVars(), fields, null);
+            addInstanceFields(moduleDef.getVars(), fields, null, List.of());
         }
         return fields;
     }
 
     private void collectInheritedFields(WurstTypeClass type,
-                                        List<GlobalVarDef> fields,
+                                        List<FieldInfo> fields,
                                         ClassDef concreteClass,
                                         Set<ClassDef> visitedClasses,
                                         Set<ModuleInstanciation> visitedModules) {
@@ -210,32 +265,40 @@ public class SyntacticSugar {
         if (superType != null) {
             collectInheritedFields(superType, fields, concreteClass, visitedClasses, visitedModules);
         }
-        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass, visitedModules);
-        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass);
+        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass,
+            visitedModules, List.of());
+        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass, List.of());
     }
 
     private void addModuleFields(Iterable<ModuleInstanciation> modules,
-                                 List<GlobalVarDef> fields,
+                                 List<FieldInfo> fields,
                                  ClassDef concreteClass,
-                                 Set<ModuleInstanciation> visited) {
+                                 Set<ModuleInstanciation> visited,
+                                 List<String> parentPath) {
         for (ModuleInstanciation module : modules) {
             if (!visited.add(module)) {
                 continue;
             }
-            addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited);
-            addInstanceFields(module.getVars(), fields, concreteClass);
+            // A nested module's fields are exposed through the outer module instance (the
+            // inner instance is not a member receiver in the consuming class).
+            List<String> modulePath = parentPath.isEmpty()
+                ? List.of(module.getName())
+                : parentPath;
+            addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited, modulePath);
+            addInstanceFields(module.getVars(), fields, concreteClass, modulePath);
         }
     }
 
     private void addInstanceFields(Iterable<GlobalVarDef> declarations,
-                                   List<GlobalVarDef> fields,
-                                   ClassDef concreteClass) {
+                                   List<FieldInfo> fields,
+                                   ClassDef concreteClass,
+                                   List<String> modulePath) {
         for (GlobalVarDef field : declarations) {
             boolean privateFromAnotherClass = field.attrIsPrivate()
                 && concreteClass != null
                 && field.attrNearestClassDef() != concreteClass;
             if (!field.attrIsStatic() && !privateFromAnotherClass) {
-                fields.add(field);
+                fields.add(new FieldInfo(field, modulePath));
             }
         }
     }
@@ -260,13 +323,13 @@ public class SyntacticSugar {
     }
 
     private Expr substituteFieldParameters(Expr expression, String nameParameter,
-                                           String valueParameter, String fieldName) {
+                                           String valueParameter, String fieldName, FieldInfo field) {
         if (expression instanceof ExprVarAccess access) {
             if (access.getVarName().equals(nameParameter)) {
                 return Ast.ExprStringVal(access.getSource(), fieldName);
             }
             if (access.getVarName().equals(valueParameter)) {
-                return fieldAccess(access.getSource(), fieldName);
+                return fieldAccess(access.getSource(), field);
             }
         }
 
@@ -368,14 +431,25 @@ public class SyntacticSugar {
         for (ExprVarAccess access : accesses) {
             Expr replacement = access.getVarName().equals(nameParameter)
                 ? Ast.ExprStringVal(access.getSource(), fieldName)
-                : fieldAccess(access.getSource(), fieldName);
+                : fieldAccess(access.getSource(), field);
             access.replaceBy(replacement);
         }
         return expression;
     }
 
-    private ExprMemberVarDot fieldAccess(WPos source, String fieldName) {
-        return Ast.ExprMemberVarDot(source, Ast.ExprThis(source), Ast.Identifier(source, fieldName));
+    private ExprMemberVarDot fieldAccess(WPos source, FieldInfo field) {
+        Expr left;
+        if (field.modulePath.isEmpty()) {
+            left = Ast.ExprThis(source);
+        } else {
+            left = Ast.ExprVarAccess(source, Ast.Identifier(source, field.modulePath.get(0)));
+            for (int i = 1; i < field.modulePath.size(); i++) {
+                left = Ast.ExprMemberVarDot(source, left,
+                    Ast.Identifier(source, field.modulePath.get(i)));
+            }
+        }
+        return Ast.ExprMemberVarDot(source, left,
+            Ast.Identifier(source, field.declaration.getName()));
     }
 
     private void replaceTypeIdUse(CompilationUnit root) {

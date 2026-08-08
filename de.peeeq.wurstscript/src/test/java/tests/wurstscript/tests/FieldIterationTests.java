@@ -371,4 +371,40 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void qualifiesFieldsFromSiblingModules() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Acc",
+                "        int left",
+                "        int right",
+                "        function add(string name, int value)",
+                "            if name == \"Left.x\"",
+                "                left = value",
+                "            if name == \"Right.x\"",
+                "                right = value",
+                "    module Left",
+                "        int x = 1",
+                "    module Right",
+                "        int x = 2",
+                "    class Data",
+                "        use Left",
+                "        use Right",
+                "        function save(Acc acc)",
+                "            __wurst_forFields((name, value) -> acc.add(name, value))",
+                "    init",
+                "        let acc = new Acc",
+                "        let data = new Data",
+                "        data.save(acc)",
+                "        if acc.left == 1 and acc.right == 2",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
 }
