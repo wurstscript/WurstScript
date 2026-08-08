@@ -119,7 +119,6 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void clean() {
-        SyntacticSugar.clearDirectFieldIterations();
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;

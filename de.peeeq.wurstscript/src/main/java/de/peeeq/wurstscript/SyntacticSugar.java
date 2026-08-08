@@ -18,9 +18,6 @@ public class SyntacticSugar {
     /** Compiler-reserved spelling keeps ordinary user functions named forFields/mapFields valid. */
     private static final String FOR_FIELDS = "__wurst_forFields";
     private static final String MAP_FIELDS = "__wurst_mapFields";
-    private static final Map<CompilationUnit, List<DeferredModuleCall>> DETACHED_DIRECT_CALLS =
-        Collections.synchronizedMap(new WeakHashMap<>());
-
     public static final class DeferredModuleCall {
         private final WStatements statements;
         private final int index;
@@ -37,6 +34,14 @@ public class SyntacticSugar {
             this.index = index;
             this.call = call;
             this.generatedStatements = generatedStatements;
+        }
+    }
+
+    public static final class DirectFieldIterationState {
+        private final List<DeferredModuleCall> detached;
+
+        private DirectFieldIterationState(List<DeferredModuleCall> detached) {
+            this.detached = detached;
         }
     }
 
@@ -84,22 +89,20 @@ public class SyntacticSugar {
      */
     public void expandFieldIterations(CompilationUnit root) {
         List<DeferredModuleCall> detached = expandFieldIterationsInTree(root);
-        if (!detached.isEmpty()) {
-            DETACHED_DIRECT_CALLS.put(root, detached);
+        if (!detached.isEmpty() && root.getCuInfo() != null) {
+            root.getCuInfo().setDirectFieldIterationState(new DirectFieldIterationState(detached));
         }
     }
 
     /** Restores source intrinsics before an incremental compilation-unit recheck. */
     public static void restoreDirectFieldIterations(CompilationUnit root) {
-        List<DeferredModuleCall> detached = DETACHED_DIRECT_CALLS.remove(root);
-        if (detached != null) {
-            new SyntacticSugar().restoreModuleTemplateFieldIterations(detached);
+        if (root.getCuInfo() != null) {
+            DirectFieldIterationState state = root.getCuInfo().getDirectFieldIterationState();
+            root.getCuInfo().setDirectFieldIterationState(null);
+            if (state != null) {
+                new SyntacticSugar().restoreModuleTemplateFieldIterations(state.detached);
+            }
         }
-    }
-
-    /** Drops saved source intrinsics when the whole language-server model is discarded. */
-    public static void clearDirectFieldIterations() {
-        DETACHED_DIRECT_CALLS.clear();
     }
 
     /** Temporarily removes template intrinsics while validation runs; callers must restore them. */
@@ -172,19 +175,6 @@ public class SyntacticSugar {
         }
         ClassDef classDef = call.attrNearestClassDef();
         ClassOrModule owner = call.attrNearestClassOrModule();
-        if (!call.attrIsDynamicContext()) {
-            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
-            return;
-        }
-        if (owner instanceof ModuleDef) {
-            // Module bodies are templates. Their copies were made by ModuleExpander; validate and
-            // expand those concrete copies instead of type-checking this uninstantiated template.
-            return;
-        }
-        if (classDef == null) {
-            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
-            return;
-        }
         if (call.getArgs().size() != 1 || !(call.getArgs().get(0) instanceof ExprClosure closure)
             || closure.getShortParameters().size() != 2) {
             call.addError(call.getFuncName() + " expects a closure with (fieldName, fieldValue) parameters.");
@@ -211,6 +201,19 @@ public class SyntacticSugar {
         }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
             call.addError("forFields closure must produce a statement expression.");
+            return;
+        }
+        if (!call.attrIsDynamicContext()) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
+            return;
+        }
+        if (owner instanceof ModuleDef) {
+            // Module bodies are templates. Their copies were made by ModuleExpander; validate and
+            // expand those concrete copies instead of type-checking this uninstantiated template.
+            return;
+        }
+        if (classDef == null) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
             return;
         }
         List<FieldInfo> fields = collectInstanceFields(classDef, owner);
@@ -248,7 +251,7 @@ public class SyntacticSugar {
                 Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()));
         } else if (owner instanceof ModuleDef moduleDef) {
-            addInstanceFields(moduleDef.getVars(), fields, null, List.of());
+            addInstanceFields(moduleDef.getVars(), fields, null, List.of(), moduleDef);
         }
         return fields;
     }
@@ -267,7 +270,7 @@ public class SyntacticSugar {
         }
         addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass,
             visitedModules, List.of());
-        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass, List.of());
+        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass, List.of(), null);
     }
 
     private void addModuleFields(Iterable<ModuleInstanciation> modules,
@@ -285,19 +288,21 @@ public class SyntacticSugar {
                 ? List.of(module.getName())
                 : parentPath;
             addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited, modulePath);
-            addInstanceFields(module.getVars(), fields, concreteClass, modulePath);
+            addInstanceFields(module.getVars(), fields, concreteClass, modulePath, module.attrModuleOrigin());
         }
     }
 
     private void addInstanceFields(Iterable<GlobalVarDef> declarations,
                                    List<FieldInfo> fields,
                                    ClassDef concreteClass,
-                                   List<String> modulePath) {
+                                   List<String> modulePath,
+                                   ModuleDef declaringModule) {
         for (GlobalVarDef field : declarations) {
             boolean privateFromAnotherClass = field.attrIsPrivate()
                 && concreteClass != null
                 && field.attrNearestClassDef() != concreteClass;
-            if (!field.attrIsStatic() && !privateFromAnotherClass) {
+            boolean privateFromAnotherModule = field.attrIsPrivate() && declaringModule != null;
+            if (!field.attrIsStatic() && !privateFromAnotherClass && !privateFromAnotherModule) {
                 fields.add(new FieldInfo(field, modulePath));
             }
         }

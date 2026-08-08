@@ -407,4 +407,45 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void excludesPrivateModuleFields() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Acc",
+                "        int total",
+                "        function add(int value)",
+                "            total = total + value",
+                "    module State",
+                "        private int hidden = 100",
+                "        int visible = 2",
+                "    class Data",
+                "        use State",
+                "        function save(Acc acc)",
+                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "    init",
+                "        let acc = new Acc",
+                "        let data = new Data",
+                "        data.save(acc)",
+                "        if acc.total == 2",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void validatesUnusedModuleFieldIteration() {
+        test()
+            .expectError("expects a closure with (fieldName, fieldValue) parameters")
+            .lines(
+                "package FieldIterationTest",
+                "    module Unused",
+                "        function save()",
+                "            __wurst_forFields(value -> value)",
+                "endpackage"
+            );
+    }
 }

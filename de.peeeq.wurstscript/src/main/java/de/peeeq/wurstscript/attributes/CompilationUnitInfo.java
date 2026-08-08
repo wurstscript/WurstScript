@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.SyntacticSugar;
 import de.peeeq.wurstscript.parser.TriviaIndex;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -12,6 +13,7 @@ public class CompilationUnitInfo {
     private IndentationMode indentationMode = IndentationMode.spaces(4);
     private TriviaIndex triviaIndex = TriviaIndex.empty();
     private boolean library;
+    private SyntacticSugar.DirectFieldIterationState directFieldIterationState;
 
     public CompilationUnitInfo(ErrorHandler cuErrorHandler) {
         this.cuErrorHandler = cuErrorHandler;
@@ -55,6 +57,14 @@ public class CompilationUnitInfo {
 
     public void setLibrary(boolean library) {
         this.library = library;
+    }
+
+    public SyntacticSugar.DirectFieldIterationState getDirectFieldIterationState() {
+        return directFieldIterationState;
+    }
+
+    public void setDirectFieldIterationState(SyntacticSugar.DirectFieldIterationState state) {
+        this.directFieldIterationState = state;
     }
 
     public interface IndentationMode {
