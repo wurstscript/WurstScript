@@ -125,6 +125,66 @@ public class ModelManagerTests {
     }
 
     @Test
+    public void incrementalRecheckRestoresFieldIterationIntrinsic() throws IOException {
+        File projectFolder = new File("./temp/testProject_field_iteration_incremental/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileBase = WFile.create(new File(wurstFolder, "Base.wurst"));
+        WFile fileData = WFile.create(new File(wurstFolder, "Data.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(fileBase, string(
+            "package Base",
+            "public class Base",
+            "    int oldValue = 1"
+        ));
+        writeFile(fileData, string(
+            "package Data",
+            "import Base",
+            "native consume(string name, int value)",
+            "class Data extends Base",
+            "    function save()",
+            "        __wurst_forFields((name, value) -> consume(name, value))"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        ClassDef data = findClass(manager.getCompilationUnit(fileData), "Data");
+        FuncDef save = findFunction(data, "save");
+        int initialBodySize = save.getBody().size();
+
+        manager.reconcile(manager.syncCompilationUnitContent(fileBase, string(
+            "package Base",
+            "public class Base",
+            "    int oldValue = 1",
+            "    int newValue = 2"
+        )));
+
+        data = findClass(manager.getCompilationUnit(fileData), "Data");
+        save = findFunction(data, "save");
+        assertEquals(save.getBody().size(), initialBodySize + 1);
+    }
+
+    private ClassDef findClass(CompilationUnit cu, String name) {
+        return cu.getPackages().stream()
+            .flatMap(p -> p.getElements().stream())
+            .filter(e -> e instanceof ClassDef && name.equals(((ClassDef) e).getName()))
+            .map(e -> (ClassDef) e)
+            .findFirst()
+            .orElseThrow();
+    }
+
+    private FuncDef findFunction(ClassDef clazz, String name) {
+        return clazz.getMethods().stream()
+            .filter(f -> name.equals(f.getName()))
+            .map(f -> (FuncDef) f)
+            .findFirst()
+            .orElseThrow();
+    }
+
+    @Test
     public void movingFiles() throws IOException { // #712
         File projectFolder = new File("./temp/testProject2/");
         File wurstFolder = new File(projectFolder, "wurst");

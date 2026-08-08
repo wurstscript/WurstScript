@@ -3,6 +3,7 @@ package de.peeeq.wurstscript;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 
 import java.util.*;
 
@@ -14,6 +15,63 @@ import java.util.*;
  */
 public class SyntacticSugar {
 
+    /** Compiler-reserved spelling keeps ordinary user functions named forFields/mapFields valid. */
+    private static final String FOR_FIELDS = "__wurst_forFields";
+    private static final String MAP_FIELDS = "__wurst_mapFields";
+    public static final class DeferredModuleCall {
+        private final WStatements statements;
+        private final int index;
+        private final ExprFunctionCall call;
+        private final List<WStatement> generatedStatements;
+
+        private DeferredModuleCall(WStatements statements, int index, ExprFunctionCall call) {
+            this(statements, index, call, List.of());
+        }
+
+        private DeferredModuleCall(WStatements statements, int index, ExprFunctionCall call,
+                                   List<WStatement> generatedStatements) {
+            this.statements = statements;
+            this.index = index;
+            this.call = call;
+            this.generatedStatements = generatedStatements;
+        }
+    }
+
+    public static final class DirectFieldIterationState {
+        private final List<DeferredModuleCall> detached;
+
+        private DirectFieldIterationState(List<DeferredModuleCall> detached) {
+            this.detached = detached;
+        }
+    }
+
+    private static final class FieldInfo {
+        private final GlobalVarDef declaration;
+        private final List<String> modulePath;
+
+        private FieldInfo(GlobalVarDef declaration, List<String> modulePath) {
+            this.declaration = declaration;
+            this.modulePath = List.copyOf(modulePath);
+        }
+
+        private String key() {
+            if (modulePath.isEmpty()) {
+                return declaration.getName();
+            }
+            return String.join(".", modulePath) + "." + declaration.getName();
+        }
+    }
+
+    public static boolean isFieldIterationIntrinsic(ExprFunctionCall call) {
+        return FOR_FIELDS.equals(call.getFuncName()) || MAP_FIELDS.equals(call.getFuncName());
+    }
+
+    public static boolean isUninstantiatedModuleFieldIteration(ExprFunctionCall call) {
+        return isFieldIterationIntrinsic(call)
+            && call.attrNearestClassDef() == null
+            && call.attrNearestClassOrModule() instanceof ModuleDef;
+    }
+
     public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
         if (hasCommonJ) {
             addDefaultImports(root);
@@ -22,6 +80,381 @@ public class SyntacticSugar {
         addDefaultConstructors(root);
         addEndFunctionStatements(root);
         replaceTypeIdUse(root);
+    }
+
+    /**
+     * Expands field iteration after module methods have been copied into their consuming classes.
+     * This must run after {@link ModuleExpander#expandModules(CompilationUnit)} so a module callback can
+     * see all fields of the concrete class using it.
+     */
+    public void expandFieldIterations(CompilationUnit root) {
+        List<DeferredModuleCall> detached = expandFieldIterationsInTree(root);
+        if (!detached.isEmpty() && root.getCuInfo() != null) {
+            root.getCuInfo().setDirectFieldIterationState(new DirectFieldIterationState(detached));
+        }
+    }
+
+    /** Restores source intrinsics before an incremental compilation-unit recheck. */
+    public static void restoreDirectFieldIterations(CompilationUnit root) {
+        if (root.getCuInfo() != null) {
+            DirectFieldIterationState state = root.getCuInfo().getDirectFieldIterationState();
+            root.getCuInfo().setDirectFieldIterationState(null);
+            if (state != null) {
+                new SyntacticSugar().restoreModuleTemplateFieldIterations(state.detached);
+            }
+        }
+    }
+
+    /** Temporarily removes template intrinsics while validation runs; callers must restore them. */
+    public List<DeferredModuleCall> detachModuleTemplateFieldIterations(CompilationUnit root) {
+        List<DeferredModuleCall> detached = new ArrayList<>();
+        root.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (isUninstantiatedModuleFieldIteration(call)
+                    && call.getParent() instanceof WStatements statements) {
+                    int index = statements.indexOf(call);
+                    detached.add(new DeferredModuleCall(statements, index, call));
+                }
+            }
+        });
+        for (int i = detached.size() - 1; i >= 0; i--) {
+            DeferredModuleCall state = detached.get(i);
+            state.statements.remove(state.index);
+        }
+        return detached;
+    }
+
+    public void restoreModuleTemplateFieldIterations(List<DeferredModuleCall> detached) {
+        for (int i = detached.size() - 1; i >= 0; i--) {
+            DeferredModuleCall state = detached.get(i);
+            for (WStatement generated : state.generatedStatements) {
+                state.statements.remove(generated);
+            }
+            int index = Math.min(state.index, state.statements.size());
+            state.statements.add(index, state.call);
+        }
+    }
+
+    /**
+     * Expands field-wise operations before name and overload resolution. This gives serializers a
+     * reflection-like API while keeping the generated program equivalent to handwritten direct
+     * field accesses.
+     *
+     * <pre>
+     * __wurst_forFields((name, value) -> writer.write(name, value))
+     * __wurst_mapFields((name, value) -> reader.read(name, value))
+     * </pre>
+     */
+    private List<DeferredModuleCall> expandFieldIterationsInTree(CompilationUnit root) {
+        List<ExprFunctionCall> calls = new ArrayList<>();
+        root.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (isFieldIterationIntrinsic(call)) {
+                    calls.add(call);
+                }
+            }
+        });
+
+        List<DeferredModuleCall> detached = new ArrayList<>();
+        for (ExprFunctionCall call : calls) {
+            expandFieldIteration(call, MAP_FIELDS.equals(call.getFuncName()), detached);
+        }
+        return detached;
+    }
+
+    private void expandFieldIteration(ExprFunctionCall call,
+                                      boolean assignsResult,
+                                      List<DeferredModuleCall> detached) {
+        if (!(call.getParent() instanceof WStatements statements)) {
+            call.addError(call.getFuncName() + " can only be used as a statement.");
+            return;
+        }
+        ClassDef classDef = call.attrNearestClassDef();
+        ClassOrModule owner = call.attrNearestClassOrModule();
+        if (call.getArgs().size() != 1 || !(call.getArgs().get(0) instanceof ExprClosure closure)
+            || closure.getShortParameters().size() != 2) {
+            call.addError(call.getFuncName() + " expects a closure with (fieldName, fieldValue) parameters.");
+            return;
+        }
+        for (WShortParameter parameter : closure.getShortParameters()) {
+            if (!(parameter.getTypOpt() instanceof NoTypeExpr)) {
+                parameter.addError("Field iteration closure parameters must use inferred types.");
+                return;
+            }
+        }
+
+        String nameParameter = closure.getShortParameters().get(0).getName();
+        String valueParameter = closure.getShortParameters().get(1).getName();
+        if (nameParameter.equals(valueParameter)) {
+            closure.getShortParameters().get(1).addError(
+                "Field iteration closure parameters must have distinct names.");
+            return;
+        }
+        if (hasShadowingLocal(closure, nameParameter, valueParameter)) {
+            call.addError("Field iteration callbacks cannot declare locals or loop variables named "
+                + nameParameter + " or " + valueParameter + ".");
+            return;
+        }
+        if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
+            call.addError("forFields closure must produce a statement expression.");
+            return;
+        }
+        if (!call.attrIsDynamicContext()) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
+            return;
+        }
+        if (owner instanceof ModuleDef) {
+            // Module bodies are templates. Their copies were made by ModuleExpander; validate and
+            // expand those concrete copies instead of type-checking this uninstantiated template.
+            return;
+        }
+        if (classDef == null) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
+            return;
+        }
+        List<FieldInfo> fields = collectInstanceFields(classDef, owner);
+        if (fields.isEmpty()) {
+            call.addError(call.getFuncName() + " requires at least one instance field.");
+            return;
+        }
+        int statementIndex = statements.indexOf(call);
+        detached.add(new DeferredModuleCall(statements, statementIndex, call));
+        statements.remove(statementIndex);
+
+        List<WStatement> generatedStatements = new ArrayList<>(fields.size());
+        for (FieldInfo field : fields) {
+            String fieldKey = field.key();
+            Expr fieldAccess = fieldAccess(call.getSource(), field);
+            Expr implementation = substituteFieldParameters(
+                closure.getImplementation().copy(), nameParameter, valueParameter, fieldKey, field);
+            WStatement expanded;
+            if (assignsResult) {
+                expanded = Ast.StmtSet(call.getSource(), (LExpr) fieldAccess, implementation);
+            } else {
+                expanded = (WStatement) implementation;
+            }
+            generatedStatements.add(expanded);
+            statements.add(statementIndex++, expanded);
+        }
+        detached.set(detached.size() - 1,
+            new DeferredModuleCall(statements, statementIndex - fields.size(), call, generatedStatements));
+    }
+
+    private List<FieldInfo> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
+        List<FieldInfo> fields = new ArrayList<>();
+        if (classDef != null) {
+            collectInheritedFields(classDef.attrTypC(), fields, classDef,
+                Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        } else if (owner instanceof ModuleDef moduleDef) {
+            addInstanceFields(moduleDef.getVars(), fields, null, List.of(), moduleDef);
+        }
+        return fields;
+    }
+
+    private void collectInheritedFields(WurstTypeClass type,
+                                        List<FieldInfo> fields,
+                                        ClassDef concreteClass,
+                                        Set<ClassDef> visitedClasses,
+                                        Set<ModuleInstanciation> visitedModules) {
+        if (!visitedClasses.add(type.getClassDef())) {
+            return;
+        }
+        WurstTypeClass superType = type.extendedClass();
+        if (superType != null) {
+            collectInheritedFields(superType, fields, concreteClass, visitedClasses, visitedModules);
+        }
+        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass,
+            visitedModules, List.of());
+        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass, List.of(), null);
+    }
+
+    private void addModuleFields(Iterable<ModuleInstanciation> modules,
+                                 List<FieldInfo> fields,
+                                 ClassDef concreteClass,
+                                 Set<ModuleInstanciation> visited,
+                                 List<String> parentPath) {
+        for (ModuleInstanciation module : modules) {
+            if (!visited.add(module)) {
+                continue;
+            }
+            // A nested module's fields are exposed through the outer module instance (the
+            // inner instance is not a member receiver in the consuming class).
+            List<String> modulePath = parentPath.isEmpty()
+                ? List.of(module.getName())
+                : parentPath;
+            addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited, modulePath);
+            addInstanceFields(module.getVars(), fields, concreteClass, modulePath, module.attrModuleOrigin());
+        }
+    }
+
+    private void addInstanceFields(Iterable<GlobalVarDef> declarations,
+                                   List<FieldInfo> fields,
+                                   ClassDef concreteClass,
+                                   List<String> modulePath,
+                                   ModuleDef declaringModule) {
+        for (GlobalVarDef field : declarations) {
+            boolean privateFromAnotherClass = field.attrIsPrivate()
+                && concreteClass != null
+                && field.attrNearestClassDef() != concreteClass;
+            boolean privateFromAnotherModule = field.attrIsPrivate() && declaringModule != null;
+            if (!field.attrIsStatic() && !privateFromAnotherClass && !privateFromAnotherModule) {
+                fields.add(new FieldInfo(field, modulePath));
+            }
+        }
+    }
+
+    private boolean hasShadowingLocal(ExprClosure closure, String nameParameter, String valueParameter) {
+        final boolean[] result = {false};
+        closure.getImplementation().accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprClosure nestedClosure) {
+                // Nested closures have independent parameter scopes.
+            }
+
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (localVarDef.getName().equals(nameParameter) || localVarDef.getName().equals(valueParameter)) {
+                    result[0] = true;
+                }
+            }
+        });
+        return result[0];
+    }
+
+    private Expr substituteFieldParameters(Expr expression, String nameParameter,
+                                           String valueParameter, String fieldName, FieldInfo field) {
+        if (expression instanceof ExprVarAccess access) {
+            if (access.getVarName().equals(nameParameter)) {
+                return Ast.ExprStringVal(access.getSource(), fieldName);
+            }
+            if (access.getVarName().equals(valueParameter)) {
+                return fieldAccess(access.getSource(), field);
+            }
+        }
+
+        List<ExprVarAccess> accesses = new ArrayList<>();
+        expression.accept(new WurstModel.DefaultVisitor() {
+            private final Deque<Set<String>> shadowedScopes = new ArrayDeque<>();
+
+            private boolean isShadowed(String name) {
+                return shadowedScopes.stream().anyMatch(scope -> scope.contains(name));
+            }
+
+            @Override
+            public void visit(WStatements statements) {
+                Set<String> blockBindings = new HashSet<>();
+                for (WStatement statement : statements) {
+                    if (statement instanceof LocalVarDef localVarDef
+                        && (localVarDef.getName().equals(nameParameter)
+                            || localVarDef.getName().equals(valueParameter))) {
+                        blockBindings.add(localVarDef.getName());
+                    }
+                }
+                shadowedScopes.push(blockBindings);
+                super.visit(statements);
+                shadowedScopes.pop();
+            }
+
+            private void visitLoopVariable(LocalVarDef loopVariable) {
+                loopVariable.getModifiers().accept(this);
+                loopVariable.getOptTyp().accept(this);
+                loopVariable.getInitialExpr().accept(this);
+            }
+
+            private void visitLoopBody(LocalVarDef loopVariable, WStatements body) {
+                shadowedScopes.push(Set.of(loopVariable.getName()));
+                body.accept(this);
+                shadowedScopes.pop();
+            }
+
+            @Override
+            public void visit(StmtForRangeUp loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getTo().accept(this);
+                loop.getStep().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForRangeDown loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getTo().accept(this);
+                loop.getStep().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForIn loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getIn().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForFrom loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getIn().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(ExprClosure nestedClosure) {
+                Set<String> shadowed = new HashSet<>();
+                for (WShortParameter parameter : nestedClosure.getShortParameters()) {
+                    shadowed.add(parameter.getName());
+                }
+                shadowedScopes.push(shadowed);
+                super.visit(nestedClosure);
+                shadowedScopes.pop();
+            }
+
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (!shadowedScopes.isEmpty()
+                    && (localVarDef.getName().equals(nameParameter)
+                        || localVarDef.getName().equals(valueParameter))) {
+                    shadowedScopes.peek().add(localVarDef.getName());
+                }
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                if (!isShadowed(access.getVarName())
+                    && (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter))) {
+                    accesses.add(access);
+                }
+            }
+        });
+        for (ExprVarAccess access : accesses) {
+            Expr replacement = access.getVarName().equals(nameParameter)
+                ? Ast.ExprStringVal(access.getSource(), fieldName)
+                : fieldAccess(access.getSource(), field);
+            access.replaceBy(replacement);
+        }
+        return expression;
+    }
+
+    private ExprMemberVarDot fieldAccess(WPos source, FieldInfo field) {
+        Expr left;
+        if (field.modulePath.isEmpty()) {
+            left = Ast.ExprThis(source);
+        } else {
+            left = Ast.ExprVarAccess(source, Ast.Identifier(source, field.modulePath.get(0)));
+            for (int i = 1; i < field.modulePath.size(); i++) {
+                left = Ast.ExprMemberVarDot(source, left,
+                    Ast.Identifier(source, field.modulePath.get(i)));
+            }
+        }
+        return Ast.ExprMemberVarDot(source, left,
+            Ast.Identifier(source, field.declaration.getName()));
     }
 
     private void replaceTypeIdUse(CompilationUnit root) {
