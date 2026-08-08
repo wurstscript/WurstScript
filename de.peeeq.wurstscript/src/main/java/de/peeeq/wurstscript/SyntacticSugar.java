@@ -81,17 +81,29 @@ public class SyntacticSugar {
 
         String nameParameter = closure.getShortParameters().get(0).getName();
         String valueParameter = closure.getShortParameters().get(1).getName();
+        if (nameParameter.equals(valueParameter)) {
+            closure.getShortParameters().get(1).addError(
+                "Field iteration closure parameters must have distinct names.");
+            return;
+        }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
             call.addError("forFields closure must produce a statement expression.");
+            return;
+        }
+        List<GlobalVarDef> fields = new ArrayList<>();
+        for (GlobalVarDef field : classDef.getVars()) {
+            if (!field.attrIsStatic()) {
+                fields.add(field);
+            }
+        }
+        if (fields.isEmpty()) {
+            call.addError(call.getFuncName() + " requires at least one instance field.");
             return;
         }
         int statementIndex = statements.indexOf(call);
         statements.remove(statementIndex);
 
-        for (GlobalVarDef field : classDef.getVars()) {
-            if (field.attrIsStatic()) {
-                continue;
-            }
+        for (GlobalVarDef field : fields) {
             Expr fieldAccess = fieldAccess(call.getSource(), field.getName());
             Expr implementation = substituteFieldParameters(
                 closure.getImplementation().copy(), nameParameter, valueParameter, field.getName());

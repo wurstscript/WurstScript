@@ -174,4 +174,34 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void rejectsFieldIterationWithoutInstanceFields() {
+        test()
+            .expectError("requires at least one instance field")
+            .lines(
+                "package FieldIterationTest",
+                "    class Data",
+                "        static int schemaVersion = 1",
+                "",
+                "        function save()",
+                "            __wurst_forFields((name, value) -> noSuchFunction(name, value))",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void rejectsDuplicateFieldIterationParameterNames() {
+        test()
+            .expectError("must have distinct names")
+            .lines(
+                "package FieldIterationTest",
+                "    class Data",
+                "        int value",
+                "",
+                "        function save()",
+                "            __wurst_mapFields((value, value) -> 42)",
+                "endpackage"
+            );
+    }
 }
