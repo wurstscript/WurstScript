@@ -230,4 +230,31 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void keepsLoopBindingsInsideLoopBody() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Data",
+                "        int first = 1",
+                "        int second = 2",
+                "",
+                "        function load()",
+                "            __wurst_mapFields((name, value) -> begin",
+                "                for int value = 0 to 1",
+                "                    continue",
+                "                return 42 + value - value",
+                "            end)",
+                "",
+                "    init",
+                "        let data = new Data",
+                "        data.load()",
+                "        if data.first == 42 and data.second == 42",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
 }

@@ -143,6 +143,48 @@ public class SyntacticSugar {
                 shadowedScopes.pop();
             }
 
+            private void visitLoopVariable(LocalVarDef loopVariable) {
+                loopVariable.getModifiers().accept(this);
+                loopVariable.getOptTyp().accept(this);
+                loopVariable.getInitialExpr().accept(this);
+            }
+
+            private void visitLoopBody(LocalVarDef loopVariable, WStatements body) {
+                shadowedScopes.push(Set.of(loopVariable.getName()));
+                body.accept(this);
+                shadowedScopes.pop();
+            }
+
+            @Override
+            public void visit(StmtForRangeUp loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getTo().accept(this);
+                loop.getStep().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForRangeDown loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getTo().accept(this);
+                loop.getStep().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForIn loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getIn().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
+            @Override
+            public void visit(StmtForFrom loop) {
+                visitLoopVariable(loop.getLoopVar());
+                loop.getIn().accept(this);
+                visitLoopBody(loop.getLoopVar(), loop.getBody());
+            }
+
             @Override
             public void visit(ExprClosure nestedClosure) {
                 Set<String> shadowed = new HashSet<>();
