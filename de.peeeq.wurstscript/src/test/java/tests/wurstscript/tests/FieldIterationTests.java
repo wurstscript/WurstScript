@@ -289,6 +289,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        function add(int value)",
                 "            total = total + value",
                 "    class Base",
+                "        private int hidden = 100",
                 "        int inherited = 1",
                 "    class Data extends Base",
                 "        int local = 2",
@@ -320,6 +321,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    module Serializer",
                 "        function save(Acc acc)",
                 "            __wurst_forFields((name, value) -> acc.add(value))",
+                "            __wurst_forFields((name, value) -> acc.add(value))",
                 "",
                 "    class Data",
                 "        use Serializer",
@@ -331,7 +333,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        let acc = new Acc",
                 "        let data = new Data",
                 "        data.save(acc)",
-                "        if acc.total == 3",
+                "        if acc.total == 6",
                 "            testSuccess()",
                 "endpackage"
             );

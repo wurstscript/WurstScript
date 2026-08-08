@@ -70,11 +70,14 @@ public class SyntacticSugar {
                 if (isUninstantiatedModuleFieldIteration(call)
                     && call.getParent() instanceof WStatements statements) {
                     int index = statements.indexOf(call);
-                    statements.remove(index);
                     detached.add(new DeferredModuleCall(statements, index, call));
                 }
             }
         });
+        for (int i = detached.size() - 1; i >= 0; i--) {
+            DeferredModuleCall state = detached.get(i);
+            state.statements.remove(state.index);
+        }
         return detached;
     }
 
@@ -186,17 +189,18 @@ public class SyntacticSugar {
     private List<GlobalVarDef> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
         List<GlobalVarDef> fields = new ArrayList<>();
         if (classDef != null) {
-            collectInheritedFields(classDef.attrTypC(), fields,
+            collectInheritedFields(classDef.attrTypC(), fields, classDef,
                 Collections.newSetFromMap(new IdentityHashMap<>()),
                 Collections.newSetFromMap(new IdentityHashMap<>()));
         } else if (owner instanceof ModuleDef moduleDef) {
-            addInstanceFields(moduleDef.getVars(), fields);
+            addInstanceFields(moduleDef.getVars(), fields, null);
         }
         return fields;
     }
 
     private void collectInheritedFields(WurstTypeClass type,
                                         List<GlobalVarDef> fields,
+                                        ClassDef concreteClass,
                                         Set<ClassDef> visitedClasses,
                                         Set<ModuleInstanciation> visitedModules) {
         if (!visitedClasses.add(type.getClassDef())) {
@@ -204,27 +208,33 @@ public class SyntacticSugar {
         }
         WurstTypeClass superType = type.extendedClass();
         if (superType != null) {
-            collectInheritedFields(superType, fields, visitedClasses, visitedModules);
+            collectInheritedFields(superType, fields, concreteClass, visitedClasses, visitedModules);
         }
-        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, visitedModules);
-        addInstanceFields(type.getClassDef().getVars(), fields);
+        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass, visitedModules);
+        addInstanceFields(type.getClassDef().getVars(), fields, concreteClass);
     }
 
     private void addModuleFields(Iterable<ModuleInstanciation> modules,
                                  List<GlobalVarDef> fields,
+                                 ClassDef concreteClass,
                                  Set<ModuleInstanciation> visited) {
         for (ModuleInstanciation module : modules) {
             if (!visited.add(module)) {
                 continue;
             }
-            addModuleFields(module.getModuleInstanciations(), fields, visited);
-            addInstanceFields(module.getVars(), fields);
+            addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited);
+            addInstanceFields(module.getVars(), fields, concreteClass);
         }
     }
 
-    private void addInstanceFields(Iterable<GlobalVarDef> declarations, List<GlobalVarDef> fields) {
+    private void addInstanceFields(Iterable<GlobalVarDef> declarations,
+                                   List<GlobalVarDef> fields,
+                                   ClassDef concreteClass) {
         for (GlobalVarDef field : declarations) {
-            if (!field.attrIsStatic()) {
+            boolean privateFromAnotherClass = field.attrIsPrivate()
+                && concreteClass != null
+                && field.attrNearestClassDef() != concreteClass;
+            if (!field.attrIsStatic() && !privateFromAnotherClass) {
                 fields.add(field);
             }
         }
