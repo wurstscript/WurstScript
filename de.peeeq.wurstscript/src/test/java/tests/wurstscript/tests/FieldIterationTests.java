@@ -218,8 +218,8 @@ public class FieldIterationTests extends WurstScriptTest {
                 "",
                 "        function load()",
                 "            __wurst_mapFields((name, value) -> begin",
-                "                let value = 42",
-                "                return value",
+                "                let temporary = 42",
+                "                return temporary",
                 "            end)",
                 "",
                 "    init",
@@ -244,7 +244,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "",
                 "        function load()",
                 "            __wurst_mapFields((name, value) -> begin",
-                "                for int value = 0 to 1",
+                "                for int index = 0 to 1",
                 "                    continue",
                 "                return 42 + value - value",
                 "            end)",
@@ -254,6 +254,25 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        data.load()",
                 "        if data.first == 42 and data.second == 42",
                 "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void rejectsBlockLocalShadowingBeforeExpansion() {
+        test()
+            .expectError("cannot declare locals or loop variables")
+            .lines(
+                "package FieldIterationTest",
+                "    class Data",
+                "        int value",
+                "",
+                "        function load()",
+                "            __wurst_mapFields((name, value) -> begin",
+                "                let old = value",
+                "                let value = 42",
+                "                return old",
+                "            end)",
                 "endpackage"
             );
     }

@@ -86,6 +86,11 @@ public class SyntacticSugar {
                 "Field iteration closure parameters must have distinct names.");
             return;
         }
+        if (hasShadowingLocal(closure, nameParameter, valueParameter)) {
+            call.addError("Field iteration callbacks cannot declare locals or loop variables named "
+                + nameParameter + " or " + valueParameter + ".");
+            return;
+        }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
             call.addError("forFields closure must produce a statement expression.");
             return;
@@ -117,6 +122,25 @@ public class SyntacticSugar {
         }
     }
 
+    private boolean hasShadowingLocal(ExprClosure closure, String nameParameter, String valueParameter) {
+        final boolean[] result = {false};
+        closure.getImplementation().accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprClosure nestedClosure) {
+                // Nested closures have independent parameter scopes.
+            }
+
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (localVarDef.getName().equals(nameParameter) || localVarDef.getName().equals(valueParameter)) {
+                    result[0] = true;
+                }
+            }
+        });
+        return result[0];
+    }
+
     private Expr substituteFieldParameters(Expr expression, String nameParameter,
                                            String valueParameter, String fieldName) {
         if (expression instanceof ExprVarAccess access) {
@@ -138,7 +162,15 @@ public class SyntacticSugar {
 
             @Override
             public void visit(WStatements statements) {
-                shadowedScopes.push(new HashSet<>());
+                Set<String> blockBindings = new HashSet<>();
+                for (WStatement statement : statements) {
+                    if (statement instanceof LocalVarDef localVarDef
+                        && (localVarDef.getName().equals(nameParameter)
+                            || localVarDef.getName().equals(valueParameter))) {
+                        blockBindings.add(localVarDef.getName());
+                    }
+                }
+                shadowedScopes.push(blockBindings);
                 super.visit(statements);
                 shadowedScopes.pop();
             }
