@@ -130,23 +130,44 @@ public class SyntacticSugar {
 
         List<ExprVarAccess> accesses = new ArrayList<>();
         expression.accept(new WurstModel.DefaultVisitor() {
-            private final Set<String> shadowed = new HashSet<>();
+            private final Deque<Set<String>> shadowedScopes = new ArrayDeque<>();
+
+            private boolean isShadowed(String name) {
+                return shadowedScopes.stream().anyMatch(scope -> scope.contains(name));
+            }
+
+            @Override
+            public void visit(WStatements statements) {
+                shadowedScopes.push(new HashSet<>());
+                super.visit(statements);
+                shadowedScopes.pop();
+            }
 
             @Override
             public void visit(ExprClosure nestedClosure) {
-                Set<String> previous = new HashSet<>(shadowed);
+                Set<String> shadowed = new HashSet<>();
                 for (WShortParameter parameter : nestedClosure.getShortParameters()) {
                     shadowed.add(parameter.getName());
                 }
+                shadowedScopes.push(shadowed);
                 super.visit(nestedClosure);
-                shadowed.clear();
-                shadowed.addAll(previous);
+                shadowedScopes.pop();
+            }
+
+            @Override
+            public void visit(LocalVarDef localVarDef) {
+                super.visit(localVarDef);
+                if (!shadowedScopes.isEmpty()
+                    && (localVarDef.getName().equals(nameParameter)
+                        || localVarDef.getName().equals(valueParameter))) {
+                    shadowedScopes.peek().add(localVarDef.getName());
+                }
             }
 
             @Override
             public void visit(ExprVarAccess access) {
                 super.visit(access);
-                if (!shadowed.contains(access.getVarName())
+                if (!isShadowed(access.getVarName())
                     && (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter))) {
                     accesses.add(access);
                 }

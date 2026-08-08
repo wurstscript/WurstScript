@@ -204,4 +204,30 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void preservesLocalBindingsInBlockCallbacks() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Data",
+                "        int first = 1",
+                "        int second = 2",
+                "",
+                "        function load()",
+                "            __wurst_mapFields((name, value) -> begin",
+                "                let value = 42",
+                "                return value",
+                "            end)",
+                "",
+                "    init",
+                "        let data = new Data",
+                "        data.load()",
+                "        if data.first == 42 and data.second == 42",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
 }
