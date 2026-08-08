@@ -10,7 +10,9 @@ import de.peeeq.wurstscript.validation.GlobalCaches;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 public class WurstChecker {
 
@@ -47,19 +49,24 @@ public class WurstChecker {
 
         if (errorHandler.getErrorCount() > 0) return;
 
+        SyntacticSugar syntacticSugar = new SyntacticSugar();
+        List<SyntacticSugar.DeferredModuleCall> detachedTemplates = new ArrayList<>();
         for (CompilationUnit cu : toCheck) {
-            new SyntacticSugar().expandFieldIterations(cu);
+            syntacticSugar.expandFieldIterations(cu);
+            detachedTemplates.addAll(syntacticSugar.detachModuleTemplateFieldIterations(cu));
         }
+        try {
+            // compute the flow attributes
+            for (CompilationUnit cu : toCheck) {
+                WurstValidator.computeFlowAttributes(cu);
+            }
 
-        // compute the flow attributes
-        for (CompilationUnit cu : toCheck) {
-            WurstValidator.computeFlowAttributes(cu);
+            // validate the resource:
+            WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
+            validator.validate(toCheck);
+        } finally {
+            syntacticSugar.restoreModuleTemplateFieldIterations(detachedTemplates);
         }
-
-
-        // validate the resource:
-        WurstValidator validator = new WurstValidator(root, legacyJassTypeChecks);
-        validator.validate(toCheck);
     }
 
     private void clearGlobalCaches(WurstModel root, Collection<CompilationUnit> toCheck) {

@@ -19,6 +19,28 @@ public class SyntacticSugar {
     private static final String FOR_FIELDS = "__wurst_forFields";
     private static final String MAP_FIELDS = "__wurst_mapFields";
 
+    public static final class DeferredModuleCall {
+        private final WStatements statements;
+        private final int index;
+        private final ExprFunctionCall call;
+
+        private DeferredModuleCall(WStatements statements, int index, ExprFunctionCall call) {
+            this.statements = statements;
+            this.index = index;
+            this.call = call;
+        }
+    }
+
+    public static boolean isFieldIterationIntrinsic(ExprFunctionCall call) {
+        return FOR_FIELDS.equals(call.getFuncName()) || MAP_FIELDS.equals(call.getFuncName());
+    }
+
+    public static boolean isUninstantiatedModuleFieldIteration(ExprFunctionCall call) {
+        return isFieldIterationIntrinsic(call)
+            && call.attrNearestClassDef() == null
+            && call.attrNearestClassOrModule() instanceof ModuleDef;
+    }
+
     public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
         if (hasCommonJ) {
             addDefaultImports(root);
@@ -38,6 +60,32 @@ public class SyntacticSugar {
         expandFieldIterationsInTree(root);
     }
 
+    /** Temporarily removes template intrinsics while validation runs; callers must restore them. */
+    public List<DeferredModuleCall> detachModuleTemplateFieldIterations(CompilationUnit root) {
+        List<DeferredModuleCall> detached = new ArrayList<>();
+        root.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (isUninstantiatedModuleFieldIteration(call)
+                    && call.getParent() instanceof WStatements statements) {
+                    int index = statements.indexOf(call);
+                    statements.remove(index);
+                    detached.add(new DeferredModuleCall(statements, index, call));
+                }
+            }
+        });
+        return detached;
+    }
+
+    public void restoreModuleTemplateFieldIterations(List<DeferredModuleCall> detached) {
+        for (int i = detached.size() - 1; i >= 0; i--) {
+            DeferredModuleCall state = detached.get(i);
+            int index = Math.min(state.index, state.statements.size());
+            state.statements.add(index, state.call);
+        }
+    }
+
     /**
      * Expands field-wise operations before name and overload resolution. This gives serializers a
      * reflection-like API while keeping the generated program equivalent to handwritten direct
@@ -54,8 +102,7 @@ public class SyntacticSugar {
             @Override
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
-                String name = call.getFuncName();
-                if (FOR_FIELDS.equals(name) || MAP_FIELDS.equals(name)) {
+                if (isFieldIterationIntrinsic(call)) {
                     calls.add(call);
                 }
             }
@@ -80,7 +127,6 @@ public class SyntacticSugar {
         if (owner instanceof ModuleDef) {
             // Module bodies are templates. Their copies were made by ModuleExpander; validate and
             // expand those concrete copies instead of type-checking this uninstantiated template.
-            statements.remove(call);
             return;
         }
         if (classDef == null) {
@@ -140,7 +186,9 @@ public class SyntacticSugar {
     private List<GlobalVarDef> collectInstanceFields(ClassDef classDef, ClassOrModule owner) {
         List<GlobalVarDef> fields = new ArrayList<>();
         if (classDef != null) {
-            collectInheritedFields(classDef.attrTypC(), fields, Collections.newSetFromMap(new IdentityHashMap<>()));
+            collectInheritedFields(classDef.attrTypC(), fields,
+                Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
         } else if (owner instanceof ModuleDef moduleDef) {
             addInstanceFields(moduleDef.getVars(), fields);
         }
@@ -148,15 +196,30 @@ public class SyntacticSugar {
     }
 
     private void collectInheritedFields(WurstTypeClass type,
-                                        List<GlobalVarDef> fields, Set<ClassDef> visited) {
-        if (!visited.add(type.getClassDef())) {
+                                        List<GlobalVarDef> fields,
+                                        Set<ClassDef> visitedClasses,
+                                        Set<ModuleInstanciation> visitedModules) {
+        if (!visitedClasses.add(type.getClassDef())) {
             return;
         }
         WurstTypeClass superType = type.extendedClass();
         if (superType != null) {
-            collectInheritedFields(superType, fields, visited);
+            collectInheritedFields(superType, fields, visitedClasses, visitedModules);
         }
+        addModuleFields(type.getClassDef().getModuleInstanciations(), fields, visitedModules);
         addInstanceFields(type.getClassDef().getVars(), fields);
+    }
+
+    private void addModuleFields(Iterable<ModuleInstanciation> modules,
+                                 List<GlobalVarDef> fields,
+                                 Set<ModuleInstanciation> visited) {
+        for (ModuleInstanciation module : modules) {
+            if (!visited.add(module)) {
+                continue;
+            }
+            addModuleFields(module.getModuleInstanciations(), fields, visited);
+            addInstanceFields(module.getVars(), fields);
+        }
     }
 
     private void addInstanceFields(Iterable<GlobalVarDef> declarations, List<GlobalVarDef> fields) {

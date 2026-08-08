@@ -336,4 +336,37 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void includesInstanceFieldsFromModules() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    class Acc",
+                "        int total = 0",
+                "        function add(int value)",
+                "            total = total + value",
+                "    module BaseState",
+                "        int baseValue = 2",
+                "    module State",
+                "        use BaseState",
+                "        int moduleValue = 4",
+                "    class Data",
+                "        use State",
+                "        int local = 5",
+                "",
+                "        function save(Acc acc)",
+                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "",
+                "    init",
+                "        let acc = new Acc",
+                "        let data = new Data",
+                "        data.save(acc)",
+                "        if acc.total == 11",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
 }
