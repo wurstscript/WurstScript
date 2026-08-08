@@ -15,6 +15,7 @@ public class FieldIterationTests extends WurstScriptTest {
     public void serializesAndDeserializesFieldsWithoutRuntimeReflection() throws IOException {
         test()
             .testLua(true)
+            .luaOnly(false)
             .executeProg()
             .lines(
                 "package FieldIterationTest",
@@ -50,10 +51,10 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        static int schemaVersion = 1",
                 "",
                 "        function save(Codec codec)",
-                "            forFields((fieldName, value) -> codec.write(fieldName, value))",
+                "            __wurst_forFields((fieldName, value) -> codec.write(fieldName, value))",
                 "",
                 "        function load(Codec codec)",
-                "            mapFields((fieldName, value) -> codec.read(fieldName, value))",
+                "            __wurst_mapFields((fieldName, value) -> codec.read(fieldName, value))",
                 "",
                 "    init",
                 "        let codec = new Codec",
@@ -68,8 +69,8 @@ public class FieldIterationTests extends WurstScriptTest {
 
         String lua = Files.readString(new File(TEST_OUTPUT_PATH +
             "lua/FieldIterationTests_serializesAndDeserializesFieldsWithoutRuntimeReflection.lua").toPath());
-        assertFalse(lua.contains("forFields"));
-        assertFalse(lua.contains("mapFields"));
+        assertFalse(lua.contains("__wurst_forFields"));
+        assertFalse(lua.contains("__wurst_mapFields"));
         assertTrue(lua.contains("Codec_Codec_write(codec, \"score\", this"));
         assertTrue(lua.contains("Codec_Codec_write1(codec, \"name\", this"));
         assertTrue(lua.contains("Data_score = Codec_Codec_read(codec1, \"score\""));
@@ -85,7 +86,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    function consume(string name, int value)",
                 "",
                 "    init",
-                "        forFields((name, value) -> consume(name, value))",
+                "        __wurst_forFields((name, value) -> consume(name, value))",
                 "endpackage"
             );
     }
@@ -100,7 +101,61 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int value",
                 "",
                 "        function save()",
-                "            forFields(value -> value)",
+                "            __wurst_forFields(value -> value)",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void ordinaryFieldHelperNamesRemainUserFunctions() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    function forFields(int value) returns int",
+                "        return value + 1",
+                "",
+                "    init",
+                "        if forFields(1) == 2",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void nestedClosureParametersAreNotSubstituted() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    interface IntFunc",
+                "        function apply(int value) returns int",
+                "",
+                "    function consume(IntFunc callback) returns int",
+                "        return callback.apply(5)",
+                "",
+                "    class Codec",
+                "        int total",
+                "",
+                "        function write(string fieldName, int value)",
+                "            total = total + value",
+                "",
+                "    class Data",
+                "        int first = 1",
+                "        int second = 2",
+                "",
+                "        function save(Codec codec)",
+                "            __wurst_forFields((fieldName, value) -> codec.write(fieldName, consume((int value) -> value)))",
+                "",
+                "    init",
+                "        let codec = new Codec",
+                "        let data = new Data",
+                "        data.save(codec)",
+                "        if codec.total == 10",
+                "            testSuccess()",
                 "endpackage"
             );
     }

@@ -14,6 +14,10 @@ import java.util.*;
  */
 public class SyntacticSugar {
 
+    /** Compiler-reserved spelling keeps ordinary user functions named forFields/mapFields valid. */
+    private static final String FOR_FIELDS = "__wurst_forFields";
+    private static final String MAP_FIELDS = "__wurst_mapFields";
+
     public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
         if (hasCommonJ) {
             addDefaultImports(root);
@@ -31,8 +35,8 @@ public class SyntacticSugar {
      * field accesses.
      *
      * <pre>
-     * forFields((name, value) -> writer.write(name, value))
-     * mapFields((name, value) -> reader.read(name, value))
+     * __wurst_forFields((name, value) -> writer.write(name, value))
+     * __wurst_mapFields((name, value) -> reader.read(name, value))
      * </pre>
      */
     private void expandFieldIterations(CompilationUnit root) {
@@ -42,14 +46,14 @@ public class SyntacticSugar {
             public void visit(ExprFunctionCall call) {
                 super.visit(call);
                 String name = call.getFuncName();
-                if ("forFields".equals(name) || "mapFields".equals(name)) {
+                if (FOR_FIELDS.equals(name) || MAP_FIELDS.equals(name)) {
                     calls.add(call);
                 }
             }
         });
 
         for (ExprFunctionCall call : calls) {
-            expandFieldIteration(call, "mapFields".equals(call.getFuncName()));
+            expandFieldIteration(call, MAP_FIELDS.equals(call.getFuncName()));
         }
     }
 
@@ -108,10 +112,24 @@ public class SyntacticSugar {
 
         List<ExprVarAccess> accesses = new ArrayList<>();
         expression.accept(new WurstModel.DefaultVisitor() {
+            private final Set<String> shadowed = new HashSet<>();
+
+            @Override
+            public void visit(ExprClosure nestedClosure) {
+                Set<String> previous = new HashSet<>(shadowed);
+                for (WShortParameter parameter : nestedClosure.getShortParameters()) {
+                    shadowed.add(parameter.getName());
+                }
+                super.visit(nestedClosure);
+                shadowed.clear();
+                shadowed.addAll(previous);
+            }
+
             @Override
             public void visit(ExprVarAccess access) {
                 super.visit(access);
-                if (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter)) {
+                if (!shadowed.contains(access.getVarName())
+                    && (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter))) {
                     accesses.add(access);
                 }
             }
