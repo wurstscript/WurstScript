@@ -72,6 +72,12 @@ public class SyntacticSugar {
             call.addError(call.getFuncName() + " expects a closure with (fieldName, fieldValue) parameters.");
             return;
         }
+        for (WShortParameter parameter : closure.getShortParameters()) {
+            if (!(parameter.getTypOpt() instanceof NoTypeExpr)) {
+                parameter.addError("Field iteration closure parameters must use inferred types.");
+                return;
+            }
+        }
 
         String nameParameter = closure.getShortParameters().get(0).getName();
         String valueParameter = closure.getShortParameters().get(1).getName();

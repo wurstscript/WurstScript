@@ -159,4 +159,19 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void rejectsExplicitFieldIterationParameterTypes() {
+        test()
+            .expectError("must use inferred types")
+            .lines(
+                "package FieldIterationTest",
+                "    class Data",
+                "        int value",
+                "",
+                "        function save()",
+                "            __wurst_forFields((NoSuch name, NoSuch value) -> value)",
+                "endpackage"
+            );
+    }
 }
