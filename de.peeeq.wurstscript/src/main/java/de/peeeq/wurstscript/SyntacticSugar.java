@@ -20,8 +20,113 @@ public class SyntacticSugar {
         }
         rewriteNegatedInts(root);
         addDefaultConstructors(root);
+        expandFieldIterations(root);
         addEndFunctionStatements(root);
         replaceTypeIdUse(root);
+    }
+
+    /**
+     * Expands field-wise operations before name and overload resolution. This gives serializers a
+     * reflection-like API while keeping the generated program equivalent to handwritten direct
+     * field accesses.
+     *
+     * <pre>
+     * forFields((name, value) -> writer.write(name, value))
+     * mapFields((name, value) -> reader.read(name, value))
+     * </pre>
+     */
+    private void expandFieldIterations(CompilationUnit root) {
+        List<ExprFunctionCall> calls = new ArrayList<>();
+        root.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                String name = call.getFuncName();
+                if ("forFields".equals(name) || "mapFields".equals(name)) {
+                    calls.add(call);
+                }
+            }
+        });
+
+        for (ExprFunctionCall call : calls) {
+            expandFieldIteration(call, "mapFields".equals(call.getFuncName()));
+        }
+    }
+
+    private void expandFieldIteration(ExprFunctionCall call, boolean assignsResult) {
+        if (!(call.getParent() instanceof WStatements statements)) {
+            call.addError(call.getFuncName() + " can only be used as a statement.");
+            return;
+        }
+        ClassDef classDef = call.attrNearestClassDef();
+        if (classDef == null || !call.attrIsDynamicContext()) {
+            call.addError(call.getFuncName() + " can only be used in an instance method or constructor.");
+            return;
+        }
+        if (call.getArgs().size() != 1 || !(call.getArgs().get(0) instanceof ExprClosure closure)
+            || closure.getShortParameters().size() != 2) {
+            call.addError(call.getFuncName() + " expects a closure with (fieldName, fieldValue) parameters.");
+            return;
+        }
+
+        String nameParameter = closure.getShortParameters().get(0).getName();
+        String valueParameter = closure.getShortParameters().get(1).getName();
+        if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
+            call.addError("forFields closure must produce a statement expression.");
+            return;
+        }
+        int statementIndex = statements.indexOf(call);
+        statements.remove(statementIndex);
+
+        for (GlobalVarDef field : classDef.getVars()) {
+            if (field.attrIsStatic()) {
+                continue;
+            }
+            Expr fieldAccess = fieldAccess(call.getSource(), field.getName());
+            Expr implementation = substituteFieldParameters(
+                closure.getImplementation().copy(), nameParameter, valueParameter, field.getName());
+            WStatement expanded;
+            if (assignsResult) {
+                expanded = Ast.StmtSet(call.getSource(), (LExpr) fieldAccess, implementation);
+            } else {
+                expanded = (WStatement) implementation;
+            }
+            statements.add(statementIndex++, expanded);
+        }
+    }
+
+    private Expr substituteFieldParameters(Expr expression, String nameParameter,
+                                           String valueParameter, String fieldName) {
+        if (expression instanceof ExprVarAccess access) {
+            if (access.getVarName().equals(nameParameter)) {
+                return Ast.ExprStringVal(access.getSource(), fieldName);
+            }
+            if (access.getVarName().equals(valueParameter)) {
+                return fieldAccess(access.getSource(), fieldName);
+            }
+        }
+
+        List<ExprVarAccess> accesses = new ArrayList<>();
+        expression.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                if (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter)) {
+                    accesses.add(access);
+                }
+            }
+        });
+        for (ExprVarAccess access : accesses) {
+            Expr replacement = access.getVarName().equals(nameParameter)
+                ? Ast.ExprStringVal(access.getSource(), fieldName)
+                : fieldAccess(access.getSource(), fieldName);
+            access.replaceBy(replacement);
+        }
+        return expression;
+    }
+
+    private ExprMemberVarDot fieldAccess(WPos source, String fieldName) {
+        return Ast.ExprMemberVarDot(source, Ast.ExprThis(source), Ast.Identifier(source, fieldName));
     }
 
     private void replaceTypeIdUse(CompilationUnit root) {
