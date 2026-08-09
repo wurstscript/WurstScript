@@ -2162,26 +2162,15 @@ public class OptimizerTests extends WurstScriptTest {
     public void branchMergerMustNotHoistAcrossClientLocalConditions() throws Exception {
         test().lines(
             "type unit extends handle",
-            "type framehandle extends handle",
-            "type lightning extends handle",
-            "type effect extends handle",
             "package test",
             "@extern native GetCameraTargetPositionX() returns real",
             "@extern native BlzGetUnitZ(unit whichUnit) returns real",
-            "@extern native BlzFrameIsVisible(framehandle frame) returns boolean",
             "@extern native BlzIsLocalClientActive() returns boolean",
-            "@extern native AddLightning(string codeName, boolean checkVisibility, real x1, real y1, real x2, real y2) returns lightning",
-            "@extern native BlzGetSpecialEffectScale(effect whichEffect) returns real",
             "native getUnit() returns unit",
-            "native getFrame() returns framehandle",
-            "native getEffect() returns effect",
             "native print(integer i)",
             "integer cameraResult = 0",
             "integer unitResult = 0",
-            "integer frameResult = 0",
             "integer activeClientResult = 0",
-            "integer lightningResult = 0",
-            "integer effectResult = 0",
             "init",
             "    real cameraX = GetCameraTargetPositionX()",
             "    if cameraX > 0.",
@@ -2193,32 +2182,14 @@ public class OptimizerTests extends WurstScriptTest {
             "        unitResult = 43",
             "    else",
             "        unitResult = 43",
-            "    boolean frameVisible = BlzFrameIsVisible(getFrame())",
-            "    if frameVisible",
-            "        frameResult = 47",
-            "    else",
-            "        frameResult = 47",
             "    boolean activeClient = BlzIsLocalClientActive()",
             "    if activeClient",
             "        activeClientResult = 53",
             "    else",
             "        activeClientResult = 53",
-            "    lightning bolt = AddLightning(\"CLPB\", true, 0., 0., 128., 128.)",
-            "    if bolt == null",
-            "        lightningResult = 59",
-            "    else",
-            "        lightningResult = 59",
-            "    real effectScale = BlzGetSpecialEffectScale(getEffect())",
-            "    if effectScale > 0.",
-            "        effectResult = 61",
-            "    else",
-            "        effectResult = 61",
             "    print(cameraResult)",
             "    print(unitResult)",
-            "    print(frameResult)",
-            "    print(activeClientResult)",
-            "    print(lightningResult)",
-            "    print(effectResult)"
+            "    print(activeClientResult)"
         );
 
         String optimized = Files.toString(
@@ -2228,14 +2199,8 @@ public class OptimizerTests extends WurstScriptTest {
             "statements must not be hoisted across a client-local camera condition");
         assertTrue(countOccurrences(optimized, "test_unitResult = 43") >= 2,
             "statements must not be hoisted across a client-local unit Z condition");
-        assertTrue(countOccurrences(optimized, "test_frameResult = 47") >= 2,
-            "statements must not be hoisted across client-local frame visibility");
         assertTrue(countOccurrences(optimized, "test_activeClientResult = 53") >= 2,
             "statements must not be hoisted across local-client activity state");
-        assertTrue(countOccurrences(optimized, "test_lightningResult = 59") >= 2,
-            "statements must not be hoisted across visibility-dependent lightning creation");
-        assertTrue(countOccurrences(optimized, "test_effectResult = 61") >= 2,
-            "statements must not be hoisted across client-local effect state");
     }
 
     @Test
@@ -2260,55 +2225,27 @@ public class OptimizerTests extends WurstScriptTest {
             "GetLocalizedString",
             "GetLocalizedHotkey",
             "GetObjectName",
-            "BlzGetLocalSpecialEffectX",
-            "BlzGetLocalSpecialEffectY",
-            "BlzGetLocalSpecialEffectZ",
-            "AddSpecialEffect",
-            "AddSpecialEffectLoc",
-            "AddSpecialEffectTarget",
-            "AddSpellEffect",
-            "AddSpellEffectLoc",
-            "AddSpellEffectById",
-            "AddSpellEffectByIdLoc",
-            "AddSpellEffectTarget",
-            "AddSpellEffectTargetById",
-            "BlzGetSpecialEffectScale",
-            "LoadEffectHandle",
-            "AddLightning",
-            "AddLightningEx",
-            "MoveLightning",
-            "MoveLightningEx",
-            "DestroyLightning",
-            "GetLightningColorA",
-            "GetLightningColorR",
-            "GetLightningColorG",
-            "GetLightningColorB",
-            "SetLightningColor",
-            "LoadLightningHandle",
             "BlzGetLocalUnitZ",
             "BlzGetUnitZ",
             "BlzGetLocalClientWidth",
             "BlzGetLocalClientHeight",
             "BlzIsLocalClientActive",
             "BlzGetMouseFocusUnit",
-            "BlzGetLocale",
-            "BlzFrameIsVisible",
-            "BlzFrameGetName",
-            "BlzFrameGetText",
-            "BlzFrameGetTextSizeLimit",
-            "BlzFrameGetEnable",
-            "BlzFrameGetAlpha",
-            "BlzFrameGetValue",
-            "BlzFrameGetParent",
-            "BlzFrameGetHeight",
-            "BlzFrameGetWidth",
-            "BlzFrameGetChildrenCount",
-            "BlzFrameGetChild"
+            "BlzGetLocale"
         ));
-        java.util.Set<String> synchronizedEventSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+        java.util.Set<String> intentionallyExcludedSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
             "BlzGetTriggerPlayerMouseX",
             "BlzGetTriggerPlayerKey",
-            "BlzGetTriggerFrameValue"
+            "BlzGetTriggerFrameValue",
+            "BlzFrameIsVisible",
+            "BlzGetLocalSpecialEffectX",
+            "AddLightning",
+            "MoveLightning",
+            "LoadEffectHandle",
+            "LoadLightningHandle",
+            "LoadFrameHandle",
+            "GetSoundIsPlaying",
+            "BlzIsSelectionEnabled"
         ));
         Element trace = Ast.NoExpr();
         ImFunctions functions = JassIm.ImFunctions();
@@ -2318,7 +2255,7 @@ public class OptimizerTests extends WurstScriptTest {
             functions.add(nativeFunction);
             functionsByName.put(name, nativeFunction);
         }
-        for (String name : synchronizedEventSources) {
+        for (String name : intentionallyExcludedSources) {
             ImFunction nativeFunction = nativeIntFunction(trace, name);
             functions.add(nativeFunction);
             functionsByName.put(name, nativeFunction);
@@ -2338,9 +2275,9 @@ public class OptimizerTests extends WurstScriptTest {
             assertTrue(analyzer.isLocalPlayerSource(functionsByName.get(name)),
                 name + " must be treated as a client-local value source");
         }
-        for (String name : synchronizedEventSources) {
+        for (String name : intentionallyExcludedSources) {
             assertFalse(analyzer.isLocalPlayerSource(functionsByName.get(name)),
-                name + " belongs to a synchronized event context");
+                name + " is synchronized event data or user-managed local state");
         }
     }
 

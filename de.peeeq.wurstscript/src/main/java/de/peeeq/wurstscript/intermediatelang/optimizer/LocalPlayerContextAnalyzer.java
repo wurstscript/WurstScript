@@ -28,8 +28,9 @@ public final class LocalPlayerContextAnalyzer {
 
     /**
      * Native return values which may differ between clients during the same
-     * synchronized execution. Event response natives are intentionally absent:
-     * Warcraft synchronizes mouse, key, and frame events before dispatch.
+     * synchronized execution without requiring user code to mutate local state.
+     * Event responses are synchronized, while handles and UI/audio/visual state
+     * made local by user code remain the user's responsibility.
      */
     private static final Set<String> CLIENT_LOCAL_VALUE_SOURCES = Set.of(
         // Player identity and values explicitly documented as asynchronous.
@@ -57,35 +58,6 @@ public final class LocalPlayerContextAnalyzer {
         "GetLocalizedHotkey",
         "GetObjectName",
 
-        // Special effects can be created and mutated independently per client.
-        "BlzGetLocalSpecialEffectX",
-        "BlzGetLocalSpecialEffectY",
-        "BlzGetLocalSpecialEffectZ",
-        "BlzGetSpecialEffectScale",
-        "AddSpecialEffect",
-        "AddSpecialEffectLoc",
-        "AddSpecialEffectTarget",
-        "AddSpellEffect",
-        "AddSpellEffectLoc",
-        "AddSpellEffectById",
-        "AddSpellEffectByIdLoc",
-        "AddSpellEffectTarget",
-        "AddSpellEffectTargetById",
-        "LoadEffectHandle",
-
-        // Visibility checks and local mutations can make lightning state diverge.
-        "AddLightning",
-        "AddLightningEx",
-        "MoveLightning",
-        "MoveLightningEx",
-        "DestroyLightning",
-        "GetLightningColorA",
-        "GetLightningColorR",
-        "GetLightningColorG",
-        "GetLightningColorB",
-        "SetLightningColor",
-        "LoadLightningHandle",
-
         // Reforged client-local world and client state.
         "BlzGetLocalUnitZ",
         "BlzGetUnitZ",
@@ -93,21 +65,7 @@ public final class LocalPlayerContextAnalyzer {
         "BlzGetLocalClientHeight",
         "BlzIsLocalClientActive",
         "BlzGetMouseFocusUnit",
-        "BlzGetLocale",
-
-        // Frame state can be changed independently on each client.
-        "BlzFrameIsVisible",
-        "BlzFrameGetName",
-        "BlzFrameGetText",
-        "BlzFrameGetTextSizeLimit",
-        "BlzFrameGetEnable",
-        "BlzFrameGetAlpha",
-        "BlzFrameGetValue",
-        "BlzFrameGetParent",
-        "BlzFrameGetHeight",
-        "BlzFrameGetWidth",
-        "BlzFrameGetChildrenCount",
-        "BlzFrameGetChild"
+        "BlzGetLocale"
     );
 
     private final Set<ImVar> localPlayerDependentVars =
