@@ -57,10 +57,36 @@ public final class LocalPlayerContextAnalyzer {
         "GetLocalizedHotkey",
         "GetObjectName",
 
-        // Reforged client-local world and client state.
+        // Special effects can be created and mutated independently per client.
         "BlzGetLocalSpecialEffectX",
         "BlzGetLocalSpecialEffectY",
         "BlzGetLocalSpecialEffectZ",
+        "BlzGetSpecialEffectScale",
+        "AddSpecialEffect",
+        "AddSpecialEffectLoc",
+        "AddSpecialEffectTarget",
+        "AddSpellEffect",
+        "AddSpellEffectLoc",
+        "AddSpellEffectById",
+        "AddSpellEffectByIdLoc",
+        "AddSpellEffectTarget",
+        "AddSpellEffectTargetById",
+        "LoadEffectHandle",
+
+        // Visibility checks and local mutations can make lightning state diverge.
+        "AddLightning",
+        "AddLightningEx",
+        "MoveLightning",
+        "MoveLightningEx",
+        "DestroyLightning",
+        "GetLightningColorA",
+        "GetLightningColorR",
+        "GetLightningColorG",
+        "GetLightningColorB",
+        "SetLightningColor",
+        "LoadLightningHandle",
+
+        // Reforged client-local world and client state.
         "BlzGetLocalUnitZ",
         "BlzGetUnitZ",
         "BlzGetLocalClientWidth",
