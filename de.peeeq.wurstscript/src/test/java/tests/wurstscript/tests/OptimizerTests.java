@@ -2158,6 +2158,123 @@ public class OptimizerTests extends WurstScriptTest {
             "transitive GetLocalPlayer wrappers must remain explicit calls");
     }
 
+    @Test
+    public void branchMergerMustNotHoistAcrossLocalCameraCondition() throws Exception {
+        test().lines(
+            "package test",
+            "@extern native GetCameraTargetPositionX() returns real",
+            "native print(integer i)",
+            "integer result = 0",
+            "init",
+            "    real cameraX = GetCameraTargetPositionX()",
+            "    if cameraX > 0.",
+            "        result = 41",
+            "    else",
+            "        result = 41",
+            "    print(result)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustNotHoistAcrossLocalCameraCondition_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_result = 41") >= 2,
+            "statements must not be hoisted across a client-local camera condition");
+    }
+
+    @Test
+    public void clientLocalNativeValuesAreLocalitySources() {
+        java.util.Set<String> localValueSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "GetLocalPlayer",
+            "GetLocationZ",
+            "GetCameraMargin",
+            "GetCameraBoundMinX",
+            "GetCameraBoundMinY",
+            "GetCameraBoundMaxX",
+            "GetCameraBoundMaxY",
+            "GetCameraField",
+            "GetCameraTargetPositionX",
+            "GetCameraTargetPositionY",
+            "GetCameraTargetPositionZ",
+            "GetCameraTargetPositionLoc",
+            "GetCameraEyePositionX",
+            "GetCameraEyePositionY",
+            "GetCameraEyePositionZ",
+            "GetCameraEyePositionLoc",
+            "GetLocalizedString",
+            "GetLocalizedHotkey",
+            "GetObjectName",
+            "BlzGetLocalSpecialEffectX",
+            "BlzGetLocalSpecialEffectY",
+            "BlzGetLocalSpecialEffectZ",
+            "BlzGetLocalUnitZ",
+            "BlzGetLocalClientWidth",
+            "BlzGetLocalClientHeight",
+            "BlzGetMouseFocusUnit",
+            "BlzGetLocale",
+            "BlzFrameGetName",
+            "BlzFrameGetText",
+            "BlzFrameGetTextSizeLimit",
+            "BlzFrameGetEnable",
+            "BlzFrameGetAlpha",
+            "BlzFrameGetValue",
+            "BlzFrameGetParent",
+            "BlzFrameGetHeight",
+            "BlzFrameGetWidth",
+            "BlzFrameGetChildrenCount",
+            "BlzFrameGetChild"
+        ));
+        java.util.Set<String> synchronizedEventSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "BlzGetTriggerPlayerMouseX",
+            "BlzGetTriggerPlayerKey",
+            "BlzGetTriggerFrameValue"
+        ));
+        Element trace = Ast.NoExpr();
+        ImFunctions functions = JassIm.ImFunctions();
+        java.util.Map<String, ImFunction> functionsByName = new java.util.LinkedHashMap<>();
+        for (String name : localValueSources) {
+            ImFunction nativeFunction = nativeIntFunction(trace, name);
+            functions.add(nativeFunction);
+            functionsByName.put(name, nativeFunction);
+        }
+        for (String name : synchronizedEventSources) {
+            ImFunction nativeFunction = nativeIntFunction(trace, name);
+            functions.add(nativeFunction);
+            functionsByName.put(name, nativeFunction);
+        }
+        ImProg prog = JassIm.ImProg(
+            trace,
+            JassIm.ImVars(),
+            functions,
+            JassIm.ImMethods(),
+            JassIm.ImClasses(),
+            JassIm.ImTypeClassFuncs(),
+            new java.util.HashMap<>()
+        );
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        for (String name : localValueSources) {
+            assertTrue(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+                name + " must be treated as a client-local value source");
+        }
+        for (String name : synchronizedEventSources) {
+            assertFalse(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+                name + " belongs to a synchronized event context");
+        }
+    }
+
+    private static ImFunction nativeIntFunction(Element trace, String name) {
+        return JassIm.ImFunction(
+            trace,
+            name,
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            TypesHelper.imInt(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE)
+        );
+    }
+
     @Test(timeOut = 10_000)
     public void deeplyNestedIndependentCallsDoNotCauseExponentialLocalPlayerAnalysis() {
         String nestedCall = "Player(0)";
