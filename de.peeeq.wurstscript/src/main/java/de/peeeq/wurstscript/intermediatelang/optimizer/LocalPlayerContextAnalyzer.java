@@ -62,12 +62,14 @@ public final class LocalPlayerContextAnalyzer {
         "BlzGetLocalSpecialEffectY",
         "BlzGetLocalSpecialEffectZ",
         "BlzGetLocalUnitZ",
+        "BlzGetUnitZ",
         "BlzGetLocalClientWidth",
         "BlzGetLocalClientHeight",
         "BlzGetMouseFocusUnit",
         "BlzGetLocale",
 
         // Frame state can be changed independently on each client.
+        "BlzFrameIsVisible",
         "BlzFrameGetName",
         "BlzFrameGetText",
         "BlzFrameGetTextSizeLimit",

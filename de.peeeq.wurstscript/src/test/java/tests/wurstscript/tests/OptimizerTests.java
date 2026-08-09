@@ -2159,26 +2159,50 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    public void branchMergerMustNotHoistAcrossLocalCameraCondition() throws Exception {
+    public void branchMergerMustNotHoistAcrossClientLocalConditions() throws Exception {
         test().lines(
+            "type unit extends handle",
+            "type framehandle extends handle",
             "package test",
             "@extern native GetCameraTargetPositionX() returns real",
+            "@extern native BlzGetUnitZ(unit whichUnit) returns real",
+            "@extern native BlzFrameIsVisible(framehandle frame) returns boolean",
+            "native getUnit() returns unit",
+            "native getFrame() returns framehandle",
             "native print(integer i)",
-            "integer result = 0",
+            "integer cameraResult = 0",
+            "integer unitResult = 0",
+            "integer frameResult = 0",
             "init",
             "    real cameraX = GetCameraTargetPositionX()",
             "    if cameraX > 0.",
-            "        result = 41",
+            "        cameraResult = 41",
             "    else",
-            "        result = 41",
-            "    print(result)"
+            "        cameraResult = 41",
+            "    real unitZ = BlzGetUnitZ(getUnit())",
+            "    if unitZ > 0.",
+            "        unitResult = 43",
+            "    else",
+            "        unitResult = 43",
+            "    boolean frameVisible = BlzFrameIsVisible(getFrame())",
+            "    if frameVisible",
+            "        frameResult = 47",
+            "    else",
+            "        frameResult = 47",
+            "    print(cameraResult)",
+            "    print(unitResult)",
+            "    print(frameResult)"
         );
 
         String optimized = Files.toString(
-            new File("test-output/OptimizerTests_branchMergerMustNotHoistAcrossLocalCameraCondition_opt.j"),
+            new File("test-output/OptimizerTests_branchMergerMustNotHoistAcrossClientLocalConditions_opt.j"),
             Charsets.UTF_8);
-        assertTrue(countOccurrences(optimized, "test_result = 41") >= 2,
+        assertTrue(countOccurrences(optimized, "test_cameraResult = 41") >= 2,
             "statements must not be hoisted across a client-local camera condition");
+        assertTrue(countOccurrences(optimized, "test_unitResult = 43") >= 2,
+            "statements must not be hoisted across a client-local unit Z condition");
+        assertTrue(countOccurrences(optimized, "test_frameResult = 47") >= 2,
+            "statements must not be hoisted across client-local frame visibility");
     }
 
     @Test
@@ -2207,10 +2231,12 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetLocalSpecialEffectY",
             "BlzGetLocalSpecialEffectZ",
             "BlzGetLocalUnitZ",
+            "BlzGetUnitZ",
             "BlzGetLocalClientWidth",
             "BlzGetLocalClientHeight",
             "BlzGetMouseFocusUnit",
             "BlzGetLocale",
+            "BlzFrameIsVisible",
             "BlzFrameGetName",
             "BlzFrameGetText",
             "BlzFrameGetTextSizeLimit",
