@@ -65,6 +65,7 @@ public final class LocalPlayerContextAnalyzer {
         "BlzGetUnitZ",
         "BlzGetLocalClientWidth",
         "BlzGetLocalClientHeight",
+        "BlzIsLocalClientActive",
         "BlzGetMouseFocusUnit",
         "BlzGetLocale",
 

@@ -2167,12 +2167,14 @@ public class OptimizerTests extends WurstScriptTest {
             "@extern native GetCameraTargetPositionX() returns real",
             "@extern native BlzGetUnitZ(unit whichUnit) returns real",
             "@extern native BlzFrameIsVisible(framehandle frame) returns boolean",
+            "@extern native BlzIsLocalClientActive() returns boolean",
             "native getUnit() returns unit",
             "native getFrame() returns framehandle",
             "native print(integer i)",
             "integer cameraResult = 0",
             "integer unitResult = 0",
             "integer frameResult = 0",
+            "integer activeClientResult = 0",
             "init",
             "    real cameraX = GetCameraTargetPositionX()",
             "    if cameraX > 0.",
@@ -2189,9 +2191,15 @@ public class OptimizerTests extends WurstScriptTest {
             "        frameResult = 47",
             "    else",
             "        frameResult = 47",
+            "    boolean activeClient = BlzIsLocalClientActive()",
+            "    if activeClient",
+            "        activeClientResult = 53",
+            "    else",
+            "        activeClientResult = 53",
             "    print(cameraResult)",
             "    print(unitResult)",
-            "    print(frameResult)"
+            "    print(frameResult)",
+            "    print(activeClientResult)"
         );
 
         String optimized = Files.toString(
@@ -2203,6 +2211,8 @@ public class OptimizerTests extends WurstScriptTest {
             "statements must not be hoisted across a client-local unit Z condition");
         assertTrue(countOccurrences(optimized, "test_frameResult = 47") >= 2,
             "statements must not be hoisted across client-local frame visibility");
+        assertTrue(countOccurrences(optimized, "test_activeClientResult = 53") >= 2,
+            "statements must not be hoisted across local-client activity state");
     }
 
     @Test
@@ -2234,6 +2244,7 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetUnitZ",
             "BlzGetLocalClientWidth",
             "BlzGetLocalClientHeight",
+            "BlzIsLocalClientActive",
             "BlzGetMouseFocusUnit",
             "BlzGetLocale",
             "BlzFrameIsVisible",
