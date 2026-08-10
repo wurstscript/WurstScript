@@ -329,8 +329,12 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 * Do not promise Lua support for a method which combines type parameters from its owning generic class with
   independent method type parameters. Serialization loaders should be free generic functions, or class methods
   parameterized only by their owning class.
+* Do not require Lua specialization of generic-construction methods invoked directly on a freshly constructed
+  generic receiver. Use the free generic loader shape, or bind the receiver to a typed local first.
 * Do not call `newInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
   generic loader, then initialize any nested state explicitly after construction.
+* Nested modules whose sibling submodules declare equal field names are outside the supported field-key model.
+  Dedicated state classes should use direct fields, ordinary inheritance, or non-conflicting shallow module fields.
 * Generate no runtime reflection registry, type-name lookup, type-id switch, or serialization-specific metadata.
 
 ### Required regression coverage

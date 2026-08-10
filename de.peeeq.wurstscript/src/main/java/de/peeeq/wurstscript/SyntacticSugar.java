@@ -368,12 +368,23 @@ public class SyntacticSugar {
                     ? declaringClass == null || !accessSite.isSubtreeOf(declaringClass)
                     : declaringClass != concreteClass);
             boolean privateFromAnotherModule = field.attrIsPrivate() && declaringModule != null;
+            boolean inaccessibleProtected = explicitTarget && field.attrIsProtected()
+                && !canAccessProtectedField(field, declaringClass, accessSite);
             boolean mutableEnough = !requireMutable || (!field.attrIsReadonly() && !field.attrIsConstant());
             if (!field.attrIsStatic() && mutableEnough
-                && !privateFromAnotherClass && !privateFromAnotherModule) {
+                && !privateFromAnotherClass && !privateFromAnotherModule && !inaccessibleProtected) {
                 fields.add(new FieldInfo(field, modulePath));
             }
         }
+    }
+
+    private boolean canAccessProtectedField(GlobalVarDef field, ClassDef declaringClass, Element accessSite) {
+        if (accessSite.attrNearestPackage() == field.attrNearestPackage()) {
+            return true;
+        }
+        ClassDef accessClass = accessSite.attrNearestClassDef();
+        return accessClass != null && declaringClass != null
+            && accessClass.attrTypC().isSubtypeOf(declaringClass.attrTypC(), accessSite);
     }
 
     private boolean hasShadowingLocal(ExprClosure closure, String nameParameter, String valueParameter) {

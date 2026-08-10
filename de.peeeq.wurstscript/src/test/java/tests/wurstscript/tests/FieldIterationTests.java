@@ -868,6 +868,67 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void explicitTargetExcludesInaccessibleProtectedFields() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .compilationUnits(
+                compilationUnit("state.wurst",
+                    "package StateTypes",
+                    "    public class BaseState",
+                    "        protected int shared = 100",
+                    "        function getShared() returns int",
+                    "            return shared",
+                    "    public class State extends BaseState",
+                    "        int local = 2",
+                    "endpackage"),
+                compilationUnit("consumer.wurst",
+                    "package FieldIterationTest",
+                    "    import StateTypes",
+                    "    native testSuccess()",
+                    "    int total = 0",
+                    "    function add(int value)",
+                    "        total += value",
+                    "    init",
+                    "        let state = new State",
+                    "        forFields(state, (name, value) -> add(value))",
+                    "        mapFields(state, (name, value) -> value + 1)",
+                    "        if total == 2 and state.local == 3 and state.getShared() == 100",
+                    "            testSuccess()",
+                    "endpackage")
+            );
+    }
+
+    @Test
+    public void explicitTargetIncludesPackageAccessibleProtectedFields() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    int total = 0",
+                "    function add(int value)",
+                "        total += value",
+                "    class BaseState",
+                "        protected int shared = 100",
+                "        function getShared() returns int",
+                "            return shared",
+                "    class State extends BaseState",
+                "        int local = 2",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (name, value) -> add(value))",
+                "        mapFields(state, (name, value) -> value + 1)",
+                "        if total == 102 and state.local == 3 and state.getShared() == 101",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void excludesPrivateModuleFields() {
         test()
             .executeProg()
