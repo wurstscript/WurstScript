@@ -292,3 +292,43 @@ Recent regressions showed that virtual-slot binding can silently degrade to base
   * assert each concrete sibling class binds that slot to its own implementation,
   * assert no sibling binds that dispatched slot to `NoOpState_*`.
 * Add a compile-twice determinism assertion for the same repro input.
+
+---
+
+## 9. Compiler-Assisted Field Iteration and Generic Construction
+
+The compiler surface used by serialization libraries is intentionally general-purpose and contains no knowledge
+of save formats, `ChunkedString`, hashes, or `Serializable`.
+
+### Source-level contract
+
+* The public Wurst names are `forFields`, `mapFields`, and `newInstance<T>()`; do not introduce underscore-prefixed
+  alternatives. Internal markers must never survive backend lowering.
+* A visible ordinary function with one of these names must resolve normally. Compiler handling is only the fallback
+  when no user-visible function resolves.
+* `forFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
+  constant fields. `mapFields` additionally requires each included field to be mutable.
+* Explicit targets are evaluated exactly once. Generated temporaries must be proven fresh in the enclosing scope.
+* Preserve module qualification in both field keys and generated accesses so sibling modules with equal field names
+  remain distinct.
+* `newInstance<T>()` must invoke the normal accessible zero-argument constructor of a concrete, non-abstract class.
+  Never replace it with uninitialized allocation or runtime type lookup.
+
+### Lowering and backend rules
+
+* Field iteration expands after module expansion, when inherited and injected fields are concrete.
+* Jass may use normal generic elimination. Lua specialization remains targeted to paths that reach generic
+  construction; do not turn this into general Lua generic monomorphization.
+* Lua reachability must traverse both `ImFunctionCall` and `ImMethodCall`, including dispatch submethods.
+* Targeted specialized methods needed by Lua dispatch must remain attached to the IM classes consumed by
+  `LuaDispatchPreparation`. Concrete implementations for erased generic objects must bind the same root slot used
+  by the call site.
+* Generate no runtime reflection registry, type-name lookup, type-id switch, or serialization-specific metadata.
+
+### Required regression coverage
+
+Use `FieldIterationTests` as the focused suite. Cover both Jass and Lua, direct and explicit targets, target
+evaluation count, inherited/module fields, readonly versus mutable behavior, overload selection, constructor
+execution and diagnostics, ordinary same-name functions, generic functions and class methods, transitive method
+reachability, and generic interface dispatch. Assert generated output contains direct construction/accesses and no
+source intrinsic names or runtime reflection machinery.
