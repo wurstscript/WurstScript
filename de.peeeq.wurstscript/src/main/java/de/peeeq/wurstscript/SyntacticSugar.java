@@ -214,7 +214,9 @@ public class SyntacticSugar {
         int originalStatementIndex = statements.indexOf(call);
         if (explicitTarget) {
             target = call.getArgs().get(0);
-            targetName = "__wurstFieldTarget" + generatedTargetCounter++;
+            do {
+                targetName = "__wurstFieldTarget" + generatedTargetCounter++;
+            } while (call.lookupVar(targetName, false) != null);
             targetVariable = Ast.LocalVarDef(call.getSource(), Ast.Modifiers(), Ast.NoTypeExpr(),
                 Ast.Identifier(call.getSource(), targetName), target.copy());
             statements.add(originalStatementIndex, targetVariable);
@@ -253,7 +255,7 @@ public class SyntacticSugar {
                 return;
             }
         }
-        List<FieldInfo> fields = collectInstanceFields(classDef, owner, call, explicitTarget);
+        List<FieldInfo> fields = collectInstanceFields(classDef, owner, call, explicitTarget, assignsResult);
         if (fields.isEmpty()) {
             if (targetVariable != null) {
                 statements.remove(targetVariable);
@@ -290,15 +292,17 @@ public class SyntacticSugar {
     }
 
     private List<FieldInfo> collectInstanceFields(ClassDef classDef, ClassOrModule owner,
-                                                  Element accessSite, boolean explicitTarget) {
+                                                  Element accessSite, boolean explicitTarget,
+                                                  boolean requireMutable) {
         List<FieldInfo> fields = new ArrayList<>();
         if (classDef != null) {
             collectInheritedFields(classDef.attrTypC(), fields, classDef,
                 Collections.newSetFromMap(new IdentityHashMap<>()),
-                Collections.newSetFromMap(new IdentityHashMap<>()), accessSite, explicitTarget);
+                Collections.newSetFromMap(new IdentityHashMap<>()), accessSite, explicitTarget,
+                requireMutable);
         } else if (owner instanceof ModuleDef moduleDef) {
             addInstanceFields(moduleDef.getVars(), fields, null, List.of(), moduleDef,
-                accessSite, explicitTarget);
+                accessSite, explicitTarget, requireMutable);
         }
         return fields;
     }
@@ -309,19 +313,20 @@ public class SyntacticSugar {
                                         Set<ClassDef> visitedClasses,
                                         Set<ModuleInstanciation> visitedModules,
                                         Element accessSite,
-                                        boolean explicitTarget) {
+                                        boolean explicitTarget,
+                                        boolean requireMutable) {
         if (!visitedClasses.add(type.getClassDef())) {
             return;
         }
         WurstTypeClass superType = type.extendedClass();
         if (superType != null) {
             collectInheritedFields(superType, fields, concreteClass, visitedClasses, visitedModules,
-                accessSite, explicitTarget);
+                accessSite, explicitTarget, requireMutable);
         }
         addModuleFields(type.getClassDef().getModuleInstanciations(), fields, concreteClass,
-            visitedModules, List.of(), accessSite, explicitTarget);
+            visitedModules, List.of(), accessSite, explicitTarget, requireMutable);
         addInstanceFields(type.getClassDef().getVars(), fields, concreteClass, List.of(), null,
-            accessSite, explicitTarget);
+            accessSite, explicitTarget, requireMutable);
     }
 
     private void addModuleFields(Iterable<ModuleInstanciation> modules,
@@ -330,7 +335,8 @@ public class SyntacticSugar {
                                  Set<ModuleInstanciation> visited,
                                  List<String> parentPath,
                                  Element accessSite,
-                                 boolean explicitTarget) {
+                                 boolean explicitTarget,
+                                 boolean requireMutable) {
         for (ModuleInstanciation module : modules) {
             if (!visited.add(module)) {
                 continue;
@@ -341,9 +347,9 @@ public class SyntacticSugar {
                 ? List.of(module.getName())
                 : parentPath;
             addModuleFields(module.getModuleInstanciations(), fields, concreteClass, visited, modulePath,
-                accessSite, explicitTarget);
+                accessSite, explicitTarget, requireMutable);
             addInstanceFields(module.getVars(), fields, concreteClass, modulePath, module.attrModuleOrigin(),
-                accessSite, explicitTarget);
+                accessSite, explicitTarget, requireMutable);
         }
     }
 
@@ -353,7 +359,8 @@ public class SyntacticSugar {
                                    List<String> modulePath,
                                    ModuleDef declaringModule,
                                    Element accessSite,
-                                   boolean explicitTarget) {
+                                   boolean explicitTarget,
+                                   boolean requireMutable) {
         for (GlobalVarDef field : declarations) {
             ClassDef declaringClass = field.attrNearestClassDef();
             boolean privateFromAnotherClass = field.attrIsPrivate() && concreteClass != null
@@ -361,7 +368,8 @@ public class SyntacticSugar {
                     ? declaringClass == null || !accessSite.isSubtreeOf(declaringClass)
                     : declaringClass != concreteClass);
             boolean privateFromAnotherModule = field.attrIsPrivate() && declaringModule != null;
-            if (!field.attrIsStatic() && !field.attrIsReadonly() && !field.attrIsConstant()
+            boolean mutableEnough = !requireMutable || (!field.attrIsReadonly() && !field.attrIsConstant());
+            if (!field.attrIsStatic() && mutableEnough
                 && !privateFromAnotherClass && !privateFromAnotherModule) {
                 fields.add(new FieldInfo(field, modulePath));
             }

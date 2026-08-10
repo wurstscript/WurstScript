@@ -356,6 +356,137 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericConstructionReachabilityCrossesMethodCallsForLua() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    class Box<T:>",
+                "        function make() returns T",
+                "            return newInstance<T>()",
+                "",
+                "    function build<T:>(Box<T> box) returns T",
+                "        return box.make()",
+                "",
+                "    class State",
+                "        int value = 9",
+                "",
+                "    init",
+                "        let state = build<State>(new Box<State>)",
+                "        if state.value == 9",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void genericConstructionReachabilityCrossesInterfaceDispatchForLua() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    interface Maker<T:>",
+                "        function make() returns T",
+                "",
+                "    class Box<T:> implements Maker<T>",
+                "        function make() returns T",
+                "            return newInstance<T>()",
+                "",
+                "    function build<T:>(Maker<T> maker) returns T",
+                "        return maker.make()",
+                "",
+                "    class State",
+                "        int value = 11",
+                "",
+                "    init",
+                "        let state = build<State>(new Box<State>)",
+                "        if state.value == 11",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void forFieldsIncludesReadonlyInstanceFields() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    int total = 0",
+                "",
+                "    class State",
+                "        readonly int value = 7",
+                "        constant int version = 5",
+                "",
+                "    function add(int value)",
+                "        total += value",
+                "",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (name, value) -> add(value))",
+                "        if total == 12",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void ordinaryNewInstanceNameRemainsUserFunction() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    function newInstance<T>() returns int",
+                "        return 7",
+                "",
+                "    init",
+                "        if newInstance<int>() == 7",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void explicitTargetTemporaryDoesNotCollideWithUserLocal() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    int total = 0",
+                "",
+                "    class State",
+                "        int value = 3",
+                "",
+                "    function add(int value)",
+                "        total += value",
+                "",
+                "    init",
+                "        let __wurstFieldTarget0 = 4",
+                "        let state = new State",
+                "        forFields(state, (name, value) -> add(value))",
+                "        if total == 3 and __wurstFieldTarget0 == 4",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void nestedClosureParametersAreNotSubstituted() {
         test()
             .executeProg()

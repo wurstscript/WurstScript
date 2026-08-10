@@ -31,7 +31,7 @@ public final class CompilerIntrinsics {
     }
 
     public static boolean isNew(ExprFunctionCall call) {
-        return NEW.equals(call.getFuncName());
+        return NEW.equals(call.getFuncName()) && call.lookupFuncs(NEW).isEmpty();
     }
 
     private static boolean hasClosureArgument(ExprFunctionCall call) {

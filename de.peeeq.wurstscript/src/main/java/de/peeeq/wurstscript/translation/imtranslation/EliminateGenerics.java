@@ -171,9 +171,9 @@ public class EliminateGenerics {
 
     private void collectGenericNewUse(ImMethodCall call) {
         ImMethod method = call.getMethod();
-        if (method.getImplementation() == null
-            || !functionContainsGenericNew(method.getImplementation(),
-                Collections.newSetFromMap(new IdentityHashMap<>()))) {
+        if (!methodContainsGenericNew(method,
+            Collections.newSetFromMap(new IdentityHashMap<>()),
+            Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
         }
         if (call.getTypeArguments().isEmpty()) {
@@ -195,7 +195,13 @@ public class EliminateGenerics {
     }
 
     private boolean functionContainsGenericNew(ImFunction function, Set<ImFunction> visited) {
-        if (!visited.add(function)) {
+        return functionContainsGenericNew(function, visited,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean functionContainsGenericNew(ImFunction function, Set<ImFunction> visitedFunctions,
+                                               Set<ImMethod> visitedMethods) {
+        if (!visitedFunctions.add(function)) {
             return false;
         }
         boolean[] found = {false};
@@ -203,7 +209,16 @@ public class EliminateGenerics {
             @Override
             public void visit(ImFunctionCall call) {
                 if (translator.isGenericNewMarker(call.getFunc())
-                    || functionContainsGenericNew(call.getFunc(), visited)) {
+                    || functionContainsGenericNew(call.getFunc(), visitedFunctions, visitedMethods)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                if (methodContainsGenericNew(call.getMethod(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -211,6 +226,23 @@ public class EliminateGenerics {
             }
         });
         return found[0];
+    }
+
+    private boolean methodContainsGenericNew(ImMethod method, Set<ImFunction> visitedFunctions,
+                                             Set<ImMethod> visitedMethods) {
+        if (!visitedMethods.add(method)) {
+            return false;
+        }
+        if (method.getImplementation() != null
+            && functionContainsGenericNew(method.getImplementation(), visitedFunctions, visitedMethods)) {
+            return true;
+        }
+        for (ImMethod subMethod : method.getSubMethods()) {
+            if (methodContainsGenericNew(subMethod, visitedFunctions, visitedMethods)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void assertNoReachableGenericNewMarkers() {
@@ -812,13 +844,18 @@ public class EliminateGenerics {
 
         ImMethod newM = m.copyWithRefs();
         specializedMethods.put(m, generics, newM);
-        prog.getMethods().add(newM);
+        if (!genericNewOnly) {
+            prog.getMethods().add(newM);
+        }
 
         ImClassType newClassType = newM.getMethodClass().copy();
         for (int i = 0; i < newClassType.getTypeArguments().size(); i++) {
             newClassType.getTypeArguments().set(i, generics.getTypeArguments().get(i).copy());
         }
         newM.setMethodClass(specializeType(newClassType));
+        if (genericNewOnly) {
+            newM.getMethodClass().getClassDef().getMethods().add(newM);
+        }
 
         newM.setName(genericNewOnly
             ? m.getName() + "_specialized_" + generics.makeName()
@@ -826,7 +863,7 @@ public class EliminateGenerics {
         newM.setImplementation(genericNewOnly
             ? specializeMethodImplementation(m, generics)
             : specializeFunction(newM.getImplementation(), generics));
-        adaptSubmethods(m.getSubMethods(), newM);
+        adaptSubmethods(m.getSubMethods(), newM, generics);
         return newM;
     }
 
@@ -855,7 +892,7 @@ public class EliminateGenerics {
         return newImplementation;
     }
 
-    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM) {
+    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM, GenericTypes generics) {
         newM.setSubMethods(new ArrayList<>());
         ImClassType newClassT = newM.getMethodClass();
         ImClass newMClass = newClassT.getClassDef();
@@ -863,6 +900,19 @@ public class EliminateGenerics {
             ImClassType subClassT = subMethod.getMethodClass();
             ImClass subClass = subClassT.getClassDef();
             if (isGenericType(subClassT)) {
+                if (genericNewOnly
+                    && subClass.getTypeVariables().size() == generics.getTypeArguments().size()) {
+                    ImMethod specializedSubMethod = specializeMethod(subMethod, generics);
+                    // Lua keeps ordinary generic objects erased. Bind the concrete implementation
+                    // to that erased class so interface dispatch on an existing object can reach it.
+                    specializedSubMethod.getMethodClass().getClassDef().getMethods()
+                        .remove(specializedSubMethod);
+                    specializedSubMethod.setMethodClass(
+                        JassIm.ImClassType(subClass, JassIm.ImTypeArguments()));
+                    subClass.getMethods().add(specializedSubMethod);
+                    newM.getSubMethods().add(specializedSubMethod);
+                    continue;
+                }
                 onSpecializeClass(subClass, (subGenerics, specializedSubClass) -> {
                     if (specializedSubClass.isSubclassOf(newMClass)) {
                         ImMethod specializedSubMethod = specializeMethod(subMethod, subGenerics);
