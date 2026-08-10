@@ -275,6 +275,87 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void ordinaryFieldHelperWithClosureRemainsUserFunction() {
+        test()
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    interface IntCallback",
+                "        function apply(int value) returns int",
+                "",
+                "    function forFields(IntCallback callback) returns int",
+                "        return callback.apply(2)",
+                "",
+                "    init",
+                "        if forFields(value -> value + 1) == 3",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void explicitTargetPreservesSiblingModuleFieldQualifiers() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    int total = 0",
+                "",
+                "    module Left",
+                "        int value = 2",
+                "",
+                "    module Right",
+                "        int value = 5",
+                "",
+                "    class State",
+                "        use Left",
+                "        use Right",
+                "",
+                "    function add(int value)",
+                "        total += value",
+                "",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (name, value) -> add(value))",
+                "        mapFields(state, (name, value) -> value + 10)",
+                "        if total == 7 and state.Left.value == 12 and state.Right.value == 15",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void genericConstructionInGenericClassMethodWorksForLua() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    class Factory<T:>",
+                "        function make() returns T",
+                "            return newInstance<T>()",
+                "",
+                "    class State",
+                "        int value",
+                "        construct()",
+                "            value = 7",
+                "",
+                "    init",
+                "        let factory = new Factory<State>",
+                "        if factory.make().value == 7",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void nestedClosureParametersAreNotSubstituted() {
         test()
             .executeProg()

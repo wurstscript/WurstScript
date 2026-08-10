@@ -507,6 +507,9 @@ public class SyntacticSugar {
         Expr left;
         if (targetName != null) {
             left = Ast.ExprVarAccess(source, Ast.Identifier(source, targetName));
+            for (String module : field.modulePath) {
+                left = Ast.ExprMemberVarDot(source, left, Ast.Identifier(source, module));
+            }
         } else if (field.modulePath.isEmpty()) {
             left = Ast.ExprThis(source);
         } else {

@@ -35,6 +35,8 @@ public class EliminateGenerics {
 
     // Track concrete generic arguments for specialized functions to simplify later lookups
     private final Map<ImFunction, GenericTypes> specializedFunctionGenerics = new IdentityHashMap<>();
+    private final Set<ImFunction> unspecializedGenericClassMethods =
+        Collections.newSetFromMap(new IdentityHashMap<>());
 
     // NEW: Track specialized global variables for generic static fields
     // Key: (original generic global var, concrete type instantiation) -> specialized var
@@ -104,6 +106,7 @@ public class EliminateGenerics {
      */
     public void transformGenericNewOnly() {
         genericNewOnly = true;
+        collectUnspecializedGenericClassMethods();
         collectGenericNewRoots();
         eliminateGenericUses();
         eliminateRemainingGenericNewCalls();
@@ -114,7 +117,8 @@ public class EliminateGenerics {
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
-                if (!function.getTypeVariables().isEmpty()) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
                     return;
                 }
                 super.visit(function);
@@ -125,6 +129,12 @@ public class EliminateGenerics {
                 super.visit(call);
                 collectGenericNewUse(call);
             }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
         });
     }
 
@@ -132,6 +142,12 @@ public class EliminateGenerics {
         element.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
                 super.visit(call);
                 collectGenericNewUse(call);
             }
@@ -150,6 +166,22 @@ public class EliminateGenerics {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
+        }
+    }
+
+    private void collectGenericNewUse(ImMethodCall call) {
+        ImMethod method = call.getMethod();
+        if (method.getImplementation() == null
+            || !functionContainsGenericNew(method.getImplementation(),
+                Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            return;
+        }
+        if (call.getTypeArguments().isEmpty()) {
+            addMemberTypeArguments(call, method.attrClass());
+        }
+        if (!call.getTypeArguments().isEmpty()
+            && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+            genericsUses.add(new GenericMethodCall(call));
         }
     }
 
@@ -185,7 +217,8 @@ public class EliminateGenerics {
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
-                if (!function.getTypeVariables().isEmpty()) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
                     return;
                 }
                 super.visit(function);
@@ -429,43 +462,32 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                handle(mc, mc.getMethod().attrClass());
+                addMemberTypeArguments(mc, mc.getMethod().attrClass());
             }
 
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                handle(ma, (ImClass) ma.getVar().getParent().getParent());
+                addMemberTypeArguments(ma, (ImClass) ma.getVar().getParent().getParent());
             }
-
-            private void handle(ImMemberOrMethodAccess ma, ImClass owningClass) {
-                ImType receiverType = ma.getReceiver().attrTyp();
-                if (!(receiverType instanceof ImClassType)) return;
-
-                ImClassType rt = (ImClassType) receiverType;
-                ImClassType ct = adaptToSuperclass(rt, owningClass);
-                if (ct == null) {
-//                    dbg("addMemberTA FAIL: owning=" + owningClass.getName() + " recv=" + rt + " in " + ma);
-                    throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass + " in member access " + ma);
-                }
-
-//                dbg("addMemberTA: kind=" + ma.getClass().getSimpleName()
-//                    + " owning=" + owningClass.getName() + " " + id(owningClass)
-//                    + " recvType=" + rt
-//                    + " adapted=" + ct
-//                    + " beforeTA=" + shortTypeArgs(ma.getTypeArguments()));
-
-                // existing code...
-                List<ImTypeArgument> typeArgs = new ArrayList<>();
-                for (ImTypeArgument imTypeArgument : ct.getTypeArguments()) {
-                    typeArgs.add(imTypeArgument.copy());
-                }
-                ma.getTypeArguments().addAll(0, typeArgs);
-
-//                dbg("addMemberTA: afterTA=" + shortTypeArgs(ma.getTypeArguments()));
-            }
-
         });
+    }
+
+    private void addMemberTypeArguments(ImMemberOrMethodAccess access, ImClass owningClass) {
+        ImType receiverType = access.getReceiver().attrTyp();
+        if (!(receiverType instanceof ImClassType rt)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(rt, owningClass);
+        if (classType == null) {
+            throw new CompileError(access, "Could not adapt receiver " + rt + " to superclass "
+                + owningClass + " in member access " + access);
+        }
+        List<ImTypeArgument> typeArgs = new ArrayList<>();
+        for (ImTypeArgument typeArgument : classType.getTypeArguments()) {
+            typeArgs.add(typeArgument.copy());
+        }
+        access.getTypeArguments().addAll(0, typeArgs);
     }
 
     private static ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
@@ -635,7 +657,8 @@ public class EliminateGenerics {
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
-                if (!function.getTypeVariables().isEmpty()) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
                     return;
                 }
                 super.visit(function);
@@ -651,6 +674,26 @@ public class EliminateGenerics {
         });
         for (ImFunctionCall call : calls) {
             new GenericNewCall(call).eliminate();
+        }
+    }
+
+    private void collectUnspecializedGenericClassMethods() {
+        for (ImMethod method : prog.getMethods()) {
+            collectUnspecializedGenericClassMethod(method);
+        }
+        for (ImClass imClass : prog.getClasses()) {
+            if (!imClass.getTypeVariables().isEmpty()) {
+                for (ImMethod method : imClass.getMethods()) {
+                    collectUnspecializedGenericClassMethod(method);
+                }
+            }
+        }
+    }
+
+    private void collectUnspecializedGenericClassMethod(ImMethod method) {
+        if (method.getImplementation() != null
+            && !method.getMethodClass().getClassDef().getTypeVariables().isEmpty()) {
+            unspecializedGenericClassMethods.add(method.getImplementation());
         }
     }
 
@@ -777,10 +820,39 @@ public class EliminateGenerics {
         }
         newM.setMethodClass(specializeType(newClassType));
 
-        newM.setName(m.getName() + "⟪" + generics.makeName() + "⟫");
-        newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
+        newM.setName(genericNewOnly
+            ? m.getName() + "_specialized_" + generics.makeName()
+            : m.getName() + "⟪" + generics.makeName() + "⟫");
+        newM.setImplementation(genericNewOnly
+            ? specializeMethodImplementation(m, generics)
+            : specializeFunction(newM.getImplementation(), generics));
         adaptSubmethods(m.getSubMethods(), newM);
         return newM;
+    }
+
+    private ImFunction specializeMethodImplementation(ImMethod method, GenericTypes generics) {
+        ImFunction implementation = method.getImplementation();
+        ImFunction specialized = specializedFunctions.get(implementation, generics);
+        if (specialized != null) {
+            return specialized;
+        }
+
+        List<ImTypeVar> typeVariables = new ArrayList<>(
+            method.getMethodClass().getClassDef().getTypeVariables());
+        typeVariables.addAll(implementation.getTypeVariables());
+        if (typeVariables.size() != generics.getTypeArguments().size()) {
+            throw new CompileError(method, "Generics should match class method type variables.");
+        }
+
+        ImFunction newImplementation = implementation.copyWithRefs();
+        specializedFunctions.put(implementation, generics, newImplementation);
+        specializedFunctionGenerics.put(newImplementation, generics);
+        prog.getFunctions().add(newImplementation);
+        newImplementation.getTypeVariables().removeAll();
+        newImplementation.setName(implementation.getName() + "_specialized");
+        rewriteGenerics(newImplementation, generics, typeVariables);
+        collectGenericNewUses(newImplementation);
+        return newImplementation;
     }
 
     private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM) {
@@ -912,7 +984,9 @@ public class EliminateGenerics {
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();
 
-        newC.setName(c.getName() + "⟪" + generics.makeName() + "⟫");
+        newC.setName(genericNewOnly
+            ? c.getName() + "_specialized_" + generics.makeName()
+            : c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);

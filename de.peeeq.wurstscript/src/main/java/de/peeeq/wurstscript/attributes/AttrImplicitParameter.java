@@ -58,6 +58,11 @@ public class AttrImplicitParameter {
 
     private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e) {
         if (e.getLeft().attrTyp().isStaticRef()) {
+            // Module-instance qualifiers are static references, but a qualified access such as
+            // object.Module.field still uses object as the dynamic receiver of field.
+            if (e.getLeft() instanceof HasReceiver qualifiedLeft) {
+                return getImplicitParameterUsingLeft(qualifiedLeft);
+            }
             // we have a static ref like Math.sqrt()
             // this will be handled like if we just have sqrt()
             // if we have an implicit parameter depends on whether sqrt is static or not

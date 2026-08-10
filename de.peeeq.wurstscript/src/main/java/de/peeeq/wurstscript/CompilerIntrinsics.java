@@ -15,11 +15,15 @@ public final class CompilerIntrinsics {
     }
 
     public static boolean isForFields(ExprFunctionCall call) {
-        return FOR_FIELDS.equals(call.getFuncName()) && hasClosureArgument(call);
+        return FOR_FIELDS.equals(call.getFuncName())
+            && hasClosureArgument(call)
+            && call.lookupFuncs(FOR_FIELDS).isEmpty();
     }
 
     public static boolean isMapFields(ExprFunctionCall call) {
-        return MAP_FIELDS.equals(call.getFuncName()) && hasClosureArgument(call);
+        return MAP_FIELDS.equals(call.getFuncName())
+            && hasClosureArgument(call)
+            && call.lookupFuncs(MAP_FIELDS).isEmpty();
     }
 
     public static boolean isFieldIteration(ExprFunctionCall call) {
