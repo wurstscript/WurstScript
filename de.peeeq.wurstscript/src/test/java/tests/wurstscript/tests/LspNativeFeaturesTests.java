@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -550,6 +551,37 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void inlayHintsIgnoreCopiedModuleBodyFromAnotherFile() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "import HintModule",
+                "class Mover",
+                "    use HintModule",
+                "",
+                "",
+                "endpackage"
+        );
+        String module = String.join("\n",
+                "package HintModule",
+                "public module HintModule",
+                "    function target(int amount)",
+                "        skip",
+                "    function callTarget()",
+                "        target(1)",
+                "endpackage",
+                "");
+        TestContext ctx = createContext(data, data.buffer, Map.of("HintModule.wurst", module));
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+
+        assertTrue(hints.isEmpty(), "Hints from a copied module body must not appear in the using file: " + hints);
+    }
+
+    @Test
     public void inlayHintsStayStableWhileTemporarilyUnparsable() throws IOException {
         CompletionTestData valid = input(
                 "package test",
@@ -870,6 +902,11 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     private TestContext createContext(CompletionTestData data, String diskContent) throws IOException {
+        return createContext(data, diskContent, Collections.emptyMap());
+    }
+
+    private TestContext createContext(CompletionTestData data, String diskContent,
+                                      Map<String, String> additionalFiles) throws IOException {
         File projectFolder = new File("./temp/lspNative/" + System.nanoTime());
         File wurstFolder = new File(projectFolder, "wurst");
         Files.createDirectories(wurstFolder.toPath());
@@ -878,6 +915,9 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         File wurstFile = new File(wurstFolder, "Wurst.wurst");
         Files.writeString(testFile.toPath(), diskContent);
         Files.writeString(wurstFile.toPath(), "package Wurst\n");
+        for (Map.Entry<String, String> additionalFile : additionalFiles.entrySet()) {
+            Files.writeString(new File(wurstFolder, additionalFile.getKey()).toPath(), additionalFile.getValue());
+        }
 
         BufferManager bufferManager = new BufferManager();
         ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder.getAbsoluteFile(), bufferManager);
