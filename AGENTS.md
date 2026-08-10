@@ -304,8 +304,8 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 
 * The public Wurst names are `forFields`, `mapFields`, and `newInstance<T>()`; do not introduce underscore-prefixed
   alternatives. Internal markers must never survive backend lowering.
-* A visible ordinary function with one of these names must resolve normally. Compiler handling is only the fallback
-  when no user-visible function resolves.
+* An applicable visible ordinary function with one of these names must resolve normally. Compiler handling is only
+  the fallback when no user-visible overload accepts the call.
 * `forFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
   constant fields. `mapFields` additionally requires each included field to be mutable.
 * Explicit targets are evaluated exactly once. Generated temporaries must be proven fresh in the enclosing scope.
@@ -323,6 +323,9 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 * Targeted specialized methods needed by Lua dispatch must remain attached to the IM classes consumed by
   `LuaDispatchPreparation`. Concrete implementations for erased generic objects must bind the same root slot used
   by the call site.
+* Do not promise Lua support for a method which combines type parameters from its owning generic class with
+  independent method type parameters. Serialization loaders should be free generic functions, or class methods
+  parameterized only by their owning class.
 * Generate no runtime reflection registry, type-name lookup, type-id switch, or serialization-specific metadata.
 
 ### Required regression coverage

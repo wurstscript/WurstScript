@@ -511,6 +511,26 @@ public class AttrFuncDef {
         return result;
     }
 
+    /** Checks whether normal overload resolution has an applicable visible function before a compiler fallback. */
+    public static boolean hasApplicableUserFunction(ExprFunctionCall node) {
+        ImmutableCollection<FuncLink> candidates = node.lookupFuncs(node.getFuncName());
+        if (candidates.isEmpty()) {
+            return false;
+        }
+        List<WurstType> argumentTypes = argumentTypesPre(node);
+        for (FuncLink candidate : candidates) {
+            if (candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (signature.matchAgainstArgs(argumentTypes, node) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private static FuncLink searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
         if (node == null) {

@@ -460,6 +460,41 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void unrelatedOverloadsDoNotSuppressCompilerFunctions() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    int total = 0",
+                "",
+                "    function forFields(int value) returns int",
+                "        return value",
+                "    function mapFields(int value) returns int",
+                "        return value",
+                "    function newInstance<T>(int value) returns int",
+                "        return value",
+                "",
+                "    class State",
+                "        int value = 3",
+                "",
+                "    function add(int value)",
+                "        total += value",
+                "",
+                "    init",
+                "        let state = new State",
+                "        State freshState = newInstance<State>()",
+                "        forFields(state, (name, value) -> add(value))",
+                "        mapFields(state, (name, value) -> value + 1)",
+                "        if total == 3 and state.value == 4 and freshState.value == 3",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void explicitTargetTemporaryDoesNotCollideWithUserLocal() {
         test()
             .testLua(true)

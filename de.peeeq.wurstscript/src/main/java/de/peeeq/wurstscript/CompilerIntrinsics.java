@@ -2,6 +2,7 @@ package de.peeeq.wurstscript;
 
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.attributes.AttrFuncDef;
 
 /** Source-level compiler intrinsics which must be eliminated before backend emission. */
 public final class CompilerIntrinsics {
@@ -17,13 +18,13 @@ public final class CompilerIntrinsics {
     public static boolean isForFields(ExprFunctionCall call) {
         return FOR_FIELDS.equals(call.getFuncName())
             && hasClosureArgument(call)
-            && call.lookupFuncs(FOR_FIELDS).isEmpty();
+            && !AttrFuncDef.hasApplicableUserFunction(call);
     }
 
     public static boolean isMapFields(ExprFunctionCall call) {
         return MAP_FIELDS.equals(call.getFuncName())
             && hasClosureArgument(call)
-            && call.lookupFuncs(MAP_FIELDS).isEmpty();
+            && !AttrFuncDef.hasApplicableUserFunction(call);
     }
 
     public static boolean isFieldIteration(ExprFunctionCall call) {
@@ -31,7 +32,7 @@ public final class CompilerIntrinsics {
     }
 
     public static boolean isNew(ExprFunctionCall call) {
-        return NEW.equals(call.getFuncName()) && call.lookupFuncs(NEW).isEmpty();
+        return NEW.equals(call.getFuncName()) && !AttrFuncDef.hasApplicableUserFunction(call);
     }
 
     private static boolean hasClosureArgument(ExprFunctionCall call) {
