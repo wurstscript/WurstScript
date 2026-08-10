@@ -877,6 +877,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
+        if (containsGenericNewCall()) {
+            beginPhase(2, "Specialize generics for generic construction");
+            new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
+            timeTaker.endPhase();
+        }
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg);
@@ -962,5 +967,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;
+    }
+
+    private boolean containsGenericNewCall() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                if (getImTranslator().isGenericNewMarker(call.getFunc())) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+        });
+        return found[0];
     }
 }

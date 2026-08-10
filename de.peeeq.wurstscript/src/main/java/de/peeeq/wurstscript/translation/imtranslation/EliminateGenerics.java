@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -23,6 +26,7 @@ public class EliminateGenerics {
 
     private final ImTranslator translator;
     private final ImProg prog;
+    private boolean genericNewOnly;
     private final Deque<GenericUse> genericsUses = new ArrayDeque<>();
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
@@ -72,6 +76,9 @@ public class EliminateGenerics {
         eliminateGenericUses();
         dbg(summary("after eliminateGenericUses"));
 
+        eliminateRemainingGenericNewCalls();
+        eliminateGenericUses();
+
         dbgMethodsByName("after eliminateGenericUses");
 
         makeNullAssignmentsSafe();
@@ -82,10 +89,117 @@ public class EliminateGenerics {
         removeGenericConstructs();
         dbg(summary("after removeGenericConstructs"));
 
+        assertNoGenericNewMarkers();
+
         dbg(checkDanglingMethodRefs("end"));
 
         // TODO fix or remove this check
 //        assertNoUnspecializedGenericGlobals();
+    }
+
+    /**
+     * Lua normally erases new generics. Generic construction is the one operation which needs the
+     * concrete type, so only specialize functions on paths leading to {@code newInstance}. All other
+     * generic calls and classes keep the Lua backend's normal erased representation.
+     */
+    public void transformGenericNewOnly() {
+        genericNewOnly = true;
+        collectGenericNewRoots();
+        eliminateGenericUses();
+        eliminateRemainingGenericNewCalls();
+        assertNoReachableGenericNewMarkers();
+    }
+
+    private void collectGenericNewRoots() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+        });
+    }
+
+    private void collectGenericNewUses(Element element) {
+        element.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+        });
+    }
+
+    private void collectGenericNewUse(ImFunctionCall call) {
+        if (translator.isGenericNewMarker(call.getFunc())) {
+            if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+                genericsUses.add(new GenericNewCall(call));
+            }
+            return;
+        }
+        if (!call.getTypeArguments().isEmpty()
+            && functionContainsGenericNew(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+                genericsUses.add(new GenericImFunctionCall(call));
+            }
+        }
+    }
+
+    private boolean typeArgumentsContainTypeVariable(ImTypeArguments typeArguments) {
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (containsTypeVariable(typeArgument.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean functionContainsGenericNew(ImFunction function, Set<ImFunction> visited) {
+        if (!visited.add(function)) {
+            return false;
+        }
+        boolean[] found = {false};
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                if (translator.isGenericNewMarker(call.getFunc())
+                    || functionContainsGenericNew(call.getFunc(), visited)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+        });
+        return found[0];
+    }
+
+    private void assertNoReachableGenericNewMarkers() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    throw new CompileError(call, CompilerIntrinsics.NEW
+                        + " requires its type argument to resolve to a concrete class.");
+                }
+                super.visit(call);
+            }
+        });
     }
 
     private void assertNoUnspecializedGenericGlobals() {
@@ -100,6 +214,21 @@ public class EliminateGenerics {
                 super.visit(vaa);
                 if (globalToClass.containsKey(vaa.getVar())) {
                     throw new CompileError(vaa, "Unspecialized generic global array still used: " + vaa.getVar().getName());
+                }
+            }
+        });
+    }
+
+    private void assertNoGenericNewMarkers() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    ImFunction owner = enclosingFunction(call);
+                    throw new CompileError(call, "Internal error: " + CompilerIntrinsics.NEW
+                        + " was not lowered in " + (owner == null ? "<unknown>" : owner.getName())
+                        + ".");
                 }
             }
         });
@@ -501,6 +630,30 @@ public class EliminateGenerics {
         }
     }
 
+    private void eliminateRemainingGenericNewCalls() {
+        List<ImFunctionCall> calls = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    calls.add(call);
+                }
+            }
+        });
+        for (ImFunctionCall call : calls) {
+            new GenericNewCall(call).eliminate();
+        }
+    }
+
     private void fixCalleesInSpecializedFunction(ImFunction newF, GenericTypes generics) {
         newF.accept(new Element.DefaultVisitor() {
 
@@ -510,6 +663,7 @@ public class EliminateGenerics {
 
                 ImFunction callee = fc.getFunc();
                 if (callee == null) return;
+                if (translator.isGenericNewMarker(callee)) return;
 
                 boolean calleeIsGeneric = !callee.getTypeVariables().isEmpty();
                 boolean calleeNeedsGlobals = needsGlobalSpecialization(callee);
@@ -572,7 +726,9 @@ public class EliminateGenerics {
         // concrete clone => no type vars
         newF.getTypeVariables().removeAll();
 
-        newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
+        newF.setName(genericNewOnly
+            ? f.getName() + "_specialized"
+            : f.getName() + "⟪" + generics.makeName() + "⟫");
 
         // Only rewrite type variables if the function actually has them
         if (isGeneric) {
@@ -581,10 +737,14 @@ public class EliminateGenerics {
         }
 
         // Fix calls inside this specialized function so they also point to specialized callees
-        fixCalleesInSpecializedFunction(newF, generics);
+        if (genericNewOnly) {
+            collectGenericNewUses(newF);
+        } else {
+            fixCalleesInSpecializedFunction(newF, generics);
 
-        // Then collect further generic uses inside the now-specialized body (incl. generic globals)
-        collectGenericUsages(newF);
+            // Then collect further generic uses inside the now-specialized body (incl. generic globals)
+            collectGenericUsages(newF);
+        }
 
         return newF;
     }
@@ -961,6 +1121,10 @@ public class EliminateGenerics {
             @Override
             public void visit(ImFunctionCall f) {
                 super.visit(f);
+                if (translator.isGenericNewMarker(f.getFunc())) {
+                    genericsUses.add(new GenericNewCall(f));
+                    return;
+                }
                 if (!f.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericImFunctionCall(f));
                 }
@@ -1276,6 +1440,74 @@ public class EliminateGenerics {
             }
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
+        }
+    }
+
+    class GenericNewCall implements GenericUse {
+        private final ImFunctionCall call;
+
+        GenericNewCall(ImFunctionCall call) {
+            this.call = call;
+        }
+
+        @Override
+        public void eliminate() {
+            if (call.getTypeArguments().size() != 1) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " expects exactly one type argument and no value arguments.");
+            }
+
+            ImType targetType = call.getTypeArguments().get(0).getType();
+            if (containsTypeVariable(targetType)) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " requires its type argument to resolve to a concrete class.");
+            }
+            if (!(targetType instanceof ImClassType classType)) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " requires a concrete, non-abstract class type, but found " + targetType + ".");
+            }
+
+            ImClass imClass = classType.getClassDef();
+            if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+                String kind = imClass.getTrace() instanceof InterfaceDef ? "interface" : "type";
+                throw new CompileError(call, CompilerIntrinsics.NEW + " cannot construct " + kind + " "
+                    + imClass.getName() + ".");
+            }
+            if (classDef.attrIsAbstract()) {
+                throw new CompileError(call, CompilerIntrinsics.NEW + " cannot construct abstract class "
+                    + classDef.getName() + ".");
+            }
+            ConstructorDef constructor = zeroArgumentConstructor(classDef);
+            if (constructor == null) {
+                throw new CompileError(call, CompilerIntrinsics.NEW + " requires class " + classDef.getName()
+                    + " to have a zero-argument constructor.");
+            }
+            de.peeeq.wurstscript.ast.Element source = call.getTrace();
+            if (constructor.attrIsPrivate() && (source == null || !source.isSubtreeOf(classDef))) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " cannot access the zero-argument constructor of class " + classDef.getName() + ".");
+            }
+
+            ImFunction constructorFunction = translator.getConstructNewFunc(constructor);
+            ImTypeArguments constructorTypeArguments = JassIm.ImTypeArguments();
+            for (ImTypeArgument argument : classType.getTypeArguments()) {
+                constructorTypeArguments.add(argument.copy());
+            }
+            ImFunctionCall replacement = JassIm.ImFunctionCall(call.getTrace(), constructorFunction,
+                constructorTypeArguments, JassIm.ImExprs(), false, CallType.NORMAL);
+            call.replaceBy(replacement);
+            if (!genericNewOnly && !constructorTypeArguments.isEmpty()) {
+                genericsUses.addFirst(new GenericImFunctionCall(replacement));
+            }
+        }
+
+        private ConstructorDef zeroArgumentConstructor(ClassDef classDef) {
+            for (ConstructorDef constructor : classDef.getConstructors()) {
+                if (constructor.getParameters().isEmpty()) {
+                    return constructor;
+                }
+            }
+            return null;
         }
     }
 

@@ -144,7 +144,7 @@ public class ModelManagerTests {
             "native consume(string name, int value)",
             "class Data extends Base",
             "    function save()",
-            "        __wurst_forFields((name, value) -> consume(name, value))"
+                "        forFields((name, value) -> consume(name, value))"
         ));
         writeFile(fileWurst, "package Wurst\n");
 

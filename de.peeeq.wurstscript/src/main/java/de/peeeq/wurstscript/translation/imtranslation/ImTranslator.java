@@ -1553,6 +1553,22 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newLinkedHashMap();
 
+    private ImFunction genericNewMarker;
+
+    public ImFunction getGenericNewMarker() {
+        if (genericNewMarker == null) {
+            ImTypeVar typeVar = JassIm.ImTypeVar("T");
+            genericNewMarker = ImFunction(emptyTrace, de.peeeq.wurstscript.CompilerIntrinsics.NEW_MARKER,
+                ImTypeVars(typeVar), ImVars(), JassIm.ImTypeVarRef(typeVar), ImVars(), ImStmts(), flags());
+        }
+        return genericNewMarker;
+    }
+
+    public boolean isGenericNewMarker(ImFunction function) {
+        return function == genericNewMarker
+            || de.peeeq.wurstscript.CompilerIntrinsics.NEW_MARKER.equals(function.getName());
+    }
+
     public ImFunction getConstructNewFunc(ConstructorDef constr) {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -2006,6 +2007,10 @@ public class WurstValidator {
 
     private void visit(ExprFunctionCall stmtCall) {
         String funcName = stmtCall.getFuncName();
+        if (CompilerIntrinsics.isNew(stmtCall)) {
+            checkGenericNew(stmtCall);
+            return;
+        }
         if (isConstructorThisCall(stmtCall)) {
             return;
         }
@@ -2041,6 +2046,60 @@ public class WurstValidator {
             }
         }
 
+    }
+
+    private void checkGenericNew(ExprFunctionCall call) {
+        if (!call.getArgs().isEmpty() || call.getTypeArgs().size() != 1) {
+            call.addError(CompilerIntrinsics.NEW + " expects exactly one type argument and no value arguments.");
+            return;
+        }
+
+        WurstType targetType = call.getTypeArgs().get(0).attrTyp();
+        if (targetType instanceof WurstTypeUnknown) {
+            return;
+        }
+        if (targetType instanceof WurstTypeTypeParam typeParam) {
+            if (!isTypeParamNewGeneric(typeParam.getDef())) {
+                call.addError(CompilerIntrinsics.NEW + " cannot construct unresolved type parameter "
+                    + typeParam.getName() + "; use a new generic parameter such as <T:>.");
+            }
+            return;
+        }
+        if (targetType instanceof WurstTypeInterface interfaceType) {
+            call.addError(CompilerIntrinsics.NEW + " cannot construct interface "
+                + interfaceType.getInterfaceDef().getName() + ".");
+            return;
+        }
+        if (!(targetType instanceof WurstTypeClass classType)) {
+            call.addError(CompilerIntrinsics.NEW
+                + " requires a concrete, non-abstract class type, but found " + targetType + ".");
+            return;
+        }
+
+        ClassDef classDef = classType.getClassDef();
+        if (classDef.attrIsAbstract()) {
+            call.addError(CompilerIntrinsics.NEW + " cannot construct abstract class " + classDef.getName() + ".");
+            return;
+        }
+        ConstructorDef constructor = zeroArgumentConstructor(classDef);
+        if (constructor == null) {
+            call.addError(CompilerIntrinsics.NEW + " requires class " + classDef.getName()
+                + " to have a zero-argument constructor.");
+            return;
+        }
+        if (constructor.attrIsPrivate() && !call.isSubtreeOf(classDef)) {
+            call.addError(CompilerIntrinsics.NEW + " cannot access the zero-argument constructor of class "
+                + classDef.getName() + ".");
+        }
+    }
+
+    private ConstructorDef zeroArgumentConstructor(ClassDef classDef) {
+        for (ConstructorDef constructor : classDef.getConstructors()) {
+            if (constructor.getParameters().isEmpty()) {
+                return constructor;
+            }
+        }
+        return null;
     }
 
     // private void checkParams(Element where, List<Expr> args,

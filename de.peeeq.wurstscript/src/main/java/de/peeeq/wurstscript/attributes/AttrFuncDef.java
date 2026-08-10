@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -290,6 +291,9 @@ public class AttrFuncDef {
 
     public static @Nullable FuncLink calculate(final ExprFunctionCall node) {
         if (isConstructorThisCall(node)) {
+            return null;
+        }
+        if (CompilerIntrinsics.isNew(node)) {
             return null;
         }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));

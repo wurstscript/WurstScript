@@ -12,6 +12,156 @@ import static org.testng.Assert.assertTrue;
 public class FieldIterationTests extends WurstScriptTest {
 
     @Test
+    public void explicitTargetAndGenericConstructionWorkForJassAndLua() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    native testSuccess()",
+                "",
+                "    interface FieldLoader<T:>",
+                "        function apply(Reader reader, T target)",
+                "",
+                "    class Reader",
+                "        function read(string name, int oldValue) returns int",
+                "            return oldValue + 1",
+                "        function read(string name, real oldValue) returns real",
+                "            return oldValue + 1.",
+                "        function read(string name, string oldValue) returns string",
+                "            return oldValue + \"!\"",
+                "        function read(string name, boolean oldValue) returns boolean",
+                "            return not oldValue",
+                "",
+                "    function load<T:>(Reader reader, FieldLoader<T> loader) returns T",
+                "        let result = newInstance<T>()",
+                "        loader.apply(reader, result)",
+                "        return result",
+                "",
+                "    class FirstState",
+                "        int score",
+                "        real ratio",
+                "        construct()",
+                "            score = 10",
+                "            ratio = 2.",
+                "",
+                "    class SecondState",
+                "        string name",
+                "        boolean enabled",
+                "        construct()",
+                "            name = \"loaded\"",
+                "            enabled = false",
+                "",
+                "    init",
+                "        let reader = new Reader",
+                "        let first = load<FirstState>(reader, (Reader r, FirstState state) -> begin",
+                "            mapFields(state, (name, oldValue) -> r.read(name, oldValue))",
+                "        end)",
+                "        let second = load<SecondState>(reader, (Reader r, SecondState state) -> begin",
+                "            mapFields(state, (name, oldValue) -> r.read(name, oldValue))",
+                "        end)",
+                "        if first.score == 11 and first.ratio == 3. and second.name == \"loaded!\" and second.enabled",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_explicitTargetAndGenericConstructionWorkForJassAndLua.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_explicitTargetAndGenericConstructionWorkForJassAndLua_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("newInstance"));
+            assertFalse(generated.contains("mapFields"));
+            assertFalse(generated.contains("reflection"));
+        }
+    }
+
+    @Test
+    public void explicitTargetIsEvaluatedOnceAndIncludesInheritedAndModuleFields() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    native testSuccess()",
+                "    int evaluations = 0",
+                "    int total = 0",
+                "",
+                "    module ExtraState",
+                "        int moduleValue = 2",
+                "",
+                "    class BaseState",
+                "        int inheritedValue = 3",
+                "",
+                "    class State extends BaseState",
+                "        use ExtraState",
+                "        int localValue = 4",
+                "",
+                "    function evaluated(State state) returns State",
+                "        evaluations++",
+                "        return state",
+                "    function add(int value)",
+                "        total += value",
+                "",
+                "    init",
+                "        let state = new State",
+                "        forFields(evaluated(state), (name, value) -> add(value))",
+                "        mapFields(evaluated(state), (name, value) -> value + 1)",
+                "        if evaluations == 2 and total == 9 and state.inheritedValue == 4 and state.moduleValue == 3 and state.localValue == 5",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void genericConstructionDiagnostics() {
+        expectIntrinsicError("requires a concrete, non-abstract class type, but found int",
+            "init", "    newInstance<int>()");
+        expectIntrinsicError("requires a concrete, non-abstract class type, but found handle",
+            "init", "    newInstance<handle>()");
+        expectIntrinsicError("cannot construct interface State",
+            "interface State", "    function unused()", "", "init", "    newInstance<State>()");
+        expectIntrinsicError("cannot construct abstract class State",
+            "abstract class State", "", "init", "    newInstance<State>()");
+        expectIntrinsicError("requires class State to have a zero-argument constructor",
+            "class State", "    construct(int value)", "", "init", "    newInstance<State>()");
+        expectIntrinsicError("cannot access the zero-argument constructor of class State",
+            "class State", "    private construct()", "", "init", "    newInstance<State>()");
+        expectIntrinsicError("cannot construct unresolved type parameter T",
+            "function make<T>() returns T", "    return newInstance<T>()");
+    }
+
+    @Test
+    public void explicitTargetFieldIterationDiagnostics() {
+        expectIntrinsicError("target must have a concrete class type, but found int",
+            "function consume(string name, int value)", "", "init", "    forFields(1, (name, value) -> consume(name, value))");
+        expectIntrinsicError("expects a closure with (fieldName, fieldValue) parameters",
+            "class State", "    int value", "", "init", "    let state = new State", "    mapFields(state, value -> value)");
+        expectIntrinsicError("no accessible mutable instance fields were found",
+            "class State", "    readonly int value = 1", "", "init", "    let state = new State", "    mapFields(state, (name, value) -> value)");
+        expectIntrinsicError("no accessible mutable instance fields were found",
+            "function consume(string name, int value)", "", "class State", "    static int value = 1", "", "init", "    let state = new State", "    forFields(state, (name, value) -> consume(name, value))");
+    }
+
+    private void expectIntrinsicError(String message, String... body) {
+        String[] lines = new String[body.length + 2];
+        lines[0] = "package FieldIterationTest";
+        System.arraycopy(body, 0, lines, 1, body.length);
+        lines[lines.length - 1] = "endpackage";
+        test().expectError(message).lines(lines);
+    }
+
+    @Test
     public void serializesAndDeserializesFieldsWithoutRuntimeReflection() throws IOException {
         test()
             .testLua(true)
@@ -51,10 +201,10 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        static int schemaVersion = 1",
                 "",
                 "        function save(Codec codec)",
-                "            __wurst_forFields((fieldName, value) -> codec.write(fieldName, value))",
+                "            forFields((fieldName, value) -> codec.write(fieldName, value))",
                 "",
                 "        function load(Codec codec)",
-                "            __wurst_mapFields((fieldName, value) -> codec.read(fieldName, value))",
+                "            mapFields((fieldName, value) -> codec.read(fieldName, value))",
                 "",
                 "    init",
                 "        let codec = new Codec",
@@ -69,8 +219,8 @@ public class FieldIterationTests extends WurstScriptTest {
 
         String lua = Files.readString(new File(TEST_OUTPUT_PATH +
             "lua/FieldIterationTests_serializesAndDeserializesFieldsWithoutRuntimeReflection.lua").toPath());
-        assertFalse(lua.contains("__wurst_forFields"));
-        assertFalse(lua.contains("__wurst_mapFields"));
+        assertFalse(lua.contains("forFields"));
+        assertFalse(lua.contains("mapFields"));
         assertTrue(lua.contains("Codec_Codec_write(codec, \"score\", this"));
         assertTrue(lua.contains("Codec_Codec_write1(codec, \"name\", this"));
         assertTrue(lua.contains("Data_score = Codec_Codec_read(codec1, \"score\""));
@@ -86,7 +236,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    function consume(string name, int value)",
                 "",
                 "    init",
-                "        __wurst_forFields((name, value) -> consume(name, value))",
+                "        forFields((name, value) -> consume(name, value))",
                 "endpackage"
             );
     }
@@ -101,7 +251,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int value",
                 "",
                 "        function save()",
-                "            __wurst_forFields(value -> value)",
+                "            forFields(value -> value)",
                 "endpackage"
             );
     }
@@ -148,7 +298,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int second = 2",
                 "",
                 "        function save(Codec codec)",
-                "            __wurst_forFields((fieldName, value) -> codec.write(fieldName, consume((int value) -> value)))",
+                "            forFields((fieldName, value) -> codec.write(fieldName, consume((int value) -> value)))",
                 "",
                 "    init",
                 "        let codec = new Codec",
@@ -170,7 +320,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int value",
                 "",
                 "        function save()",
-                "            __wurst_forFields((NoSuch name, NoSuch value) -> value)",
+                "            forFields((NoSuch name, NoSuch value) -> value)",
                 "endpackage"
             );
     }
@@ -185,7 +335,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        static int schemaVersion = 1",
                 "",
                 "        function save()",
-                "            __wurst_forFields((name, value) -> noSuchFunction(name, value))",
+                "            forFields((name, value) -> noSuchFunction(name, value))",
                 "endpackage"
             );
     }
@@ -200,7 +350,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int value",
                 "",
                 "        function save()",
-                "            __wurst_mapFields((value, value) -> 42)",
+                "            mapFields((value, value) -> 42)",
                 "endpackage"
             );
     }
@@ -217,7 +367,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int second = 2",
                 "",
                 "        function load()",
-                "            __wurst_mapFields((name, value) -> begin",
+                "            mapFields((name, value) -> begin",
                 "                let temporary = 42",
                 "                return temporary",
                 "            end)",
@@ -243,7 +393,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int second = 2",
                 "",
                 "        function load()",
-                "            __wurst_mapFields((name, value) -> begin",
+                "            mapFields((name, value) -> begin",
                 "                for int index = 0 to 1",
                 "                    continue",
                 "                return 42 + value - value",
@@ -268,7 +418,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int value",
                 "",
                 "        function load()",
-                "            __wurst_mapFields((name, value) -> begin",
+                "            mapFields((name, value) -> begin",
                 "                let old = value",
                 "                let value = 42",
                 "                return old",
@@ -295,7 +445,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int local = 2",
                 "",
                 "        function save(Acc acc)",
-                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "            forFields((name, value) -> acc.add(value))",
                 "",
                 "    init",
                 "        let acc = new Acc",
@@ -320,8 +470,8 @@ public class FieldIterationTests extends WurstScriptTest {
                 "            total = total + value",
                 "    module Serializer",
                 "        function save(Acc acc)",
-                "            __wurst_forFields((name, value) -> acc.add(value))",
-                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "            forFields((name, value) -> acc.add(value))",
+                "            forFields((name, value) -> acc.add(value))",
                 "",
                 "    class Data",
                 "        use Serializer",
@@ -360,7 +510,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        int local = 5",
                 "",
                 "        function save(Acc acc)",
-                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "            forFields((name, value) -> acc.add(value))",
                 "",
                 "    init",
                 "        let acc = new Acc",
@@ -397,7 +547,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        use Left",
                 "        use Right",
                 "        function save(Acc acc)",
-                "            __wurst_forFields((name, value) -> acc.add(name, value))",
+                "            forFields((name, value) -> acc.add(name, value))",
                 "    init",
                 "        let acc = new Acc",
                 "        let data = new Data",
@@ -425,7 +575,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    class Data",
                 "        use State",
                 "        function save(Acc acc)",
-                "            __wurst_forFields((name, value) -> acc.add(value))",
+                "            forFields((name, value) -> acc.add(value))",
                 "    init",
                 "        let acc = new Acc",
                 "        let data = new Data",
@@ -444,7 +594,7 @@ public class FieldIterationTests extends WurstScriptTest {
                 "package FieldIterationTest",
                 "    module Unused",
                 "        function save()",
-                "            __wurst_forFields(value -> value)",
+                "            forFields(value -> value)",
                 "endpackage"
             );
     }
