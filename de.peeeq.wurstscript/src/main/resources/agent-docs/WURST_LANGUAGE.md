@@ -64,6 +64,22 @@ if node?.next?.next == null
 
 The receiver must have a nullable type; `int`, `real`, and `boolean` cannot use `?.`. If the accessed member returns a non-nullable value such as `int`, a null-safe call can only be used as a standalone statement. `?.` is not an assignment target.
 
+## Modern Wurst best practices
+
+- Prefer `?.` when the null case is simply a no-op: `target?.kill()`. Use an explicit `if target != null` when the null case needs different handling or when you need to consume a non-nullable return value.
+- Use `readonly` for package, class, and module variables that callers or consumers may read but only the declaring owner may write. This is an encapsulation boundary, not a replacement for `let`/`constant` immutability.
+
+  ```wurst
+  package Score
+  public readonly int value
+
+  public function setValue(int next)
+      value = next
+  ```
+
+- String concatenation automatically infers `.toString()` for a non-string operand. Write `"score: " + score`, not `"score: " + score.toString()`. Keep an explicit call only when you intentionally need a standalone string or a particular overload; redundant calls produce a compiler warning.
+- Enums are non-nullable value types. Do not compare an enum with `null`; use an enum member such as `Unknown`/`None` when the domain needs a sentinel, or keep a separate boolean for “has a value”.
+
 ## Functions, packages, and imports
 
 Functions omit Jass-style `takes` and `returns nothing`:
