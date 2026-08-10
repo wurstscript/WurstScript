@@ -524,6 +524,10 @@ public class AttrFuncDef {
                 continue;
             }
             FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (!node.getTypeArgs().isEmpty()
+                && node.getTypeArgs().size() != signature.getDefinitionTypeVariables().size()) {
+                continue;
+            }
             if (signature.matchAgainstArgs(argumentTypes, node) != null) {
                 return true;
             }

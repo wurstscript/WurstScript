@@ -10,7 +10,7 @@ import org.eclipse.jdt.annotation.Nullable;
 public class AttrImplicitParameter {
 
     public static OptExpr getImplicitParameter(ExprMemberVar e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        Expr result = getImplicitParameterUsingLeft(e, isDynamicVariable(e));
         if (result == null) {
             return getImplicitParamterCaseNormalVar(e);
         } else {
@@ -19,7 +19,7 @@ public class AttrImplicitParameter {
     }
 
     public static OptExpr getImplicitParameter(ExprMemberArrayVar e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        Expr result = getImplicitParameterUsingLeft(e, isDynamicVariable(e));
         if (result == null) {
             return getImplicitParamterCaseNormalVar(e);
         } else {
@@ -41,11 +41,14 @@ public class AttrImplicitParameter {
     }
 
     public static OptExpr getImplicitParameter(ExprMemberMethod e) {
-        Expr result = getImplicitParameterUsingLeft(e);
+        FuncLink calledFunc = e.attrFuncLink();
+        boolean requiresReceiver = calledFunc != null
+            && (calledFunc.getDef().attrIsDynamicClassMember()
+                || calledFunc.getDef() instanceof ExtensionFuncDef);
+        Expr result = getImplicitParameterUsingLeft(e, requiresReceiver);
         if (result == null) {
             return getImplicitParameterCaseNormalFunctionCall(e);
         } else {
-            FuncLink calledFunc = e.attrFuncLink();
             if (calledFunc != null
                     && !calledFunc.getDef().attrIsDynamicClassMember()
                     && !(calledFunc.getDef() instanceof ExtensionFuncDef)) {
@@ -56,12 +59,12 @@ public class AttrImplicitParameter {
         }
     }
 
-    private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e) {
+    private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e, boolean requiresReceiver) {
         if (e.getLeft().attrTyp().isStaticRef()) {
-            // Module-instance qualifiers are static references, but a qualified access such as
-            // object.Module.field still uses object as the dynamic receiver of field.
-            if (e.getLeft() instanceof HasReceiver qualifiedLeft) {
-                return getImplicitParameterUsingLeft(qualifiedLeft);
+            // Module-instance qualifiers are static references, but a final dynamic member in an
+            // access such as object.Module.member still uses object as its receiver.
+            if (requiresReceiver && e.getLeft() instanceof HasReceiver qualifiedLeft) {
+                return getImplicitParameterUsingLeft(qualifiedLeft, true);
             }
             // we have a static ref like Math.sqrt()
             // this will be handled like if we just have sqrt()
@@ -69,6 +72,13 @@ public class AttrImplicitParameter {
             return null;
         }
         return e.getLeft();
+    }
+
+    private static boolean isDynamicVariable(NameRef e) {
+        NameLink nameLink = e.attrNameLink();
+        return nameLink != null
+            && nameLink.getDef() instanceof VarDef variable
+            && variable.attrIsDynamicClassMember();
     }
 
     private static OptExpr getImplicitParameterCaseNormalFunctionCall(FunctionCall e) {
@@ -79,7 +89,10 @@ public class AttrImplicitParameter {
     static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
         if (e instanceof HasReceiver) {
             HasReceiver hasReceiver = (HasReceiver) e;
-            Expr res = getImplicitParameterUsingLeft(hasReceiver);
+            boolean requiresReceiver = calledFunc != null
+                && (calledFunc.getDef().attrIsDynamicClassMember()
+                    || calledFunc.getDef() instanceof ExtensionFuncDef);
+            Expr res = getImplicitParameterUsingLeft(hasReceiver, requiresReceiver);
             if (res != null) {
                 return res;
             }

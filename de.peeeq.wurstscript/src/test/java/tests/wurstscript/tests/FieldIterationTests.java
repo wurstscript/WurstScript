@@ -495,6 +495,27 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void unrelatedGenericArityDoesNotSuppressNewInstance() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    function newInstance<A:, B:>() returns int",
+                "        return 0",
+                "    class State",
+                "        int value = 7",
+                "    init",
+                "        State state = newInstance<State>()",
+                "        if state.value == 7",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void explicitTargetTemporaryDoesNotCollideWithUserLocal() {
         test()
             .testLua(true)
@@ -800,6 +821,29 @@ public class FieldIterationTests extends WurstScriptTest {
                 "        let data = new Data",
                 "        data.save(acc)",
                 "        if acc.left == 1 and acc.right == 2",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void keepsQualifiedStaticModuleMembersStatic() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    module Shared",
+                "        static int value = 7",
+                "        static function read() returns int",
+                "            return value",
+                "    class State",
+                "        use Shared",
+                "    init",
+                "        let state = new State",
+                "        if state.Shared.value == 7 and state.Shared.read() == 7",
                 "            testSuccess()",
                 "endpackage"
             );
