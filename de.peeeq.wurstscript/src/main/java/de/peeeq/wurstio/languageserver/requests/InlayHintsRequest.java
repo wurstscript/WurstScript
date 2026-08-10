@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStringVal;
 import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import org.eclipse.lsp4j.InlayHint;
@@ -68,6 +69,12 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
         todo.push(cu);
         while (!todo.isEmpty()) {
             Element e = todo.pop();
+            // Module instantiations are compiler-generated copies of module bodies. Their children
+            // retain the source positions of the module definition, which are not positions in the
+            // document containing the `use` statement.
+            if (e instanceof ModuleInstanciation) {
+                continue;
+            }
             collectHints(hints, e);
             for (int i = e.size() - 1; i >= 0; i--) {
                 todo.push(e.get(i));
@@ -125,6 +132,9 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
         Map<String, Integer> typeFrequencies = typeFrequencies(paramTypes);
         for (int i = 0; i < count; i++) {
             Expr arg = args.get(i);
+            if (!isConcreteSourceInRequestedFile(arg)) {
+                continue;
+            }
             String paramName = paramNames.get(i);
             if (paramName == null || paramName.isEmpty()) {
                 continue;
@@ -141,6 +151,11 @@ public class InlayHintsRequest extends UserRequest<List<InlayHint>> {
             hint.setPaddingRight(true);
             hints.add(hint);
         }
+    }
+
+    private boolean isConcreteSourceInRequestedFile(Expr arg) {
+        return !arg.attrSource().isArtificial()
+                && WFile.create(arg.attrSource().getFile()).equals(filename);
     }
 
     private int hintScore(Expr arg, String paramName, String paramType, Map<String, Integer> typeFrequencies) {
