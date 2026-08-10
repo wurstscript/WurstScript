@@ -331,8 +331,12 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
   parameterized only by their owning class.
 * Do not require Lua specialization of generic-construction methods invoked directly on a freshly constructed
   generic receiver. Use the free generic loader shape, or bind the receiver to a typed local first.
+* Lua generic-construction dispatch through multi-parameter generic interfaces is outside the supported loader
+  shape. The supported generic loader has a single construction type parameter.
 * Do not call `newInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
   generic loader, then initialize any nested state explicitly after construction.
+* `newInstance<T>()` is a runtime Jass/Lua construction surface and is not supported inside `compiletime(...)`
+  evaluation. Do not expand interpreter behavior for compile-time construction.
 * Nested modules whose sibling submodules declare equal field names are outside the supported field-key model.
   Dedicated state classes should use direct fields, ordinary inheritance, or non-conflicting shallow module fields.
 * Generate no runtime reflection registry, type-name lookup, type-id switch, or serialization-specific metadata.
