@@ -1565,8 +1565,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     }
 
     public boolean isGenericNewMarker(ImFunction function) {
-        return function == genericNewMarker
-            || de.peeeq.wurstscript.CompilerIntrinsics.NEW_MARKER.equals(function.getName());
+        return function == genericNewMarker;
     }
 
     public ImFunction getConstructNewFunc(ConstructorDef constr) {

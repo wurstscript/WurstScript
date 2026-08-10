@@ -516,6 +516,24 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void userFunctionNamedLikeInternalNewMarkerRemainsOrdinary() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    function wurstNewMarker(int value) returns int",
+                "        return value + 1",
+                "    init",
+                "        if wurstNewMarker(2) == 3",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void explicitTargetTemporaryDoesNotCollideWithUserLocal() {
         test()
             .testLua(true)

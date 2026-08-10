@@ -304,6 +304,9 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 
 * The public Wurst names are `forFields`, `mapFields`, and `newInstance<T>()`; do not introduce underscore-prefixed
   alternatives. Internal markers must never survive backend lowering.
+* Names beginning with the compiler-internal `__wurst` prefix are reserved. Generated temporaries must be fresh
+  against user-visible enclosing declarations, but nested callback locals deliberately using that prefix are not
+  supported.
 * An applicable visible ordinary function with one of these names must resolve normally. Compiler handling is only
   the fallback when no user-visible overload accepts the call.
 * `forFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
