@@ -17,13 +17,56 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
 
 /**
  * Conservative, flow-insensitive analysis for values and functions which may
- * depend on {@code GetLocalPlayer()}.
+ * depend on client-local native values such as {@code GetLocalPlayer()} or
+ * camera state.
  *
  * Optimizers use this analysis as a barrier. False positives only cost an
  * optimization; false negatives could move synchronized work into a
  * client-local control-flow region.
  */
 public final class LocalPlayerContextAnalyzer {
+
+    /**
+     * Native return values which may differ between clients during the same
+     * synchronized execution without requiring user code to mutate local state.
+     * Event responses are synchronized, while handles and UI/audio/visual state
+     * made local by user code remain the user's responsibility.
+     */
+    private static final Set<String> CLIENT_LOCAL_VALUE_SOURCES = Set.of(
+        // Player identity and values explicitly documented as asynchronous.
+        "GetLocalPlayer",
+        "GetLocationZ",
+
+        // Camera state belongs to the local client's camera.
+        "GetCameraMargin",
+        "GetCameraBoundMinX",
+        "GetCameraBoundMinY",
+        "GetCameraBoundMaxX",
+        "GetCameraBoundMaxY",
+        "GetCameraField",
+        "GetCameraTargetPositionX",
+        "GetCameraTargetPositionY",
+        "GetCameraTargetPositionZ",
+        "GetCameraTargetPositionLoc",
+        "GetCameraEyePositionX",
+        "GetCameraEyePositionY",
+        "GetCameraEyePositionZ",
+        "GetCameraEyePositionLoc",
+
+        // Localized data may vary with the client's language.
+        "GetLocalizedString",
+        "GetLocalizedHotkey",
+        "GetObjectName",
+
+        // Reforged client-local world and client state.
+        "BlzGetLocalUnitZ",
+        "BlzGetUnitZ",
+        "BlzGetLocalClientWidth",
+        "BlzGetLocalClientHeight",
+        "BlzIsLocalClientActive",
+        "BlzGetMouseFocusUnit",
+        "BlzGetLocale"
+    );
 
     private final Set<ImVar> localPlayerDependentVars =
         Collections.newSetFromMap(new IdentityHashMap<>());
@@ -75,7 +118,7 @@ public final class LocalPlayerContextAnalyzer {
         }
         if (element instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) element;
-            if (isGetLocalPlayer(call.getFunc())
+            if (isClientLocalValueSource(call.getFunc())
                 || localPlayerDependentReturns.contains(call.getFunc())) {
                 return true;
             }
@@ -98,12 +141,12 @@ public final class LocalPlayerContextAnalyzer {
 
     public boolean functionUsesLocalPlayer(ImFunction function) {
         return function != null
-            && (isGetLocalPlayer(function) || functionsUsingLocalPlayer.contains(function));
+            && (isClientLocalValueSource(function) || functionsUsingLocalPlayer.contains(function));
     }
 
     public boolean functionInliningIsLocalPlayerSensitive(ImFunction function) {
         return function != null
-            && (isGetLocalPlayer(function)
+            && (isClientLocalValueSource(function)
             || functionsDirectlyUsingLocalPlayer.contains(function)
             || localPlayerDependentReturns.contains(function));
     }
@@ -113,7 +156,7 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     public boolean isLocalPlayerSource(ImFunction function) {
-        return isGetLocalPlayer(function);
+        return isClientLocalValueSource(function);
     }
 
     private void analyze(ImProg prog) {
@@ -121,7 +164,7 @@ public final class LocalPlayerContextAnalyzer {
         for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
             returnFact(function);
             useFact(function);
-            if (isGetLocalPlayer(function)) {
+            if (isClientLocalValueSource(function)) {
                 addLocalPlayerSource(function);
             } else if (!function.isNative()) {
                 indexElement(function.getBody(), function, entryControlFact(function));
@@ -298,7 +341,7 @@ public final class LocalPlayerContextAnalyzer {
         if (!called.isNative()) {
             addEnclosingControlDependency(controlContext, entryControlFact(called));
         }
-        if (isGetLocalPlayer(called)) {
+        if (isClientLocalValueSource(called)) {
             functionsDirectlyUsingLocalPlayer.add(owner);
             addLocalPlayerSource(called);
         }
@@ -508,9 +551,9 @@ public final class LocalPlayerContextAnalyzer {
         }
     }
 
-    private static boolean isGetLocalPlayer(ImFunction function) {
+    private static boolean isClientLocalValueSource(ImFunction function) {
         return function != null
             && function.isNative()
-            && "GetLocalPlayer".equals(function.getName());
+            && CLIENT_LOCAL_VALUE_SOURCES.contains(function.getName());
     }
 }

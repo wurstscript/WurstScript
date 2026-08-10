@@ -2158,6 +2158,142 @@ public class OptimizerTests extends WurstScriptTest {
             "transitive GetLocalPlayer wrappers must remain explicit calls");
     }
 
+    @Test
+    public void branchMergerMustNotHoistAcrossClientLocalConditions() throws Exception {
+        test().lines(
+            "type unit extends handle",
+            "package test",
+            "@extern native GetCameraTargetPositionX() returns real",
+            "@extern native BlzGetUnitZ(unit whichUnit) returns real",
+            "@extern native BlzIsLocalClientActive() returns boolean",
+            "native getUnit() returns unit",
+            "native print(integer i)",
+            "integer cameraResult = 0",
+            "integer unitResult = 0",
+            "integer activeClientResult = 0",
+            "init",
+            "    real cameraX = GetCameraTargetPositionX()",
+            "    if cameraX > 0.",
+            "        cameraResult = 41",
+            "    else",
+            "        cameraResult = 41",
+            "    real unitZ = BlzGetUnitZ(getUnit())",
+            "    if unitZ > 0.",
+            "        unitResult = 43",
+            "    else",
+            "        unitResult = 43",
+            "    boolean activeClient = BlzIsLocalClientActive()",
+            "    if activeClient",
+            "        activeClientResult = 53",
+            "    else",
+            "        activeClientResult = 53",
+            "    print(cameraResult)",
+            "    print(unitResult)",
+            "    print(activeClientResult)"
+        );
+
+        String optimized = Files.toString(
+            new File("test-output/OptimizerTests_branchMergerMustNotHoistAcrossClientLocalConditions_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(countOccurrences(optimized, "test_cameraResult = 41") >= 2,
+            "statements must not be hoisted across a client-local camera condition");
+        assertTrue(countOccurrences(optimized, "test_unitResult = 43") >= 2,
+            "statements must not be hoisted across a client-local unit Z condition");
+        assertTrue(countOccurrences(optimized, "test_activeClientResult = 53") >= 2,
+            "statements must not be hoisted across local-client activity state");
+    }
+
+    @Test
+    public void clientLocalNativeValuesAreLocalitySources() {
+        java.util.Set<String> localValueSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "GetLocalPlayer",
+            "GetLocationZ",
+            "GetCameraMargin",
+            "GetCameraBoundMinX",
+            "GetCameraBoundMinY",
+            "GetCameraBoundMaxX",
+            "GetCameraBoundMaxY",
+            "GetCameraField",
+            "GetCameraTargetPositionX",
+            "GetCameraTargetPositionY",
+            "GetCameraTargetPositionZ",
+            "GetCameraTargetPositionLoc",
+            "GetCameraEyePositionX",
+            "GetCameraEyePositionY",
+            "GetCameraEyePositionZ",
+            "GetCameraEyePositionLoc",
+            "GetLocalizedString",
+            "GetLocalizedHotkey",
+            "GetObjectName",
+            "BlzGetLocalUnitZ",
+            "BlzGetUnitZ",
+            "BlzGetLocalClientWidth",
+            "BlzGetLocalClientHeight",
+            "BlzIsLocalClientActive",
+            "BlzGetMouseFocusUnit",
+            "BlzGetLocale"
+        ));
+        java.util.Set<String> intentionallyExcludedSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
+            "BlzGetTriggerPlayerMouseX",
+            "BlzGetTriggerPlayerKey",
+            "BlzGetTriggerFrameValue",
+            "BlzFrameIsVisible",
+            "BlzGetLocalSpecialEffectX",
+            "AddLightning",
+            "MoveLightning",
+            "LoadEffectHandle",
+            "LoadLightningHandle",
+            "LoadFrameHandle",
+            "GetSoundIsPlaying",
+            "BlzIsSelectionEnabled"
+        ));
+        Element trace = Ast.NoExpr();
+        ImFunctions functions = JassIm.ImFunctions();
+        java.util.Map<String, ImFunction> functionsByName = new java.util.LinkedHashMap<>();
+        for (String name : localValueSources) {
+            ImFunction nativeFunction = nativeIntFunction(trace, name);
+            functions.add(nativeFunction);
+            functionsByName.put(name, nativeFunction);
+        }
+        for (String name : intentionallyExcludedSources) {
+            ImFunction nativeFunction = nativeIntFunction(trace, name);
+            functions.add(nativeFunction);
+            functionsByName.put(name, nativeFunction);
+        }
+        ImProg prog = JassIm.ImProg(
+            trace,
+            JassIm.ImVars(),
+            functions,
+            JassIm.ImMethods(),
+            JassIm.ImClasses(),
+            JassIm.ImTypeClassFuncs(),
+            new java.util.HashMap<>()
+        );
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+
+        for (String name : localValueSources) {
+            assertTrue(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+                name + " must be treated as a client-local value source");
+        }
+        for (String name : intentionallyExcludedSources) {
+            assertFalse(analyzer.isLocalPlayerSource(functionsByName.get(name)),
+                name + " is synchronized event data or user-managed local state");
+        }
+    }
+
+    private static ImFunction nativeIntFunction(Element trace, String name) {
+        return JassIm.ImFunction(
+            trace,
+            name,
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            TypesHelper.imInt(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE)
+        );
+    }
+
     @Test(timeOut = 10_000)
     public void deeplyNestedIndependentCallsDoNotCauseExponentialLocalPlayerAnalysis() {
         String nestedCall = "Player(0)";
