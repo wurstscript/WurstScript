@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
@@ -8,6 +9,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
@@ -38,6 +40,9 @@ public class EvaluateExpr {
         mark(e, globalState);
 
         ImFunction f = e.getFunc();
+        if (CompilerIntrinsics.NEW_MARKER.equals(f.getName()) && f.getParent() == null) {
+            return evaluateGenericNew(e, globalState);
+        }
         ImExprs arguments = e.getArguments();
 
         ILconst[] args = new ILconst[arguments.size()];
@@ -46,6 +51,41 @@ public class EvaluateExpr {
         }
 
         return ILInterpreter.runFunc(globalState, f, e, args).getReturnVal();
+    }
+
+    private static ILconst evaluateGenericNew(ImFunctionCall markerCall, ProgramState globalState) {
+        if (markerCall.getTypeArguments().size() != 1) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " expects exactly one type argument.");
+        }
+        ImType resolved = globalState.resolveType(markerCall.getTypeArguments().get(0).getType());
+        if (!(resolved instanceof ImClassType classType)) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " requires a concrete class type, but found " + resolved + ".");
+        }
+
+        ImFunction constructor = null;
+        for (ImFunction candidate : classType.getClassDef().getFunctions()) {
+            if (candidate.getTrace() instanceof de.peeeq.wurstscript.ast.ConstructorDef
+                && candidate.getParameters().isEmpty()
+                && !(candidate.getReturnType() instanceof ImVoid)) {
+                constructor = candidate;
+                break;
+            }
+        }
+        if (constructor == null) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " could not find the zero-argument constructor for "
+                    + classType.getClassDef().getName() + ".");
+        }
+
+        ImTypeArguments constructorTypeArguments = JassIm.ImTypeArguments();
+        for (ImTypeArgument argument : classType.getTypeArguments()) {
+            constructorTypeArguments.add(argument.copy());
+        }
+        ImFunctionCall constructorCall = JassIm.ImFunctionCall(markerCall.getTrace(), constructor,
+            constructorTypeArguments, JassIm.ImExprs(), false, CallType.NORMAL);
+        return ILInterpreter.runFunc(globalState, constructor, constructorCall, new ILconst[0]).getReturnVal();
     }
 
     public static @Nullable ILconst evaluateFunc(ProgramState globalState,

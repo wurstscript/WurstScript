@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -512,6 +513,14 @@ public class ExprTranslation {
     }
 
     private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver, boolean nullSafe) {
+
+        if (e instanceof ExprFunctionCall call && CompilerIntrinsics.isNew(call)) {
+            ImType targetType = call.getTypeArgs().get(0).attrTyp().imTranslateType(t);
+            ImTypeArguments typeArguments = JassIm.ImTypeArguments(
+                JassIm.ImTypeArgument(targetType, new HashMap<>()));
+            return ImFunctionCall(call, t.getGenericNewMarker(), typeArguments,
+                JassIm.ImExprs(), false, CallType.NORMAL);
+        }
 
         if (e.getFuncName().equals("getStackTraceString") && e.attrImplicitParameter() instanceof NoExpr
             && e.getArgs().size() == 0) {

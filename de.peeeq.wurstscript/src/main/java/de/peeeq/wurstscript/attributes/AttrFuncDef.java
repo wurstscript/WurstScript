@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -292,6 +293,9 @@ public class AttrFuncDef {
         if (isConstructorThisCall(node)) {
             return null;
         }
+        if (CompilerIntrinsics.isNew(node)) {
+            return null;
+        }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
         if (result == null) {
@@ -505,6 +509,30 @@ public class AttrFuncDef {
             result.add(argType);
         }
         return result;
+    }
+
+    /** Checks whether normal overload resolution has an applicable visible function before a compiler fallback. */
+    public static boolean hasApplicableUserFunction(ExprFunctionCall node) {
+        ImmutableCollection<FuncLink> candidates = node.lookupFuncs(node.getFuncName());
+        if (candidates.isEmpty()) {
+            return false;
+        }
+        List<WurstType> argumentTypes = argumentTypesPre(node);
+        for (FuncLink candidate : candidates) {
+            if (candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (!node.getTypeArgs().isEmpty()
+                && node.getTypeArgs().size() != signature.getDefinitionTypeVariables().size()) {
+                continue;
+            }
+            if (signature.matchAgainstArgs(argumentTypes, node) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

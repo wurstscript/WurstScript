@@ -292,3 +292,59 @@ Recent regressions showed that virtual-slot binding can silently degrade to base
   * assert each concrete sibling class binds that slot to its own implementation,
   * assert no sibling binds that dispatched slot to `NoOpState_*`.
 * Add a compile-twice determinism assertion for the same repro input.
+
+---
+
+## 9. Compiler-Assisted Field Iteration and Generic Construction
+
+The compiler surface used by serialization libraries is intentionally general-purpose and contains no knowledge
+of save formats, `ChunkedString`, hashes, or `Serializable`.
+
+### Source-level contract
+
+* The public Wurst names are `forFields`, `mapFields`, and `newInstance<T>()`; do not introduce underscore-prefixed
+  alternatives. Internal markers must never survive backend lowering.
+* Names beginning with the compiler-internal `__wurst` prefix are reserved. Generated temporaries must be fresh
+  against user-visible enclosing declarations, but nested callback locals deliberately using that prefix are not
+  supported.
+* An applicable visible ordinary function with one of these names must resolve normally. Compiler handling is only
+  the fallback when no user-visible overload accepts the call.
+* `forFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
+  constant fields. `mapFields` additionally requires each included field to be mutable.
+* Explicit targets are evaluated exactly once. Generated temporaries must be proven fresh in the enclosing scope.
+* Preserve module qualification in both field keys and generated accesses so sibling modules with equal field names
+  remain distinct.
+* `newInstance<T>()` must invoke the normal accessible zero-argument constructor of a concrete, non-abstract class.
+  Never replace it with uninitialized allocation or runtime type lookup.
+
+### Lowering and backend rules
+
+* Field iteration expands after module expansion, when inherited and injected fields are concrete.
+* Jass may use normal generic elimination. Lua specialization remains targeted to paths that reach generic
+  construction; do not turn this into general Lua generic monomorphization.
+* Lua reachability must traverse both `ImFunctionCall` and `ImMethodCall`, including dispatch submethods.
+* Targeted specialized methods needed by Lua dispatch must remain attached to the IM classes consumed by
+  `LuaDispatchPreparation`. Concrete implementations for erased generic objects must bind the same root slot used
+  by the call site.
+* Do not promise Lua support for a method which combines type parameters from its owning generic class with
+  independent method type parameters. Serialization loaders should be free generic functions, or class methods
+  parameterized only by their owning class.
+* Do not require Lua specialization of generic-construction methods invoked directly on a freshly constructed
+  generic receiver. Use the free generic loader shape, or bind the receiver to a typed local first.
+* Lua generic-construction dispatch through multi-parameter generic interfaces is outside the supported loader
+  shape. The supported generic loader has a single construction type parameter.
+* Do not call `newInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
+  generic loader, then initialize any nested state explicitly after construction.
+* `newInstance<T>()` is a runtime Jass/Lua construction surface and is not supported inside `compiletime(...)`
+  evaluation. Do not expand interpreter behavior for compile-time construction.
+* Nested modules whose sibling submodules declare equal field names are outside the supported field-key model.
+  Dedicated state classes should use direct fields, ordinary inheritance, or non-conflicting shallow module fields.
+* Generate no runtime reflection registry, type-name lookup, type-id switch, or serialization-specific metadata.
+
+### Required regression coverage
+
+Use `FieldIterationTests` as the focused suite. Cover both Jass and Lua, direct and explicit targets, target
+evaluation count, inherited/module fields, readonly versus mutable behavior, overload selection, constructor
+execution and diagnostics, ordinary same-name functions, generic functions and class methods, transitive method
+reachability, and generic interface dispatch. Assert generated output contains direct construction/accesses and no
+source intrinsic names or runtime reflection machinery.
