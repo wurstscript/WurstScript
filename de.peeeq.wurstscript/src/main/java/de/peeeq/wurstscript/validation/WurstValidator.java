@@ -2814,7 +2814,7 @@ public class WurstValidator {
 
                 @Override
                 public void case_TupleDef(TupleDef tupleDef) {
-                    check(VisibilityPublic.class, Annotation.class);
+                    check(VisibilityPublic.class);
                 }
 
                 @Override

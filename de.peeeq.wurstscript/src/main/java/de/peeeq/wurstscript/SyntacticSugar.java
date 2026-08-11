@@ -179,11 +179,9 @@ public class SyntacticSugar {
         int closureIndex = explicitTarget ? 1 : 0;
         if ((!explicitTarget && call.getArgs().size() != 1)
             || !(call.getArgs().get(closureIndex) instanceof ExprClosure closure)
-            || (closure.getShortParameters().size() != 2
-                && closure.getShortParameters().size() != 3)) {
+            || closure.getShortParameters().size() != 2) {
             call.addError(call.getFuncName()
-                + " expects a closure with (fieldName, fieldValue) parameters or "
-                + "(fieldId, fieldName, fieldValue) parameters, optionally preceded by a target.");
+                + " expects a closure with (fieldName, fieldValue) parameters, optionally preceded by a target.");
             return;
         }
         for (WShortParameter parameter : closure.getShortParameters()) {
@@ -193,20 +191,16 @@ public class SyntacticSugar {
             }
         }
 
-        boolean schemaAware = closure.getShortParameters().size() == 3;
-        String idParameter = schemaAware ? closure.getShortParameters().get(0).getName() : null;
-        String nameParameter = closure.getShortParameters().get(schemaAware ? 1 : 0).getName();
-        String valueParameter = closure.getShortParameters().get(schemaAware ? 2 : 1).getName();
-        Set<String> callbackParameters = new LinkedHashSet<>();
-        if (idParameter != null) callbackParameters.add(idParameter);
-        callbackParameters.add(nameParameter);
-        callbackParameters.add(valueParameter);
-        if (callbackParameters.size() != closure.getShortParameters().size()) {
-            closure.addError("Field iteration closure parameters must have distinct names.");
+        String nameParameter = closure.getShortParameters().get(0).getName();
+        String valueParameter = closure.getShortParameters().get(1).getName();
+        if (nameParameter.equals(valueParameter)) {
+            closure.getShortParameters().get(1).addError(
+                "Field iteration closure parameters must have distinct names.");
             return;
         }
-        if (hasShadowingLocal(closure, callbackParameters)) {
-            call.addError("Field iteration callbacks cannot declare locals or loop variables named like callback parameters.");
+        if (hasShadowingLocal(closure, nameParameter, valueParameter)) {
+            call.addError("Field iteration callbacks cannot declare locals or loop variables named "
+                + nameParameter + " or " + valueParameter + ".");
             return;
         }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
@@ -291,14 +285,6 @@ public class SyntacticSugar {
                 + " requires at least one instance field; no accessible mutable instance fields were found.");
             return;
         }
-        Map<Integer, FieldInfo> schemaIds = schemaAware ? validateSchemaIds(call, fields) : Map.of();
-        if (schemaAware && schemaIds.size() != fields.size()) {
-            if (targetVariable != null) {
-                statements.remove(targetVariable);
-                statements.clearAttributes();
-            }
-            return;
-        }
         int statementIndex = statements.indexOf(call);
         detached.add(new DeferredModuleCall(statements, originalStatementIndex, call));
         statements.remove(statementIndex);
@@ -311,8 +297,7 @@ public class SyntacticSugar {
             String fieldKey = field.key();
             Expr fieldAccess = fieldAccess(call.getSource(), field, targetName);
             Expr implementation = substituteFieldParameters(
-                closure.getImplementation().copy(), idParameter, nameParameter, valueParameter,
-                schemaAware ? schemaId(field) : null, fieldKey, field, targetName);
+                closure.getImplementation().copy(), nameParameter, valueParameter, fieldKey, field, targetName);
             WStatement expanded;
             if (assignsResult) {
                 expanded = Ast.StmtSet(call.getSource(), (LExpr) fieldAccess, implementation);
@@ -332,65 +317,6 @@ public class SyntacticSugar {
             fields.add(new FieldInfo(parameter, List.of()));
         }
         return fields;
-    }
-
-    private Map<Integer, FieldInfo> validateSchemaIds(ExprFunctionCall call, List<FieldInfo> fields) {
-        Map<Integer, FieldInfo> result = new LinkedHashMap<>();
-        for (FieldInfo field : fields) {
-            Integer id = schemaId(field);
-            if (id == null) {
-                field.declaration.addError("Schema-aware field iteration requires @saveField(id) on field "
-                    + field.key() + ".");
-                continue;
-            }
-            if (id <= 0) {
-                field.declaration.addError("@saveField id must be a positive integer, but found " + id + ".");
-                continue;
-            }
-            FieldInfo previous = result.putIfAbsent(id, field);
-            if (previous != null) {
-                call.addError("Duplicate @saveField id " + id + " on fields "
-                    + previous.key() + " and " + field.key() + ".");
-            }
-        }
-        return result;
-    }
-
-    private Integer schemaId(FieldInfo field) {
-        if (!(field.declaration instanceof GlobalVarDef global)) {
-            Element parent = field.declaration.getParent();
-            if (parent instanceof WParameters parameters) {
-                int index = parameters.indexOf(field.declaration);
-                if (parameters.getParent() instanceof TupleDef tuple) {
-                    Annotation annotation = tuple.getAnnotation("@saveFields");
-                    if (annotation != null) {
-                        if (annotation.getArgs().size() != parameters.size()) {
-                            tuple.addError("@saveFields must provide exactly one integer id per tuple component.");
-                            return null;
-                        }
-                        Expr argument = annotation.getArgs().get(index);
-                        if (!(argument instanceof ExprIntVal value)) {
-                            argument.addError("@saveFields ids must be integer literals.");
-                            return null;
-                        }
-                        return value.getValI();
-                    }
-                }
-                // Tuple order is part of its structural type. Positional ids are the compact
-                // default; @saveFields opts into rename/reorder-stable persisted identities.
-                return index + 1;
-            }
-            return null;
-        }
-        Annotation annotation = global.getAnnotation("@saveField");
-        if (annotation == null || annotation.getArgs().size() != 1
-            || !(annotation.getArgs().get(0) instanceof ExprIntVal value)) {
-            if (annotation != null) {
-                global.addError("@saveField expects exactly one integer literal id.");
-            }
-            return null;
-        }
-        return value.getValI();
     }
 
     private List<FieldInfo> collectInstanceFields(ClassDef classDef, ClassOrModule owner,
@@ -489,7 +415,7 @@ public class SyntacticSugar {
             && accessClass.attrTypC().isSubtypeOf(declaringClass.attrTypC(), accessSite);
     }
 
-    private boolean hasShadowingLocal(ExprClosure closure, Set<String> callbackParameters) {
+    private boolean hasShadowingLocal(ExprClosure closure, String nameParameter, String valueParameter) {
         final boolean[] result = {false};
         closure.getImplementation().accept(new WurstModel.DefaultVisitor() {
             @Override
@@ -500,7 +426,7 @@ public class SyntacticSugar {
             @Override
             public void visit(LocalVarDef localVarDef) {
                 super.visit(localVarDef);
-                if (callbackParameters.contains(localVarDef.getName())) {
+                if (localVarDef.getName().equals(nameParameter) || localVarDef.getName().equals(valueParameter)) {
                     result[0] = true;
                 }
             }
@@ -508,13 +434,10 @@ public class SyntacticSugar {
         return result[0];
     }
 
-    private Expr substituteFieldParameters(Expr expression, String idParameter, String nameParameter,
-                                           String valueParameter, Integer fieldId, String fieldName, FieldInfo field,
+    private Expr substituteFieldParameters(Expr expression, String nameParameter,
+                                           String valueParameter, String fieldName, FieldInfo field,
                                            String targetName) {
         if (expression instanceof ExprVarAccess access) {
-            if (idParameter != null && access.getVarName().equals(idParameter)) {
-                return Ast.ExprIntVal(access.getSource(), Integer.toString(Objects.requireNonNull(fieldId)));
-            }
             if (access.getVarName().equals(nameParameter)) {
                 return Ast.ExprStringVal(access.getSource(), fieldName);
             }
@@ -532,8 +455,7 @@ public class SyntacticSugar {
             }
 
             private boolean isCallbackParameter(String name) {
-                return (idParameter != null && name.equals(idParameter))
-                    || name.equals(nameParameter) || name.equals(valueParameter);
+                return name.equals(nameParameter) || name.equals(valueParameter);
             }
 
             @Override
@@ -616,21 +538,15 @@ public class SyntacticSugar {
             public void visit(ExprVarAccess access) {
                 super.visit(access);
                 if (!isShadowed(access.getVarName())
-                    && ((idParameter != null && access.getVarName().equals(idParameter))
-                        || access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter))) {
+                    && (access.getVarName().equals(nameParameter) || access.getVarName().equals(valueParameter))) {
                     accesses.add(access);
                 }
             }
         });
         for (ExprVarAccess access : accesses) {
-            Expr replacement;
-            if (idParameter != null && access.getVarName().equals(idParameter)) {
-                replacement = Ast.ExprIntVal(access.getSource(), Integer.toString(Objects.requireNonNull(fieldId)));
-            } else if (access.getVarName().equals(nameParameter)) {
-                replacement = Ast.ExprStringVal(access.getSource(), fieldName);
-            } else {
-                replacement = fieldAccess(access.getSource(), field, targetName);
-            }
+            Expr replacement = access.getVarName().equals(nameParameter)
+                ? Ast.ExprStringVal(access.getSource(), fieldName)
+                : fieldAccess(access.getSource(), field, targetName);
             access.replaceBy(replacement);
         }
         return expression;
