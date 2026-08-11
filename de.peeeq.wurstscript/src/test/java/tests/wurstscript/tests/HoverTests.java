@@ -52,6 +52,29 @@ public class HoverTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void compilerIntrinsicCallUsesDeclarationSignatureAndDocumentation() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string name, int value)",
+                "    /** Iterates concrete fields using direct accesses. */",
+                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    class State",
+                "        int value",
+                "        function save()",
+                "            forF|ields((name, fieldValue) -> skip)",
+                "endpackage"
+        );
+
+        List<String> text = testHoverText(testData);
+        assertTrue(text.stream().anyMatch(s -> s.contains("Iterates concrete fields")), "hover text = " + text);
+        assertTrue(text.stream().anyMatch(s -> s.contains("function forFields(DocumentedFieldCallback callback)")),
+            "hover text = " + text);
+    }
+
+    @Test
     public void hoverOnCommentShowsNothing() {
         CompletionTestData testData = input(
                 "package test",

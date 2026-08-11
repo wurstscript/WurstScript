@@ -128,6 +128,25 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
         testGetDef(testData, "4:17-4:31");
     }
 
+    @Test
+    public void compilerIntrinsicCallJumpsToDocumentedDeclaration() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string name, int value)",
+                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    class State",
+                "        int value",
+                "        function save()",
+                "            forF|ields((name, fieldValue) -> skip)",
+                "endpackage"
+        );
+
+        testGetDef(testData, "5:32-5:41");
+    }
+
 
     private void testGetDef(CompletionTestData testData, String... expectedPositions) {
         testGetDef(testData, Arrays.asList(expectedPositions));

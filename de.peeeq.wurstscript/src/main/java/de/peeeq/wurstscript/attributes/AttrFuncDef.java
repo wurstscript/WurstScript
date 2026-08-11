@@ -519,6 +519,12 @@ public class AttrFuncDef {
         }
         List<WurstType> argumentTypes = argumentTypesPre(node);
         for (FuncLink candidate : candidates) {
+            // A @compilerintrinsic declaration is an IDE-visible contract for an operation which
+            // is still lowered by the compiler. It must not shadow that lowering like an ordinary
+            // user function with the same name does.
+            if (CompilerIntrinsics.isDeclaration(candidate.getDef())) {
+                continue;
+            }
             if (candidate.getVisibility() == Visibility.PRIVATE_OTHER
                 || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
                 continue;

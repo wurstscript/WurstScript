@@ -11,6 +11,7 @@ public final class CompilerIntrinsics {
     public static final String MAP_FIELDS = "mapFields";
     public static final String NEW = "newInstance";
     public static final String NEW_MARKER = "wurstNewMarker";
+    public static final String ANNOTATION = "compilerintrinsic";
 
     private CompilerIntrinsics() {
     }
@@ -37,5 +38,9 @@ public final class CompilerIntrinsics {
 
     private static boolean hasClosureArgument(ExprFunctionCall call) {
         return call.getArgs().stream().anyMatch(arg -> arg instanceof ExprClosure);
+    }
+
+    public static boolean isDeclaration(de.peeeq.wurstscript.ast.FunctionDefinition definition) {
+        return definition.attrHasAnnotation(ANNOTATION);
     }
 }

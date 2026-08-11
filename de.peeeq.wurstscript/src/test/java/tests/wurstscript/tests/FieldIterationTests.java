@@ -968,4 +968,228 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void compilerIntrinsicDeclarationsRemainLowered() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string fieldName, int value)",
+                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    @compilerintrinsic function newInstance<T:>() returns T",
+                "        return null",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    native testSuccess()",
+                "    int total = 0",
+                "    function add(int value)",
+                "        total += value",
+                "    class State",
+                "        int value = 4",
+                "        function save()",
+                "            forFields((name, fieldValue) -> add(fieldValue))",
+                "    init",
+                "        State result = newInstance<State>()",
+                "        result.save()",
+                "        if total == 4",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_compilerIntrinsicDeclarationsRemainLowered.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_compilerIntrinsicDeclarationsRemainLowered_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("newInstance"));
+            assertFalse(generated.contains("forFields"));
+        }
+    }
+
+    @Test
+    public void schemaAwareIterationComposesAcrossSerializableFieldKinds() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    native testSuccess()",
+                "",
+                "    tuple Pair(int left, string right)",
+                "    enum Mode",
+                "        A",
+                "        B",
+                "    class ArrayList<T:>",
+                "        int size = 3",
+                "    class Child",
+                "        int value = 9",
+                "        function encoded() returns int",
+                "            return value",
+                "    module Injected",
+                "        @saveField(12) int injected = 2",
+                "    class Base",
+                "        @saveField(11) int inherited = 1",
+                "    class State extends Base",
+                "        use Injected",
+                "        @saveField(20) int primitive = 4",
+                "        @saveField(30) Child nested = new Child",
+                "        @saveField(40) Pair pair = Pair(5, \"x\")",
+                "        @saveField(50) ArrayList<int> values = new ArrayList<int>",
+                "        @saveField(60) Mode mode = Mode.B",
+                "        @saveField(70) Child optional = null",
+                "",
+                "    class Probe",
+                "        int mask = 0",
+                "        function record(int id, string name, int value)",
+                "            mask += id + value",
+                "        function record(int id, string name, Child value)",
+                "            if value == null",
+                "                mask += id",
+                "            else",
+                "                mask += id + value.encoded()",
+                "        function record(int id, string name, Pair value)",
+                "            mask += id + value.left",
+                "        function record<T:>(int id, string name, ArrayList<T> value)",
+                "            mask += id + value.size",
+                "        function record(int id, string name, Mode value)",
+                "            mask += id",
+                "",
+                "    init",
+                "        let state = new State",
+                "        let probe = new Probe",
+                "        forFields(state, (id, name, value) -> probe.record(id, name, value))",
+                "        if probe.mask == 317",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_schemaAwareIterationComposesAcrossSerializableFieldKinds.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_schemaAwareIterationComposesAcrossSerializableFieldKinds_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("forFields"));
+            assertFalse(generated.contains("saveField"));
+            assertFalse(generated.contains("reflection"));
+            assertTrue(generated.contains("11") && generated.contains("inherited"));
+        }
+    }
+
+    @Test
+    public void tupleTargetsUseStableComponentIdsAndDirectAccesses() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    @annotation function annotation()",
+                "    @annotation function saveFields(vararg int ids)",
+                "    @saveFields(7, 12, 99) tuple Payload(int count, string label, boolean enabled)",
+                "    function map(int id, string name, int value) returns int",
+                "        return value + id",
+                "    function map(int id, string name, string value) returns string",
+                "        return value + name",
+                "    function map(int id, string name, boolean value) returns boolean",
+                "        return not value",
+                "    init",
+                "        var payload = Payload(4, \"x\", false)",
+                "        mapFields(payload, (id, name, value) -> map(id, name, value))",
+                "        if payload.count == 11 and payload.label == \"xlabel\" and payload.enabled",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_tupleTargetsUseStableComponentIdsAndDirectAccesses.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_tupleTargetsUseStableComponentIdsAndDirectAccesses_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("mapFields"));
+            assertFalse(generated.contains("reflection"));
+        }
+    }
+
+    @Test
+    public void schemaAwareIterationDiagnosticsAreActionable() {
+        test()
+            .expectError("requires @saveField(id) on field missing")
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    class State",
+                "        int missing",
+                "    function consume(int value)",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (id, name, value) -> consume(value))",
+                "endpackage"
+            );
+        test()
+            .expectError("Duplicate @saveField id 1")
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    class State",
+                "        @saveField(1) int first",
+                "        @saveField(1) int second",
+                "    function consume(int value)",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (id, name, value) -> consume(value))",
+                "endpackage"
+            );
+        test()
+            .expectError("@saveField id must be a positive integer")
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    class State",
+                "        @saveField(0) int invalid",
+                "    function consume(int value)",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (id, name, value) -> consume(value))",
+                "endpackage"
+            );
+        test()
+            .expectError("mapFields tuple target must be a variable")
+            .lines(
+                "package FieldIterationTest",
+                "    tuple Pair(int left, int right)",
+                "    function map(int id, string name, int value) returns int",
+                "        return value",
+                "    init",
+                "        mapFields(Pair(1, 2), (id, name, value) -> map(id, name, value))",
+                "endpackage"
+            );
+        test()
+            .expectError("@saveFields must provide exactly one integer id per tuple component")
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveFields(vararg int ids)",
+                "    @saveFields(1) tuple Pair(int left, int right)",
+                "    function consume(int value)",
+                "    init",
+                "        let pair = Pair(1, 2)",
+                "        forFields(pair, (id, name, value) -> consume(value))",
+                "endpackage"
+            );
+    }
 }
