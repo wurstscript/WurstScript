@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 
 import java.util.*;
@@ -46,10 +47,10 @@ public class SyntacticSugar {
     }
 
     private static final class FieldInfo {
-        private final GlobalVarDef declaration;
+        private final VarDef declaration;
         private final List<String> modulePath;
 
-        private FieldInfo(GlobalVarDef declaration, List<String> modulePath) {
+        private FieldInfo(VarDef declaration, List<String> modulePath) {
             this.declaration = declaration;
             this.modulePath = List.copyOf(modulePath);
         }
@@ -144,8 +145,8 @@ public class SyntacticSugar {
      * field accesses.
      *
      * <pre>
-     * forFields((name, value) -> writer.write(name, value))
-     * mapFields((name, value) -> reader.read(name, value))
+     * wurstForFields((name, value) -> writer.write(name, value))
+     * wurstMapFields((name, value) -> reader.read(name, value))
      * </pre>
      */
     private List<DeferredModuleCall> expandFieldIterationsInTree(CompilationUnit root) {
@@ -203,14 +204,16 @@ public class SyntacticSugar {
             return;
         }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
-            call.addError("forFields closure must produce a statement expression.");
+            call.addError(call.getFuncName() + " closure must produce a statement expression.");
             return;
         }
-        ClassDef classDef;
+        ClassDef classDef = null;
+        TupleDef tupleDef = null;
         ClassOrModule owner;
         Expr target = null;
         String targetName = null;
         LocalVarDef targetVariable = null;
+        LExpr tupleWriteBackTarget = null;
         int originalStatementIndex = statements.indexOf(call);
         if (explicitTarget) {
             target = call.getArgs().get(0);
@@ -229,15 +232,29 @@ public class SyntacticSugar {
                     + " is not concrete here. Move field mapping into a callback with a concrete target type.");
                 return;
             }
-            if (!(targetType instanceof WurstTypeClass targetClass) || targetClass.isStaticRef()) {
+            if (targetType instanceof WurstTypeTuple targetTuple) {
+                tupleDef = targetTuple.getTupleDef();
+                owner = tupleDef.attrNearestClassOrModule();
+                if (assignsResult) {
+                    if (!(target instanceof ExprVarAccess targetAccess)) {
+                        statements.remove(targetVariable);
+                        statements.clearAttributes();
+                        call.addError(call.getFuncName()
+                            + " tuple target must be a variable so updates can be written back exactly once.");
+                        return;
+                    }
+                    tupleWriteBackTarget = (LExpr) targetAccess.copy();
+                }
+            } else if (targetType instanceof WurstTypeClass targetClass && !targetClass.isStaticRef()) {
+                classDef = targetClass.getClassDef();
+                owner = classDef;
+            } else {
                 statements.remove(targetVariable);
                 statements.clearAttributes();
                 call.addError(call.getFuncName() + " target must have a concrete class type, but found "
                     + targetType + ".");
                 return;
             }
-            classDef = targetClass.getClassDef();
-            owner = classDef;
         } else {
             classDef = call.attrNearestClassDef();
             owner = call.attrNearestClassOrModule();
@@ -255,7 +272,9 @@ public class SyntacticSugar {
                 return;
             }
         }
-        List<FieldInfo> fields = collectInstanceFields(classDef, owner, call, explicitTarget, assignsResult);
+        List<FieldInfo> fields = tupleDef == null
+            ? collectInstanceFields(classDef, owner, call, explicitTarget, assignsResult)
+            : collectTupleFields(tupleDef);
         if (fields.isEmpty()) {
             if (targetVariable != null) {
                 statements.remove(targetVariable);
@@ -269,7 +288,7 @@ public class SyntacticSugar {
         detached.add(new DeferredModuleCall(statements, originalStatementIndex, call));
         statements.remove(statementIndex);
 
-        List<WStatement> generatedStatements = new ArrayList<>(fields.size() + (explicitTarget ? 1 : 0));
+        List<WStatement> generatedStatements = new ArrayList<>(fields.size() + (explicitTarget ? 2 : 0));
         if (targetVariable != null) {
             generatedStatements.add(targetVariable);
         }
@@ -287,8 +306,22 @@ public class SyntacticSugar {
             generatedStatements.add(expanded);
             statements.add(statementIndex++, expanded);
         }
+        if (tupleWriteBackTarget != null) {
+            WStatement writeBack = Ast.StmtSet(call.getSource(), tupleWriteBackTarget,
+                Ast.ExprVarAccess(call.getSource(), Ast.Identifier(call.getSource(), targetName)));
+            generatedStatements.add(writeBack);
+            statements.add(statementIndex, writeBack);
+        }
         detached.set(detached.size() - 1,
             new DeferredModuleCall(statements, originalStatementIndex, call, generatedStatements));
+    }
+
+    private List<FieldInfo> collectTupleFields(TupleDef tupleDef) {
+        List<FieldInfo> fields = new ArrayList<>();
+        for (WParameter parameter : tupleDef.getParameters()) {
+            fields.add(new FieldInfo(parameter, List.of()));
+        }
+        return fields;
     }
 
     private List<FieldInfo> collectInstanceFields(ClassDef classDef, ClassOrModule owner,
@@ -426,13 +459,16 @@ public class SyntacticSugar {
                 return shadowedScopes.stream().anyMatch(scope -> scope.contains(name));
             }
 
+            private boolean isCallbackParameter(String name) {
+                return name.equals(nameParameter) || name.equals(valueParameter);
+            }
+
             @Override
             public void visit(WStatements statements) {
                 Set<String> blockBindings = new HashSet<>();
                 for (WStatement statement : statements) {
                     if (statement instanceof LocalVarDef localVarDef
-                        && (localVarDef.getName().equals(nameParameter)
-                            || localVarDef.getName().equals(valueParameter))) {
+                        && isCallbackParameter(localVarDef.getName())) {
                         blockBindings.add(localVarDef.getName());
                     }
                 }
@@ -498,8 +534,7 @@ public class SyntacticSugar {
             public void visit(LocalVarDef localVarDef) {
                 super.visit(localVarDef);
                 if (!shadowedScopes.isEmpty()
-                    && (localVarDef.getName().equals(nameParameter)
-                        || localVarDef.getName().equals(valueParameter))) {
+                    && isCallbackParameter(localVarDef.getName())) {
                     shadowedScopes.peek().add(localVarDef.getName());
                 }
             }

@@ -968,4 +968,254 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    @Test
+    public void compilerIntrinsicDeclarationsRemainLowered() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string fieldName, int value)",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
+                "    interface DocumentedFieldMapper",
+                "        function apply(string fieldName, int value) returns int",
+                "    @compilerintrinsic function wurstMapFields(DocumentedFieldMapper callback)",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    native testSuccess()",
+                "    int total = 0",
+                "    function add(int value)",
+                "        total += value",
+                "    class State",
+                "        int value = 4",
+                "        function save()",
+                "            wurstForFields((name, fieldValue) -> add(fieldValue))",
+                "        function load()",
+                "            wurstMapFields((name, fieldValue) -> fieldValue + 1)",
+                "    init",
+                "        State result = wurstNewInstance<State>()",
+                "        result.load()",
+                "        result.save()",
+                "        if total == 5",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_compilerIntrinsicDeclarationsRemainLowered.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_compilerIntrinsicDeclarationsRemainLowered_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("wurstNewInstance"));
+            assertFalse(generated.contains("wurstForFields"));
+            assertFalse(generated.contains("wurstMapFields"));
+        }
+    }
+
+    @Test
+    public void ordinaryOverloadsWinOverImportedIntrinsicDeclarations() {
+        test()
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    public interface DocumentedFieldCallback",
+                "        function apply(int value) returns int",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback) returns int",
+                "        return 0",
+                "    @compilerintrinsic function wurstMapFields(DocumentedFieldCallback callback) returns int",
+                "        return 0",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "endpackage",
+                "",
+                "package UserFunctions",
+                "    import MagicFunctions",
+                "    public function wurstForFields(DocumentedFieldCallback callback) returns int",
+                "        return callback.apply(2)",
+                "    public function wurstMapFields(DocumentedFieldCallback callback) returns int",
+                "        return callback.apply(3)",
+                "    public function wurstNewInstance<T:>() returns int",
+                "        return 7",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    import UserFunctions",
+                "    native testSuccess()",
+                "    init",
+                "        if wurstForFields(value -> value + 1) == 3 and wurstMapFields(value -> value + 1) == 4 and wurstNewInstance<int>() == 7",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void fieldIterationComposesAcrossSerializableFieldKinds() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "",
+                "    tuple Pair(int left, string right)",
+                "    enum Mode",
+                "        A",
+                "        B",
+                "    class ArrayList<T:>",
+                "        int size = 3",
+                "    class Child",
+                "        int value = 9",
+                "        function encoded() returns int",
+                "            return value",
+                "    module Injected",
+                "        int injected = 2",
+                "    class Base",
+                "        int inherited = 1",
+                "    class State extends Base",
+                "        use Injected",
+                "        int primitive = 4",
+                "        Child nested = new Child",
+                "        Pair pair = Pair(5, \"x\")",
+                "        ArrayList<int> values = new ArrayList<int>",
+                "        Mode mode = Mode.B",
+                "        Child optional = null",
+                "",
+                "    class Probe",
+                "        int mask = 0",
+                "        function record(string name, int value)",
+                "            mask += value",
+                "        function record(string name, Child value)",
+                "            if value == null",
+                "                mask += 1",
+                "            else",
+                "                mask += value.encoded()",
+                "        function record(string name, Pair value)",
+                "            mask += value.left",
+                "        function record<T:>(string name, ArrayList<T> value)",
+                "            mask += value.size",
+                "        function record(string name, Mode value)",
+                "            mask += 1",
+                "",
+                "    init",
+                "        let state = new State",
+                "        let probe = new Probe",
+                "        forFields(state, (name, value) -> probe.record(name, value))",
+                "        if probe.mask == 26",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_fieldIterationComposesAcrossSerializableFieldKinds.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_fieldIterationComposesAcrossSerializableFieldKinds_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("forFields"));
+            assertFalse(generated.contains("reflection"));
+            assertTrue(generated.contains("inherited"));
+        }
+    }
+
+    @Test
+    public void tupleTargetsUseDirectComponentAccesses() throws IOException {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    tuple Payload(int count, string label, boolean enabled)",
+                "    function map(string name, int value) returns int",
+                "        return value + 1",
+                "    function map(string name, string value) returns string",
+                "        return value + name",
+                "    function map(string name, boolean value) returns boolean",
+                "        return not value",
+                "    init",
+                "        var payload = Payload(4, \"x\", false)",
+                "        mapFields(payload, (name, value) -> map(name, value))",
+                "        if payload.count == 5 and payload.label == \"xlabel\" and payload.enabled",
+                "            testSuccess()",
+                "endpackage"
+            );
+
+        String lua = Files.readString(new File(TEST_OUTPUT_PATH
+            + "lua/FieldIterationTests_tupleTargetsUseDirectComponentAccesses.lua").toPath());
+        String jass = Files.readString(new File(TEST_OUTPUT_PATH
+            + "FieldIterationTests_tupleTargetsUseDirectComponentAccesses_opt.j").toPath());
+        for (String generated : new String[]{lua, jass}) {
+            assertFalse(generated.contains("mapFields"));
+            assertFalse(generated.contains("reflection"));
+        }
+    }
+
+    @Test
+    public void tupleMapTargetIsCaptureSafeInNestedClosure() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    tuple Pair(int left, int right)",
+                "    interface PairCallback",
+                "        function apply(Pair payload) returns int",
+                "    function evaluate(PairCallback callback) returns int",
+                "        return callback.apply(Pair(10, 20))",
+                "    init",
+                "        var payload = Pair(1, 2)",
+                "        wurstMapFields(payload, (name, value) -> evaluate(payload -> value + payload.left))",
+                "        if payload.left == 11 and payload.right == 12",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void serializationMetadataRemainsLibraryOwned() {
+        test()
+            .expectError("expects a closure with (fieldName, fieldValue) parameters")
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    class State",
+                "        @saveField(1) int value",
+                "    function consume(int value)",
+                "    init",
+                "        let state = new State",
+                "        forFields(state, (id, name, value) -> consume(value))",
+                "endpackage"
+            );
+    }
+
+    @Test
+    public void tupleFieldIterationDiagnosticsAreActionable() {
+        test()
+            .expectError("mapFields tuple target must be a variable")
+            .lines(
+                "package FieldIterationTest",
+                "    tuple Pair(int left, int right)",
+                "    function map(string name, int value) returns int",
+                "        return value",
+                "    init",
+                "        mapFields(Pair(1, 2), (name, value) -> map(name, value))",
+                "endpackage"
+            );
+    }
 }

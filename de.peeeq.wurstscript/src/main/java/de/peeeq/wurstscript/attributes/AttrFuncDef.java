@@ -294,7 +294,7 @@ public class AttrFuncDef {
             return null;
         }
         if (CompilerIntrinsics.isNew(node)) {
-            return null;
+            return findIntrinsicDeclaration(node);
         }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
@@ -309,6 +309,22 @@ public class AttrFuncDef {
             }
         }
         return result;
+    }
+
+    private static @Nullable FuncLink findIntrinsicDeclaration(ExprFunctionCall node) {
+        for (FuncLink candidate : node.lookupFuncs(node.getFuncName())) {
+            if (!CompilerIntrinsics.isDeclaration(candidate.getDef())
+                || candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (node.getTypeArgs().size() == signature.getDefinitionTypeVariables().size()
+                && signature.matchAgainstArgs(argumentTypesPre(node), node) != null) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static boolean isConstructorThisCall(ExprFunctionCall node) {
@@ -519,6 +535,12 @@ public class AttrFuncDef {
         }
         List<WurstType> argumentTypes = argumentTypesPre(node);
         for (FuncLink candidate : candidates) {
+            // A @compilerintrinsic declaration is an IDE-visible contract for an operation which
+            // is still lowered by the compiler. It must not shadow that lowering like an ordinary
+            // user function with the same name does.
+            if (CompilerIntrinsics.isDeclaration(candidate.getDef())) {
+                continue;
+            }
             if (candidate.getVisibility() == Visibility.PRIVATE_OTHER
                 || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
                 continue;
@@ -541,6 +563,15 @@ public class AttrFuncDef {
             return null;
         }
         ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
+        if (node instanceof ExprFunctionCall
+            && hasApplicableUserFunction((ExprFunctionCall) node)) {
+            ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
+                .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
+                .collect(Utils.toImmutableList());
+            if (!ordinaryFunctions.isEmpty()) {
+                funcs1 = ordinaryFunctions;
+            }
+        }
         if (funcs1.size() == 0) {
             if (funcName.startsWith("InitTrig_")) {
                 // ignore error

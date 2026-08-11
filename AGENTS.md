@@ -302,19 +302,20 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 
 ### Source-level contract
 
-* The public Wurst names are `forFields`, `mapFields`, and `newInstance<T>()`; do not introduce underscore-prefixed
-  alternatives. Internal markers must never survive backend lowering.
+* The public Wurst names are `wurstForFields`, `wurstMapFields`, and `wurstNewInstance<T>()`; the `wurst` prefix
+  makes the compiler-provided surface collision-resistant without underscore-prefixed names. The original
+  unprefixed spellings remain supported as compatibility fallbacks. Internal markers must never survive backend lowering.
 * Names beginning with the compiler-internal `__wurst` prefix are reserved. Generated temporaries must be fresh
   against user-visible enclosing declarations, but nested callback locals deliberately using that prefix are not
   supported.
 * An applicable visible ordinary function with one of these names must resolve normally. Compiler handling is only
   the fallback when no user-visible overload accepts the call.
-* `forFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
-  constant fields. `mapFields` additionally requires each included field to be mutable.
+* `wurstForFields` includes accessible, non-static instance fields, including inherited, module-injected, readonly, and
+  constant fields. `wurstMapFields` additionally requires each included field to be mutable.
 * Explicit targets are evaluated exactly once. Generated temporaries must be proven fresh in the enclosing scope.
 * Preserve module qualification in both field keys and generated accesses so sibling modules with equal field names
   remain distinct.
-* `newInstance<T>()` must invoke the normal accessible zero-argument constructor of a concrete, non-abstract class.
+* `wurstNewInstance<T>()` must invoke the normal accessible zero-argument constructor of a concrete, non-abstract class.
   Never replace it with uninitialized allocation or runtime type lookup.
 
 ### Lowering and backend rules
@@ -333,9 +334,9 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
   generic receiver. Use the free generic loader shape, or bind the receiver to a typed local first.
 * Lua generic-construction dispatch through multi-parameter generic interfaces is outside the supported loader
   shape. The supported generic loader has a single construction type parameter.
-* Do not call `newInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
+* Do not call `wurstNewInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
   generic loader, then initialize any nested state explicitly after construction.
-* `newInstance<T>()` is a runtime Jass/Lua construction surface and is not supported inside `compiletime(...)`
+* `wurstNewInstance<T>()` is a runtime Jass/Lua construction surface and is not supported inside `compiletime(...)`
   evaluation. Do not expand interpreter behavior for compile-time construction.
 * Nested modules whose sibling submodules declare equal field names are outside the supported field-key model.
   Dedicated state classes should use direct fields, ordinary inheritance, or non-conflicting shallow module fields.

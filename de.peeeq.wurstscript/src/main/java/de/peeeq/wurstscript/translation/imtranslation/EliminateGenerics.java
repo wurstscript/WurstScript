@@ -101,7 +101,7 @@ public class EliminateGenerics {
 
     /**
      * Lua normally erases new generics. Generic construction is the one operation which needs the
-     * concrete type, so only specialize functions on paths leading to {@code newInstance}. All other
+     * concrete type, so only specialize functions on paths leading to {@code wurstNewInstance}. All other
      * generic calls and classes keep the Lua backend's normal erased representation.
      */
     public void transformGenericNewOnly() {
