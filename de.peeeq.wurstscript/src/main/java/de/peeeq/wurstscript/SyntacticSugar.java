@@ -213,6 +213,7 @@ public class SyntacticSugar {
         Expr target = null;
         String targetName = null;
         LocalVarDef targetVariable = null;
+        LExpr tupleWriteBackTarget = null;
         int originalStatementIndex = statements.indexOf(call);
         if (explicitTarget) {
             target = call.getArgs().get(0);
@@ -242,10 +243,7 @@ public class SyntacticSugar {
                             + " tuple target must be a variable so updates can be written back exactly once.");
                         return;
                     }
-                    statements.remove(targetVariable);
-                    statements.clearAttributes();
-                    targetVariable = null;
-                    targetName = targetAccess.getVarName();
+                    tupleWriteBackTarget = (LExpr) targetAccess.copy();
                 }
             } else if (targetType instanceof WurstTypeClass targetClass && !targetClass.isStaticRef()) {
                 classDef = targetClass.getClassDef();
@@ -290,7 +288,7 @@ public class SyntacticSugar {
         detached.add(new DeferredModuleCall(statements, originalStatementIndex, call));
         statements.remove(statementIndex);
 
-        List<WStatement> generatedStatements = new ArrayList<>(fields.size() + (explicitTarget ? 1 : 0));
+        List<WStatement> generatedStatements = new ArrayList<>(fields.size() + (explicitTarget ? 2 : 0));
         if (targetVariable != null) {
             generatedStatements.add(targetVariable);
         }
@@ -307,6 +305,12 @@ public class SyntacticSugar {
             }
             generatedStatements.add(expanded);
             statements.add(statementIndex++, expanded);
+        }
+        if (tupleWriteBackTarget != null) {
+            WStatement writeBack = Ast.StmtSet(call.getSource(), tupleWriteBackTarget,
+                Ast.ExprVarAccess(call.getSource(), Ast.Identifier(call.getSource(), targetName)));
+            generatedStatements.add(writeBack);
+            statements.add(statementIndex, writeBack);
         }
         detached.set(detached.size() - 1,
             new DeferredModuleCall(statements, originalStatementIndex, call, generatedStatements));

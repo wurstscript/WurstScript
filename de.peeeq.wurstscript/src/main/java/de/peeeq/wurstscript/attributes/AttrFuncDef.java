@@ -294,7 +294,7 @@ public class AttrFuncDef {
             return null;
         }
         if (CompilerIntrinsics.isNew(node)) {
-            return null;
+            return findIntrinsicDeclaration(node);
         }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
@@ -309,6 +309,22 @@ public class AttrFuncDef {
             }
         }
         return result;
+    }
+
+    private static @Nullable FuncLink findIntrinsicDeclaration(ExprFunctionCall node) {
+        for (FuncLink candidate : node.lookupFuncs(node.getFuncName())) {
+            if (!CompilerIntrinsics.isDeclaration(candidate.getDef())
+                || candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (node.getTypeArgs().size() == signature.getDefinitionTypeVariables().size()
+                && signature.matchAgainstArgs(argumentTypesPre(node), node) != null) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static boolean isConstructorThisCall(ExprFunctionCall node) {

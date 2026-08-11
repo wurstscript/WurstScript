@@ -1164,6 +1164,29 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleMapTargetIsCaptureSafeInNestedClosure() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    native testSuccess()",
+                "    tuple Pair(int left, int right)",
+                "    interface PairCallback",
+                "        function apply(Pair payload) returns int",
+                "    function evaluate(PairCallback callback) returns int",
+                "        return callback.apply(Pair(10, 20))",
+                "    init",
+                "        var payload = Pair(1, 2)",
+                "        wurstMapFields(payload, (name, value) -> evaluate(payload -> value + payload.left))",
+                "        if payload.left == 11 and payload.right == 12",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void serializationMetadataRemainsLibraryOwned() {
         test()
             .expectError("expects a closure with (fieldName, fieldValue) parameters")

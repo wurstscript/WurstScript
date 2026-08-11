@@ -147,6 +147,24 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
         testGetDef(testData, "5:32-5:46");
     }
 
+    @Test
+    public void constructionIntrinsicCallJumpsToDocumentedDeclaration() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    /** Constructs a concrete class through its zero-argument constructor. */",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "    class State",
+                "    init",
+                "        State result = wurstNewInst|ance<State>()",
+                "endpackage"
+        );
+
+        testGetDef(testData, "4:32-4:48");
+    }
+
 
     private void testGetDef(CompletionTestData testData, String... expectedPositions) {
         testGetDef(testData, Arrays.asList(expectedPositions));

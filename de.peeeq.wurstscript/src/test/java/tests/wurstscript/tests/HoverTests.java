@@ -75,6 +75,27 @@ public class HoverTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void constructionIntrinsicCallUsesDeclarationSignatureAndDocumentation() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    /** Constructs a concrete class through its zero-argument constructor. */",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "    class State",
+                "    init",
+                "        State result = wurstNewInst|ance<State>()",
+                "endpackage"
+        );
+
+        List<String> text = testHoverText(testData);
+        assertTrue(text.stream().anyMatch(s -> s.contains("Constructs a concrete class")), "hover text = " + text);
+        assertTrue(text.stream().anyMatch(s -> s.contains("function wurstNewInstance() returns T")),
+            "hover text = " + text);
+    }
+
+    @Test
     public void hoverOnCommentShowsNothing() {
         CompletionTestData testData = input(
                 "package test",
