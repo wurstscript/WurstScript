@@ -547,6 +547,15 @@ public class AttrFuncDef {
             return null;
         }
         ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
+        if (node instanceof ExprFunctionCall
+            && hasApplicableUserFunction((ExprFunctionCall) node)) {
+            ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
+                .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
+                .collect(Utils.toImmutableList());
+            if (!ordinaryFunctions.isEmpty()) {
+                funcs1 = ordinaryFunctions;
+            }
+        }
         if (funcs1.size() == 0) {
             if (funcName.startsWith("InitTrig_")) {
                 // ignore error

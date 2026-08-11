@@ -981,8 +981,11 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    @annotation function compilerintrinsic()",
                 "    interface DocumentedFieldCallback",
                 "        function apply(string fieldName, int value)",
-                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
-                "    @compilerintrinsic function newInstance<T:>() returns T",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
+                "    interface DocumentedFieldMapper",
+                "        function apply(string fieldName, int value) returns int",
+                "    @compilerintrinsic function wurstMapFields(DocumentedFieldMapper callback)",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
                 "        return null",
                 "endpackage",
                 "",
@@ -995,11 +998,14 @@ public class FieldIterationTests extends WurstScriptTest {
                 "    class State",
                 "        int value = 4",
                 "        function save()",
-                "            forFields((name, fieldValue) -> add(fieldValue))",
+                "            wurstForFields((name, fieldValue) -> add(fieldValue))",
+                "        function load()",
+                "            wurstMapFields((name, fieldValue) -> fieldValue + 1)",
                 "    init",
-                "        State result = newInstance<State>()",
+                "        State result = wurstNewInstance<State>()",
+                "        result.load()",
                 "        result.save()",
-                "        if total == 4",
+                "        if total == 5",
                 "            testSuccess()",
                 "endpackage"
             );
@@ -1009,9 +1015,49 @@ public class FieldIterationTests extends WurstScriptTest {
         String jass = Files.readString(new File(TEST_OUTPUT_PATH
             + "FieldIterationTests_compilerIntrinsicDeclarationsRemainLowered_opt.j").toPath());
         for (String generated : new String[]{lua, jass}) {
-            assertFalse(generated.contains("newInstance"));
-            assertFalse(generated.contains("forFields"));
+            assertFalse(generated.contains("wurstNewInstance"));
+            assertFalse(generated.contains("wurstForFields"));
+            assertFalse(generated.contains("wurstMapFields"));
         }
+    }
+
+    @Test
+    public void ordinaryOverloadsWinOverImportedIntrinsicDeclarations() {
+        test()
+            .executeProg()
+            .lines(
+                "package MagicFunctions",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    public interface DocumentedFieldCallback",
+                "        function apply(int value) returns int",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback) returns int",
+                "        return 0",
+                "    @compilerintrinsic function wurstMapFields(DocumentedFieldCallback callback) returns int",
+                "        return 0",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "endpackage",
+                "",
+                "package UserFunctions",
+                "    import MagicFunctions",
+                "    public function wurstForFields(DocumentedFieldCallback callback) returns int",
+                "        return callback.apply(2)",
+                "    public function wurstMapFields(DocumentedFieldCallback callback) returns int",
+                "        return callback.apply(3)",
+                "    public function wurstNewInstance<T:>() returns int",
+                "        return 7",
+                "endpackage",
+                "",
+                "package FieldIterationTest",
+                "    import MagicFunctions",
+                "    import UserFunctions",
+                "    native testSuccess()",
+                "    init",
+                "        if wurstForFields(value -> value + 1) == 3 and wurstMapFields(value -> value + 1) == 4 and wurstNewInstance<int>() == 7",
+                "            testSuccess()",
+                "endpackage"
+            );
     }
 
     @Test

@@ -60,17 +60,17 @@ public class HoverTests extends WurstLanguageServerTest {
                 "    interface DocumentedFieldCallback",
                 "        function apply(string name, int value)",
                 "    /** Iterates concrete fields using direct accesses. */",
-                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
                 "    class State",
                 "        int value",
                 "        function save()",
-                "            forF|ields((name, fieldValue) -> skip)",
+                "            wurstForF|ields((name, fieldValue) -> skip)",
                 "endpackage"
         );
 
         List<String> text = testHoverText(testData);
         assertTrue(text.stream().anyMatch(s -> s.contains("Iterates concrete fields")), "hover text = " + text);
-        assertTrue(text.stream().anyMatch(s -> s.contains("function forFields(DocumentedFieldCallback callback)")),
+        assertTrue(text.stream().anyMatch(s -> s.contains("function wurstForFields(DocumentedFieldCallback callback)")),
             "hover text = " + text);
     }
 

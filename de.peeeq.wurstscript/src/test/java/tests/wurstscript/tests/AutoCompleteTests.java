@@ -76,13 +76,13 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
                 "    @annotation function compilerintrinsic()",
                 "    interface DocumentedFieldCallback",
                 "        function apply(string name, int value)",
-                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
                 "    init",
-                "        forFi|",
+                "        wurstForFi|",
                 "endpackage"
         );
 
-        testCompletions(testData, "forFields");
+        testCompletions(testData, "wurstForFields");
     }
 
 

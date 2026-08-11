@@ -136,15 +136,15 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
                 "    @annotation function compilerintrinsic()",
                 "    interface DocumentedFieldCallback",
                 "        function apply(string name, int value)",
-                "    @compilerintrinsic function forFields(DocumentedFieldCallback callback)",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
                 "    class State",
                 "        int value",
                 "        function save()",
-                "            forF|ields((name, fieldValue) -> skip)",
+                "            wurstForF|ields((name, fieldValue) -> skip)",
                 "endpackage"
         );
 
-        testGetDef(testData, "5:32-5:41");
+        testGetDef(testData, "5:32-5:46");
     }
 
 

@@ -145,8 +145,8 @@ public class SyntacticSugar {
      * field accesses.
      *
      * <pre>
-     * forFields((name, value) -> writer.write(name, value))
-     * mapFields((name, value) -> reader.read(name, value))
+     * wurstForFields((name, value) -> writer.write(name, value))
+     * wurstMapFields((name, value) -> reader.read(name, value))
      * </pre>
      */
     private List<DeferredModuleCall> expandFieldIterationsInTree(CompilationUnit root) {
@@ -204,7 +204,7 @@ public class SyntacticSugar {
             return;
         }
         if (!assignsResult && !(closure.getImplementation() instanceof WStatement)) {
-            call.addError("forFields closure must produce a statement expression.");
+            call.addError(call.getFuncName() + " closure must produce a statement expression.");
             return;
         }
         ClassDef classDef = null;
@@ -238,7 +238,8 @@ public class SyntacticSugar {
                     if (!(target instanceof ExprVarAccess targetAccess)) {
                         statements.remove(targetVariable);
                         statements.clearAttributes();
-                        call.addError("mapFields tuple target must be a variable so updates can be written back exactly once.");
+                        call.addError(call.getFuncName()
+                            + " tuple target must be a variable so updates can be written back exactly once.");
                         return;
                     }
                     statements.remove(targetVariable);
