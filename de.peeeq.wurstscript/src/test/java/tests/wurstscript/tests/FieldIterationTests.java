@@ -668,6 +668,38 @@ public class FieldIterationTests extends WurstScriptTest {
     }
 
     @Test
+    public void preservesSchemaIdNamedLocalInsideNestedClosure() {
+        test()
+            .testLua(true)
+            .luaOnly(false)
+            .executeProg()
+            .lines(
+                "package FieldIterationTest",
+                "    @annotation function annotation()",
+                "    @annotation function saveField(int id)",
+                "    native testSuccess()",
+                "    int total = 0",
+                "    interface Callback",
+                "        function run()",
+                "    function invoke(Callback callback)",
+                "        callback.run()",
+                "    class Data",
+                "        @saveField(7) int value = 1",
+                "        function save()",
+                "            forFields((id, name, fieldValue) -> invoke(() -> begin",
+                "                let id = 100",
+                "                total += id",
+                "            end))",
+                "    init",
+                "        let data = new Data",
+                "        data.save()",
+                "        if total == 100",
+                "            testSuccess()",
+                "endpackage"
+            );
+    }
+
+    @Test
     public void keepsLoopBindingsInsideLoopBody() {
         test()
             .executeProg()

@@ -531,13 +531,17 @@ public class SyntacticSugar {
                 return shadowedScopes.stream().anyMatch(scope -> scope.contains(name));
             }
 
+            private boolean isCallbackParameter(String name) {
+                return (idParameter != null && name.equals(idParameter))
+                    || name.equals(nameParameter) || name.equals(valueParameter);
+            }
+
             @Override
             public void visit(WStatements statements) {
                 Set<String> blockBindings = new HashSet<>();
                 for (WStatement statement : statements) {
                     if (statement instanceof LocalVarDef localVarDef
-                        && (localVarDef.getName().equals(nameParameter)
-                            || localVarDef.getName().equals(valueParameter))) {
+                        && isCallbackParameter(localVarDef.getName())) {
                         blockBindings.add(localVarDef.getName());
                     }
                 }
@@ -603,8 +607,7 @@ public class SyntacticSugar {
             public void visit(LocalVarDef localVarDef) {
                 super.visit(localVarDef);
                 if (!shadowedScopes.isEmpty()
-                    && (localVarDef.getName().equals(nameParameter)
-                        || localVarDef.getName().equals(valueParameter))) {
+                    && isCallbackParameter(localVarDef.getName())) {
                     shadowedScopes.peek().add(localVarDef.getName());
                 }
             }
