@@ -499,6 +499,28 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         runFunc(globalState, f, trace, args);
     }
 
+    /**
+     * Runs a source-level function and returns its value.
+     *
+     * <p>Source functions which are parameterless may still have one hidden
+     * stacktrace parameter after translation. Keep the same calling convention
+     * as {@link #runVoidFunc(ImFunction, Element)} for that case.</p>
+     */
+    public ILconst runFunc(ImFunction f, @Nullable Element trace) {
+        globalState.resetStackframes();
+        if (f.getParameters().size() > 1) {
+            throw new IllegalArgumentException(
+                "expected a parameterless function with at most one hidden parameter, got "
+                    + f.getParameters().size() + " parameters for " + f.getName());
+        }
+        ILconst[] args = f.getParameters().isEmpty()
+            ? new ILconst[0]
+            : new ILconst[]{new ILconstString("initial call")};
+        LocalState state = runFunc(globalState, f, trace, args);
+        return Objects.requireNonNull(state.getReturnVal(),
+            "function " + f.getName() + " returned no value");
+    }
+
     public Element getLastStatement() {
         return globalState.getLastStatement();
     }

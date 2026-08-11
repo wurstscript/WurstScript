@@ -191,7 +191,10 @@ public class Main {
                     compiledScript = compilationProcess.doCompilation(null, true);
                 }
 
-                if (compiledScript != null) {
+                if (runArgs.isRunBenchmarks()) {
+                    // Benchmark workers write their JSON result during compilation;
+                    // a null script is the successful worker result, not a failure.
+                } else if (compiledScript != null) {
                     File scriptFile = new File("compiled.j.txt");
                     Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
                 }

@@ -946,6 +946,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
+            if (funcDef2.attrHasAnnotation("benchmark")) {
+                flags.add(IS_BENCHMARK);
+            }
         }
 
         // Check if last parameter is vararg
