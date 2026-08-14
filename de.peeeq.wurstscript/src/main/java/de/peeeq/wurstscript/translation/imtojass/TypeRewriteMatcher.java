@@ -57,9 +57,17 @@ public class TypeRewriteMatcher implements ImType.Matcher<ImType> {
     public ImType case_ImClassType(ImClassType t) {
         ImTypeArguments args = JassIm.ImTypeArguments();
         for (ImTypeArgument ta : t.getTypeArguments()) {
-            ImTypeArgument imTypeArgument = JassIm.ImTypeArgument(ta.getType().match(this), ta.getTypeClassBinding());
-            args.add(imTypeArgument);
+            args.add(rewriteTypeArgument(ta));
         }
         return JassIm.ImClassType(t.getClassDef(), args);
+    }
+
+    /**
+     * Rewrites one type argument. Only the type is rewritten by default, since a plain rewrite has
+     * nothing to say about what is known of the argument. Subclasses which do -- substitution, where
+     * the replacing argument carries its own binding -- override this.
+     */
+    protected ImTypeArgument rewriteTypeArgument(ImTypeArgument ta) {
+        return JassIm.ImTypeArgument(ta.getType().match(this), ta.getTypeClassBinding());
     }
 }

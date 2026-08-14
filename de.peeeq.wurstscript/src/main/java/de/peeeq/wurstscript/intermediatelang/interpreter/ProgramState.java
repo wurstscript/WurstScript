@@ -461,59 +461,6 @@ public class ProgramState extends State implements AutoCloseable {
     }
 
 
-    // Helper method to substitute type variables
-    private ImType substituteTypeVars(ImType type, Map<ImTypeVar, ImType> substitutions) {
-        return type.match(new ImType.Matcher<ImType>() {
-            @Override
-            public ImType case_ImTypeVarRef(ImTypeVarRef typeVarRef) {
-                ImType concrete = substitutions.get(typeVarRef.getTypeVariable());
-                return concrete != null ? concrete : typeVarRef;
-            }
-
-            @Override
-            public ImType case_ImClassType(ImClassType classType) {
-                // Recursively substitute in type arguments
-                ImTypeArguments newArgs = JassIm.ImTypeArguments();
-                for (ImTypeArgument arg : classType.getTypeArguments()) {
-                    ImType substituted = substituteTypeVars(arg.getType(), substitutions);
-                    newArgs.add(JassIm.ImTypeArgument(substituted, typeClassBindingFor(arg)));
-                }
-                return JassIm.ImClassType(classType.getClassDef(), newArgs);
-            }
-
-            // For other types, return as-is
-            @Override
-            public ImType case_ImSimpleType(ImSimpleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImVoid(ImVoid t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImAnyType(ImAnyType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                return t;
-            }
-        });
-    }
-
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
         WLogger.trace(() -> "pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));

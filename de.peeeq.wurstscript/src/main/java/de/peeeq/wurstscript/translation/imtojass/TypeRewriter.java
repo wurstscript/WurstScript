@@ -36,6 +36,16 @@ public class TypeRewriter {
             case ImTypeIdOfObj t -> t.setClazz((ImClassType) rewriteFunc.apply(t.getClazz()));
             case ImTypeIdOfClass t -> t.setClazz((ImClassType) rewriteFunc.apply(t.getClazz()));
             case ImMethod m -> m.setMethodClass((ImClassType) rewriteFunc.apply(m.getMethodClass()));
+            case ImTypeVarDispatch d -> {
+                // The dispatched type variable is a reference to a variable like any other, but it
+                // is held directly instead of as a type, so a walk over types alone passes it by.
+                // A closure capturing the type parameter it dispatches on has to rewrite it too,
+                // otherwise the lifted body still names a variable of the function it left.
+                ImType rewritten = rewriteFunc.apply(JassIm.ImTypeVarRef(d.getTypeVariable()));
+                if (rewritten instanceof ImTypeVarRef ref) {
+                    d.setTypeVariable(ref.getTypeVariable());
+                }
+            }
             case ImClass c -> {
                 List<ImClassType> newSuperClasses = new ArrayList<>();
                 for (ImClassType tt : c.getSuperClasses()) {

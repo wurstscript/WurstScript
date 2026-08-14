@@ -28,6 +28,18 @@
     An instance of `I` for type `X` may only be declared in the package declaring `I` or the one declaring
     `X`, and only once, so `I` for `X` means the same thing throughout a program regardless of imports.
 
+- A type class bound is now usable from inside a closure, so a bounded generic can hand work to one:
+
+        interface Producer
+            function produce() returns int
+
+        function indexLater<T: Indexable>(T x) returns Producer
+            return () -> T.toIndex(x)
+
+    Substituting a type variable now carries the instance chosen for it along with the type, rather than the
+    type alone, so lifting a body into a class of its own no longer loses it. Jass only for now: Lua reaches
+    such a class through its interface and still reports the bound as unresolvable there.
+
 - Added new pseudo-natives for debugging memory leaks:
 
         // returns the maximum type id, can be usd to
