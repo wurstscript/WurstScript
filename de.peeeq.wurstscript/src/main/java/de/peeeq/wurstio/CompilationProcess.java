@@ -85,7 +85,7 @@ public class CompilationProcess {
 
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
-                    () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout(), runArgs.getTestFilter()));
+                    () -> runTests(gui, compiler, runArgs));
         }
 
         timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(WurstProjectConfigData.empty(), isProd, false));
@@ -183,14 +183,15 @@ public class CompilationProcess {
         }
     }
 
-    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler, int testTimeout, Optional<String> testFilter) {
+    public static void runTests(WurstGui gui, WurstCompilerJassImpl compiler, RunArgs runArgs) {
+        ImTranslator translator = compiler.getImTranslator();
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
         if (!runArgs.isCompactOutput()) {
             System.out.println("Running tests");
         }
-        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter, runArgs.isCompactOutput()) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), runArgs.getTestTimeout(), runArgs.getTestFilter(), runArgs.isCompactOutput()) {
             @Override
             protected void print(String message) {
                 out.print(message);

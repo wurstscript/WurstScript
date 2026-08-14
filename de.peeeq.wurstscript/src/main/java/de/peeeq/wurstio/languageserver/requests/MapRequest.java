@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
+import de.peeeq.wurstio.CompilationProcess;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
@@ -170,6 +171,13 @@ public abstract class MapRequest extends UserRequest<Object> {
 
             if (gui.getErrorCount() > 0) {
                 throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            }
+
+            if (runArgs.isRunTests()) {
+                CompilationProcess.runTests(gui, compiler, runArgs);
+                if (gui.getErrorCount() > 0) {
+                    throw new RequestFailedException(MessageType.Error, "Could not compile project: tests failed.");
+                }
             }
 
             timeTaker.measure("Runinng Compiletime Functions", () -> compiler.runCompiletime(projectConfigData, isProd, runArgs.isCompiletimeCache()));
@@ -768,6 +776,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         CompilationResult result = compileScript(modelManager, gui, Optional.of(targetMapFile), projectConfig, buildDir, isProductionBuild());
         injectMapData(gui, Optional.of(targetMapFile), result);
+        writeRequestedScript(result);
 
         targetMapFile = ensureWritableBuildOutput(targetMapFile, true);
         java.nio.file.Files.copy(getCachedMapFile().toPath(), targetMapFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -785,6 +794,30 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         gui.sendProgress("Done.");
         return targetMapFile;
+    }
+
+    private void writeRequestedScript(CompilationResult result) throws IOException {
+        if (runArgs.getOutFile() == null || result.script == null) {
+            return;
+        }
+
+        String outputPath = runArgs.getOutFile();
+        File outputFile = new File(outputPath);
+        if (runArgs.isLua() && outputPath.toLowerCase(Locale.ROOT).endsWith(".j")) {
+            java.nio.file.Files.deleteIfExists(outputFile.toPath());
+            outputPath = outputPath.substring(0, outputPath.length() - 2) + ".lua";
+            outputFile = new File(outputPath);
+        }
+
+        File parent = outputFile.getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
+        }
+        java.nio.file.Files.copy(
+            result.script.toPath(),
+            outputFile.toPath(),
+            java.nio.file.StandardCopyOption.REPLACE_EXISTING
+        );
     }
 
     protected boolean isProductionBuild() {
