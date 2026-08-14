@@ -877,8 +877,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        if (containsGenericNewCall()) {
-            beginPhase(2, "Specialize generics for generic construction");
+        if (containsGenericNewCall() || containsTypeClassDispatch()) {
+            // Both operations need the concrete type argument, which erasure does not keep. Only
+            // the paths reaching them are specialised: the full elimination used for Jass is
+            // followed there by class elimination, and leaves state this backend cannot consume.
+            beginPhase(2, "Specialize generics for generic construction and type class dispatch");
             new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
             timeTaker.endPhase();
         }
@@ -969,6 +972,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return luaCode;
     }
 
+    /** Whether the program constructs a value of a type parameter, which needs its concrete type. */
     private boolean containsGenericNewCall() {
         boolean[] found = {false};
         getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
@@ -979,6 +983,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                     return;
                 }
                 super.visit(call);
+            }
+        });
+        return found[0];
+    }
+
+    /** Whether the program dispatches on a type class bound anywhere. */
+    private boolean containsTypeClassDispatch() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
             }
         });
         return found[0];

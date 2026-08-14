@@ -420,7 +420,7 @@ public class ProgramState extends State implements AutoCloseable {
                 boolean changed = false;
                 for (ImTypeArgument ta : ct.getTypeArguments()) {
                     ImType rt = resolveTypeDeep(ta.getType(), budget - 1);
-                    newArgs.add(JassIm.ImTypeArgument(rt, ta.getTypeClassBinding()));
+                    newArgs.add(JassIm.ImTypeArgument(rt, typeClassBindingFor(ta)));
                     changed |= (rt != ta.getType());
                 }
                 return changed ? JassIm.ImClassType(ct.getClassDef(), newArgs) : ct;
@@ -476,7 +476,7 @@ public class ProgramState extends State implements AutoCloseable {
                 ImTypeArguments newArgs = JassIm.ImTypeArguments();
                 for (ImTypeArgument arg : classType.getTypeArguments()) {
                     ImType substituted = substituteTypeVars(arg.getType(), substitutions);
-                    newArgs.add(JassIm.ImTypeArgument(substituted, arg.getTypeClassBinding()));
+                    newArgs.add(JassIm.ImTypeArgument(substituted, typeClassBindingFor(arg)));
                 }
                 return JassIm.ImClassType(classType.getClassDef(), newArgs);
             }
@@ -522,6 +522,51 @@ public class ProgramState extends State implements AutoCloseable {
             stmt = f;
         }
         lastStatements.push(stmt);
+    }
+
+    /**
+     * Type arguments of the frames currently on the stack. A type class dispatch on a parameter
+     * which the current frame received abstractly is answered from the frame which supplied it.
+     */
+    private final Deque<Map<ImTypeVar, ImTypeArgument>> typeArgumentFrames = new ArrayDeque<>();
+
+    public void pushTypeArguments(Map<ImTypeVar, ImTypeArgument> typeArguments) {
+        typeArgumentFrames.push(typeArguments);
+    }
+
+    public void popTypeArguments() {
+        if (!typeArgumentFrames.isEmpty()) {
+            typeArgumentFrames.pop();
+        }
+    }
+
+    public @Nullable ImTypeArgument getCurrentTypeArgument(ImTypeVar typeVar) {
+        for (Map<ImTypeVar, ImTypeArgument> frame : typeArgumentFrames) {
+            for (Map.Entry<ImTypeVar, ImTypeArgument> e : frame.entrySet()) {
+                // A class and its constructor hold separate nodes for the same source type
+                // parameter, so identity alone is not enough to find the binding.
+                boolean sameVar = e.getKey() == typeVar || e.getKey().getName().equals(typeVar.getName());
+                if (sameVar && !e.getValue().getTypeClassBinding().isEmpty()) {
+                    return e.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The type class binding for a type argument being resolved.
+     * <p>
+     * A class body refers to its own type variables, so the argument written there carries no
+     * binding. The frame which created the object was called with one, so take it from there;
+     * otherwise a bound on a generic class would have nothing to dispatch through.
+     */
+    private Map<ImTypeClassFunc, io.vavr.control.Either<ImMethod, ImFunction>> typeClassBindingFor(ImTypeArgument arg) {
+        if (!arg.getTypeClassBinding().isEmpty() || !(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg.getTypeClassBinding();
+        }
+        ImTypeArgument fromFrame = getCurrentTypeArgument(ref.getTypeVariable());
+        return fromFrame != null ? fromFrame.getTypeClassBinding() : arg.getTypeClassBinding();
     }
 
     public void popStackframe() {

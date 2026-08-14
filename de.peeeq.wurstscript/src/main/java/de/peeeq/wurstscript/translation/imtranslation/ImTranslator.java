@@ -1694,6 +1694,67 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return typeVariableReverse.get(tv);
     }
 
+    /**
+     * The signature node standing for one type class requirement.
+     * <p>
+     * Requirements are shared across every use of the bound, so each interface method maps to
+     * exactly one node. Dispatch sites reference it, and each type argument carries the concrete
+     * implementation bound to it, which is what lets generic elimination turn a dispatch into a
+     * direct call.
+     */
+    public ImTypeClassFunc getTypeClassFunc(FuncDef method) {
+        return typeClassFuncs.computeIfAbsent(method, m -> {
+            ImTypeClassFunc result = JassIm.ImTypeClassFunc(m, m.getName(), JassIm.ImTypeVars(),
+                    JassIm.ImVars(), m.attrReturnTyp().imTranslateType(this));
+            imProg.getTypeClassFunctions().add(result);
+            return result;
+        });
+    }
+
+    private final Map<FuncDef, ImTypeClassFunc> typeClassFuncs = new LinkedHashMap<>();
+
+    /**
+     * Every type class implementation in the program, held per requirement against the type it is
+     * for.
+     * <p>
+     * A type argument can carry its instances directly, but that binding lives on the argument
+     * position and is lost as soon as a type variable is substituted into a plain type, which is
+     * what happens when a generic class type travels through a return type or a receiver. Instance
+     * selection is static, so recording the type is enough to recover it.
+     * <p>
+     * Matched by structural type equality rather than by printed name: a class prints as its simple
+     * name, so two classes of the same name in different packages would otherwise collide and the
+     * second would silently dispatch through the first. The lists hold one entry per instance of a
+     * requirement, so scanning them is cheaper than the printing it replaces.
+     */
+    private final Map<ImTypeClassFunc, List<TypeClassImpl>> typeClassImpls = new LinkedHashMap<>();
+
+    private record TypeClassImpl(ImType instanceType, ImFunction impl) {
+    }
+
+    public void registerTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType, ImFunction impl) {
+        List<TypeClassImpl> impls = typeClassImpls.computeIfAbsent(requirement, r -> new ArrayList<>());
+        for (TypeClassImpl existing : impls) {
+            if (existing.instanceType().equalsType(instanceType)) {
+                return;
+            }
+        }
+        impls.add(new TypeClassImpl(instanceType, impl));
+    }
+
+    public @Nullable ImFunction lookupTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType) {
+        List<TypeClassImpl> impls = typeClassImpls.get(requirement);
+        if (impls == null) {
+            return null;
+        }
+        for (TypeClassImpl candidate : impls) {
+            if (candidate.instanceType().equalsType(instanceType)) {
+                return candidate.impl();
+            }
+        }
+        return null;
+    }
+
     public ImTypeVar getTypeVar(TypeParamDef tp) {
         // If we're translating inside a captured class (Iterator), prefer its override
         for (Map<TypeParamDef, ImTypeVar> m : typeVarOverrideStack) {

@@ -196,7 +196,28 @@ public class LuaTranslator {
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
-    protected String uniqueName(String name) {
+    /**
+     * Makes an intermediate-language name usable as a Lua identifier.
+     * <p>
+     * Names from the IM are not constrained to Lua's identifier syntax; specialised generics, for
+     * example, are named after their type arguments. Sanitising here keeps that rule where it
+     * belongs, in the backend, rather than requiring every earlier pass to know about Lua. Any
+     * collisions the mapping introduces are resolved by the usual uniquing.
+     */
+    private static String toLuaIdentifier(String name) {
+        StringBuilder sb = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            sb.append(c == '_' || Character.isLetterOrDigit(c) && c < 128 ? c : '_');
+        }
+        if (sb.length() == 0 || Character.isDigit(sb.charAt(0))) {
+            sb.insert(0, '_');
+        }
+        return sb.toString();
+    }
+
+    protected String uniqueName(String rawName) {
+        String name = toLuaIdentifier(rawName);
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);

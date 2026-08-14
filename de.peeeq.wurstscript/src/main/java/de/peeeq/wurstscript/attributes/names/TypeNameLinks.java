@@ -39,6 +39,11 @@ public class TypeNameLinks {
         return ImmutableMultimap.of();
     }
 
+    /** v1 type class instances have no type parameters of their own. */
+    public static ImmutableMultimap<String, TypeLink> calculate(InstanceDecl i) {
+        return ImmutableMultimap.of();
+    }
+
     public static ImmutableMultimap<String, TypeLink> calculate(InterfaceDef i) {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
         addTypeParametersIfAny(result, i);

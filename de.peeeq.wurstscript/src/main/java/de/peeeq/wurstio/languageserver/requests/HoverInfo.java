@@ -7,6 +7,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrWurstDoc;
+import de.peeeq.wurstscript.attributes.DescriptionHtml;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.TriviaIndex;
@@ -401,6 +402,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_InterfaceDef(InterfaceDef interfaceDef) {
             return description(interfaceDef);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_InstanceDecl(InstanceDecl instanceDecl) {
+            return string(DescriptionHtml.description(instanceDecl));
         }
 
         @Override

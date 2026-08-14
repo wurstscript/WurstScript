@@ -48,6 +48,132 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
+    /**
+     * Records the call's type arguments against the callee's type variables, so that a type class
+     * dispatch inside the body can find the instance chosen at the call site. Only relevant when
+     * interpreting a program which still has generics.
+     */
+    private static void bindTypeArguments(ProgramState globalState, LocalState localState, ImFunction f,
+                                          @Nullable Element caller, ILconst[] args) {
+        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
+
+        // A bound may belong to the owning class rather than to the method, as in
+        // class Box<T: Show>. The receiver carries the arguments the class was created with.
+        if (args.length > 0 && args[0] instanceof ILconstObject receiver) {
+            bindClassTypeArguments(globalState, binding, receiver.getType(),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        }
+
+        ImTypeArguments typeArgs = null;
+        if (caller instanceof ImFunctionCall call) {
+            typeArgs = call.getTypeArguments();
+        } else if (caller instanceof ImMethodCall call) {
+            typeArgs = call.getTypeArguments();
+        }
+        if (typeArgs != null) {
+            List<ImTypeVar> typeVars = f.getTypeVariables();
+            for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
+                binding.putIfAbsent(typeVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+            }
+            // A generic class holds its type variables on the class, not on its functions, so a
+            // constructor is called with arguments it has no variable of its own to bind. Only do
+            // this when the function has no type parameters, because then the arguments are the
+            // class's; a method with its own parameters is called with those instead, and the
+            // class's mapping already came from the receiver, which must not be overwritten.
+            if (typeVars.isEmpty()) {
+                ImClass owner = owningClass(f);
+                if (owner != null) {
+                    ImTypeVars classVars = owner.getTypeVariables();
+                    for (int i = 0; i < Math.min(classVars.size(), typeArgs.size()); i++) {
+                        binding.putIfAbsent(classVars.get(i),
+                            inheritIfStillAbstract(globalState, typeArgs.get(i)));
+                    }
+                }
+            }
+        }
+
+        if (!binding.isEmpty()) {
+            localState.setTypeArguments(binding);
+        }
+    }
+
+    /**
+     * Binds the type variables of the receiver's class and of every class it inherits from.
+     * <p>
+     * A subclass may fix its parent's parameter, as in {@code class Child extends Parent<int>}.
+     * The bound then belongs to {@code Parent}, while the receiver is a {@code Child} carrying no
+     * arguments of its own, so the supertype chain is where the concrete type is recorded.
+     */
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClassType classType, Set<ImClass> visited) {
+        bindClassTypeArguments(globalState, binding, classType.getClassDef(),
+            new ArrayList<>(classType.getTypeArguments()), visited);
+    }
+
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClass classDef, List<ImTypeArgument> classArgs,
+                                               Set<ImClass> visited) {
+        if (!visited.add(classDef)) {
+            return;
+        }
+        ImTypeVars classVars = classDef.getTypeVariables();
+        for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
+            binding.putIfAbsent(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            // A subclass may forward its own parameter, as in class Child<U: Show> extends
+            // Parent<U>. The supertype is written in terms of the subclass's variables, so resolve
+            // them against what this class was instantiated with before descending.
+            List<ImTypeArgument> superArgs = new ArrayList<>();
+            for (ImTypeArgument superArg : superType.getTypeArguments()) {
+                superArgs.add(resolveAgainst(binding, superArg));
+            }
+            bindClassTypeArguments(globalState, binding, superType.getClassDef(), superArgs, visited);
+        }
+    }
+
+    /** Replaces a type argument that is still a variable by whatever that variable is bound to. */
+    private static ImTypeArgument resolveAgainst(Map<ImTypeVar, ImTypeArgument> binding,
+                                                 ImTypeArgument arg) {
+        if (!(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument known = binding.get(ref.getTypeVariable());
+        if (known == null) {
+            // One source type parameter can be several nodes, so fall back to the name.
+            for (Map.Entry<ImTypeVar, ImTypeArgument> e : binding.entrySet()) {
+                if (e.getKey().getName().equals(ref.getTypeVariable().getName())) {
+                    known = e.getValue();
+                    break;
+                }
+            }
+        }
+        return known != null ? known : arg;
+    }
+
+    private static @Nullable ImClass owningClass(ImFunction f) {
+        Element owner = f.getParent();
+        while (owner != null && !(owner instanceof ImClass)) {
+            owner = owner.getParent();
+        }
+        return (ImClass) owner;
+    }
+
+    /**
+     * When a bounded generic passes its own type parameter to another one, the inner call site
+     * carries no instance because the parameter is still abstract there. The caller's frame knows
+     * what it was called with, so take the argument from there.
+     */
+    private static ImTypeArgument inheritIfStillAbstract(ProgramState globalState, ImTypeArgument arg) {
+        if (!arg.getTypeClassBinding().isEmpty() || !(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument fromCaller = globalState.getCurrentTypeArgument(ref.getTypeVariable());
+        return fromCaller != null ? fromCaller : arg;
+    }
+
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
                                      ILconst... args) {
         if (Thread.currentThread().isInterrupted()) {
@@ -94,6 +220,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             for (int i = 0; i < f.getParameters().size(); i++) {
                 localState.setVal(f.getParameters().get(i), args[i]);
             }
+            bindTypeArguments(globalState, localState, f, caller, args);
 
             // --- stacktrace bookkeeping ---
             if (f.getBody().isEmpty()) {
@@ -217,6 +344,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             }
             WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
             globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
+            globalState.pushTypeArguments(localState.getTypeArguments());
 
             ILconst retVal = null;
             boolean didReturn = false;
@@ -233,6 +361,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;
             } finally {
+                globalState.popTypeArguments();
                 globalState.popStackframe();
             }
 

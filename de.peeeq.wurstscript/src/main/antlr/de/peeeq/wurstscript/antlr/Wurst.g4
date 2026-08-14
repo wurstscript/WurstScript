@@ -112,6 +112,7 @@ entity:
       | interfaceDef
       | tupleDef
       | extensionFuncDef
+      | instanceDef
 ;
 
 interfaceDef:
@@ -132,11 +133,16 @@ classDef:
             ENDBLOCK)?
         ;
 
-typeclassDef:
-    modifiersWithDoc 'typeclass' name=ID typeParams
-    ('extends' implemented+=typeExpr (',' implemented+=typeExpr)*)?
+// A type class instance: binds an interface to one concrete type, e.g.
+//    implements Indexable<vec2>
+//        function toIndex(vec2 v) returns int
+//            ...
+// This reuses the existing 'implements' keyword deliberately. Introducing a new one would
+// reserve a plausible identifier ('instance' is used as a local in the standard library).
+instanceDef:
+    modifiersWithDoc 'implements' implemented=typeExpr
     NL (STARTBLOCK
-       classSlots
+       methods+=funcDef*
     ENDBLOCK)?
     ;
 

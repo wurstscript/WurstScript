@@ -70,8 +70,14 @@ public class Flatten {
         return TUPLE_TEMP_VAR_NAMES[count % TUPLE_TEMP_VAR_NAMES.length];
     }
 
-    public static Result flatten(ImTypeVarDispatch imTypeVarDispatch, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("called too early");
+    /**
+     * A type class dispatch behaves like a call: only its arguments need flattening. The dispatch
+     * itself survives until generic elimination replaces it with a direct call.
+     */
+    public static Result flatten(ImTypeVarDispatch e, ImTranslator t, ImFunction f) {
+        MultiResult r = flattenExprs(t, f, e.getArguments());
+        return new Result(r.stmts,
+            ImTypeVarDispatch(e.getTrace(), e.getTypeClassFunc(), ImExprs(r.exprs), e.getTypeVariable()));
     }
 
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {

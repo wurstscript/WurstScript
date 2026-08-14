@@ -199,9 +199,40 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
-        ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-        // TODO add type class binding
-        return JassIm.ImTypeArgument(t, typeClassBinding);
+        return JassIm.ImTypeArgument(imTranslateType(tr), imTypeClassBinding(tr));
+    }
+
+    /**
+     * Binds every requirement of this type parameter's bounds to the function supplied by the
+     * instance chosen for the type it is bound to.
+     * <p>
+     * Used for both function and class type arguments, so that a bound on a generic class works the
+     * same way as one on a generic function. Stays empty while the bound type is itself abstract:
+     * the enclosing generic is specialised first, and the binding is inherited at that point.
+     */
+    public Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> imTypeClassBinding(ImTranslator tr) {
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> binding = new HashMap<>();
+        List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(typeParamDef);
+        if (bounds.isEmpty()) {
+            return binding;
+        }
+        WurstType concrete = baseType.normalize();
+        if (concrete instanceof WurstTypeTypeParam || concrete instanceof WurstTypeBoundTypeParam) {
+            return binding;
+        }
+        for (InterfaceDef iface : bounds) {
+            InstanceDecl instance = TypeClassInstances.find(iface, concrete);
+            if (instance == null) {
+                // the validator reports the unsatisfied bound; do not fail translation as well
+                continue;
+            }
+            for (FuncDef requirement : iface.getMethods()) {
+                FuncDef impl = TypeClassInstances.findImplementation(instance, requirement, concrete);
+                if (impl != null) {
+                    binding.put(tr.getTypeClassFunc(requirement), Either.right(tr.getFuncFor(impl)));
+                }
+            }
+        }
+        return binding;
     }
 }

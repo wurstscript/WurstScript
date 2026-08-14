@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -489,8 +490,27 @@ public class EvaluateExpr {
 
 
     public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
-        // TODO store type arguments in localState with the required dispatch functions
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
+        mark(e, globalState);
+        ImTypeArgument typeArgument = localState.getTypeArgument(e.getTypeVariable());
+        if (typeArgument == null) {
+            throw new InterpreterException(e.attrTrace(),
+                "No type argument bound for " + e.getTypeVariable().getName()
+                    + ", so " + e.getTypeClassFunc().getName() + " cannot be dispatched.");
+        }
+        Either<ImMethod, ImFunction> impl = typeArgument.getTypeClassBinding().get(e.getTypeClassFunc());
+        if (impl == null) {
+            throw new InterpreterException(e.attrTrace(),
+                "No type class instance bound for " + e.getTypeClassFunc().getName()
+                    + " on type argument " + typeArgument.getType() + ".");
+        }
+        ImFunction target = impl.isRight() ? impl.get() : impl.getLeft().getImplementation();
+
+        ImExprs arguments = e.getArguments();
+        ILconst[] args = new ILconst[arguments.size()];
+        for (int i = 0; i < arguments.size(); i++) {
+            args[i] = arguments.get(i).evaluate(globalState, localState);
+        }
+        return ILInterpreter.runFunc(globalState, target, e, args).getReturnVal();
     }
 
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {

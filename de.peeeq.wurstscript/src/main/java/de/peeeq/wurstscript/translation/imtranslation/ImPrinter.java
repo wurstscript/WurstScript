@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -542,6 +544,21 @@ public class ImPrinter {
                     append(sb, ", ");
                 }
                 ta.getType().print(sb, indent);
+                // Show the type class instances travelling with the argument: whether they are
+                // present is the whole question when a bound fails to dispatch.
+                if (!ta.getTypeClassBinding().isEmpty()) {
+                    // Sorted: this printing reaches specialization names and so the emitted symbols,
+                    // which have to be identical for identical input. The binding is a hash map, so
+                    // its iteration order is not.
+                    List<String> requirements = new ArrayList<>();
+                    for (ImTypeClassFunc requirement : ta.getTypeClassBinding().keySet()) {
+                        requirements.add(requirement.getName());
+                    }
+                    Collections.sort(requirements);
+                    append(sb, "{");
+                    append(sb, String.join(", ", requirements));
+                    append(sb, "}");
+                }
                 first = false;
             }
             append(sb, ">");

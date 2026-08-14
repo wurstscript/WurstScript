@@ -115,6 +115,15 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
             }
 
             @Override
+            public void case_InstanceDecl(InstanceDecl instanceDecl) {
+                List<DocumentSymbol> children = new ArrayList<>();
+                add("implements " + instanceDecl.getImplementedInterface(), SymbolKind.Object, children);
+                for (FuncDef f : instanceDecl.getMethods()) {
+                    addSymbolsForEntity(children, f);
+                }
+            }
+
+            @Override
             public void case_InterfaceDef(InterfaceDef interfaceDef) {
                 String name = interfaceDef.getName();
                 List<DocumentSymbol> children = new ArrayList<>();
