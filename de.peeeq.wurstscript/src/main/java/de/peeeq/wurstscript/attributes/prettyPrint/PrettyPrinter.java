@@ -637,6 +637,20 @@ public class PrettyPrinter {
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
+    public static void prettyPrint(InstanceDecl e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
+        // InstanceDecl is not a Documentable (it has no name), so inline the printStuff steps:
+        printCommentsBefore(sb, e, indent);
+        printHotDoc(e.getModifiers(), spacer, sb, indent);
+        printIndent(sb, indent);
+        e.getModifiers().prettyPrint(spacer, sb, indent);
+        sb.append("instance");
+        spacer.addSpace(sb);
+        e.getImplementedInterface().prettyPrint(spacer, sb, indent);
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
+    }
+
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
         printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);

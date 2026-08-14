@@ -230,6 +230,11 @@ public class DescriptionHtml {
         return "An init block: This block is executed at map start";
     }
 
+    public static String description(InstanceDecl instanceDecl) {
+        return "A type class instance for " + instanceDecl.getImplementedInterface()
+                + ": it lets this type be used where that interface is required as a type bound.";
+    }
+
     public static @Nullable String description(
             IdentifierWithTypeParamDefs identifierWithTypeParamDefs) {
         return null;

@@ -149,6 +149,17 @@ public class TLDTranslation {
         // nothing to do, only translate module instantiations
     }
 
+    /**
+     * A type class instance contributes its methods as ordinary global functions. Constraint
+     * resolution happens in the frontend, so every use site already knows which function it
+     * needs and can call it directly.
+     */
+    public static void translate(InstanceDecl instanceDecl, ImTranslator translator) {
+        for (FuncDef method : instanceDecl.getMethods()) {
+            translate(method, translator);
+        }
+    }
+
     public static void translate(TypeParamDef typeParamDef, ImTranslator translator) {
         // not possible
         throw new Error("invalid AST");

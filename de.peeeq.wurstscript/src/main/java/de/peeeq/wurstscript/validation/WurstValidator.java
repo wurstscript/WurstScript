@@ -2813,6 +2813,11 @@ public class WurstValidator {
                 }
 
                 @Override
+                public void case_InstanceDecl(InstanceDecl instanceDecl) {
+                    check(VisibilityPublic.class);
+                }
+
+                @Override
                 public void case_TupleDef(TupleDef tupleDef) {
                     check(VisibilityPublic.class);
                 }

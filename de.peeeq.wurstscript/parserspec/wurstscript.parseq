@@ -36,6 +36,8 @@ WEntity =
 	| ModuleDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters,
 			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
+	// A type class instance: binds one interface to one concrete type.
+	| InstanceDecl(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr implementedInterface, FuncDefs methods)
 
 
 
@@ -287,6 +289,7 @@ WScope =
 	| WBlock
 	| WEntities
 	| ExprClosure
+	| InstanceDecl
 
 PackageOrGlobal = WPackage | CompilationUnit
 
@@ -315,7 +318,7 @@ Modifier =
 
 // ElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //ElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
-HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition | InstanceDecl
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
 AstElementWithFuncName = ExprFunctionCall | ExprMemberMethod | ExprFuncRef

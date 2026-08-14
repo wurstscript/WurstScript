@@ -19,6 +19,7 @@ public final class ModifiersUtil {
             case TupleDef t              -> t.getModifiers();
             case ExtensionFuncDef e      -> e.getModifiers();
             case TypeParamDef tp         -> tp.getModifiers();
+            case InstanceDecl id         -> id.getModifiers();
 
             // If HasModifier ever expands, the compiler will force you to handle new cases here.
             case EnumDef enumDef -> enumDef.getModifiers();

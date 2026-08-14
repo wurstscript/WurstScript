@@ -384,6 +384,8 @@ public class AntlrWurstParseTreeTransformer {
                 return transformTupleDef(e.tupleDef());
             } else if (e.extensionFuncDef() != null) {
                 return transformExtensionFuncDef(e.extensionFuncDef());
+            } else if (e.instanceDef() != null) {
+                return transformInstanceDef(e.instanceDef());
             }
 
             if (e.exception != null) {
@@ -395,6 +397,17 @@ public class AntlrWurstParseTreeTransformer {
             WLogger.warning("Error transforming entity in line " + line(e), npe);
             return null;
         }
+    }
+
+    private WEntity transformInstanceDef(InstanceDefContext i) {
+        WPos src = source(i);
+        Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
+        TypeExpr implemented = transformTypeExpr(i.implemented);
+        FuncDefs methods = Ast.FuncDefs();
+        for (FuncDefContext m : i.methods) {
+            methods.add(transformFuncDef(m));
+        }
+        return Ast.InstanceDecl(src, modifiers, implemented, methods);
     }
 
     private WEntity transformExtensionFuncDef(ExtensionFuncDefContext f) {

@@ -96,6 +96,16 @@ public class NameLinks {
         }
     }
 
+    /**
+     * A type class instance only defines the functions written in its body. The instance methods
+     * are not inherited by anything, so no super-scope merging is required here.
+     */
+    public static ImmutableMultimap<String, DefLink> calculate(InstanceDecl i) {
+        Multimap<String, DefLink> result = HashMultimap.create();
+        addDefinedNames(result, i, i.getMethods());
+        return ImmutableMultimap.copyOf(result);
+    }
+
     public static ImmutableMultimap<String, DefLink> calculate(InterfaceDef i) {
         Multimap<String, DefLink> result = HashMultimap.create();
         addDefinedNames(result, i, i.getMethods());
