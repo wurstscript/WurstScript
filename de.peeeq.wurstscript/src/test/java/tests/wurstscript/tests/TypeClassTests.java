@@ -800,6 +800,53 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Two classes with the same simple name in different packages, dispatched through a bounded
+     * generic class so the lookup by type is the path used. Selecting by printed name made the
+     * second silently dispatch through the first's implementation.
+     */
+    @Test
+    public void sameSimpleNameThroughRegistryFallback() {
+        testAssertOkLines(true,
+            "package Iface",
+            "public interface Show<T:>",
+            "    function show(T x) returns string",
+            "public class Renderer<Q: Show>",
+            "    function render(Q x) returns string",
+            "        return Q.show(x)",
+            "endpackage",
+            "",
+            "package First",
+            "import public Iface",
+            "public class Item",
+            "implements Show<Item>",
+            "    function show(Item x) returns string",
+            "        return \"first\"",
+            "public function firstResult() returns string",
+            "    return new Renderer<Item>().render(new Item())",
+            "endpackage",
+            "",
+            "package Second",
+            "import public Iface",
+            "public class Item",
+            "implements Show<Item>",
+            "    function show(Item x) returns string",
+            "        return \"second\"",
+            "public function secondResult() returns string",
+            "    return new Renderer<Item>().render(new Item())",
+            "endpackage",
+            "",
+            "package test",
+            "import First",
+            "import Second",
+            "native testSuccess()",
+            "init",
+            "    if firstResult() == \"first\" and secondResult() == \"second\"",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {

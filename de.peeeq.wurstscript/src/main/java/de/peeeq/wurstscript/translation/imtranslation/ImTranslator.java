@@ -1714,29 +1714,45 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     private final Map<FuncDef, ImTypeClassFunc> typeClassFuncs = new LinkedHashMap<>();
 
     /**
-     * Every type class implementation in the program, keyed by requirement and the type it is for.
+     * Every type class implementation in the program, held per requirement against the type it is
+     * for.
      * <p>
      * A type argument can carry its instances directly, but that binding lives on the argument
      * position and is lost as soon as a type variable is substituted into a plain type, which is
      * what happens when a generic class type travels through a return type or a receiver. Instance
-     * selection is static, so keying on the concrete type is both simpler and robust: the type at a
-     * dispatch site is enough to find the implementation, however it got there.
+     * selection is static, so recording the type is enough to recover it.
+     * <p>
+     * Matched by structural type equality rather than by printed name: a class prints as its simple
+     * name, so two classes of the same name in different packages would otherwise collide and the
+     * second would silently dispatch through the first. The lists hold one entry per instance of a
+     * requirement, so scanning them is cheaper than the printing it replaces.
      */
-    private final Map<ImTypeClassFunc, Map<String, ImFunction>> typeClassImpls = new LinkedHashMap<>();
+    private final Map<ImTypeClassFunc, List<TypeClassImpl>> typeClassImpls = new LinkedHashMap<>();
+
+    private record TypeClassImpl(ImType instanceType, ImFunction impl) {
+    }
 
     public void registerTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType, ImFunction impl) {
-        typeClassImpls.computeIfAbsent(requirement, r -> new LinkedHashMap<>())
-                .putIfAbsent(typeClassKey(instanceType), impl);
+        List<TypeClassImpl> impls = typeClassImpls.computeIfAbsent(requirement, r -> new ArrayList<>());
+        for (TypeClassImpl existing : impls) {
+            if (existing.instanceType().equalsType(instanceType)) {
+                return;
+            }
+        }
+        impls.add(new TypeClassImpl(instanceType, impl));
     }
 
     public @Nullable ImFunction lookupTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType) {
-        Map<String, ImFunction> byType = typeClassImpls.get(requirement);
-        return byType == null ? null : byType.get(typeClassKey(instanceType));
-    }
-
-    /** Structural key for an instance type; concrete types print stably. */
-    private static String typeClassKey(ImType type) {
-        return type.toString();
+        List<TypeClassImpl> impls = typeClassImpls.get(requirement);
+        if (impls == null) {
+            return null;
+        }
+        for (TypeClassImpl candidate : impls) {
+            if (candidate.instanceType().equalsType(instanceType)) {
+                return candidate.impl();
+            }
+        }
+        return null;
     }
 
     public ImTypeVar getTypeVar(TypeParamDef tp) {
