@@ -1218,4 +1218,35 @@ public class FieldIterationTests extends WurstScriptTest {
                 "endpackage"
             );
     }
+
+    /**
+     * A generic-construction method called straight on a freshly constructed receiver. The
+     * receiver's declared type is still generic at that point, so specialization takes the
+     * instantiation from the construction rather than requiring a typed local.
+     */
+    @Test
+    public void genericConstructionOnFreshlyConstructedReceiver() {
+        test().testLua(true).executeProg().lines(
+            "package MagicFunctions",
+            "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+            "        return null",
+            "endpackage",
+            "",
+            "package FieldIterationTest",
+            "    import MagicFunctions",
+            "    native testSuccess()",
+            "",
+            "    class State",
+            "        int value = 7",
+            "",
+            "    class Loader<T:>",
+            "        function load() returns T",
+            "            return wurstNewInstance<T>()",
+            "",
+            "    init",
+            "        if new Loader<State>().load().value == 7",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
 }

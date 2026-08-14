@@ -330,8 +330,9 @@ of save formats, `ChunkedString`, hashes, or `Serializable`.
 * Do not promise Lua support for a method which combines type parameters from its owning generic class with
   independent method type parameters. Serialization loaders should be free generic functions, or class methods
   parameterized only by their owning class.
-* Do not require Lua specialization of generic-construction methods invoked directly on a freshly constructed
-  generic receiver. Use the free generic loader shape, or bind the receiver to a typed local first.
+* A method invoked directly on a freshly constructed generic receiver is supported on Lua. The receiver's
+  declared type is still generic at that point, so specialization takes the instantiation from the construction.
+  Binding the receiver to a typed local first is no longer required.
 * Lua generic-construction dispatch through multi-parameter generic interfaces is outside the supported loader
   shape. The supported generic loader has a single construction type parameter.
 * Do not call `wurstNewInstance<T>()` from the constructor of a generic class. Construct the simple state object in the
