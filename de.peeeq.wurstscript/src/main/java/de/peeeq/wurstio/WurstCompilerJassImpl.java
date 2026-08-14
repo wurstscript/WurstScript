@@ -877,8 +877,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        if (containsGenericNewCall()) {
-            beginPhase(2, "Specialize generics for generic construction");
+        if (needsGenericSpecialization()) {
+            beginPhase(2, "Specialize generics for generic construction and type class dispatch");
             new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
             timeTaker.endPhase();
         }
@@ -969,7 +969,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return luaCode;
     }
 
-    private boolean containsGenericNewCall() {
+    /**
+     * Whether the program uses an operation which needs the concrete type argument even on Lua,
+     * where generics are otherwise erased: constructing a value of a type parameter, or dispatching
+     * on a type class bound.
+     */
+    private boolean needsGenericSpecialization() {
         boolean[] found = {false};
         getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
@@ -979,6 +984,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                     return;
                 }
                 super.visit(call);
+            }
+
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
             }
         });
         return found[0];

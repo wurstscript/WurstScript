@@ -163,7 +163,7 @@ public class EliminateGenerics {
             return;
         }
         if (!call.getTypeArguments().isEmpty()
-            && functionContainsGenericNew(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            && functionNeedsSpecialization(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>()))) {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
@@ -172,7 +172,7 @@ public class EliminateGenerics {
 
     private void collectGenericNewUse(ImMethodCall call) {
         ImMethod method = call.getMethod();
-        if (!methodContainsGenericNew(method,
+        if (!methodNeedsSpecialization(method,
             Collections.newSetFromMap(new IdentityHashMap<>()),
             Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
@@ -195,12 +195,19 @@ public class EliminateGenerics {
         return false;
     }
 
-    private boolean functionContainsGenericNew(ImFunction function, Set<ImFunction> visited) {
-        return functionContainsGenericNew(function, visited,
+    private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visited) {
+        return functionNeedsSpecialization(function, visited,
             Collections.newSetFromMap(new IdentityHashMap<>()));
     }
 
-    private boolean functionContainsGenericNew(ImFunction function, Set<ImFunction> visitedFunctions,
+    /**
+     * Whether a function must be specialised even on Lua, which otherwise keeps generics erased.
+     * <p>
+     * Two operations need the concrete type argument: constructing a value of it, and dispatching
+     * on a type class bound. Specialising these paths keeps a bounded generic as cheap on Lua as it
+     * is on Jass, at the cost of one copy per instantiation actually used.
+     */
+    private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visitedFunctions,
                                                Set<ImMethod> visitedMethods) {
         if (!visitedFunctions.add(function)) {
             return false;
@@ -208,9 +215,14 @@ public class EliminateGenerics {
         boolean[] found = {false};
         function.accept(new Element.DefaultVisitor() {
             @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
+            }
+
+            @Override
             public void visit(ImFunctionCall call) {
                 if (translator.isGenericNewMarker(call.getFunc())
-                    || functionContainsGenericNew(call.getFunc(), visitedFunctions, visitedMethods)) {
+                    || functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -219,7 +231,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImMethodCall call) {
-                if (methodContainsGenericNew(call.getMethod(), visitedFunctions, visitedMethods)) {
+                if (methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
@@ -229,17 +241,17 @@ public class EliminateGenerics {
         return found[0];
     }
 
-    private boolean methodContainsGenericNew(ImMethod method, Set<ImFunction> visitedFunctions,
+    private boolean methodNeedsSpecialization(ImMethod method, Set<ImFunction> visitedFunctions,
                                              Set<ImMethod> visitedMethods) {
         if (!visitedMethods.add(method)) {
             return false;
         }
         if (method.getImplementation() != null
-            && functionContainsGenericNew(method.getImplementation(), visitedFunctions, visitedMethods)) {
+            && functionNeedsSpecialization(method.getImplementation(), visitedFunctions, visitedMethods)) {
             return true;
         }
         for (ImMethod subMethod : method.getSubMethods()) {
-            if (methodContainsGenericNew(subMethod, visitedFunctions, visitedMethods)) {
+            if (methodNeedsSpecialization(subMethod, visitedFunctions, visitedMethods)) {
                 return true;
             }
         }
