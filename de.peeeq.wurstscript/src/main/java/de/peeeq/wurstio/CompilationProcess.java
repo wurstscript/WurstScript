@@ -12,13 +12,16 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -87,30 +90,48 @@ public class CompilationProcess {
 
         timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(WurstProjectConfigData.empty(), isProd, false));
 
-        JassProg jassProg = timeTaker.measure("Transform program to Jass",
-            compiler::transformProgToJass);
+        CharSequence mapScript;
+        File outputMapscript;
+        if (runArgs.isLua()) {
+            LuaCompilationUnit luaCode = timeTaker.measure("Transform program to Lua",
+                compiler::transformProgToLua);
+            if (luaCode == null || gui.getErrorCount() > 0) {
+                return null;
+            }
 
-        if (jassProg == null || gui.getErrorCount() > 0) {
-            return null;
-        }
+            gui.sendProgress("Printing Lua");
+            StringBuilder luaOutput = new StringBuilder();
+            timeTaker.measure("Print Lua", () -> luaCode.print(luaOutput, 0));
+            mapScript = luaOutput;
+            LuaTranslator.assertNoLeakedHashtableNativeCalls(mapScript.toString());
+            LuaTranslator.assertNoLeakedGetHandleIdCalls(mapScript.toString());
+            CharSequence compiledLua = mapScript;
+            outputMapscript = timeTaker.measure("Write Lua",
+                () -> writeMapscript(compiledLua));
+        } else {
+            JassProg jassProg = timeTaker.measure("Transform program to Jass",
+                compiler::transformProgToJass);
 
-        boolean withSpace;
-        withSpace = !runArgs.isOptimize();
+            if (jassProg == null || gui.getErrorCount() > 0) {
+                return null;
+            }
 
-        gui.sendProgress("Printing Jass");
+            boolean withSpace = !runArgs.isOptimize();
+            gui.sendProgress("Printing Jass");
 
-        JassPrinter printer = new JassPrinter(withSpace, jassProg);
-        CharSequence mapScript = timeTaker.measure("Print Jass",
-            (Supplier<String>) printer::printProg);
+            JassPrinter printer = new JassPrinter(withSpace, jassProg);
+            mapScript = timeTaker.measure("Print Jass",
+                (Supplier<String>) printer::printProg);
 
-        // output to file
-        File outputMapscript = timeTaker.measure("Print Jass",
-                () -> writeMapscript(mapScript));
+            CharSequence compiledJass = mapScript;
+            outputMapscript = timeTaker.measure("Write Jass",
+                () -> writeMapscript(compiledJass));
 
-        if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
-            boolean pjassError = timeTaker.measure("Run PJass",
+            if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
+                boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
-            if (pjassError) return null;
+                if (pjassError) return null;
+            }
         }
         timeTaker.printReport();
         return mapScript;
@@ -140,9 +161,13 @@ public class CompilationProcess {
         gui.sendProgress("Writing output file");
         File outputMapscript;
         if (runArgs.getOutFile() != null) {
-            outputMapscript = new File(runArgs.getOutFile());
+            String outputPath = runArgs.getOutFile();
+            if (runArgs.isLua() && outputPath.toLowerCase(Locale.ROOT).endsWith(".j")) {
+                outputPath = outputPath.substring(0, outputPath.length() - 2) + ".lua";
+            }
+            outputMapscript = new File(outputPath);
         } else {
-            outputMapscript = new File("./temp/output.j");
+            outputMapscript = new File("./temp/output." + (runArgs.isLua() ? "lua" : "j"));
         }
         outputMapscript.getParentFile().mkdirs();
         try {

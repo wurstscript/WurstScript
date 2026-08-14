@@ -181,9 +181,16 @@ public class Main {
                         compiledScript = compilationProcess.doCompilation(mpqEditor, projectFolder, true);
                         if (compiledScript != null) {
                             gui.sendProgress("Writing to map");
-                            mpqEditor.deleteFile("war3map.j");
-                            byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
-                            mpqEditor.insertFile("war3map.j", war3map);
+                            String mapScriptName = compileArgs.isLua() ? "war3map.lua" : "war3map.j";
+                            if (compileArgs.isLua()) {
+                                mpqEditor.deleteFile("war3map.j");
+                                mpqEditor.deleteFile("scripts\\war3map.j");
+                            } else {
+                                mpqEditor.deleteFile("war3map.lua");
+                                mpqEditor.deleteFile("scripts\\war3map.lua");
+                            }
+                            byte[] mapScript = compiledScript.toString().getBytes(Charsets.UTF_8);
+                            mpqEditor.insertFile(mapScriptName, mapScript);
                         }
                         ImportFile.importFilesFromImports(projectFolder, mpqEditor);
                     }
@@ -192,7 +199,7 @@ public class Main {
                 }
 
                 if (compiledScript != null) {
-                    File scriptFile = new File("compiled.j.txt");
+                    File scriptFile = new File(compileArgs.isLua() ? "compiled.lua.txt" : "compiled.j.txt");
                     Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
                 }
 
