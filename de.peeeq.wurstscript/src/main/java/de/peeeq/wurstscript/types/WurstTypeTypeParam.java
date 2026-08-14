@@ -98,11 +98,18 @@ public class WurstTypeTypeParam extends WurstType {
         if (!staticRef) {
             return;
         }
+        // Bounds are ordered, and an earlier one wins: two bounds may require the same operation,
+        // and offering both would make every call to it ambiguous rather than simply choosing.
         for (InterfaceDef bound : TypeClassConstraints.boundInterfaces(def)) {
+            boolean found = false;
             for (FuncDef method : bound.getMethods()) {
                 if (method.getName().equals(name)) {
                     result.add(requirementLink(node, bound, method));
+                    found = true;
                 }
+            }
+            if (found) {
+                return;
             }
         }
     }

@@ -128,6 +128,45 @@ public class EliminateGenerics {
         }
         eliminateRemainingGenericNewCalls();
         assertNoReachableGenericNewMarkers();
+        settleRemainingDispatches();
+    }
+
+    /**
+     * Deals with the dispatches left after targeted specialization.
+     * <p>
+     * A function that has a specialization is dead: every reachable call to it was rewritten to
+     * that specialization, so a dispatch still sitting in the original can never run. This backend
+     * keeps generics rather than removing them wholesale, so those originals are still translated,
+     * and a dispatch would reach a backend with no way to express it. Such a dispatch is replaced by
+     * the default value of its type.
+     * <p>
+     * A dispatch in a function that was never specialized is a different matter: it would run, and
+     * nothing has supplied the concrete type. That is reported rather than quietly defaulted.
+     */
+    private void settleRemainingDispatches() {
+        List<ImTypeVarDispatch> remaining = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                super.visit(dispatch);
+                remaining.add(dispatch);
+            }
+        });
+        for (ImTypeVarDispatch dispatch : remaining) {
+            ImFunction owner = dispatch.getNearestFunc();
+            if (owner != null && specializedFunctions.containsRow(owner)) {
+                dispatch.replaceBy(defaultValueFor(dispatch.getTypeClassFunc().getReturnType()));
+                continue;
+            }
+            throw new CompileError(dispatch.attrTrace().attrSource(),
+                "Type class dispatch of " + dispatch.getTypeClassFunc().getName()
+                    + " could not be resolved for this target: the concrete type is not available"
+                    + " where it is used.");
+        }
+    }
+
+    private static ImExpr defaultValueFor(ImType type) {
+        return JassIm.ImNull(type.copy());
     }
 
 
@@ -271,7 +310,7 @@ public class EliminateGenerics {
                 // Constructing a class whose methods dispatch has to be specialised as well:
                 // otherwise the constructor keeps a generic result type, and a method call on that
                 // result never becomes concrete enough to resolve.
-                if (classNeedsSpecialization(alloc.getClazz().getClassDef(), visitedFunctions, visitedMethods)) {
+                if (classNeedsSpecialization(alloc.getClazz().getClassDef())) {
                     found[0] = true;
                     return;
                 }
@@ -320,44 +359,59 @@ public class EliminateGenerics {
     /**
      * Whether constructing this class requires the concrete type argument, because one of its own
      * or inherited members dispatches on a type class bound.
+     * <p>
+     * Deliberately a property of the class alone, not of the path that asked. An earlier version
+     * threaded the caller's visited set through here and memoised the answer, so a query made while
+     * one of the class's own functions was already being visited recorded a negative result that
+     * then stood for every later query.
      */
-    private boolean classNeedsSpecialization(ImClass classDef, Set<ImFunction> visitedFunctions,
-                                             Set<ImMethod> visitedMethods) {
-        Boolean cached = classNeedsSpecialization.get(classDef);
+    private boolean classNeedsSpecialization(ImClass classDef) {
+        Boolean cached = classNeedsSpecializationCache.get(classDef);
         if (cached != null) {
-            // Already answered, or currently being answered: a class reached through its own
-            // members contributes nothing new to the decision.
             return cached;
         }
-        classNeedsSpecialization.put(classDef, false);
-        boolean result = false;
-        for (ImFunction f : classDef.getFunctions()) {
-            if (functionNeedsSpecialization(f, visitedFunctions, visitedMethods)) {
-                result = true;
-                break;
-            }
-        }
-        if (!result) {
-            for (ImMethod m : classDef.getMethods()) {
-                if (methodNeedsSpecialization(m, visitedFunctions, visitedMethods)) {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        if (!result) {
-            for (ImClassType superType : classDef.getSuperClasses()) {
-                if (classNeedsSpecialization(superType.getClassDef(), visitedFunctions, visitedMethods)) {
-                    result = true;
-                    break;
-                }
-            }
-        }
-        classNeedsSpecialization.put(classDef, result);
+        classNeedsSpecializationCache.put(classDef, false);
+        boolean result = classDispatchesOnBound(classDef,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+        classNeedsSpecializationCache.put(classDef, result);
         return result;
     }
 
-    private final Map<ImClass, Boolean> classNeedsSpecialization = new IdentityHashMap<>();
+    private boolean classDispatchesOnBound(ImClass classDef, Set<ImClass> visited) {
+        if (!visited.add(classDef)) {
+            return false;
+        }
+        for (ImFunction f : classDef.getFunctions()) {
+            if (containsDispatch(f)) {
+                return true;
+            }
+        }
+        for (ImMethod m : classDef.getMethods()) {
+            if (m.getImplementation() != null && containsDispatch(m.getImplementation())) {
+                return true;
+            }
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            if (classDispatchesOnBound(superType.getClassDef(), visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether this function body dispatches on a bound, without following calls out of it. */
+    private static boolean containsDispatch(ImFunction f) {
+        boolean[] found = {false};
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    private final Map<ImClass, Boolean> classNeedsSpecializationCache = new IdentityHashMap<>();
 
     private void assertNoReachableGenericNewMarkers() {
         prog.accept(new Element.DefaultVisitor() {

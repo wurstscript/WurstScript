@@ -847,6 +847,36 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Two bounds may require the same operation. Bounds are ordered and the earlier one wins,
+     * rather than every call to the shared operation becoming ambiguous.
+     */
+    @Test
+    public void duplicateRequirementAcrossBounds() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface First<T:>",
+            "    function show(T x) returns string",
+            "interface Second<T:>",
+            "    function other(T x) returns int",
+            "    function show(T x) returns string",
+            "implements First<int>",
+            "    function show(int x) returns string",
+            "        return \"first\"",
+            "implements Second<int>",
+            "    function other(int x) returns int",
+            "        return 1",
+            "    function show(int x) returns string",
+            "        return \"second\"",
+            "function render<Q: First and Second>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    if render(1) == \"first\"",
+            "        testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {
