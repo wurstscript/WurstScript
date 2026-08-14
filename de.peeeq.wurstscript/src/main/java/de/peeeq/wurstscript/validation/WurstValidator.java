@@ -405,6 +405,8 @@ public class WurstValidator {
                 checkConstructorsUnique((ClassOrModule) e);
             if (e instanceof InstanceDecl)
                 checkInstanceDecl((InstanceDecl) e);
+            if (e instanceof TypeParamDef)
+                checkTypeParamBounds((TypeParamDef) e);
             if (e instanceof StmtCall)
                 checkCallBounds((StmtCall) e);
             if (e instanceof CompilationUnit)
@@ -2600,16 +2602,51 @@ public class WurstValidator {
      * where the type argument is chosen so the message can name both.
      */
     private void checkBoundsSatisfied(Element location, TypeParamDef tp, WurstType typ) {
-        if (typ instanceof WurstTypeUnknown || typ instanceof WurstTypeTypeParam
-                || typ instanceof WurstTypeBoundTypeParam) {
-            // still abstract, or already broken: checked once it is bound to something concrete
+        List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(tp);
+        if (bounds.isEmpty() || typ instanceof WurstTypeUnknown) {
             return;
         }
-        for (InterfaceDef bound : TypeClassConstraints.boundInterfaces(tp)) {
-            if (TypeClassInstances.find(bound, typ) == null) {
-                location.addError("Type " + typ + " does not satisfy the bound " + tp.getName() + ": "
-                        + bound.getName() + ".\nDeclare 'implements " + bound.getName() + "<" + typ + ">' in the package of "
-                        + bound.getName() + " or of " + typ + ".");
+        WurstType normalized = typ.normalize();
+        TypeParamDef abstractArg = asTypeParam(normalized);
+        if (abstractArg != null) {
+            // The argument is another type parameter, so no instance exists yet. It can only supply
+            // the bound if it declares it itself; otherwise the call is unsatisfiable no matter what
+            // the outer generic is later instantiated with.
+            for (InterfaceDef bound : bounds) {
+                if (!TypeClassConstraints.boundInterfaces(abstractArg).contains(bound)) {
+                    location.addError("Type parameter " + abstractArg.getName() + " does not satisfy the bound "
+                            + tp.getName() + ": " + bound.getName() + ".\nAdd the bound to " + abstractArg.getName()
+                            + ", as in <" + abstractArg.getName() + ": " + bound.getName() + ">.");
+                }
+            }
+            return;
+        }
+        for (InterfaceDef bound : bounds) {
+            if (TypeClassInstances.find(bound, normalized) == null) {
+                location.addError("Type " + normalized + " does not satisfy the bound " + tp.getName() + ": "
+                        + bound.getName() + ".\nDeclare 'implements " + bound.getName() + "<" + normalized
+                        + ">' in the package of " + bound.getName() + " or of " + normalized + ".");
+            }
+        }
+    }
+
+    /** The type parameter this type stands for, when it is still abstract. */
+    private static @Nullable TypeParamDef asTypeParam(WurstType typ) {
+        if (typ instanceof WurstTypeTypeParam tp) {
+            return tp.getDef();
+        }
+        if (typ instanceof WurstTypeBoundTypeParam bound) {
+            return asTypeParam(bound.getBaseType().normalize());
+        }
+        return null;
+    }
+
+    /** Every bound written on a type parameter must be usable as a type class. */
+    private void checkTypeParamBounds(TypeParamDef tp) {
+        for (TypeExpr boundExpr : TypeClassConstraints.boundExprs(tp)) {
+            String reason = TypeClassConstraints.invalidBoundReason(boundExpr);
+            if (reason != null) {
+                boundExpr.addError("Invalid bound on type parameter " + tp.getName() + ": " + reason);
             }
         }
     }
@@ -2637,9 +2674,15 @@ public class WurstValidator {
             return;
         }
 
+        if (!iface.getExtendsList().isEmpty()) {
+            decl.addError("Interface " + iface.getName() + " extends another interface, which is not supported"
+                    + " for type classes: the requirements of a bound are the interface's own functions.");
+            return;
+        }
+
         checkInstanceIsNotOrphan(decl, iface, instanceType);
         checkInstanceIsUnique(decl, iface, instanceType);
-        checkInstanceIsComplete(decl, iface);
+        checkInstanceIsComplete(decl, iface, instanceType);
     }
 
     private void checkInstanceIsNotOrphan(InstanceDecl decl, InterfaceDef iface, WurstType instanceType) {
@@ -2673,17 +2716,24 @@ public class WurstValidator {
         }
     }
 
-    private void checkInstanceIsComplete(InstanceDecl decl, InterfaceDef iface) {
+    private void checkInstanceIsComplete(InstanceDecl decl, InterfaceDef iface, WurstType instanceType) {
+        // The requirement is written in terms of the interface's type parameter, so compare against
+        // it with that parameter replaced by the type this instance is for.
+        TypeParamDef ifaceParam = iface.getTypeParameters().get(0);
+        VariableBinding binding = VariableBinding.emptyMapping()
+                .set(ifaceParam, new WurstTypeBoundTypeParam(ifaceParam, instanceType, decl));
+
         StringBuilder missing = new StringBuilder();
         for (FuncDef requirement : iface.getMethods()) {
             int found = 0;
             for (FuncDef provided : decl.getMethods()) {
                 if (provided.getName().equals(requirement.getName())) {
                     found++;
+                    checkInstanceMethodSignature(provided, requirement, binding, iface);
                 }
             }
             if (found == 0) {
-                missing.append("\n    ").append(requirement.getName());
+                missing.append("\n    ").append(requirementTemplate(requirement, binding, decl));
             } else if (found > 1) {
                 decl.addError("This instance defines " + requirement.getName() + " more than once.");
             }
@@ -2704,6 +2754,61 @@ public class WurstValidator {
                         + ", so it cannot be defined in this instance.");
             }
         }
+    }
+
+    /**
+     * An instance method must match its requirement exactly once the interface's type parameter is
+     * replaced by the instance type. Matching on the name alone would let a wrongly typed
+     * implementation be selected and emitted, which the backend cannot catch.
+     */
+    private void checkInstanceMethodSignature(FuncDef provided, FuncDef requirement,
+                                              VariableBinding binding, InterfaceDef iface) {
+        List<WurstType> expectedParams = new ArrayList<>();
+        for (WParameter p : requirement.getParameters()) {
+            expectedParams.add(p.attrTyp().setTypeArgs(binding));
+        }
+        if (provided.getParameters().size() != expectedParams.size()) {
+            provided.addError(provided.getName() + " must take " + expectedParams.size()
+                    + " parameter(s) to implement " + iface.getName() + "."
+                    + "\nExpected: " + signatureText(requirement, binding));
+            return;
+        }
+        for (int i = 0; i < expectedParams.size(); i++) {
+            WParameter actual = provided.getParameters().get(i);
+            WurstType expected = expectedParams.get(i);
+            if (!actual.attrTyp().equalsType(expected, actual)) {
+                actual.addError("Parameter " + actual.getName() + " should have type " + expected
+                        + " to implement " + iface.getName() + "." + provided.getName() + ", but has "
+                        + actual.attrTyp() + ".");
+            }
+        }
+        WurstType expectedReturn = requirement.attrReturnTyp().setTypeArgs(binding);
+        if (!provided.attrReturnTyp().equalsType(expectedReturn, provided)) {
+            provided.addError(provided.getName() + " should return " + expectedReturn + " to implement "
+                    + iface.getName() + ", but returns " + provided.attrReturnTyp() + ".");
+        }
+    }
+
+    private String requirementTemplate(FuncDef requirement, VariableBinding binding, Element context) {
+        return signatureText(requirement, binding);
+    }
+
+    private String signatureText(FuncDef requirement, VariableBinding binding) {
+        StringBuilder sb = new StringBuilder("function ").append(requirement.getName()).append("(");
+        boolean first = true;
+        for (WParameter p : requirement.getParameters()) {
+            if (!first) {
+                sb.append(", ");
+            }
+            first = false;
+            sb.append(p.attrTyp().setTypeArgs(binding)).append(" ").append(p.getName());
+        }
+        sb.append(")");
+        WurstType returnType = requirement.attrReturnTyp().setTypeArgs(binding);
+        if (!(returnType instanceof WurstTypeVoid)) {
+            sb.append(" returns ").append(returnType);
+        }
+        return sb.toString();
     }
 
     private void checkFuncRef(FuncRef ref) {

@@ -21,8 +21,8 @@ public final class TypeClassConstraints {
 
     /**
      * The interfaces named as bounds of the given type parameter, in source order.
-     * Bounds which do not resolve to a single-parameter interface are skipped here; the validator
-     * reports those separately so that a bad bound does not cascade into every use site.
+     * Unusable bounds are skipped; {@link #invalidBoundReason} explains why, and the validator
+     * reports it at the bound itself so a bad bound does not cascade into every use site.
      */
     public static List<InterfaceDef> boundInterfaces(TypeParamDef tp) {
         List<TypeExpr> exprs = boundExprs(tp);
@@ -58,22 +58,49 @@ public final class TypeClassConstraints {
      * plain reference to a single-parameter interface.
      */
     public static @Nullable InterfaceDef resolveBound(TypeExpr boundExpr) {
+        return invalidBoundReason(boundExpr) == null ? namedInterface(boundExpr) : null;
+    }
+
+    /**
+     * Explains why a bound cannot be used as a type class, or null when it is usable.
+     * <p>
+     * A bound must name an interface, unapplied, with exactly one type parameter, and that
+     * interface must not extend another. The last restriction keeps the set of requirements equal
+     * to the interface's own methods, so an instance cannot silently miss an inherited one.
+     */
+    public static @Nullable String invalidBoundReason(TypeExpr boundExpr) {
         if (!(boundExpr instanceof TypeExprSimple simple)) {
-            return null;
+            return "A bound must name an interface.";
         }
         // A bound names the interface unapplied: writing the type argument would be redundant,
         // because it is always the type parameter being constrained.
         if (!simple.getTypeArgs().isEmpty()) {
-            return null;
+            return "A bound must name the interface without type arguments, because the argument is"
+                    + " always the type parameter being constrained.";
         }
         TypeDef def = boundExpr.lookupType(simple.getTypeName(), false);
+        if (def == null) {
+            return "Could not find " + simple.getTypeName() + ".";
+        }
         if (!(def instanceof InterfaceDef i)) {
-            return null;
+            return simple.getTypeName() + " is not an interface, so it cannot be used as a bound.";
         }
         if (i.getTypeParameters().size() != 1) {
+            return i.getName() + " must have exactly one type parameter to be used as a bound, but has "
+                    + i.getTypeParameters().size() + ".";
+        }
+        if (!i.getExtendsList().isEmpty()) {
+            return i.getName() + " extends another interface, which is not supported for bounds:"
+                    + " the requirements of a bound are the interface's own functions.";
+        }
+        return null;
+    }
+
+    private static @Nullable InterfaceDef namedInterface(TypeExpr boundExpr) {
+        if (!(boundExpr instanceof TypeExprSimple simple)) {
             return null;
         }
-        return i;
+        return boundExpr.lookupType(simple.getTypeName(), false) instanceof InterfaceDef i ? i : null;
     }
 
     /**

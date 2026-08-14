@@ -358,6 +358,154 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * An instance method must match its requirement, not merely its name. Matching on the name
+     * alone let a wrongly typed implementation be selected and emitted, which pjass then rejected.
+     */
+    @Test
+    public void instanceMethodWithWrongParameterTypeIsRejected() {
+        testAssertErrorsLines(false, "should have type int",
+            "package test",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(string x) returns int",
+            "        return 1"
+        );
+    }
+
+    @Test
+    public void instanceMethodWithWrongParameterCountIsRejected() {
+        testAssertErrorsLines(false, "must take 1 parameter",
+            "package test",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x, int y) returns int",
+            "        return 1"
+        );
+    }
+
+    @Test
+    public void instanceMethodWithWrongReturnTypeIsRejected() {
+        testAssertErrorsLines(false, "should return int",
+            "package test",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns string",
+            "        return \"a\""
+        );
+    }
+
+    /** The substituted requirement is what must be matched, so T becomes the instance type. */
+    @Test
+    public void instanceMethodMatchingSubstitutedRequirementIsAccepted() {
+        testAssertOkLines(false,
+            "package test",
+            "interface Indexable<T:>",
+            "    function toIndex(T x) returns int",
+            "    function fromIndex(int i) returns T",
+            "implements Indexable<int>",
+            "    function toIndex(int x) returns int",
+            "        return x",
+            "    function fromIndex(int i) returns int",
+            "        return i"
+        );
+    }
+
+    /**
+     * An abstract type argument can only supply a bound it declares itself. Accepting it silently
+     * produced a program that type checked but failed at runtime with no instance to dispatch to.
+     */
+    @Test
+    public void unboundedTypeParameterCannotSatisfyBound() {
+        testAssertErrorsLines(false, "does not satisfy the bound",
+            "package test",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function inner<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "function outer<R:>(R x) returns string",
+            "    return inner(x)",
+            "init",
+            "    outer(42)"
+        );
+    }
+
+    /** The same shape is fine once the outer parameter declares the bound it passes on. */
+    @Test
+    public void boundedTypeParameterSatisfiesBound() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function inner<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "function outer<R: Show>(R x) returns string",
+            "    return inner(x)",
+            "init",
+            "    if outer(42) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A bound naming something that is not a usable type class must be reported, not ignored. */
+    @Test
+    public void classAsBoundIsRejected() {
+        testAssertErrorsLines(false, "is not an interface",
+            "package test",
+            "class Marker",
+            "function foo<Q: Marker>(Q x) returns int",
+            "    return 0",
+            "init",
+            "    foo(1)"
+        );
+    }
+
+    @Test
+    public void appliedInterfaceAsBoundIsRejected() {
+        testAssertErrorsLines(false, "without type arguments",
+            "package test",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "function foo<Q: ToIndex<int>>(Q x) returns int",
+            "    return 0"
+        );
+    }
+
+    @Test
+    public void multiParameterInterfaceAsBoundIsRejected() {
+        testAssertErrorsLines(false, "exactly one type parameter",
+            "package test",
+            "interface Convert<A:, B:>",
+            "    function convert(A a) returns B",
+            "function foo<Q: Convert>(Q x) returns int",
+            "    return 0"
+        );
+    }
+
+    /** Requirements are the interface's own functions, so an extending interface is not a bound. */
+    @Test
+    public void extendingInterfaceAsBoundIsRejected() {
+        testAssertErrorsLines(false, "extends another interface",
+            "package test",
+            "interface Base<T:>",
+            "    function base(T x) returns int",
+            "interface Derived<T:> extends Base<T>",
+            "    function derived(T x) returns int",
+            "function foo<Q: Derived>(Q x) returns int",
+            "    return 0"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {

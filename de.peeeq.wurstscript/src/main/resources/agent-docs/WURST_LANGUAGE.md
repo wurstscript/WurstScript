@@ -184,6 +184,18 @@ Unlike an interface used as a supertype, a bound works for `int`, `real`, `strin
 
 Instances are unique and must be declared next to what they relate. An instance of `I` for type `X` may only live in the package declaring `I` or the package declaring `X`, and there may be only one. This makes `I` for `X` mean the same thing everywhere, independent of imports. Instances have no type parameters of their own in this version, so there is no way to write "every `List<T>` is `Indexable` when `T` is".
 
+An instance must implement each requirement with the signature it has after the interface's type parameter is replaced by the instance type; a matching name is not enough. An interface used as a bound must not extend another interface, because the requirements of a bound are the interface's own functions.
+
+A generic which passes its own type parameter to another bounded generic must declare that bound itself:
+
+```wurst
+function inner<Q: Show>(Q x) returns string
+	return Q.show(x)
+
+function outer<R: Show>(R x) returns string   // <R:> alone would not compile
+	return inner(x)
+```
+
 ## Lua and Jass targets
 
 The target is selected by the project `wurst.build` `scriptMode` field. `wc3Patch` separately selects the compatible core Jass and standard-library era.
