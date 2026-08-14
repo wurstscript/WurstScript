@@ -1,6 +1,9 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.TypeClassInstances;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -157,6 +160,27 @@ public class TLDTranslation {
     public static void translate(InstanceDecl instanceDecl, ImTranslator translator) {
         for (FuncDef method : instanceDecl.getMethods()) {
             translate(method, translator);
+        }
+        registerInstance(instanceDecl, translator);
+    }
+
+    /**
+     * Records which function implements which requirement for which type, so that a dispatch can be
+     * resolved from the concrete type it ends up with.
+     */
+    private static void registerInstance(InstanceDecl decl, ImTranslator translator) {
+        InterfaceDef iface = TypeClassInstances.declaredInterface(decl);
+        WurstType instanceType = TypeClassInstances.instanceType(decl);
+        if (iface == null || instanceType == null || iface.getTypeParameters().size() != 1) {
+            return; // reported by the validator
+        }
+        ImType imInstanceType = instanceType.imTranslateType(translator);
+        for (FuncDef requirement : iface.getMethods()) {
+            FuncDef impl = TypeClassInstances.findImplementation(decl, requirement, instanceType);
+            if (impl != null) {
+                translator.registerTypeClassImpl(translator.getTypeClassFunc(requirement),
+                        imInstanceType, translator.getFuncFor(impl));
+            }
         }
     }
 

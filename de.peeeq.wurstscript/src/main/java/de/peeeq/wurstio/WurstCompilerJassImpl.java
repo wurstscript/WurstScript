@@ -877,8 +877,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        if (needsGenericSpecialization()) {
-            beginPhase(2, "Specialize generics for generic construction and type class dispatch");
+        if (containsTypeClassDispatch()) {
+            // A type class bound is resolved by monomorphisation: the implementation is chosen per
+            // concrete type argument. Erasure cannot express that, so a program which uses a bound
+            // gets the same full elimination as the Jass target rather than the targeted pass.
+            beginPhase(2, "Eliminate generics for type class dispatch");
+            new EliminateGenerics(getImTranslator(), getImProg()).transform();
+            timeTaker.endPhase();
+        } else if (containsGenericNewCall()) {
+            beginPhase(2, "Specialize generics for generic construction");
             new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
             timeTaker.endPhase();
         }
@@ -969,12 +976,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return luaCode;
     }
 
-    /**
-     * Whether the program uses an operation which needs the concrete type argument even on Lua,
-     * where generics are otherwise erased: constructing a value of a type parameter, or dispatching
-     * on a type class bound.
-     */
-    private boolean needsGenericSpecialization() {
+    /** Whether the program constructs a value of a type parameter, which needs its concrete type. */
+    private boolean containsGenericNewCall() {
         boolean[] found = {false};
         getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
@@ -985,7 +988,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 }
                 super.visit(call);
             }
+        });
+        return found[0];
+    }
 
+    /** Whether the program dispatches on a type class bound anywhere. */
+    private boolean containsTypeClassDispatch() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;

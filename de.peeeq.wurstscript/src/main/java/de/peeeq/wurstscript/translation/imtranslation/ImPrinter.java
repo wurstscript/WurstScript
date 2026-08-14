@@ -542,6 +542,20 @@ public class ImPrinter {
                     append(sb, ", ");
                 }
                 ta.getType().print(sb, indent);
+                // Show the type class instances travelling with the argument: whether they are
+                // present is the whole question when a bound fails to dispatch.
+                if (!ta.getTypeClassBinding().isEmpty()) {
+                    append(sb, "{");
+                    boolean firstBinding = true;
+                    for (ImTypeClassFunc requirement : ta.getTypeClassBinding().keySet()) {
+                        if (!firstBinding) {
+                            append(sb, ", ");
+                        }
+                        append(sb, requirement.getName());
+                        firstBinding = false;
+                    }
+                    append(sb, "}");
+                }
                 first = false;
             }
             append(sb, ">");

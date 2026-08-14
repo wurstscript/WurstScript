@@ -39,9 +39,11 @@ class GenericTypes {
                 if (!t1.getType().equalsType(t2.getType())) {
                     return false;
                 }
-                if (!t1.getTypeClassBinding().equals(t2.getTypeClassBinding())) {
-                    return false;
-                }
+                // Deliberately not comparing the type class binding. It is only a fast path for
+                // resolving a dispatch; the implementation for a type is looked up by that type, so
+                // two arguments with the same type denote the same specialisation whether or not
+                // the binding survived. Comparing it also contradicted hashCode, which has always
+                // hashed the types alone, and produced two specialisations of the same class.
             }
             return true;
         }

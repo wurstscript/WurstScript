@@ -99,6 +99,63 @@ public final class TypeClassInstances {
         return simple.getTypeArgs().get(0).attrTyp();
     }
 
+    /**
+     * The instance method implementing the given requirement, or null when none matches.
+     * <p>
+     * An interface may overload a requirement name, so the match is on the substituted signature
+     * rather than the name alone. Validation and lowering both go through here, so a rejected
+     * instance and a selected implementation can never disagree.
+     */
+    public static @Nullable FuncDef findImplementation(InstanceDecl decl, FuncDef requirement,
+                                                       WurstType instanceType) {
+        List<FuncDef> sameName = new ArrayList<>();
+        for (FuncDef provided : decl.getMethods()) {
+            if (provided.getName().equals(requirement.getName())) {
+                sameName.add(provided);
+            }
+        }
+        if (sameName.size() == 1) {
+            // The common case: one candidate, so let the signature check report any mismatch
+            // against this one rather than silently finding nothing.
+            return sameName.get(0);
+        }
+        for (FuncDef provided : sameName) {
+            if (signatureMatches(provided, requirement, instanceType, decl)) {
+                return provided;
+            }
+        }
+        return null;
+    }
+
+    /** True when the implementation matches the requirement with the interface parameter substituted. */
+    public static boolean signatureMatches(FuncDef provided, FuncDef requirement, WurstType instanceType,
+                                           Element context) {
+        VariableBinding binding = requirementBinding(requirement, instanceType, context);
+        if (binding == null || provided.getParameters().size() != requirement.getParameters().size()) {
+            return false;
+        }
+        for (int i = 0; i < requirement.getParameters().size(); i++) {
+            WurstType expected = requirement.getParameters().get(i).attrTyp().setTypeArgs(binding);
+            if (!provided.getParameters().get(i).attrTyp().equalsType(expected, context)) {
+                return false;
+            }
+        }
+        WurstType expectedReturn = requirement.attrReturnTyp().setTypeArgs(binding);
+        return provided.attrReturnTyp().equalsType(expectedReturn, context);
+    }
+
+    /** Replaces the interface's own type parameter by the type an instance is declared for. */
+    public static @Nullable VariableBinding requirementBinding(FuncDef requirement, WurstType instanceType,
+                                                               Element context) {
+        ClassOrInterface owner = requirement.attrNearestClassOrInterface();
+        if (!(owner instanceof InterfaceDef iface) || iface.getTypeParameters().size() != 1) {
+            return null;
+        }
+        TypeParamDef ifaceParam = iface.getTypeParameters().get(0);
+        return VariableBinding.emptyMapping()
+                .set(ifaceParam, new WurstTypeBoundTypeParam(ifaceParam, instanceType, context));
+    }
+
     private static @Nullable WPackage packageOf(Element e) {
         PackageOrGlobal p = e.attrNearestPackage();
         return p instanceof WPackage w ? w : null;

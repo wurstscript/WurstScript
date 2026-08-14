@@ -29,6 +29,14 @@ public class EliminateGenerics {
     private final ImProg prog;
     private boolean genericNewOnly;
     private final Deque<GenericUse> genericsUses = new ArrayDeque<>();
+    /**
+     * Call sites already rewritten to a specialisation.
+     * <p>
+     * Collection has to be repeatable, because specialising one call is what makes the next one
+     * concrete. It is not naturally idempotent: a member call whose type arguments were consumed
+     * has them re-derived from its receiver, which would collect and specialise it again forever.
+     */
+    private final Set<Element> specializedCallSites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
@@ -114,6 +122,7 @@ public class EliminateGenerics {
         assertNoReachableGenericNewMarkers();
     }
 
+
     private void collectGenericNewRoots() {
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -156,6 +165,9 @@ public class EliminateGenerics {
     }
 
     private void collectGenericNewUse(ImFunctionCall call) {
+        if (specializedCallSites.contains(call)) {
+            return;
+        }
         if (translator.isGenericNewMarker(call.getFunc())) {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericNewCall(call));
@@ -171,6 +183,9 @@ public class EliminateGenerics {
     }
 
     private void collectGenericNewUse(ImMethodCall call) {
+        if (specializedCallSites.contains(call)) {
+            return;
+        }
         ImMethod method = call.getMethod();
         if (!methodNeedsSpecialization(method,
             Collections.newSetFromMap(new IdentityHashMap<>()),
@@ -1066,6 +1081,14 @@ public class EliminateGenerics {
      * A type variable can be represented by more than one node for the same source type parameter,
      * so match on the name as the rest of this pass does.
      */
+    private static String enclosingFunctionName(Element e) {
+        Element cur = e;
+        while (cur != null && !(cur instanceof ImFunction)) {
+            cur = cur.getParent();
+        }
+        return cur == null ? "?" : ((ImFunction) cur).getName();
+    }
+
     private static int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
         for (int i = 0; i < typeVars.size(); i++) {
             ImTypeVar tv = typeVars.get(i);
@@ -1086,9 +1109,24 @@ public class EliminateGenerics {
         ImTypeArgument typeArgument = generics.getTypeArguments().get(index);
         Either<ImMethod, ImFunction> impl = typeArgument.getTypeClassBinding().get(e.getTypeClassFunc());
         if (impl == null) {
+            ImFunction fromRegistry = translator.lookupTypeClassImpl(e.getTypeClassFunc(), typeArgument.getType());
+            if (fromRegistry != null) {
+                impl = Either.right(fromRegistry);
+            }
+        }
+        if (impl == null) {
+            if (containsTypeVariable(typeArgument.getType())) {
+                // Not an instantiation: passes which only rename or move type variables, such as
+                // lifting a class's variables onto its functions, substitute one variable for
+                // another. The dispatch is resolved once a concrete type argument arrives.
+                return;
+            }
             throw new CompileError(e.attrTrace().attrSource(),
                 "No type class instance bound for " + e.getTypeClassFunc().getName()
-                    + " on type argument " + typeArgument.getType() + ".");
+                    + " on type argument " + typeArgument.getType()
+                    + " (type variable " + e.getTypeVariable().getName()
+                    + ", index " + index + " of " + typeVars.size()
+                    + ", in " + enclosingFunctionName(e) + ").");
         }
         ImExprs args = e.getArguments();
         args.setParent(null);
@@ -1656,6 +1694,7 @@ public class EliminateGenerics {
             }
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
+            specializedCallSites.add(fc);
         }
     }
 
@@ -1753,6 +1792,7 @@ public class EliminateGenerics {
 
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
+            specializedCallSites.add(mc);
         }
     }
 

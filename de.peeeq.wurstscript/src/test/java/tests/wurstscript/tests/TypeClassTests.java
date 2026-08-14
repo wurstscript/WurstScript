@@ -292,7 +292,7 @@ public class TypeClassTests extends WurstScriptTest {
 
     @Test
     public void methodNotRequiredByInterfaceIsRejected() {
-        testAssertErrorsLines(false, "is not required by",
+        testAssertErrorsLines(false, "does not implement any requirement of",
             "package test",
             "interface ToIndex<T:>",
             "    function toIndex(T x) returns int",
@@ -503,6 +503,138 @@ public class TypeClassTests extends WurstScriptTest {
             "    function derived(T x) returns int",
             "function foo<Q: Derived>(Q x) returns int",
             "    return 0"
+        );
+    }
+
+    /**
+     * A bound may belong to a generic class rather than to the method, which is the shape the
+     * documentation uses for HashMap. The receiver carries the arguments the class was made with.
+     */
+    @Test
+    public void boundOnGenericClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Box<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "init",
+            "    if new Box<int>().render(42) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** The same, with the class holding the value, as a container actually would. */
+    @Test
+    public void boundOnGenericClassWithField() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Indexable<T:>",
+            "    function toIndex(T x) returns int",
+            "    function fromIndex(int i) returns T",
+            "implements Indexable<int>",
+            "    function toIndex(int x) returns int",
+            "        return x + 1",
+            "    function fromIndex(int i) returns int",
+            "        return i - 1",
+            "class Cell<T: Indexable>",
+            "    private int stored",
+            "    function put(T value)",
+            "        stored = T.toIndex(value)",
+            "    function get() returns T",
+            "        return T.fromIndex(stored)",
+            "init",
+            "    let c = new Cell<int>()",
+            "    c.put(7)",
+            "    if c.get() == 7",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void boundOnGenericClassLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Box<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "init",
+            "    if new Box<int>().render(42) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** Two classes at different types must each pick their own instance. */
+    @Test
+    public void boundOnGenericClassTwoTypes() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"s\"",
+            "class Box<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "init",
+            "    if new Box<int>().render(1) == \"i\" and new Box<string>().render(\"a\") == \"s\"",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * An interface may overload a requirement name. Each requirement pairs with the implementation
+     * matching its signature, and the lowering must select the same one.
+     */
+    @Test
+    public void overloadedRequirementsAreMatchedBySignature() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Convert<T:>",
+            "    function convert(T x) returns int",
+            "    function convert(int scale, T x) returns int",
+            "implements Convert<string>",
+            "    function convert(string x) returns int",
+            "        return 1",
+            "    function convert(int scale, string x) returns int",
+            "        return scale * 2",
+            "function useBoth<Q: Convert>(Q x) returns int",
+            "    return Q.convert(x) + Q.convert(20, x)",
+            "init",
+            "    if useBoth(\"a\") == 41",
+            "        testSuccess()"
+        );
+    }
+
+    /** A missing overload is still reported, even when the name is present. */
+    @Test
+    public void missingOverloadIsRejected() {
+        testAssertErrorsLines(false, "must implement",
+            "package test",
+            "interface Convert<T:>",
+            "    function convert(T x) returns int",
+            "    function convert(int scale, T x) returns int",
+            "implements Convert<string>",
+            "    function convert(string x) returns int",
+            "        return 1"
         );
     }
 

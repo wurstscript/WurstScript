@@ -2723,35 +2723,25 @@ public class WurstValidator {
         VariableBinding binding = VariableBinding.emptyMapping()
                 .set(ifaceParam, new WurstTypeBoundTypeParam(ifaceParam, instanceType, decl));
 
+        // An interface may overload a requirement name, so pair each requirement with the
+        // implementation that matches its signature; the lowering selects the same one.
         StringBuilder missing = new StringBuilder();
+        Set<FuncDef> used = Collections.newSetFromMap(new IdentityHashMap<>());
         for (FuncDef requirement : iface.getMethods()) {
-            int found = 0;
-            for (FuncDef provided : decl.getMethods()) {
-                if (provided.getName().equals(requirement.getName())) {
-                    found++;
-                    checkInstanceMethodSignature(provided, requirement, binding, iface);
-                }
+            FuncDef impl = TypeClassInstances.findImplementation(decl, requirement, instanceType);
+            if (impl == null || !used.add(impl)) {
+                missing.append("\n    ").append(signatureText(requirement, binding));
+                continue;
             }
-            if (found == 0) {
-                missing.append("\n    ").append(requirementTemplate(requirement, binding, decl));
-            } else if (found > 1) {
-                decl.addError("This instance defines " + requirement.getName() + " more than once.");
-            }
+            checkInstanceMethodSignature(impl, requirement, binding, iface);
         }
         if (missing.length() > 0) {
             decl.addError("This instance of " + iface.getName() + " must implement:" + missing);
         }
         for (FuncDef provided : decl.getMethods()) {
-            boolean required = false;
-            for (FuncDef requirement : iface.getMethods()) {
-                if (provided.getName().equals(requirement.getName())) {
-                    required = true;
-                    break;
-                }
-            }
-            if (!required) {
-                provided.addError(provided.getName() + " is not required by " + iface.getName()
-                        + ", so it cannot be defined in this instance.");
+            if (!used.contains(provided)) {
+                provided.addError(provided.getName() + " does not implement any requirement of "
+                        + iface.getName() + ", so it cannot be defined in this instance.");
             }
         }
     }
@@ -2787,10 +2777,6 @@ public class WurstValidator {
             provided.addError(provided.getName() + " should return " + expectedReturn + " to implement "
                     + iface.getName() + ", but returns " + provided.attrReturnTyp() + ".");
         }
-    }
-
-    private String requirementTemplate(FuncDef requirement, VariableBinding binding, Element context) {
-        return signatureText(requirement, binding);
     }
 
     private String signatureText(FuncDef requirement, VariableBinding binding) {

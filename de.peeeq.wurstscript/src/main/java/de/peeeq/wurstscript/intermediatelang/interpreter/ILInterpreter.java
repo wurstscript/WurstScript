@@ -54,25 +54,53 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
      * interpreting a program which still has generics.
      */
     private static void bindTypeArguments(ProgramState globalState, LocalState localState, ImFunction f,
-                                          @Nullable Element caller) {
-        ImTypeArguments typeArgs;
+                                          @Nullable Element caller, ILconst[] args) {
+        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
+
+        // A bound may belong to the owning class rather than to the method, as in
+        // class Box<T: Show>. The receiver carries the arguments the class was created with.
+        if (args.length > 0 && args[0] instanceof ILconstObject receiver) {
+            ImTypeArguments classArgs = receiver.getType().getTypeArguments();
+            ImTypeVars classVars = receiver.getType().getClassDef().getTypeVariables();
+            for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
+                binding.put(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
+            }
+        }
+
+        ImTypeArguments typeArgs = null;
         if (caller instanceof ImFunctionCall call) {
             typeArgs = call.getTypeArguments();
         } else if (caller instanceof ImMethodCall call) {
             typeArgs = call.getTypeArguments();
-        } else {
-            return;
         }
-        List<ImTypeVar> typeVars = f.getTypeVariables();
-        if (typeArgs.isEmpty() || typeVars.isEmpty()) {
-            return;
+        if (typeArgs != null) {
+            List<ImTypeVar> typeVars = f.getTypeVariables();
+            for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
+                binding.put(typeVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+            }
+            // A generic class holds its type variables on the class, not on its functions, so a
+            // constructor or method is called with arguments it has no variable of its own to bind.
+            // Bind the owning class's variables too, mirroring how type substitutions are built.
+            ImClass owner = owningClass(f);
+            if (owner != null) {
+                ImTypeVars classVars = owner.getTypeVariables();
+                for (int i = 0; i < Math.min(classVars.size(), typeArgs.size()); i++) {
+                    binding.put(classVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+                }
+            }
         }
-        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
-        for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
-            ImTypeArgument arg = typeArgs.get(i);
-            binding.put(typeVars.get(i), inheritIfStillAbstract(globalState, arg));
+
+        if (!binding.isEmpty()) {
+            localState.setTypeArguments(binding);
         }
-        localState.setTypeArguments(binding);
+    }
+
+    private static @Nullable ImClass owningClass(ImFunction f) {
+        Element owner = f.getParent();
+        while (owner != null && !(owner instanceof ImClass)) {
+            owner = owner.getParent();
+        }
+        return (ImClass) owner;
     }
 
     /**
@@ -134,7 +162,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             for (int i = 0; i < f.getParameters().size(); i++) {
                 localState.setVal(f.getParameters().get(i), args[i]);
             }
-            bindTypeArguments(globalState, localState, f, caller);
+            bindTypeArguments(globalState, localState, f, caller, args);
 
             // --- stacktrace bookkeeping ---
             if (f.getBody().isEmpty()) {

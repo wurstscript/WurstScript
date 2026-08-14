@@ -738,56 +738,12 @@ public class ExprTranslation {
                 continue;
             }
 
-            ImType type = t.imTranslateType(tr);
-            res.add(ImTypeArgument(type, typeClassBinding(tr, tp, t, location)));
+            res.add(t.imTranslateToTypeArgument(tr));
         }
 
         return res;
     }
 
-
-    /**
-     * Binds every requirement of the type parameter's bounds to the implementation supplied by the
-     * instance chosen for the concrete type argument.
-     * <p>
-     * When the argument is itself still a type parameter the binding stays empty: the enclosing
-     * generic is specialised first, and the binding is filled in at that point.
-     */
-    private static Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding(
-            ImTranslator tr, TypeParamDef tp, WurstTypeBoundTypeParam bound, Element location) {
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> binding = new HashMap<>();
-        List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(tp);
-        if (bounds.isEmpty()) {
-            return binding;
-        }
-        WurstType concrete = bound.getBaseType();
-        if (concrete instanceof WurstTypeTypeParam || concrete instanceof WurstTypeBoundTypeParam) {
-            return binding;
-        }
-        for (InterfaceDef iface : bounds) {
-            InstanceDecl instance = TypeClassInstances.find(iface, concrete);
-            if (instance == null) {
-                // The validator reports the unsatisfied bound; do not fail translation as well.
-                continue;
-            }
-            for (FuncDef requirement : iface.getMethods()) {
-                FuncDef impl = findImplementation(instance, requirement.getName());
-                if (impl != null) {
-                    binding.put(tr.getTypeClassFunc(requirement), Either.right(tr.getFuncFor(impl)));
-                }
-            }
-        }
-        return binding;
-    }
-
-    private static @Nullable FuncDef findImplementation(InstanceDecl instance, String name) {
-        for (FuncDef m : instance.getMethods()) {
-            if (m.getName().equals(name)) {
-                return m;
-            }
-        }
-        return null;
-    }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
         if (e instanceof ExprMemberMethod) {

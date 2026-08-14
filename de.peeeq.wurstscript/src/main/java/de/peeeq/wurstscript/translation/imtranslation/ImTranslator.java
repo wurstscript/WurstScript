@@ -1713,6 +1713,32 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     private final Map<FuncDef, ImTypeClassFunc> typeClassFuncs = new LinkedHashMap<>();
 
+    /**
+     * Every type class implementation in the program, keyed by requirement and the type it is for.
+     * <p>
+     * A type argument can carry its instances directly, but that binding lives on the argument
+     * position and is lost as soon as a type variable is substituted into a plain type, which is
+     * what happens when a generic class type travels through a return type or a receiver. Instance
+     * selection is static, so keying on the concrete type is both simpler and robust: the type at a
+     * dispatch site is enough to find the implementation, however it got there.
+     */
+    private final Map<ImTypeClassFunc, Map<String, ImFunction>> typeClassImpls = new LinkedHashMap<>();
+
+    public void registerTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType, ImFunction impl) {
+        typeClassImpls.computeIfAbsent(requirement, r -> new LinkedHashMap<>())
+                .putIfAbsent(typeClassKey(instanceType), impl);
+    }
+
+    public @Nullable ImFunction lookupTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType) {
+        Map<String, ImFunction> byType = typeClassImpls.get(requirement);
+        return byType == null ? null : byType.get(typeClassKey(instanceType));
+    }
+
+    /** Structural key for an instance type; concrete types print stably. */
+    private static String typeClassKey(ImType type) {
+        return type.toString();
+    }
+
     public ImTypeVar getTypeVar(TypeParamDef tp) {
         // If we're translating inside a captured class (Iterator), prefer its override
         for (Map<TypeParamDef, ImTypeVar> m : typeVarOverrideStack) {
