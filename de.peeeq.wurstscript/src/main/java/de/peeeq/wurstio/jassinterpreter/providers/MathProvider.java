@@ -5,10 +5,8 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
-import java.util.Random;
-
 public class MathProvider extends Provider {
-    private final Random r = new Random();
+    private final JassPrng random = new JassPrng();
 
     public MathProvider(AbstractInterpreter interpreter) {
         super(interpreter);
@@ -51,11 +49,15 @@ public class MathProvider extends Provider {
     }
 
     public ILconstReal GetRandomReal(ILconstReal a, ILconstReal b) {
-        return new ILconstReal(a.getVal() + r.nextFloat() * (b.getVal() - a.getVal()));
+        return new ILconstReal(random.getRandomReal(a.getVal(), b.getVal()));
     }
 
     public ILconstInt GetRandomInt(ILconstInt a, ILconstInt b) {
-        return new ILconstInt(a.getVal() + r.nextInt(1 + b.getVal() - a.getVal()));
+        return new ILconstInt(random.getRandomInt(a.getVal(), b.getVal()));
+    }
+
+    public void SetRandomSeed(ILconstInt seed) {
+        random.setRandomSeed(seed.getVal());
     }
 
     public ILconstInt ModuloInteger(ILconstInt a, ILconstInt b) {
