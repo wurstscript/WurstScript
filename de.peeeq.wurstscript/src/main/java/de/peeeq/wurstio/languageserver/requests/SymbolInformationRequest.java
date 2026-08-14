@@ -88,7 +88,7 @@ public class SymbolInformationRequest extends UserRequest<Either<List<? extends 
 
             @Override
             public void case_InstanceDecl(InstanceDecl instanceDecl) {
-                String name = "instance " + instanceDecl.getImplementedInterface();
+                String name = "implements " + instanceDecl.getImplementedInterface();
                 add(name, SymbolKind.Object);
                 for (FuncDef f : instanceDecl.getMethods()) {
                     addSymbolsForEntity(result, containerName + "." + name, f);

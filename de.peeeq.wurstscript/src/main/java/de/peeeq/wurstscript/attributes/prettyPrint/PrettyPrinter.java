@@ -644,7 +644,7 @@ public class PrettyPrinter {
         printHotDoc(e.getModifiers(), spacer, sb, indent);
         printIndent(sb, indent);
         e.getModifiers().prettyPrint(spacer, sb, indent);
-        sb.append("instance");
+        sb.append("implements");
         spacer.addSpace(sb);
         e.getImplementedInterface().prettyPrint(spacer, sb, indent);
         e.getMethods().prettyPrint(spacer, sb, indent + 1);

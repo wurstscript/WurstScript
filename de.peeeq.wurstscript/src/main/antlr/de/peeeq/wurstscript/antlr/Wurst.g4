@@ -134,11 +134,13 @@ classDef:
         ;
 
 // A type class instance: binds an interface to one concrete type, e.g.
-//    instance Indexable<vec2>
+//    implements Indexable<vec2>
 //        function toIndex(vec2 v) returns int
 //            ...
+// This reuses the existing 'implements' keyword deliberately. Introducing a new one would
+// reserve a plausible identifier ('instance' is used as a local in the standard library).
 instanceDef:
-    modifiersWithDoc 'instance' implemented=typeExpr
+    modifiersWithDoc 'implements' implemented=typeExpr
     NL (STARTBLOCK
        methods+=funcDef*
     ENDBLOCK)?
