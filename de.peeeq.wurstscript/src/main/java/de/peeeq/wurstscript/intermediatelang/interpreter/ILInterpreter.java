@@ -48,6 +48,31 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
+    /**
+     * Records the call's type arguments against the callee's type variables, so that a type class
+     * dispatch inside the body can find the instance chosen at the call site. Only relevant when
+     * interpreting a program which still has generics.
+     */
+    private static void bindTypeArguments(LocalState localState, ImFunction f, @Nullable Element caller) {
+        ImTypeArguments typeArgs;
+        if (caller instanceof ImFunctionCall call) {
+            typeArgs = call.getTypeArguments();
+        } else if (caller instanceof ImMethodCall call) {
+            typeArgs = call.getTypeArguments();
+        } else {
+            return;
+        }
+        List<ImTypeVar> typeVars = f.getTypeVariables();
+        if (typeArgs.isEmpty() || typeVars.isEmpty()) {
+            return;
+        }
+        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
+        for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
+            binding.put(typeVars.get(i), typeArgs.get(i));
+        }
+        localState.setTypeArguments(binding);
+    }
+
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
                                      ILconst... args) {
         if (Thread.currentThread().isInterrupted()) {
@@ -94,6 +119,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             for (int i = 0; i < f.getParameters().size(); i++) {
                 localState.setVal(f.getParameters().get(i), args[i]);
             }
+            bindTypeArguments(localState, f, caller);
 
             // --- stacktrace bookkeeping ---
             if (f.getBody().isEmpty()) {

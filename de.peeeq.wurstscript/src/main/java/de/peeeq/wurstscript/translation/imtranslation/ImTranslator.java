@@ -1694,6 +1694,25 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return typeVariableReverse.get(tv);
     }
 
+    /**
+     * The signature node standing for one type class requirement.
+     * <p>
+     * Requirements are shared across every use of the bound, so each interface method maps to
+     * exactly one node. Dispatch sites reference it, and each type argument carries the concrete
+     * implementation bound to it, which is what lets generic elimination turn a dispatch into a
+     * direct call.
+     */
+    public ImTypeClassFunc getTypeClassFunc(FuncDef method) {
+        return typeClassFuncs.computeIfAbsent(method, m -> {
+            ImTypeClassFunc result = JassIm.ImTypeClassFunc(m, m.getName(), JassIm.ImTypeVars(),
+                    JassIm.ImVars(), m.attrReturnTyp().imTranslateType(this));
+            imProg.getTypeClassFunctions().add(result);
+            return result;
+        });
+    }
+
+    private final Map<FuncDef, ImTypeClassFunc> typeClassFuncs = new LinkedHashMap<>();
+
     public ImTypeVar getTypeVar(TypeParamDef tp) {
         // If we're translating inside a captured class (Iterator), prefer its override
         for (Map<TypeParamDef, ImTypeVar> m : typeVarOverrideStack) {

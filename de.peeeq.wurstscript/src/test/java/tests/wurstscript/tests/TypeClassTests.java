@@ -28,6 +28,25 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     @Test
+    public void dispatchRuntime() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "class A",
+            "implements ToIndex<A>",
+            "    function toIndex(A x) returns int",
+            "        return 42",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "init",
+            "    if foo(new A) == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void parseInstanceDecl() {
         testAssertOkLines(false,
             "package test",

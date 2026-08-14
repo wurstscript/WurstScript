@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.AttrImplicitParameter;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
@@ -512,6 +513,27 @@ public class ExprTranslation {
         }
     }
 
+    /**
+     * Translates {@code T.f(args)} into a dispatch through T's type class binding.
+     * <p>
+     * The concrete implementation is not known here, because T is still abstract inside the
+     * generic. Generic elimination substitutes T and rewrites this node into a direct call to the
+     * function supplied by the instance chosen for the substituted type.
+     */
+    private static ImExpr translateTypeClassDispatch(FunctionCall e, ImTranslator t, ImFunction f) {
+        WurstTypeTypeParam receiver = (WurstTypeTypeParam) ((HasReceiver) e).getLeft().attrTyp();
+        FunctionDefinition called = e.attrFuncDef();
+        if (!(called instanceof FuncDef method)) {
+            throw new CompileError(e.attrSource(),
+                "Type class requirement " + e.getFuncName() + " must be a function of the bound interface.");
+        }
+        ImExprs args = JassIm.ImExprs();
+        for (Expr arg : e.getArgs()) {
+            args.add(arg.imTranslateExpr(t, f));
+        }
+        return JassIm.ImTypeVarDispatch(e, t.getTypeClassFunc(method), args, t.getTypeVar(receiver.getDef()));
+    }
+
     private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver, boolean nullSafe) {
 
         if (e instanceof ExprFunctionCall call && CompilerIntrinsics.isNew(call)) {
@@ -520,6 +542,10 @@ public class ExprTranslation {
                 JassIm.ImTypeArgument(targetType, new HashMap<>()));
             return ImFunctionCall(call, t.getGenericNewMarker(), typeArguments,
                 JassIm.ImExprs(), false, CallType.NORMAL);
+        }
+
+        if (AttrImplicitParameter.isTypeClassDispatch(e)) {
+            return translateTypeClassDispatch(e, t, f);
         }
 
         if (e.getFuncName().equals("getStackTraceString") && e.attrImplicitParameter() instanceof NoExpr
@@ -713,14 +739,55 @@ public class ExprTranslation {
             }
 
             ImType type = t.imTranslateType(tr);
-            // TODO handle constraints
-            Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-            res.add(ImTypeArgument(type, typeClassBinding));
+            res.add(ImTypeArgument(type, typeClassBinding(tr, tp, t, location)));
         }
 
         return res;
     }
 
+
+    /**
+     * Binds every requirement of the type parameter's bounds to the implementation supplied by the
+     * instance chosen for the concrete type argument.
+     * <p>
+     * When the argument is itself still a type parameter the binding stays empty: the enclosing
+     * generic is specialised first, and the binding is filled in at that point.
+     */
+    private static Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding(
+            ImTranslator tr, TypeParamDef tp, WurstTypeBoundTypeParam bound, Element location) {
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> binding = new HashMap<>();
+        List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(tp);
+        if (bounds.isEmpty()) {
+            return binding;
+        }
+        WurstType concrete = bound.getBaseType();
+        if (concrete instanceof WurstTypeTypeParam || concrete instanceof WurstTypeBoundTypeParam) {
+            return binding;
+        }
+        for (InterfaceDef iface : bounds) {
+            InstanceDecl instance = TypeClassInstances.find(iface, concrete);
+            if (instance == null) {
+                // The validator reports the unsatisfied bound; do not fail translation as well.
+                continue;
+            }
+            for (FuncDef requirement : iface.getMethods()) {
+                FuncDef impl = findImplementation(instance, requirement.getName());
+                if (impl != null) {
+                    binding.put(tr.getTypeClassFunc(requirement), Either.right(tr.getFuncFor(impl)));
+                }
+            }
+        }
+        return binding;
+    }
+
+    private static @Nullable FuncDef findImplementation(InstanceDecl instance, String name) {
+        for (FuncDef m : instance.getMethods()) {
+            if (m.getName().equals(name)) {
+                return m;
+            }
+        }
+        return null;
+    }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
         if (e instanceof ExprMemberMethod) {

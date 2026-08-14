@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -1007,7 +1008,60 @@ public class EliminateGenerics {
                 super.visit(e);
             }
 
+            @Override
+            public void visit(ImTypeVarDispatch e) {
+                super.visit(e);
+                resolveTypeClassDispatch(e, generics, typeVars);
+            }
+
         });
+    }
+
+    /**
+     * Replaces a type class dispatch by a direct call once the type variable it dispatches on has
+     * been substituted by a concrete type argument.
+     * <p>
+     * This is what keeps bounded generics free of runtime cost: after specialisation the call is an
+     * ordinary static call to the instance function, with no lookup and no indirection left.
+     */
+    /**
+     * A type variable can be represented by more than one node for the same source type parameter,
+     * so match on the name as the rest of this pass does.
+     */
+    private static int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
+        for (int i = 0; i < typeVars.size(); i++) {
+            ImTypeVar tv = typeVars.get(i);
+            if (tv == target || tv.getName().equals(target.getName())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void resolveTypeClassDispatch(ImTypeVarDispatch e, GenericTypes generics, List<ImTypeVar> typeVars) {
+        int index = indexOfTypeVar(typeVars, e.getTypeVariable());
+        if (index < 0) {
+            // dispatching on a variable of some enclosing generic; it is resolved when that one is
+            // specialised.
+            return;
+        }
+        ImTypeArgument typeArgument = generics.getTypeArguments().get(index);
+        Either<ImMethod, ImFunction> impl = typeArgument.getTypeClassBinding().get(e.getTypeClassFunc());
+        if (impl == null) {
+            throw new CompileError(e.attrTrace().attrSource(),
+                "No type class instance bound for " + e.getTypeClassFunc().getName()
+                    + " on type argument " + typeArgument.getType() + ".");
+        }
+        ImExprs args = e.getArguments();
+        args.setParent(null);
+        if (impl.isRight()) {
+            e.replaceBy(JassIm.ImFunctionCall(e.getTrace(), impl.get(), JassIm.ImTypeArguments(), args,
+                false, CallType.NORMAL));
+        } else {
+            ImMethod method = impl.getLeft();
+            e.replaceBy(JassIm.ImFunctionCall(e.getTrace(), method.getImplementation(), JassIm.ImTypeArguments(),
+                args, false, CallType.NORMAL));
+        }
     }
 
     private static ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
