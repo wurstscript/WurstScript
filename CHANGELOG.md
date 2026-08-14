@@ -1,5 +1,33 @@
 ## 1.9 (in progress)
 
+- Added type class bounds for `T:` generics. A bound requires operations of the type it is bound to, so a
+  generic can do more than store and return values, without giving up static dispatch:
+
+        public interface Indexable<T:>
+            function toIndex(T x) returns int
+            function fromIndex(int i) returns T
+
+        implements Indexable<vec2>
+            function toIndex(vec2 v) returns int
+                ...
+            function fromIndex(int i) returns vec2
+                ...
+
+        class HashMap<K: Indexable, V: Indexable>
+            function get(K key) returns V
+                return V.fromIndex(loadInt(K.toIndex(key)))
+
+    A bound names the interface unapplied, so `<K: Indexable>` means "there is an instance of `Indexable<K>`",
+    and several combine with `and`. Requirements are called on the type parameter (`K.toIndex(key)`), which
+    keeps operations that produce a value of the type, such as `fromIndex`, in the same form as the rest.
+
+    Unlike an interface used as a supertype, a bound is satisfiable by `int`, `real`, `string`, tuples and
+    handle types, and costs nothing at runtime: after specialisation each requirement is a direct call to the
+    instance function, on both Jass and Lua.
+
+    An instance of `I` for type `X` may only be declared in the package declaring `I` or the one declaring
+    `X`, and only once, so `I` for `X` means the same thing throughout a program regardless of imports.
+
 - Added new pseudo-natives for debugging memory leaks:
 
         // returns the maximum type id, can be usd to

@@ -1,4 +1,4 @@
-<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-08-08 -->
+<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-08-14 -->
 # WurstScript language digest
 
 This is the compact, agent-oriented language reference shipped with the WurstScript compiler. It covers language semantics and compiler-facing syntax; standard-library APIs, dependency conventions, UI rules, and object-editor policies belong to the project or dependency documentation.
@@ -153,6 +153,36 @@ class Box<T:>
 ```
 
 The older unconstrained `T` form erases through integer casts and can share storage in surprising ways.
+
+## Type class bounds
+
+A `T:` type parameter can require operations on the type it is bound to. The requirements are an ordinary generic `interface` with exactly one type parameter, and a top-level `implements` block binds them to one concrete type:
+
+```wurst
+public interface Indexable<T:>
+	function toIndex(T x) returns int
+	function fromIndex(int i) returns T
+
+implements Indexable<vec2>
+	function toIndex(vec2 v) returns int
+		return ...
+	function fromIndex(int i) returns vec2
+		return ...
+
+class HashMap<K: Indexable, V: Indexable>
+	function put(K key, V value)
+		saveInt(K.toIndex(key), V.toIndex(value))
+	function get(K key) returns V
+		return V.fromIndex(loadInt(K.toIndex(key)))
+```
+
+A bound names the interface without type arguments; `<K: Indexable>` means "there is an instance of `Indexable<K>`". Combine several with `and`: `<Q: Plus and Times>`.
+
+Call a requirement on the type parameter, not on the value: `K.toIndex(key)`, never `key.toIndex()`. The value is an ordinary argument, so requirements which produce a value rather than consume one (`fromIndex`) need no special form.
+
+Unlike an interface used as a supertype, a bound works for `int`, `real`, `string`, tuples and handle types, and it costs nothing at runtime: after specialisation each requirement is a direct call to the instance function, on both Jass and Lua.
+
+Instances are unique and must be declared next to what they relate. An instance of `I` for type `X` may only live in the package declaring `I` or the package declaring `X`, and there may be only one. This makes `I` for `X` mean the same thing everywhere, independent of imports. Instances have no type parameters of their own in this version, so there is no way to write "every `List<T>` is `Indexable` when `T` is".
 
 ## Lua and Jass targets
 
