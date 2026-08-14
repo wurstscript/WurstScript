@@ -132,16 +132,17 @@ public class EliminateGenerics {
     }
 
     /**
-     * Deals with the dispatches left after targeted specialization.
+     * Neutralises the dispatches left in functions that were specialized.
      * <p>
-     * A function that has a specialization is dead: every reachable call to it was rewritten to
-     * that specialization, so a dispatch still sitting in the original can never run. This backend
-     * keeps generics rather than removing them wholesale, so those originals are still translated,
-     * and a dispatch would reach a backend with no way to express it. Such a dispatch is replaced by
-     * the default value of its type.
+     * Such a function is dead: every reachable call to it was rewritten to its specialization, so a
+     * dispatch still sitting in the original can never run. This backend keeps generics rather than
+     * removing them wholesale, so those originals are still translated and the dispatch would reach
+     * a backend with no way to express it.
      * <p>
-     * A dispatch in a function that was never specialized is a different matter: it would run, and
-     * nothing has supplied the concrete type. That is reported rather than quietly defaulted.
+     * Anything else is left alone. A dispatch may legitimately remain in a bounded generic that is
+     * merely declared and never called, and garbage removal deletes those later; deciding here
+     * would mean duplicating reachability. One which survives that far and still reaches the
+     * backend is reported there, where it is known to be both reachable and unresolvable.
      */
     private void settleRemainingDispatches() {
         List<ImTypeVarDispatch> remaining = new ArrayList<>();
@@ -156,12 +157,7 @@ public class EliminateGenerics {
             ImFunction owner = dispatch.getNearestFunc();
             if (owner != null && specializedFunctions.containsRow(owner)) {
                 dispatch.replaceBy(defaultValueFor(dispatch.getTypeClassFunc().getReturnType()));
-                continue;
             }
-            throw new CompileError(dispatch.attrTrace().attrSource(),
-                "Type class dispatch of " + dispatch.getTypeClassFunc().getName()
-                    + " could not be resolved for this target: the concrete type is not available"
-                    + " where it is used.");
         }
     }
 

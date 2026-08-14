@@ -907,6 +907,64 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A bounded generic which is only declared, never called, stays valid: it is unreachable, so
+     * nothing has to supply a concrete type for it.
+     */
+    @Test
+    public void unusedBoundedGenericFunctionLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function unused<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /** The same for a bounded generic class which is never constructed. */
+    @Test
+    public void unusedBoundedGenericClassLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Unused<Q: Show>",
+            "    function render(Q x) returns string",
+            "        return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /** Declared and unused on Jass too, which is where it already worked. */
+    @Test
+    public void unusedBoundedGenericFunction() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function unused<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {
