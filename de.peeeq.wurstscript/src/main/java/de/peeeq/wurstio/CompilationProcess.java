@@ -12,13 +12,16 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -82,35 +85,53 @@ public class CompilationProcess {
 
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
-                    () -> runTests(compiler.getImTranslator(), compiler, runArgs.getTestTimeout(), runArgs.getTestFilter()));
+                    () -> runTests(gui, compiler, runArgs));
         }
 
         timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(WurstProjectConfigData.empty(), isProd, false));
 
-        JassProg jassProg = timeTaker.measure("Transform program to Jass",
-            compiler::transformProgToJass);
+        CharSequence mapScript;
+        File outputMapscript;
+        if (runArgs.isLua()) {
+            LuaCompilationUnit luaCode = timeTaker.measure("Transform program to Lua",
+                compiler::transformProgToLua);
+            if (luaCode == null || gui.getErrorCount() > 0) {
+                return null;
+            }
 
-        if (jassProg == null || gui.getErrorCount() > 0) {
-            return null;
-        }
+            gui.sendProgress("Printing Lua");
+            StringBuilder luaOutput = new StringBuilder();
+            timeTaker.measure("Print Lua", () -> luaCode.print(luaOutput, 0));
+            mapScript = luaOutput;
+            LuaTranslator.assertNoLeakedHashtableNativeCalls(mapScript.toString());
+            LuaTranslator.assertNoLeakedGetHandleIdCalls(mapScript.toString());
+            CharSequence compiledLua = mapScript;
+            outputMapscript = timeTaker.measure("Write Lua",
+                () -> writeMapscript(compiledLua));
+        } else {
+            JassProg jassProg = timeTaker.measure("Transform program to Jass",
+                compiler::transformProgToJass);
 
-        boolean withSpace;
-        withSpace = !runArgs.isOptimize();
+            if (jassProg == null || gui.getErrorCount() > 0) {
+                return null;
+            }
 
-        gui.sendProgress("Printing Jass");
+            boolean withSpace = !runArgs.isOptimize();
+            gui.sendProgress("Printing Jass");
 
-        JassPrinter printer = new JassPrinter(withSpace, jassProg);
-        CharSequence mapScript = timeTaker.measure("Print Jass",
-            (Supplier<String>) printer::printProg);
+            JassPrinter printer = new JassPrinter(withSpace, jassProg);
+            mapScript = timeTaker.measure("Print Jass",
+                (Supplier<String>) printer::printProg);
 
-        // output to file
-        File outputMapscript = timeTaker.measure("Print Jass",
-                () -> writeMapscript(mapScript));
+            CharSequence compiledJass = mapScript;
+            outputMapscript = timeTaker.measure("Write Jass",
+                () -> writeMapscript(compiledJass));
 
-        if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
-            boolean pjassError = timeTaker.measure("Run PJass",
+            if (!runArgs.isDisablePjass() && !runArgs.isLegacyJassTypeChecks()) {
+                boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
-            if (pjassError) return null;
+                if (pjassError) return null;
+            }
         }
         timeTaker.printReport();
         return mapScript;
@@ -139,13 +160,22 @@ public class CompilationProcess {
     private File writeMapscript(CharSequence mapScript) {
         gui.sendProgress("Writing output file");
         File outputMapscript;
+        File staleJassOutput = null;
         if (runArgs.getOutFile() != null) {
-            outputMapscript = new File(runArgs.getOutFile());
+            String outputPath = runArgs.getOutFile();
+            if (runArgs.isLua() && outputPath.toLowerCase(Locale.ROOT).endsWith(".j")) {
+                staleJassOutput = new File(outputPath);
+                outputPath = outputPath.substring(0, outputPath.length() - 2) + ".lua";
+            }
+            outputMapscript = new File(outputPath);
         } else {
-            outputMapscript = new File("./temp/output.j");
+            outputMapscript = new File("./temp/output." + (runArgs.isLua() ? "lua" : "j"));
         }
         outputMapscript.getParentFile().mkdirs();
         try {
+            if (staleJassOutput != null) {
+                java.nio.file.Files.deleteIfExists(staleJassOutput.toPath());
+            }
             FileUtils.write(mapScript, outputMapscript);
             return outputMapscript;
         } catch (IOException e) {
@@ -153,14 +183,15 @@ public class CompilationProcess {
         }
     }
 
-    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler, int testTimeout, Optional<String> testFilter) {
+    public static void runTests(WurstGui gui, WurstCompilerJassImpl compiler, RunArgs runArgs) {
+        ImTranslator translator = compiler.getImTranslator();
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
         if (!runArgs.isCompactOutput()) {
             System.out.println("Running tests");
         }
-        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), testTimeout, testFilter, runArgs.isCompactOutput()) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty(), runArgs.getTestTimeout(), runArgs.getTestFilter(), runArgs.isCompactOutput()) {
             @Override
             protected void print(String message) {
                 out.print(message);

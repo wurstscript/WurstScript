@@ -1,7 +1,5 @@
 package de.peeeq.wurstio;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.wurstscript.projectconfig.WurstProjectConfigReader;
 import de.peeeq.wurstio.compilationserver.WurstServer;
@@ -11,8 +9,6 @@ import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.CliBuildMap;
 import de.peeeq.wurstio.map.importer.ImportFile;
-import de.peeeq.wurstio.mpq.MpqEditor;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.ObjectExportService;
 import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.ErrorReporting;
@@ -147,11 +143,19 @@ public class Main {
                     compileArgs = new RunArgs(mergedArgs);
                 }
 
-                if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
+                if (workspaceroot != null) {
                     Path root = Paths.get(workspaceroot);
-                    Path inputMap = root.resolve(runArgs.getInputmap());
+                    Path inputMap = runArgs.isBuild() && runArgs.getInputmap() != null
+                        ? root.resolve(runArgs.getInputmap())
+                        : runArgs.getMapFile() == null ? null : Paths.get(runArgs.getMapFile());
                     WurstProjectConfigData projectConfig = WurstProjectConfigReader.load(root.resolve(FILE_NAME));
-                    if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
+                    if (inputMap != null) {
+                        if (!java.nio.file.Files.exists(inputMap)) {
+                            throw new RuntimeException("Input map does not exist: " + inputMap);
+                        }
+                        if (projectConfig == null) {
+                            throw new RuntimeException(FILE_NAME + " file doesn't exist or is invalid.");
+                        }
                         CliBuildMap cliBuildMap = new CliBuildMap(
                             WFile.create(root.toFile()),
                             Optional.of(inputMap.toFile()),
@@ -170,30 +174,14 @@ public class Main {
                     }
                 }
 
-                String mapFilePath = runArgs.getMapFile();
-
                 CompilationProcess compilationProcess = new CompilationProcess(gui, compileArgs);
                 @Nullable CharSequence compiledScript;
 
-                if (mapFilePath != null && workspaceroot != null) {
-                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(Optional.of(new File(mapFilePath)))) {
-                        File projectFolder = Paths.get(workspaceroot).toFile();
-                        compiledScript = compilationProcess.doCompilation(mpqEditor, projectFolder, true);
-                        if (compiledScript != null) {
-                            gui.sendProgress("Writing to map");
-                            mpqEditor.deleteFile("war3map.j");
-                            byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
-                            mpqEditor.insertFile("war3map.j", war3map);
-                        }
-                        ImportFile.importFilesFromImports(projectFolder, mpqEditor);
-                    }
-                } else {
-                    compiledScript = compilationProcess.doCompilation(null, true);
-                }
+                compiledScript = compilationProcess.doCompilation(null, true);
 
                 if (compiledScript != null) {
-                    File scriptFile = new File("compiled.j.txt");
-                    Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
+                    File scriptFile = new File(compileArgs.isLua() ? "compiled.lua.txt" : "compiled.j.txt");
+                    java.nio.file.Files.writeString(scriptFile.toPath(), compiledScript);
                 }
 
                 gui.sendProgress("Finished!");
