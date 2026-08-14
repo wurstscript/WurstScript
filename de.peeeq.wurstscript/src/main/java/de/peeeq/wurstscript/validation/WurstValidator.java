@@ -405,6 +405,8 @@ public class WurstValidator {
                 checkConstructorsUnique((ClassOrModule) e);
             if (e instanceof InstanceDecl)
                 checkInstanceDecl((InstanceDecl) e);
+            if (e instanceof StmtCall)
+                checkCallBounds((StmtCall) e);
             if (e instanceof CompilationUnit)
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef) {
@@ -2572,6 +2574,25 @@ public class WurstValidator {
 
     public static boolean isTypeParamNewGeneric(TypeParamDef tp) {
         return tp.getTypeParamConstraints() instanceof TypeExprList;
+    }
+
+    /**
+     * Checks the bounds of the callee's type parameters against the type arguments this call
+     * inferred. The call signature is the only place both are known, since the return type alone
+     * usually mentions none of them.
+     */
+    private void checkCallBounds(StmtCall call) {
+        FunctionSignature sig = call.attrFunctionSignature();
+        if (sig == null) {
+            return;
+        }
+        VariableBinding mapping = sig.getMapping();
+        if (mapping == null) {
+            return;
+        }
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
+            checkBoundsSatisfied(call, t._1(), t._2().getBaseType());
+        }
     }
 
     /**
