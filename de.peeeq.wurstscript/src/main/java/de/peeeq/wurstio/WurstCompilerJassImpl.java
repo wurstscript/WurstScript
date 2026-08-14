@@ -877,15 +877,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        if (containsTypeClassDispatch()) {
-            // A type class bound is resolved by monomorphisation: the implementation is chosen per
-            // concrete type argument. Erasure cannot express that, so a program which uses a bound
-            // gets the same full elimination as the Jass target rather than the targeted pass.
-            beginPhase(2, "Eliminate generics for type class dispatch");
-            new EliminateGenerics(getImTranslator(), getImProg()).transform();
-            timeTaker.endPhase();
-        } else if (containsGenericNewCall()) {
-            beginPhase(2, "Specialize generics for generic construction");
+        if (containsGenericNewCall() || containsTypeClassDispatch()) {
+            // Both operations need the concrete type argument, which erasure does not keep. Only
+            // the paths reaching them are specialised: the full elimination used for Jass is
+            // followed there by class elimination, and leaves state this backend cannot consume.
+            beginPhase(2, "Specialize generics for generic construction and type class dispatch");
             new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
             timeTaker.endPhase();
         }

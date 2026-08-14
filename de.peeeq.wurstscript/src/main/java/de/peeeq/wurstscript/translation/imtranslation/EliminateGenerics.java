@@ -116,8 +116,16 @@ public class EliminateGenerics {
     public void transformGenericNewOnly() {
         genericNewOnly = true;
         collectUnspecializedGenericClassMethods();
-        collectGenericNewRoots();
-        eliminateGenericUses();
+        // Specialising a constructor makes its result type concrete, which is what lets a method
+        // call on that result resolve. Repeat until a pass finds nothing new; collection is
+        // idempotent, so this terminates once every reachable site has been rewritten.
+        while (true) {
+            collectGenericNewRoots();
+            if (genericsUses.isEmpty()) {
+                break;
+            }
+            eliminateGenericUses();
+        }
         eliminateRemainingGenericNewCalls();
         assertNoReachableGenericNewMarkers();
     }
@@ -195,10 +203,34 @@ public class EliminateGenerics {
         if (call.getTypeArguments().isEmpty()) {
             addMemberTypeArguments(call, method.attrClass());
         }
+        if (typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+            // The receiver's declared type is still generic, which happens when the method is
+            // called straight on a freshly constructed value. The construction states the
+            // instantiation, so take the arguments from it.
+            useConstructionTypeArguments(call);
+        }
         if (!call.getTypeArguments().isEmpty()
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             genericsUses.add(new GenericMethodCall(call));
         }
+    }
+
+    /**
+     * Replaces a member call's still-generic type arguments with those of the constructor call that
+     * produced its receiver, as in {@code new Box<int>().render(x)}.
+     */
+    private void useConstructionTypeArguments(ImMethodCall call) {
+        if (!(call.getReceiver() instanceof ImFunctionCall construction)
+            || construction.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(construction.getTypeArguments())) {
+            return;
+        }
+        List<ImTypeArgument> fromConstruction = new ArrayList<>();
+        for (ImTypeArgument ta : construction.getTypeArguments()) {
+            fromConstruction.add(ta.copy());
+        }
+        call.getTypeArguments().removeAll();
+        call.getTypeArguments().addAll(fromConstruction);
     }
 
     private boolean typeArgumentsContainTypeVariable(ImTypeArguments typeArguments) {
@@ -232,6 +264,18 @@ public class EliminateGenerics {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                // Constructing a class whose methods dispatch has to be specialised as well:
+                // otherwise the constructor keeps a generic result type, and a method call on that
+                // result never becomes concrete enough to resolve.
+                if (classNeedsSpecialization(alloc.getClazz().getClassDef(), visitedFunctions, visitedMethods)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(alloc);
             }
 
             @Override
@@ -272,6 +316,48 @@ public class EliminateGenerics {
         }
         return false;
     }
+
+    /**
+     * Whether constructing this class requires the concrete type argument, because one of its own
+     * or inherited members dispatches on a type class bound.
+     */
+    private boolean classNeedsSpecialization(ImClass classDef, Set<ImFunction> visitedFunctions,
+                                             Set<ImMethod> visitedMethods) {
+        Boolean cached = classNeedsSpecialization.get(classDef);
+        if (cached != null) {
+            // Already answered, or currently being answered: a class reached through its own
+            // members contributes nothing new to the decision.
+            return cached;
+        }
+        classNeedsSpecialization.put(classDef, false);
+        boolean result = false;
+        for (ImFunction f : classDef.getFunctions()) {
+            if (functionNeedsSpecialization(f, visitedFunctions, visitedMethods)) {
+                result = true;
+                break;
+            }
+        }
+        if (!result) {
+            for (ImMethod m : classDef.getMethods()) {
+                if (methodNeedsSpecialization(m, visitedFunctions, visitedMethods)) {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        if (!result) {
+            for (ImClassType superType : classDef.getSuperClasses()) {
+                if (classNeedsSpecialization(superType.getClassDef(), visitedFunctions, visitedMethods)) {
+                    result = true;
+                    break;
+                }
+            }
+        }
+        classNeedsSpecialization.put(classDef, result);
+        return result;
+    }
+
+    private final Map<ImClass, Boolean> classNeedsSpecialization = new IdentityHashMap<>();
 
     private void assertNoReachableGenericNewMarkers() {
         prog.accept(new Element.DefaultVisitor() {

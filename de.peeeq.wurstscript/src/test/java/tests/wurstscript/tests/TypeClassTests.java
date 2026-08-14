@@ -638,6 +638,47 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /** A subclass may fix its parent's bounded type parameter. */
+    @Test
+    public void boundInheritedFromGenericParent() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Parent<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class Child extends Parent<int>",
+            "init",
+            "    if new Child().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void boundInheritedFromGenericParentLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Parent<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class Child extends Parent<int>",
+            "init",
+            "    if new Child().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {

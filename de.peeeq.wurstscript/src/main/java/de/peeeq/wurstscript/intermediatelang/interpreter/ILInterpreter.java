@@ -60,11 +60,8 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         // A bound may belong to the owning class rather than to the method, as in
         // class Box<T: Show>. The receiver carries the arguments the class was created with.
         if (args.length > 0 && args[0] instanceof ILconstObject receiver) {
-            ImTypeArguments classArgs = receiver.getType().getTypeArguments();
-            ImTypeVars classVars = receiver.getType().getClassDef().getTypeVariables();
-            for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
-                binding.put(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
-            }
+            bindClassTypeArguments(globalState, binding, receiver.getType(),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
         }
 
         ImTypeArguments typeArgs = null;
@@ -92,6 +89,30 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
 
         if (!binding.isEmpty()) {
             localState.setTypeArguments(binding);
+        }
+    }
+
+    /**
+     * Binds the type variables of the receiver's class and of every class it inherits from.
+     * <p>
+     * A subclass may fix its parent's parameter, as in {@code class Child extends Parent<int>}.
+     * The bound then belongs to {@code Parent}, while the receiver is a {@code Child} carrying no
+     * arguments of its own, so the supertype chain is where the concrete type is recorded.
+     */
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClassType classType, Set<ImClass> visited) {
+        ImClass classDef = classType.getClassDef();
+        if (!visited.add(classDef)) {
+            return;
+        }
+        ImTypeVars classVars = classDef.getTypeVariables();
+        ImTypeArguments classArgs = classType.getTypeArguments();
+        for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
+            binding.putIfAbsent(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            bindClassTypeArguments(globalState, binding, superType, visited);
         }
     }
 
