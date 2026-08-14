@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -98,20 +99,45 @@ public class WurstTypeTypeParam extends WurstType {
         if (!staticRef) {
             return;
         }
-        // Bounds are ordered, and an earlier one wins: two bounds may require the same operation,
-        // and offering both would make every call to it ambiguous rather than simply choosing.
+        // Bounds are ordered and an earlier one wins, but only over the same signature: two bounds
+        // may require the very same operation, and offering both would make every call ambiguous.
+        // Differently shaped overloads are not in competition, so later bounds still contribute
+        // them and overload resolution picks between them as usual.
+        List<FuncLink> supplied = new ArrayList<>();
         for (InterfaceDef bound : TypeClassConstraints.boundInterfaces(def)) {
-            boolean found = false;
             for (FuncDef method : bound.getMethods()) {
-                if (method.getName().equals(name)) {
-                    result.add(requirementLink(node, bound, method));
-                    found = true;
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                FuncLink candidate = requirementLink(node, bound, method);
+                if (!alreadySupplied(supplied, candidate, node)) {
+                    supplied.add(candidate);
                 }
             }
-            if (found) {
-                return;
+        }
+        result.addAll(supplied);
+    }
+
+    /** True when an earlier bound already supplied a requirement of the same shape. */
+    private static boolean alreadySupplied(List<FuncLink> supplied, FuncLink candidate, Element node) {
+        for (FuncLink existing : supplied) {
+            List<WurstType> a = existing.getParameterTypes();
+            List<WurstType> b = candidate.getParameterTypes();
+            if (a.size() != b.size()) {
+                continue;
+            }
+            boolean same = true;
+            for (int i = 0; i < a.size(); i++) {
+                if (!a.get(i).equalsType(b.get(i), node)) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) {
+                return true;
             }
         }
+        return false;
     }
 
     @Override

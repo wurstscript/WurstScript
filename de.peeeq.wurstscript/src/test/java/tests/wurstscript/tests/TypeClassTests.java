@@ -877,6 +877,36 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Bounds only shadow each other when they require the same shape. A later bound still supplies
+     * a differently shaped overload, which overload resolution then chooses between.
+     */
+    @Test
+    public void overloadFromLaterBoundStaysAvailable() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface First<T:>",
+            "    function show(T x) returns string",
+            "interface Second<T:>",
+            "    function show(T x) returns string",
+            "    function show(int scale, T x) returns string",
+            "implements First<int>",
+            "    function show(int x) returns string",
+            "        return \"first\"",
+            "implements Second<int>",
+            "    function show(int x) returns string",
+            "        return \"second\"",
+            "    function show(int scale, int x) returns string",
+            "        return \"scaled\"",
+            "function render<Q: First and Second>(Q x) returns string",
+            "    return Q.show(x) + Q.show(2, x)",
+            "init",
+            "    if render(1) == \"firstscaled\"",
+            "        testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {
