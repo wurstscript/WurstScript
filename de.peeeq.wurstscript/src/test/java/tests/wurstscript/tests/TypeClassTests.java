@@ -13,6 +13,21 @@ import org.testng.annotations.Test;
 public class TypeClassTests extends WurstScriptTest {
 
     @Test
+    public void dispatchThroughBoundTypeChecks() {
+        testAssertOkLines(false,
+            "package test",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "class A",
+            "implements ToIndex<A>",
+            "    function toIndex(A x) returns int",
+            "        return 42",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)"
+        );
+    }
+
+    @Test
     public void parseInstanceDecl() {
         testAssertOkLines(false,
             "package test",

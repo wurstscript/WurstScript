@@ -5,8 +5,12 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypeClassConstraints;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
@@ -79,7 +83,18 @@ public class AttrNameDef {
     protected static NameLink searchNameInScope(String varName, NameRef node) {
         boolean showErrors = !varName.startsWith("gg_");
         if (!"it".equals(varName)) {
-            return node.lookupVar(varName, showErrors);
+            NameLink found = node.lookupVar(varName, false);
+            if (found != null) {
+                return found;
+            }
+            // A bounded type parameter can stand in receiver position, as in T.toIndex(x).
+            // Only reachable once ordinary variable lookup has failed, so it cannot shadow a real
+            // variable of the same name.
+            NameLink typeParamRef = lookupBoundedTypeParam(varName, node);
+            if (typeParamRef != null) {
+                return typeParamRef;
+            }
+            return showErrors ? node.lookupVar(varName, true) : null;
         }
 
         // Normal lexical lookup wins, so user-defined names can shadow implicit closure-self.
@@ -103,6 +118,31 @@ public class AttrNameDef {
 
         // Fallback to default diagnostics when no implicit closure-self is available.
         return node.lookupVar(varName, true);
+    }
+
+    /**
+     * Resolves a name which refers to a type parameter carrying type class bounds, so that the
+     * parameter can be used as the receiver of a required method: {@code T.toIndex(x)}.
+     * <p>
+     * Restricted to the receiver of a method call, because a bare type parameter is not a value and
+     * should keep reporting the ordinary "unknown variable" error everywhere else.
+     */
+    private static @Nullable NameLink lookupBoundedTypeParam(String varName, NameRef node) {
+        if (!(node.getParent() instanceof ExprMemberMethod call) || call.getLeft() != node) {
+            return null;
+        }
+        TypeDef typeDef = node.lookupType(varName, false);
+        if (!(typeDef instanceof TypeParamDef tp) || !TypeClassConstraints.hasBounds(tp)) {
+            return null;
+        }
+        WurstTypeTypeParam typ = new WurstTypeTypeParam(tp).asStaticRef();
+        return new OtherLink(Visibility.LOCAL, varName, typ) {
+            @Override
+            public de.peeeq.wurstscript.jassIm.ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
+                throw new CompileError(e.attrSource(),
+                        "Type parameter " + varName + " is not a value; it can only be used to call a method required by its bounds.");
+            }
+        };
     }
 
     private static @Nullable NameLink lookupImplicitClosureSelf(NameRef node, boolean showErrors) {

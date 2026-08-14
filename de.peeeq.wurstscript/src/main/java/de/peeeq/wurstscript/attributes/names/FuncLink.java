@@ -209,6 +209,21 @@ public class FuncLink extends DefLink {
         }
     }
 
+    /**
+     * Re-points this link at a different receiver type.
+     * <p>
+     * Used for type class dispatch: a requirement is declared as a method of the interface, but a
+     * bound exposes it on the constrained type parameter itself, so {@code T.f(x)} resolves with
+     * {@code T} as the receiver rather than an interface instance.
+     */
+    public FuncLink withReceiverType(@Nullable WurstType newReceiverType) {
+        if (newReceiverType == getReceiverType()) {
+            return this;
+        }
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), newReceiverType, def,
+                parameterNames, parameterTypes, returnType, mapping);
+    }
+
     @Override
     public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
         if (typeParams.isEmpty()) {

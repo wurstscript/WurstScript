@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrImplicitParameter {
@@ -86,6 +87,21 @@ public class AttrImplicitParameter {
         return getFunctionCallImplicitParameter(e, calledFunc, true);
     }
 
+    /**
+     * True for a call whose receiver is a bounded type parameter standing for itself, as in
+     * {@code T.toIndex(x)}. Such a call resolves through the type class instance chosen for T and
+     * therefore takes no implicit {@code this}.
+     */
+    public static boolean isTypeClassDispatch(Element e) {
+        if (!(e instanceof HasReceiver hasReceiver)) {
+            return false;
+        }
+        Expr left = hasReceiver.getLeft();
+        return left != null
+            && left.attrTyp() instanceof WurstTypeTypeParam tp
+            && tp.isStaticRef();
+    }
+
     static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
         if (e instanceof HasReceiver) {
             HasReceiver hasReceiver = (HasReceiver) e;
@@ -98,6 +114,11 @@ public class AttrImplicitParameter {
             }
         }
         if (calledFunc == null) {
+            return Ast.NoExpr();
+        }
+        if (isTypeClassDispatch(e)) {
+            // T.f(x): the bound supplies the implementation and the value is an ordinary
+            // argument, so there is no receiver to pass even though f is declared as a method.
             return Ast.NoExpr();
         }
         if (calledFunc.getDef().attrIsDynamicClassMember()) {
