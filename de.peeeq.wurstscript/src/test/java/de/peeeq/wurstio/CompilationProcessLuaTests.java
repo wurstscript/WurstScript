@@ -19,6 +19,7 @@ public class CompilationProcessLuaTests {
         Path requestedJassOutput = project.resolve("output.j");
         Path output = project.resolve("output.lua");
         Files.writeString(source, "package Main\nfunction foo()\nendpackage\n");
+        Files.writeString(requestedJassOutput, "stale jass output");
 
         RunArgs runArgs = new RunArgs("-lua", "-out", requestedJassOutput.toString(), source.toString());
         CompilationProcess process = new CompilationProcess(new WurstGuiCliImpl(true), runArgs);

@@ -160,9 +160,11 @@ public class CompilationProcess {
     private File writeMapscript(CharSequence mapScript) {
         gui.sendProgress("Writing output file");
         File outputMapscript;
+        File staleJassOutput = null;
         if (runArgs.getOutFile() != null) {
             String outputPath = runArgs.getOutFile();
             if (runArgs.isLua() && outputPath.toLowerCase(Locale.ROOT).endsWith(".j")) {
+                staleJassOutput = new File(outputPath);
                 outputPath = outputPath.substring(0, outputPath.length() - 2) + ".lua";
             }
             outputMapscript = new File(outputPath);
@@ -171,6 +173,9 @@ public class CompilationProcess {
         }
         outputMapscript.getParentFile().mkdirs();
         try {
+            if (staleJassOutput != null) {
+                java.nio.file.Files.deleteIfExists(staleJassOutput.toPath());
+            }
             FileUtils.write(mapScript, outputMapscript);
             return outputMapscript;
         } catch (IOException e) {
