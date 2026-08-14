@@ -102,18 +102,50 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     private static void bindClassTypeArguments(ProgramState globalState,
                                                Map<ImTypeVar, ImTypeArgument> binding,
                                                ImClassType classType, Set<ImClass> visited) {
-        ImClass classDef = classType.getClassDef();
+        bindClassTypeArguments(globalState, binding, classType.getClassDef(),
+            new ArrayList<>(classType.getTypeArguments()), visited);
+    }
+
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClass classDef, List<ImTypeArgument> classArgs,
+                                               Set<ImClass> visited) {
         if (!visited.add(classDef)) {
             return;
         }
         ImTypeVars classVars = classDef.getTypeVariables();
-        ImTypeArguments classArgs = classType.getTypeArguments();
         for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
             binding.putIfAbsent(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
         }
         for (ImClassType superType : classDef.getSuperClasses()) {
-            bindClassTypeArguments(globalState, binding, superType, visited);
+            // A subclass may forward its own parameter, as in class Child<U: Show> extends
+            // Parent<U>. The supertype is written in terms of the subclass's variables, so resolve
+            // them against what this class was instantiated with before descending.
+            List<ImTypeArgument> superArgs = new ArrayList<>();
+            for (ImTypeArgument superArg : superType.getTypeArguments()) {
+                superArgs.add(resolveAgainst(binding, superArg));
+            }
+            bindClassTypeArguments(globalState, binding, superType.getClassDef(), superArgs, visited);
         }
+    }
+
+    /** Replaces a type argument that is still a variable by whatever that variable is bound to. */
+    private static ImTypeArgument resolveAgainst(Map<ImTypeVar, ImTypeArgument> binding,
+                                                 ImTypeArgument arg) {
+        if (!(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument known = binding.get(ref.getTypeVariable());
+        if (known == null) {
+            // One source type parameter can be several nodes, so fall back to the name.
+            for (Map.Entry<ImTypeVar, ImTypeArgument> e : binding.entrySet()) {
+                if (e.getKey().getName().equals(ref.getTypeVariable().getName())) {
+                    known = e.getValue();
+                    break;
+                }
+            }
+        }
+        return known != null ? known : arg;
     }
 
     private static @Nullable ImClass owningClass(ImFunction f) {

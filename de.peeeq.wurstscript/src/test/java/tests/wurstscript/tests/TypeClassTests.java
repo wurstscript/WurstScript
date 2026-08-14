@@ -679,6 +679,69 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /** A generic subclass may forward its own parameter to its parent's bound. */
+    @Test
+    public void boundForwardedByGenericSubclass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Parent<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class Child<U: Show> extends Parent<U>",
+            "init",
+            "    if new Child<int>().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void boundForwardedByGenericSubclassLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Parent<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class Child<U: Show> extends Parent<U>",
+            "init",
+            "    if new Child<int>().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** Two levels of forwarding, so the substitution has to compose rather than apply once. */
+    @Test
+    public void boundForwardedThroughTwoLevels() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Top<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class Middle<M: Show> extends Top<M>",
+            "class Bottom<B: Show> extends Middle<B>",
+            "init",
+            "    if new Bottom<int>().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {
