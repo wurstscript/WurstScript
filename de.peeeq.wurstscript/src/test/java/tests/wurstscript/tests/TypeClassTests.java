@@ -847,6 +847,124 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Two bounds may require the same operation. Bounds are ordered and the earlier one wins,
+     * rather than every call to the shared operation becoming ambiguous.
+     */
+    @Test
+    public void duplicateRequirementAcrossBounds() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface First<T:>",
+            "    function show(T x) returns string",
+            "interface Second<T:>",
+            "    function other(T x) returns int",
+            "    function show(T x) returns string",
+            "implements First<int>",
+            "    function show(int x) returns string",
+            "        return \"first\"",
+            "implements Second<int>",
+            "    function other(int x) returns int",
+            "        return 1",
+            "    function show(int x) returns string",
+            "        return \"second\"",
+            "function render<Q: First and Second>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    if render(1) == \"first\"",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Bounds only shadow each other when they require the same shape. A later bound still supplies
+     * a differently shaped overload, which overload resolution then chooses between.
+     */
+    @Test
+    public void overloadFromLaterBoundStaysAvailable() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface First<T:>",
+            "    function show(T x) returns string",
+            "interface Second<T:>",
+            "    function show(T x) returns string",
+            "    function show(int scale, T x) returns string",
+            "implements First<int>",
+            "    function show(int x) returns string",
+            "        return \"first\"",
+            "implements Second<int>",
+            "    function show(int x) returns string",
+            "        return \"second\"",
+            "    function show(int scale, int x) returns string",
+            "        return \"scaled\"",
+            "function render<Q: First and Second>(Q x) returns string",
+            "    return Q.show(x) + Q.show(2, x)",
+            "init",
+            "    if render(1) == \"firstscaled\"",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A bounded generic which is only declared, never called, stays valid: it is unreachable, so
+     * nothing has to supply a concrete type for it.
+     */
+    @Test
+    public void unusedBoundedGenericFunctionLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function unused<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /** The same for a bounded generic class which is never constructed. */
+    @Test
+    public void unusedBoundedGenericClassLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "class Unused<Q: Show>",
+            "    function render(Q x) returns string",
+            "        return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /** Declared and unused on Jass too, which is where it already worked. */
+    @Test
+    public void unusedBoundedGenericFunction() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "function unused<Q: Show>(Q x) returns string",
+            "    return Q.show(x)",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {

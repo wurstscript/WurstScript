@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -461,7 +462,12 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeVarDispatch imTypeVarDispatch, LuaTranslator tr) {
-        throw new Error("not implemented");
+        // Reaching the backend means specialization never supplied a concrete type for this
+        // dispatch and the code is reachable, since unreachable functions have been removed by now.
+        throw new CompileError(imTypeVarDispatch.attrTrace().attrSource(),
+            "Type class dispatch of " + imTypeVarDispatch.getTypeClassFunc().getName()
+                + " could not be resolved for the Lua target: the concrete type is not available"
+                + " where it is used.");
     }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
