@@ -1153,7 +1153,7 @@ public class EliminateGenerics {
             return;
         }
         int index = indexOfTypeVar(typeVars, ref.getTypeVariable());
-        if (index < 0) {
+        if (index < 0 || index >= generics.getTypeArguments().size()) {
             return;
         }
         Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> outer =
@@ -1187,6 +1187,12 @@ public class EliminateGenerics {
 
     private void resolveTypeClassDispatch(ImTypeVarDispatch e, GenericTypes generics, List<ImTypeVar> typeVars) {
         int index = indexOfTypeVar(typeVars, e.getTypeVariable());
+        if (index >= 0 && index >= generics.getTypeArguments().size()) {
+            // Fewer arguments than variables: the variables and the arguments are not in
+            // correspondence here, so position says nothing. Reading one anyway would dispatch
+            // through whichever type happened to sit at that index.
+            return;
+        }
         if (index < 0) {
             // dispatching on a variable of some enclosing generic; it is resolved when that one is
             // specialised.
