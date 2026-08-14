@@ -73,16 +73,21 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         if (typeArgs != null) {
             List<ImTypeVar> typeVars = f.getTypeVariables();
             for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
-                binding.put(typeVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+                binding.putIfAbsent(typeVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
             }
             // A generic class holds its type variables on the class, not on its functions, so a
-            // constructor or method is called with arguments it has no variable of its own to bind.
-            // Bind the owning class's variables too, mirroring how type substitutions are built.
-            ImClass owner = owningClass(f);
-            if (owner != null) {
-                ImTypeVars classVars = owner.getTypeVariables();
-                for (int i = 0; i < Math.min(classVars.size(), typeArgs.size()); i++) {
-                    binding.put(classVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+            // constructor is called with arguments it has no variable of its own to bind. Only do
+            // this when the function has no type parameters, because then the arguments are the
+            // class's; a method with its own parameters is called with those instead, and the
+            // class's mapping already came from the receiver, which must not be overwritten.
+            if (typeVars.isEmpty()) {
+                ImClass owner = owningClass(f);
+                if (owner != null) {
+                    ImTypeVars classVars = owner.getTypeVariables();
+                    for (int i = 0; i < Math.min(classVars.size(), typeArgs.size()); i++) {
+                        binding.putIfAbsent(classVars.get(i),
+                            inheritIfStillAbstract(globalState, typeArgs.get(i)));
+                    }
                 }
             }
         }

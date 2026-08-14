@@ -742,6 +742,64 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /** A bound on a module type parameter is rejected: using a module copies its body out of scope. */
+    @Test
+    public void boundOnGenericModule() {
+        testAssertErrorsLines(false, "not supported on a module type parameter",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"i\"",
+            "module M<T: Show>",
+            "    function render(T x) returns string",
+            "        return T.show(x)",
+            "class C",
+            "    use M<int>",
+            "init",
+            "    if new C().render(1) == \"i\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A method with its own type parameters must not disturb the class binding taken from the receiver. */
+    @Test
+    public void classBoundWithIndependentMethodTypeParam() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns string",
+            "implements Show<int>",
+            "    function show(int x) returns string",
+            "        return \"int\"",
+            "implements Show<string>",
+            "    function show(string x) returns string",
+            "        return \"string\"",
+            "class Box<T: Show>",
+            "    function describe<U:>(T x, U other) returns string",
+            "        return T.show(x)",
+            "init",
+            "    if new Box<int>().describe<string>(1, \"a\") == \"int\"",
+            "        testSuccess()"
+        );
+    }
+
+    /** A requirement may only use the interface's type parameter, and says so plainly. */
+    @Test
+    public void genericRequirement() {
+        testAssertErrorsLines(false, "has its own type parameters",
+            "package test",
+            "interface Pairing<T:>",
+            "    function pair<U:>(T x, U y) returns U",
+            "implements Pairing<int>",
+            "    function pair<U:>(int x, U y) returns U",
+            "        return y"
+        );
+    }
+
     /** A type parameter is not a value, so it may only appear as the receiver of a requirement. */
     @Test
     public void typeParameterIsNotAValue() {

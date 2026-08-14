@@ -2643,6 +2643,15 @@ public class WurstValidator {
 
     /** Every bound written on a type parameter must be usable as a type class. */
     private void checkTypeParamBounds(TypeParamDef tp) {
+        if (TypeClassConstraints.hasBounds(tp) && tp.attrNearestStructureDef() instanceof ModuleDef) {
+            // Using a module copies its body into the class, replacing the module's type parameters
+            // in type positions. A requirement is called on the parameter itself, which is an
+            // expression, so it survives the copy and no longer resolves. Reject that here rather
+            // than let it fail later as an unknown name.
+            tp.addError("Type class bounds are not supported on a module type parameter."
+                    + "\nMove the bounded generic into a class, or use the module without a bound.");
+            return;
+        }
         for (TypeExpr boundExpr : TypeClassConstraints.boundExprs(tp)) {
             String reason = TypeClassConstraints.invalidBoundReason(boundExpr);
             if (reason != null) {
@@ -2677,6 +2686,13 @@ public class WurstValidator {
         if (!iface.getExtendsList().isEmpty()) {
             decl.addError("Interface " + iface.getName() + " extends another interface, which is not supported"
                     + " for type classes: the requirements of a bound are the interface's own functions.");
+            return;
+        }
+        FuncDef genericRequirement = TypeClassConstraints.firstGenericMethod(iface);
+        if (genericRequirement != null) {
+            decl.addError(iface.getName() + "." + genericRequirement.getName() + " has its own type parameters,"
+                    + " which is not supported for a type class: a requirement may only use the interface's"
+                    + " type parameter.");
             return;
         }
 

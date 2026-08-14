@@ -93,6 +93,24 @@ public final class TypeClassConstraints {
             return i.getName() + " extends another interface, which is not supported for bounds:"
                     + " the requirements of a bound are the interface's own functions.";
         }
+        FuncDef generic = firstGenericMethod(i);
+        if (generic != null) {
+            // Matching such a requirement means pairing the interface's method type parameters with
+            // the implementation's, which this version does not do. Say so, rather than comparing
+            // parameters that only look identical and reporting a mismatch between a name and itself.
+            return i.getName() + "." + generic.getName() + " has its own type parameters, which is not"
+                    + " supported for a bound: a requirement may only use the interface's type parameter.";
+        }
+        return null;
+    }
+
+    /** The first requirement declaring type parameters of its own, or null when none does. */
+    public static @Nullable FuncDef firstGenericMethod(InterfaceDef iface) {
+        for (FuncDef method : iface.getMethods()) {
+            if (!method.getTypeParameters().isEmpty()) {
+                return method;
+            }
+        }
         return null;
     }
 
