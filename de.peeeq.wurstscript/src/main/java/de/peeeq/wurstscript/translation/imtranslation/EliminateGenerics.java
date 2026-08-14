@@ -950,7 +950,9 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeArgument ta) {
-                ta.setType(transformType(ta.getType(), generics, typeVars));
+                ImType original = ta.getType();
+                ta.setType(transformType(original, generics, typeVars));
+                inheritTypeClassBinding(ta, original, generics, typeVars);
             }
 
             @Override
@@ -1024,6 +1026,30 @@ public class EliminateGenerics {
      * This is what keeps bounded generics free of runtime cost: after specialisation the call is an
      * ordinary static call to the instance function, with no lookup and no indirection left.
      */
+    /**
+     * Carries a type class binding down into a nested call.
+     * <p>
+     * When a bounded generic passes its own type parameter on to another bounded generic, the inner
+     * call site cannot know the instance: the parameter is still abstract there. Substituting the
+     * outer parameter also supplies the instance it was specialised with, which is what makes a
+     * chain of bounded generics resolve without any runtime dictionary.
+     */
+    private static void inheritTypeClassBinding(ImTypeArgument ta, ImType original,
+                                                GenericTypes generics, List<ImTypeVar> typeVars) {
+        if (!ta.getTypeClassBinding().isEmpty() || !(original instanceof ImTypeVarRef ref)) {
+            return;
+        }
+        int index = indexOfTypeVar(typeVars, ref.getTypeVariable());
+        if (index < 0) {
+            return;
+        }
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> outer =
+            generics.getTypeArguments().get(index).getTypeClassBinding();
+        if (!outer.isEmpty()) {
+            ta.setTypeClassBinding(new LinkedHashMap<>(outer));
+        }
+    }
+
     /**
      * A type variable can be represented by more than one node for the same source type parameter,
      * so match on the name as the rest of this pass does.

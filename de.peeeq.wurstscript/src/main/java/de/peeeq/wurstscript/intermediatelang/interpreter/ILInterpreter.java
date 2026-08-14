@@ -53,7 +53,8 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
      * dispatch inside the body can find the instance chosen at the call site. Only relevant when
      * interpreting a program which still has generics.
      */
-    private static void bindTypeArguments(LocalState localState, ImFunction f, @Nullable Element caller) {
+    private static void bindTypeArguments(ProgramState globalState, LocalState localState, ImFunction f,
+                                          @Nullable Element caller) {
         ImTypeArguments typeArgs;
         if (caller instanceof ImFunctionCall call) {
             typeArgs = call.getTypeArguments();
@@ -68,9 +69,23 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         }
         Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
         for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
-            binding.put(typeVars.get(i), typeArgs.get(i));
+            ImTypeArgument arg = typeArgs.get(i);
+            binding.put(typeVars.get(i), inheritIfStillAbstract(globalState, arg));
         }
         localState.setTypeArguments(binding);
+    }
+
+    /**
+     * When a bounded generic passes its own type parameter to another one, the inner call site
+     * carries no instance because the parameter is still abstract there. The caller's frame knows
+     * what it was called with, so take the argument from there.
+     */
+    private static ImTypeArgument inheritIfStillAbstract(ProgramState globalState, ImTypeArgument arg) {
+        if (!arg.getTypeClassBinding().isEmpty() || !(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument fromCaller = globalState.getCurrentTypeArgument(ref.getTypeVariable());
+        return fromCaller != null ? fromCaller : arg;
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -119,7 +134,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             for (int i = 0; i < f.getParameters().size(); i++) {
                 localState.setVal(f.getParameters().get(i), args[i]);
             }
-            bindTypeArguments(localState, f, caller);
+            bindTypeArguments(globalState, localState, f, caller);
 
             // --- stacktrace bookkeeping ---
             if (f.getBody().isEmpty()) {
@@ -243,6 +258,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             }
             WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
             globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
+            globalState.pushTypeArguments(localState.getTypeArguments());
 
             ILconst retVal = null;
             boolean didReturn = false;
@@ -259,6 +275,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;
             } finally {
+                globalState.popTypeArguments();
                 globalState.popStackframe();
             }
 

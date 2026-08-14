@@ -403,6 +403,8 @@ public class WurstValidator {
             }
             if (e instanceof ClassOrModule)
                 checkConstructorsUnique((ClassOrModule) e);
+            if (e instanceof InstanceDecl)
+                checkInstanceDecl((InstanceDecl) e);
             if (e instanceof CompilationUnit)
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef) {
@@ -2501,7 +2503,7 @@ public class WurstValidator {
 
             TypeParamDef tp = t._1();
             if (isTypeParamNewGeneric(tp)) {
-                // new style generics
+                checkBoundsSatisfied(e, tp, typ);
             } else { // old style generics
 
                 if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
@@ -2570,6 +2572,117 @@ public class WurstValidator {
 
     public static boolean isTypeParamNewGeneric(TypeParamDef tp) {
         return tp.getTypeParamConstraints() instanceof TypeExprList;
+    }
+
+    /**
+     * Every bound on a type parameter must have an instance for the type it was bound to, checked
+     * where the type argument is chosen so the message can name both.
+     */
+    private void checkBoundsSatisfied(Element location, TypeParamDef tp, WurstType typ) {
+        if (typ instanceof WurstTypeUnknown || typ instanceof WurstTypeTypeParam
+                || typ instanceof WurstTypeBoundTypeParam) {
+            // still abstract, or already broken: checked once it is bound to something concrete
+            return;
+        }
+        for (InterfaceDef bound : TypeClassConstraints.boundInterfaces(tp)) {
+            if (TypeClassInstances.find(bound, typ) == null) {
+                location.addError("Type " + typ + " does not satisfy the bound " + tp.getName() + ": "
+                        + bound.getName() + ".\nDeclare 'implements " + bound.getName() + "<" + typ + ">' in the package of "
+                        + bound.getName() + " or of " + typ + ".");
+            }
+        }
+    }
+
+    /**
+     * Checks one instance declaration: it must name a usable interface and type, live in a package
+     * permitted by the orphan rule, be the only instance for its pair, and implement every
+     * requirement exactly once.
+     */
+    private void checkInstanceDecl(InstanceDecl decl) {
+        InterfaceDef iface = TypeClassInstances.declaredInterface(decl);
+        if (iface == null) {
+            decl.addError("An instance must name an interface applied to one type, as in "
+                    + "'implements Indexable<vec2>'.");
+            return;
+        }
+        if (iface.getTypeParameters().size() != 1) {
+            decl.addError("Interface " + iface.getName() + " cannot be used as a type class: a bound requires "
+                    + "exactly one type parameter, but it has " + iface.getTypeParameters().size() + ".");
+            return;
+        }
+        WurstType instanceType = TypeClassInstances.instanceType(decl);
+        if (instanceType == null || instanceType instanceof WurstTypeUnknown) {
+            decl.addError("Could not resolve the type this instance is declared for.");
+            return;
+        }
+
+        checkInstanceIsNotOrphan(decl, iface, instanceType);
+        checkInstanceIsUnique(decl, iface, instanceType);
+        checkInstanceIsComplete(decl, iface);
+    }
+
+    private void checkInstanceIsNotOrphan(InstanceDecl decl, InterfaceDef iface, WurstType instanceType) {
+        List<WPackage> allowed = TypeClassInstances.candidatePackages(iface, instanceType);
+        PackageOrGlobal declaredIn = decl.attrNearestPackage();
+        if (!(declaredIn instanceof WPackage p) || allowed.contains(p)) {
+            return;
+        }
+        StringBuilder allowedNames = new StringBuilder();
+        for (WPackage a : allowed) {
+            if (allowedNames.length() > 0) {
+                allowedNames.append(" or ");
+            }
+            allowedNames.append(a.getName());
+        }
+        decl.addError("An instance must be declared with its interface or with its type, but this one is in "
+                + p.getName() + ".\nMove it to " + allowedNames + ".\nThis keeps a type class instance the same "
+                + "everywhere, independent of which packages happen to be imported.");
+    }
+
+    private void checkInstanceIsUnique(InstanceDecl decl, InterfaceDef iface, WurstType instanceType) {
+        for (WPackage p : TypeClassInstances.candidatePackages(iface, instanceType)) {
+            for (InstanceDecl other : TypeClassInstances.declaredIn(p)) {
+                if (other != decl && TypeClassInstances.matches(other, iface, instanceType)) {
+                    decl.addError("There is already an instance of " + iface.getName() + " for " + instanceType
+                            + ", declared in " + p.getName() + " at line " + other.getSource().getLine()
+                            + ".\nA type may implement an interface as a type class only once.");
+                    return;
+                }
+            }
+        }
+    }
+
+    private void checkInstanceIsComplete(InstanceDecl decl, InterfaceDef iface) {
+        StringBuilder missing = new StringBuilder();
+        for (FuncDef requirement : iface.getMethods()) {
+            int found = 0;
+            for (FuncDef provided : decl.getMethods()) {
+                if (provided.getName().equals(requirement.getName())) {
+                    found++;
+                }
+            }
+            if (found == 0) {
+                missing.append("\n    ").append(requirement.getName());
+            } else if (found > 1) {
+                decl.addError("This instance defines " + requirement.getName() + " more than once.");
+            }
+        }
+        if (missing.length() > 0) {
+            decl.addError("This instance of " + iface.getName() + " must implement:" + missing);
+        }
+        for (FuncDef provided : decl.getMethods()) {
+            boolean required = false;
+            for (FuncDef requirement : iface.getMethods()) {
+                if (provided.getName().equals(requirement.getName())) {
+                    required = true;
+                    break;
+                }
+            }
+            if (!required) {
+                provided.addError(provided.getName() + " is not required by " + iface.getName()
+                        + ", so it cannot be defined in this instance.");
+            }
+        }
     }
 
     private void checkFuncRef(FuncRef ref) {

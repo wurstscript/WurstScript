@@ -524,6 +524,32 @@ public class ProgramState extends State implements AutoCloseable {
         lastStatements.push(stmt);
     }
 
+    /**
+     * Type arguments of the frames currently on the stack. A type class dispatch on a parameter
+     * which the current frame received abstractly is answered from the frame which supplied it.
+     */
+    private final Deque<Map<ImTypeVar, ImTypeArgument>> typeArgumentFrames = new ArrayDeque<>();
+
+    public void pushTypeArguments(Map<ImTypeVar, ImTypeArgument> typeArguments) {
+        typeArgumentFrames.push(typeArguments);
+    }
+
+    public void popTypeArguments() {
+        if (!typeArgumentFrames.isEmpty()) {
+            typeArgumentFrames.pop();
+        }
+    }
+
+    public @Nullable ImTypeArgument getCurrentTypeArgument(ImTypeVar typeVar) {
+        for (Map<ImTypeVar, ImTypeArgument> frame : typeArgumentFrames) {
+            ImTypeArgument found = frame.get(typeVar);
+            if (found != null && !found.getTypeClassBinding().isEmpty()) {
+                return found;
+            }
+        }
+        return null;
+    }
+
     public void popStackframe() {
 //        new Exception().printStackTrace(System.out);
         WLogger.trace(() -> "popStackframe " + (stackFrames.isEmpty() ? "empty" : stackFrames.peek().f));

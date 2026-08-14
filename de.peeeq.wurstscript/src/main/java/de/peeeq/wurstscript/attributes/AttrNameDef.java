@@ -83,18 +83,17 @@ public class AttrNameDef {
     protected static NameLink searchNameInScope(String varName, NameRef node) {
         boolean showErrors = !varName.startsWith("gg_");
         if (!"it".equals(varName)) {
-            NameLink found = node.lookupVar(varName, false);
-            if (found != null) {
-                return found;
+            // A bounded type parameter can stand in receiver position, as in T.toIndex(x). The
+            // syntactic test comes first so ordinary lookups keep their original cost, and the
+            // probe below uses the cached form. Anything else falls through to the normal lookup,
+            // which must stay the last word so that it still reports ambiguity and unknown names.
+            if (isMethodCallReceiver(node) && node.lookupVar(varName, false) == null) {
+                NameLink typeParamRef = lookupBoundedTypeParam(varName, node);
+                if (typeParamRef != null) {
+                    return typeParamRef;
+                }
             }
-            // A bounded type parameter can stand in receiver position, as in T.toIndex(x).
-            // Only reachable once ordinary variable lookup has failed, so it cannot shadow a real
-            // variable of the same name.
-            NameLink typeParamRef = lookupBoundedTypeParam(varName, node);
-            if (typeParamRef != null) {
-                return typeParamRef;
-            }
-            return showErrors ? node.lookupVar(varName, true) : null;
+            return node.lookupVar(varName, showErrors);
         }
 
         // Normal lexical lookup wins, so user-defined names can shadow implicit closure-self.
@@ -120,17 +119,19 @@ public class AttrNameDef {
         return node.lookupVar(varName, true);
     }
 
+    /** True when this reference is the receiver of a method call, as {@code T} is in {@code T.f(x)}. */
+    private static boolean isMethodCallReceiver(NameRef node) {
+        return node.getParent() instanceof ExprMemberMethod call && call.getLeft() == node;
+    }
+
     /**
      * Resolves a name which refers to a type parameter carrying type class bounds, so that the
      * parameter can be used as the receiver of a required method: {@code T.toIndex(x)}.
      * <p>
-     * Restricted to the receiver of a method call, because a bare type parameter is not a value and
-     * should keep reporting the ordinary "unknown variable" error everywhere else.
+     * A bare type parameter is not a value, so this is deliberately limited to receiver position;
+     * everywhere else the ordinary "unknown variable" error is the right answer.
      */
     private static @Nullable NameLink lookupBoundedTypeParam(String varName, NameRef node) {
-        if (!(node.getParent() instanceof ExprMemberMethod call) || call.getLeft() != node) {
-            return null;
-        }
         TypeDef typeDef = node.lookupType(varName, false);
         if (!(typeDef instanceof TypeParamDef tp) || !TypeClassConstraints.hasBounds(tp)) {
             return null;

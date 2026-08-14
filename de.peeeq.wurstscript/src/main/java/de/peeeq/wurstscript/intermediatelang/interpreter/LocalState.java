@@ -28,6 +28,10 @@ public class LocalState extends State {
         return typeArguments == null ? null : typeArguments.get(typeVar);
     }
 
+    public Map<ImTypeVar, ImTypeArgument> getTypeArguments() {
+        return typeArguments == null ? java.util.Collections.emptyMap() : typeArguments;
+    }
+
     public LocalState() {
         // no eager allocations
     }
