@@ -486,6 +486,45 @@ public class ExpressionTests extends WurstScriptTest {
         return prog;
     }
 
+    /**
+     * An integer literal is a proper subtype of both int and real. Addition collapses two of them
+     * to int, so {@code real r = 1} is allowed while {@code real r = 1 + 1} is not; {@code div} and
+     * {@code mod} return the left operand's type instead, so a literal stays assignable to a real
+     * through them. This pins the asymmetry rather than endorsing it — see backlog item 8.
+     */
+    @Test
+    public void integerDivisionOfLiteralsIsStillAssignableToReal() {
+        testAssertOkLines(false,
+                "package test",
+                "init",
+                "    real quotient = 7 div 2",
+                "    real remainder = 7 mod 2"
+        );
+    }
+
+    @Test
+    public void additionOfLiteralsIsNotAssignableToReal() {
+        testAssertErrorsLines(false, "Cannot assign int to real",
+                "package test",
+                "init",
+                "    real sum = 7 + 2"
+        );
+    }
+
+    /** Whatever the declared type, both are integer operations at runtime. */
+    @Test
+    public void integerDivisionAndModuloStayInt() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    int d = 7 div 2",
+                "    int m = 7 mod 2",
+                "    if d == 3 and m == 1",
+                "        testSuccess()"
+        );
+    }
+
     public void assertOk(String booleanExpr) {
         String prog = makeProg(booleanExpr);
         testAssertOk(UtilsIO.getMethodName(1), true, prog);

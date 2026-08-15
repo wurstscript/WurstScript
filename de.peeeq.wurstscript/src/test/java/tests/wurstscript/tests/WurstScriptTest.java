@@ -496,6 +496,8 @@ public class WurstScriptTest {
     }
 
     private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler) {
+        // Otherwise a Lua failure is reported under whatever Jass configuration ran last.
+        setCurrentTestEnv("Lua");
         try {
             name = name.replaceAll("[^a-zA-Z0-9_]", "_");
 

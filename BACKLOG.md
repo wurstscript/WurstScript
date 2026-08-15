@@ -126,6 +126,24 @@ because `LOOP.md` refers to items by number.
 
 ## Blocked on a decision
 
+- **8. Should `div` and `mod` keep returning the left operand's type?** Tried returning
+  `WurstTypeInt.instance()` to match `caseMathOperation` and reverted it: it is a user-visible
+  breaking change, and the suite already defines the current behaviour as correct.
+
+  The asymmetry is real and reachable. `WurstTypeIntLiteral` is a proper subtype of both int and
+  real, and `caseMathOperation` collapses two literals to int precisely so `real r = 1 + 1` is an
+  error. `div`/`mod` return `leftType`, so `real r = 7 div 2` compiles. Changing that made exactly
+  one test fail — `OptimizerTests.realFormatting_consistent_fromIntOps`, which opens with
+  `real a = 1 div 2` — and AGENTS.md says the existing suite is the authoritative definition of
+  behaviour. Real maps will contain the same shape.
+
+  So the question is the owner's: is `real r = 7 div 2` meant to compile? If yes, the branch in
+  `AttrExprType` wants a comment saying so, and this item closes. If no, it is a deliberate
+  breaking change that needs the changelog, and `realFormatting_consistent_fromIntOps` needs
+  rewriting to say what it actually tests, which is real formatting rather than that assignment.
+  `ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal` pins the behaviour meanwhile,
+  so whichever way it goes is deliberate rather than accidental.
+
 - **Eliminating the remaining `castTo int`.** The motivating case is timer data attachment
   (`ClosureTimers.wurst`), and the containers behind it: `Table` has 81 casts, `HashList` 13,
   `HashSet` 6, `HashMap` 4. None can adopt bounds as things stand, because an instance is
@@ -142,11 +160,6 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
-- 8. `div` and `mod` return int rather than the left operand's type, matching `caseMathOperation`.
-  Reachable, not harmless: an integer literal is a proper subtype of both int and real, and
-  addition collapses two of them to int precisely so `real r = 1 + 1` stays an error — returning
-  `leftType` skipped that, so `real r = 7 div 2` was accepted. Three tests in `ExpressionTests`:
-  both operators rejected against a real, and both still int.
 - 17. A failing Lua test says so. `translateAndTestLua` now sets the environment label instead of
   reporting under whatever Jass configuration ran last.
 - 5 (+ the part of 9 that follows it). A type class bound now dispatches from inside a closure on
@@ -204,6 +217,9 @@ because `LOOP.md` refers to items by number.
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
 - Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
   emitted output that can be diffed across runs — see item 11.
+- The suite is the specification. Before changing what the type checker accepts, grep the tests for
+  the shape being rejected — item 8 looked like an oversight until one optimizer test turned out to
+  depend on it.
 - A test that hangs looks exactly like a test that is slow. If the suite stops making progress,
   take a thread dump of the forked worker (`jstack <pid>`) before killing it — it names the line.
 - Method names are not what the frontend called them. `LuaDispatchPreparation` renames a whole
