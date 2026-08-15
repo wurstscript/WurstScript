@@ -13,15 +13,6 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
-18. **`ILconstUnsafeDefault` can still escape silently.** Item 16 resolves it where a value is
-    read out of an array or a member, which is how it reached a program. It is produced by
-    `DefaultValue.get(ImTypeVarRef)` and could surface elsewhere — a return value, a local that was
-    never assigned — and `isEqualTo` still answers "equal" only for another stand-in, so any path
-    that is missed stays quiet. Two ways to close it: resolve in `ILInterpreter` where a return
-    value is defaulted as well, or make `isEqualTo` throw when compared against a real value, so a
-    missed path fails loudly instead. The second is the stronger check and the riskier change; try
-    it and see what the suite says.
-
 15. **One junk dispatch slot per specialised class.** Left over from item 3, same heuristic in
     the other place it is used. `addDirectAliases` composes `owner.getName() + "_" +
     semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
@@ -148,6 +139,11 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 18. Comparing an unresolved type parameter default is now an error rather than a quiet "not
+  equal". Item 16 closed the path that reached a program, but the stand-in is produced by a static
+  attribute and could surface anywhere, so the silence was the part worth removing. The whole suite
+  is green with it throwing, which says nothing reachable produces one any more — and if something
+  starts to, it says so instead of returning a wrong answer.
 - 16. A never-written slot of a `T array` reads as the default of what T stands for. The default
   is computed by a static attribute, which cannot see the frames that know the type argument, so
   it produced a stand-in that compares equal only to another stand-in — `Box<int>.first() == 0`
