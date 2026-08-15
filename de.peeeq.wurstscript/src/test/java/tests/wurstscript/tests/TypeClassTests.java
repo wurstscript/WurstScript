@@ -67,6 +67,60 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A closure lifts its body into a class of its own, capturing the enclosing type variables. The
+     * requirement is dispatched from inside that class, so the binding has to survive being carried
+     * across into it.
+     */
+    @Test
+    public void dispatchInsideClosure() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer p = () -> Q.toIndex(x)",
+            "    return p.produce()",
+            "init",
+            "    if foo(21) == 42",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * The same closure is still rejected for Lua, and this pins that it is rejected clearly rather
+     * than mistranslated. Lua keeps generics erased and specialises only what it can reach through a
+     * concrete type; a closure is reached through its interface, so the specialised class exists but
+     * nothing calls it. Making that work is a change to Lua's erasure, not to substitution. Should
+     * it be made, this test fails and becomes the success case above.
+     */
+    @Test
+    public void dispatchInsideClosureIsRejectedForLua() {
+        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer p = () -> Q.toIndex(x)",
+            "    return p.produce()",
+            "init",
+            "    if foo(21) == 42",
+            "        testSuccess()"
+        );
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {

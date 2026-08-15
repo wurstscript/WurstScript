@@ -35,20 +35,7 @@ public class ImAttrType {
     }
 
     public static ImType substituteType(ImType type, List<ImTypeArgument> generics, List<ImTypeVar> typeVars) {
-        return type.match(new TypeRewriteMatcher() {
-
-            @Override
-            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                int index = typeVars.indexOf(t.getTypeVariable());
-                if (index < 0) {
-                    return t;
-                } else if (index >= generics.size()) {
-                    throw new RuntimeException("Could not find replacement for " + t + " when replacing " + typeVars + " with " + generics);
-                }
-                return generics.get(index).getType();
-            }
-
-        });
+        return TypeSubst.of(typeVars, generics).apply(type);
     }
 
 
