@@ -18,6 +18,10 @@ public class ILconstUnsafeDefault extends ILconstAbstract {
         return "unsafe-default<" + typeVariable.getName() + ">";
     }
 
+    public ImTypeVar getTypeVariable() {
+        return typeVariable;
+    }
+
     public WurstType getType() {
         return WurstTypeInfer.instance();
     }

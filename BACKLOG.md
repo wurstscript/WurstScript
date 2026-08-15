@@ -13,26 +13,14 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
-16. **A never-written array of a type parameter reads as nothing, silently.** In the interpreter
-    only — Jass and Lua both give the type argument's default. `DefaultValue.get(ImTypeVarRef)`
-    returns `ILconstUnsafeDefault`, whose `isEqualTo` matches only another `ILconstUnsafeDefault`,
-    so a comparison against the real default is quietly false rather than an error. Repro:
-
-        class Box<T:>
-            private static T array none
-            static function first() returns T
-                return none[0]
-        init
-            if Box<int>.first() == 0
-                testSuccess()
-
-    Passes on every Jass configuration and fails on the pre-transform interpreter run. The plain
-    `int array` version passes, so this is specific to the type parameter. The interpreter knows
-    the current type argument (`ProgramState.resolveType`), but `DefaultValue` is a static
-    attribute with no access to it, and the array's default supplier is bound when the array is
-    allocated rather than when it is read. Either resolve at read time where the state is in hand,
-    or make the placeholder throw when used — what it must not do is compare unequal in silence.
-    Found by `FastHashMapTests`: the tombstone fixture needs a "no value" for `V`.
+18. **`ILconstUnsafeDefault` can still escape silently.** Item 16 resolves it where a value is
+    read out of an array or a member, which is how it reached a program. It is produced by
+    `DefaultValue.get(ImTypeVarRef)` and could surface elsewhere — a return value, a local that was
+    never assigned — and `isEqualTo` still answers "equal" only for another stand-in, so any path
+    that is missed stays quiet. Two ways to close it: resolve in `ILInterpreter` where a return
+    value is defaulted as well, or make `isEqualTo` throw when compared against a real value, so a
+    missed path fails loudly instead. The second is the stronger check and the riskier change; try
+    it and see what the suite says.
 
 15. **One junk dispatch slot per specialised class.** Left over from item 3, same heuristic in
     the other place it is used. `addDirectAliases` composes `owner.getName() + "_" +
@@ -160,6 +148,13 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 16. A never-written slot of a `T array` reads as the default of what T stands for. The default
+  is computed by a static attribute, which cannot see the frames that know the type argument, so
+  it produced a stand-in that compares equal only to another stand-in — `Box<int>.first() == 0`
+  was quietly false on the interpreter while both backends had it right. `ProgramState` does know
+  the substitution, so the stand-in is now resolved where the value is produced, at the array read
+  and the member read, rather than at the comparison where the symptom shows. Item 18 covers the
+  paths that could still leak one.
 - 17. A failing Lua test says so. `translateAndTestLua` now sets the environment label instead of
   reporting under whatever Jass configuration ran last.
 - 5 (+ the part of 9 that follows it). A type class bound now dispatches from inside a closure on
