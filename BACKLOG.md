@@ -13,14 +13,23 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
-15. **One junk dispatch slot per specialised class.** Left over from item 3, same heuristic in
-    the other place it is used. `addDirectAliases` composes `owner.getName() + "_" +
+15. **One junk dispatch slot per specialised class.** `addDirectAliases` and
+    `LuaTranslator.collectDispatchSlotNames` both compose `owner.getName() + "_" +
     semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
-    type argument, so every method of `FastHashMap<int, int>` claims the same
-    `FastHashMap_specialized_integer__integer_integer` slot and the alphabetically first wins.
-    Nothing calls it, so it is dead weight rather than a wrong result — but it is the same
-    mistake, and the alias it *should* produce is the class qualified with the declared name.
-    Fixing it changes emitted slot names, so it wants its own commit and its own suite run.
+    type argument — so every method of `FastHashMap<int, int>` claims one shared
+    `FastHashMap_specialized_integer__integer_integer` slot and the alphabetically first wins it.
+    Nothing calls it, so it is dead weight rather than a wrong result.
+
+    Tried using the declared name instead and reverted it: overloads share a declared name, so
+    `setup(int)` and `setup(string)` collapse into one slot, which is what
+    `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
+    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
+    semantic name are wrong, in opposite directions: the mangled trailing segment collides across
+    the siblings of one specialisation, the declared name collides across overloads. A fix needs a
+    name that separates both — the declared name together with the dispatch signature key would,
+    since that is already what distinguishes overloads elsewhere in the same file. Worth doing only
+    if this stops being dead weight, because the cost of getting it wrong is a real mis-binding
+    while the cost of leaving it is one unused table key per specialised class.
 
 6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
    a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
@@ -34,15 +43,20 @@ because `LOOP.md` refers to items by number.
    outermost one a concrete argument. `collectGenericNewUse` requires non-empty type arguments, so
    it never starts.
 
-   The instantiation is only on the type of what the call is assigned to. Three ways to get at it,
-   roughly in order of how much they would disturb: attach the class's type arguments to
-   constructor calls when the intermediate language is built, which is where the frontend still
-   knows them and would serve both targets uniformly — but it changes the Jass path, which reaches
-   the same answer another way today, so the emitted `.j` needs checking; read them from the
-   assignment target on the Lua path, which is a syntactic shape and would miss
-   `foo(new Box<int>(21))`; or specialise from the `#alloc` inside the constructor, which is the
-   item 5 mechanism but would have to reach back out to the caller. The first looks right; confirm
-   it is what the Jass path already relies on before changing it.
+   What Jass does, from `TypeClassTests_dispatchInsideConstructor_no_opts.jim`: it specialises the
+   constructor function itself, `b_8 = new_Box⟪integer⟫(21)`. It gets there from *types*, not from
+   the call — `collectGenericUsages` collects a `GenericVar` for the local declared
+   `Box<integer{show}>` and a `GenericReturnTypeFunc` for `new_Box`, whose return type is generic.
+   The Lua collector has neither; it only ever looks at calls. So attaching type arguments to
+   constructor calls, which an earlier note here proposed, is not what the Jass path relies on and
+   would be a second mechanism rather than the same one.
+
+   The honest next step is to collect from types on the Lua path too, restricted the way item 5's
+   collection is. That runs straight into the same design question, though: `GenericVar` and
+   `GenericReturnTypeFunc` specialise the *class*, and item 5 showed that an object coming from a
+   specialised class while its methods are bound to the erased one breaks everything. Either the
+   collection has to specialise only the constructor path and leave the object erased, or Lua stops
+   erasing constructed generic classes — which is a decision about the erasure model, not a patch.
 
 7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today. Needs
    receiver rewriting during expansion, or type parameters on `ModuleInstanciation`.
@@ -208,6 +222,9 @@ because `LOOP.md` refers to items by number.
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
 - Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
   emitted output that can be diffed across runs — see item 11.
+- Two of this run's reverts were the same mistake: a name that looks redundant is usually carrying
+  a distinction. The mangled method name separates overloads; `leftType` on `div` keeps a literal
+  assignable to a real. Check what a name distinguishes before replacing it with a tidier one.
 - The suite is the specification. Before changing what the type checker accepts, grep the tests for
   the shape being rejected — item 8 looked like an oversight until one optimizer test turned out to
   depend on it.
