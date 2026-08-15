@@ -13,6 +13,27 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
+16. **A never-written array of a type parameter reads as nothing, silently.** In the interpreter
+    only — Jass and Lua both give the type argument's default. `DefaultValue.get(ImTypeVarRef)`
+    returns `ILconstUnsafeDefault`, whose `isEqualTo` matches only another `ILconstUnsafeDefault`,
+    so a comparison against the real default is quietly false rather than an error. Repro:
+
+        class Box<T:>
+            private static T array none
+            static function first() returns T
+                return none[0]
+        init
+            if Box<int>.first() == 0
+                testSuccess()
+
+    Passes on every Jass configuration and fails on the pre-transform interpreter run. The plain
+    `int array` version passes, so this is specific to the type parameter. The interpreter knows
+    the current type argument (`ProgramState.resolveType`), but `DefaultValue` is a static
+    attribute with no access to it, and the array's default supplier is bound when the array is
+    allocated rather than when it is read. Either resolve at read time where the state is in hand,
+    or make the placeholder throw when used — what it must not do is compare unequal in silence.
+    Found by `FastHashMapTests`: the tombstone fixture needs a "no value" for `V`.
+
 15. **One junk dispatch slot per specialised class.** Left over from item 3, same heuristic in
     the other place it is used. `addDirectAliases` composes `owner.getName() + "_" +
     semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
@@ -21,11 +42,6 @@ because `LOOP.md` refers to items by number.
     Nothing calls it, so it is dead weight rather than a wrong result — but it is the same
     mistake, and the alias it *should* produce is the class qualified with the declared name.
     Fixing it changes emitted slot names, so it wants its own commit and its own suite run.
-
-4. **Finish the FastHashMap proof.** `FastHashMapTests` is the first real use of bounds.
-   Add `remove` with tombstones, and an assertion that the emitted code stays cheap: no
-   dispatch node, no instance dictionary, and no WC3 hashtable natives — array access only,
-   which is the whole point versus `HashMap extends Table`.
 
 5. **Lua dispatch inside a closure.** Works on Jass since #1229. On Lua the specialised class
    is built correctly but nothing calls it, because the closure is reached through its
@@ -119,6 +135,16 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 4. The FastHashMap proof is complete. `remove` leaves a tombstone, which `slotFor` passes over
+  when searching and reuses when putting; the probe is bounded by capacity rather than running
+  until it finds a gap, so a table full of tombstones cannot spin. `emittedCodeCostsNothingExtra`
+  asserts the cost claim on the *least* optimised configuration, because it has to hold by
+  construction rather than by inlining: storage is four plain Jass arrays, no WC3 hashtable native
+  is reached for, `slotFor` takes nothing beyond the receiver and the key — no instance is threaded
+  through at runtime — and both requirements are direct calls, not `ExecuteFunc`, not a dispatch
+  wrapper. In the optimised output `hash(key)` becomes `key` and `equals(a, key)` becomes `a != key`.
+  The `dispatch_` functions that remain are the nullpointer check every Wurst class method gets,
+  not type class dispatch; the test is careful to look at the real function under that wrapper.
 - 3. `slotFor`'s slot no longer holds `get`'s implementation. The alias sets in
   `LuaDispatchPreparation` decide which slots a method claims, and `sharesSemanticName` accepted
   a match on either the declared name or `semanticNameFromMethodName` — the substring after the
