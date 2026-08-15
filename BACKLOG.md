@@ -100,13 +100,21 @@ because `LOOP.md` refers to items by number.
                 testSuccess()
 
     On Jass the override's `super.size(extra)` becomes a direct call to the superclass
-    implementation, and that call carries no type arguments, because the type variables belong to
-    the class rather than to the method. Nothing specialises it, so when the class is specialised
-    and `Box_size` is replaced by `Box_size⟪integer⟫`, the super call is left pointing at what was
-    removed. That is the same gap as item 6: class type arguments reach method calls and member
-    accesses (`addMemberTypeArguments` visits exactly those two), but not constructor calls and not
-    super calls. Whoever fixes one should look at the other — a single collection point that also
-    covers direct calls to a generic class's own functions would close both.
+    implementation, and once `Box` is specialised that call points at a function which has been
+    replaced by `Box_size⟪integer⟫`. The `.jim` for the test shows both side by side: the
+    specialised copy with its dispatch resolved, and `SubBox_size` still calling the original.
+
+    Tried extending `addMemberTypeArguments` to attach the receiver's type arguments to such calls,
+    the way it already does for method calls and member accesses, and it changes nothing. The
+    callee has no type variables of its own — they belong to the class — so there is nothing for
+    type arguments on the call to select, and specialisation of a class function happens by
+    `specializeClass` copying the whole class instead. The call has to be **redirected** to that
+    copy, not annotated. The natural place is wherever a class is specialised: every call from a
+    subclass into a superclass function needs to follow.
+
+    Item 6 is the same family but not the same fix: there the constructor call also carries no type
+    arguments, and there the instantiation is not on any argument either, only on the type of what
+    the call is assigned to.
 
     Lua compiles and runs but never reaches `testSuccess`: the override makes `size` dispatched,
     and the emitted call is `b:Box_size_specialized_integer(1)` while `b` was allocated from the
