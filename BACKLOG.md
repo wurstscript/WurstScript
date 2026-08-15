@@ -72,11 +72,6 @@ because `LOOP.md` refers to items by number.
    source parameter. Making the node canonical lets all three compare by identity and removes
    a class of silent wrong dispatch. Mechanical, well covered by the suite.
 
-11. **Jass temp counter is not reset between compilations.** Two runs of the same commit emit
-    different `.j` (`temp151` vs `temp8`) because the counter is JVM-wide and depends on how
-    many tests ran before. Not wrong for compiling one map, but it means `.j` cannot be diffed
-    across runs to validate a change — only `.lua` can. Fixing it would make Jass diffable.
-
 13. **A bounded generic class cannot be subclassed.** Found while building a repro for item 3;
     both backends break, differently, on the same program:
 
@@ -153,6 +148,14 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 11. Generated Jass can be compared across runs. The counters naming temporaries were per thread
+  and never reset, so a name depended on how much had been compiled before it: the same source gave
+  `temp0` alone and `temp70` after other tests, measured directly rather than assumed. They now
+  start from zero at the top of each compilation — not at each flattening, which happens again
+  after every optimisation and would name two locals of one function alike.
+  `DeterministicChecks.temporaryNamesDoNotDependOnEarlierCompilations` compiles the same source,
+  then other programs, then the same source again; the compilation in between is the part that
+  matters, and it is the inlining configuration that emits a temporary for that source.
 - 18. Comparing an unresolved type parameter default is now an error rather than a quiet "not
   equal". Item 16 closed the path that reached a program, but the stand-in is produced by a static
   attribute and could surface anywhere, so the silence was the part worth removing. The whole suite
@@ -220,8 +223,8 @@ because `LOOP.md` refers to items by number.
 ## Notes
 
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
-- Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
-  emitted output that can be diffed across runs — see item 11.
+- Emitted Lua must be byte-identical for identical input (AGENTS.md §8). Emitted Jass can be
+  diffed across runs too now, since item 11 — `LOOP.md` still says otherwise.
 - Two of this run's reverts were the same mistake: a name that looks redundant is usually carrying
   a distinction. The mangled method name separates overloads; `leftType` on `div` keeps a literal
   assignable to a real. Check what a name distinguishes before replacing it with a tidier one.
