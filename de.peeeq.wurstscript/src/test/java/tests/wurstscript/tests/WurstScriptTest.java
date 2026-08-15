@@ -48,6 +48,9 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
+
+    /** Generous enough for the slowest test program, short enough that a loop fails the run. */
+    private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
     private static volatile String resolvedLuaExecutable;
     private static volatile String resolvedLuacExecutable;
     private static volatile String extractedLuaWin;
@@ -527,7 +530,6 @@ public class WurstScriptTest {
                     throw new org.testng.SkipException(
                         "Skipped Lua execution (translation and luac syntax check still ran): " + e.getMessage());
                 }
-                String line;
                 // Preload the WC3 Lua runtime (Reforged blizzard.j dump + native shim)
                 // when available, so tests execute against real BJ implementations.
                 // The generated script only installs fallbacks for natives that are
@@ -550,26 +552,28 @@ public class WurstScriptTest {
                 Process p = Runtime.getRuntime().exec(args);
                 StringBuilder errors = new StringBuilder();
                 StringBuilder output = new StringBuilder();
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        System.err.println(line);
-                        errors.append(line);
-                        errors.append("\n");
-                    }
+                // Both pipes must be drained while the program runs, and the wait must end: a
+                // generated program that loops forever would otherwise hang the whole suite,
+                // and one that fills the stdout pipe would deadlock against a stderr-first read.
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output);
+                Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
+                if (!p.waitFor(LUA_EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                    throw new Error(currentTestEnv + ": Lua program did not terminate within "
+                        + LUA_EXECUTION_TIMEOUT_SECONDS + "s: " + luaFile.getName());
                 }
+                outCollector.join();
+                errCollector.join();
 
                 if (errors.length() > 0) {
+                    System.err.print(errors);
                     throw new TestFailException(errors.toString());
                 }
 
                 boolean success = false;
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        if (line.equals("testSuccess")) {
-                            success = true;
-                        }
-                        output.append(line);
-                        output.append("\n");
+                for (String outputLine : output.toString().split("\n", -1)) {
+                    if (outputLine.equals("testSuccess")) {
+                        success = true;
                     }
                 }
                 if (!success) {
