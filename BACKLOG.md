@@ -72,8 +72,8 @@ because `LOOP.md` refers to items by number.
    source parameter. Making the node canonical lets all three compare by identity and removes
    a class of silent wrong dispatch. Mechanical, well covered by the suite.
 
-13. **A bounded generic class cannot be subclassed.** Found while building a repro for item 3;
-    both backends break, differently, on the same program:
+13. **A bounded generic class cannot be subclassed.** Diagnosed on the Jass side and pinned by
+    `TypeClassTests.subclassOfBoundedGenericIsRejected`; the Lua half is still open. The program:
 
         interface Show<T:>
             function show(T x) returns int
@@ -99,12 +99,19 @@ because `LOOP.md` refers to items by number.
             if b.size(1) == 6 and b.shift(1) == 1001 and s.size(1) == 106
                 testSuccess()
 
-    Jass fails to compile: `Typevar dispatch not eliminated.` Lua compiles and runs but never
-    reaches `testSuccess`: the override makes `size` dispatched, and the emitted call is
-    `b:Box_size_specialized_integer(1)` while `b` was allocated from the *erased* `Box` table,
-    which binds only `shift`. The specialised table `Box_specialized_integer` has the slot; the
-    instance never gets that table. Split this if the two turn out to have separate causes —
-    the Jass one is loud and probably the smaller of the two.
+    On Jass the override's `super.size(extra)` becomes a direct call to the superclass
+    implementation, and that call carries no type arguments, because the type variables belong to
+    the class rather than to the method. Nothing specialises it, so when the class is specialised
+    and `Box_size` is replaced by `Box_size⟪integer⟫`, the super call is left pointing at what was
+    removed. That is the same gap as item 6: class type arguments reach method calls and member
+    accesses (`addMemberTypeArguments` visits exactly those two), but not constructor calls and not
+    super calls. Whoever fixes one should look at the other — a single collection point that also
+    covers direct calls to a generic class's own functions would close both.
+
+    Lua compiles and runs but never reaches `testSuccess`: the override makes `size` dispatched,
+    and the emitted call is `b:Box_size_specialized_integer(1)` while `b` was allocated from the
+    *erased* `Box` table, which binds only `shift`. The specialised table has the slot; the instance
+    never gets that table. That half is the erasure question again, as in item 5.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
@@ -148,6 +155,15 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 19. Tried giving Jass the dangling-reference check Lua has, and reverted it. The two backends do
+  not agree on which functions exist: `LuaTranslator` requires every reference to be rooted in the
+  program, while `ImToJassTranslator` is handed `getCalledFunctions()` and emits whatever is
+  called, rooted or not. Three passing tests rely on that — a closure's `construct_Lazy` is
+  detached from the program and still called — so the invariant is Lua's rather than universal.
+  Worth knowing when reading a Jass error: a function a pass detached is still translated, so the
+  error names what was inside it rather than the reference that kept it alive, which is exactly how
+  item 13 shows up. (Requiring natives to be rooted also fails: `$debugPrint` is built with
+  `IS_NATIVE, IS_BJ` and deliberately never added.)
 - 11. Generated Jass can be compared across runs. The counters naming temporaries were per thread
   and never reset, so a name depended on how much had been compiled before it: the same source gave
   `temp0` alone and `temp70` after other tests, measured directly rather than assumed. They now
@@ -222,6 +238,12 @@ because `LOOP.md` refers to items by number.
 
 ## Notes
 
+- Fork count is worth measuring rather than reasoning about, because two effects pull against each
+  other: more forks means more parallelism but also more contention, and every test gets slower.
+  Measured on eight cores, whole suite, wall clock against total reported test time:
+  serial 13m11s / 786s; four forks 8m39s / 1230s; eight forks 7m03s / 2048s. Eight wins even
+  though each test runs 2.6 times slower there than alone. Sixteen was not tried; the limit by
+  then is the slowest single class, not the scheduling.
 - Where the suite's 13 minutes went, measured from `build/test-results/test/TEST-*.xml`: 786s of
   test time across 79 classes and 1663 tests, so effectively all of it is the tests themselves
   rather than the build. The top ten classes are 61% of it, led by `ExportToWurstTest` at 108s,
