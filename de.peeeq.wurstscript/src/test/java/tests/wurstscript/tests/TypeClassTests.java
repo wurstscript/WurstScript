@@ -94,15 +94,14 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same closure is still rejected for Lua, and this pins that it is rejected clearly rather
-     * than mistranslated. Lua keeps generics erased and specialises only what it can reach through a
-     * concrete type; a closure is reached through its interface, so the specialised class exists but
-     * nothing calls it. Making that work is a change to Lua's erasure, not to substitution. Should
-     * it be made, this test fails and becomes the success case above.
+     * The same closure on Lua, which keeps generics erased and specialises only what it can reach
+     * from a concrete type. A closure is reached through its interface, so no call names the
+     * instantiation — the construction is the only thing that knows it, and that is what the
+     * specialisation is now driven from.
      */
     @Test
-    public void dispatchInsideClosureIsRejectedForLua() {
-        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+    public void dispatchInsideClosureLua() {
+        test().testLua(true).executeProg().lines(
             "package test",
             "native testSuccess()",
             "interface ToIndex<T:>",

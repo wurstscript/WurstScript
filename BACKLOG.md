@@ -13,6 +13,12 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
+17. **A failing Lua test reports a Jass configuration's name.** `translateAndTestLua` never calls
+    `setCurrentTestEnv`, so it throws with whatever the last Jass configuration left in the field:
+    a Lua failure reads `With Inlining, Optimizations and Stacktraces: Succeed function not
+    called`. That is not a small thing to read at 3am — it sent this run looking for a Jass
+    regression that did not exist. One line, next to the other harness fix. Small.
+
 16. **A never-written array of a type parameter reads as nothing, silently.** In the interpreter
     only — Jass and Lua both give the type argument's default. `DefaultValue.get(ImTypeVarRef)`
     returns `ILconstUnsafeDefault`, whose `isEqualTo` matches only another `ILconstUnsafeDefault`,
@@ -42,12 +48,6 @@ because `LOOP.md` refers to items by number.
     Nothing calls it, so it is dead weight rather than a wrong result — but it is the same
     mistake, and the alias it *should* produce is the class qualified with the declared name.
     Fixing it changes emitted slot names, so it wants its own commit and its own suite run.
-
-5. **Lua dispatch inside a closure.** Works on Jass since #1229. On Lua the specialised class
-   is built correctly but nothing calls it, because the closure is reached through its
-   interface and `specializeMethod` renames the method out of its dispatch slot.
-   `TypeClassTests.dispatchInsideClosureIsRejectedForLua` pins the current diagnostic and
-   should become a success test. Related to item 1; AGENTS.md flags this machinery.
 
 6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass.
 
@@ -135,6 +135,19 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 5 (+ the part of 9 that follows it). A type class bound now dispatches from inside a closure on
+  Lua, and `TypeClassTests.dispatchInsideClosureLua` is a success test. The note in this file was
+  wrong about the cause: no specialised class was being built at all. Lua specialisation is driven
+  by calls that carry type arguments, and a closure has none — it is reached through the interface
+  it implements, which is not generic, so only the construction knows the instantiation. Three
+  pieces were missing, all present already for Jass: collect the instantiation from `ImAlloc`,
+  collect the member access so the capture write lands on the specialised field, and bind the
+  specialised methods to the roots the originals were submethods of (registering the original
+  implementation as specialised so `settleRemainingDispatches` neutralises what it leaves behind).
+  All three are gated on the class being closure-generated. Widening them to any constructed class
+  made the two mechanisms disagree — the object came from the specialised class while its methods
+  were bound to the erased one — and broke every FastHashMap Lua test, which is the shape of
+  regression AGENTS.md §9 warns about. `WURST_LANGUAGE.md` and `CHANGELOG.md` say so now.
 - 4. The FastHashMap proof is complete. `remove` leaves a tombstone, which `slotFor` passes over
   when searching and reuses when putting; the probe is bounded by capacity rather than running
   until it finds a gap, so a table full of tombstones cannot spin. `emittedCodeCostsNothingExtra`

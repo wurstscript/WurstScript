@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -188,6 +189,18 @@ public class EliminateGenerics {
                 super.visit(call);
                 collectGenericNewUse(call);
             }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                collectGenericNewUse(alloc);
+            }
+
+            @Override
+            public void visit(ImMemberAccess memberAccess) {
+                super.visit(memberAccess);
+                collectGenericNewUse(memberAccess);
+            }
         });
     }
 
@@ -203,6 +216,18 @@ public class EliminateGenerics {
             public void visit(ImMethodCall call) {
                 super.visit(call);
                 collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                collectGenericNewUse(alloc);
+            }
+
+            @Override
+            public void visit(ImMemberAccess memberAccess) {
+                super.visit(memberAccess);
+                collectGenericNewUse(memberAccess);
             }
         });
     }
@@ -223,6 +248,61 @@ public class EliminateGenerics {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
         }
+    }
+
+    /**
+     * A construction states an instantiation that no call site has to mention. A closure is the case
+     * that needs it: its class is built from the enclosing type variables and reached through its
+     * interface, so the call carries no type arguments at all and only the allocation knows what the
+     * body dispatches on. Restricted to classes that actually dispatch on a bound, so this stays a
+     * targeted specialisation rather than general monomorphisation on Lua.
+     */
+    private void collectGenericNewUse(ImAlloc alloc) {
+        ImClassType clazz = alloc.getClazz();
+        if (clazz.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
+            || !isConstructionOnlyInstantiation(clazz.getClassDef())) {
+            return;
+        }
+        genericsUses.add(new GenericClazzUse(alloc));
+    }
+
+    /**
+     * Whether the construction is the only place a class's instantiation is stated.
+     * <p>
+     * A class the user writes is used through calls that carry its type arguments, and those already
+     * specialise what they need onto the erased class. A closure has no such call: it is reached
+     * through the interface it implements, which is not generic, so the allocation is the only thing
+     * that knows what the body dispatches on. Widening this beyond that case makes the two
+     * mechanisms disagree — the object comes from the specialised class while its methods were bound
+     * to the erased one.
+     */
+    private boolean isConstructionOnlyInstantiation(ImClass classDef) {
+        return classDef.attrTrace() instanceof ExprClosure && classNeedsSpecialization(classDef);
+    }
+
+    /**
+     * A field of a class specialised from a construction has to be reached on the copy. The write
+     * that captures a closure's environment is the case that needs it: it names the field of the
+     * generic class, which nothing allocates any more once the construction was redirected.
+     */
+    private void collectGenericNewUse(ImMemberAccess memberAccess) {
+        ImVar field = memberAccess.getVar();
+        if (field.getParent() == null || !(field.getParent().getParent() instanceof ImClass owningClass)) {
+            return;
+        }
+        if (!isConstructionOnlyInstantiation(owningClass)) {
+            return;
+        }
+        if (memberAccess.getTypeArguments().isEmpty()) {
+            // The access names a field, not an instantiation; the receiver is what knows which one.
+            addMemberTypeArguments(memberAccess, owningClass);
+        }
+        if (memberAccess.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(memberAccess.getTypeArguments())) {
+            return;
+        }
+        genericsUses.add(new GenericMemberAccess(memberAccess));
     }
 
     private void collectGenericNewUse(ImMethodCall call) {
@@ -1316,10 +1396,54 @@ public class EliminateGenerics {
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
 
+        if (genericNewOnly && isConstructionOnlyInstantiation(c)) {
+            attachSpecializedClassMethods(c, newC, generics);
+        }
 
         onSpecializedClassTriggers.get(c).forEach(consumer ->
             consumer.accept(generics, newC));
         return newC;
+    }
+
+    /**
+     * Makes the methods of a class specialised from a construction reachable.
+     * <p>
+     * A class specialised because a call named its instantiation is reached through that call.
+     * One specialised because it was constructed is not: the receiver is held as its interface, so
+     * dispatch goes through the root method, whose submethods still list only the generic original.
+     * Each copy is bound to the same roots, and the original's implementation is recorded as having
+     * a specialisation so the dispatch left behind in it settles instead of reaching the backend.
+     */
+    private void attachSpecializedClassMethods(ImClass original, ImClass specialized, GenericTypes generics) {
+        List<ImMethod> originalMethods = original.getMethods();
+        List<ImMethod> specializedMethods = specialized.getMethods();
+        if (originalMethods.size() != specializedMethods.size()) {
+            // The copy is structural, so this cannot happen; bail rather than pair the wrong ones.
+            return;
+        }
+        Map<ImMethod, ImMethod> specializationOf = new IdentityHashMap<>();
+        for (int i = 0; i < originalMethods.size(); i++) {
+            ImMethod copy = specializedMethods.get(i);
+            copy.setMethodClass(JassIm.ImClassType(specialized, JassIm.ImTypeArguments()));
+            specializationOf.put(originalMethods.get(i), copy);
+
+            ImFunction implementation = originalMethods.get(i).getImplementation();
+            ImFunction copyImplementation = copy.getImplementation();
+            if (implementation != null && copyImplementation != null && implementation != copyImplementation
+                && specializedFunctions.get(implementation, generics) == null) {
+                specializedFunctions.put(implementation, generics, copyImplementation);
+            }
+        }
+        for (ImClass c : new ArrayList<>(prog.getClasses())) {
+            for (ImMethod root : c.getMethods()) {
+                for (ImMethod sub : new ArrayList<>(root.getSubMethods())) {
+                    ImMethod copy = specializationOf.get(sub);
+                    if (copy != null && !root.getSubMethods().contains(copy)) {
+                        root.getSubMethods().add(copy);
+                    }
+                }
+            }
+        }
     }
 
     private ImExpr rewriteGenericGlobalsInExpr(ImExpr e, ImClass owningClass, GenericTypes generics) {

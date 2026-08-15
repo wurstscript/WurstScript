@@ -37,8 +37,9 @@
             return () -> T.toIndex(x)
 
     Substituting a type variable now carries the instance chosen for it along with the type, rather than the
-    type alone, so lifting a body into a class of its own no longer loses it. Jass only for now: Lua reaches
-    such a class through its interface and still reports the bound as unresolvable there.
+    type alone, so lifting a body into a class of its own no longer loses it. This works on both targets.
+    Lua reaches such a class through the interface it implements, so no call names the instantiation and the
+    construction is what the specialisation is taken from.
 
 - Added new pseudo-natives for debugging memory leaks:
 
