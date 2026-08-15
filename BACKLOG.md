@@ -222,6 +222,18 @@ because `LOOP.md` refers to items by number.
 
 ## Notes
 
+- Where the suite's 13 minutes went, measured from `build/test-results/test/TEST-*.xml`: 786s of
+  test time across 79 classes and 1663 tests, so effectively all of it is the tests themselves
+  rather than the build. The top ten classes are 61% of it, led by `ExportToWurstTest` at 108s,
+  then `OptimizerTests` 67s, `BugTests` 66s, `RealWorldExamples` 54s,
+  `GenericsWithTypeclassesTests` 45s. Gradle hands whole classes to forks, so wall time cannot go
+  below the slowest class — 108s is the floor until `ExportToWurstTest` is split.
+  Below that floor the remaining costs, in the order worth attacking: 401 tests compile their
+  program five times (each Jass configuration) and spawn `pjass.exe` per configuration, which
+  re-parses `common.j` and `blizzard.j` every time; and 102 `withStdLib` sites re-parse 169 stdlib
+  files because `GlobalCaches.clearAll()` runs before and after every method. Both change what the
+  tests actually verify, so neither is a free win the way the scheduling was.
+
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
 - Emitted Lua must be byte-identical for identical input (AGENTS.md §8). Emitted Jass can be
   diffed across runs too now, since item 11 — `LOOP.md` still says otherwise.
