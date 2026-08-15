@@ -88,11 +88,6 @@ public final class TypeSubst {
         return bindings.isEmpty() && unbound.isEmpty();
     }
 
-    /** The argument bound to {@code typeVar}, or null when this substitution does not cover it. */
-    public @Nullable ImTypeArgument get(ImTypeVar typeVar) {
-        return bindings.get(typeVar);
-    }
-
     /** Applies this substitution to a type. Any binding on the replacing argument is not part of a type. */
     public ImType apply(ImType type) {
         if (isEmpty()) {
@@ -135,6 +130,11 @@ public final class TypeSubst {
         return JassIm.ImTypeArgument(apply(argument.getType()), argument.getTypeClassBinding());
     }
 
+    /**
+     * Shares the map rather than copying it. A binding is only ever replaced wholesale through
+     * {@code setTypeClassBinding}, never added to in place, so two arguments naming the same
+     * instances can name the same map.
+     */
     private static Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> binding(ImTypeArgument argument,
                                                                               ImTypeArgument replacement) {
         return argument.getTypeClassBinding().isEmpty()
