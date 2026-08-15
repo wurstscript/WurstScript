@@ -96,6 +96,9 @@ public final class TypeSubst {
     /** Applies this substitution to a type. Any binding on the replacing argument is not part of a type. */
     public ImType apply(ImType type) {
         if (isEmpty()) {
+            // Nothing to replace, so hand back the type itself. Worth doing: this runs for the
+            // return type of every call, and rebuilding a class or tuple type only to get an equal
+            // one back was pure allocation.
             return type;
         }
         return type.match(new TypeRewriteMatcher() {
