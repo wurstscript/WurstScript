@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVars;
+import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -99,7 +100,9 @@ public final class LuaDispatchPreparation {
                 continue;
             }
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
-            String name = uniqueName(group.get(0).getName(), usedNames);
+            // The name is about to become a Lua table key. Sanitising before uniquing means two
+            // names that only differed in characters Lua has no place for still get one slot each.
+            String name = uniqueName(LuaIdentifiers.toIdentifier(group.get(0).getName()), usedNames);
             for (ImMethod method : group) {
                 method.setName(name);
             }

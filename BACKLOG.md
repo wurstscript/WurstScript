@@ -10,28 +10,22 @@ Notes rather than leaving it in a commit message.
 
 ## Todo
 
-1. **Lua method names reach the backend unsanitised.** `LuaTranslator.luaMethod.initFor`
-   passes `a.getName()` raw; `luaVar`, `luaFunc` and `luaClassVar` all sanitise via
-   `uniqueName`. Method names become Lua table keys, so they must be valid identifiers.
-   `EliminateGenerics.specializeMethod` builds `name + "_specialized_" + generics.makeName()`
-   on the Lua path, and `makeName` joins type arguments with `", "` — so a class method
-   specialised with two type arguments emits `Class.get_specialized_integer, integer = impl`,
-   which is valid Lua assigning to two targets, and a tuple argument emits `⦅⦆` and fails
-   the syntax check. Repro: `FastHashMapTests.tupleKeyLua`. Commas are already visible in
-   `test-output/lua/FastHashMapTests_fastHashMapRuntimeLua.lua`.
-   Overriding methods must keep landing in the same slot, so normalise per distinct original
-   name, not per method node.
+Numbering is stable: finished items leave a gap rather than shifting the ones below,
+because `LOOP.md` refers to items by number.
 
-2. **Nothing checks that emitted Lua identifiers are valid.** The luac syntax check catches a
-   hard break, but not the silent case: `Class.get_specialized_integer, integer = impl` parses
-   fine and quietly assigns to two targets. That is how item 1 shipped unnoticed. Assert in the
-   Lua test harness that every emitted name — variable, function, class, method slot, field —
-   matches `[A-Za-z_][A-Za-z0-9_]*`, so this whole class of bug fails loudly at the point it is
-   introduced. Do this alongside item 1; it is what stops item 1 recurring.
-
-3. **`slotFor` looks bound to `get`'s implementation** in the same emitted Lua. May be a real
-   mis-binding in `specializeMethod`/`adaptSubmethods`, may be an artefact of item 1 mangling
-   the output. Diagnose only after item 1, from freshly emitted Lua.
+3. **`slotFor` is bound to `get`'s implementation** in the emitted Lua — confirmed real, and
+   not an artefact of item 1: it survives sanitisation unchanged. Diagnosed, not yet fixed.
+   The alias sets in `LuaDispatchPreparation` decide which slots a method claims, and
+   `sharesSemanticName` accepts a match on *either* of two names: the source name (`get`,
+   `slotFor`) or `semanticNameFromMethodName`, which is the substring after the last
+   underscore. For a specialised method that substring is a type-argument fragment —
+   `FastHashMap_get_specialized__integer__integer___integer` and the `slotFor` one both yield
+   `integer` — so two unrelated methods count as sharing a name. They also share a dispatch
+   signature here (`(pos) returns int` both), which is the other half of the guard, so `get`
+   claims `slotFor`'s slot. Fix: when both methods have a real source name, that should decide;
+   the substring heuristic is a fallback for when there is no trace to ask, not an alternative.
+   Watch the closure and bridge cases in `TypeClassTests`/`LuaBackendAuditTests` — they are what
+   the loose match was presumably widened for.
 
 4. **Finish the FastHashMap proof.** `FastHashMapTests` is the first real use of bounds.
    Add `remove` with tombstones, and an assertion that the emitted code stays cheap: no
@@ -94,6 +88,14 @@ Notes rather than leaving it in a commit message.
 
 ## Done
 
+- 1 + 2. Lua method names are sanitised where they are assigned, not where they are printed.
+  `LuaDispatchPreparation.normalizeMethodNames` is the pass that gives one name to a whole
+  dispatch group, so it now sanitises before uniquing — two names differing only in characters
+  Lua has no place for still get a slot each. `LuaTranslator` maps every slot key and every
+  `LuaMethod` name through the same function, so call sites and class tables agree. Lua's
+  identifier rule now lives in one place, `LuaIdentifiers`. `LuaAssertions.assertNamesAreValidIdentifiers`
+  walks the emitted Lua and fails on any name that is not an identifier; it runs for every
+  `testLua` compile, so the silent two-target-assignment case cannot come back.
 - Substitution now carries the type class binding with the type (#1229). Also fixed the
   type-variable reference on `ImTypeVarDispatch`, which a walk over types alone missed.
 
@@ -101,7 +103,11 @@ Notes rather than leaving it in a commit message.
 
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
 - Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
-  emitted output that can be diffed across runs — see item 8.
+  emitted output that can be diffed across runs — see item 11.
+- Method names are not what the frontend called them. `LuaDispatchPreparation` renames a whole
+  dispatch group to one name and attaches alias sets, and only then does the backend run. A
+  question about which Lua slot something lands in is a question about that pass, not about
+  `LuaTranslator`.
 - Tests run five Jass configurations plus the interpreter, then the Lua target separately.
   `testAssertOkLines(true, ...)` covers both the pre-transform interpreter and full
   monomorphisation, so it is a stronger check than it looks.

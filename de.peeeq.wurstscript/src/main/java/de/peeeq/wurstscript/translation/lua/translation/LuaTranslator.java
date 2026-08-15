@@ -135,7 +135,9 @@ public class LuaTranslator {
         @Override
         public LuaMethod initFor(ImMethod a) {
             LuaExpr receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a.attrClass()));
-            return LuaAst.LuaMethod(receiver, a.getName(), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            // A method name is a table key, so it must be an identifier - but unlike a variable
+            // it must not be uniqued: every override has to keep landing in the same slot.
+            return LuaAst.LuaMethod(receiver, dispatchSlotName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -196,28 +198,8 @@ public class LuaTranslator {
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
-    /**
-     * Makes an intermediate-language name usable as a Lua identifier.
-     * <p>
-     * Names from the IM are not constrained to Lua's identifier syntax; specialised generics, for
-     * example, are named after their type arguments. Sanitising here keeps that rule where it
-     * belongs, in the backend, rather than requiring every earlier pass to know about Lua. Any
-     * collisions the mapping introduces are resolved by the usual uniquing.
-     */
-    private static String toLuaIdentifier(String name) {
-        StringBuilder sb = new StringBuilder(name.length());
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            sb.append(c == '_' || Character.isLetterOrDigit(c) && c < 128 ? c : '_');
-        }
-        if (sb.length() == 0 || Character.isDigit(sb.charAt(0))) {
-            sb.insert(0, '_');
-        }
-        return sb.toString();
-    }
-
     protected String uniqueName(String rawName) {
-        String name = toLuaIdentifier(rawName);
+        String name = LuaIdentifiers.toIdentifier(rawName);
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
@@ -462,7 +444,7 @@ public class LuaTranslator {
         }
         visited.add(c);
         for (ImMethod method : c.getMethods()) {
-            methodNames.add(method.getName());
+            methodNames.add(dispatchSlotName(method.getName()));
         }
         for (ImClassType sc : c.getSuperClasses()) {
             collectMethodNames(sc.getClassDef(), methodNames, visited);
@@ -914,7 +896,7 @@ public class LuaTranslator {
             ImMethod chosen = chosenByGroup.get(groupMethods);
             Set<String> memberNames = new HashSet<>();
             for (ImMethod m : groupMethods) {
-                memberNames.add(m.getName());
+                memberNames.add(dispatchSlotName(m.getName()));
             }
             Set<String> slotNames = collectDispatchSlotNames(c, groupMethods);
             for (String slotName : slotNames) {
@@ -934,7 +916,7 @@ public class LuaTranslator {
             ImMethod chosen = chosenByGroup.get(groupMethods);
             Set<String> memberNames = new HashSet<>();
             for (ImMethod m : groupMethods) {
-                memberNames.add(m.getName());
+                memberNames.add(dispatchSlotName(m.getName()));
             }
             for (String slotName : collectDispatchSlotNames(c, groupMethods)) {
                 if (memberNames.contains(slotName)) {
@@ -973,6 +955,15 @@ public class LuaTranslator {
         }
     }
 
+    /**
+     * The Lua table key a dispatch slot is emitted under. Aliases and class-qualified names are
+     * built from IM names, which may contain characters Lua has no place for; the mapping has to
+     * be the same one call sites go through, so that a slot is still found under its new name.
+     */
+    private String dispatchSlotName(String rawName) {
+        return LuaIdentifiers.toIdentifier(rawName);
+    }
+
     private Set<String> collectDispatchSlotNames(ImClass receiverClass, List<ImMethod> groupMethods) {
         Set<String> slotNames = new TreeSet<>();
         Set<String> semanticNames = new TreeSet<>();
@@ -982,7 +973,7 @@ public class LuaTranslator {
             }
             for (String alias : m.getLuaMethodDispatchAliases()) {
                 if (alias != null && !alias.isEmpty()) {
-                    slotNames.add(alias);
+                    slotNames.add(dispatchSlotName(alias));
                 }
             }
             String semanticName = semanticNameFromMethodName(m.getName());
@@ -999,7 +990,7 @@ public class LuaTranslator {
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
             for (String className : classNames) {
                 for (String semanticName : semanticNames) {
-                    slotNames.add(className + "_" + semanticName);
+                    slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
