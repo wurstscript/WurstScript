@@ -13,19 +13,14 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
-3. **`slotFor` is bound to `get`'s implementation** in the emitted Lua — confirmed real, and
-   not an artefact of item 1: it survives sanitisation unchanged. Diagnosed, not yet fixed.
-   The alias sets in `LuaDispatchPreparation` decide which slots a method claims, and
-   `sharesSemanticName` accepts a match on *either* of two names: the source name (`get`,
-   `slotFor`) or `semanticNameFromMethodName`, which is the substring after the last
-   underscore. For a specialised method that substring is a type-argument fragment —
-   `FastHashMap_get_specialized__integer__integer___integer` and the `slotFor` one both yield
-   `integer` — so two unrelated methods count as sharing a name. They also share a dispatch
-   signature here (`(pos) returns int` both), which is the other half of the guard, so `get`
-   claims `slotFor`'s slot. Fix: when both methods have a real source name, that should decide;
-   the substring heuristic is a fallback for when there is no trace to ask, not an alternative.
-   Watch the closure and bridge cases in `TypeClassTests`/`LuaBackendAuditTests` — they are what
-   the loose match was presumably widened for.
+15. **One junk dispatch slot per specialised class.** Left over from item 3, same heuristic in
+    the other place it is used. `addDirectAliases` composes `owner.getName() + "_" +
+    semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
+    type argument, so every method of `FastHashMap<int, int>` claims the same
+    `FastHashMap_specialized_integer__integer_integer` slot and the alphabetically first wins.
+    Nothing calls it, so it is dead weight rather than a wrong result — but it is the same
+    mistake, and the alias it *should* produce is the class qualified with the declared name.
+    Fixing it changes emitted slot names, so it wants its own commit and its own suite run.
 
 4. **Finish the FastHashMap proof.** `FastHashMapTests` is the first real use of bounds.
    Add `remove` with tombstones, and an assertion that the emitted code stays cheap: no
@@ -124,6 +119,16 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 3. `slotFor`'s slot no longer holds `get`'s implementation. The alias sets in
+  `LuaDispatchPreparation` decide which slots a method claims, and `sharesSemanticName` accepted
+  a match on either the declared name or `semanticNameFromMethodName` — the substring after the
+  last underscore, which for a specialised method is a fragment of the type argument. Both
+  `FastHashMap_get_specialized_integer__integer` and the `slotFor` one end in `integer`, and the
+  two share a dispatch signature, so `get` claimed `slotFor`'s slot. Declared names now settle it
+  whenever both methods have one; the substring is a fallback for closures and bridges, which
+  have no declaration to ask. `FastHashMapTests.fastHashMapRuntimeLua` asserts every slot named
+  after a method binds that method's implementation — it fails on the old code with exactly the
+  binding above.
 - 14. The Lua execution harness no longer hangs. It read the spawned interpreter's stderr to EOF
   before touching stdout, and never bounded the wait, so a program that filled the stdout pipe
   deadlocked the whole suite with no output and no timeout — a stray JVM was still sitting on it

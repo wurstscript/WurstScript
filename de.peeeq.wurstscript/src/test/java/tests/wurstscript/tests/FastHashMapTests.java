@@ -1,6 +1,13 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Exercises type class bounds through the container they were added for: a hash map whose key type
@@ -101,8 +108,43 @@ public class FastHashMapTests extends WurstScriptTest {
     }
 
     @Test
-    public void fastHashMapRuntimeLua() {
+    public void fastHashMapRuntimeLua() throws IOException {
         test().testLua(true).executeProg().lines(program(fastHashMap(), INT_INSTANCE, USE_WITH_COLLISION));
+        assertEachSlotBindsItsOwnMethod(compiledLua("fastHashMapRuntimeLua"));
+    }
+
+    private static final String[] METHOD_NAMES = {"slotFor", "put", "get", "has", "size"};
+
+    private String compiledLua(String testName) throws IOException {
+        return Files.toString(new File("test-output/lua/FastHashMapTests_" + testName + ".lua"), Charsets.UTF_8);
+    }
+
+    /**
+     * A dispatch slot is named after the method it belongs to, and nothing else in the emitted Lua
+     * records which implementation belongs there — so this is the only place the two can be checked
+     * against each other. Specialisation names every method of one instantiation after the same type
+     * argument, which is exactly when they are easiest to confuse.
+     */
+    private void assertEachSlotBindsItsOwnMethod(String lua) {
+        Matcher assignment = Pattern.compile("(?m)^\\s*\\w+\\.(\\w+) = (\\w+)\\s*$").matcher(lua);
+        while (assignment.find()) {
+            String slot = assignment.group(1);
+            String implementation = assignment.group(2);
+            for (String method : METHOD_NAMES) {
+                if (namesMethod(slot, method) && !namesMethod(implementation, method)) {
+                    throw new AssertionError("slot '" + slot + "' is named after " + method
+                        + " but binds '" + implementation + "'");
+                }
+            }
+        }
+    }
+
+    /** Whether {@code name} carries {@code method} as one of its underscore-separated segments. */
+    private static boolean namesMethod(String name, String method) {
+        return name.equals(method)
+            || name.startsWith(method + "_")
+            || name.endsWith("_" + method)
+            || name.contains("_" + method + "_");
     }
 
     /**
