@@ -120,6 +120,47 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A constructor runs before the object exists, so the bound has to be resolved from the type
+     * argument the construction names rather than from anything reachable on the receiver.
+     */
+    private static final String[] DISPATCH_IN_CONSTRUCTOR = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x * 2",
+        "class Box<T: Show>",
+        "    int cached",
+        "    construct(T x)",
+        "        cached = T.show(x)",
+        "init",
+        "    let b = new Box<int>(21)",
+        "    if b.cached == 42",
+        "        testSuccess()",
+    };
+
+    @Test
+    public void dispatchInsideConstructor() {
+        testAssertOkLines(true, DISPATCH_IN_CONSTRUCTOR);
+    }
+
+    /**
+     * Still rejected for Lua, and this pins that it is rejected clearly rather than mistranslated.
+     * A constructor belongs to the class, not to a generic function of its own, so the call that
+     * runs it carries no type arguments — {@code new_Box(21)} in the intermediate language, with
+     * the instantiation only on the type of what it is assigned to. Nothing on the Lua path reads
+     * it from there, so the dispatch inside the constructor is never given a concrete type.
+     * Should that be made to work, this test fails and becomes the success case above.
+     */
+    @Test
+    public void dispatchInsideConstructorIsRejectedForLua() {
+        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target")
+            .lines(DISPATCH_IN_CONSTRUCTOR);
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {
