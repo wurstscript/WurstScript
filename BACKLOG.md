@@ -107,23 +107,36 @@ itself, and one gap in what the suite can see.
     `simplifyClasses` nor `addMemberTypeArguments`, so the type variables are never lifted there and
     a super call has nothing to carry. Closing it is item 23.
 
-15. **One junk dispatch slot per specialised class.** `addDirectAliases` and
-    `LuaTranslator.collectDispatchSlotNames` both compose `owner.getName() + "_" +
-    semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
-    type argument — so every method of `FastHashMap<int, int>` claims one shared
-    `FastHashMap_specialized_integer__integer` slot and the alphabetically first wins it.
-    Nothing calls it, so it is dead weight rather than a wrong result.
+15. **One junk dispatch slot per specialised class.** Confirmed dead weight, and confirmed harder to
+    remove than it looks. Leave it unless it stops being dead.
 
-    Tried using the declared name instead and reverted it: overloads share a declared name, so
-    `setup(int)` and `setup(string)` collapse into one slot, which is what
+    In the Lua for `FastHashMap<int, int>` the slot
+    `FastHashMap_specialized_integer__integer.FastHashMap_specialized_integer__integer_integer` is
+    assigned once, bound to `FastHashMap_get_specialized` — the alphabetically first method — and
+    never called: the only `:` calls in that script are `:create(` and `:create1(`. The name is the
+    owner's plus the segment after the last underscore of the method's, and for a specialised method
+    that segment is the type argument, so every method of the class composes the same one.
+
+    **Two composers emit it, and suppressing it in one is not enough.** `addDirectAliases` was made
+    to drop a composed name which more than one method of the class produces — reasoning that a name
+    meaning "one of these, arbitrarily" is worse than a name meaning nothing — and the slot was still
+    emitted, because `LuaTranslator.collectDispatchSlotNames` composes it independently, from the
+    cross product of the class names in the hierarchy and the semantic names of the group. That
+    method is called per group of same-named methods, so it cannot see that a sibling group composes
+    the same name without being given class-level knowledge it does not currently have.
+
+    So a fix means a shared notion of ambiguity across both composers, which is the coordinated
+    change the earlier note weighed against the benefit. The benefit is still one unused table key
+    per specialised class. Reverted.
+
+    Also tried and reverted earlier: using the declared name instead. Overloads share a declared
+    name, so `setup(int)` and `setup(string)` collapse into one slot, which
     `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
     `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
-    semantic name are wrong, in opposite directions: the mangled trailing segment collides across
-    the siblings of one specialisation, the declared name collides across overloads. A fix needs a
-    name separating both — the declared name together with the dispatch signature key would, since
-    that is already what distinguishes overloads elsewhere in the same file. Worth doing only if
-    this stops being dead weight, because the cost of getting it wrong is a real mis-binding while
-    the cost of leaving it is one unused table key per specialised class.
+    semantic name are wrong in opposite directions: the mangled trailing segment collides across the
+    siblings of one specialisation, the declared name across overloads. A name separating both — the
+    declared name together with the dispatch signature key — is what a real fix needs, in both
+    composers.
 
 24. **`luaOutputIsDeterministicForGenericOverrideSlots` fails intermittently.** It failed once on
     Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request
