@@ -386,7 +386,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
             @Override
             public ILconst case_JassExprStringVal(JassExprStringVal e) {
-                return new ILconstString(e.getValS());
+                return ILconstString.fromText(e.getValS());
             }
 
             @Override

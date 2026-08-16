@@ -46,6 +46,20 @@ function FourCC(s)
         + string.byte(s, 3)) * 256 + string.byte(s, 4)
 end
 
+-- String natives. The game counts and indexes bytes, and a Lua string is a
+-- byte array, so these are the plain Lua operations. SubString takes a
+-- 0-based start and an exclusive end; string.sub is 1-based and inclusive.
+function StringLength(s)
+    return #s
+end
+
+function SubString(s, start, stop)
+    return string.sub(s, start + 1, stop)
+end
+
+function I2S(i) return tostring(math.floor(i)) end
+function S2I(s) return math.floor(tonumber(s) or 0) end
+
 -- Reforged player layout: 24 playable slots, neutrals at 24..27, 28 total.
 function GetBJMaxPlayers() return 24 end
 function GetBJMaxPlayerSlots() return 28 end

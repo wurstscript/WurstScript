@@ -66,10 +66,10 @@ public class UnitProvider extends Provider {
 
     public ILconstString GetUnitName(IlConstHandle unit) {
         if (unit == null) {
-            return new ILconstString("");
+            return ILconstString.fromText("");
         }
         UnitMock unitMock = (UnitMock) unit.getObj();
-        return new ILconstString(ObjectHelper.objectIdIntToString(unitMock.unitid.getVal()));
+        return ILconstString.fromText(ObjectHelper.objectIdIntToString(unitMock.unitid.getVal()));
     }
 
     public ILconstInt GetUnitGoldCost(ILconstInt unitid) {

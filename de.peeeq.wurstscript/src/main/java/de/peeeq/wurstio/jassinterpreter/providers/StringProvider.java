@@ -1,16 +1,14 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.Wc3StringHash;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import net.moonlightflower.wc3libs.misc.StringHash;
 import org.apache.commons.lang.StringUtils;
 
-import java.io.UnsupportedEncodingException;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -24,7 +22,7 @@ public class StringProvider extends Provider {
     }
 
     public ILconstString I2S(ILconstInt i) {
-        return new ILconstString("" + i.getVal());
+        return ILconstString.fromText("" + i.getVal());
     }
 
     private static final Pattern s2ipattern = Pattern.compile("([+\\-]?[0-9]+).*");
@@ -53,7 +51,7 @@ public class StringProvider extends Provider {
     }
 
     public ILconstString R2S(ILconstReal r) {
-        return new ILconstString("" + r.getVal());
+        return ILconstString.fromText("" + r.getVal());
     }
 
     public ILconstString R2SW(ILconstReal r, ILconstInt width, ILconstInt precision) {
@@ -65,7 +63,7 @@ public class StringProvider extends Provider {
         String s = formatter.format(r.getVal());
         // pad to desired width
         s = StringUtils.rightPad(s, width.getVal());
-        return new ILconstString(s);
+        return ILconstString.fromText(s);
     }
 
     public ILconstInt R2I(ILconstReal i) {
@@ -81,12 +79,7 @@ public class StringProvider extends Provider {
         if (s == null) {
             return new ILconstInt(0);
         }
-        try {
-            return new ILconstInt(StringHash.hash(s.getVal()));
-        } catch (UnsupportedEncodingException e) {
-            WLogger.severe(e);
-        }
-        return new ILconstInt(0);
+        return new ILconstInt(Wc3StringHash.hash(s.getVal()));
     }
 
     public ILconstInt StringLength(ILconstString string) {
@@ -110,13 +103,26 @@ public class StringProvider extends Provider {
             // since this is most likely a bug in your code, the interpreter will throw an exception instead:
             throw new InterpreterException("SubString called with start index " + start + " greater than string length " + str.length());
         }
-        return new ILconstString(str.substring(s, e));
+        return ILconstString.ofBytes(str.substring(s, e));
     }
 
+    /**
+     * Only ascii letters change case. A string is a sequence of bytes, and the bytes of a multibyte
+     * character are not letters to case at all - folding them the way a latin-1 char would fold
+     * rewrites the character into a different one.
+     */
     public ILconstString StringCase(ILconstString string, ILconstBool upperCase) {
-        return new ILconstString(
-                upperCase.getVal() ?
-                        string.getVal().toUpperCase()
-                        : string.getVal().toLowerCase());
+        String bytes = string.getVal();
+        StringBuilder result = new StringBuilder(bytes.length());
+        for (int i = 0; i < bytes.length(); i++) {
+            char c = bytes.charAt(i);
+            if (upperCase.getVal() && c >= 'a' && c <= 'z') {
+                c -= 32;
+            } else if (!upperCase.getVal() && c >= 'A' && c <= 'Z') {
+                c += 32;
+            }
+            result.append(c);
+        }
+        return ILconstString.ofBytes(result.toString());
     }
 }

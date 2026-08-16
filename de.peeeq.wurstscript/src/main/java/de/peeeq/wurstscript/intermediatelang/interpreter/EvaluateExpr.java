@@ -142,7 +142,7 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImStringVal e, ProgramState globalState, LocalState localState) {
-        return new ILconstString(e.getValS());
+        return ILconstString.fromText(e.getValS());
     }
 
     public static ILconst eval(ImTupleExpr e, ProgramState globalState, LocalState localState) {
@@ -334,7 +334,7 @@ public class EvaluateExpr {
                                LocalState localState) {
         StringBuilder sb = new StringBuilder();
         globalState.getStackFrames().appendTo(sb);
-        return new ILconstString(sb.toString());
+        return ILconstString.fromText(sb.toString());
     }
 
     public static ILconst eval(ImCompiletimeExpr expr, ProgramState globalState, LocalState localState) {

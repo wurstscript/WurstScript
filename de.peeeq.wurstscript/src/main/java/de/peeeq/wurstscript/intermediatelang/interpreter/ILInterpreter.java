@@ -623,7 +623,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         ILconst[] args = {};
         if (!f.getParameters().isEmpty()) {
             // this should only happen because of added stacktrace parameter
-            args = new ILconstString[]{new ILconstString("initial call")};
+            args = new ILconstString[]{ILconstString.fromText("initial call")};
         }
         runFunc(globalState, f, trace, args);
     }

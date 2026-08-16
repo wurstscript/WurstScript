@@ -10,10 +10,10 @@ public class AbilityProvider extends Provider {
     }
 
     public ILconstString BlzGetAbilityIcon(ILconstInt abilCode) {
-        return new ILconstString("");
+        return ILconstString.fromText("");
     }
 
     public ILconstString BlzGetAbilityExtendedTooltip(ILconstInt abilCode, ILconstInt level) {
-        return new ILconstString("");
+        return ILconstString.fromText("");
     }
 }

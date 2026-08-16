@@ -63,7 +63,7 @@ public class GamecacheProvider extends Provider {
     }
 
     public ILconstString GetStoredString(IlConstHandle ht, ILconstString key1, ILconstString key2) {
-        return haveSaved(ht, key1, key2, ILconstString.class) ? load(ht, key1, key2, ILconstString.class) : new ILconstString("");
+        return haveSaved(ht, key1, key2, ILconstString.class) ? load(ht, key1, key2, ILconstString.class) : ILconstString.fromText("");
     }
 
     public ILconstBool GetStoredBoolean(IlConstHandle ht, ILconstString key1, ILconstString key2) {

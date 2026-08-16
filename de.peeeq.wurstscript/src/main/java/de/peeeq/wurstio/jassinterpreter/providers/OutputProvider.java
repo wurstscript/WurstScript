@@ -23,29 +23,29 @@ public class OutputProvider extends Provider {
     }
 
     public void DisplayTextToForce(IlConstHandle force, ILconstString msg) {
-        outStream.println(msg.getVal());
+        outStream.println(msg.text());
     }
 
     public void DisplayTimedTextToForce(IlConstHandle force, ILconstReal duration, ILconstString msg) {
-        outStream.println(msg.getVal());
+        outStream.println(msg.text());
     }
 
     public void DisplayTextToPlayer(IlConstHandle player, ILconstReal x, ILconstReal y, ILconstString msg) {
-        outStream.println(msg.getVal());
+        outStream.println(msg.text());
     }
 
     public void DisplayTimedTextToPlayer(IlConstHandle player, ILconstReal x, ILconstReal y, ILconstReal duration, ILconstString msg) {
-        outStream.println(msg.getVal());
+        outStream.println(msg.text());
     }
 
     @Implements(funcNames = {"BJDebugMsg", "println"})
     public void println(ILconstString msg) {
-        outStream.println(msg.getVal());
+        outStream.println(msg.text());
     }
 
     public void $debugPrint(ILconstString msg) {
-        outStream.println(msg.getVal());
-        throw new DebugPrintError(msg.getVal());
+        outStream.println(msg.text());
+        throw new DebugPrintError(msg.text());
     }
 
     public void testSuccess() {
@@ -53,6 +53,6 @@ public class OutputProvider extends Provider {
     }
 
     public void testFail(ILconstString msg) {
-        throw new TestFailException(msg.getVal());
+        throw new TestFailException(msg.text());
     }
 }
