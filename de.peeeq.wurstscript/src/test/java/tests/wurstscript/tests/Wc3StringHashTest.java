@@ -15,7 +15,7 @@ import static org.testng.Assert.assertNotEquals;
  * are only comparable where the library is defined - a string of whole characters - so that is what
  * is compared, and it is enough: the arithmetic is the same for every input, only the bytes differ.
  */
-public class Wc3StringHashTest {
+public class Wc3StringHashTest extends WurstScriptTest {
 
     private static void agrees(String text) throws UnsupportedEncodingException {
         assertEquals(Wc3StringHash.hash(ILconstString.fromText(text).getVal()),
@@ -86,5 +86,76 @@ public class Wc3StringHashTest {
             hashes.add(Wc3StringHash.hash(String.valueOf((char) b)));
         }
         assertEquals(hashes.size(), 64, "all 64 continuation bytes should hash apart");
+    }
+
+    /**
+     * The Lua test runtime carries a second implementation of this hash, because a program running
+     * there computes it too. Two transcriptions of one algorithm drift, so this runs the inputs
+     * through both and compares — asserting the Java side against written-down numbers would stay
+     * green if only the Lua side changed, which is the case worth catching.
+     */
+    @Test
+    public void agreesWithTheLuaRuntimeImplementation() throws Exception {
+        String[] inputs = {"abc", "Hello World", "Units\\Human\\Footman.mdx", "ä",
+            "abcdefghijklmnop", "", "MIXED/Case\\Path", "日本語"};
+
+        for (String input : inputs) {
+            assertEquals(luaHashOf(input), Wc3StringHash.hash(ILconstString.fromText(input).getVal()),
+                "hash of " + input);
+        }
+    }
+
+    /** Runs the shim's StringHash on one input, as a program on that target would. */
+    private int luaHashOf(String text) throws Exception {
+        // Escaped byte by byte, so what the shim hashes is what the Java side was handed rather
+        // than whatever the command line did to it.
+        StringBuilder literal = new StringBuilder();
+        for (byte b : text.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+            literal.append("\\").append(b & 0xFF);
+        }
+        String script = "dofile('src/test/resources/luaruntime/wc3shim.lua') "
+            + "print(StringHash('" + literal + "'))";
+        String lua;
+        try {
+            lua = getLuaExecutable();
+        } catch (IllegalStateException e) {
+            // Same handling as the normal execution path: a host without a working interpreter
+            // skips visibly rather than failing the class, since nothing here is being tested.
+            throw new org.testng.SkipException("Skipped the Lua half of the hash parity check: " + e.getMessage());
+        }
+        Process p = new ProcessBuilder(lua, "-e", script)
+            .redirectErrorStream(true)
+            .start();
+        // Drained on a thread of its own and waited for with a deadline. Reading to the end first
+        // waits for the process to close the stream, which a hung one never does - the timeout
+        // below would then be reached only after the hang had already stopped the suite.
+        StringBuilder output = new StringBuilder();
+        Thread drain = new Thread(() -> {
+            try (java.io.BufferedReader r = new java.io.BufferedReader(
+                new java.io.InputStreamReader(p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    output.append(line).append('\n');
+                }
+            } catch (java.io.IOException e) {
+                // The process was killed underneath the read; the timeout below reports it.
+            }
+        });
+        drain.setDaemon(true);
+        drain.start();
+
+        if (!p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)) {
+            p.destroyForcibly();
+            drain.join(5_000);
+            throw new AssertionError("lua did not finish hashing \"" + text + "\" within 30s");
+        }
+        drain.join(5_000);
+
+        String out = output.toString().trim();
+        try {
+            return Integer.parseInt(out);
+        } catch (NumberFormatException e) {
+            throw new AssertionError("lua did not return a hash for \"" + text + "\": " + out);
+        }
     }
 }

@@ -413,7 +413,7 @@ public class FastHashMapTests extends WurstScriptTest {
      */
     @Test
     public void fastHashMapAgainstTheStandardLibraryLua() throws IOException {
-        test().withStdLib().testLua(true)
+        test().withStdLib().testLua(true).executeProg()
             .lines(withStandardLibrary(program(fastHashMap(), INT_INSTANCE, USE_WITH_COLLISION)));
         assertSpecialisedClassesAllocateTheirFields(
             Files.toString(new File("test-output/lua/FastHashMapTests_fastHashMapAgainstTheStandardLibraryLua.lua"),
