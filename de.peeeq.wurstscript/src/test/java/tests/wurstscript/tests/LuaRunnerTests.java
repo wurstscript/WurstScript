@@ -60,4 +60,26 @@ public class LuaRunnerTests extends WurstScriptTest {
             "    testSuccess()"
         );
     }
+
+    /**
+     * The same drain with the output arriving as one line rather than many. This checks that it
+     * finishes, which is what the two cases above check too — it does not observe how much of the
+     * line was retained, and would pass against a collector that kept all of it. Keeping a bounded
+     * amount is worth doing regardless, but a program printing a megabyte without a newline is not
+     * something this suite expects, so it is not worth test-only machinery to assert.
+     */
+    @Test
+    public void aProgramPrintingWithoutNewlinesStillFinishes() {
+        test().testLua(true).luaOnly(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "native println(string s)",
+            "init",
+            "    var line = \"\"",
+            "    for i = 1 to 4000",
+            "        line += \"this line keeps growing and is never broken by a newline \"",
+            "    println(line)",
+            "    testSuccess()"
+        );
+    }
 }
