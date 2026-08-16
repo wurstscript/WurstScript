@@ -391,41 +391,52 @@ public class LuaTranslator {
     }
 
     private void normalizeFieldNames() {
+        Map<ImVar, Set<String>> namesToAvoid = collectNamesEachFieldMustAvoid();
+        Map<ImVar, String> chosenNames = new IdentityHashMap<>();
         Set<ImClass> processed = new HashSet<>();
         for (ImClass c : prog.getClasses()) {
-            normalizeFieldNames(c, processed);
+            normalizeFieldNames(c, processed, namesToAvoid, chosenNames);
         }
-        alignSpecializedFieldNames();
     }
 
     /**
-     * Gives every field of a specialised class the name of the field it was copied from.
+     * The method names a field has to keep clear of, gathered per original field rather than per
+     * class.
      * <p>
-     * A field sharing its name with a method is renamed around it, because both are keys of one
-     * table. That is decided per class from that class's own methods, and a specialised class need
-     * not hold the same set as the class it was copied from once unused ones are dropped - so the
-     * two can be renamed differently. Accesses still name the original's field, so a copy which kept
-     * a name of its own would have its allocation write a key nothing reads.
+     * A specialised class holds a copy of each field, and the accesses reaching either still name the
+     * original's variable — so the two must end up as one table key. They cannot be normalised
+     * independently: the classes need not hold the same methods once unused ones are dropped, and a
+     * specialisation has slots of its own that the original never had. Naming each side around only
+     * its own methods leaves them different; restoring the original's name afterwards puts back
+     * whatever collision the specialisation had escaped, and an instance field which shadows a method
+     * slot is found first by a virtual call, which then tries to call a field.
+     * <p>
+     * One name chosen against the methods of the original and of every specialisation is safe on all
+     * of them.
      */
-    private void alignSpecializedFieldNames() {
+    private Map<ImVar, Set<String>> collectNamesEachFieldMustAvoid() {
+        Map<ImVar, Set<String>> namesToAvoid = new IdentityHashMap<>();
         for (ImClass c : prog.getClasses()) {
+            Set<String> reserved = new HashSet<>(LuaReservedNames.LUA_KEYWORDS);
+            collectMethodNames(c, reserved, new HashSet<>());
             for (ImVar field : c.getFields()) {
-                ImVar origin = imTr.originalOfSpecializedField(field);
-                if (origin != field) {
-                    field.setName(origin.getName());
-                }
+                namesToAvoid
+                    .computeIfAbsent(imTr.originalOfSpecializedField(field), origin -> new HashSet<>())
+                    .addAll(reserved);
             }
         }
+        return namesToAvoid;
     }
 
-    private void normalizeFieldNames(ImClass c, Set<ImClass> processed) {
+    private void normalizeFieldNames(ImClass c, Set<ImClass> processed,
+                                     Map<ImVar, Set<String>> namesToAvoid, Map<ImVar, String> chosenNames) {
         if (!processed.add(c)) {
             return;
         }
         // Superclasses first: all fields of a hierarchy share one instance table,
         // so a subclass field must be renamed around already-final ancestor names.
         for (ImClassType sc : c.getSuperClasses()) {
-            normalizeFieldNames(sc.getClassDef(), processed);
+            normalizeFieldNames(sc.getClassDef(), processed, namesToAvoid, chosenNames);
         }
         // Field names become raw Lua table keys / field accesses, so they must not
         // collide with Lua keywords, method dispatch slots, or inherited fields.
@@ -433,15 +444,26 @@ public class LuaTranslator {
         collectMethodNames(c, reserved, new HashSet<>());
         collectSuperFieldNames(c, reserved, new HashSet<>());
         for (ImVar field : c.getFields()) {
-            if (reserved.contains(field.getName())) {
+            ImVar origin = imTr.originalOfSpecializedField(field);
+            String settled = chosenNames.get(origin);
+            if (settled != null) {
+                // The original and its copies are one key, decided the first time any of them is met.
+                field.setName(settled);
+                reserved.add(settled);
+                continue;
+            }
+            Set<String> avoid = new HashSet<>(reserved);
+            avoid.addAll(namesToAvoid.getOrDefault(origin, Collections.emptySet()));
+            if (avoid.contains(field.getName())) {
                 String base = field.getName() + "_field";
                 String candidate = base;
                 int i = 1;
-                while (reserved.contains(candidate)) {
+                while (avoid.contains(candidate)) {
                     candidate = base + i++;
                 }
                 field.setName(candidate);
             }
+            chosenNames.put(origin, field.getName());
             reserved.add(field.getName());
         }
     }
