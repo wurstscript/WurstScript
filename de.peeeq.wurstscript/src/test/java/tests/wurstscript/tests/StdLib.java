@@ -51,12 +51,39 @@ public class StdLib {
         }
     }
 
+    private static boolean isUsableCheckout() {
+        try (Git git = Git.open(stdLibFolder)) {
+            return git.getRepository().resolve(Constants.HEAD) != null;
+        } catch (IOException | RuntimeException e) {
+            return false;
+        }
+    }
+
+    private static void deleteRecursively(File file) {
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteRecursively(child);
+            }
+        }
+        if (!file.delete()) {
+            file.deleteOnExit();
+        }
+    }
+
     public synchronized static boolean downloadStandardlib() {
         if (isInitialized) {
             return true;
         }
 
         try {
+            // A checkout that cannot be opened or has no HEAD is worse than none: every test now
+            // waits on this, so a half-written directory left by an interrupted run would stop the
+            // whole suite rather than the few cases that need the library.
+            if (stdLibFolder.exists() && !isUsableCheckout()) {
+                System.out.println("Discarding an unusable standard library checkout at " + stdLibFolder);
+                deleteRecursively(stdLibFolder);
+            }
             if (!stdLibFolder.exists()) {
                 tempFolder.mkdirs();
                 try (Git git = Git
@@ -71,10 +98,16 @@ public class StdLib {
             try (Git git = Git.open(stdLibFolder)) {
                 String head = git.getRepository().resolve(Constants.HEAD).getName();
                 if (!head.equals(version)) {
-                    System.out.println("Wrong version '" + head + "', executing git pull to get '" + version + "'");
+                    System.out.println("Wrong version '" + head + "', fetching to get '" + version + "'");
 
-                    git.checkout().setName(Constants.MASTER).call();
-                    git.pull().call();
+                    // Straight to the pinned commit rather than by way of master. A checkout left
+                    // detached - which is what this leaves behind, so it is the normal state - has
+                    // no local master to check out, and asking for one fails with "Ref master
+                    // cannot be resolved" before the fetch that would have created it.
+                    git.fetch()
+                        .setRemote(Constants.DEFAULT_REMOTE_NAME)
+                        .setRefSpecs("+refs/heads/*:refs/remotes/origin/*")
+                        .call();
                     git.checkout().setName(version).setForceRefUpdate(true).call();
                 }
             }
@@ -87,6 +120,9 @@ public class StdLib {
         } catch (IOException | GitAPIException e) {
             // The array's identity is no use to anyone; there is an overload that prints the trace.
             WLogger.severe(e);
+            // And on the console too: the build waits on this now, so whoever is looking at a
+            // failed run needs to see why here rather than in a log file.
+            e.printStackTrace(System.err);
             return false;
         }
 
