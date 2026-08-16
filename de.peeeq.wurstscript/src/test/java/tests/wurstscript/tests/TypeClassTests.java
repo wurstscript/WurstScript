@@ -162,6 +162,34 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
+     * The closure has no dispatch of its own — it calls something that does. The gate deciding
+     * whether a construction is the only place an instantiation is stated has to follow calls to
+     * see that, or this reaches the backend with the bound unresolved.
+     */
+    @Test
+    public void dispatchInsideClosureThroughHelperLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function helper<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer p = () -> helper(x)",
+            "    return p.produce()",
+            "init",
+            "    if foo(21) == 42",
+            "        testSuccess()"
+        );
+    }
+
+    /**
      * A slot of a {@code T array} that was never written reads as the default of whatever T stands
      * for. The default is computed by a static attribute, which cannot see what T is bound to, so
      * it produces a stand-in — and a stand-in compares equal only to another stand-in, which made
