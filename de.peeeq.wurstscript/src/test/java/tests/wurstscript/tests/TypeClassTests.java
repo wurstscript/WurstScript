@@ -393,6 +393,43 @@ public class TypeClassTests extends WurstScriptTest {
         testAssertOkLines(true, SUPER_CALL_TO_A_GENERIC_METHOD);
     }
 
+    /**
+     * A class and a method inside it may each declare a type parameter spelled the same. They are
+     * different parameters bound to different types at the same moment, and this covers that the
+     * shape compiles and runs.
+     * <p>
+     * It passes without the canonical type variable change as well as with it, so it does not pin
+     * that change — the lookups which used to compare names are not reached with both parameters in
+     * one list here, and a program which does reach them that way was not found. It is kept for the
+     * language case rather than for the fix.
+     */
+    @Test
+    public void aMethodTypeParameterMayShareTheClassParameterName() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x * 2",
+            "class Holder<T: Show>",
+            "    T held",
+            "    construct(T held)",
+            "        this.held = held",
+            "    function shown() returns int",
+            "        return T.show(held)",
+            // The method's T is a different parameter which happens to share the name, and it is
+            // unbounded: nothing may be dispatched on it.
+            "    function convert<T:>(T other, int extra) returns int",
+            "        return extra + 1",
+            "init",
+            "    let h = new Holder<int>(21)",
+            "    if h.shown() == 42 and h.convert<string>(\"x\", 1) == 2",
+            "        testSuccess()"
+        );
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {
