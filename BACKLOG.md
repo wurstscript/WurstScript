@@ -45,9 +45,11 @@ because `LOOP.md` refers to items by number.
 
 8. **`MOD_INT`/`DIV_INT` return the left operand's type** rather than `int`
    (`AttrExprType.java`, the `case MOD_INT` branch), where `caseMathOperation` returns
-   `WurstTypeInt.instance()` for `+`, `-`, `*`. Only observable if something is a proper
-   subtype of int, so it may be harmless — establish whether it is reachable, then either fix
-   it or leave a comment saying why the asymmetry is intended. Small.
+   `WurstTypeInt.instance()` for `+`, `-`, `*`. It *is* reachable: `WurstTypeIntLiteral` is a
+   proper subtype of both int and real, and `caseMathOperation` collapses two literals to `int`
+   precisely so `real r = 1 + 1` stays an error. Returning `leftType` skips that collapse, so
+   `real r = 7 div 2` and `real r = 7 mod 2` should be accepted where `+` is rejected. Confirm
+   with a test first — that is the failing repro — then return `WurstTypeInt.instance()`. Small.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land. The bounds section
    says nothing about closures, which now work on Jass. Fold this into whichever item changes
@@ -63,6 +65,40 @@ because `LOOP.md` refers to items by number.
     different `.j` (`temp151` vs `temp8`) because the counter is JVM-wide and depends on how
     many tests ran before. Not wrong for compiling one map, but it means `.j` cannot be diffed
     across runs to validate a change — only `.lua` can. Fixing it would make Jass diffable.
+
+13. **A bounded generic class cannot be subclassed.** Found while building a repro for item 3;
+    both backends break, differently, on the same program:
+
+        interface Show<T:>
+            function show(T x) returns int
+        implements Show<int>
+            function show(int x) returns int
+                return x
+        class Box<K: Show>
+            K key
+            construct(K k)
+                key = k
+            function size(int extra) returns int
+                return K.show(key) + extra
+            function shift(int extra) returns int
+                return 1000 + extra
+        class SubBox extends Box<int>
+            construct(int k)
+                super(k)
+            override function size(int extra) returns int
+                return super.size(extra) + 100
+        init
+            Box<int> b = new Box<int>(5)
+            Box<int> s = new SubBox(5)
+            if b.size(1) == 6 and b.shift(1) == 1001 and s.size(1) == 106
+                testSuccess()
+
+    Jass fails to compile: `Typevar dispatch not eliminated.` Lua compiles and runs but never
+    reaches `testSuccess`: the override makes `size` dispatched, and the emitted call is
+    `b:Box_size_specialized_integer(1)` while `b` was allocated from the *erased* `Box` table,
+    which binds only `shift`. The specialised table `Box_specialized_integer` has the slot; the
+    instance never gets that table. Split this if the two turn out to have separate causes —
+    the Jass one is loud and probably the smaller of the two.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
@@ -88,6 +124,12 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 14. The Lua execution harness no longer hangs. It read the spawned interpreter's stderr to EOF
+  before touching stdout, and never bounded the wait, so a program that filled the stdout pipe
+  deadlocked the whole suite with no output and no timeout — a stray JVM was still sitting on it
+  twenty minutes later. `checkLuaSyntax`, ten lines further down the same file, already drained
+  both pipes concurrently and waited with a timeout; the execution path now uses the same
+  helper. Verified against the item 13 repro: hung indefinitely before, fails in 8s after.
 - 1 + 2. Lua method names are sanitised where they are assigned, not where they are printed.
   `LuaDispatchPreparation.normalizeMethodNames` is the pass that gives one name to a whole
   dispatch group, so it now sanitises before uniquing — two names differing only in characters
@@ -104,6 +146,8 @@ because `LOOP.md` refers to items by number.
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
 - Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
   emitted output that can be diffed across runs — see item 11.
+- A test that hangs looks exactly like a test that is slow. If the suite stops making progress,
+  take a thread dump of the forked worker (`jstack <pid>`) before killing it — it names the line.
 - Method names are not what the frontend called them. `LuaDispatchPreparation` renames a whole
   dispatch group to one name and attaches alias sets, and only then does the backend run. A
   question about which Lua slot something lands in is a question about that pass, not about

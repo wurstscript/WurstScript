@@ -48,6 +48,21 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
+
+    /** Generous enough for the slowest test program, short enough that a loop fails the run. */
+    private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
+
+    /**
+     * How much of a program's output is kept for the failure message. Draining never stops - that
+     * is what deadlocks the run - but retaining everything from a program that loops while printing
+     * would exhaust the worker before the timeout fires.
+     */
+    private static final int RETAINED_OUTPUT_LIMIT = 64 * 1024;
+
+    /** Overridden by the tests covering the runner itself, so they need seconds rather than a minute. */
+    protected int luaExecutionTimeoutSeconds() {
+        return LUA_EXECUTION_TIMEOUT_SECONDS;
+    }
     private static volatile String resolvedLuaExecutable;
     private static volatile String resolvedLuacExecutable;
     private static volatile String extractedLuaWin;
@@ -527,7 +542,6 @@ public class WurstScriptTest {
                     throw new org.testng.SkipException(
                         "Skipped Lua execution (translation and luac syntax check still ran): " + e.getMessage());
                 }
-                String line;
                 // Preload the WC3 Lua runtime (Reforged blizzard.j dump + native shim)
                 // when available, so tests execute against real BJ implementations.
                 // The generated script only installs fallbacks for natives that are
@@ -550,29 +564,27 @@ public class WurstScriptTest {
                 Process p = Runtime.getRuntime().exec(args);
                 StringBuilder errors = new StringBuilder();
                 StringBuilder output = new StringBuilder();
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        System.err.println(line);
-                        errors.append(line);
-                        errors.append("\n");
-                    }
+                // Both pipes must be drained while the program runs, and the wait must end: a
+                // generated program that loops forever would otherwise hang the whole suite,
+                // and one that fills the stdout pipe would deadlock against a stderr-first read.
+                java.util.concurrent.atomic.AtomicBoolean sawTestSuccess =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output, "testSuccess", sawTestSuccess);
+                Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
+                if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                    throw new Error(currentTestEnv + ": Lua program did not terminate within "
+                        + luaExecutionTimeoutSeconds() + "s: " + luaFile.getName());
                 }
+                outCollector.join();
+                errCollector.join();
 
                 if (errors.length() > 0) {
+                    System.err.print(errors);
                     throw new TestFailException(errors.toString());
                 }
 
-                boolean success = false;
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        if (line.equals("testSuccess")) {
-                            success = true;
-                        }
-                        output.append(line);
-                        output.append("\n");
-                    }
-                }
-                if (!success) {
+                if (!sawTestSuccess.get()) {
                     throw new Error(currentTestEnv + ": Succeed function not called");
                 }
             }
@@ -621,11 +633,65 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
+        return collectStreamAsync(stream, out, null, null);
+    }
+
+    /**
+     * Drains {@code stream} into {@code out}, keeping only the first {@link #RETAINED_OUTPUT_LIMIT}
+     * characters. Reading never stops — that is what blocks the process and deadlocks the run — but
+     * a program that loops while printing would fill the heap before the timeout could fire.
+     * <p>
+     * Whatever the caller is looking for is recognised here rather than read back out of
+     * {@code out} afterwards, because it may arrive after the limit: a program that prints a
+     * million lines and then succeeds has still succeeded.
+     */
+    private Thread collectStreamAsync(InputStream stream, StringBuilder out,
+                                      String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
         Thread t = new Thread(() -> {
-            try (BufferedReader input = new BufferedReader(new InputStreamReader(stream))) {
-                String line;
-                while ((line = input.readLine()) != null) {
-                    out.append(line).append("\n");
+            // Fixed-size chunks rather than lines: a line is only bounded by what the program
+            // chose to print, and reading one materialises all of it before any limit here could
+            // apply. Nothing below holds more than the retained limit plus one chunk.
+            char[] chunk = new char[8 * 1024];
+            StringBuilder pendingLine = new StringBuilder();
+            boolean lineIsLongerThanWatched = false;
+            boolean truncated = false;
+            try (Reader input = new InputStreamReader(stream)) {
+                int read;
+                while ((read = input.read(chunk)) >= 0) {
+                    if (watchedLine != null) {
+                        for (int i = 0; i < read; i++) {
+                            char c = chunk[i];
+                            if (c == '\n') {
+                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
+                                    && watchedLine.contentEquals(pendingLine)) {
+                                    sawWatchedLine.set(true);
+                                }
+                                pendingLine.setLength(0);
+                                lineIsLongerThanWatched = false;
+                            } else if (c != '\r' && !lineIsLongerThanWatched) {
+                                // Only ever as long as what is being looked for; past that the
+                                // line cannot be it, so there is no reason to keep any of it.
+                                if (pendingLine.length() == watchedLine.length()) {
+                                    lineIsLongerThanWatched = true;
+                                    pendingLine.setLength(0);
+                                } else {
+                                    pendingLine.append(c);
+                                }
+                            }
+                        }
+                    }
+                    int room = RETAINED_OUTPUT_LIMIT - out.length();
+                    if (room > 0) {
+                        out.append(chunk, 0, Math.min(read, room));
+                    }
+                    // Said as soon as anything is dropped, including when that happens part way
+                    // through the last chunk there is: otherwise the output ends at exactly the
+                    // limit and reads as though that were all the program had to say.
+                    if (read > room && !truncated) {
+                        truncated = true;
+                        out.append("\n... further output dropped after ")
+                            .append(RETAINED_OUTPUT_LIMIT).append(" characters\n");
+                    }
                 }
             } catch (IOException ignored) {
             }
