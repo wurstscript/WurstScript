@@ -51,8 +51,8 @@ public class CompiletimeNativesTest {
         modifyObject.setAccessible(true);
 
         MetaFieldId unrealId = MetaFieldId.valueOf("unat");
-        modifyObject.invoke(natives, obj, new ILconstString(unrealId.getVal()), ObjMod.ValType.UNREAL, 1, 0, War3Real.valueOf(1.0));
-        modifyObject.invoke(natives, obj, new ILconstString(unrealId.getVal()), ObjMod.ValType.UNREAL, 1, 1, War3Real.valueOf(2.0));
+        modifyObject.invoke(natives, obj, ILconstString.fromText(unrealId.getVal()), ObjMod.ValType.UNREAL, 1, 0, War3Real.valueOf(1.0));
+        modifyObject.invoke(natives, obj, ILconstString.fromText(unrealId.getVal()), ObjMod.ValType.UNREAL, 1, 1, War3Real.valueOf(2.0));
 
         List<ObjMod.Obj.ExtendedMod> unrealMods = obj.getMods().stream()
                 .filter(m -> m instanceof ObjMod.Obj.ExtendedMod)
@@ -151,8 +151,8 @@ public class CompiletimeNativesTest {
         int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
         int hf01 = ObjectHelper.objectIdStringToInt("hf01");
 
-        natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
-        natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
+        natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
+        natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
 
         assertEquals(gui.getErrorCount(), 1);
         assertTrue(gui.getErrors().contains("Object definition with id hf01 is defined more than once."));
@@ -172,7 +172,7 @@ public class CompiletimeNativesTest {
         W3U.Obj existing = w3u.addObj(ObjId.valueOf("hf01"), ObjId.valueOf("hpea"));
         existing.addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("old map object")));
 
-        natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
+        natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hf01), new ILconstInt(hfoo));
 
         assertEquals(gui.getErrorCount(), 0);
         assertEquals(w3u.getCustomObjs().size(), 1);
@@ -189,10 +189,10 @@ public class CompiletimeNativesTest {
         CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
         int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
 
-        var first = natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
-        natives.ObjectDefinition_setString(first, new ILconstString("unam"), new ILconstString("first"));
-        var second = natives.createObjectDefinition(new ILconstString("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
-        natives.ObjectDefinition_setString(second, new ILconstString("utip"), new ILconstString("second"));
+        var first = natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
+        natives.ObjectDefinition_setString(first, ILconstString.fromText("unam"), ILconstString.fromText("first"));
+        var second = natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
+        natives.ObjectDefinition_setString(second, ILconstString.fromText("utip"), ILconstString.fromText("second"));
 
         Method getDataStore = ProgramStateIO.class.getDeclaredMethod("getDataStore", String.class);
         getDataStore.setAccessible(true);
@@ -208,15 +208,15 @@ public class CompiletimeNativesTest {
     @Test
     public void testCloseSqliteResourcesOnProviderClose() {
         CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
-        ILconstInt connHandle = natives.sqlite_open(new ILconstString(":memory:"));
-        natives.sqlite_exec(connHandle, new ILconstString("CREATE TABLE Test (id INT);"));
-        ILconstInt stmtHandle = natives.sqlite_prepare(connHandle, new ILconstString("INSERT INTO Test VALUES (1);"));
+        ILconstInt connHandle = natives.sqlite_open(ILconstString.fromText(":memory:"));
+        natives.sqlite_exec(connHandle, ILconstString.fromText("CREATE TABLE Test (id INT);"));
+        ILconstInt stmtHandle = natives.sqlite_prepare(connHandle, ILconstString.fromText("INSERT INTO Test VALUES (1);"));
         natives.sqlite_step(stmtHandle);
 
         natives.close();
 
         try {
-            natives.sqlite_prepare(connHandle, new ILconstString("SELECT * FROM Test;"));
+            natives.sqlite_prepare(connHandle, ILconstString.fromText("SELECT * FROM Test;"));
             org.testng.Assert.fail("Expected InterpreterException for invalid connection handle after close");
         } catch (de.peeeq.wurstio.jassinterpreter.InterpreterException e) {
             assertTrue(e.getMessage().contains("Invalid SQLite connection handle"));
@@ -230,13 +230,13 @@ public class CompiletimeNativesTest {
         CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
         state.addNativeProvider(natives);
 
-        ILconstInt connHandle = natives.sqlite_open(new ILconstString(":memory:"));
-        natives.sqlite_exec(connHandle, new ILconstString("CREATE TABLE Test (id INT);"));
+        ILconstInt connHandle = natives.sqlite_open(ILconstString.fromText(":memory:"));
+        natives.sqlite_exec(connHandle, ILconstString.fromText("CREATE TABLE Test (id INT);"));
 
         state.close();
 
         try {
-            natives.sqlite_prepare(connHandle, new ILconstString("SELECT * FROM Test;"));
+            natives.sqlite_prepare(connHandle, ILconstString.fromText("SELECT * FROM Test;"));
             org.testng.Assert.fail("Expected InterpreterException for invalid connection handle after ProgramState close");
         } catch (de.peeeq.wurstio.jassinterpreter.InterpreterException e) {
             assertTrue(e.getMessage().contains("Invalid SQLite connection handle"));
@@ -250,18 +250,18 @@ public class CompiletimeNativesTest {
         CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
         state.addNativeProvider(natives);
 
-        ILconstInt db = natives.sqlite_open(new ILconstString(":memory:"));
+        ILconstInt db = natives.sqlite_open(ILconstString.fromText(":memory:"));
         // Multi-statement script including a trigger BEGIN...END body (whose inner ';'
         // terminators would break a naive splitter) and a bracket-quoted identifier
         // containing ';'. sqlite3_exec delegates to SQLite's own parser, so both work.
-        natives.sqlite_exec(db, new ILconstString(
+        natives.sqlite_exec(db, ILconstString.fromText(
                 "CREATE TABLE src (id INTEGER);"
                         + "CREATE TABLE dst (id INTEGER);"
                         + "CREATE TRIGGER mirror AFTER INSERT ON src BEGIN INSERT INTO dst VALUES (NEW.id); END;"
                         + "CREATE TABLE [we;ird] (x INTEGER);"
                         + "INSERT INTO src VALUES (1); INSERT INTO src VALUES (2);"));
 
-        ILconstInt q = natives.sqlite_prepare(db, new ILconstString(
+        ILconstInt q = natives.sqlite_prepare(db, ILconstString.fromText(
                 "SELECT (SELECT COUNT(*) FROM dst), "
                         + "(SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='we;ird')"));
         assertTrue(natives.sqlite_step(q).getVal());
@@ -296,11 +296,11 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteReadsBackEveryColumnTypeIncludingNull() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString(
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText(
                 "CREATE TABLE T (i INTEGER, r REAL, s TEXT, n TEXT);"
                         + "INSERT INTO T VALUES (42, 2.5, 'hello', NULL);"));
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT i, r, s, n FROM T"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT i, r, s, n FROM T"));
         // column_count works before any step (metadata branch) ...
         assertEquals(n.sqlite_column_count(q).getVal(), 4);
         assertTrue(n.sqlite_step(q).getVal());
@@ -322,10 +322,10 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteResetRewindsSelectResultSet() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString(
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText(
                 "CREATE TABLE T (id INTEGER); INSERT INTO T VALUES (10); INSERT INTO T VALUES (20);"));
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT id FROM T ORDER BY id"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT id FROM T ORDER BY id"));
         assertTrue(n.sqlite_step(q).getVal());
         assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 10);
         assertTrue(n.sqlite_step(q).getVal());
@@ -341,9 +341,9 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteColumnIntTruncates64BitValueToInt() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (v INTEGER); INSERT INTO T VALUES (5000000000);"));
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT v FROM T"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (v INTEGER); INSERT INTO T VALUES (5000000000);"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT v FROM T"));
         assertTrue(n.sqlite_step(q).getVal());
         // WurstScript int is 32-bit: a 64-bit INTEGER wraps to its low 32 bits (documented).
         assertEquals(n.sqlite_column_int(q, i(0)).getVal(), (int) 5000000000L);
@@ -354,20 +354,20 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteBindRoundTripAndRebindAfterStepReexecutes() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (i INTEGER, r REAL, s TEXT)"));
-        ILconstInt ins = n.sqlite_prepare(db, new ILconstString("INSERT INTO T VALUES (?, ?, ?)"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (i INTEGER, r REAL, s TEXT)"));
+        ILconstInt ins = n.sqlite_prepare(db, ILconstString.fromText("INSERT INTO T VALUES (?, ?, ?)"));
         n.sqlite_bind_int(ins, i(1), i(1));
         n.sqlite_bind_real(ins, i(2), new ILconstReal(1.5f));
-        n.sqlite_bind_string(ins, i(3), new ILconstString("a"));
+        n.sqlite_bind_string(ins, i(3), ILconstString.fromText("a"));
         assertFalse(n.sqlite_step(ins).getVal());
         // rebind i and s WITHOUT a reset: must re-execute; r keeps its previous binding
         n.sqlite_bind_int(ins, i(1), i(2));
-        n.sqlite_bind_string(ins, i(3), new ILconstString("b"));
+        n.sqlite_bind_string(ins, i(3), ILconstString.fromText("b"));
         assertFalse(n.sqlite_step(ins).getVal());
         n.sqlite_finalize(ins);
 
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT i, r, s FROM T ORDER BY i"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT i, r, s FROM T ORDER BY i"));
         assertTrue(n.sqlite_step(q).getVal());
         assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 1);
         assertEquals((double) n.sqlite_column_real(q, i(1)).getVal(), 1.5, 0.0);
@@ -384,16 +384,16 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteClearBindingsResetsParametersToNull() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (a INTEGER, b TEXT)"));
-        ILconstInt ins = n.sqlite_prepare(db, new ILconstString("INSERT INTO T VALUES (?, ?)"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (a INTEGER, b TEXT)"));
+        ILconstInt ins = n.sqlite_prepare(db, ILconstString.fromText("INSERT INTO T VALUES (?, ?)"));
         n.sqlite_bind_int(ins, i(1), i(7));
-        n.sqlite_bind_string(ins, i(2), new ILconstString("x"));
+        n.sqlite_bind_string(ins, i(2), ILconstString.fromText("x"));
         n.sqlite_clear_bindings(ins);
         assertFalse(n.sqlite_step(ins).getVal());
         n.sqlite_finalize(ins);
 
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT a, b FROM T"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT a, b FROM T"));
         assertTrue(n.sqlite_step(q).getVal());
         assertTrue(n.sqlite_column_is_null(q, i(0)).getVal());
         assertTrue(n.sqlite_column_is_null(q, i(1)).getVal());
@@ -407,16 +407,16 @@ public class CompiletimeNativesTest {
         // sqlite_bind_*, so a step after clearing re-runs the statement with NULL params
         // WITHOUT an explicit sqlite_reset. Otherwise the second step silently no-ops.
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (v INTEGER)"));
-        ILconstInt ins = n.sqlite_prepare(db, new ILconstString("INSERT INTO T VALUES (?)"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (v INTEGER)"));
+        ILconstInt ins = n.sqlite_prepare(db, ILconstString.fromText("INSERT INTO T VALUES (?)"));
         n.sqlite_bind_int(ins, i(1), i(100));
         assertFalse(n.sqlite_step(ins).getVal());   // inserts 100
         n.sqlite_clear_bindings(ins);               // no explicit reset
         assertFalse(n.sqlite_step(ins).getVal());   // must re-execute → inserts NULL
         n.sqlite_finalize(ins);
 
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT count(*), count(v) FROM T"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT count(*), count(v) FROM T"));
         assertTrue(n.sqlite_step(q).getVal());
         assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 2); // two rows total
         assertEquals(n.sqlite_column_int(q, i(1)).getVal(), 1); // one non-NULL (the 100)
@@ -430,10 +430,10 @@ public class CompiletimeNativesTest {
         // clear_bindings must discard it so the next step RE-RUNS the query with the now
         // NULL parameter, rather than continuing to walk the stale result set.
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (v INTEGER)"));
-        n.sqlite_exec(db, new ILconstString("INSERT INTO T VALUES (1), (2), (3)"));
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT v FROM T WHERE v <> ? ORDER BY v"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (v INTEGER)"));
+        n.sqlite_exec(db, ILconstString.fromText("INSERT INTO T VALUES (1), (2), (3)"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT v FROM T WHERE v <> ? ORDER BY v"));
         n.sqlite_bind_int(q, i(1), i(2));           // excludes 2 → rows {1, 3}
         assertTrue(n.sqlite_step(q).getVal());
         assertEquals(n.sqlite_column_int(q, i(0)).getVal(), 1);
@@ -448,9 +448,9 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteFinalizeInvalidatesStatementHandle() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (id INTEGER)"));
-        ILconstInt stmt = n.sqlite_prepare(db, new ILconstString("INSERT INTO T VALUES (1)"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (id INTEGER)"));
+        ILconstInt stmt = n.sqlite_prepare(db, ILconstString.fromText("INSERT INTO T VALUES (1)"));
         n.sqlite_finalize(stmt);
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_step(stmt));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_finalize(stmt));
@@ -460,12 +460,12 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteCloseInvalidatesConnectionAndItsStatements() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (id INTEGER)"));
-        ILconstInt stmt = n.sqlite_prepare(db, new ILconstString("SELECT id FROM T"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (id INTEGER)"));
+        ILconstInt stmt = n.sqlite_prepare(db, ILconstString.fromText("SELECT id FROM T"));
         n.sqlite_close(db);
-        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_prepare(db, new ILconstString("SELECT 1")));
-        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_exec(db, new ILconstString("SELECT 1")));
+        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_prepare(db, ILconstString.fromText("SELECT 1")));
+        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_exec(db, ILconstString.fromText("SELECT 1")));
         assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_close(db));
         // statements belonging to the closed connection were finalized/invalidated too
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_step(stmt));
@@ -474,30 +474,30 @@ public class CompiletimeNativesTest {
     @Test
     public void sqliteInvalidHandlesAndBadSqlThrow() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_bind_int(i(999), i(1), i(1)));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_bind_real(i(999), i(1), new ILconstReal(1f)));
-        assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_bind_string(i(999), i(1), new ILconstString("x")));
+        assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_bind_string(i(999), i(1), ILconstString.fromText("x")));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_step(i(999)));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_reset(i(999)));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_clear_bindings(i(999)));
         assertInterpreterError("Invalid SQLite statement handle", () -> n.sqlite_finalize(i(999)));
         assertInterpreterError("No result set", () -> n.sqlite_column_int(i(999), i(0)));
         assertInterpreterError("No result set", () -> n.sqlite_column_is_null(i(999), i(0)));
-        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_prepare(i(999), new ILconstString("SELECT 1")));
-        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_exec(i(999), new ILconstString("SELECT 1")));
+        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_prepare(i(999), ILconstString.fromText("SELECT 1")));
+        assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_exec(i(999), ILconstString.fromText("SELECT 1")));
         assertInterpreterError("Invalid SQLite connection handle", () -> n.sqlite_close(i(999)));
-        assertInterpreterError("Failed to prepare SQLite statement", () -> n.sqlite_prepare(db, new ILconstString("NOT VALID SQL")));
-        assertInterpreterError("Failed to exec SQLite query", () -> n.sqlite_exec(db, new ILconstString("NOT VALID SQL")));
+        assertInterpreterError("Failed to prepare SQLite statement", () -> n.sqlite_prepare(db, ILconstString.fromText("NOT VALID SQL")));
+        assertInterpreterError("Failed to exec SQLite query", () -> n.sqlite_exec(db, ILconstString.fromText("NOT VALID SQL")));
         n.sqlite_close(db);
     }
 
     @Test
     public void sqliteColumnAccessWithoutResultSetThrows() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
-        n.sqlite_exec(db, new ILconstString("CREATE TABLE T (id INTEGER); INSERT INTO T VALUES (1)"));
-        ILconstInt q = n.sqlite_prepare(db, new ILconstString("SELECT id FROM T"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (id INTEGER); INSERT INTO T VALUES (1)"));
+        ILconstInt q = n.sqlite_prepare(db, ILconstString.fromText("SELECT id FROM T"));
         // reading a column before any step -> no result set yet
         assertInterpreterError("No result set", () -> n.sqlite_column_int(q, i(0)));
         assertInterpreterError("No result set", () -> n.sqlite_column_is_null(q, i(0)));
@@ -509,17 +509,17 @@ public class CompiletimeNativesTest {
     public void sqliteOpenRejectsFileUriWithQueryParameters() {
         CompiletimeNatives n = newSqliteNatives();
         assertInterpreterError("query parameters are not allowed",
-                () -> n.sqlite_open(new ILconstString("file::memory:?enable_load_extension=true")));
+                () -> n.sqlite_open(ILconstString.fromText("file::memory:?enable_load_extension=true")));
     }
 
     @Test
     public void sqliteLoadExtensionIsBlocked() {
         CompiletimeNatives n = newSqliteNatives();
-        ILconstInt db = n.sqlite_open(new ILconstString(":memory:"));
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
         // extension loading is disabled on the connection, so load_extension is not authorized
         // (this is what closes the dlopen-arbitrary-native-code vector at compiletime).
         assertInterpreterError("not authorized",
-                () -> n.sqlite_exec(db, new ILconstString("SELECT load_extension('nonexistent_extension')")));
+                () -> n.sqlite_exec(db, ILconstString.fromText("SELECT load_extension('nonexistent_extension')")));
         n.sqlite_close(db);
     }
 

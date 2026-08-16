@@ -43,7 +43,7 @@ public class LuaEnsureTypeProvider extends Provider {
     }
 
     public ILconstString __wurst_rawConcat(ILconstString x, ILconstString y) {
-        return new ILconstString(x.getVal() + y.getVal());
+        return ILconstString.ofBytes(x.getVal() + y.getVal());
     }
 
     public ILconstInt __wurst_rawFloorDivInt(ILconstInt a, ILconstInt b) {

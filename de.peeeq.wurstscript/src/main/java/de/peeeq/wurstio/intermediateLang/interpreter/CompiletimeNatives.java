@@ -47,7 +47,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
 
     private ILconstTuple makeKey(String key) {
-        return new ILconstTuple(new ILconstString(key));
+        return new ILconstTuple(ILconstString.fromText(key));
     }
 
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
@@ -93,7 +93,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     public void ObjectDefinition_setString(ILconstTuple unitType, ILconstString modification, ILconstString value) {
         ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, ObjMod.ValType.STRING, War3String.valueOf(value.getVal()));
+        modifyObject(od, modification, ObjMod.ValType.STRING, War3String.valueOf(value.text()));
     }
 
     public void ObjectDefinition_setReal(ILconstTuple unitType, ILconstString modification, ILconstReal value) {
@@ -114,7 +114,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     public void ObjectDefinition_setLvlString(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstString value) {
         ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), War3String.valueOf(value.getVal()));
+        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), War3String.valueOf(value.text()));
     }
 
     public void ObjectDefinition_setLvlReal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstReal value) {
@@ -135,7 +135,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     public void ObjectDefinition_setLvlDataString(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstString value) {
         ObjMod.Obj od = globalState.getObjectDefinition(getKey(unitType));
-        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), dataPointer.getVal(), War3String.valueOf(value.getVal()));
+        modifyObject(od, modification, ObjMod.ValType.STRING, level.getVal(), dataPointer.getVal(), War3String.valueOf(value.text()));
     }
 
     public void ObjectDefinition_setLvlDataReal(ILconstTuple unitType, ILconstString modification, ILconstInt level, ILconstInt dataPointer, ILconstReal value) {
@@ -185,15 +185,15 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public void compileError(ILconstString msg) {
-        throw new InterpreterException(msg.getVal());
+        throw new InterpreterException(msg.text());
     }
 
     public ILconstString getMapName() {
-        return new ILconstString(projectConfigData.buildMapData().name());
+        return ILconstString.fromText(projectConfigData.buildMapData().name());
     }
 
     public ILconstString getBuildDate() {
-        return new ILconstString(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString());
+        return ILconstString.fromText(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString());
     }
 
     public ILconstBool isProductionBuild() {
@@ -379,7 +379,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
             // A SQL NULL maps to "" here; use sqlite_column_is_null to distinguish NULL
             // from an empty string / zero value.
             String val = rs.getString(index.getVal() + 1);
-            return new ILconstString(val == null ? "" : val);
+            return ILconstString.fromText(val == null ? "" : val);
         } catch (SQLException e) {
             throw new InterpreterException("Failed to get column string: " + e.getMessage());
         }

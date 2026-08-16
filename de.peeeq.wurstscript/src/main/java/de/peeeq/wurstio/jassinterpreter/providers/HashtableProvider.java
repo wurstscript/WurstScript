@@ -74,7 +74,7 @@ public class HashtableProvider extends Provider {
     }
 
     public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return  haveSaved(ht, key1, key2, ILconstString.class) ? load(ht, key1, key2, ILconstString.class) : new ILconstString("");
+        return  haveSaved(ht, key1, key2, ILconstString.class) ? load(ht, key1, key2, ILconstString.class) : ILconstString.fromText("");
     }
 
     public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
