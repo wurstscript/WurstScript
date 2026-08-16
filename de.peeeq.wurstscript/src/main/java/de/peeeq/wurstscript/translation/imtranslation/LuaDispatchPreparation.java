@@ -176,10 +176,10 @@ public final class LuaDispatchPreparation {
             return;
         }
         String dispatchKey = dispatchSignatureKey(method);
-        collectHierarchyAliases(owner, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>());
+        collectHierarchyAliases(owner, method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>());
     }
 
-    private static void collectHierarchyAliases(ImClass c, String dispatchKey, Set<String> semanticNames, Set<String> aliases,
+    private static void collectHierarchyAliases(ImClass c, ImMethod method, String dispatchKey, Set<String> semanticNames, Set<String> aliases,
                                                 Map<ImClass, List<ImMethod>> sortedMethodsByClass, Set<ImClass> visited) {
         if (c == null || !visited.add(c)) {
             return;
@@ -188,7 +188,7 @@ public final class LuaDispatchPreparation {
             if (!dispatchKey.equals(dispatchSignatureKey(candidate))) {
                 continue;
             }
-            if (!sharesSemanticName(candidate, semanticNames)) {
+            if (!sharesSemanticName(method, candidate, semanticNames)) {
                 continue;
             }
             String candidateName = candidate.getName();
@@ -198,7 +198,7 @@ public final class LuaDispatchPreparation {
             }
         }
         for (ImClassType sc : c.getSuperClasses()) {
-            collectHierarchyAliases(sc.getClassDef(), dispatchKey, semanticNames, aliases, sortedMethodsByClass, visited);
+            collectHierarchyAliases(sc.getClassDef(), method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, visited);
         }
     }
 
@@ -221,7 +221,7 @@ public final class LuaDispatchPreparation {
                     if (!runtimeKey.equals(closureRuntimeDispatchKey(candidate))) {
                         continue;
                     }
-                    if (!sharesSemanticName(candidate, semanticNames)) {
+                    if (!sharesSemanticName(method, candidate, semanticNames)) {
                         continue;
                     }
                     String candidateName = candidate.getName();
@@ -247,12 +247,45 @@ public final class LuaDispatchPreparation {
         return names;
     }
 
+    /**
+     * Whether {@code candidate} is the same method as {@code method} under a different name, which
+     * is what makes it worth claiming its slot.
+     *
+     * <p>When both were declared in source, their declared names settle it. The name-derived
+     * fallback below reads the segment after the last underscore, which for a specialised method
+     * is a fragment of the type argument: two unrelated methods of one specialisation both end in
+     * {@code integer} and would otherwise be taken for one another.
+     */
+    private static boolean sharesSemanticName(ImMethod method, ImMethod candidate, Set<String> semanticNames) {
+        String declared = declaredName(method);
+        String candidateDeclared = declaredName(candidate);
+        if (!declared.isEmpty() && !candidateDeclared.isEmpty()) {
+            return declared.equals(candidateDeclared);
+        }
+        return sharesSemanticName(candidate, semanticNames);
+    }
+
     private static boolean sharesSemanticName(ImMethod method, Set<String> semanticNames) {
         if (semanticNames.isEmpty()) {
             return false;
         }
         return semanticNames.contains(semanticNameFromMethodName(method.getName()))
             || semanticNames.contains(sourceSemanticName(method));
+    }
+
+    /** The name the method was written with, or empty when there is no declaration to ask. */
+    private static String declaredName(ImMethod method) {
+        if (method == null) {
+            return "";
+        }
+        de.peeeq.wurstscript.ast.Element trace = method.attrTrace();
+        if (trace instanceof FuncDef funcDef) {
+            return funcDef.getName();
+        }
+        if (trace instanceof AstElementWithFuncName withFuncName) {
+            return withFuncName.getFuncNameId().getName();
+        }
+        return "";
     }
 
     private static List<ImMethod> sortedMethodsForClass(ImClass c, Map<ImClass, List<ImMethod>> sortedMethodsByClass) {
