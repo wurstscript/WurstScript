@@ -190,6 +190,26 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
+     * Wurst and Lua reserve different words, so a method can be declared {@code repeat} and reach
+     * the backend under that name. A closure adds the name it implements as a dispatch alias
+     * directly, without the uniquing that protects method names, so the alias arrives as a bare
+     * keyword and is emitted as a table key — {@code <name> expected near 'repeat'} from luac.
+     */
+    @Test
+    public void closureImplementingALuaKeywordName() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Producer",
+            "    function repeat() returns int",
+            "init",
+            "    Producer p = () -> 42",
+            "    if p.repeat() == 42",
+            "        testSuccess()"
+        );
+    }
+
+    /**
      * A slot of a {@code T array} that was never written reads as the default of whatever T stands
      * for. The default is computed by a static attribute, which cannot see what T is bound to, so
      * it produces a stand-in — and a stand-in compares equal only to another stand-in, which made
@@ -225,62 +245,6 @@ public class TypeClassTests extends WurstScriptTest {
             "        return none[0]",
             "init",
             "    if 0 == Box<int>.first() and null == Box<string>.first()",
-            "        testSuccess()"
-        );
-    }
-
-    /**
-     * Wurst and Lua reserve different words, so a method can be declared {@code repeat} and reach
-     * the backend under that name. A closure adds the name it implements as a dispatch alias
-     * directly, without the uniquing that protects method names, so the alias arrives as a bare
-     * keyword and is emitted as a table key — {@code <name> expected near 'repeat'} from luac.
-     */
-    @Test
-    public void closureImplementingALuaKeywordName() {
-        test().testLua(true).executeProg().lines(
-            "package test",
-            "native testSuccess()",
-            "interface Producer",
-            "    function repeat() returns int",
-            "init",
-            "    Producer p = () -> 42",
-            "    if p.repeat() == 42",
-            "        testSuccess()"
-        );
-    }
-
-    /**
-     * The same comparison the other way round. Only the left operand is asked whether it is equal,
-     * so a stand-in on the right would have gone quietly false while one on the left complained.
-     */
-    @Test
-    public void unwrittenArrayOfATypeParameterReadsAsItsDefaultReversed() {
-        testAssertOkLines(true,
-            "package test",
-            "native testSuccess()",
-            "class Box<T:>",
-            "    private static T array none",
-            "    static function first() returns T",
-            "        return none[0]",
-            "init",
-            "    if 0 == Box<int>.first() and null == Box<string>.first()",
-=======
-     * Wurst and Lua reserve different words, so a method can be declared {@code repeat} and reach
-     * the backend under that name. A closure adds the name it implements as a dispatch alias
-     * directly, without the uniquing that protects method names, so the alias arrives as a bare
-     * keyword and is emitted as a table key — {@code <name> expected near 'repeat'} from luac.
-     */
-    @Test
-    public void closureImplementingALuaKeywordName() {
-        test().testLua(true).executeProg().lines(
-            "package test",
-            "native testSuccess()",
-            "interface Producer",
-            "    function repeat() returns int",
-            "init",
-            "    Producer p = () -> 42",
-            "    if p.repeat() == 42",
->>>>>>> lua/closure-type-class-dispatch
             "        testSuccess()"
         );
     }
