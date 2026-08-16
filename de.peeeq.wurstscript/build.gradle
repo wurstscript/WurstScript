@@ -264,7 +264,26 @@ int testForkCount() {
 }
 
 
+/**
+ * Fetches the standard library the tests compile against, once, before they fork.
+ *
+ * StdLib guards the fetch with a lock held in one process, which is no guard at all across
+ * workers: on a clean checkout each of them would clone into the same directory at the same time.
+ * The pinned repository and commit stay defined in that one place rather than being repeated here.
+ */
+tasks.register('ensureStdLib', JavaExec) {
+    description "Fetches the pinned standard library used by the tests"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set('tests.wurstscript.tests.StdLib')
+    workingDir = projectDir
+    // Deliberately not declaring the checkout as an output: that would skip this whenever the
+    // directory merely exists, which is precisely when it may be at the wrong commit or half
+    // cloned. The fetch checks the pinned commit and repairs it, and costs nothing when correct.
+    outputs.upToDateWhen { false }
+}
+
 test {
+    dependsOn 'ensureStdLib'
     useTestNG()
 
     // The suite is a few thousand independent compilations and was running one at a time, so it

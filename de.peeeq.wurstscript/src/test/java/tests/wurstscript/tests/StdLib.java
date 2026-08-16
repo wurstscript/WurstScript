@@ -38,6 +38,19 @@ public class StdLib {
         assert(downloadStandardlib());
     }
 
+    /**
+     * Entry point for the build, which fetches the library once before the tests fork.
+     * <p>
+     * The guard below is a lock and a flag in one process, and every fork is a process of its own,
+     * so several of them starting on a clean checkout would clone into the same directory at the
+     * same time. Doing it here, from the build's own JVM, means they all find it already there.
+     */
+    public static void main(String[] args) {
+        if (!downloadStandardlib()) {
+            throw new RuntimeException("Could not fetch the standard library the tests compile against.");
+        }
+    }
+
     public synchronized static boolean downloadStandardlib() {
         if (isInitialized) {
             return true;
@@ -72,7 +85,8 @@ public class StdLib {
 
             isInitialized = true;
         } catch (IOException | GitAPIException e) {
-            WLogger.severe(e.getStackTrace().toString());
+            // The array's identity is no use to anyone; there is an overload that prints the trace.
+            WLogger.severe(e);
             return false;
         }
 
