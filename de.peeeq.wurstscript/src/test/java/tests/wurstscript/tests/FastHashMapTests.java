@@ -446,6 +446,34 @@ public class FastHashMapTests extends WurstScriptTest {
         return m.group(1).trim();
     }
 
+    /**
+     * A field may share its name with a method, and Lua puts both in one table, so the field is
+     * renamed around the method. That renaming is decided per class from that class's own methods,
+     * and pruning can leave a specialised class holding a different set than the class it was copied
+     * from - so the two can be renamed differently. The accesses still name the original's field, so
+     * the copy has to end up with the same key or the allocation writes one nothing reads.
+     */
+    private static String[] fieldNamedLikeAMethod() {
+        String[] lines = fastHashMap();
+        for (int i = 0; i < lines.length; i++) {
+            lines[i] = lines[i]
+                .replace("private int count = 0", "private int size = 0")
+                .replace("count++", "size++")
+                .replace("count--", "size--")
+                .replace("function size() returns int", "function size() returns int")
+                .replace("        return count", "        return size");
+        }
+        return lines;
+    }
+
+    @Test
+    public void aFieldNamedLikeAMethodKeepsOneKeyAcrossSpecialisation() throws IOException {
+        test().testLua(true).executeProg()
+            .lines(program(fieldNamedLikeAMethod(), INT_INSTANCE, USE_WITH_COLLISION));
+        assertSpecialisedClassesAllocateTheirFields(
+            compiledLua("aFieldNamedLikeAMethodKeepsOneKeyAcrossSpecialisation"));
+    }
+
     private String compiledJass(String testName) throws IOException {
         return Files.toString(new File(TEST_OUTPUT_PATH, "FastHashMapTests_" + testName + ".j"), Charsets.UTF_8);
     }

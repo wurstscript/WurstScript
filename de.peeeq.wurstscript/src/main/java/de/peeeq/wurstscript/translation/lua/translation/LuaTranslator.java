@@ -395,6 +395,27 @@ public class LuaTranslator {
         for (ImClass c : prog.getClasses()) {
             normalizeFieldNames(c, processed);
         }
+        alignSpecializedFieldNames();
+    }
+
+    /**
+     * Gives every field of a specialised class the name of the field it was copied from.
+     * <p>
+     * A field sharing its name with a method is renamed around it, because both are keys of one
+     * table. That is decided per class from that class's own methods, and a specialised class need
+     * not hold the same set as the class it was copied from once unused ones are dropped - so the
+     * two can be renamed differently. Accesses still name the original's field, so a copy which kept
+     * a name of its own would have its allocation write a key nothing reads.
+     */
+    private void alignSpecializedFieldNames() {
+        for (ImClass c : prog.getClasses()) {
+            for (ImVar field : c.getFields()) {
+                ImVar origin = imTr.originalOfSpecializedField(field);
+                if (origin != field) {
+                    field.setName(origin.getName());
+                }
+            }
+        }
     }
 
     private void normalizeFieldNames(ImClass c, Set<ImClass> processed) {
