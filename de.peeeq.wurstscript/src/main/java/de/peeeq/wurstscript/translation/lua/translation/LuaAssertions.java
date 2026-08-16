@@ -1,9 +1,19 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
+import de.peeeq.wurstscript.luaAst.Element;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.luaAst.LuaExprFieldAccess;
+import de.peeeq.wurstscript.luaAst.LuaExprFunctionCallByName;
+import de.peeeq.wurstscript.luaAst.LuaFunction;
+import de.peeeq.wurstscript.luaAst.LuaMethod;
+import de.peeeq.wurstscript.luaAst.LuaTableNamedField;
+import de.peeeq.wurstscript.luaAst.LuaVariable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Static assertion helpers for the Lua backend.
@@ -14,6 +24,66 @@ import java.util.Set;
 public class LuaAssertions {
 
     private LuaAssertions() {}
+
+    /**
+     * Asserts that every name the backend emits is a Lua identifier.
+     *
+     * <p>A name that is not one usually breaks the syntax check, but not always: a table key
+     * containing a comma parses as an assignment to two targets and quietly stores the value in
+     * the wrong place. Checking the names themselves catches that case at the point it is
+     * introduced, rather than as a wrong result at runtime.
+     */
+    public static void assertNamesAreValidIdentifiers(LuaCompilationUnit luaCode) {
+        Set<String> invalid = new TreeSet<>();
+        luaCode.accept(new Element.DefaultVisitor() {
+            private void check(String kind, String name) {
+                // A vararg parameter is the one name that is legal without being an identifier.
+                if (!LuaIdentifiers.isValid(name) && !LuaIdentifiers.VARARG.equals(name)) {
+                    invalid.add(kind + " '" + name + "'");
+                }
+            }
+
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                check("function", f.getName());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                check("method", m.getName());
+            }
+
+            @Override
+            public void visit(LuaVariable v) {
+                super.visit(v);
+                check("variable", v.getName());
+            }
+
+            @Override
+            public void visit(LuaExprFieldAccess fa) {
+                super.visit(fa);
+                check("field", fa.getFieldName());
+            }
+
+            @Override
+            public void visit(LuaTableNamedField f) {
+                super.visit(f);
+                check("field", f.getFieldName());
+            }
+
+            @Override
+            public void visit(LuaExprFunctionCallByName call) {
+                super.visit(call);
+                check("call to", call.getFuncName());
+            }
+        });
+        if (!invalid.isEmpty()) {
+            throw new RuntimeException("Wurst Lua backend assertion failed: emitted names are not Lua identifiers: "
+                + String.join(", ", invalid));
+        }
+    }
 
     /**
      * Asserts that every emitted call to {@code __wurst_GetHandleId} has a helper definition.

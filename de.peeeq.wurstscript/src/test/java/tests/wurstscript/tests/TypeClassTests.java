@@ -121,6 +121,26 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Wurst and Lua reserve different words, so a method can be declared {@code repeat} and reach
+     * the backend under that name. A closure adds the name it implements as a dispatch alias
+     * directly, without the uniquing that protects method names, so the alias arrives as a bare
+     * keyword and is emitted as a table key — {@code <name> expected near 'repeat'} from luac.
+     */
+    @Test
+    public void closureImplementingALuaKeywordName() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Producer",
+            "    function repeat() returns int",
+            "init",
+            "    Producer p = () -> 42",
+            "    if p.repeat() == 42",
+            "        testSuccess()"
+        );
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {

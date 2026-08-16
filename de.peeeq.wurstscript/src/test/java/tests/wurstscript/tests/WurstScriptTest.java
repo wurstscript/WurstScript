@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -500,6 +501,7 @@ public class WurstScriptTest {
             compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            LuaAssertions.assertNamesAreValidIdentifiers(luaCode);
             checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);
