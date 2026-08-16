@@ -956,7 +956,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
         beginPhase(13, "lua remove garbage");
-        RemoveGarbage.removeGarbage(imProg);
+        RemoveGarbage.removeGarbage(imProg, imTranslator);
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
 
