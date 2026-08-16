@@ -276,6 +276,11 @@ tasks.register('ensureStdLib', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass.set('tests.wurstscript.tests.StdLib')
     workingDir = projectDir
+    // An escape hatch for working without the network: a focused run of tests that never touch
+    // the library should not be stopped by not being able to reach GitHub. Read now rather than
+    // when the task runs, which the configuration cache does not allow.
+    def skipFetch = project.hasProperty('skipStdLibFetch')
+    onlyIf { !skipFetch }
     // Deliberately not declaring the checkout as an output: that would skip this whenever the
     // directory merely exists, which is precisely when it may be at the wrong commit or half
     // cloned. The fetch checks the pinned commit and repairs it, and costs nothing when correct.

@@ -47,7 +47,9 @@ public class StdLib {
      * same time. Doing it here, from the build's own JVM, means they all find it already there.
      */
     public static void main(String[] args) {
-        if (!downloadStandardlib()) {
+        // Deep clean here and only here: this runs alone, before the workers, so it is the one
+        // moment when rewriting the directory disturbs nobody.
+        if (!ensureCheckout(true)) {
             throw new RuntimeException("Could not fetch the standard library the tests compile against.");
         }
     }
@@ -73,6 +75,18 @@ public class StdLib {
     }
 
     public synchronized static boolean downloadStandardlib() {
+        return ensureCheckout(false);
+    }
+
+    /**
+     * @param deepClean also discard ignored build artefacts. Only the build's prefetch asks for
+     *     this. A worker must not: the artefacts are what a previous run left inside the library
+     *     folder, and removing them while other workers are reading it is the contention this
+     *     avoids. Leaving them is not harmless either - the compiler scans the library folder
+     *     recursively and a stale `_build` can hold `.wurst` files that take a pinned package's
+     *     name - which is why the prefetch does it once for everyone.
+     */
+    private synchronized static boolean ensureCheckout(boolean deepClean) {
         if (isInitialized) {
             return true;
         }
@@ -121,7 +135,7 @@ public class StdLib {
             // taking the index lock, while other workers are reading the same files. Reading the
             // status does not write anything, and the ordinary case has nothing to repair.
             try (Git git = Git.open(stdLibFolder)) {
-                if (repaired || !git.status().call().isClean()) {
+                if (repaired || deepClean || !git.status().call().isClean()) {
                     // Reset rather than checkout: checking out the commit HEAD already points at
                     // does nothing, so a modified file survived what claimed to undo it.
                     git.reset().setMode(ResetCommand.ResetType.HARD).setRef(version).call();
