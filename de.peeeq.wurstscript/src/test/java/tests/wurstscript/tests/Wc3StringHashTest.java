@@ -115,7 +115,15 @@ public class Wc3StringHashTest extends WurstScriptTest {
         }
         String script = "dofile('src/test/resources/luaruntime/wc3shim.lua') "
             + "print(StringHash('" + literal + "'))";
-        Process p = new ProcessBuilder(getLuaExecutable(), "-e", script)
+        String lua;
+        try {
+            lua = getLuaExecutable();
+        } catch (IllegalStateException e) {
+            // Same handling as the normal execution path: a host without a working interpreter
+            // skips visibly rather than failing the class, since nothing here is being tested.
+            throw new org.testng.SkipException("Skipped the Lua half of the hash parity check: " + e.getMessage());
+        }
+        Process p = new ProcessBuilder(lua, "-e", script)
             .redirectErrorStream(true)
             .start();
         String out;
