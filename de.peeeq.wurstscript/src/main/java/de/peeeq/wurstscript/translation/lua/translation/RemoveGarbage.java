@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 
 import java.util.Collection;
@@ -74,7 +75,7 @@ public class RemoveGarbage {
         }
     }
 
-    public static void removeGarbage(ImProg prog) {
+    public static void removeGarbage(ImProg prog, ImTranslator translator) {
         Used used = new Used();
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.getName().equals("main")
@@ -86,8 +87,13 @@ public class RemoveGarbage {
         prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
         prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !TRVEHelper.protectedVariables.contains(g.getName()));
         prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
+        // A field of a specialised class is a copy which nothing refers to, an access made before
+        // specialisation still naming the original's variable. It is live exactly when the field it
+        // was copied from is; dropping it leaves an instance of the specialised class allocated with
+        // no fields at all while the emitted code goes on reading them.
         for (ImClass c : prog.getClasses()) {
-            c.getFields().removeIf(g -> !used.getVars().contains(g));
+            c.getFields().removeIf(g -> !used.getVars().contains(g)
+                && !used.getVars().contains(translator.originalOfSpecializedField(g)));
             c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
             c.getMethods().removeIf(m -> !used.getMethods().contains(m));
             for (ImMethod m : c.getMethods()) {

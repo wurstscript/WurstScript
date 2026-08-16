@@ -1472,6 +1472,11 @@ public class EliminateGenerics {
         }
         ImClass newC = c.copyWithRefs();
         newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
+        // The copy is structural, so field i of the copy is field i of the original. Nothing will
+        // refer to the copies, so this is the only record that they are the same fields.
+        for (int i = 0; i < c.getFields().size() && i < newC.getFields().size(); i++) {
+            translator.recordSpecializedField(newC.getFields().get(i), c.getFields().get(i));
+        }
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();

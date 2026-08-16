@@ -42,6 +42,26 @@ public class ImTranslator {
 
     public static final String $DEBUG_PRINT = "$debugPrint";
 
+    /**
+     * The field each field of a specialised class was copied from.
+     * <p>
+     * Nothing refers to a copy: an access made before specialisation still names the original's
+     * variable. A pass which drops fields nothing reads would drop every copy, leaving an instance of
+     * the specialised class allocated with no fields while the emitted code goes on reading them. A
+     * copy is live exactly when the field it was made from is.
+     */
+    private final java.util.Map<ImVar, ImVar> specializedFieldOrigins = new java.util.IdentityHashMap<>();
+
+    public void recordSpecializedField(ImVar copy, ImVar original) {
+        specializedFieldOrigins.put(copy, original);
+    }
+
+    /** The field {@code copy} was specialised from, or {@code copy} itself if it is not a copy. */
+    public ImVar originalOfSpecializedField(ImVar copy) {
+        ImVar origin = specializedFieldOrigins.get(copy);
+        return origin == null ? copy : origin;
+    }
+
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
     // existing fields (keep callRelations as Guava Multimap to avoid ripple effects)

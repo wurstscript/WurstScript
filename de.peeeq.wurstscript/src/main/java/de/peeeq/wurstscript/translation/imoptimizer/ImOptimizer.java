@@ -19,6 +19,8 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 
+import java.util.stream.Collectors;
+
 import java.util.*;
 
 public class ImOptimizer {
@@ -150,8 +152,15 @@ public class ImOptimizer {
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
 
+                // A field of a specialised class is a copy which nothing refers to, an access made
+                // before specialisation still naming the original's variable. It is live exactly
+                // when the field it was copied from is; dropping it leaves an instance allocated
+                // with no fields while the emitted code goes on reading them.
                 int classFieldsBefore = c.getFields().size();
-                changes |= c.getFields().retainAll(readVars);
+                changes |= c.getFields().retainAll(c.getFields().stream()
+                    .filter(field -> readVars.contains(field)
+                        || readVars.contains(trans.originalOfSpecializedField(field)))
+                    .collect(Collectors.toSet()));
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
