@@ -62,12 +62,14 @@ public class LuaRunnerTests extends WurstScriptTest {
     }
 
     /**
-     * One line, far past the retention limit. A limit checked once per line does not bound
-     * anything here — and reading a line at all materialises the whole of it first, however much
-     * the program decided to print before the newline.
+     * The same drain with the output arriving as one line rather than many. This checks that it
+     * finishes, which is what the two cases above check too — it does not observe how much of the
+     * line was retained, and would pass against a collector that kept all of it. Keeping a bounded
+     * amount is worth doing regardless, but a program printing a megabyte without a newline is not
+     * something this suite expects, so it is not worth test-only machinery to assert.
      */
     @Test
-    public void aProgramThatPrintsOneEnormousLineStillFinishes() {
+    public void aProgramPrintingWithoutNewlinesStillFinishes() {
         test().testLua(true).luaOnly(true).executeProg().lines(
             "package test",
             "native testSuccess()",

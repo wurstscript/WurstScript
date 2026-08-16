@@ -680,9 +680,14 @@ public class WurstScriptTest {
                             }
                         }
                     }
-                    if (out.length() < RETAINED_OUTPUT_LIMIT) {
-                        out.append(chunk, 0, Math.min(read, RETAINED_OUTPUT_LIMIT - out.length()));
-                    } else if (!truncated) {
+                    int room = RETAINED_OUTPUT_LIMIT - out.length();
+                    if (room > 0) {
+                        out.append(chunk, 0, Math.min(read, room));
+                    }
+                    // Said as soon as anything is dropped, including when that happens part way
+                    // through the last chunk there is: otherwise the output ends at exactly the
+                    // limit and reads as though that were all the program had to say.
+                    if (read > room && !truncated) {
                         truncated = true;
                         out.append("\n... further output dropped after ")
                             .append(RETAINED_OUTPUT_LIMIT).append(" characters\n");
