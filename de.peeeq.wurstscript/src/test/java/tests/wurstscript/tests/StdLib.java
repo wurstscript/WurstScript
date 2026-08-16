@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
 import org.testng.annotations.Test;
@@ -95,9 +96,11 @@ public class StdLib {
                 }
             }
 
+            boolean repaired = false;
             try (Git git = Git.open(stdLibFolder)) {
                 String head = git.getRepository().resolve(Constants.HEAD).getName();
                 if (!head.equals(version)) {
+                    repaired = true;
                     System.out.println("Wrong version '" + head + "', fetching to get '" + version + "'");
 
                     // Straight to the pinned commit rather than by way of master. A checkout left
@@ -112,9 +115,19 @@ public class StdLib {
                 }
             }
 
-            // reset all possible changes
-            Git.open(stdLibFolder).clean().setForce(true).setCleanDirectories(true).setIgnore(false).call();
-            Git.open(stdLibFolder).checkout().setName(version).call();
+            // Undo whatever a previous run left behind, but only when there is something to undo.
+            // Every worker is its own process and so runs this once; unconditionally cleaning and
+            // checking out means several of them rewriting one directory at the same time, each
+            // taking the index lock, while other workers are reading the same files. Reading the
+            // status does not write anything, and the ordinary case has nothing to repair.
+            try (Git git = Git.open(stdLibFolder)) {
+                if (repaired || !git.status().call().isClean()) {
+                    // Reset rather than checkout: checking out the commit HEAD already points at
+                    // does nothing, so a modified file survived what claimed to undo it.
+                    git.reset().setMode(ResetCommand.ResetType.HARD).setRef(version).call();
+                    git.clean().setForce(true).setCleanDirectories(true).setIgnore(false).call();
+                }
+            }
 
             isInitialized = true;
         } catch (IOException | GitAPIException e) {
