@@ -13,7 +13,14 @@ public final class LuaIdentifiers {
     /** Lua's vararg parameter, which is a legal parameter name but not an identifier. */
     public static final String VARARG = "...";
 
-    /** Whether {@code name} can be used as-is as a Lua identifier or table key. */
+    /**
+     * Whether {@code name} can be used as-is as a Lua identifier or table key.
+     *
+     * <p>A keyword is spelled like an identifier and is not one. Wurst reserves a different set, so
+     * a method can be declared {@code repeat} or {@code goto} and reach the backend under that
+     * name; emitted as a table key it is a syntax error rather than a wrong result, but this is the
+     * check that is supposed to catch it first.
+     */
     public static boolean isValid(String name) {
         if (name == null || name.isEmpty() || isDigit(name.charAt(0))) {
             return false;
@@ -23,7 +30,7 @@ public final class LuaIdentifiers {
                 return false;
             }
         }
-        return true;
+        return !LuaReservedNames.LUA_KEYWORDS.contains(name);
     }
 
     /** Maps any name onto a Lua identifier, leaving names that already are one untouched. */
@@ -38,6 +45,12 @@ public final class LuaIdentifiers {
         }
         if (sb.length() == 0 || isDigit(sb.charAt(0))) {
             sb.insert(0, '_');
+        }
+        // A trailing underscore rather than a counter, so the name a keyword maps to is the same
+        // wherever it is derived - call sites and class tables have to agree without consulting
+        // each other.
+        while (LuaReservedNames.LUA_KEYWORDS.contains(sb.toString())) {
+            sb.append('_');
         }
         return sb.toString();
     }
