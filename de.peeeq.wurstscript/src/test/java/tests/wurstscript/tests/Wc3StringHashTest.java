@@ -126,12 +126,32 @@ public class Wc3StringHashTest extends WurstScriptTest {
         Process p = new ProcessBuilder(lua, "-e", script)
             .redirectErrorStream(true)
             .start();
-        String out;
-        try (java.io.BufferedReader r = new java.io.BufferedReader(
-            new java.io.InputStreamReader(p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-            out = r.lines().collect(java.util.stream.Collectors.joining("\n")).trim();
+        // Drained on a thread of its own and waited for with a deadline. Reading to the end first
+        // waits for the process to close the stream, which a hung one never does - the timeout
+        // below would then be reached only after the hang had already stopped the suite.
+        StringBuilder output = new StringBuilder();
+        Thread drain = new Thread(() -> {
+            try (java.io.BufferedReader r = new java.io.BufferedReader(
+                new java.io.InputStreamReader(p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    output.append(line).append('\n');
+                }
+            } catch (java.io.IOException e) {
+                // The process was killed underneath the read; the timeout below reports it.
+            }
+        });
+        drain.setDaemon(true);
+        drain.start();
+
+        if (!p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)) {
+            p.destroyForcibly();
+            drain.join(5_000);
+            throw new AssertionError("lua did not finish hashing \"" + text + "\" within 30s");
         }
-        p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+        drain.join(5_000);
+
+        String out = output.toString().trim();
         try {
             return Integer.parseInt(out);
         } catch (NumberFormatException e) {
