@@ -135,9 +135,12 @@ itself, and one gap in what the suite can see.
     that the test is at fault. Calling it flaky was too quick.
 
     Diagnose it instead: capture both outputs on a failing run and diff them, and rule out harness
-    interference rather than assuming it. `WurstScriptTest` clears the global caches around every
-    test method, so the two compiles do start from the same cache state; whatever differs is
-    somewhere else.
+    interference rather than assuming it. The two compiles do start from the same cache state, but
+    that comes from two separate resets: `WurstScriptTest`'s `@BeforeMethod` clears before the
+    first, and the explicit `GlobalCaches.clearAll()` between the compilations inside the test
+    clears before the second. Both are load bearing — remove either and the comparison stops being
+    between equal starting states, which would invalidate the conclusion rather than explain the
+    failure.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
