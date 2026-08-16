@@ -319,6 +319,41 @@ public class CompiletimeNativesTest {
         n.sqlite_close(db);
     }
 
+    /**
+     * A string is held as bytes inside the interpreter and as text by the driver, so every value
+     * crossing into SQLite has to be decoded and everything read back encoded again. Binding text
+     * without decoding stores the bytes as though each were a character, and it comes back a
+     * different string than the one that went in.
+     */
+    @Test
+    public void sqliteRoundTripsNonAsciiText() {
+        CompiletimeNatives n = newSqliteNatives();
+        ILconstInt db = n.sqlite_open(ILconstString.fromText(":memory:"));
+        n.sqlite_exec(db, ILconstString.fromText("CREATE TABLE T (s TEXT)"));
+
+        ILconstInt insert = n.sqlite_prepare(db, ILconstString.fromText("INSERT INTO T VALUES (?)"));
+        ILconstString written = ILconstString.fromText("Grüße 日本");
+        n.sqlite_bind_string(insert, i(1), written);
+        n.sqlite_step(insert);
+        n.sqlite_finalize(insert);
+
+        ILconstInt read = n.sqlite_prepare(db, ILconstString.fromText("SELECT s FROM T"));
+        assertTrue(n.sqlite_step(read).getVal());
+        ILconstString readBack = n.sqlite_column_string(read, i(0));
+        assertEquals(readBack.text(), "Grüße 日本");
+        // and the same bytes, so a length taken either side of the round trip agrees
+        assertEquals(readBack.getVal(), written.getVal());
+        n.sqlite_finalize(read);
+
+        // a non-ascii literal in the SQL itself takes the same path
+        ILconstInt matched = n.sqlite_prepare(db,
+            ILconstString.fromText("SELECT count(*) FROM T WHERE s = 'Grüße 日本'"));
+        assertTrue(n.sqlite_step(matched).getVal());
+        assertEquals(n.sqlite_column_int(matched, i(0)).getVal(), 1);
+        n.sqlite_finalize(matched);
+        n.sqlite_close(db);
+    }
+
     @Test
     public void sqliteResetRewindsSelectResultSet() {
         CompiletimeNatives n = newSqliteNatives();

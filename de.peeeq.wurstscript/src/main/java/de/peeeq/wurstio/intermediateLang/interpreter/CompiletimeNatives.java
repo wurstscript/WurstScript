@@ -224,7 +224,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public ILconstInt sqlite_open(ILconstString path) {
-        String dbPath = path.getVal();
+        String dbPath = path.text();
         // SQLite "file:" URI paths can carry query parameters such as
         // "?enable_load_extension=true" that would turn on extension loading and let
         // load_extension() dlopen arbitrary native code on the build machine at compiletime.
@@ -250,7 +250,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public ILconstInt sqlite_prepare(ILconstInt connection, ILconstString query) {
         Connection conn = sqliteConnection(connection.getVal());
         try {
-            PreparedStatement stmt = conn.prepareStatement(query.getVal());
+            PreparedStatement stmt = conn.prepareStatement(query.text());
             int handle = ++sqliteHandleCounter;
             sqliteStatements.put(handle, stmt);
             sqliteStatementConnections.put(handle, connection.getVal());
@@ -300,7 +300,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public void sqlite_bind_string(ILconstInt statement, ILconstInt index, ILconstString value) {
         PreparedStatement stmt = sqliteStatement(statement.getVal());
         try {
-            stmt.setString(index.getVal(), value.getVal());
+            stmt.setString(index.getVal(), value.text());
             markStatementForReexecution(statement.getVal());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to bind string: " + e.getMessage());
@@ -476,7 +476,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
             // and a hand-rolled splitter cannot correctly handle trigger BEGIN...END
             // bodies, CASE...END, or every identifier-quoting form ([id], `id`, "id").
             SQLiteConnection sqliteConn = conn.unwrap(SQLiteConnection.class);
-            sqliteConn.getDatabase()._exec(query.getVal());
+            sqliteConn.getDatabase()._exec(query.text());
         } catch (SQLException e) {
             throw new InterpreterException("Failed to exec SQLite query: " + e.getMessage());
         }

@@ -88,4 +88,40 @@ public class StringByteSemanticsTests extends WurstScriptTest {
     public void slicesRejoinIntoTheOriginalLua() {
         test().testLua(true).executeProg().lines(HALVES_REJOIN);
     }
+
+    /**
+     * Whole characters cross from compiletime into the generated script and keep their length, so the
+     * value the interpreter computed is the value the program runs with.
+     */
+    @Test
+    public void aCompiletimeStringKeepsItsLengthAfterTransforms() {
+        test().executeProg().runCompiletimeFunctions(true).lines(program(
+            "function compiletime(string s) returns string",
+            "    return s",
+            "constant string GREETING = compiletime(\"h" + A_UMLAUT + "llo\")",
+            "init",
+            "    if StringLength(GREETING) == 6 and GREETING == \"h" + A_UMLAUT + "llo\"",
+            "        testSuccess()"
+        ));
+    }
+
+    /**
+     * Half a character cannot. It has to become a literal in a script written as UTF-8, and neither
+     * Jass nor the escaping has a way to write a byte down numerically, so it would go in as the
+     * replacement character and come back out three bytes long rather than one. Refused instead, and
+     * this pins that it is refused rather than silently carried across at a different length.
+     */
+    @Test
+    public void aCompiletimeStringHoldingHalfACharacterIsRefused() {
+        test().executeProg().runCompiletimeFunctions(true)
+            .expectError("part of a multibyte character")
+            .lines(program(
+                "function compiletime(string s) returns string",
+                "    return s",
+                "constant string HALF = compiletime(SubString(\"" + A_UMLAUT + "\", 0, 1))",
+                "init",
+                "    if StringLength(HALF) == 1",
+                "        testSuccess()"
+            ));
+    }
 }

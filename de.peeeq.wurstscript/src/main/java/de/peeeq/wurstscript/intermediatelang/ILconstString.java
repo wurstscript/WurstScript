@@ -54,6 +54,18 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
         return decode(val);
     }
 
+    /**
+     * Whether the bytes spell text at all.
+     * <p>
+     * Half of a character does not, and it cannot leave the interpreter: it has to become a literal
+     * in the generated script, which is written as UTF-8 and escapes nothing numerically, so the byte
+     * has no way to be written down. Decoding it anyway turns it into a replacement character, which
+     * is three bytes where the interpreter counted one.
+     */
+    public boolean isText() {
+        return encode(decode(val)).equals(val);
+    }
+
     @Override
     public String print() {
         return "\"" + text() + "\"";

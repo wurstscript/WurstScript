@@ -421,6 +421,25 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         return constantToExpr(trace, value, null);
     }
 
+    /**
+     * The text for a string a compiletime expression produced, which becomes a literal in the
+     * generated script.
+     * <p>
+     * A string held by the interpreter is a sequence of bytes and may hold half of a character -
+     * slicing one in half is a thing the standard library does deliberately. A literal cannot: the
+     * script is written as UTF-8 and neither Jass nor the escaping here can write a byte down
+     * numerically, so half a character would go in as the replacement character and come back out
+     * three bytes long. Refused rather than carried across at a different length.
+     */
+    private String literalText(ILconstString value, Element trace) {
+        if (!value.isText()) {
+            throw new CompileError(trace, "A compiletime expression returned a string holding part of a"
+                + " multibyte character, which cannot be written into the generated script. Slice it"
+                + " where the program runs rather than at compiletime, or keep whole characters.");
+        }
+        return value.text();
+    }
+
     private ImExpr constantToExpr(Element trace, ILconst value, @Nullable ImType expectedType) {
         if (value instanceof ILconstBool) {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
@@ -429,7 +448,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         } else if (value instanceof ILconstReal) {
             return JassIm.ImRealVal("" + ((ILconstReal) value).getVal());
         } else if (value instanceof ILconstString) {
-            return JassIm.ImStringVal(((ILconstString) value).text());
+            return JassIm.ImStringVal(literalText((ILconstString) value, trace));
         } else if (value instanceof ILconstNull) {
             return expectedType == null ? ImHelper.nullExpr() : JassIm.ImNull(expectedType.copy());
         } else if (value instanceof ILconstTuple) {
@@ -1043,7 +1062,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                             JassIm.ImVarAccess(htVar),
                             JassIm.ImIntVal(key.getParentkey()),
                             JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImStringVal(iv.text())
+                            JassIm.ImStringVal(literalText(iv, trace))
                     ), false, CallType.NORMAL));
                 } else if (v instanceof ILconstBool) {
                     ILconstBool iv = (ILconstBool) v;
