@@ -348,7 +348,7 @@ public class TypeClassTests extends WurstScriptTest {
      * never lifted onto its functions and there is nothing for a super call to carry. The object is
      * allocated from the erased {@code Box} table while the specialised one holds the method, so it
      * compiles and runs and never reaches {@code testSuccess}. Tracked as backlog item 13, whose
-     * remaining half is the erasure question in item 5.
+     * remaining half is the erasure decision in item 23.
      */
     @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
     public void subclassOfBoundedGenericIsStillBrokenOnLua() {

@@ -13,23 +13,31 @@ Notes rather than leaving it in a commit message.
 Numbering is stable: finished items leave a gap rather than shifting the ones below,
 because `LOOP.md` refers to items by number.
 
-15. **One junk dispatch slot per specialised class.** `addDirectAliases` and
-    `LuaTranslator.collectDispatchSlotNames` both compose `owner.getName() + "_" +
-    semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
-    type argument — so every method of `FastHashMap<int, int>` claims one shared
-    `FastHashMap_specialized_integer__integer_integer` slot and the alphabetically first wins it.
-    Nothing calls it, so it is dead weight rather than a wrong result.
+The container these bounds were added for now compiles and runs against the standard library on
+Jass, and compiles on Lua (#1239). What is left is generality around it rather than the feature
+itself, and one gap in what the suite can see.
 
-    Tried using the declared name instead and reverted it: overloads share a declared name, so
-    `setup(int)` and `setup(string)` collapse into one slot, which is what
-    `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
-    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
-    semantic name are wrong, in opposite directions: the mangled trailing segment collides across
-    the siblings of one specialisation, the declared name collides across overloads. A fix needs a
-    name that separates both — the declared name together with the dispatch signature key would,
-    since that is already what distinguishes overloads elsewhere in the same file. Worth doing only
-    if this stops being dead weight, because the cost of getting it wrong is a real mis-binding
-    while the cost of leaving it is one unused table key per specialised class.
+21. **Nothing executes a standard library program on Lua.** Every test which puts the library on
+    that target compiles only, because the runtime shim cannot initialise the library's own
+    packages — `GameTimer` fails first, and the generated fallback for an undefined native raises
+    rather than returning. So the one thing a user actually does, running library code on Lua, is
+    the one thing never run here.
+
+    This is why `fastHashMapAgainstTheStandardLibraryLua` asserts on emitted shape instead of on a
+    result. It is also how the empty-allocation bug in #1239 survived as long as it did: the paths
+    which would have caught it are compiled and never executed.
+
+    Worth finding out how far it is. If it is a handful of missing natives in `wc3shim.lua`, the
+    payoff is every existing library test on that target becoming a real one. Start by capturing
+    what `GameTimer` actually fails on rather than the message Wurst wraps it in.
+
+22. **A bump of the pinned library is only checked for compiling.** Nothing runs the library's own
+    test functions, so a behaviour change in it is invisible here. `StdLibStringTests` (#1240)
+    covers the string handling one bump turned on, which is a start rather than a solution: the
+    library's multibyte detection degrades quietly to an ascii-only path when it cannot find what
+    it probes for, so a version where it silently gave up would otherwise look exactly like one
+    where it worked. Running the library's own tests generalises this, and its Lua half depends on
+    item 21.
 
 6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
    a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
@@ -51,20 +59,33 @@ because `LOOP.md` refers to items by number.
    constructor calls, which an earlier note here proposed, is not what the Jass path relies on and
    would be a second mechanism rather than the same one.
 
-   The honest next step is to collect from types on the Lua path too, restricted the way item 5's
-   collection is. That runs straight into the same design question, though: `GenericVar` and
-   `GenericReturnTypeFunc` specialise the *class*, and item 5 showed that an object coming from a
-   specialised class while its methods are bound to the erased one breaks everything. Either the
-   collection has to specialise only the constructor path and leave the object erased, or Lua stops
-   erasing constructed generic classes — which is a decision about the erasure model, not a patch.
+   Collecting from types on the Lua path runs straight into item 23, so settle that first.
+
+23. **The Lua erasure model, which items 6 and 13 both end at.** On Lua a generic class is erased,
+    and specialised copies are made only where a construction names the instantiation. Every
+    remaining gap on that target is one question: an object allocated from a specialised class while
+    its methods are bound to the erased one breaks, and an object allocated from the erased class
+    cannot reach a specialised method.
+
+    Two ways out, and it is a decision rather than a patch. Either specialise only the paths which
+    need a concrete type and leave the object erased throughout, or stop erasing constructed generic
+    classes on Lua and pay the code size.
+
+    #1239 is a reason to take it seriously rather than leave it. Both class shapes existing at once
+    is what let an instance be allocated with no fields at all, and then with its fields under a key
+    nothing read. Both are fixed; the shape which produced them is still there.
+
+    Do not start this autonomously.
 
 7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today. Needs
    receiver rewriting during expansion, or type parameters on `ModuleInstanciation`.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
-   rather than a task to finish. Fold it into whichever item changes the behaviour rather than
-   doing it as a separate pass. Both now cover closures on either target, which is what this item
-   originally pointed at.
+   rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
+   `de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`, and it already documents
+   type class bounds and closure behaviour; it ships as a compiler resource rather than sitting at
+   the repository root, which is easy to miss when looking for it. Fold an update into whichever
+   item changes the behaviour rather than doing it as a separate pass.
 
 10. **One `ImTypeVar` per type parameter.** Name-tolerant lookups remain in
    `EliminateGenerics.indexOfTypeVar`, `inheritTypeClassBinding` and
@@ -72,61 +93,54 @@ because `LOOP.md` refers to items by number.
    source parameter. Making the node canonical lets all three compare by identity and removes
    a class of silent wrong dispatch. Mechanical, well covered by the suite.
 
-13. **A bounded generic class cannot be subclassed on Lua.** Fixed on Jass and pinned by
-    `TypeClassTests.subclassOfBoundedGeneric`; the Lua half is still open. The program:
+   Note before starting: `moveFunctionsOutOfClass` copies a class's type variables onto each
+   function it moves out, deliberately, and #1237 depends on that copy. Identity cannot hold across
+   that boundary, so what is being made canonical is per scope rather than per program.
 
-        interface Show<T:>
-            function show(T x) returns int
-        implements Show<int>
-            function show(int x) returns int
-                return x
-        class Box<K: Show>
-            K key
-            construct(K k)
-                key = k
-            function size(int extra) returns int
-                return K.show(key) + extra
-            function shift(int extra) returns int
-                return 1000 + extra
-        class SubBox extends Box<int>
-            construct(int k)
-                super(k)
-            override function size(int extra) returns int
-                return super.size(extra) + 100
-        init
-            Box<int> b = new Box<int>(5)
-            Box<int> s = new SubBox(5)
-            if b.size(1) == 6 and b.shift(1) == 1001 and s.size(1) == 106
-                testSuccess()
+13. **A bounded generic class cannot be subclassed on Lua.** The Jass half landed in #1237: a call
+    which names its target outright now carries the class's type arguments, taken from the class its
+    first argument is used as, so `super.m()` and `super()` both reach the specialised copy.
 
-    On Jass the override's `super.size(extra)` became a direct call to the superclass
-    implementation, and once `Box` was specialised that call pointed at a function which had been
-    replaced by `Box_size⟪integer⟫`. Fixed by `addReceiverTypeArguments` in `EliminateGenerics`:
-    moving a function out of its class lifts the class's type variables onto the function, and a
-    call through a receiver gets them back from the receiver's type. A call which names its target
-    outright — `super.size(extra)` and `super(k)` both do — has no receiver to read, so it was left
-    asking for a function with type variables while supplying none. The receiver is still there as
-    the first argument, so the class it is used as gives the same type arguments the receiver would
-    have, and both super calls now reach the copy specialised for the instantiation.
+    The Lua half is open, pinned by `TypeClassTests.subclassOfBoundedGenericIsStillBrokenOnLua`,
+    which asserts the program compiles, runs, and never reaches `testSuccess` rather than leaving
+    the difference between the targets to be discovered. `transformGenericNewOnly` runs neither
+    `simplifyClasses` nor `addMemberTypeArguments`, so the type variables are never lifted there and
+    a super call has nothing to carry. Closing it is item 23.
 
-    An earlier note here said annotating the call could not work, on the grounds that the callee had
-    no type variables of its own. That was wrong: `moveFunctionsOutOfClass` lifts the class's onto
-    it. The first attempt failed because nothing recorded which class a function had been moved out
-    of, so there was no way to adapt the receiver to it.
+15. **One junk dispatch slot per specialised class.** `addDirectAliases` and
+    `LuaTranslator.collectDispatchSlotNames` both compose `owner.getName() + "_" +
+    semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
+    type argument — so every method of `FastHashMap<int, int>` claims one shared
+    `FastHashMap_specialized_integer__integer` slot and the alphabetically first wins it.
+    Nothing calls it, so it is dead weight rather than a wrong result.
 
-    Item 6 is the same family but not the same fix: there the constructor call also carries no type
-    arguments, and there the instantiation is not on any argument either, only on the type of what
-    the call is assigned to.
+    Tried using the declared name instead and reverted it: overloads share a declared name, so
+    `setup(int)` and `setup(string)` collapse into one slot, which is what
+    `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
+    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
+    semantic name are wrong, in opposite directions: the mangled trailing segment collides across
+    the siblings of one specialisation, the declared name collides across overloads. A fix needs a
+    name separating both — the declared name together with the dispatch signature key would, since
+    that is already what distinguishes overloads elsewhere in the same file. Worth doing only if
+    this stops being dead weight, because the cost of getting it wrong is a real mis-binding while
+    the cost of leaving it is one unused table key per specialised class.
 
-    Lua compiles and runs but never reaches `testSuccess`: the override makes `size` dispatched,
-    and the emitted call is `b:Box_size_specialized_integer(1)` while `b` was allocated from the
-    *erased* `Box` table, which binds only `shift`. The specialised table has the slot; the instance
-    never gets that table. That half is the erasure question again, as in item 5, and the Jass fix
-    does not reach it: `transformGenericNewOnly` runs neither `simplifyClasses` nor
-    `addMemberTypeArguments`, so on Lua the type variables are never lifted in the first place.
-    Pinned by `TypeClassTests.subclassOfBoundedGenericIsStillBrokenOnLua`, which asserts the failure
-    rather than leaving the difference between the targets to be discovered. Fixing this half makes
-    that test fail, which is the point: it then becomes a second success case.
+24. **`luaOutputIsDeterministicForGenericOverrideSlots` fails intermittently.** It failed once on
+    Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request
+    in between.
+
+    Do not weaken the assertion. It compiles one repro twice and compares the output byte for byte,
+    so an intermittent mismatch is evidence of intermittent nondeterminism in Lua emission, which is
+    exactly what it exists to catch — a re-run passing says the nondeterminism is intermittent, not
+    that the test is at fault. Calling it flaky was too quick.
+
+    Diagnose it instead: capture both outputs on a failing run and diff them, and rule out harness
+    interference rather than assuming it. The two compiles do start from the same cache state, but
+    that comes from two separate resets: `WurstScriptTest`'s `@BeforeMethod` clears before the
+    first, and the explicit `GlobalCaches.clearAll()` between the compilations inside the test
+    clears before the second. Both are load bearing — remove either and the comparison stops being
+    between equal starting states, which would invalidate the conclusion rather than explain the
+    failure.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
@@ -169,6 +183,27 @@ because `LOOP.md` refers to items by number.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 5, 11, 14. The container these bounds were added for works. `FastHashMapTests` runs a whole hash
+  map — two type parameters with only the first bounded, static arrays of a bounded parameter, a
+  bound reached from a private method, linear probing calling both requirements, tombstoned removal,
+  tuple and class keys, two specialisations at once — on both targets, and against the standard
+  library on Jass (#1239). Three bugs were found by compiling it with the library in scope rather
+  than alone: a specialised class allocated no fields at all, then kept them under a key nothing
+  read, then could be renamed into a method slot. Each is now pinned by a test.
+
+- 13 (Jass half). A call which names its target outright carries the class's type arguments,
+  taken from the class its first argument is used as, so `super.m()` and `super()` reach the
+  specialised copy (#1237). The note here claiming this could not work — that the callee had no
+  type variables of its own — was wrong: `moveFunctionsOutOfClass` lifts the class's onto it. The
+  first attempt failed because nothing recorded which class a function had been moved out of.
+
+- Strings are bytes in the interpreter, as they are in the game and in Lua (#1238), which unblocked
+  the pinned library bump (#1240). `StringCase` folds only ascii, since the bytes of a multibyte
+  character are not letters, and `StringHash` is computed over the bytes because the library's
+  version encodes text itself and cannot hash half a character. A compiletime expression returning
+  half a character is refused rather than carried across at a different length: the script is
+  written as UTF-8 and neither Jass nor the escaping can write a byte down numerically.
 
 - 19. Tried giving Jass the dangling-reference check Lua has, and reverted it. The two backends do
   not agree on which functions exist: `LuaTranslator` requires every reference to be rooted in the
