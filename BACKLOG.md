@@ -124,6 +124,9 @@ because `LOOP.md` refers to items by number.
     never gets that table. That half is the erasure question again, as in item 5, and the Jass fix
     does not reach it: `transformGenericNewOnly` runs neither `simplifyClasses` nor
     `addMemberTypeArguments`, so on Lua the type variables are never lifted in the first place.
+    Pinned by `TypeClassTests.subclassOfBoundedGenericIsStillBrokenOnLua`, which asserts the failure
+    rather than leaving the difference between the targets to be discovered. Fixing this half makes
+    that test fail, which is the point: it then becomes a second success case.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have

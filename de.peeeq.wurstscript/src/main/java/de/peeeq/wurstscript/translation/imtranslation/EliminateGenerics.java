@@ -813,18 +813,22 @@ public class EliminateGenerics {
      * gives the same type arguments the receiver would have.
      */
     private void addReceiverTypeArguments(ImFunctionCall call) {
-        if (!call.getTypeArguments().isEmpty() || call.getFunc().getTypeVariables().isEmpty()) {
-            return;
-        }
         ImClass owningClass = functionOwners.get(call.getFunc());
         if (owningClass == null || call.getArguments().isEmpty()) {
+            return;
+        }
+        // The class's variables are lifted onto the front of the function's own, so what a call is
+        // short of is that prefix. A method with type parameters of its own already supplies theirs,
+        // which is a shorter list rather than an empty one.
+        int missing = call.getFunc().getTypeVariables().size() - call.getTypeArguments().size();
+        if (missing != owningClass.getTypeVariables().size()) {
             return;
         }
         if (!(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
             return;
         }
         ImClassType classType = adaptToSuperclass(receiverType, owningClass);
-        if (classType == null) {
+        if (classType == null || classType.getTypeArguments().size() != missing) {
             return;
         }
         List<ImTypeArgument> typeArgs = new ArrayList<>();
