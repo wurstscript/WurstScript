@@ -6,6 +6,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
@@ -100,7 +102,7 @@ public class TypeClassTests extends WurstScriptTest {
      * specialisation is now driven from.
      */
     @Test
-    public void dispatchInsideClosureLua() {
+    public void dispatchInsideClosureLua() throws IOException {
         test().testLua(true).executeProg().lines(
             "package test",
             "native testSuccess()",
@@ -118,6 +120,28 @@ public class TypeClassTests extends WurstScriptTest {
             "    if foo(21) == 42",
             "        testSuccess()"
         );
+
+        // Running is not enough on its own: the same answer comes out whether the closure was
+        // specialised or the erased class happened to carry a working implementation. These say
+        // which of the two happened.
+        String compiled = Files.toString(
+            new File("test-output/lua/TypeClassTests_dispatchInsideClosureLua.lua"), Charsets.UTF_8);
+
+        Matcher allocation = Pattern.compile("(\\w+_specialized\\w*):create\\d*\\(").matcher(compiled);
+        assertTrue(allocation.find(),
+            "the closure should be allocated from its specialised class:\n" + compiled);
+        String specialised = allocation.group(1);
+
+        Matcher call = Pattern.compile("\\w+:(\\w*produce\\w*)\\(").matcher(compiled);
+        assertTrue(call.find(), "expected a dispatched produce slot:\n" + compiled);
+        String slot = call.group(1);
+
+        assertTrue(Pattern.compile(Pattern.quote(specialised) + "\\." + Pattern.quote(slot)
+                + "\\s*=\\s*" + Pattern.quote(specialised) + "\\w*").matcher(compiled).find(),
+            "the specialised class should bind " + slot + " to its own implementation:\n" + compiled);
+        assertFalse(Pattern.compile(Pattern.quote(specialised) + "\\." + Pattern.quote(slot)
+                + "\\s*=\\s*Producer_test_produce\\b").matcher(compiled).find(),
+            "the specialised class must not bind " + slot + " to the generic original:\n" + compiled);
     }
 
     /**
@@ -205,6 +229,37 @@ public class TypeClassTests extends WurstScriptTest {
             "init",
             "    Producer p = () -> 42",
             "    if p.repeat() == 42",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A closure written inside another one is still rejected, and this pins that it is rejected in
+     * the same words as before rather than falling over inside the rewrite. The inner closure
+     * reaches its captured environment through a receiver belonging to the outer one, which has
+     * been specialised by then, so specialising the owner again with what is left over does not
+     * work. Should that be made to work, this test fails and becomes a success case.
+     */
+    @Test
+    public void nestedClosuresInsideBoundedGenericAreRejectedForLua() {
+        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer outer = () -> begin",
+            "        Producer inner = () -> Q.toIndex(x)",
+            "        return inner.produce()",
+            "    end",
+            "    return outer.produce()",
+            "init",
+            "    if foo(21) == 42",
             "        testSuccess()"
         );
     }

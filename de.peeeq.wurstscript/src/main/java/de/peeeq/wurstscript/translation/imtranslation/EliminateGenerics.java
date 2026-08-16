@@ -278,7 +278,23 @@ public class EliminateGenerics {
      * to the erased one.
      */
     private boolean isConstructionOnlyInstantiation(ImClass classDef) {
-        return classDef.attrTrace() instanceof ExprClosure && classReachesDispatch(classDef);
+        return classDef.attrTrace() instanceof ExprClosure closure
+            && !isInsideAnotherClosure(closure)
+            && classReachesDispatch(classDef);
+    }
+
+    /**
+     * A closure written inside another one is left alone.
+     * <p>
+     * Its captured environment is reached through a receiver belonging to the enclosing closure,
+     * which by then has been specialised itself, and specialising the owner again with what is
+     * left over fails inside the rewrite. Supporting that is a further step; until it is taken,
+     * saying the bound could not be resolved - which is what happens without any of this - is
+     * better than an error about generics of the wrong size.
+     */
+    private static boolean isInsideAnotherClosure(ExprClosure closure) {
+        de.peeeq.wurstscript.ast.Element parent = closure.getParent();
+        return parent != null && parent.attrNearestExprClosure() != null;
     }
 
     /**
