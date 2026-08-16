@@ -39,6 +39,8 @@ public class EliminateGenerics {
      */
     private final Set<Element> specializedCallSites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
+    /** The class each function was moved out of, for calls which name their target without a receiver. */
+    private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
     private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
@@ -791,7 +793,45 @@ public class EliminateGenerics {
                 super.visit(ma);
                 addMemberTypeArguments(ma, (ImClass) ma.getVar().getParent().getParent());
             }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                addReceiverTypeArguments(call);
+            }
         });
+    }
+
+    /**
+     * Gives a call which reaches a class function directly the type arguments of the class.
+     * <p>
+     * Moving a function out of its class lifts the class's type variables onto the function, and a
+     * call through a receiver gets them back from the receiver's type. A call which names its target
+     * outright has no receiver to read - {@code super.m()} and {@code super()} are both of this kind -
+     * so it is left asking for a function with type variables while supplying none, and nothing
+     * specialises it. The receiver is still there as the first argument, so the class it is used as
+     * gives the same type arguments the receiver would have.
+     */
+    private void addReceiverTypeArguments(ImFunctionCall call) {
+        if (!call.getTypeArguments().isEmpty() || call.getFunc().getTypeVariables().isEmpty()) {
+            return;
+        }
+        ImClass owningClass = functionOwners.get(call.getFunc());
+        if (owningClass == null || call.getArguments().isEmpty()) {
+            return;
+        }
+        if (!(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(receiverType, owningClass);
+        if (classType == null) {
+            return;
+        }
+        List<ImTypeArgument> typeArgs = new ArrayList<>();
+        for (ImTypeArgument typeArgument : classType.getTypeArguments()) {
+            typeArgs.add(typeArgument.copy());
+        }
+        call.getTypeArguments().addAll(0, typeArgs);
     }
 
     private void addMemberTypeArguments(ImMemberOrMethodAccess access, ImClass owningClass) {
@@ -862,6 +902,7 @@ public class EliminateGenerics {
         List<ImFunction> functions = c.getFunctions().removeAll();
         for (ImFunction f : functions) {
             prog.getFunctions().add(f);
+            functionOwners.put(f, c);
 
             List<ImTypeVar> newTypeVars = new ArrayList<>();
             for (ImTypeVar imTypeVar : c.getTypeVariables()) {

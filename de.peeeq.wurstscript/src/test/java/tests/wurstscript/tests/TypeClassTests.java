@@ -331,20 +331,14 @@ public class TypeClassTests extends WurstScriptTest {
     };
 
     /**
-     * Subclassing a bounded generic class does not work yet, and this pins where it stops. The
-     * override's {@code super.size(extra)} becomes a direct call to the superclass implementation,
-     * and that call carries no type arguments — the type variables belong to the class, not to the
-     * method — so nothing specialises it. Specialising the class replaces the original with
-     * {@code Box_size⟪integer⟫}, and the super call is left pointing at what was removed.
-     * <p>
-     * The same shape as the constructor case above: class type arguments reach method calls and
-     * member accesses, but not constructor calls or super calls. Should either be fixed, look at
-     * both. The message names what was inside the function rather than the reference that kept it
-     * alive, because Jass emits whatever is called rather than only what the program still holds.
+     * A subclass of a bounded generic class reaches its superclass through both a super constructor
+     * call and a super method call, and each is a call which names its target rather than going
+     * through a receiver. Both carry the class's type arguments, so both reach the copy specialised
+     * for the instantiation the subclass extends.
      */
     @Test
-    public void subclassOfBoundedGenericIsRejected() {
-        testAssertErrorsLines(false, "Typevar dispatch not eliminated", SUBCLASS_OF_BOUNDED_GENERIC);
+    public void subclassOfBoundedGeneric() {
+        testAssertOkLines(true, SUBCLASS_OF_BOUNDED_GENERIC);
     }
 
     /** Each type argument picks its own instance, so one generic serves several types. */
