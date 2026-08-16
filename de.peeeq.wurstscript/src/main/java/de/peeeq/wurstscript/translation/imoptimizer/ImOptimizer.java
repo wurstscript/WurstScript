@@ -19,6 +19,8 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.TRVEHelper;
 
+import java.util.stream.Collectors;
+
 import java.util.*;
 
 public class ImOptimizer {
@@ -124,6 +126,7 @@ public class ImOptimizer {
             ImProg prog = trans.imProg();
             trans.calculateCallRelationsAndReadVariables();
             final Set<ImVar> readVars = trans.getReadVariables();
+            final Set<String> readFieldNames = readVars.stream().map(ImVar::getName).collect(Collectors.toSet());
             final Set<ImFunction> usedFuncs = trans.getUsedFunctions();
             SideEffectAnalyzer sideEffectAnalyzer = new SideEffectAnalyzer(prog);
 
@@ -150,8 +153,15 @@ public class ImOptimizer {
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
 
+                // A specialised class holds copies of the original's fields, and nothing refers to
+                // the copies: an access made before specialisation still names the original's
+                // variable, and both carry the same name. Dropping a copy leaves the allocation
+                // empty while the emitted code goes on reading that field, so a name which is read
+                // anywhere keeps the field wherever it was allocated.
                 int classFieldsBefore = c.getFields().size();
-                changes |= c.getFields().retainAll(readVars);
+                changes |= c.getFields().retainAll(c.getFields().stream()
+                    .filter(field -> readVars.contains(field) || readFieldNames.contains(field.getName()))
+                    .collect(Collectors.toSet()));
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }

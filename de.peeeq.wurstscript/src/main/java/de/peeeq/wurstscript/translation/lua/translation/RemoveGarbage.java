@@ -86,8 +86,17 @@ public class RemoveGarbage {
         prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
         prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !TRVEHelper.protectedVariables.contains(g.getName()));
         prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
+        // A specialised class holds copies of the original's fields, and nothing refers to the
+        // copies: an access made before specialisation still names the original's variable. Lua
+        // resolves a field by name and both carry the same one, so a name read anywhere keeps the
+        // field wherever it is allocated. Dropping the copies leaves an instance of the specialised
+        // class with no fields at all while the emitted code goes on reading them.
+        Set<String> readFieldNames = new HashSet<>();
+        for (ImVar v : used.getVars()) {
+            readFieldNames.add(v.getName());
+        }
         for (ImClass c : prog.getClasses()) {
-            c.getFields().removeIf(g -> !used.getVars().contains(g));
+            c.getFields().removeIf(g -> !used.getVars().contains(g) && !readFieldNames.contains(g.getName()));
             c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
             c.getMethods().removeIf(m -> !used.getMethods().contains(m));
             for (ImMethod m : c.getMethods()) {

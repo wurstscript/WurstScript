@@ -386,6 +386,66 @@ public class FastHashMapTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * Everything above compiles a package on its own. The container is meant to live in the standard
+     * library, and that is a different question: the bound has to keep dispatching with everything the
+     * library defines in scope, {@code int} has to keep taking the instance declared beside the map
+     * rather than anything the library brings, and the specialised copies have to survive a program of
+     * that size being optimised around them.
+     */
+    private static String[] withStandardLibrary(String[] lines) {
+        return java.util.Arrays.stream(lines)
+            .filter(line -> !line.equals("native testSuccess()"))
+            .toArray(String[]::new);
+    }
+
+    @Test
+    public void fastHashMapAgainstTheStandardLibrary() {
+        test().withStdLib().executeProg()
+            .lines(withStandardLibrary(program(fastHashMap(), INT_INSTANCE, USE_WITH_COLLISION)));
+    }
+
+    /**
+     * Compiled rather than run, as every other test which puts the standard library on Lua is: the
+     * runtime shim cannot initialise the library's own packages, so no standard library program has
+     * ever executed on that target here. What this covers is that the container survives translation
+     * with the library in scope, which is where the specialised copies and the erased ones meet.
+     */
+    @Test
+    public void fastHashMapAgainstTheStandardLibraryLua() throws IOException {
+        test().withStdLib().testLua(true)
+            .lines(withStandardLibrary(program(fastHashMap(), INT_INSTANCE, USE_WITH_COLLISION)));
+        assertSpecialisedClassesAllocateTheirFields(
+            Files.toString(new File("test-output/lua/FastHashMapTests_fastHashMapAgainstTheStandardLibraryLua.lua"),
+                Charsets.UTF_8));
+    }
+
+    /**
+     * A specialised class allocates the same fields as the class it was specialised from. Nothing
+     * refers to the copies it holds - an access made before specialisation still names the original's
+     * variable - so a pass which drops unread fields drops all of them, and an instance allocated
+     * from the specialised class comes out with no fields at all while the emitted code goes on
+     * reading them by name.
+     */
+    private static void assertSpecialisedClassesAllocateTheirFields(String compiled) {
+        String erasedFields = allocatedFields(compiled, "FastHashMap");
+        String specialisedFields = allocatedFields(compiled, "FastHashMap_specialized\\w*");
+        if (!erasedFields.equals(specialisedFields)) {
+            throw new AssertionError("the specialised class should allocate the same fields as the erased one."
+                + "\n  erased:      " + erasedFields
+                + "\n  specialised: " + specialisedFields);
+        }
+    }
+
+    private static String allocatedFields(String compiled, String classPattern) {
+        Matcher m = Pattern.compile("function " + classPattern + ":create\\d*\\(\\)\\s*\\R"
+            + "\\s*local new_inst = \\(\\{([^}]*)\\}\\)").matcher(compiled);
+        if (!m.find()) {
+            throw new AssertionError("expected an allocation for " + classPattern + " in:\n" + compiled);
+        }
+        return m.group(1).trim();
+    }
+
     private String compiledJass(String testName) throws IOException {
         return Files.toString(new File(TEST_OUTPUT_PATH, "FastHashMapTests_" + testName + ".j"), Charsets.UTF_8);
     }
