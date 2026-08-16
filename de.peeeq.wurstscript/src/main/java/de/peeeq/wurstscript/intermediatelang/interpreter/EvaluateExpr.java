@@ -223,9 +223,9 @@ public class EvaluateExpr {
         }
 
         if (e.getVar().isGlobal()) {
-            return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return globalState.resolveDefault(notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
         } else {
-            return notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return globalState.resolveDefault(notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
         }
     }
 
@@ -292,7 +292,8 @@ public class EvaluateExpr {
             Integer val = ((ILconstInt) i.evaluate(globalState, localState)).getVal();
             indexes.add(val);
         }
-        return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
+        return globalState.resolveDefault(
+            receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue()));
     }
 
     public static ILconst eval(ImAlloc e, ProgramState globalState, LocalState localState) {

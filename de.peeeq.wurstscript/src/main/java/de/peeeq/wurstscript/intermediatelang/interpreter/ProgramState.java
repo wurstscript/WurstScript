@@ -395,6 +395,23 @@ public class ProgramState extends State implements AutoCloseable {
         return resolveTypeDeep(t, 32); // small budget to avoid cycles
     }
 
+    /**
+     * Replaces the stand-in default of a type parameter with the default of the type bound to it.
+     * <p>
+     * The default of a value is computed by a static attribute, which cannot see the frames that
+     * know what the parameter stands for, so it produces a stand-in. Reading a slot of a
+     * {@code T array} that was never written is how one reaches a program: the stand-in compares
+     * equal only to another stand-in, so a comparison against the real default is quietly false.
+     * The frames are known here, so resolve it where the value is produced.
+     */
+    public ILconst resolveDefault(ILconst value) {
+        if (!(value instanceof ILconstUnsafeDefault unsafeDefault)) {
+            return value;
+        }
+        ImType resolved = resolveType(JassIm.ImTypeVarRef(unsafeDefault.getTypeVariable()));
+        return resolved instanceof ImTypeVarRef ? value : resolved.defaultValue();
+    }
+
     private ImType resolveTypeDeep(ImType t, int budget) {
         if (budget <= 0 || t == null) return t;
 

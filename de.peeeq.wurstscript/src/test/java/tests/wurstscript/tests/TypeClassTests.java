@@ -264,6 +264,46 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A slot of a {@code T array} that was never written reads as the default of whatever T stands
+     * for. The default is computed by a static attribute, which cannot see what T is bound to, so
+     * it produces a stand-in — and a stand-in compares equal only to another stand-in, which made
+     * this quietly false on the interpreter while both backends had it right.
+     */
+    @Test
+    public void unwrittenArrayOfATypeParameterReadsAsItsDefault() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    private static T array none",
+            "    static function first() returns T",
+            "        return none[0]",
+            "init",
+            "    if Box<int>.first() == 0 and Box<string>.first() == null",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * The same comparison the other way round. Only the left operand is asked whether it is equal,
+     * so a stand-in on the right would have gone quietly false while one on the left complained.
+     */
+    @Test
+    public void unwrittenArrayOfATypeParameterReadsAsItsDefaultReversed() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    private static T array none",
+            "    static function first() returns T",
+            "        return none[0]",
+            "init",
+            "    if 0 == Box<int>.first() and null == Box<string>.first()",
+            "        testSuccess()"
+        );
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {
