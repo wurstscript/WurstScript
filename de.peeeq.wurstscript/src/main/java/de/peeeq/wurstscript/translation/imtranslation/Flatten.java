@@ -52,6 +52,22 @@ public class Flatten {
     private static final ThreadLocal<Integer> andLeftVarCounter = ThreadLocal.withInitial(() -> 0);
     private static final ThreadLocal<Integer> tupleTempVarCounter = ThreadLocal.withInitial(() -> 0);
 
+    /**
+     * Starts temporary names from zero again for a new compilation.
+     * <p>
+     * The counters are per thread and were never reset, so the name a temporary got depended on how
+     * many programs had been compiled before it on that thread — the same source emitted {@code
+     * temp0} alone and {@code temp70} after other work, which is why generated Jass could not be
+     * compared across runs. They still run on through one compilation, because flattening happens
+     * again after each optimisation and restarting mid-compilation would name two locals of one
+     * function alike.
+     */
+    public static void resetTempVarCounters() {
+        tempVarCounter.set(0);
+        andLeftVarCounter.set(0);
+        tupleTempVarCounter.set(0);
+    }
+
     private static String getTempVarName() {
         int count = tempVarCounter.get();
         tempVarCounter.set(count + 1);

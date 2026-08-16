@@ -235,8 +235,74 @@ tasks.named('compileJava') { it.dependsOn('gen') }
 
 /** -------- Tests -------- */
 
+/**
+ * How many test workers to run at once.
+ *
+ * Cores decide how much parallelism is useful; memory decides how much is survivable. Each worker
+ * is a JVM with the heap set below, and the Gradle daemon holds its own on top, so a machine with
+ * many cores and little memory has to be counted the other way. Measured on eight cores: serial
+ * 13m11s, four forks 8m39s, eight forks 7m03s — more forks kept winning even though each test runs
+ * slower under the contention, so this errs towards cores where memory allows.
+ */
+int testForkCount() {
+    def override = project.findProperty('testForks')
+    if (override) {
+        return Math.max(1, override.toString().toInteger())
+    }
+    int byCores = Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))
+    int workerHeapGb = 2      // keep in step with -Xmx below
+    int reservedGb = 4        // the daemon's own heap, plus room for the OS and the lua/pjass runs
+    try {
+        def os = java.lang.management.ManagementFactory.operatingSystemMXBean
+        long totalBytes = os."getTotalMemorySize"()
+        int byMemory = (int) ((totalBytes / (1024L * 1024L * 1024L) - reservedGb) / workerHeapGb)
+        return Math.max(1, Math.min(byCores, byMemory))
+    } catch (Throwable ignored) {
+        // No reliable reading of physical memory; cores alone, conservatively.
+        return Math.max(1, Math.min(byCores, 4))
+    }
+}
+
+
+/**
+ * Fetches the standard library the tests compile against, once, before they fork.
+ *
+ * StdLib guards the fetch with a lock held in one process, which is no guard at all across
+ * workers: on a clean checkout each of them would clone into the same directory at the same time.
+ * The pinned repository and commit stay defined in that one place rather than being repeated here.
+ */
+tasks.register('ensureStdLib', JavaExec) {
+    description "Fetches the pinned standard library used by the tests"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set('tests.wurstscript.tests.StdLib')
+    workingDir = projectDir
+    // An escape hatch for working without the network: a focused run of tests that never touch
+    // the library should not be stopped by not being able to reach GitHub. Read now rather than
+    // when the task runs, which the configuration cache does not allow.
+    def skipFetch = project.hasProperty('skipStdLibFetch')
+    onlyIf { !skipFetch }
+    // Deliberately not declaring the checkout as an output: that would skip this whenever the
+    // directory merely exists, which is precisely when it may be at the wrong commit or half
+    // cloned. The fetch checks the pinned commit and repairs it, and costs nothing when correct.
+    outputs.upToDateWhen { false }
+}
+
 test {
+    dependsOn 'ensureStdLib'
     useTestNG()
+
+    // The suite is a few thousand independent compilations and was running one at a time, so it
+    // took as long as the sum of them. Forks rather than threads: the harness keeps state in
+    // statics (the current test environment, the global caches, the extracted lua binaries), and a
+    // fork gets its own copy of all of it. Gradle hands out whole classes, so a class that writes
+    // fixed file names stays inside one fork.
+    // Wall time cannot fall below the slowest single class, which is why this does not need to be
+    // every core to get most of the win.
+    //
+    // Bounded by memory as well as cores, because the two are not proportional everywhere: a CI
+    // runner with sixteen cores and eight gigabytes would otherwise start eight two-gigabyte
+    // workers next to the daemon's own three and be killed for it. Override with -PtestForks=N.
+    maxParallelForks = testForkCount()
 
     jvmArgs(
             '-Xmx2g',                         // local: give it room to finish and dump
@@ -244,6 +310,10 @@ test {
             '-XX:+HeapDumpOnOutOfMemoryError',
             '-XX:+UnlockExperimentalVMOptions', // needed for UseCompactObjectHeaders until it graduates
             '-XX:+UseCompactObjectHeaders',    // Java 24+: 8-byte headers (vs 16) — big win for AST-heavy workloads
+            // Each fork otherwise sizes its garbage collector and compiler threads for the whole
+            // machine, so running several at once oversubscribes it badly: eight forks made every
+            // test about three times slower and gave back only a third of the parallelism.
+            '-XX:ActiveProcessorCount=2',
     )
 }
 
