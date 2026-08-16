@@ -210,6 +210,25 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * The same comparison the other way round. Only the left operand is asked whether it is equal,
+     * so a stand-in on the right would have gone quietly false while one on the left complained.
+     */
+    @Test
+    public void unwrittenArrayOfATypeParameterReadsAsItsDefaultReversed() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    private static T array none",
+            "    static function first() returns T",
+            "        return none[0]",
+            "init",
+            "    if 0 == Box<int>.first() and null == Box<string>.first()",
+            "        testSuccess()"
+        );
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {
