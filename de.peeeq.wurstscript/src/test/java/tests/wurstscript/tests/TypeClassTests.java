@@ -331,20 +331,66 @@ public class TypeClassTests extends WurstScriptTest {
     };
 
     /**
-     * Subclassing a bounded generic class does not work yet, and this pins where it stops. The
-     * override's {@code super.size(extra)} becomes a direct call to the superclass implementation,
-     * and that call carries no type arguments — the type variables belong to the class, not to the
-     * method — so nothing specialises it. Specialising the class replaces the original with
-     * {@code Box_size⟪integer⟫}, and the super call is left pointing at what was removed.
-     * <p>
-     * The same shape as the constructor case above: class type arguments reach method calls and
-     * member accesses, but not constructor calls or super calls. Should either be fixed, look at
-     * both. The message names what was inside the function rather than the reference that kept it
-     * alive, because Jass emits whatever is called rather than only what the program still holds.
+     * A subclass of a bounded generic class reaches its superclass through both a super constructor
+     * call and a super method call, and each is a call which names its target rather than going
+     * through a receiver. Both carry the class's type arguments, so both reach the copy specialised
+     * for the instantiation the subclass extends.
      */
     @Test
-    public void subclassOfBoundedGenericIsRejected() {
-        testAssertErrorsLines(false, "Typevar dispatch not eliminated", SUBCLASS_OF_BOUNDED_GENERIC);
+    public void subclassOfBoundedGeneric() {
+        testAssertOkLines(true, SUBCLASS_OF_BOUNDED_GENERIC);
+    }
+
+    /**
+     * The same program on Lua, where it still does not work, so the difference between the targets is
+     * stated rather than left to be discovered. {@code transformGenericNewOnly} runs neither
+     * {@code simplifyClasses} nor {@code addMemberTypeArguments}, so the class's type variables are
+     * never lifted onto its functions and there is nothing for a super call to carry. The object is
+     * allocated from the erased {@code Box} table while the specialised one holds the method, so it
+     * compiles and runs and never reaches {@code testSuccess}. Tracked as backlog item 13, whose
+     * remaining half is the erasure question in item 5.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
+    public void subclassOfBoundedGenericIsStillBrokenOnLua() {
+        test().testLua(true).executeProg().lines(SUBCLASS_OF_BOUNDED_GENERIC);
+    }
+
+    /**
+     * A method may have type parameters of its own on top of the class's. The call already carries an
+     * argument for its own, so what it is short of is the class's prefix rather than everything, and
+     * the two lists have to end up in the order the lift put the variables in.
+     */
+    private static final String[] SUPER_CALL_TO_A_GENERIC_METHOD = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x",
+        "class Box<K: Show>",
+        "    K key",
+        "    construct(K k)",
+        "        key = k",
+        "    function choose<Q>(Q q, int extra) returns int",
+        "        return K.show(key) + extra",
+        "    function size(int extra) returns int",
+        "        return extra",
+        "class Marker",
+        "class SubBox extends Box<int>",
+        "    construct(int k)",
+        "        super(k)",
+        "    override function size(int extra) returns int",
+        "        return super.choose<Marker>(new Marker(), extra) + 100",
+        "init",
+        "    Box<int> s = new SubBox(5)",
+        "    if s.size(1) == 106",
+        "        testSuccess()",
+    };
+
+    @Test
+    public void superCallToAGenericMethodOfABoundedGenericClass() {
+        testAssertOkLines(true, SUPER_CALL_TO_A_GENERIC_METHOD);
     }
 
     /** Each type argument picks its own instance, so one generic serves several types. */

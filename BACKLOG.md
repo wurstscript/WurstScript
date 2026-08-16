@@ -72,8 +72,8 @@ because `LOOP.md` refers to items by number.
    source parameter. Making the node canonical lets all three compare by identity and removes
    a class of silent wrong dispatch. Mechanical, well covered by the suite.
 
-13. **A bounded generic class cannot be subclassed.** Diagnosed on the Jass side and pinned by
-    `TypeClassTests.subclassOfBoundedGenericIsRejected`; the Lua half is still open. The program:
+13. **A bounded generic class cannot be subclassed on Lua.** Fixed on Jass and pinned by
+    `TypeClassTests.subclassOfBoundedGeneric`; the Lua half is still open. The program:
 
         interface Show<T:>
             function show(T x) returns int
@@ -99,18 +99,20 @@ because `LOOP.md` refers to items by number.
             if b.size(1) == 6 and b.shift(1) == 1001 and s.size(1) == 106
                 testSuccess()
 
-    On Jass the override's `super.size(extra)` becomes a direct call to the superclass
-    implementation, and once `Box` is specialised that call points at a function which has been
-    replaced by `Box_size⟪integer⟫`. The `.jim` for the test shows both side by side: the
-    specialised copy with its dispatch resolved, and `SubBox_size` still calling the original.
+    On Jass the override's `super.size(extra)` became a direct call to the superclass
+    implementation, and once `Box` was specialised that call pointed at a function which had been
+    replaced by `Box_size⟪integer⟫`. Fixed by `addReceiverTypeArguments` in `EliminateGenerics`:
+    moving a function out of its class lifts the class's type variables onto the function, and a
+    call through a receiver gets them back from the receiver's type. A call which names its target
+    outright — `super.size(extra)` and `super(k)` both do — has no receiver to read, so it was left
+    asking for a function with type variables while supplying none. The receiver is still there as
+    the first argument, so the class it is used as gives the same type arguments the receiver would
+    have, and both super calls now reach the copy specialised for the instantiation.
 
-    Tried extending `addMemberTypeArguments` to attach the receiver's type arguments to such calls,
-    the way it already does for method calls and member accesses, and it changes nothing. The
-    callee has no type variables of its own — they belong to the class — so there is nothing for
-    type arguments on the call to select, and specialisation of a class function happens by
-    `specializeClass` copying the whole class instead. The call has to be **redirected** to that
-    copy, not annotated. The natural place is wherever a class is specialised: every call from a
-    subclass into a superclass function needs to follow.
+    An earlier note here said annotating the call could not work, on the grounds that the callee had
+    no type variables of its own. That was wrong: `moveFunctionsOutOfClass` lifts the class's onto
+    it. The first attempt failed because nothing recorded which class a function had been moved out
+    of, so there was no way to adapt the receiver to it.
 
     Item 6 is the same family but not the same fix: there the constructor call also carries no type
     arguments, and there the instantiation is not on any argument either, only on the type of what
@@ -119,7 +121,12 @@ because `LOOP.md` refers to items by number.
     Lua compiles and runs but never reaches `testSuccess`: the override makes `size` dispatched,
     and the emitted call is `b:Box_size_specialized_integer(1)` while `b` was allocated from the
     *erased* `Box` table, which binds only `shift`. The specialised table has the slot; the instance
-    never gets that table. That half is the erasure question again, as in item 5.
+    never gets that table. That half is the erasure question again, as in item 5, and the Jass fix
+    does not reach it: `transformGenericNewOnly` runs neither `simplifyClasses` nor
+    `addMemberTypeArguments`, so on Lua the type variables are never lifted in the first place.
+    Pinned by `TypeClassTests.subclassOfBoundedGenericIsStillBrokenOnLua`, which asserts the failure
+    rather than leaving the difference between the targets to be discovered. Fixing this half makes
+    that test fail, which is the point: it then becomes a second success case.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
