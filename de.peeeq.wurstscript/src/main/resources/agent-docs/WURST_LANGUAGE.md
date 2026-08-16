@@ -204,6 +204,30 @@ function outer<R: Show>(R x) returns string   // <R:> alone would not compile
 	return inner(x)
 ```
 
+A class with a bounded type parameter can be subclassed, and the subclass may reach the superclass through `super`:
+
+```wurst
+class SubBox extends Box<int>
+	construct(int k)
+		super(k)
+
+	override function size(int extra) returns int
+		return super.size(extra) + 100
+```
+
+On Lua this compiles and runs but the override does not reach the superclass implementation: the object is allocated from the erased class while the method belongs to the specialised one. Use it on Jass only for now.
+
+## Strings
+
+A string is a sequence of bytes on both targets, as it is in the game. `.length()` counts bytes rather than characters and `.substring()` takes byte offsets, so a slice can stop between the bytes of one character:
+
+```wurst
+"ä".length()            // 2, not 1
+"ä".substring(0, 1)     // half a character
+```
+
+The standard library's `String` package handles this explicitly — `isCharBoundary` and `isMultibytePartial` — when `ENABLE_MULTIBYTE_SUPPORT` is on, which it is by default. Compiletime code sees the same semantics, so a length computed while building the map is the length the game agrees with. One thing does not carry across: a compiletime expression cannot return half a character, because a generated script has no way to write that byte down.
+
 ## Lua and Jass targets
 
 The target is selected by the project `wurst.build` `scriptMode` field. `wc3Patch` separately selects the compatible core Jass and standard-library era.
