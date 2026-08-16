@@ -1418,7 +1418,42 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String second = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);
 
-        assertEquals(first, second);
+        if (!first.equals(second)) {
+            // This has failed once on CI and not since, and 250 compiles in one JVM did not
+            // reproduce it. A bare "expected X but got Y" over two whole scripts is unreadable and
+            // the run's output is gone by the time anyone looks, so the failure carries what it
+            // takes to act on: both scripts kept beside the test output, and the differing lines
+            // named. Without this the next occurrence is as unactionable as the first.
+            File firstFile = new File(TEST_OUTPUT_PATH, "determinism-first.lua");
+            File secondFile = new File(TEST_OUTPUT_PATH, "determinism-second.lua");
+            Files.write(first.getBytes(Charsets.UTF_8), firstFile);
+            Files.write(second.getBytes(Charsets.UTF_8), secondFile);
+            fail("the same program compiled to different Lua twice in one run."
+                + "\n" + describeFirstDifferences(first, second)
+                + "\nboth kept at " + firstFile.getPath() + " and " + secondFile.getPath());
+        }
+    }
+
+    /** The first few differing lines, with their numbers, so a failure says where to look. */
+    private static String describeFirstDifferences(String first, String second) {
+        String[] a = first.split("\n", -1);
+        String[] b = second.split("\n", -1);
+        StringBuilder sb = new StringBuilder();
+        int reported = 0;
+        for (int i = 0; i < Math.max(a.length, b.length) && reported < 5; i++) {
+            String lineA = i < a.length ? a[i] : "<missing>";
+            String lineB = i < b.length ? b[i] : "<missing>";
+            if (!lineA.equals(lineB)) {
+                sb.append("  line ").append(i + 1).append(":\n")
+                    .append("    first:  ").append(lineA).append('\n')
+                    .append("    second: ").append(lineB).append('\n');
+                reported++;
+            }
+        }
+        if (reported == 0) {
+            sb.append("  the scripts differ but no line does, so it is line endings or trailing bytes");
+        }
+        return sb.toString();
     }
 
     @Test
