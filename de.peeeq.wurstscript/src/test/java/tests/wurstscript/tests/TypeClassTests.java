@@ -393,6 +393,54 @@ public class TypeClassTests extends WurstScriptTest {
         testAssertOkLines(true, SUPER_CALL_TO_A_GENERIC_METHOD);
     }
 
+    /**
+     * A module may carry a bounded type parameter, and a class using it supplies the argument. Using
+     * a module copies its body into the class, substituting the module's type parameters — and a
+     * requirement is called on the parameter itself, {@code T.show(x)}, which is an expression rather
+     * than a type, so it has to be carried across by that substitution too.
+     */
+    private static final String[] BOUND_ON_MODULE = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x * 2",
+        "module Shower<T: Show>",
+        "    T held",
+        "    function shown() returns int",
+        "        return T.show(held)",
+        "class Holder<K: Show>",
+        "    use Shower<K>",
+        "    construct(K k)",
+        "        held = k",
+        "init",
+        "    let h = new Holder<int>(21)",
+        "    if h.shown() == 42",
+        "        testSuccess()",
+    };
+
+    /**
+     * Rejected, and this pins that it is rejected clearly rather than mistranslated.
+     * <p>
+     * A module body resolves names in the module's own scope by design — {@code nextScope} sends a
+     * {@code ModuleInstanciation} to {@code attrModuleOrigin()} rather than to the class using it, so
+     * a module cannot capture the names of whoever uses it. The type replacement during expansion
+     * therefore reaches every {@code T} used as a type, and cannot reach the one in {@code T.show(x)}
+     * which is a name: renaming it to the using class's parameter produces a name that scope
+     * deliberately cannot see.
+     * <p>
+     * Making it work means the instantiation declaring the parameter itself, so the body keeps saying
+     * {@code T} and {@code T} resolves — type parameters on {@code ModuleInstanciation}, which is a
+     * grammar change. Backlog item 7.
+     */
+    @Test
+    public void boundOnModuleTypeParameterIsRejected() {
+        testAssertErrorsLines(false, "Type class bounds are not supported on a module type parameter",
+            BOUND_ON_MODULE);
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {

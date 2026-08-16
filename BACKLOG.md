@@ -77,8 +77,38 @@ itself, and one gap in what the suite can see.
 
     Do not start this autonomously.
 
-7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today. Needs
-   receiver rewriting during expansion, or type parameters on `ModuleInstanciation`.
+7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today, and
+   `TypeClassTests.boundOnModuleTypeParameterIsRejected` pins that. Tried and reverted; what follows
+   is why, because the earlier note here suggested a fix which cannot work.
+
+   Expansion copies the module body into the user and replaces the module's type parameters
+   **in type positions**. A requirement is called on the parameter itself — `T.show(x)` — and that
+   receiver is a name, resolved by `lookupBoundedTypeParam` through `lookupType`, so the replacement
+   never touches it.
+
+   Renaming the receiver to the using class's parameter, which is what "receiver rewriting during
+   expansion" meant, does not work. `NameResolution.nextScope` sends a `ModuleInstanciation` to
+   `attrModuleOrigin()` rather than to the class using it:
+
+       if (currentScope instanceof ModuleInstanciation) {
+           return nextScope(moduleInstanciation.attrModuleOrigin());
+       }
+
+   That is deliberate — a module body resolves in the module's own scope so it cannot capture the
+   names of whoever uses it — so the renamed receiver names something that scope cannot see. The
+   rename itself works: with it, the error moves from the rejection to `Could not find variable K`
+   at the dispatch, which is this scope rule and not a mistake in the rename.
+
+   That leaves the other half of the original note: **type parameters on `ModuleInstanciation`**. The
+   instantiation declares the parameter itself, bound to the argument, so the copied body keeps
+   saying `T` and `T` resolves without any rename. It needs `ModuleInstanciation` to carry type
+   parameters in the grammar, so it is a change to `wurstscript.parseq` and everything reading that
+   node, not a patch to the expander.
+
+   Worth knowing before starting: an argument which is a concrete type (`use Shower<int>`) is a
+   second case even then. A requirement is dispatched on a type parameter, so `int.show(x)` is not a
+   dispatch at all — that one has to resolve to the instance during expansion rather than resolve by
+   name.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
