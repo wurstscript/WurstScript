@@ -235,6 +235,35 @@ tasks.named('compileJava') { it.dependsOn('gen') }
 
 /** -------- Tests -------- */
 
+/**
+ * How many test workers to run at once.
+ *
+ * Cores decide how much parallelism is useful; memory decides how much is survivable. Each worker
+ * is a JVM with the heap set below, and the Gradle daemon holds its own on top, so a machine with
+ * many cores and little memory has to be counted the other way. Measured on eight cores: serial
+ * 13m11s, four forks 8m39s, eight forks 7m03s — more forks kept winning even though each test runs
+ * slower under the contention, so this errs towards cores where memory allows.
+ */
+int testForkCount() {
+    def override = project.findProperty('testForks')
+    if (override) {
+        return Math.max(1, override.toString().toInteger())
+    }
+    int byCores = Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))
+    int workerHeapGb = 2      // keep in step with -Xmx below
+    int reservedGb = 4        // the daemon's own heap, plus room for the OS and the lua/pjass runs
+    try {
+        def os = java.lang.management.ManagementFactory.operatingSystemMXBean
+        long totalBytes = os."getTotalMemorySize"()
+        int byMemory = (int) ((totalBytes / (1024L * 1024L * 1024L) - reservedGb) / workerHeapGb)
+        return Math.max(1, Math.min(byCores, byMemory))
+    } catch (Throwable ignored) {
+        // No reliable reading of physical memory; cores alone, conservatively.
+        return Math.max(1, Math.min(byCores, 4))
+    }
+}
+
+
 test {
     useTestNG()
 
@@ -245,7 +274,11 @@ test {
     // fixed file names stays inside one fork.
     // Wall time cannot fall below the slowest single class, which is why this does not need to be
     // every core to get most of the win.
-    maxParallelForks = Math.max(1, (int) (Runtime.runtime.availableProcessors() / 2))
+    //
+    // Bounded by memory as well as cores, because the two are not proportional everywhere: a CI
+    // runner with sixteen cores and eight gigabytes would otherwise start eight two-gigabyte
+    // workers next to the daemon's own three and be killed for it. Override with -PtestForks=N.
+    maxParallelForks = testForkCount()
 
     jvmArgs(
             '-Xmx2g',                         // local: give it room to finish and dump

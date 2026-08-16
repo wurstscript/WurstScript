@@ -278,7 +278,33 @@ public class EliminateGenerics {
      * to the erased one.
      */
     private boolean isConstructionOnlyInstantiation(ImClass classDef) {
-        return classDef.attrTrace() instanceof ExprClosure && classNeedsSpecialization(classDef);
+        return classDef.attrTrace() instanceof ExprClosure && classReachesDispatch(classDef);
+    }
+
+    /**
+     * Whether anything the class does ends in a dispatch on a bound, including through the
+     * functions it calls. `classNeedsSpecialization` asks only whether a dispatch sits in the class
+     * itself, which is the wrong question here: a closure whose body is `() -> helper(x)` has no
+     * dispatch of its own, and the instantiation it needs is still only known at its construction.
+     * That question is kept as it is, because widening it would change what gets specialised on
+     * paths that have nothing to do with closures.
+     */
+    private boolean classReachesDispatch(ImClass classDef) {
+        for (ImFunction f : classDef.getFunctions()) {
+            if (functionNeedsSpecialization(f, Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return true;
+            }
+        }
+        for (ImMethod m : classDef.getMethods()) {
+            if (m.getImplementation() != null
+                && functionNeedsSpecialization(m.getImplementation(),
+                    Collections.newSetFromMap(new IdentityHashMap<>()),
+                    Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -291,7 +317,10 @@ public class EliminateGenerics {
         if (field.getParent() == null || !(field.getParent().getParent() instanceof ImClass owningClass)) {
             return;
         }
-        if (!isConstructionOnlyInstantiation(owningClass)) {
+        // A class that has already been specialised has nothing left to select, and asking the
+        // receiver to adapt to it fails outright: the receiver is still typed by the generic class
+        // the specialised one was copied from, which is not a superclass of it.
+        if (owningClass.getTypeVariables().isEmpty() || !isConstructionOnlyInstantiation(owningClass)) {
             return;
         }
         if (memberAccess.getTypeArguments().isEmpty()) {
