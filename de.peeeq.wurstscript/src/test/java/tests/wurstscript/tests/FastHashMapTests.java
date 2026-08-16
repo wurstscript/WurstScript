@@ -72,6 +72,10 @@ public class FastHashMapTests extends WurstScriptTest {
             "        return firstDead",
             "    function put(K key, V value)",
             "        let s = slotFor(key)",
+            // Capacity is fixed, so a new key can arrive with nowhere to go. The other three
+            // guard the same way; without it this writes through the sentinel and counts it.
+            "        if s < base",
+            "            return",
             "        if not used[s]",
             "            used[s] = true",
             "            dead[s] = false",
@@ -200,6 +204,28 @@ public class FastHashMapTests extends WurstScriptTest {
         "            if m.get(9) == 91 and m.size() == 3 and m.get(1) == 10 and m.get(2) == 20",
         "                testSuccess()",
     };
+
+    /**
+     * Capacity is fixed, so the ninth distinct key has nowhere to go: keys 1 to 8 hash to the eight
+     * slots exactly. `slotFor` says so by returning a slot below this instance's section, and every
+     * entry point has to check that before indexing — otherwise the write goes through the sentinel,
+     * the entry is unreachable, and the count says nine.
+     */
+    @Test
+    public void puttingIntoAFullMapChangesNothing() {
+        testAssertOkLines(true, program(fastHashMap(), INT_INSTANCE, new String[]{
+            "init",
+            "    let m = new FastHashMap<int, int>()",
+            "    for i = 1 to 8",
+            "        m.put(i, i * 10)",
+            "    m.put(9, 90)",
+            "    if m.size() == 8 and not m.has(9)",
+            // Not m.get(9) as well: reading an absent key of a type parameter returns a stand-in
+            // the interpreter cannot compare, which is a separate bug fixed later in this stack.
+            "        if m.get(1) == 10 and m.get(8) == 80",
+            "            testSuccess()"
+        }));
+    }
 
     @Test
     public void removeLeavesATombstone() {
