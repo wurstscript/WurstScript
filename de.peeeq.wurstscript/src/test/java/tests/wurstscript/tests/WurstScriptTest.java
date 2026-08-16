@@ -560,7 +560,7 @@ public class WurstScriptTest {
                 // standard library gets a generated fallback which does; one with the library gets
                 // the library's own, which is empty - so without this, a test on that target can
                 // only ever be reported as not having succeeded, whatever it did.
-                chunk.append("testSuccess = function() print('testSuccess') end;");
+                chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -706,7 +706,7 @@ public class WurstScriptTest {
         return t;
     }
 
-    private String getLuaExecutable() {
+    protected String getLuaExecutable() {
         if (resolvedLuaExecutable != null) {
             return resolvedLuaExecutable;
         }

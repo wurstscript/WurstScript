@@ -15,7 +15,7 @@ import static org.testng.Assert.assertNotEquals;
  * are only comparable where the library is defined - a string of whole characters - so that is what
  * is compared, and it is enough: the arithmetic is the same for every input, only the bytes differ.
  */
-public class Wc3StringHashTest {
+public class Wc3StringHashTest extends WurstScriptTest {
 
     private static void agrees(String text) throws UnsupportedEncodingException {
         assertEquals(Wc3StringHash.hash(ILconstString.fromText(text).getVal()),
@@ -90,16 +90,44 @@ public class Wc3StringHashTest {
 
     /**
      * The Lua test runtime carries a second implementation of this hash, because a program running
-     * there computes it too. Two transcriptions of one algorithm drift; these are the values that
-     * one produces, so a change to either side which parts them fails here.
+     * there computes it too. Two transcriptions of one algorithm drift, so this runs the inputs
+     * through both and compares — asserting the Java side against written-down numbers would stay
+     * green if only the Lua side changed, which is the case worth catching.
      */
     @Test
-    public void agreesWithTheLuaRuntimeImplementation() {
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("abc").getVal()), 1043745117);
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("Hello World").getVal()), -1563733934);
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("Units\\Human\\Footman.mdx").getVal()), 166547459);
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("ä").getVal()), 1899444195);
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("abcdefghijklmnop").getVal()), 190888648);
-        assertEquals(Wc3StringHash.hash(ILconstString.fromText("").getVal()), 0);
+    public void agreesWithTheLuaRuntimeImplementation() throws Exception {
+        String[] inputs = {"abc", "Hello World", "Units\\Human\\Footman.mdx", "ä",
+            "abcdefghijklmnop", "", "MIXED/Case\\Path", "日本語"};
+
+        for (String input : inputs) {
+            assertEquals(luaHashOf(input), Wc3StringHash.hash(ILconstString.fromText(input).getVal()),
+                "hash of " + input);
+        }
+    }
+
+    /** Runs the shim's StringHash on one input, as a program on that target would. */
+    private int luaHashOf(String text) throws Exception {
+        // Escaped byte by byte, so what the shim hashes is what the Java side was handed rather
+        // than whatever the command line did to it.
+        StringBuilder literal = new StringBuilder();
+        for (byte b : text.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+            literal.append("\\").append(b & 0xFF);
+        }
+        String script = "dofile('src/test/resources/luaruntime/wc3shim.lua') "
+            + "print(StringHash('" + literal + "'))";
+        Process p = new ProcessBuilder(getLuaExecutable(), "-e", script)
+            .redirectErrorStream(true)
+            .start();
+        String out;
+        try (java.io.BufferedReader r = new java.io.BufferedReader(
+            new java.io.InputStreamReader(p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+            out = r.lines().collect(java.util.stream.Collectors.joining("\n")).trim();
+        }
+        p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+        try {
+            return Integer.parseInt(out);
+        } catch (NumberFormatException e) {
+            throw new AssertionError("lua did not return a hash for \"" + text + "\": " + out);
+        }
     }
 }
