@@ -648,18 +648,43 @@ public class WurstScriptTest {
     private Thread collectStreamAsync(InputStream stream, StringBuilder out,
                                       String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
         Thread t = new Thread(() -> {
-            try (BufferedReader input = new BufferedReader(new InputStreamReader(stream))) {
-                String line;
-                boolean truncated = false;
-                while ((line = input.readLine()) != null) {
-                    if (watchedLine != null && watchedLine.equals(line)) {
-                        sawWatchedLine.set(true);
+            // Fixed-size chunks rather than lines: a line is only bounded by what the program
+            // chose to print, and reading one materialises all of it before any limit here could
+            // apply. Nothing below holds more than the retained limit plus one chunk.
+            char[] chunk = new char[8 * 1024];
+            StringBuilder pendingLine = new StringBuilder();
+            boolean lineIsLongerThanWatched = false;
+            boolean truncated = false;
+            try (Reader input = new InputStreamReader(stream)) {
+                int read;
+                while ((read = input.read(chunk)) >= 0) {
+                    if (watchedLine != null) {
+                        for (int i = 0; i < read; i++) {
+                            char c = chunk[i];
+                            if (c == '\n') {
+                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
+                                    && watchedLine.contentEquals(pendingLine)) {
+                                    sawWatchedLine.set(true);
+                                }
+                                pendingLine.setLength(0);
+                                lineIsLongerThanWatched = false;
+                            } else if (c != '\r' && !lineIsLongerThanWatched) {
+                                // Only ever as long as what is being looked for; past that the
+                                // line cannot be it, so there is no reason to keep any of it.
+                                if (pendingLine.length() == watchedLine.length()) {
+                                    lineIsLongerThanWatched = true;
+                                    pendingLine.setLength(0);
+                                } else {
+                                    pendingLine.append(c);
+                                }
+                            }
+                        }
                     }
                     if (out.length() < RETAINED_OUTPUT_LIMIT) {
-                        out.append(line).append("\n");
+                        out.append(chunk, 0, Math.min(read, RETAINED_OUTPUT_LIMIT - out.length()));
                     } else if (!truncated) {
                         truncated = true;
-                        out.append("... further output dropped after ")
+                        out.append("\n... further output dropped after ")
                             .append(RETAINED_OUTPUT_LIMIT).append(" characters\n");
                     }
                 }

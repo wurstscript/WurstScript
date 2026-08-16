@@ -60,4 +60,24 @@ public class LuaRunnerTests extends WurstScriptTest {
             "    testSuccess()"
         );
     }
+
+    /**
+     * One line, far past the retention limit. A limit checked once per line does not bound
+     * anything here — and reading a line at all materialises the whole of it first, however much
+     * the program decided to print before the newline.
+     */
+    @Test
+    public void aProgramThatPrintsOneEnormousLineStillFinishes() {
+        test().testLua(true).luaOnly(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "native println(string s)",
+            "init",
+            "    var line = \"\"",
+            "    for i = 1 to 4000",
+            "        line += \"this line keeps growing and is never broken by a newline \"",
+            "    println(line)",
+            "    testSuccess()"
+        );
+    }
 }
