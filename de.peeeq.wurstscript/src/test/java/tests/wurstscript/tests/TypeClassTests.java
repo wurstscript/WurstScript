@@ -6,6 +6,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
@@ -94,15 +96,14 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same closure is still rejected for Lua, and this pins that it is rejected clearly rather
-     * than mistranslated. Lua keeps generics erased and specialises only what it can reach through a
-     * concrete type; a closure is reached through its interface, so the specialised class exists but
-     * nothing calls it. Making that work is a change to Lua's erasure, not to substitution. Should
-     * it be made, this test fails and becomes the success case above.
+     * The same closure on Lua, which keeps generics erased and specialises only what it can reach
+     * from a concrete type. A closure is reached through its interface, so no call names the
+     * instantiation — the construction is the only thing that knows it, and that is what the
+     * specialisation is now driven from.
      */
     @Test
-    public void dispatchInsideClosureIsRejectedForLua() {
-        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+    public void dispatchInsideClosureLua() throws IOException {
+        test().testLua(true).executeProg().lines(
             "package test",
             "native testSuccess()",
             "interface ToIndex<T:>",
@@ -114,6 +115,97 @@ public class TypeClassTests extends WurstScriptTest {
             "    function produce() returns int",
             "function foo<Q: ToIndex>(Q x) returns int",
             "    Producer p = () -> Q.toIndex(x)",
+            "    return p.produce()",
+            "init",
+            "    if foo(21) == 42",
+            "        testSuccess()"
+        );
+
+        // Running is not enough on its own: the same answer comes out whether the closure was
+        // specialised or the erased class happened to carry a working implementation. These say
+        // which of the two happened.
+        String compiled = Files.toString(
+            new File("test-output/lua/TypeClassTests_dispatchInsideClosureLua.lua"), Charsets.UTF_8);
+
+        Matcher allocation = Pattern.compile("(\\w+_specialized\\w*):create\\d*\\(").matcher(compiled);
+        assertTrue(allocation.find(),
+            "the closure should be allocated from its specialised class:\n" + compiled);
+        String specialised = allocation.group(1);
+
+        Matcher call = Pattern.compile("\\w+:(\\w*produce\\w*)\\(").matcher(compiled);
+        assertTrue(call.find(), "expected a dispatched produce slot:\n" + compiled);
+        String slot = call.group(1);
+
+        assertTrue(Pattern.compile(Pattern.quote(specialised) + "\\." + Pattern.quote(slot)
+                + "\\s*=\\s*" + Pattern.quote(specialised) + "\\w*").matcher(compiled).find(),
+            "the specialised class should bind " + slot + " to its own implementation:\n" + compiled);
+        assertFalse(Pattern.compile(Pattern.quote(specialised) + "\\." + Pattern.quote(slot)
+                + "\\s*=\\s*Producer_test_produce\\b").matcher(compiled).find(),
+            "the specialised class must not bind " + slot + " to the generic original:\n" + compiled);
+    }
+
+    /**
+     * A constructor runs before the object exists, so the bound has to be resolved from the type
+     * argument the construction names rather than from anything reachable on the receiver.
+     */
+    private static final String[] DISPATCH_IN_CONSTRUCTOR = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x * 2",
+        "class Box<T: Show>",
+        "    int cached",
+        "    construct(T x)",
+        "        cached = T.show(x)",
+        "init",
+        "    let b = new Box<int>(21)",
+        "    if b.cached == 42",
+        "        testSuccess()",
+    };
+
+    @Test
+    public void dispatchInsideConstructor() {
+        testAssertOkLines(true, DISPATCH_IN_CONSTRUCTOR);
+    }
+
+    /**
+     * Still rejected for Lua, and this pins that it is rejected clearly rather than mistranslated.
+     * A constructor belongs to the class, not to a generic function of its own, so the call that
+     * runs it carries no type arguments — {@code new_Box(21)} in the intermediate language, with
+     * the instantiation only on the type of what it is assigned to. Nothing on the Lua path reads
+     * it from there, so the dispatch inside the constructor is never given a concrete type.
+     * Should that be made to work, this test fails and becomes the success case above.
+     */
+    @Test
+    public void dispatchInsideConstructorIsRejectedForLua() {
+        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target")
+            .lines(DISPATCH_IN_CONSTRUCTOR);
+    }
+
+    /**
+     * The closure has no dispatch of its own — it calls something that does. The gate deciding
+     * whether a construction is the only place an instantiation is stated has to follow calls to
+     * see that, or this reaches the backend with the bound unresolved.
+     */
+    @Test
+    public void dispatchInsideClosureThroughHelperLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function helper<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer p = () -> helper(x)",
             "    return p.produce()",
             "init",
             "    if foo(21) == 42",
@@ -137,6 +229,37 @@ public class TypeClassTests extends WurstScriptTest {
             "init",
             "    Producer p = () -> 42",
             "    if p.repeat() == 42",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A closure written inside another one is still rejected, and this pins that it is rejected in
+     * the same words as before rather than falling over inside the rewrite. The inner closure
+     * reaches its captured environment through a receiver belonging to the outer one, which has
+     * been specialised by then, so specialising the owner again with what is left over does not
+     * work. Should that be made to work, this test fails and becomes a success case.
+     */
+    @Test
+    public void nestedClosuresInsideBoundedGenericAreRejectedForLua() {
+        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target").lines(
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x * 2",
+            "interface Producer",
+            "    function produce() returns int",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    Producer outer = () -> begin",
+            "        Producer inner = () -> Q.toIndex(x)",
+            "        return inner.produce()",
+            "    end",
+            "    return outer.produce()",
+            "init",
+            "    if foo(21) == 42",
             "        testSuccess()"
         );
     }

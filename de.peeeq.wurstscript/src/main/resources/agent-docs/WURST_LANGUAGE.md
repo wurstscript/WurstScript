@@ -186,6 +186,14 @@ Instances are unique and must be declared next to what they relate. An instance 
 
 An instance must implement each requirement with the signature it has after the interface's type parameter is replaced by the instance type; a matching name is not enough. An interface used as a bound must not extend another interface, because the requirements of a bound are the interface's own functions.
 
+A requirement can also be dispatched from inside a closure written in a bounded generic. The closure captures the type parameter along with the values it uses, so the instance is still chosen by the caller's type argument:
+
+```wurst
+function foo<Q: ToIndex>(Q x) returns int
+	Producer p = () -> Q.toIndex(x)
+	return p.produce()
+```
+
 A generic which passes its own type parameter to another bounded generic must declare that bound itself:
 
 ```wurst

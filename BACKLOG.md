@@ -43,28 +43,35 @@ because `LOOP.md` refers to items by number.
     mistake, and the alias it *should* produce is the class qualified with the declared name.
     Fixing it changes emitted slot names, so it wants its own commit and its own suite run.
 
-5. **Lua dispatch inside a closure.** Works on Jass since #1229. On Lua the specialised class
-   is built correctly but nothing calls it, because the closure is reached through its
-   interface and `specializeMethod` renames the method out of its dispatch slot.
-   `TypeClassTests.dispatchInsideClosureIsRejectedForLua` pins the current diagnostic and
-   should become a success test. Related to item 1; AGENTS.md flags this machinery.
+6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
+   a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
+   `dispatchInsideConstructorIsRejectedForLua`, the second pinning the current diagnostic.
 
-6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass.
+   Not the same gap as item 5, and the fix from it does not reach: a constructor belongs to the
+   class rather than to a generic function of its own, so the call that runs it carries no type
+   arguments at all. The intermediate language has `b = new_Box(21)` with `b` typed
+   `Box<integer{show}>`, and `new_Box` still generic; the calls *inside* it
+   (`construct_Box<T>`, `Box_init<T>`) do carry the class's type variable, but nothing gives the
+   outermost one a concrete argument. `collectGenericNewUse` requires non-empty type arguments, so
+   it never starts.
+
+   The instantiation is only on the type of what the call is assigned to. Three ways to get at it,
+   roughly in order of how much they would disturb: attach the class's type arguments to
+   constructor calls when the intermediate language is built, which is where the frontend still
+   knows them and would serve both targets uniformly — but it changes the Jass path, which reaches
+   the same answer another way today, so the emitted `.j` needs checking; read them from the
+   assignment target on the Lua path, which is a syntactic shape and would miss
+   `foo(new Box<int>(21))`; or specialise from the `#alloc` inside the constructor, which is the
+   item 5 mechanism but would have to reach back out to the caller. The first looks right; confirm
+   it is what the Jass path already relies on before changing it.
 
 7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today. Needs
    receiver rewriting during expansion, or type parameters on `ModuleInstanciation`.
 
-8. **`MOD_INT`/`DIV_INT` return the left operand's type** rather than `int`
-   (`AttrExprType.java`, the `case MOD_INT` branch), where `caseMathOperation` returns
-   `WurstTypeInt.instance()` for `+`, `-`, `*`. It *is* reachable: `WurstTypeIntLiteral` is a
-   proper subtype of both int and real, and `caseMathOperation` collapses two literals to `int`
-   precisely so `real r = 1 + 1` stays an error. Returning `leftType` skips that collapse, so
-   `real r = 7 div 2` and `real r = 7 mod 2` should be accepted where `+` is rejected. Confirm
-   with a test first — that is the failing repro — then return `WurstTypeInt.instance()`. Small.
-
-9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land. The bounds section
-   says nothing about closures, which now work on Jass. Fold this into whichever item changes
-   the behaviour rather than doing it as a separate pass.
+9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
+   rather than a task to finish. Fold it into whichever item changes the behaviour rather than
+   doing it as a separate pass. Both now cover closures on either target, which is what this item
+   originally pointed at.
 
 10. **One `ImTypeVar` per type parameter.** Name-tolerant lookups remain in
    `EliminateGenerics.indexOfTypeVar`, `inheritTypeClassBinding` and
@@ -135,6 +142,26 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 8. `div` and `mod` return int rather than the left operand's type, matching `caseMathOperation`.
+  Reachable, not harmless: an integer literal is a proper subtype of both int and real, and
+  addition collapses two of them to int precisely so `real r = 1 + 1` stays an error — returning
+  `leftType` skipped that, so `real r = 7 div 2` was accepted. Three tests in `ExpressionTests`:
+  both operators rejected against a real, and both still int.
+- 17. A failing Lua test says so. `translateAndTestLua` now sets the environment label instead of
+  reporting under whatever Jass configuration ran last.
+- 5 (+ the part of 9 that follows it). A type class bound now dispatches from inside a closure on
+  Lua, and `TypeClassTests.dispatchInsideClosureLua` is a success test. The note in this file was
+  wrong about the cause: no specialised class was being built at all. Lua specialisation is driven
+  by calls that carry type arguments, and a closure has none — it is reached through the interface
+  it implements, which is not generic, so only the construction knows the instantiation. Three
+  pieces were missing, all present already for Jass: collect the instantiation from `ImAlloc`,
+  collect the member access so the capture write lands on the specialised field, and bind the
+  specialised methods to the roots the originals were submethods of (registering the original
+  implementation as specialised so `settleRemainingDispatches` neutralises what it leaves behind).
+  All three are gated on the class being closure-generated. Widening them to any constructed class
+  made the two mechanisms disagree — the object came from the specialised class while its methods
+  were bound to the erased one — and broke every FastHashMap Lua test, which is the shape of
+  regression AGENTS.md §9 warns about. `WURST_LANGUAGE.md` and `CHANGELOG.md` say so now.
 - 4. The FastHashMap proof is complete. `remove` leaves a tombstone, which `slotFor` passes over
   when searching and reuses when putting; the probe is bounded by capacity rather than running
   until it finds a gap, so a table full of tombstones cannot spin. `emittedCodeCostsNothingExtra`
