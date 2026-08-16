@@ -304,6 +304,49 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
+    private static final String[] SUBCLASS_OF_BOUNDED_GENERIC = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x",
+        "class Box<K: Show>",
+        "    K key",
+        "    construct(K k)",
+        "        key = k",
+        "    function size(int extra) returns int",
+        "        return K.show(key) + extra",
+        "class SubBox extends Box<int>",
+        "    construct(int k)",
+        "        super(k)",
+        "    override function size(int extra) returns int",
+        "        return super.size(extra) + 100",
+        "init",
+        "    Box<int> b = new Box<int>(5)",
+        "    Box<int> s = new SubBox(5)",
+        "    if b.size(1) == 6 and s.size(1) == 106",
+        "        testSuccess()",
+    };
+
+    /**
+     * Subclassing a bounded generic class does not work yet, and this pins where it stops. The
+     * override's {@code super.size(extra)} becomes a direct call to the superclass implementation,
+     * and that call carries no type arguments — the type variables belong to the class, not to the
+     * method — so nothing specialises it. Specialising the class replaces the original with
+     * {@code Box_size⟪integer⟫}, and the super call is left pointing at what was removed.
+     * <p>
+     * The same shape as the constructor case above: class type arguments reach method calls and
+     * member accesses, but not constructor calls or super calls. Should either be fixed, look at
+     * both. The message names what was inside the function rather than the reference that kept it
+     * alive, because Jass emits whatever is called rather than only what the program still holds.
+     */
+    @Test
+    public void subclassOfBoundedGenericIsRejected() {
+        testAssertErrorsLines(false, "Typevar dispatch not eliminated", SUBCLASS_OF_BOUNDED_GENERIC);
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {

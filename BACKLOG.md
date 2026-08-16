@@ -72,13 +72,8 @@ because `LOOP.md` refers to items by number.
    source parameter. Making the node canonical lets all three compare by identity and removes
    a class of silent wrong dispatch. Mechanical, well covered by the suite.
 
-11. **Jass temp counter is not reset between compilations.** Two runs of the same commit emit
-    different `.j` (`temp151` vs `temp8`) because the counter is JVM-wide and depends on how
-    many tests ran before. Not wrong for compiling one map, but it means `.j` cannot be diffed
-    across runs to validate a change — only `.lua` can. Fixing it would make Jass diffable.
-
-13. **A bounded generic class cannot be subclassed.** Found while building a repro for item 3;
-    both backends break, differently, on the same program:
+13. **A bounded generic class cannot be subclassed.** Diagnosed on the Jass side and pinned by
+    `TypeClassTests.subclassOfBoundedGenericIsRejected`; the Lua half is still open. The program:
 
         interface Show<T:>
             function show(T x) returns int
@@ -104,12 +99,27 @@ because `LOOP.md` refers to items by number.
             if b.size(1) == 6 and b.shift(1) == 1001 and s.size(1) == 106
                 testSuccess()
 
-    Jass fails to compile: `Typevar dispatch not eliminated.` Lua compiles and runs but never
-    reaches `testSuccess`: the override makes `size` dispatched, and the emitted call is
-    `b:Box_size_specialized_integer(1)` while `b` was allocated from the *erased* `Box` table,
-    which binds only `shift`. The specialised table `Box_specialized_integer` has the slot; the
-    instance never gets that table. Split this if the two turn out to have separate causes —
-    the Jass one is loud and probably the smaller of the two.
+    On Jass the override's `super.size(extra)` becomes a direct call to the superclass
+    implementation, and once `Box` is specialised that call points at a function which has been
+    replaced by `Box_size⟪integer⟫`. The `.jim` for the test shows both side by side: the
+    specialised copy with its dispatch resolved, and `SubBox_size` still calling the original.
+
+    Tried extending `addMemberTypeArguments` to attach the receiver's type arguments to such calls,
+    the way it already does for method calls and member accesses, and it changes nothing. The
+    callee has no type variables of its own — they belong to the class — so there is nothing for
+    type arguments on the call to select, and specialisation of a class function happens by
+    `specializeClass` copying the whole class instead. The call has to be **redirected** to that
+    copy, not annotated. The natural place is wherever a class is specialised: every call from a
+    subclass into a superclass function needs to follow.
+
+    Item 6 is the same family but not the same fix: there the constructor call also carries no type
+    arguments, and there the instantiation is not on any argument either, only on the type of what
+    the call is assigned to.
+
+    Lua compiles and runs but never reaches `testSuccess`: the override makes `size` dispatched,
+    and the emitted call is `b:Box_size_specialized_integer(1)` while `b` was allocated from the
+    *erased* `Box` table, which binds only `shift`. The specialised table has the slot; the instance
+    never gets that table. That half is the erasure question again, as in item 5.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
@@ -153,6 +163,23 @@ because `LOOP.md` refers to items by number.
 
 ## Done
 
+- 19. Tried giving Jass the dangling-reference check Lua has, and reverted it. The two backends do
+  not agree on which functions exist: `LuaTranslator` requires every reference to be rooted in the
+  program, while `ImToJassTranslator` is handed `getCalledFunctions()` and emits whatever is
+  called, rooted or not. Three passing tests rely on that — a closure's `construct_Lazy` is
+  detached from the program and still called — so the invariant is Lua's rather than universal.
+  Worth knowing when reading a Jass error: a function a pass detached is still translated, so the
+  error names what was inside it rather than the reference that kept it alive, which is exactly how
+  item 13 shows up. (Requiring natives to be rooted also fails: `$debugPrint` is built with
+  `IS_NATIVE, IS_BJ` and deliberately never added.)
+- 11. Generated Jass can be compared across runs. The counters naming temporaries were per thread
+  and never reset, so a name depended on how much had been compiled before it: the same source gave
+  `temp0` alone and `temp70` after other tests, measured directly rather than assumed. They now
+  start from zero at the top of each compilation — not at each flattening, which happens again
+  after every optimisation and would name two locals of one function alike.
+  `DeterministicChecks.temporaryNamesDoNotDependOnEarlierCompilations` compiles the same source,
+  then other programs, then the same source again; the compilation in between is the part that
+  matters, and it is the inlining configuration that emits a temporary for that source.
 - 18. Comparing an unresolved type parameter default is now an error rather than a quiet "not
   equal". Item 16 closed the path that reached a program, but the stand-in is produced by a static
   attribute and could surface anywhere, so the silence was the part worth removing. The whole suite
@@ -219,9 +246,27 @@ because `LOOP.md` refers to items by number.
 
 ## Notes
 
+- Fork count is worth measuring rather than reasoning about, because two effects pull against each
+  other: more forks means more parallelism but also more contention, and every test gets slower.
+  Measured on eight cores, whole suite, wall clock against total reported test time:
+  serial 13m11s / 786s; four forks 8m39s / 1230s; eight forks 7m03s / 2048s. Eight wins even
+  though each test runs 2.6 times slower there than alone. Sixteen was not tried; the limit by
+  then is the slowest single class, not the scheduling.
+- Where the suite's 13 minutes went, measured from `build/test-results/test/TEST-*.xml`: 786s of
+  test time across 79 classes and 1663 tests, so effectively all of it is the tests themselves
+  rather than the build. The top ten classes are 61% of it, led by `ExportToWurstTest` at 108s,
+  then `OptimizerTests` 67s, `BugTests` 66s, `RealWorldExamples` 54s,
+  `GenericsWithTypeclassesTests` 45s. Gradle hands whole classes to forks, so wall time cannot go
+  below the slowest class — 108s is the floor until `ExportToWurstTest` is split.
+  Below that floor the remaining costs, in the order worth attacking: 401 tests compile their
+  program five times (each Jass configuration) and spawn `pjass.exe` per configuration, which
+  re-parses `common.j` and `blizzard.j` every time; and 102 `withStdLib` sites re-parse 169 stdlib
+  files because `GlobalCaches.clearAll()` runs before and after every method. Both change what the
+  tests actually verify, so neither is a free win the way the scheduling was.
+
 - `%` is real modulo in Wurst; `mod` is integer modulo. `int % 8` types as `real`.
-- Emitted Lua must be byte-identical for identical input (AGENTS.md §8). It is the only
-  emitted output that can be diffed across runs — see item 11.
+- Emitted Lua must be byte-identical for identical input (AGENTS.md §8). Emitted Jass can be
+  diffed across runs too now, since item 11 — `LOOP.md` still says otherwise.
 - Two of this run's reverts were the same mistake: a name that looks redundant is usually carrying
   a distinction. The mangled method name separates overloads; `leftType` on `div` keeps a literal
   assignable to a real. Check what a name distinguishes before replacing it with a tidier one.
