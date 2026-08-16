@@ -87,4 +87,19 @@ public class Wc3StringHashTest {
         }
         assertEquals(hashes.size(), 64, "all 64 continuation bytes should hash apart");
     }
+
+    /**
+     * The Lua test runtime carries a second implementation of this hash, because a program running
+     * there computes it too. Two transcriptions of one algorithm drift; these are the values that
+     * one produces, so a change to either side which parts them fails here.
+     */
+    @Test
+    public void agreesWithTheLuaRuntimeImplementation() {
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("abc").getVal()), 1043745117);
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("Hello World").getVal()), -1563733934);
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("Units\\Human\\Footman.mdx").getVal()), 166547459);
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("ä").getVal()), 1899444195);
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("abcdefghijklmnop").getVal()), 190888648);
+        assertEquals(Wc3StringHash.hash(ILconstString.fromText("").getVal()), 0);
+    }
 }

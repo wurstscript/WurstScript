@@ -60,6 +60,108 @@ end
 function I2S(i) return tostring(math.floor(i)) end
 function S2I(s) return math.floor(tonumber(s) or 0) end
 
+-- StringHash, over bytes, as the game and the interpreter both compute it. Bob Jenkins'
+-- lookup2, with the same normalisation: ascii letters upper-cased and a forward slash read as
+-- a backslash. Kept in step with Wc3StringHash on the Java side.
+local function mix(a, b, c)
+    local M = 0xFFFFFFFF
+    a = (a - b - c) & M; a = a ~ (c >> 13)
+    b = (b - c - a) & M; b = b ~ ((a << 8) & M)
+    c = (c - a - b) & M; c = c ~ (b >> 13)
+    a = (a - b - c) & M; a = a ~ (c >> 12)
+    b = (b - c - a) & M; b = b ~ ((a << 16) & M)
+    c = (c - a - b) & M; c = c ~ (b >> 5)
+    a = (a - b - c) & M; a = a ~ (c >> 3)
+    b = (b - c - a) & M; b = b ~ ((a << 10) & M)
+    c = (c - a - b) & M; c = c ~ (b >> 15)
+    return a, b, c
+end
+
+function StringHash(s)
+    if s == nil or #s == 0 then
+        return 0
+    end
+    local bytes = {}
+    for i = 1, #s do
+        local v = string.byte(s, i)
+        if v >= 97 and v <= 122 then
+            v = v - 32
+        elseif v == 47 then
+            v = 92
+        end
+        bytes[i] = v
+    end
+    local a, b, c = 0x9e3779b9, 0x9e3779b9, 0
+    local len = #bytes
+    local i = 1
+    local M = 0xFFFFFFFF
+    while len >= 12 do
+        a = (a + bytes[i] + (bytes[i+1] << 8) + (bytes[i+2] << 16) + (bytes[i+3] << 24)) & M
+        b = (b + bytes[i+4] + (bytes[i+5] << 8) + (bytes[i+6] << 16) + (bytes[i+7] << 24)) & M
+        c = (c + bytes[i+8] + (bytes[i+9] << 8) + (bytes[i+10] << 16) + (bytes[i+11] << 24)) & M
+        a, b, c = mix(a, b, c)
+        i = i + 12
+        len = len - 12
+    end
+    c = (c + #bytes) & M
+    -- The low byte of c holds the length, so the tail starts at the second.
+    if len >= 11 then c = (c + (bytes[i+10] << 24)) & M end
+    if len >= 10 then c = (c + (bytes[i+9] << 16)) & M end
+    if len >= 9 then c = (c + (bytes[i+8] << 8)) & M end
+    if len >= 8 then b = (b + (bytes[i+7] << 24)) & M end
+    if len >= 7 then b = (b + (bytes[i+6] << 16)) & M end
+    if len >= 6 then b = (b + (bytes[i+5] << 8)) & M end
+    if len >= 5 then b = (b + bytes[i+4]) & M end
+    if len >= 4 then a = (a + (bytes[i+3] << 24)) & M end
+    if len >= 3 then a = (a + (bytes[i+2] << 16)) & M end
+    if len >= 2 then a = (a + (bytes[i+1] << 8)) & M end
+    if len >= 1 then a = (a + bytes[i]) & M end
+    a, b, c = mix(a, b, c)
+    -- The game returns a signed 32 bit integer.
+    if c >= 0x80000000 then
+        c = c - 0x100000000
+    end
+    return c
+end
+
+-- Only ascii letters change case: the bytes of a multibyte character are not letters, and
+-- folding one rewrites the character. Same rule as the interpreter's StringCase.
+function StringCase(s, upperCase)
+    local out = {}
+    for i = 1, #s do
+        local v = string.byte(s, i)
+        if upperCase and v >= 97 and v <= 122 then
+            v = v - 32
+        elseif not upperCase and v >= 65 and v <= 90 then
+            v = v + 32
+        end
+        out[i] = string.char(v)
+    end
+    return table.concat(out)
+end
+
+-- Locations are a plain pair; nothing in a test reads terrain from one.
+function Location(x, y) return { x = x, y = y } end
+function GetLocationX(loc) return loc.x end
+function GetLocationY(loc) return loc.y end
+function MoveLocation(loc, x, y) loc.x = x loc.y = y end
+function RemoveLocation(loc) end
+
+-- Timers hold what they were started with and never fire: a test drives its own program rather
+-- than waiting on game time, and a package which starts a timer at init only needs the call to
+-- succeed.
+function TimerStart(t, timeout, periodic, handler)
+    t.timeout = timeout
+    t.periodic = periodic
+    t.handler = handler
+end
+function TimerGetElapsed(t) return 0.0 end
+function TimerGetRemaining(t) return t.timeout or 0.0 end
+function TimerGetTimeout(t) return t.timeout or 0.0 end
+function PauseTimer(t) end
+function ResumeTimer(t) end
+function DestroyTimer(t) end
+
 -- Reforged player layout: 24 playable slots, neutrals at 24..27, 28 total.
 function GetBJMaxPlayers() return 24 end
 function GetBJMaxPlayerSlots() return 28 end
