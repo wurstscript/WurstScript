@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
@@ -1029,15 +1030,55 @@ public class LuaTranslator {
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
+            // A semantic name which several of the class's methods share names none of them, so a
+            // slot composed from it would be claimed by whichever is bound first. For a specialised
+            // class every method's trailing segment is the type argument, which is exactly that
+            // case, and the resulting slot is never called. Left uncomposed rather than bound
+            // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
+            Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
             Set<String> classNames = new TreeSet<>();
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
             for (String className : classNames) {
                 for (String semanticName : semanticNames) {
+                    if (ambiguous.contains(semanticName)) {
+                        continue;
+                    }
                     slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
         return slotNames;
+    }
+
+    /**
+     * The semantic names which name no method in particular.
+     * <p>
+     * A method and its overrides share a semantic name and must share a slot: that is dispatch. They
+     * all declare the same name in the source. The siblings of one specialisation declare different
+     * names and still compose the same segment, because for a specialised method that segment is the
+     * type argument - and a slot composed from it would be claimed by whichever is bound first, then
+     * never called. So the test is how many distinct declared names produce it.
+     */
+    private Set<String> ambiguousSemanticNames(ImClass c) {
+        Map<String, Set<String>> declaredNames = new TreeMap<>();
+        for (ImMethod m : collectMethodsInHierarchy(c)) {
+            if (m == null) {
+                continue;
+            }
+            String semanticName = semanticNameFromMethodName(m.getName());
+            if (semanticName.isEmpty()) {
+                continue;
+            }
+            declaredNames.computeIfAbsent(semanticName, name -> new TreeSet<>())
+                .add(LuaDispatchPreparation.declaredName(m));
+        }
+        Set<String> ambiguous = new TreeSet<>();
+        declaredNames.forEach((name, names) -> {
+            if (names.size() > 1) {
+                ambiguous.add(name);
+            }
+        });
+        return ambiguous;
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {

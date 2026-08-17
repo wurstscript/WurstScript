@@ -474,6 +474,48 @@ public class FastHashMapTests extends WurstScriptTest {
             compiledLua("aFieldNamedLikeAMethodKeepsOneKeyAcrossSpecialisation"));
     }
 
+    /**
+     * Every dispatch slot on a specialised class names one of its methods.
+     * <p>
+     * A slot's name is composed from the owner's and the segment after the last underscore of the
+     * method's, and for a specialised method that segment is the type argument - so every method of
+     * one specialisation used to compose the same name and the first bound claimed it. Nothing called
+     * it, which is why it went unnoticed; it is not emitted now, and this says so rather than leaving
+     * the next reader to wonder what it was.
+     * <p>
+     * A method and its overrides do share a slot, which is dispatch rather than a collision. They
+     * share a declared name, which is what tells the two cases apart.
+     */
+    @Test
+    public void everySlotOnASpecialisedClassNamesAMethod() throws IOException {
+        test().testLua(true).executeProg().lines(program(fastHashMap(), INT_INSTANCE, USE_WITH_COLLISION));
+        String lua = compiledLua("everySlotOnASpecialisedClassNamesAMethod");
+
+        Matcher table = Pattern.compile("(FastHashMap_specialized\\w*)\\.(\\w+)\\s*=").matcher(lua);
+        java.util.List<String> unnamed = new java.util.ArrayList<>();
+        while (table.find()) {
+            String slot = table.group(2);
+            if (slot.startsWith("__")) {
+                continue;
+            }
+            // A real slot carries a method name; the junk one was the class name and the type
+            // argument with no method name anywhere in it.
+            boolean namesAMethod = false;
+            for (String method : METHOD_NAMES) {
+                if (slot.contains(method)) {
+                    namesAMethod = true;
+                    break;
+                }
+            }
+            if (!namesAMethod) {
+                unnamed.add(slot);
+            }
+        }
+        if (!unnamed.isEmpty()) {
+            throw new AssertionError("these slots name no method: " + unnamed + "\n" + lua);
+        }
+    }
+
     private String compiledJass(String testName) throws IOException {
         return Files.toString(new File(TEST_OUTPUT_PATH, "FastHashMapTests_" + testName + ".j"), Charsets.UTF_8);
     }
