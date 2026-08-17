@@ -107,36 +107,27 @@ itself, and one gap in what the suite can see.
     `simplifyClasses` nor `addMemberTypeArguments`, so the type variables are never lifted there and
     a super call has nothing to carry. Closing it is item 23.
 
-15. **One junk dispatch slot per specialised class.** Confirmed dead weight, and confirmed harder to
-    remove than it looks. Leave it unless it stops being dead.
+15. **A dead dispatch slot survives for overloads inside a specialised class.** What is left of the
+    junk slot, which is otherwise gone.
 
-    In the Lua for `FastHashMap<int, int>` the slot
-    `FastHashMap_specialized_integer__integer.FastHashMap_specialized_integer__integer_integer` is
-    assigned once, bound to `FastHashMap_get_specialized` — the alphabetically first method — and
-    never called: the only `:` calls in that script are `:create(` and `:create1(`. The name is the
-    owner's plus the segment after the last underscore of the method's, and for a specialised method
-    that segment is the type argument, so every method of the class composes the same one.
+    A slot's name is the owner's plus the segment after the last underscore of the method's, and for a
+    specialised method that segment is the type argument, so every method of one specialisation
+    composes the same name. Both composers now leave such a name uncomposed, deciding by how many
+    distinct declared names produce it: a method and its overrides declare one name and must share a
+    slot, while siblings declare different ones.
 
-    **Two composers emit it, and suppressing it in one is not enough.** `addDirectAliases` was made
-    to drop a composed name which more than one method of the class produces — reasoning that a name
-    meaning "one of these, arbitrarily" is worse than a name meaning nothing — and the slot was still
-    emitted, because `LuaTranslator.collectDispatchSlotNames` composes it independently, from the
-    cross product of the class names in the hierarchy and the semantic names of the group. That
-    method is called per group of same-named methods, so it cannot see that a sibling group composes
-    the same name without being given class-level knowledge it does not currently have.
+    That leaves overloads. Two overloads of one source method share a declared name, so a specialised
+    class holding only overloads still composes one shared name and binds it to whichever is reached
+    first. Dead weight as before - nothing calls it - but no longer true of the general case.
 
-    So a fix means a shared notion of ambiguity across both composers, which is the coordinated
-    change the earlier note weighed against the benefit. The benefit is still one unused table key
-    per specialised class. Reverted.
+    The sharper identity is the dispatch group key, which separates overloads by signature. It cannot
+    be used here: the signature embeds each class's type variable, so a generic override chain reads as
+    `void|T192,real` against `void|T636,real` and the overrides look unrelated, which drops the slot
+    they must share. `LuaTranslationTests.genericOverrideChainBindsRootSlotToMostSpecificImplInLua`
+    fails exactly that way, and is how this was found rather than shipped.
 
-    Also tried and reverted earlier: using the declared name instead. Overloads share a declared
-    name, so `setup(int)` and `setup(string)` collapse into one slot, which
-    `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
-    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
-    semantic name are wrong in opposite directions: the mangled trailing segment collides across the
-    siblings of one specialisation, the declared name across overloads. A name separating both — the
-    declared name together with the dispatch signature key — is what a real fix needs, in both
-    composers.
+    A fix needs an identity which treats a chain's differing type variables as the same signature while
+    still separating real parameter differences. Worth doing only if this stops being dead weight.
 
 24. **`luaOutputIsDeterministicForGenericOverrideSlots` fails intermittently.** It failed once on
     Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request

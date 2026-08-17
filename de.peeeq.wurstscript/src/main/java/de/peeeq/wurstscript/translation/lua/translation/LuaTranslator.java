@@ -1051,34 +1051,48 @@ public class LuaTranslator {
     }
 
     /**
-     * The semantic names which name no method in particular.
+     * The semantic names which name no method in particular, cached per class.
      * <p>
-     * A method and its overrides share a semantic name and must share a slot: that is dispatch. They
-     * all declare the same name in the source. The siblings of one specialisation declare different
-     * names and still compose the same segment, because for a specialised method that segment is the
-     * type argument - and a slot composed from it would be claimed by whichever is bound first, then
-     * never called. So the test is how many distinct declared names produce it.
+     * A method and its overrides share a semantic name and must share a slot: that is dispatch, and
+     * they all declare the same name in the source. The siblings of one specialisation declare
+     * different names and still compose the same segment, because for a specialised method that
+     * segment is the type argument - and the slot composed from it is claimed by whichever is bound
+     * first, then never called.
+     * <p>
+     * The dispatch group key would be a sharper identity but cannot be used: it embeds the signature,
+     * and a generic override chain's signatures differ by the type variable of each class in it
+     * ({@code void|T192,real} against {@code void|T636,real}), so overrides would read as unrelated
+     * and their shared slot would be dropped. What that leaves uncovered is recorded in backlog
+     * item 15: overloads of one source method inside a specialised class share a declared name, so
+     * their composed name is not seen as ambiguous and one dead key survives there.
+     * <p>
+     * Cached because {@code createMethods} asks twice per dispatch group and each ask would otherwise
+     * rebuild and sort the whole inherited method list.
      */
+    private final Map<ImClass, Set<String>> ambiguousSemanticNamesByClass = new LinkedHashMap<>();
+
     private Set<String> ambiguousSemanticNames(ImClass c) {
-        Map<String, Set<String>> declaredNames = new TreeMap<>();
-        for (ImMethod m : collectMethodsInHierarchy(c)) {
-            if (m == null) {
-                continue;
+        return ambiguousSemanticNamesByClass.computeIfAbsent(c, owner -> {
+            Map<String, Set<String>> claimants = new TreeMap<>();
+            for (ImMethod m : collectMethodsInHierarchy(owner)) {
+                if (m == null) {
+                    continue;
+                }
+                String semanticName = semanticNameFromMethodName(m.getName());
+                if (semanticName.isEmpty()) {
+                    continue;
+                }
+                claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
+                    .add(LuaDispatchPreparation.declaredName(m));
             }
-            String semanticName = semanticNameFromMethodName(m.getName());
-            if (semanticName.isEmpty()) {
-                continue;
-            }
-            declaredNames.computeIfAbsent(semanticName, name -> new TreeSet<>())
-                .add(LuaDispatchPreparation.declaredName(m));
-        }
-        Set<String> ambiguous = new TreeSet<>();
-        declaredNames.forEach((name, names) -> {
-            if (names.size() > 1) {
-                ambiguous.add(name);
-            }
+            Set<String> ambiguous = new TreeSet<>();
+            claimants.forEach((name, keys) -> {
+                if (keys.size() > 1) {
+                    ambiguous.add(name);
+                }
+            });
+            return ambiguous;
         });
-        return ambiguous;
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {

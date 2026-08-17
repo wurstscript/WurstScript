@@ -169,10 +169,14 @@ public final class LuaDispatchPreparation {
                 continue;
             }
             // A method and its overrides are one dispatchable thing and must share a slot - that is
-            // what dispatch is - so they are not a collision. What tells the two cases apart is the
-            // name in the source: overrides all declare the same one, while the siblings of one
-            // specialisation declare different ones and merely end up composing the same segment,
-            // because for them that segment is the type argument rather than a method name.
+            // what dispatch is - so they are not a collision, and they all declare the same name in
+            // the source. The siblings of one specialisation declare different ones and merely end up
+            // composing the same segment, because for them that segment is the type argument.
+            //
+            // The dispatch group key would separate overloads too, but it embeds the signature, and a
+            // generic override chain's signatures differ by each class's type variable - so overrides
+            // would read as unrelated and lose the slot they must share. Backlog item 15 records what
+            // that leaves: overloads inside a specialised class keep one dead key.
             String identity = declaredName(method);
             String previous = claimedBy.put(composed, identity);
             if (previous != null && !previous.equals(identity)) {
