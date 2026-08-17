@@ -157,6 +157,22 @@ itself, and one gap in what the suite can see.
     between equal starting states, which would invalidate the conclusion rather than explain the
     failure.
 
+25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
+    `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
+    match class method type variables", while the same program compiles and runs on the other target.
+    On master as well, so it is not a regression — found while trying to give item 10's fix Lua
+    coverage, which is what it blocks: the only shape reaching that lookup with two parameters at once
+    is a class parameter beside a method parameter, and Lua will not compile it.
+
+    Pinned by `TypeClassTests.aBoundedMethodParameterInAGenericClassIsRejectedForLua`. A version with
+    the second parameter on a free function does compile on Lua and passes with or without item 10's
+    change, so it covers nothing; that is why the rejection is pinned instead.
+
+    Where to start: the message comes from the arity check between a call's generics and the callee's
+    type variables. A method of a generic class has the class's variables lifted onto it on the Jass
+    path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
+    against a list which does not include the class's.
+
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
     caught a bug already found; a place where two mechanisms do the same job and disagree; a
