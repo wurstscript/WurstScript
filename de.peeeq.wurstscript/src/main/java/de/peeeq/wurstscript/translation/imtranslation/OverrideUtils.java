@@ -119,9 +119,14 @@ public class OverrideUtils {
         ImFunction implementation = JassIm.ImFunction(e, subMethod.getName() + "_wrapper", JassIm.ImTypeVars(), parameters, rType, locals, body, flags);
         tr.getImProg().getFunctions().add(implementation);
 
-        ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, JassIm.ImMethods(), new ArrayList<>(), "", "", false);
+        ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, JassIm.ImMethods(), new ArrayList<>(), "", false);
         subClass.getMethods().add(wrapperMethod);
         superMethodIm.getSubMethods().add(wrapperMethod);
+        // Deliberately not linking wrapperMethod to subMethod as a submethod, though the wrapper does
+        // call it. Doing so makes the wrapper's dispatch reach the override directly, without the
+        // conversion the wrapper exists to perform, and fails the implicit conversion and generic
+        // overload tests. The relation is real but this is not the way to state it; the family below
+        // is derived without needing it.
     }
 
 

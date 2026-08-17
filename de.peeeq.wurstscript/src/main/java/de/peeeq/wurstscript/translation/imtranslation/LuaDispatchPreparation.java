@@ -68,16 +68,6 @@ public final class LuaDispatchPreparation {
             grouped.computeIfAbsent(root, ignored -> new ArrayList<>()).add(method);
         }
 
-        // The union above is a method together with its overrides, which is one dispatchable thing.
-        // Recorded before the group is split by signature, because that split separates the members of
-        // a generic override chain - their signatures differ by each class's own type variable.
-        for (Map.Entry<ImMethod, List<ImMethod>> family : grouped.entrySet()) {
-            String familyKey = methodSortKey(family.getKey());
-            for (ImMethod method : family.getValue()) {
-                method.setLuaDispatchFamilyKey(familyKey);
-            }
-        }
-
         for (List<ImMethod> group : grouped.values()) {
             Map<String, List<ImMethod>> partitions = new LinkedHashMap<>();
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
@@ -183,7 +173,13 @@ public final class LuaDispatchPreparation {
             // union of a method with its overrides, before the split by signature which would have
             // separated the members of a generic chain. Unlike the declared name it also separates
             // overloads, which are not one dispatchable thing however they are spelled.
-            String identity = method.getLuaDispatchFamilyKey();
+            // Junk when the name names no method: the segment it was composed from is the type
+            // argument rather than anything anyone wrote. A method and its overrides compose the name
+            // they were declared with and share that slot, which is dispatch - including a conversion
+            // wrapper, which carries the same declared name as the method it wraps.
+            String identity = semanticNameFromMethodName(method.getName()).equals(declaredName(method))
+                ? "declared:" + declaredName(method)
+                : "mangled:" + System.identityHashCode(method);
             String previous = claimedBy.put(composed, identity);
             if (previous != null && !previous.equals(identity)) {
                 ambiguous.add(composed);

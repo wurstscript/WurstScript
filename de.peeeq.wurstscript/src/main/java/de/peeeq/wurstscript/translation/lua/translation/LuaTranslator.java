@@ -1077,9 +1077,14 @@ public class LuaTranslator {
                 if (semanticName.isEmpty()) {
                     continue;
                 }
-                String family = m.getLuaDispatchFamilyKey();
+                // A name which is the method's own declared name belongs to it and to its overrides,
+                // a conversion wrapper included, since the wrapper carries that name too. One built
+                // from a mangled segment belongs to none of them, and counting each such method
+                // separately is what makes the name read as claimed by several and left uncomposed.
+                String declared = LuaDispatchPreparation.declaredName(m);
                 claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
-                    .add(family == null ? "" : family);
+                    .add(semanticName.equals(declared) ? "declared:" + declared
+                        : "mangled:" + System.identityHashCode(m));
             }
             Set<String> ambiguous = new TreeSet<>();
             claimants.forEach((name, keys) -> {
