@@ -90,6 +90,9 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
+        // The interpreter is handed a program; this hands over the one thing it cannot work out from
+        // the program alone, which is what a specialised node was copied from.
+        globalState.setSpecialisations(tr);
         initializeBackendConstants();
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 

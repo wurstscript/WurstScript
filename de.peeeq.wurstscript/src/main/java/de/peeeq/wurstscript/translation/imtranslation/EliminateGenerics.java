@@ -1629,6 +1629,11 @@ public class EliminateGenerics {
 
             // Create + register global
             translator.addGlobal(specializedGlobal);
+            // Both halves of what the interpreter used to read out of the name: what this was copied
+            // from, and which class it belongs to.
+            translator.recordSpecialisation(specializedGlobal, originalGlobal, generics.getTypeArguments());
+            translator.recordGenericStaticOwner(specializedGlobal, originalClass);
+            translator.recordGenericStaticOwner(originalGlobal, originalClass);
             specializedGlobals.put(originalGlobal, key, specializedGlobal);
             dbg("Created specialized global: " + specializedName + " type=" + specializedType);
 

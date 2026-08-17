@@ -37,7 +37,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
 
-public class ImTranslator {
+public class ImTranslator implements SpecialisationLookup {
 
 
     public static final String $DEBUG_PRINT = "$debugPrint";
@@ -75,6 +75,25 @@ public class ImTranslator {
         recordSpecialisation(copy, original, List.of());
     }
 
+    /**
+     * The generic class a static field belongs to.
+     * <p>
+     * A static field of a generic class becomes a global named after the class, and the interpreter
+     * used to recover the owner by taking the longest prefix of that name ending at an underscore
+     * which matches a class name. A class whose name contains an underscore, or a field whose name
+     * begins like a class, answers that wrongly and silently. Recorded here instead, where it is
+     * known.
+     */
+    private final Map<ImVar, ImClass> genericStaticOwners = new IdentityHashMap<>();
+
+    public void recordGenericStaticOwner(ImVar global, ImClass owner) {
+        genericStaticOwners.put(global, owner);
+    }
+
+    public @Nullable ImClass genericStaticOwnerOf(ImVar global) {
+        return genericStaticOwners.get(global);
+    }
+
     /** What {@code copy} was made from and for, or null when it is not a copy. */
     public @Nullable Specialisation specialisationOf(Element copy) {
         return specialisations.get(copy);
@@ -87,6 +106,7 @@ public class ImTranslator {
      * construction because a copy is always newer than what it was made from; the bound is there so a
      * mistake elsewhere fails loudly rather than hanging.
      */
+    @Override
     @SuppressWarnings("unchecked")
     public <T extends Element> T canonical(T copy) {
         Element current = copy;
