@@ -19,7 +19,7 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
  */
 public class VarargEliminator {
 
-    private static final int JASS_MAX_PARAMETERS = 31;
+    private static final int JASS_MAX_PARAMETERS = ImHelper.JASS_MAX_PARAMETERS;
     private final ImProg prog;
     // original + number of args --> new function
     private final Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
@@ -72,7 +72,7 @@ public class VarargEliminator {
         ImFunction func = sourceCall.getFunc();
         int numberOfParams = sourceCall.getArguments().size();
         int jassParameterCount = sourceCall.getArguments().stream()
-            .mapToInt(argument -> flattenedJassArity(argument.attrTyp()))
+            .mapToInt(argument -> ImHelper.flattenedJassArity(argument.attrTyp()))
             .sum();
         if (jassParameterCount > JASS_MAX_PARAMETERS) {
             throw new CompileError(sourceCall, "Vararg call would generate " + jassParameterCount
@@ -145,15 +145,6 @@ public class VarargEliminator {
         // Add new function to prog
         prog.getFunctions().add(newFunc);
         varargFuncs.put(func, numberOfParams, newFunc);
-    }
-
-    private int flattenedJassArity(ImType type) {
-        if (type instanceof ImTupleType) {
-            return ((ImTupleType) type).getTypes().stream()
-                .mapToInt(this::flattenedJassArity)
-                .sum();
-        }
-        return 1;
     }
 
     @NotNull
