@@ -1409,6 +1409,28 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void overloadedOverrideOnAGenericBaseIsReachedThroughTheBase() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Base<T>",
+            "    function route(T t) returns int",
+            "        return 1",
+            "    function route(T t, int extra) returns int",
+            "        return 2",
+            "class Child extends Base<int>",
+            "    override function route(int t) returns int",
+            "        return 10",
+            "    override function route(int t, int extra) returns int",
+            "        return 20",
+            "init",
+            "    Base<int> b = new Child()",
+            "    if b.route(1) == 10 and b.route(1, 2) == 20",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void luaOutputIsDeterministicForGenericOverrideSlots() throws IOException {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String first = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);

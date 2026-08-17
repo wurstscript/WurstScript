@@ -187,7 +187,7 @@ public final class LuaDispatchPreparation {
         // as the type argument does not entitle the others to the slot it owns.
         String composed = directAliasFor(method);
         if (composed != null
-                && semanticNameFromMethodName(method.getName()).equals(declaredName(method))) {
+                && namesItsDeclaredMethod(method)) {
             aliases.add(composed);
         }
         String sourceSemanticName = sourceSemanticName(method);
@@ -305,6 +305,37 @@ public final class LuaDispatchPreparation {
     }
 
     /** The name the method was written with, or empty when there is no declaration to ask. */
+    /**
+     * Whether the name recovered from this method's mangled name is the name it was declared with.
+     * <p>
+     * The recovered name is the segment after the last underscore, and a method the translation
+     * numbered to keep it apart from its overloads carries that number in the segment: the second
+     * {@code route} of a class is mangled to {@code Base_route1}, so the segment is {@code route1}
+     * where the declaration says {@code route}. Requiring the two to be equal refuses the alias for
+     * every overload past the first, which loses the class-qualified slot an override of it needs to
+     * replace - a call through the base then stays bound to the base implementation.
+     * <p>
+     * The number is the translation's own and means the same method, so it is allowed. Anything else
+     * between the two names is not: that is the case this check exists for, where the segment is a type
+     * argument rather than a method and the slot composed from it names nothing.
+     */
+    private static boolean namesItsDeclaredMethod(ImMethod method) {
+        String recovered = semanticNameFromMethodName(method.getName());
+        String declared = declaredName(method);
+        if (recovered.equals(declared)) {
+            return true;
+        }
+        if (declared.isEmpty() || !recovered.startsWith(declared)) {
+            return false;
+        }
+        return isOverloadNumber(recovered.substring(declared.length()));
+    }
+
+    /** The suffix the translation appends to tell overloads of one name apart. */
+    public static boolean isOverloadNumber(String suffix) {
+        return !suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit);
+    }
+
     /** The name a method carries in the source, which a method and its overrides all share. */
     public static String declaredName(ImMethod method) {
         if (method == null) {

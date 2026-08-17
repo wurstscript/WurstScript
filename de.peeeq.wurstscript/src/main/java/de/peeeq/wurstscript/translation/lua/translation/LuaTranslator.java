@@ -1025,7 +1025,13 @@ public class LuaTranslator {
             // implementation a name that belongs to nobody - and to the wrong method if some other
             // method happens to be declared with that word.
             String semanticName = semanticNameFromMethodName(m.getName());
-            if (!semanticName.isEmpty() && semanticName.equals(LuaDispatchPreparation.declaredName(m))) {
+            // The same rule as the one composing the aliases: the declared name, or that name with the
+            // number the translation uses to tell overloads apart. An override of a numbered overload
+            // has to be able to replace the slot its ancestor composed.
+            String declared = LuaDispatchPreparation.declaredName(m);
+            if (!semanticName.isEmpty() && (semanticName.equals(declared)
+                    || (!declared.isEmpty() && semanticName.startsWith(declared)
+                        && LuaDispatchPreparation.isOverloadNumber(semanticName.substring(declared.length()))))) {
                 semanticNames.add(semanticName);
             }
             String sourceSemanticName = sourceSemanticName(m);
