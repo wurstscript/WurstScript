@@ -911,6 +911,9 @@ public class EliminateGenerics {
             List<ImTypeVar> newTypeVars = new ArrayList<>();
             for (ImTypeVar imTypeVar : c.getTypeVariables()) {
                 ImTypeVar copy = imTypeVar.copy();
+                // One source parameter becomes several nodes here. Recorded so the two can be
+                // recognised as the same parameter without falling back to comparing names.
+                translator.recordCopiedTypeVar(copy, imTypeVar);
                 newTypeVars.add(copy);
             }
             f.getTypeVariables().addAll(0, newTypeVars);
@@ -1133,6 +1136,7 @@ public class EliminateGenerics {
         prog.getFunctions().add(newF);
 
         // concrete clone => no type vars
+        recordCopiedTypeVars(f.getTypeVariables(), newF.getTypeVariables());
         newF.getTypeVariables().removeAll();
 
         newF.setName(genericNewOnly
@@ -1219,6 +1223,7 @@ public class EliminateGenerics {
         specializedFunctions.put(implementation, generics, newImplementation);
         specializedFunctionGenerics.put(newImplementation, generics);
         prog.getFunctions().add(newImplementation);
+        recordCopiedTypeVars(implementation.getTypeVariables(), newImplementation.getTypeVariables());
         newImplementation.getTypeVariables().removeAll();
         newImplementation.setName(implementation.getName() + "_specialized");
         rewriteGenerics(newImplementation, generics, typeVariables);
@@ -1367,8 +1372,8 @@ public class EliminateGenerics {
      * outer parameter also supplies the instance it was specialised with, which is what makes a
      * chain of bounded generics resolve without any runtime dictionary.
      */
-    private static void inheritTypeClassBinding(ImTypeArgument ta, ImType original,
-                                                GenericTypes generics, List<ImTypeVar> typeVars) {
+    private void inheritTypeClassBinding(ImTypeArgument ta, ImType original,
+                                         GenericTypes generics, List<ImTypeVar> typeVars) {
         if (!ta.getTypeClassBinding().isEmpty() || !(original instanceof ImTypeVarRef ref)) {
             return;
         }
@@ -1395,10 +1400,30 @@ public class EliminateGenerics {
         return cur == null ? "?" : ((ImFunction) cur).getName();
     }
 
-    private static int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
+    /**
+     * Where {@code target} sits in {@code typeVars}, comparing what each was copied from rather than
+     * the nodes themselves: moving a function out of its class copies the class's type variables onto
+     * it, so one source parameter is several nodes. Comparing names instead would make two parameters
+     * which merely share a name look like one.
+     */
+    /**
+     * Pairs a copy's type variables with the ones they were copied from, index by index.
+     * <p>
+     * Copying a function or a class copies its type variables with it, and the references inside the
+     * copy point at the new nodes. The copy's list is then emptied, which leaves those nodes with no
+     * owner at all - so a reference reached later has nothing to compare against but a name. Recorded
+     * before that happens, the copy still leads back to the parameter it stands for.
+     */
+    private void recordCopiedTypeVars(List<ImTypeVar> originals, List<ImTypeVar> copies) {
+        for (int i = 0; i < originals.size() && i < copies.size(); i++) {
+            translator.recordCopiedTypeVar(copies.get(i), originals.get(i));
+        }
+    }
+
+    private int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
+        ImTypeVar wanted = translator.canonicalTypeVar(target);
         for (int i = 0; i < typeVars.size(); i++) {
-            ImTypeVar tv = typeVars.get(i);
-            if (tv == target || tv.getName().equals(target.getName())) {
+            if (translator.canonicalTypeVar(typeVars.get(i)) == wanted) {
                 return i;
             }
         }
@@ -1479,6 +1504,7 @@ public class EliminateGenerics {
         }
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
+        recordCopiedTypeVars(c.getTypeVariables(), newC.getTypeVariables());
         newC.getTypeVariables().removeAll();
 
         newC.setName(genericNewOnly

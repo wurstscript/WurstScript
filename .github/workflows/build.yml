@@ -127,6 +127,21 @@ jobs:
           check_name: Test Results (${{ matrix.os }})
           fail_on_failure: false
 
+      # luaOutputIsDeterministicForGenericOverrideSlots compiles one program twice and keeps both
+      # scripts when they differ. They are written to the runner's filesystem, so without this the
+      # evidence goes with the runner and the failure is as unactionable as it was before it kept
+      # anything. Most failures are not this test, hence if-no-files-found: ignore.
+      - name: Upload determinism scripts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: determinism-scripts-${{ matrix.os }}
+          path: |
+            de.peeeq.wurstscript/test-output/determinism-first.lua
+            de.peeeq.wurstscript/test-output/determinism-second.lua
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload packaged artifact (per-OS)
         uses: actions/upload-artifact@v4
         with:

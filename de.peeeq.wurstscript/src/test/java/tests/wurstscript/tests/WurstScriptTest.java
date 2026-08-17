@@ -78,9 +78,18 @@ public class WurstScriptTest {
         return false;
     }
 
+    /**
+     * How many Wurst tests the last run executed. Tests are stripped by the time the second pass
+     * happens, so this keeps the largest either saw. Zero means the program held none, which a
+     * caller expecting some needs to hear about: "every test passed" and "there were no tests" are
+     * otherwise the same green.
+     */
+    private int testsRun;
+
     @BeforeMethod(alwaysRun = true)
     public void _clearBefore() {
         GlobalCaches.clearAll();
+        testsRun = 0;
     }
 
     @AfterMethod(alwaysRun = true)
@@ -95,6 +104,7 @@ public class WurstScriptTest {
         private boolean withStdLib;
         private boolean executeProg;
         private boolean executeTests;
+        private int minimumTestsExpected;
         private boolean executeProgOnlyAfterTransforms;
         private String expectedError;
         private String expectedWarning;
@@ -132,6 +142,13 @@ public class WurstScriptTest {
 
         public TestConfig executeTests() {
             this.executeTests = true;
+            return this;
+        }
+
+        /** Fails when fewer than this many Wurst tests ran, so a program holding none is not green. */
+        public TestConfig expectAtLeastTests(int minimum) {
+            this.executeTests = true;
+            this.minimumTestsExpected = minimum;
             return this;
         }
 
@@ -197,6 +214,11 @@ public class WurstScriptTest {
         CompilationResult run() {
             try {
                 CompilationResult res = testScript();
+                if (minimumTestsExpected > 0 && testsRun < minimumTestsExpected) {
+                    fail("expected at least " + minimumTestsExpected + " Wurst tests to run, but "
+                        + testsRun + " did. A program which holds no tests passes every one of them,"
+                        + " so this would otherwise be green while checking nothing.");
+                }
                 if (expectedError != null) {
                     if (res.getGui().getErrorCount() == 0) {
                         fail("No errors were discovered");
@@ -1002,7 +1024,7 @@ public class WurstScriptTest {
         if (!executeProgOnlyAfterTransforms) {
             // we want to test that the interpreter works correctly before transforming the program in the translation step
             if (executeTests) {
-                executeTests(gui, compiler.getImTranslator(), imProg);
+                testsRun = Math.max(testsRun, executeTests(gui, compiler.getImTranslator(), imProg));
             }
             if (executeProg) {
                 WLogger.info("Executing imProg before jass transformation");
@@ -1021,7 +1043,7 @@ public class WurstScriptTest {
         }
 
         if (executeTests) {
-            executeTests(gui, compiler.getImTranslator(), imProg);
+            testsRun = Math.max(testsRun, executeTests(gui, compiler.getImTranslator(), imProg));
         }
         if (executeProg) {
             WLogger.info("Executing imProg after jass transformation");
@@ -1132,13 +1154,15 @@ public class WurstScriptTest {
         throw new Error(currentTestEnv + ": Succeed function not called");
     }
 
-    private void executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {
+    /** @return how many tests ran, so a caller can tell "all passed" from "there were none". */
+    private int executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {
         RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty());
         RunTests.TestResult res = runTests.runTests(translator, imProg, Optional.empty(), Optional.empty());
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
                     gui.getErrors());
         }
+        return res.getTotalTests();
     }
 
     /**
