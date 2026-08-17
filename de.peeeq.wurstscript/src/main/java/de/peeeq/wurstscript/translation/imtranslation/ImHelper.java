@@ -10,6 +10,25 @@ import java.util.*;
 
 public class ImHelper {
 
+    /** A Jass function takes at most this many parameters. */
+    public static final int JASS_MAX_PARAMETERS = 31;
+
+    /**
+     * How many Jass parameters a value of this type occupies.
+     * <p>
+     * A tuple is passed as one parameter per component, so an IM signature which looks well inside the
+     * limit can emit a Jass one which is not. Any pass which builds a signature has to count this way
+     * rather than counting parameters.
+     */
+    public static int flattenedJassArity(ImType type) {
+        if (type instanceof ImTupleType) {
+            return ((ImTupleType) type).getTypes().stream()
+                .mapToInt(ImHelper::flattenedJassArity)
+                .sum();
+        }
+        return 1;
+    }
+
     public static Set<ImFunction> calculateFunctionsOfProg(ImProg prog) {
         Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
         for(ImClass c : prog.getClasses()) {
