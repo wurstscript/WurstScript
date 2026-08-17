@@ -229,12 +229,17 @@ itself, and one gap in what the suite can see.
 
 ## Done
 
-- 25. A bounded type parameter on a method of a generic class compiles and runs on Lua. A method call
-  there carries the class's type arguments followed by the method's own, and the check for whether the
-  class's were still missing asked whether the call had *any* — so a method declaring parameters of its
-  own was read as already having both and its specialisation was matched against a list one longer than
-  what the call supplied. `aBoundedMethodParameterInAGenericClassLua` runs the program now instead of
-  pinning the rejection.
+- 25. A bounded type parameter on a method of a generic class no longer trips the arity check on Lua. A
+  method call there carries the class's type arguments followed by the method's own, and the check for
+  whether the class's were still missing asked whether the call had *any* — so a method declaring
+  parameters of its own was read as already having both and its specialisation was matched against a
+  list one longer than what the call supplied. `aBoundedMethodParameterInAGenericClassLua` runs the
+  program now instead of pinning the rejection.
+
+  Removing that rejection is not the same as supporting the shape, and `AGENTS.md` says not to promise
+  it: a method combining its own type parameters with its owning generic class's stays outside the Lua
+  contract, one running program being one call site rather than a guarantee. The docs say so rather than
+  reading the fix as general support.
 
 - 13 (Lua half). A subclass of a bounded generic class works on Lua. Two things were wrong and each hid
   the other. The specialised method was left on the specialised class while the object is allocated

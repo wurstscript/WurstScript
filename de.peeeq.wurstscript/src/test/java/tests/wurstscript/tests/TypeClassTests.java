@@ -476,6 +476,10 @@ public class TypeClassTests extends WurstScriptTest {
      * <p>
      * Running it is the point: both parameters reach one lookup only in this shape, so a version with
      * the second parameter on a free function would be coverage in name only.
+     * <p>
+     * One program running is not the shape being supported. A method combining its own type parameters
+     * with its owning generic class's stays outside the Lua contract - see {@code AGENTS.md} - so this
+     * says the arity check no longer rejects it, and nothing wider.
      */
     @Test
     public void aBoundedMethodParameterInAGenericClassLua() {

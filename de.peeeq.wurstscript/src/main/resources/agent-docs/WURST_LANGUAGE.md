@@ -229,9 +229,9 @@ class SubBox extends Box<int>
 		return super.size(extra) + 100
 ```
 
-This works on both targets. A method of such a class may also declare bounded type parameters of its own, on both targets.
+This works on both targets.
 
-One gap is left on Lua: a requirement dispatched from inside the constructor of a bounded generic class is rejected there, because a constructor call has no receiver to take the instantiation from. Dispatch from a method, a closure, or a `super` call is supported.
+Two things are not guaranteed on Lua. A requirement dispatched from inside the constructor of a bounded generic class is rejected there, because a constructor call has no receiver to take the instantiation from; dispatch from a method, a closure, or a `super` call is supported. And a method which combines its own type parameters with those of the generic class owning it is not a supported shape on that target — write it as a free generic function, or parameterise the method only by its owning class.
 
 ## Strings
 
