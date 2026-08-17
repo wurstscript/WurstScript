@@ -118,11 +118,9 @@ public final class LuaDispatchPreparation {
         Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache = new HashMap<>();
         Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor = new HashMap<>();
 
-        Set<String> ambiguousDirectAliases = ambiguousDirectAliases(allMethods);
-
         for (ImMethod method : allMethods) {
             TreeSet<String> aliases = new TreeSet<>();
-            addDirectAliases(method, aliases, ambiguousDirectAliases);
+            addDirectAliases(method, aliases);
             addHierarchyAliases(method, aliases, sortedMethodsByClass);
             addClosureFamilyAliases(prog, method, aliases, sortedMethodsByClass, closureFamilyAnchorsCache, closureFamilyClassesByAnchor);
             method.setLuaMethodDispatchAliases(new ArrayList<>(aliases));
@@ -162,38 +160,6 @@ public final class LuaDispatchPreparation {
      * arbitrarily" is worse than a name meaning nothing. {@code LuaTranslator} skips composing the
      * matching slot for the same reason.
      */
-    private static Set<String> ambiguousDirectAliases(List<ImMethod> allMethods) {
-        // A composed name is junk when it names no method: for a specialised method the segment it was
-        // built from is the type argument, which nobody declared, so every method of the specialisation
-        // composes it and the slot would be claimed by whichever is bound first. A method and its
-        // overrides compose the name they were declared with and must share that slot, which is
-        // dispatch - a conversion wrapper included, since it carries the same declared name.
-        Map<String, Boolean> declaredByAnyone = new LinkedHashMap<>();
-        Map<String, Set<ImMethod>> composedBy = new LinkedHashMap<>();
-        for (ImMethod method : allMethods) {
-            String composed = directAliasFor(method);
-            if (composed == null) {
-                continue;
-            }
-            boolean namesThisMethod = semanticNameFromMethodName(method.getName())
-                .equals(declaredName(method));
-            declaredByAnyone.merge(composed, namesThisMethod, (a, b) -> a || b);
-            // Counted by object identity: two methods are two claimants, and nothing about how many
-            // there are may depend on where the JVM happened to allocate them.
-            composedBy.computeIfAbsent(composed,
-                    name -> Collections.newSetFromMap(new IdentityHashMap<>()))
-                .add(method);
-        }
-
-        Set<String> ambiguous = new HashSet<>();
-        composedBy.forEach((composed, methods) -> {
-            if (!declaredByAnyone.getOrDefault(composed, false) && methods.size() > 1) {
-                ambiguous.add(composed);
-            }
-        });
-        return ambiguous;
-    }
-
     private static @Nullable String directAliasFor(ImMethod method) {
         if (method == null) {
             return null;
@@ -206,8 +172,7 @@ public final class LuaDispatchPreparation {
         return owner.getName() + "_" + semanticName;
     }
 
-    private static void addDirectAliases(ImMethod method, Set<String> aliases,
-                                         Set<String> ambiguousDirectAliases) {
+    private static void addDirectAliases(ImMethod method, Set<String> aliases) {
         if (method == null) {
             return;
         }
@@ -216,8 +181,13 @@ public final class LuaDispatchPreparation {
             aliases.add(methodName);
         }
         ImClass owner = method.attrClass();
+        // A method composes the class-qualified name only when the segment it would be built from is
+        // this method's own declared name. For a specialised method that segment is the type argument
+        // instead, which names no method - and one method happening to be declared with the same word
+        // as the type argument does not entitle the others to the slot it owns.
         String composed = directAliasFor(method);
-        if (composed != null && !ambiguousDirectAliases.contains(composed)) {
+        if (composed != null
+                && semanticNameFromMethodName(method.getName()).equals(declaredName(method))) {
             aliases.add(composed);
         }
         String sourceSemanticName = sourceSemanticName(method);

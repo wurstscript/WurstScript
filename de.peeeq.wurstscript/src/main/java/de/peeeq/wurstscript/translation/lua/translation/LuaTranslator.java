@@ -1020,8 +1020,12 @@ public class LuaTranslator {
                     slotNames.add(dispatchSlotName(alias));
                 }
             }
+            // Only the method's own declared name. A specialised method's trailing segment is the
+            // type argument, which names no method, so composing a slot from it hands one method's
+            // implementation a name that belongs to nobody - and to the wrong method if some other
+            // method happens to be declared with that word.
             String semanticName = semanticNameFromMethodName(m.getName());
-            if (!semanticName.isEmpty()) {
+            if (!semanticName.isEmpty() && semanticName.equals(LuaDispatchPreparation.declaredName(m))) {
                 semanticNames.add(semanticName);
             }
             String sourceSemanticName = sourceSemanticName(m);
@@ -1035,65 +1039,15 @@ public class LuaTranslator {
             // class every method's trailing segment is the type argument, which is exactly that
             // case, and the resulting slot is never called. Left uncomposed rather than bound
             // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
-            Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
             Set<String> classNames = new TreeSet<>();
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
             for (String className : classNames) {
                 for (String semanticName : semanticNames) {
-                    if (ambiguous.contains(semanticName)) {
-                        continue;
-                    }
                     slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
         return slotNames;
-    }
-
-    /**
-     * The semantic names which name no method in particular, cached per class.
-     * <p>
-     * A method and its overrides share a semantic name and must share a slot: that is dispatch. The
-     * family key says which methods are that one thing - the union of a method with its overrides,
-     * taken before the split by signature which would separate the members of a generic chain, since
-     * their signatures differ by each class's own type variable. The siblings of one specialisation
-     * belong to different families and still compose the same segment, because for a specialised
-     * method that segment is the type argument, and the slot composed from it is claimed by whichever
-     * is bound first and then never called.
-     * <p>
-     * Cached because {@code createMethods} asks twice per dispatch group and each ask would otherwise
-     * rebuild and sort the whole inherited method list.
-     */
-    private final Map<ImClass, Set<String>> ambiguousSemanticNamesByClass = new LinkedHashMap<>();
-
-    private Set<String> ambiguousSemanticNames(ImClass c) {
-        return ambiguousSemanticNamesByClass.computeIfAbsent(c, owner -> {
-            Map<String, Boolean> declaredByAnyone = new TreeMap<>();
-            Map<String, Set<ImMethod>> composedBy = new TreeMap<>();
-            for (ImMethod m : collectMethodsInHierarchy(owner)) {
-                if (m == null) {
-                    continue;
-                }
-                String semanticName = semanticNameFromMethodName(m.getName());
-                if (semanticName.isEmpty()) {
-                    continue;
-                }
-                boolean namesThisMethod = semanticName.equals(LuaDispatchPreparation.declaredName(m));
-                declaredByAnyone.merge(semanticName, namesThisMethod, (a, b) -> a || b);
-                // By object identity, so the count cannot depend on where the JVM allocated them.
-                composedBy.computeIfAbsent(semanticName,
-                        name -> Collections.newSetFromMap(new IdentityHashMap<>()))
-                    .add(m);
-            }
-
-            Set<String> ambiguous = new TreeSet<>();
-            composedBy.forEach((name, methods) -> {
-                if (!declaredByAnyone.getOrDefault(name, false) && methods.size() > 1) {
-                    ambiguous.add(name);
-                }
-            });
-            return ambiguous;
-        });
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {
