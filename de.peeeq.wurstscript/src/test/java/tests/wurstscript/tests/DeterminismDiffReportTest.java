@@ -2,6 +2,8 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 
 /**
@@ -56,11 +58,51 @@ public class DeterminismDiffReportTest {
         assertTrue(report.contains("after"), "the second version should be named:\n" + report);
     }
 
-    /** Identical scripts differing only in trailing bytes say so rather than listing nothing. */
+    /**
+     * Two scripts whose lines all match but which are not equal differ in how the lines end. The
+     * caller only asks after finding them unequal, so passing identical strings would test a state
+     * production never reaches — this passes CRLF against LF, which it can.
+     */
     @Test
-    public void identicalLinesReportTheTrailingByteCase() {
-        String report = LuaTranslationTests.describeFirstDifferences("a\nb\n", "a\nb\n");
+    public void differingOnlyInLineEndingsSaysSoRatherThanListingEveryLine() {
+        String crlf = "alpha\r\nbeta\r\ngamma\r\n";
+        String lf = "alpha\nbeta\ngamma\n";
+        assertNotEquals(crlf, lf, "the two inputs must be unequal for this to mean anything");
 
-        assertTrue(report.contains("no line does"), "expected the trailing byte wording:\n" + report);
+        String report = LuaTranslationTests.describeFirstDifferences(crlf, lf);
+
+        assertTrue(report.contains("line terminators"),
+            "line endings should be named rather than every line reported as changed:\n" + report);
+        assertFalse(report.contains("only in the first"),
+            "no line should be reported as removed:\n" + report);
+    }
+
+    @Test
+    public void probeShowsTheWording() {
+        System.err.println("PROBE-CRLF: " + LuaTranslationTests.describeFirstDifferences(
+            "alpha
+beta
+", "alpha
+beta
+"));
+        System.err.println("PROBE-MOVE: " + LuaTranslationTests.describeFirstDifferences(
+            "one
+moved
+two
+three
+", "one
+two
+three
+moved
+"));
+    }
+
+    /** Bytes after the last line reach the same branch: every line matches, the scripts do not. */
+    @Test
+    public void trailingBytesReachTheSameCase() {
+        String report = LuaTranslationTests.describeFirstDifferences("a\nb\n", "a\nb");
+
+        assertTrue(report.contains("line terminators") || report.contains("only in the"),
+            "a trailing difference should be described one way or the other:\n" + report);
     }
 }

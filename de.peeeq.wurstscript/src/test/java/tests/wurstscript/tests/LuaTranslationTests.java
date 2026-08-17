@@ -1446,7 +1446,12 @@ public class LuaTranslationTests extends WurstScriptTest {
      * on its own: an artifact needs fetching, and the check is what gets read first. Bounded so a
      * wholesale difference does not bury the report, with the totals stated either way.
      */
-    private static final String NEWLINE_RE = "\n";
+    /**
+     * Splits on either terminator, so a CRLF script aligns against an LF one line for line. Splitting
+     * on "\n" alone leaves the carriage return in the line text, which makes every line of a CRLF
+     * script differ from its LF counterpart and buries the actual difference.
+     */
+    private static final String NEWLINE_RE = "\r?\n";
     private static final char NEWLINE = '\n';
 
     static String describeFirstDifferences(String first, String second) {
@@ -1494,7 +1499,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         }
 
         if (removed == 0 && added == 0) {
-            return "  the scripts differ but no line does, so it is line endings or trailing bytes";
+            // Reached because the split accepts either terminator: two scripts whose lines all match
+            // and which are still unequal differ in how those lines end, or in bytes after the last
+            // one. Worth saying plainly rather than reporting every line as changed, which is what
+            // splitting on "\n" alone did - it left the carriage returns in the line text.
+            return "  every line matches, so the two differ only in line terminators or trailing"
+                + " bytes: " + first.length() + " characters against " + second.length();
         }
         StringBuilder sb = new StringBuilder();
         sb.append("  ").append(removed).append(" line(s) only in the first, ")
