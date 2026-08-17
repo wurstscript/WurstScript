@@ -43,53 +43,61 @@ public class ImTranslator {
     public static final String $DEBUG_PRINT = "$debugPrint";
 
     /**
-     * The field each field of a specialised class was copied from.
+     * What each specialised node was copied from, and under which type arguments.
      * <p>
-     * Nothing refers to a copy: an access made before specialisation still names the original's
-     * variable. A pass which drops fields nothing reads would drop every copy, leaving an instance of
-     * the specialised class allocated with no fields while the emitted code goes on reading them. A
-     * copy is live exactly when the field it was made from is.
+     * Specialising a generic entity makes a new node rather than recording a relation, so the copy has
+     * no way to say what it stands for. Passes then recover that by other means, and each of those
+     * means has been wrong: a pass which drops what nothing reads dropped every copied field, because
+     * an access made before specialisation still names the original's variable; a lookup which matched
+     * type variables by name took two parameters sharing a name for one, which dispatched a value
+     * through the wrong instance; and a name composed from a copy's mangled name reads the type
+     * argument as though it were a method name.
+     * <p>
+     * This is that relation, in one place: a copy, what it was copied from, and the type arguments the
+     * copy was made for. Identity, liveness and naming can all be answered from it rather than from a
+     * name, which is what those three passes were doing by hand.
      */
-    private final java.util.Map<ImVar, ImVar> specializedFieldOrigins = new java.util.IdentityHashMap<>();
+    public record Specialisation(Element original, List<ImTypeArgument> typeArguments) {
+    }
+
+    private final Map<Element, Specialisation> specialisations = new IdentityHashMap<>();
 
     /**
-     * The type variable each copy was made from.
-     * <p>
-     * Moving a function out of its class copies the class's type variables onto it, deliberately, so
-     * one source parameter is several nodes and identity alone cannot recognise them. Matching on the
-     * name instead makes two parameters which merely share a name look like one, which is a wrong
-     * dispatch rather than a missed one; following the copy back to what it was made from tells them
-     * apart.
+     * @param typeArguments the arguments the copy was made for, empty when a copy carries none of its
+     *                      own - moving a function out of its class copies the class's type variables
+     *                      onto it without specialising anything
      */
-    private final java.util.Map<ImTypeVar, ImTypeVar> typeVarOrigins = new java.util.IdentityHashMap<>();
-
-    public void recordCopiedTypeVar(ImTypeVar copy, ImTypeVar original) {
-        typeVarOrigins.put(copy, original);
+    public void recordSpecialisation(Element copy, Element original, List<ImTypeArgument> typeArguments) {
+        specialisations.put(copy, new Specialisation(original, List.copyOf(typeArguments)));
     }
 
-    /** The type variable {@code tv} was ultimately copied from, or {@code tv} itself. */
-    public ImTypeVar canonicalTypeVar(ImTypeVar tv) {
-        ImTypeVar current = tv;
-        // A copy of a copy is possible, so follow to the root; the map is acyclic by construction
-        // because a copy is always newer than what it was made from.
-        for (int steps = 0; steps < 100; steps++) {
-            ImTypeVar origin = typeVarOrigins.get(current);
-            if (origin == null) {
-                return current;
+    public void recordSpecialisation(Element copy, Element original) {
+        recordSpecialisation(copy, original, List.of());
+    }
+
+    /** What {@code copy} was made from and for, or null when it is not a copy. */
+    public @Nullable Specialisation specialisationOf(Element copy) {
+        return specialisations.get(copy);
+    }
+
+    /**
+     * The node {@code copy} was ultimately copied from, or {@code copy} itself.
+     * <p>
+     * A copy of a copy is possible, so this follows to the root. The relation is acyclic by
+     * construction because a copy is always newer than what it was made from; the bound is there so a
+     * mistake elsewhere fails loudly rather than hanging.
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends Element> T canonical(T copy) {
+        Element current = copy;
+        for (int steps = 0; steps < 1000; steps++) {
+            Specialisation specialisation = specialisations.get(current);
+            if (specialisation == null) {
+                return (T) current;
             }
-            current = origin;
+            current = specialisation.original();
         }
-        return current;
-    }
-
-    public void recordSpecializedField(ImVar copy, ImVar original) {
-        specializedFieldOrigins.put(copy, original);
-    }
-
-    /** The field {@code copy} was specialised from, or {@code copy} itself if it is not a copy. */
-    public ImVar originalOfSpecializedField(ImVar copy) {
-        ImVar origin = specializedFieldOrigins.get(copy);
-        return origin == null ? copy : origin;
+        throw new IllegalStateException("specialisation chain does not terminate at " + copy);
     }
 
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();

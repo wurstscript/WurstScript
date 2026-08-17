@@ -422,7 +422,7 @@ public class LuaTranslator {
             collectMethodNames(c, reserved, new HashSet<>());
             for (ImVar field : c.getFields()) {
                 namesToAvoid
-                    .computeIfAbsent(imTr.originalOfSpecializedField(field), origin -> new HashSet<>())
+                    .computeIfAbsent(imTr.canonical(field), origin -> new HashSet<>())
                     .addAll(reserved);
             }
         }
@@ -445,7 +445,7 @@ public class LuaTranslator {
         collectMethodNames(c, reserved, new HashSet<>());
         collectSuperFieldNames(c, reserved, new HashSet<>());
         for (ImVar field : c.getFields()) {
-            ImVar origin = imTr.originalOfSpecializedField(field);
+            ImVar origin = imTr.canonical(field);
             String settled = chosenNames.get(origin);
             if (settled != null) {
                 // The original and its copies are one key, decided the first time any of them is met.

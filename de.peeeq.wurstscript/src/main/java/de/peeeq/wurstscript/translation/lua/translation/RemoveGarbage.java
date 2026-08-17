@@ -93,7 +93,7 @@ public class RemoveGarbage {
         // no fields at all while the emitted code goes on reading them.
         for (ImClass c : prog.getClasses()) {
             c.getFields().removeIf(g -> !used.getVars().contains(g)
-                && !used.getVars().contains(translator.originalOfSpecializedField(g)));
+                && !used.getVars().contains(translator.canonical(g)));
             c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
             c.getMethods().removeIf(m -> !used.getMethods().contains(m));
             for (ImMethod m : c.getMethods()) {
