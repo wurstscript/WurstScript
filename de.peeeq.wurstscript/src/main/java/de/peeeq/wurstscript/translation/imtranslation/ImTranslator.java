@@ -52,6 +52,36 @@ public class ImTranslator {
      */
     private final java.util.Map<ImVar, ImVar> specializedFieldOrigins = new java.util.IdentityHashMap<>();
 
+    /**
+     * The type variable each copy was made from.
+     * <p>
+     * Moving a function out of its class copies the class's type variables onto it, deliberately, so
+     * one source parameter is several nodes and identity alone cannot recognise them. Matching on the
+     * name instead makes two parameters which merely share a name look like one, which is a wrong
+     * dispatch rather than a missed one; following the copy back to what it was made from tells them
+     * apart.
+     */
+    private final java.util.Map<ImTypeVar, ImTypeVar> typeVarOrigins = new java.util.IdentityHashMap<>();
+
+    public void recordCopiedTypeVar(ImTypeVar copy, ImTypeVar original) {
+        typeVarOrigins.put(copy, original);
+    }
+
+    /** The type variable {@code tv} was ultimately copied from, or {@code tv} itself. */
+    public ImTypeVar canonicalTypeVar(ImTypeVar tv) {
+        ImTypeVar current = tv;
+        // A copy of a copy is possible, so follow to the root; the map is acyclic by construction
+        // because a copy is always newer than what it was made from.
+        for (int steps = 0; steps < 100; steps++) {
+            ImTypeVar origin = typeVarOrigins.get(current);
+            if (origin == null) {
+                return current;
+            }
+            current = origin;
+        }
+        return current;
+    }
+
     public void recordSpecializedField(ImVar copy, ImVar original) {
         specializedFieldOrigins.put(copy, original);
     }

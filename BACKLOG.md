@@ -17,27 +17,15 @@ The container these bounds were added for now compiles and runs against the stan
 Jass, and compiles on Lua (#1239). What is left is generality around it rather than the feature
 itself, and one gap in what the suite can see.
 
-21. **Nothing executes a standard library program on Lua.** Every test which puts the library on
-    that target compiles only, because the runtime shim cannot initialise the library's own
-    packages — `GameTimer` fails first, and the generated fallback for an undefined native raises
-    rather than returning. So the one thing a user actually does, running library code on Lua, is
-    the one thing never run here.
+22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
+    them, collected by importing every package in the checkout whose name ends in `Tests`. That
+    half is done; this is the other one.
 
-    This is why `fastHashMapAgainstTheStandardLibraryLua` asserts on emitted shape instead of on a
-    result. It is also how the empty-allocation bug in #1239 survived as long as it did: the paths
-    which would have caught it are compiled and never executed.
-
-    Worth finding out how far it is. If it is a handful of missing natives in `wc3shim.lua`, the
-    payoff is every existing library test on that target becoming a real one. Start by capturing
-    what `GameTimer` actually fails on rather than the message Wurst wraps it in.
-
-22. **A bump of the pinned library is only checked for compiling.** Nothing runs the library's own
-    test functions, so a behaviour change in it is invisible here. `StdLibStringTests` (#1240)
-    covers the string handling one bump turned on, which is a start rather than a solution: the
-    library's multibyte detection degrades quietly to an ascii-only path when it cannot find what
-    it probes for, so a version where it silently gave up would otherwise look exactly like one
-    where it worked. Running the library's own tests generalises this, and its Lua half depends on
-    item 21.
+    `executeTests` runs them through `RunTests` on the intermediate language, so it covers the
+    interpreter only. Running them on Lua needs the harness to execute a Wurst test function on
+    that target rather than an `init` block, which is new machinery rather than a flag. Worth it:
+    the two targets have disagreed before, and every disagreement found so far was found by running
+    the same program on both.
 
 6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
    a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
@@ -117,15 +105,30 @@ itself, and one gap in what the suite can see.
    the repository root, which is easy to miss when looking for it. Fold an update into whichever
    item changes the behaviour rather than doing it as a separate pass.
 
-10. **One `ImTypeVar` per type parameter.** Name-tolerant lookups remain in
-   `EliminateGenerics.indexOfTypeVar`, `inheritTypeClassBinding` and
-   `ProgramState.getCurrentTypeArgument`, compensating for several nodes standing for one
-   source parameter. Making the node canonical lets all three compare by identity and removes
-   a class of silent wrong dispatch. Mechanical, well covered by the suite.
+10. **The interpreter still finds a type argument by name.**
+    `ProgramState.getCurrentTypeArgument` compares `ImTypeVar` nodes by name, so two parameters which
+    merely share one look like the same parameter.
 
-   Note before starting: `moveFunctionsOutOfClass` copies a class's type variables onto each
-   function it moves out, deliberately, and #1237 depends on that copy. Identity cannot hold across
-   that boundary, so what is being made canonical is per scope rather than per program.
+    The two lookups in `EliminateGenerics` no longer do. What they compare is what each node was
+    copied from: three places copy a function's or a class's type variables and then empty the copy's
+    list, which leaves every reference inside pointing at a node belonging to nothing — the name
+    match was not compensating for the odd duplicate, it was the only thing holding those references
+    together. Recording the copy before the list is emptied replaces it entirely, and name matching
+    is gone from `indexOfTypeVar` and from `inheritTypeClassBinding` through it.
+
+    The record lives on the `ImTranslator`. The interpreter is handed a program rather than the
+    translation which produced it, so reaching the record from `ProgramState` means threading the
+    translator through the interpreter — four construction sites, three of them tests, but an API
+    change all the same. That is what is left of this item.
+
+    Pinned by `TypeClassTests.aBoundedMethodParameterMayShareTheClassParameterName`: a class over int
+    whose instance doubles, and a method parameter of the same name bounded and called with string,
+    whose instance answers 7. Without the change the string is dispatched through the int instance and
+    the interpreter dies casting it to a number, which is what telling the two apart prevents.
+
+    A weaker version of that test - same names, method parameter unbounded - passes either way, so it
+    proved nothing. The bound and the second instance are what make the two parameters reach the same
+    lookup.
 
 13. **A bounded generic class cannot be subclassed on Lua.** The Jass half landed in #1237: a call
     which names its target outright now carries the class's type arguments, taken from the class its
@@ -172,6 +175,22 @@ itself, and one gap in what the suite can see.
     between equal starting states, which would invalidate the conclusion rather than explain the
     failure.
 
+25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
+    `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
+    match class method type variables", while the same program compiles and runs on the other target.
+    On master as well, so it is not a regression — found while trying to give item 10's fix Lua
+    coverage, which is what it blocks: the only shape reaching that lookup with two parameters at once
+    is a class parameter beside a method parameter, and Lua will not compile it.
+
+    Pinned by `TypeClassTests.aBoundedMethodParameterInAGenericClassIsRejectedForLua`. A version with
+    the second parameter on a free function does compile on Lua and passes with or without item 10's
+    change, so it covers nothing; that is why the rejection is pinned instead.
+
+    Where to start: the message comes from the arity check between a call's generics and the callee's
+    type variables. A method of a generic class has the class's variables lifted onto it on the Jass
+    path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
+    against a list which does not include the class's.
+
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
     caught a bug already found; a place where two mechanisms do the same job and disagree; a
@@ -213,6 +232,19 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 21. A standard library program executes on Lua (#1242). Three packages could not initialise, each
+  on one native the shim did not define — `StringHash` for Colors, `Location` for Vectors,
+  `TimerStart` for GameTimer — and `StringCase` made a fourth once the program itself ran. The
+  larger half was the harness: success is read off stdout and the library's own `testSuccess` is
+  empty, so such a test could not have passed whatever it did.
+
+- 22 (interpreter half). The library's 460 test functions run. They were invisible because a library
+  compiles in only what is imported, so a program importing nothing runs none of them and passes;
+  the imports are collected from the checkout so a bump brings its new tests with it. `executeTests`
+  now reports how many ran and `expectAtLeastTests` fails when too few do, because "every test
+  passed" and "there were no tests" were the same green — which is how the first version of this
+  test looked right while running nothing.
 
 - 5, 11, 14. The container these bounds were added for works. `FastHashMapTests` runs a whole hash
   map — two type parameters with only the first bounded, static arrays of a bounded parameter, a
