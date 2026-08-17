@@ -27,19 +27,34 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private final @Nullable Map<FuncDef, FuncLink> typeConstraintFunctions;
     private boolean indexInitialized = false;
     private final Element context;
+    /**
+     * True when this stands for the type parameter itself rather than a value of it, as in the
+     * receiver of {@code T.toIndex(x)}. Only this form exposes the methods required by the bounds.
+     */
+    private final boolean staticRef;
 
     public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
+        this(def, baseType, context, false);
+    }
+
+    private WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context, boolean staticRef) {
         if (baseType instanceof WurstTypeIntLiteral) {
             baseType = WurstTypeInt.instance();
         }
         this.typeParamDef = def;
         this.baseType = baseType;
         this.context = context;
+        this.staticRef = staticRef;
         if (def.getTypeParamConstraints() instanceof NoTypeParamConstraints) {
             this.typeConstraintFunctions = null;
         } else {
             this.typeConstraintFunctions = new HashMap<>();
         }
+    }
+
+    /** The same binding, seen as the type parameter itself rather than as a value of it. */
+    public WurstTypeBoundTypeParam asStaticRef() {
+        return staticRef ? this : new WurstTypeBoundTypeParam(typeParamDef, baseType, context, true);
     }
 
     @Override
@@ -92,17 +107,27 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public void addMemberMethods(Element node, String name,
                                  List<FuncLink> result) {
+        if (staticRef) {
+            // The requirements are the parameter's own, so a module cannot reach a bound its
+            // parameter did not declare; their types come from the argument it is bound to, which
+            // is what the copied body was rewritten to speak in.
+            TypeClassConstraints.addRequirementMethods(typeParamDef, baseType, this, node, name, result);
+            return;
+        }
         baseType.addMemberMethods(node, name, result);
     }
 
     @Override
     public Stream<FuncLink> getMemberMethods(Element node) {
+        if (staticRef) {
+            return TypeClassConstraints.requirementMethods(typeParamDef, baseType, this, node);
+        }
         return baseType.getMemberMethods(node);
     }
 
     @Override
     public boolean isStaticRef() {
-        return baseType.isStaticRef();
+        return staticRef || baseType.isStaticRef();
     }
 
     @Override
@@ -113,7 +138,10 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     public WurstType normalize() {
-        return baseType.normalize();
+        // A static reference denotes the parameter, not a value of what it is bound to. Normalising
+        // it away would leave the argument type, which knows nothing of the bounds the requirements
+        // are read from.
+        return staticRef ? this : baseType.normalize();
     }
 
     public FuncDef getFromIndex() {
@@ -178,7 +206,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         if (t == baseType) {
             return this;
         }
-        return new WurstTypeBoundTypeParam(typeParamDef, t, context);
+        return new WurstTypeBoundTypeParam(typeParamDef, t, context, staticRef);
     }
 
     public TypeParamDef getTypeParamDef() {

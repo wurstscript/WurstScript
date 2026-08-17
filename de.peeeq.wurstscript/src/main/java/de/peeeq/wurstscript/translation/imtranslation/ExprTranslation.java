@@ -521,7 +521,7 @@ public class ExprTranslation {
      * function supplied by the instance chosen for the substituted type.
      */
     private static ImExpr translateTypeClassDispatch(FunctionCall e, ImTranslator t, ImFunction f) {
-        WurstTypeTypeParam receiver = (WurstTypeTypeParam) ((HasReceiver) e).getLeft().attrTyp();
+        WurstType receiver = ((HasReceiver) e).getLeft().attrTyp();
         FunctionDefinition called = e.attrFuncDef();
         if (!(called instanceof FuncDef method)) {
             throw new CompileError(e.attrSource(),
@@ -531,7 +531,36 @@ public class ExprTranslation {
         for (Expr arg : e.getArgs()) {
             args.add(arg.imTranslateExpr(t, f));
         }
-        return JassIm.ImTypeVarDispatch(e, t.getTypeClassFunc(method), args, t.getTypeVar(receiver.getDef()));
+        ImTypeClassFunc requirement = t.getTypeClassFunc(method);
+        if (receiver instanceof WurstTypeBoundTypeParam bound) {
+            return translateModuleParamDispatch(e, bound, requirement, args, t);
+        }
+        return JassIm.ImTypeVarDispatch(e, requirement, args,
+            t.getTypeVar(((WurstTypeTypeParam) receiver).getDef()));
+    }
+
+    /**
+     * Dispatches a requirement called on a module instantiation's type parameter, which stands for
+     * the argument the using class supplied rather than for a variable of its own.
+     * <p>
+     * When that argument is itself a type parameter the dispatch is on the using class's variable,
+     * exactly as if the call had been written there. Otherwise the instance is already determined:
+     * a module used with a concrete argument leaves no variable for generic elimination to
+     * substitute, so the implementation is chosen here.
+     */
+    private static ImExpr translateModuleParamDispatch(FunctionCall e, WurstTypeBoundTypeParam bound,
+            ImTypeClassFunc requirement, ImExprs args, ImTranslator t) {
+        WurstType argument = bound.getBaseType().normalize();
+        if (argument instanceof WurstTypeTypeParam tp) {
+            return JassIm.ImTypeVarDispatch(e, requirement, args, t.getTypeVar(tp.getDef()));
+        }
+        Either<ImMethod, ImFunction> impl = bound.imTypeClassBinding(t).get(requirement);
+        if (impl == null) {
+            throw new CompileError(e.attrSource(),
+                "No type class instance supplies " + e.getFuncName() + " for " + argument + ".");
+        }
+        ImFunction target = impl.isRight() ? impl.get() : impl.getLeft().getImplementation();
+        return ImFunctionCall(e, target, ImTypeArguments(), args, false, CallType.NORMAL);
     }
 
     private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver, boolean nullSafe) {

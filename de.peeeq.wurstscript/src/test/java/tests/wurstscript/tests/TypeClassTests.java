@@ -455,7 +455,8 @@ public class TypeClassTests extends WurstScriptTest {
      * A module may carry a bounded type parameter, and a class using it supplies the argument. Using
      * a module copies its body into the class, substituting the module's type parameters — and a
      * requirement is called on the parameter itself, {@code T.show(x)}, which is a name rather than a
-     * type, so the substitution never reaches it.
+     * type, so the substitution never reaches it. The instantiation declares the parameter so that
+     * name still resolves.
      */
     private static final String[] BOUND_ON_MODULE = {
         "package test",
@@ -480,23 +481,77 @@ public class TypeClassTests extends WurstScriptTest {
     };
 
     /**
-     * Rejected, and this pins that it is rejected clearly rather than mistranslated.
-     * <p>
      * A module body resolves names in the module's own scope by design — {@code nextScope} sends a
      * {@code ModuleInstanciation} to {@code attrModuleOrigin()} rather than to the class using it, so
      * a module cannot capture the names of whoever uses it. The type replacement during expansion
      * therefore reaches every {@code T} used as a type, and cannot reach the one in {@code T.show(x)}
-     * which is a name: renaming it to the using class's parameter produces a name that scope
+     * which is a name: renaming it to the using class's parameter would produce a name that scope
      * deliberately cannot see.
      * <p>
-     * Making it work means the instantiation declaring the parameter itself, so the body keeps saying
-     * {@code T} and {@code T} resolves — type parameters on {@code ModuleInstanciation}, which is a
-     * grammar change. Backlog item 7.
+     * So the instantiation declares the parameter itself and records the argument. The body keeps
+     * saying {@code T}, that name resolves, and the requirement it reaches is the one {@code T}
+     * declared while its types are the argument's. Here the argument is the using class's own
+     * parameter, so the dispatch is on the class's type variable.
      */
     @Test
-    public void boundOnModuleTypeParameterIsRejected() {
-        testAssertErrorsLines(false, "Type class bounds are not supported on a module type parameter",
-            BOUND_ON_MODULE);
+    public void boundOnModuleTypeParameter() {
+        testAssertOkLines(true, BOUND_ON_MODULE);
+    }
+
+    @Test
+    public void boundOnModuleTypeParameterLua() {
+        test().testLua(true).executeProg().lines(BOUND_ON_MODULE);
+    }
+
+    /**
+     * The bound is checked where the argument is chosen. Nothing else sees both: the instantiation
+     * records the argument already resolved, and by the time the copied body dispatches on it the
+     * module use is no longer there to blame.
+     */
+    @Test
+    public void unsatisfiedBoundOnModuleUse() {
+        testAssertErrorsLines(false, "Type string does not satisfy the bound T: Show",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x * 2",
+            "module Shower<T: Show>",
+            "    T held",
+            "    function shown() returns int",
+            "        return T.show(held)",
+            "class Holder",
+            "    use Shower<string>",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /**
+     * A using class which is itself generic can only supply the bound by declaring it, because no
+     * instance is chosen yet at that point.
+     */
+    @Test
+    public void unsatisfiedBoundOnModuleUseFromClassParameter() {
+        testAssertErrorsLines(false, "Type parameter K does not satisfy the bound T: Show",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x * 2",
+            "module Shower<T: Show>",
+            "    T held",
+            "    function shown() returns int",
+            "        return T.show(held)",
+            "class Holder<K:>",
+            "    use Shower<K>",
+            "init",
+            "    testSuccess()"
+        );
     }
 
     /** Each type argument picks its own instance, so one generic serves several types. */
@@ -1174,27 +1229,38 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
-    /** A bound on a module type parameter is rejected: using a module copies its body out of scope. */
+    /**
+     * A module used with a concrete argument dispatches to that argument's instance directly: the
+     * using class is not generic, so there is no type variable left for generic elimination to
+     * substitute and the instance is already determined when the body is translated.
+     */
     @Test
     public void boundOnGenericModule() {
-        testAssertErrorsLines(false, "not supported on a module type parameter",
-            "package test",
-            "native testSuccess()",
-            "interface Show<T:>",
-            "    function show(T x) returns string",
-            "implements Show<int>",
-            "    function show(int x) returns string",
-            "        return \"i\"",
-            "module M<T: Show>",
-            "    function render(T x) returns string",
-            "        return T.show(x)",
-            "class C",
-            "    use M<int>",
-            "init",
-            "    if new C().render(1) == \"i\"",
-            "        testSuccess()"
-        );
+        testAssertOkLines(true, BOUND_ON_GENERIC_MODULE);
     }
+
+    @Test
+    public void boundOnGenericModuleLua() {
+        test().testLua(true).executeProg().lines(BOUND_ON_GENERIC_MODULE);
+    }
+
+    private static final String[] BOUND_ON_GENERIC_MODULE = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns string",
+        "implements Show<int>",
+        "    function show(int x) returns string",
+        "        return \"i\"",
+        "module M<T: Show>",
+        "    function render(T x) returns string",
+        "        return T.show(x)",
+        "class C",
+        "    use M<int>",
+        "init",
+        "    if new C().render(1) == \"i\"",
+        "        testSuccess()",
+    };
 
     /** A method with its own type parameters must not disturb the class binding taken from the receiver. */
     @Test

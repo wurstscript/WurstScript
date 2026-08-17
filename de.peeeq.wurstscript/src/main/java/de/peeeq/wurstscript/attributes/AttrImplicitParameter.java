@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import org.eclipse.jdt.annotation.Nullable;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 public class AttrImplicitParameter {
 
@@ -97,9 +98,17 @@ public class AttrImplicitParameter {
             return false;
         }
         Expr left = hasReceiver.getLeft();
-        return left != null
-            && left.attrTyp() instanceof WurstTypeTypeParam tp
-            && tp.isStaticRef();
+        if (left == null) {
+            return false;
+        }
+        WurstType leftType = left.attrTyp();
+        if (leftType instanceof WurstTypeTypeParam tp) {
+            return tp.isStaticRef();
+        }
+        // A parameter of a module instantiation denotes the argument bound to it, so the receiver is
+        // a binding rather than the parameter itself. It still names a type parameter, which is what
+        // makes this a dispatch.
+        return leftType instanceof WurstTypeBoundTypeParam bound && bound.isStaticRef();
     }
 
     static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {

@@ -1,11 +1,14 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Reads the type class bounds written on a new-style type parameter.
@@ -119,6 +122,81 @@ public final class TypeClassConstraints {
             return null;
         }
         return boundExpr.lookupType(simple.getTypeName(), false) instanceof InterfaceDef i ? i : null;
+    }
+
+    /**
+     * Surfaces the methods required by a type parameter's bounds as members of a receiver which
+     * stands for that parameter, so that {@code T.f(args)} resolves.
+     * <p>
+     * Bounds are ordered and an earlier one wins, but only over the same signature: two bounds may
+     * require the very same operation, and offering both would make every call ambiguous.
+     * Differently shaped overloads are not in competition, so later bounds still contribute them and
+     * overload resolution picks between them as usual.
+     *
+     * @param standsFor what the interface's own type parameter is bound to, which is what the
+     *                  requirement's parameter and return types substitute to.
+     * @param receiver  the type the call is written on.
+     */
+    public static void addRequirementMethods(TypeParamDef def, WurstType standsFor, WurstType receiver,
+                                             Element node, String name, List<FuncLink> result) {
+        List<FuncLink> supplied = new ArrayList<>();
+        for (InterfaceDef bound : boundInterfaces(def)) {
+            for (FuncDef method : bound.getMethods()) {
+                if (!method.getName().equals(name)) {
+                    continue;
+                }
+                FuncLink candidate = requirementLink(bound, method, standsFor, receiver, node);
+                if (!alreadySupplied(supplied, candidate, node)) {
+                    supplied.add(candidate);
+                }
+            }
+        }
+        result.addAll(supplied);
+    }
+
+    /** Every requirement of the bounds, for callers which want the whole set rather than one name. */
+    public static Stream<FuncLink> requirementMethods(TypeParamDef def, WurstType standsFor,
+                                                      WurstType receiver, Element node) {
+        return boundInterfaces(def).stream()
+                .flatMap(bound -> bound.getMethods().stream()
+                        .map(method -> requirementLink(bound, method, standsFor, receiver, node)));
+    }
+
+    /**
+     * Exposes one interface method as a requirement: the interface's own type parameter is
+     * substituted by what the receiver stands for, so the call reads {@code T.f(args)} with the
+     * arguments exactly as declared.
+     */
+    private static FuncLink requirementLink(InterfaceDef bound, FuncDef method, WurstType standsFor,
+                                            WurstType receiver, Element node) {
+        TypeParamDef ifaceParam = bound.getTypeParameters().get(0);
+        VariableBinding binding = VariableBinding.emptyMapping()
+                .set(ifaceParam, new WurstTypeBoundTypeParam(ifaceParam, standsFor, node));
+        return FuncLink.create(method, bound)
+                .withTypeArgBinding(node, binding)
+                .withReceiverType(receiver);
+    }
+
+    /** True when an earlier bound already supplied a requirement of the same shape. */
+    private static boolean alreadySupplied(List<FuncLink> supplied, FuncLink candidate, Element node) {
+        for (FuncLink existing : supplied) {
+            List<WurstType> a = existing.getParameterTypes();
+            List<WurstType> b = candidate.getParameterTypes();
+            if (a.size() != b.size()) {
+                continue;
+            }
+            boolean same = true;
+            for (int i = 0; i < a.size(); i++) {
+                if (!a.get(i).equalsType(b.get(i), node)) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
