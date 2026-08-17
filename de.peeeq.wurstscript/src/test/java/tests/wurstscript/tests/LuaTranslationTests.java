@@ -1430,6 +1430,48 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A type argument whose name is a method's name followed by a number, which is what the rule
+     * allowing an overload number could in principle be fooled by.
+     * <p>
+     * It holds, because the type argument is part of the owning class's name rather than the tail of the
+     * method's: the segment a slot name is composed from is {@code route} for {@code route} and
+     * {@code route1} for {@code route1}, and neither needs the number tolerated. The case is kept
+     * because it was raised against that rule and reasoning about which segment carries the type is
+     * exactly the kind of thing to check rather than argue about.
+     */
+    /**
+     * A type argument whose name is a method's name followed by a number, which is what the rule
+     * allowing an overload number could in principle be fooled by.
+     * <p>
+     * It holds, because the type argument is part of the owning class's name rather than the tail of the
+     * method's: the segment a slot name is composed from is {@code route} for {@code route} and
+     * {@code route1} for {@code route1}, and neither needs the number tolerated. The case is kept
+     * because it was raised against that rule, and which segment carries the type argument is exactly
+     * the kind of thing to check rather than argue about.
+     */
+    @Test
+    public void aTypeNamedLikeAnOverloadNumberDoesNotStealTheSlot() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class route1",
+            "    int v = 3",
+            "class Holder<T>",
+            "    T item",
+            "    construct(T item)",
+            "        this.item = item",
+            "    function route() returns int",
+            "        return 1",
+            "    function route1() returns int",
+            "        return 2",
+            "init",
+            "    let h = new Holder<route1>(new route1())",
+            "    if h.route() == 1 and h.route1() == 2",
+            "        testSuccess()"
+        );
+    }
+
     @Test
     public void luaOutputIsDeterministicForGenericOverrideSlots() throws IOException {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
