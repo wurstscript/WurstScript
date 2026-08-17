@@ -394,17 +394,16 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * A class and a method inside it may each declare a type parameter spelled the same. They are
-     * different parameters bound to different types at the same moment, and this covers that the
-     * shape compiles and runs.
+     * A class and a method inside it may each declare a bounded type parameter spelled the same, and
+     * they are different parameters bound to different types at the same moment. Which instance a
+     * requirement dispatches to therefore depends on telling the two apart.
      * <p>
-     * It passes without the canonical type variable change as well as with it, so it does not pin
-     * that change — the lookups which used to compare names are not reached with both parameters in
-     * one list here, and a program which does reach them that way was not found. It is kept for the
-     * language case rather than for the fix.
+     * {@code Holder<T: Show>} is built over int, whose instance doubles; {@code convert<T: Show>} is
+     * called with string, whose instance answers 7. Reading the method's parameter as the class's
+     * would dispatch through the int instance and answer 42 instead.
      */
     @Test
-    public void aMethodTypeParameterMayShareTheClassParameterName() {
+    public void aBoundedMethodParameterMayShareTheClassParameterName() {
         testAssertOkLines(true,
             "package test",
             "native testSuccess()",
@@ -413,19 +412,21 @@ public class TypeClassTests extends WurstScriptTest {
             "implements Show<int>",
             "    function show(int x) returns int",
             "        return x * 2",
+            "implements Show<string>",
+            "    function show(string x) returns int",
+            "        return 7",
             "class Holder<T: Show>",
             "    T held",
             "    construct(T held)",
             "        this.held = held",
             "    function shown() returns int",
             "        return T.show(held)",
-            // The method's T is a different parameter which happens to share the name, and it is
-            // unbounded: nothing may be dispatched on it.
-            "    function convert<T:>(T other, int extra) returns int",
-            "        return extra + 1",
+            // A different parameter which happens to share the name, bound to a different instance.
+            "    function convert<T: Show>(T other) returns int",
+            "        return T.show(other)",
             "init",
             "    let h = new Holder<int>(21)",
-            "    if h.shown() == 42 and h.convert<string>(\"x\", 1) == 2",
+            "    if h.shown() == 42 and h.convert<string>(\"x\") == 7",
             "        testSuccess()"
         );
     }

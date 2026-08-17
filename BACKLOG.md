@@ -103,10 +103,14 @@ itself, and one gap in what the suite can see.
     translator through the interpreter — four construction sites, three of them tests, but an API
     change all the same. That is what is left of this item.
 
-    Note for whoever takes it: a test which merely gives a class and a method a same-named parameter
-    passes either way. The lookups are not reached with both in one list by that shape, and a program
-    which does reach them that way was not found, so the change rests on removing the name comparison
-    rather than on a failing case.
+    Pinned by `TypeClassTests.aBoundedMethodParameterMayShareTheClassParameterName`: a class over int
+    whose instance doubles, and a method parameter of the same name bounded and called with string,
+    whose instance answers 7. Without the change the string is dispatched through the int instance and
+    the interpreter dies casting it to a number, which is what telling the two apart prevents.
+
+    A weaker version of that test - same names, method parameter unbounded - passes either way, so it
+    proved nothing. The bound and the second instance are what make the two parameters reach the same
+    lookup.
 
 13. **A bounded generic class cannot be subclassed on Lua.** The Jass half landed in #1237: a call
     which names its target outright now carries the class's type arguments, taken from the class its
