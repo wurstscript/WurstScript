@@ -159,7 +159,7 @@ public class ImOptimizer {
                 int classFieldsBefore = c.getFields().size();
                 changes |= c.getFields().retainAll(c.getFields().stream()
                     .filter(field -> readVars.contains(field)
-                        || readVars.contains(trans.originalOfSpecializedField(field)))
+                        || readVars.contains(trans.canonical(field)))
                     .collect(Collectors.toSet()));
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;

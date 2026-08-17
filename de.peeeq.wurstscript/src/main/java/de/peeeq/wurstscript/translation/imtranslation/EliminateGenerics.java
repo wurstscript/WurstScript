@@ -913,7 +913,7 @@ public class EliminateGenerics {
                 ImTypeVar copy = imTypeVar.copy();
                 // One source parameter becomes several nodes here. Recorded so the two can be
                 // recognised as the same parameter without falling back to comparing names.
-                translator.recordCopiedTypeVar(copy, imTypeVar);
+                translator.recordSpecialisation(copy, imTypeVar);
                 newTypeVars.add(copy);
             }
             f.getTypeVariables().addAll(0, newTypeVars);
@@ -1136,6 +1136,7 @@ public class EliminateGenerics {
         prog.getFunctions().add(newF);
 
         // concrete clone => no type vars
+        translator.recordSpecialisation(newF, f, generics.getTypeArguments());
         recordCopiedTypeVars(f.getTypeVariables(), newF.getTypeVariables());
         newF.getTypeVariables().removeAll();
 
@@ -1223,6 +1224,7 @@ public class EliminateGenerics {
         specializedFunctions.put(implementation, generics, newImplementation);
         specializedFunctionGenerics.put(newImplementation, generics);
         prog.getFunctions().add(newImplementation);
+        translator.recordSpecialisation(newImplementation, implementation, generics.getTypeArguments());
         recordCopiedTypeVars(implementation.getTypeVariables(), newImplementation.getTypeVariables());
         newImplementation.getTypeVariables().removeAll();
         newImplementation.setName(implementation.getName() + "_specialized");
@@ -1416,14 +1418,14 @@ public class EliminateGenerics {
      */
     private void recordCopiedTypeVars(List<ImTypeVar> originals, List<ImTypeVar> copies) {
         for (int i = 0; i < originals.size() && i < copies.size(); i++) {
-            translator.recordCopiedTypeVar(copies.get(i), originals.get(i));
+            translator.recordSpecialisation(copies.get(i), originals.get(i));
         }
     }
 
     private int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
-        ImTypeVar wanted = translator.canonicalTypeVar(target);
+        ImTypeVar wanted = translator.canonical(target);
         for (int i = 0; i < typeVars.size(); i++) {
-            if (translator.canonicalTypeVar(typeVars.get(i)) == wanted) {
+            if (translator.canonical(typeVars.get(i)) == wanted) {
                 return i;
             }
         }
@@ -1500,8 +1502,9 @@ public class EliminateGenerics {
         // The copy is structural, so field i of the copy is field i of the original. Nothing will
         // refer to the copies, so this is the only record that they are the same fields.
         for (int i = 0; i < c.getFields().size() && i < newC.getFields().size(); i++) {
-            translator.recordSpecializedField(newC.getFields().get(i), c.getFields().get(i));
+            translator.recordSpecialisation(newC.getFields().get(i), c.getFields().get(i), generics.getTypeArguments());
         }
+        translator.recordSpecialisation(newC, c, generics.getTypeArguments());
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
         recordCopiedTypeVars(c.getTypeVariables(), newC.getTypeVariables());
