@@ -189,6 +189,34 @@ itself, and one gap in what the suite can see.
     path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
     against a list which does not include the class's.
 
+26. **Nothing in the compiler should recover structure from a name, and one place doing it is a bug
+    today.** A dispatch slot's name is composed from the segment after the last underscore of a
+    method's mangled name, which is the declared name only when the declared name has no underscore in
+    it: `get_it` contributes `it`, which is nobody's method.
+
+    That is not only untidy. `LuaTranslationTests.underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua`
+    pins the consequence - an override named `get_it` in a generic hierarchy does not dispatch on Lua,
+    while the same shape without the underscore does. Found by auditing the junk-slot rule for what its
+    name comparison does to unrelated methods, not by anyone hitting it.
+
+    Asking the declaration instead is not the whole fix, and trying it is how the rest of this was
+    found. `LuaDispatchPreparation.declaredName` already reads the name off the trace, but two
+    overloads share a declared name: they mangle to `Foo_bar` and `Foo_bar_1`, and the segment after
+    the last underscore is also what currently keeps their slots apart. Pointing both composers at the
+    declared name fixes the underscore case and collapses overloaded slots instead -
+    `overloadedMethodsDoNotAliasInLuaDispatchTables` and
+    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` both catch it.
+
+    So the replacement is keyed on the declared signature, not the declared name: what a method and its
+    overrides share, and what distinguishes two overloads, are two different questions and the mangled
+    name is currently answering both at once by accident. Same shape as #1248 and #1249 - record it
+    where it is known - but it is a signature, not a rename.
+
+    The rest of the family, for the same treatment: `ProgramState.identifyGenericStaticGlobals` takes
+    the longest prefix of a global's name ending at an underscore which matches a class name, which a
+    class whose name contains an underscore answers wrongly and silently. #1249 made the recorded owner
+    preferred where one exists, so this is now only the fallback.
+
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
     caught a bug already found; a place where two mechanisms do the same job and disagree; a

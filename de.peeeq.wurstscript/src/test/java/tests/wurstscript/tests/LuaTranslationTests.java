@@ -1408,6 +1408,44 @@ public class LuaTranslationTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * An override whose declared name contains an underscore does not dispatch inside a generic
+     * hierarchy on Lua, and this pins that rather than leaving it to be met by surprise.
+     * <p>
+     * A dispatch slot's name is composed from the segment after the last underscore of the method's
+     * mangled name, so {@code get_it} contributes {@code it} - which is nobody's method - and the slot
+     * the call goes through is not the one the override was bound to. The same shape without the
+     * underscore works, and so does this one outside a generic hierarchy.
+     * <p>
+     * Found by auditing the junk-slot rule for what its name comparison does to unrelated methods,
+     * rather than by anyone hitting it. Asking the declaration for the name instead is not the whole
+     * fix: two overloads share a declared name and mangle to {@code Foo_bar} and {@code Foo_bar_1}, so
+     * the segment after the last underscore is also what currently keeps their slots apart. Backlog
+     * item 26 carries what the replacement has to be keyed on.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
+    public void underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Holder<T>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function get_it() returns T",
+            "        return value",
+            "class Doubler extends Holder<int>",
+            "    construct(int value)",
+            "        super(value)",
+            "    override function get_it() returns int",
+            "        return value * 2",
+            "init",
+            "    Holder<int> h = new Doubler(21)",
+            "    if h.get_it() == 42",
+            "        testSuccess()"
+        );
+    }
+
     @Test
     public void luaOutputIsDeterministicForGenericOverrideSlots() throws IOException {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
