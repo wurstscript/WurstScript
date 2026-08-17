@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
+import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -49,6 +50,20 @@ public class ProgramState extends State implements AutoCloseable {
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
     private int untrackedWriteDepth;
+
+    /**
+     * What each specialised node was copied from, when the caller knows. A program handed over without
+     * it is treated as having no specialisation in it, which is what a hand-built program means.
+     */
+    private SpecialisationLookup specialisations = SpecialisationLookup.NONE;
+
+    public void setSpecialisations(SpecialisationLookup specialisations) {
+        this.specialisations = specialisations;
+        // The owners were worked out in the constructor, before this arrived, and the recorded answer
+        // is better than the one read out of a name - so ask again now that it can be asked.
+        genericStaticOwner.clear();
+        identifyGenericStaticGlobals();
+    }
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -122,9 +137,17 @@ public class ProgramState extends State implements AutoCloseable {
         }
 
         for (ImVar global : prog.getGlobals()) {
-            String n = global.getName();
+            // Recorded where the global was created, when the caller supplied the relation.
+            ImClass recorded = specialisations.genericStaticOwnerOf(global);
+            if (recorded != null) {
+                genericStaticOwner.put(global, recorded);
+                continue;
+            }
 
-            // longest prefix ending at an underscore that matches a class name
+            // Otherwise the name is all there is: the longest prefix ending at an underscore which
+            // names a generic class. Wrong for a class whose name contains an underscore, and wrong
+            // silently, which is why the recorded answer is preferred.
+            String n = global.getName();
             int pos = n.lastIndexOf('_');
             while (pos > 0) {
                 String className = n.substring(0, pos);
@@ -507,17 +530,13 @@ public class ProgramState extends State implements AutoCloseable {
     public @Nullable ImTypeArgument getCurrentTypeArgument(ImTypeVar typeVar) {
         for (Map<ImTypeVar, ImTypeArgument> frame : typeArgumentFrames) {
             for (Map.Entry<ImTypeVar, ImTypeArgument> e : frame.entrySet()) {
-                // A class and its constructor hold separate nodes for the same source type
-                // parameter, so identity alone is not enough to find the binding.
-                //
-                // EliminateGenerics no longer needs this: it records what each copy was made from and
-                // compares that. The record lives on the ImTranslator, which the interpreter is not
-                // given - it is handed a program, not the translation that produced it - so matching
-                // on the name is what is left here. It is wrong in the same way it was wrong there:
-                // two parameters which merely share a name look like one. Reaching the record from
-                // here means threading the translator through the interpreter, which is its own
-                // change; backlog item 10 carries it.
-                boolean sameVar = e.getKey() == typeVar || e.getKey().getName().equals(typeVar.getName());
+                // A class and its constructor hold separate nodes for the same source type parameter,
+                // so identity alone does not find the binding. This used to fall back to comparing
+                // names, which takes two parameters that merely share one for the same parameter - the
+                // same mistake EliminateGenerics made, where it dispatched a value through the wrong
+                // instance. Both now ask what the node was copied from.
+                boolean sameVar = e.getKey() == typeVar
+                    || specialisations.canonical(e.getKey()) == specialisations.canonical(typeVar);
                 if (sameVar && !e.getValue().getTypeClassBinding().isEmpty()) {
                     return e.getValue();
                 }
