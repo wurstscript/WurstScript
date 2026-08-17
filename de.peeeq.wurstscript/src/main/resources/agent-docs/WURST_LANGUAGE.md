@@ -231,7 +231,9 @@ class SubBox extends Box<int>
 
 This works on both targets.
 
-Two things are not guaranteed on Lua. A requirement dispatched from inside the constructor of a bounded generic class is rejected there, because a constructor call has no receiver to take the instantiation from; dispatch from a method, a closure, or a `super` call is supported. And a method which combines its own type parameters with those of the generic class owning it is not a supported shape on that target — write it as a free generic function, or parameterise the method only by its owning class.
+A requirement may be dispatched from a method, a constructor, a closure, or a `super` call, on both targets.
+
+One shape is not guaranteed on Lua: a method which combines its own type parameters with those of the generic class owning it. Write it as a free generic function, or parameterise the method only by its owning class.
 
 ## Strings
 

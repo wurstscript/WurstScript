@@ -27,34 +27,6 @@ itself, and one gap in what the suite can see.
     the two targets have disagreed before, and every disagreement found so far was found by running
     the same program on both.
 
-6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
-   a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
-   `dispatchInsideConstructorIsRejectedForLua`, the second pinning the current diagnostic.
-
-   Still open after item 23's first half landed. The two mechanisms that closed items 13 and 25 both
-   read the instantiation off a receiver — the first argument of a call which names its target, or the
-   receiver of a method call. A constructor has neither: `new_Box(21)` takes no receiver, and the only
-   thing stating `Box<integer>` is the type of the variable it is assigned to. So this still needs the
-   type-driven collector below, which is a second mechanism rather than a widening of the one there is.
-
-   Not the same gap as item 5, and the fix from it does not reach: a constructor belongs to the
-   class rather than to a generic function of its own, so the call that runs it carries no type
-   arguments at all. The intermediate language has `b = new_Box(21)` with `b` typed
-   `Box<integer{show}>`, and `new_Box` still generic; the calls *inside* it
-   (`construct_Box<T>`, `Box_init<T>`) do carry the class's type variable, but nothing gives the
-   outermost one a concrete argument. `collectGenericNewUse` requires non-empty type arguments, so
-   it never starts.
-
-   What Jass does, from `TypeClassTests_dispatchInsideConstructor_no_opts.jim`: it specialises the
-   constructor function itself, `b_8 = new_Box⟪integer⟫(21)`. It gets there from *types*, not from
-   the call — `collectGenericUsages` collects a `GenericVar` for the local declared
-   `Box<integer{show}>` and a `GenericReturnTypeFunc` for `new_Box`, whose return type is generic.
-   The Lua collector has neither; it only ever looks at calls. So attaching type arguments to
-   constructor calls, which an earlier note here proposed, is not what the Jass path relies on and
-   would be a second mechanism rather than the same one.
-
-   Collecting from types on the Lua path runs straight into item 23, so settle that first.
-
 23. **The Lua erasure model.** Decided: **specialise only the paths which need a concrete type and
     leave the object erased throughout.** Generated scripts stay small, which is the reason for the
     choice; the cost is that it is more compiler work than the alternative of not erasing at all.
@@ -68,22 +40,22 @@ itself, and one gap in what the suite can see.
     instance be allocated with no fields at all, and then with its fields under a key nothing read
     (#1239). Both are fixed; the shape which produced them is what this decision removes.
 
-    **Half done.** Items 13 and 25 are closed, and the two things that closed them are the model
-    working: a specialised method is moved to the class its objects are actually allocated from, and a
-    call which names its target reads the instantiation off its receiver argument rather than off the
-    object's class. A specialisation nothing allocates is now left with no methods and drops out
-    entirely, so the second class shape is gone wherever an ordinary generic object is involved -
+    **Done.** Items 6, 13 and 25 are closed and the model is what closed them: a specialised method is
+    moved to the class its objects are actually allocated from, and every remaining site reads the
+    instantiation off something the call already has rather than off the object. A specialisation
+    nothing allocates is left with no methods and drops out entirely, so the second class shape is gone
+    wherever an ordinary generic object is involved -
     `FastHashMapTests.assertSpecialisedClassesAllocateTheirFields` states both accepted outcomes rather
     than the one that used to hold.
 
-    What is left is item 6, and it is the part this decision said would be the work: reading the
-    instantiation from a *type* rather than from a receiver. The classes which still allocate a
-    specialised copy are the ones whose construction was itself specialised, which is the same
-    question. Deciding it from what the program allocates, as the pass above does, is a fact rather
-    than a guess - but it is decided after the fact, and the model would rather no specialised class
-    were ever allocated.
-
-    Not blocking the container, which works on both targets today.
+    The type-driven collector this entry expected to need was not needed. Item 6 looked like it wanted
+    one, since a constructor has no receiver and the note below reasoned the instantiation was only on
+    the type of what the result is assigned to. It is not: `new_Box(21)` carries the type argument
+    already. What was missing is that a function of a generic class declares no type variables of its
+    own — it uses the class's, which this target does not lift — so specialising it was read as nothing
+    to do, the argument was stripped and the dispatch inside was left abstract. Matching such a function
+    against its class's variables is the whole fix, and it is the same rule as everywhere else here
+    rather than a second mechanism. Written down because three earlier notes argued for the harder one.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
@@ -228,6 +200,13 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 6. A requirement dispatched from inside the constructor of a bounded generic class works on Lua. The
+  call running a constructor carries its type argument already; what was missing is that a constructor
+  declares no type variables of its own, using its class's, so specialising it was treated as nothing
+  to do — the argument was stripped and the dispatch left with no concrete type. Functions of a generic
+  class are now matched against the class's type variables, which also covers the constructor body and
+  the field initialiser it calls.
 
 - 25. A bounded type parameter on a method of a generic class no longer trips the arity check on Lua. A
   method call there carries the class's type arguments followed by the method's own, and the check for

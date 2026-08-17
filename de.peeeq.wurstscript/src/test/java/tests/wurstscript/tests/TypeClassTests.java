@@ -172,17 +172,15 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * Still rejected for Lua, and this pins that it is rejected clearly rather than mistranslated.
-     * A constructor belongs to the class, not to a generic function of its own, so the call that
-     * runs it carries no type arguments — {@code new_Box(21)} in the intermediate language, with
-     * the instantiation only on the type of what it is assigned to. Nothing on the Lua path reads
-     * it from there, so the dispatch inside the constructor is never given a concrete type.
-     * Should that be made to work, this test fails and becomes the success case above.
+     * The same on Lua. A constructor belongs to its class rather than to a generic function of its
+     * own, so it declares no type variables and specialising it was treated as nothing to do — the
+     * call's type argument was stripped and the dispatch inside was left with no concrete type. The
+     * argument was on the call all along; what was missing is that a function of a generic class is
+     * matched against the class's type variables, since this target never lifts them onto it.
      */
     @Test
-    public void dispatchInsideConstructorIsRejectedForLua() {
-        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target")
-            .lines(DISPATCH_IN_CONSTRUCTOR);
+    public void dispatchInsideConstructorLua() {
+        test().testLua(true).executeProg().lines(DISPATCH_IN_CONSTRUCTOR);
     }
 
     /**

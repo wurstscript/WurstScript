@@ -439,7 +439,10 @@ public class FastHashMapTests extends WurstScriptTest {
         String erasedFields = allocatedFields(compiled, "FastHashMap");
         String specialisedFields = allocatedFieldsOrNull(compiled, "FastHashMap_specialized\\w*");
         if (specialisedFields == null) {
-            if (compiled.contains("FastHashMap_specialized")) {
+            // The class table, not any name containing it: a specialised function is named after the
+            // one it was copied from, so matching the bare name would read those as a class.
+            if (Pattern.compile("(?m)^\\s*FastHashMap_specialized\\w*\\s*=\\s*\\(\\{\\s*\\}\\)")
+                    .matcher(compiled).find()) {
                 throw new AssertionError("a specialised class is emitted but never allocated;"
                     + " its methods should be bound to the class the objects come from, leaving nothing"
                     + " of it behind, in:\n" + compiled);

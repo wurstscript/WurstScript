@@ -58,17 +58,17 @@
     arguments chosen for them, so that name resolves and says what it stands for. The argument must satisfy
     the bound, which is reported at the `use`. This works on both targets.
 
-- On the Lua target, a bounded generic class can now be subclassed. A generic object stays erased there
-  and only the paths needing a concrete type are specialised, so the concrete type has to reach those
-  paths rather than the object: a specialised method is bound to the class its objects are allocated
-  from, and a call which names its target — `super.m()` is one — takes the instantiation from the class
-  its receiver is used as. A specialisation nothing allocates is no longer emitted at all.
+- On the Lua target, a bounded generic class can now be subclassed, and a requirement can be dispatched
+  from inside a constructor. A generic object stays erased there and only the paths needing a concrete
+  type are specialised, so the concrete type has to reach those paths rather than the object: a
+  specialised method is bound to the class its objects are allocated from, a call which names its target
+  — `super.m()` is one — takes the instantiation from the class its receiver is used as, and a function
+  of a generic class is matched against that class's type variables rather than being read as having
+  none of its own. A specialisation nothing allocates is no longer emitted at all.
 
-    Two shapes remain unsupported on Lua. A requirement dispatched from inside a constructor is still
-    rejected, a constructor call having no receiver to read the instantiation from. And a method
-    combining its own type parameters with those of the generic class owning it is still not a supported
-    shape, though it is no longer rejected outright: the arity check it tripped over counted the class's
-    type arguments against a call that had only supplied the method's.
+    One shape remains unsupported on Lua: a method combining its own type parameters with those of the
+    generic class owning it, though it is no longer rejected outright — the arity check it tripped over
+    counted the class's type arguments against a call that had only supplied the method's.
 
 - Added new pseudo-natives for debugging memory leaks:
 
