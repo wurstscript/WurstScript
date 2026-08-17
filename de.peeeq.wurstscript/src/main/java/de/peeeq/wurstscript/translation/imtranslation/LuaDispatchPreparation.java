@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,30 +163,34 @@ public final class LuaDispatchPreparation {
      * matching slot for the same reason.
      */
     private static Set<String> ambiguousDirectAliases(List<ImMethod> allMethods) {
-        Map<String, String> claimedBy = new LinkedHashMap<>();
-        Set<String> ambiguous = new HashSet<>();
+        // A composed name is junk when it names no method: for a specialised method the segment it was
+        // built from is the type argument, which nobody declared, so every method of the specialisation
+        // composes it and the slot would be claimed by whichever is bound first. A method and its
+        // overrides compose the name they were declared with and must share that slot, which is
+        // dispatch - a conversion wrapper included, since it carries the same declared name.
+        Map<String, Boolean> declaredByAnyone = new LinkedHashMap<>();
+        Map<String, Set<ImMethod>> composedBy = new LinkedHashMap<>();
         for (ImMethod method : allMethods) {
             String composed = directAliasFor(method);
             if (composed == null) {
                 continue;
             }
-            // A method and its overrides are one dispatchable thing and must share a slot - that is
-            // what dispatch is - so they are not a collision. The family key says exactly that: the
-            // union of a method with its overrides, before the split by signature which would have
-            // separated the members of a generic chain. Unlike the declared name it also separates
-            // overloads, which are not one dispatchable thing however they are spelled.
-            // Junk when the name names no method: the segment it was composed from is the type
-            // argument rather than anything anyone wrote. A method and its overrides compose the name
-            // they were declared with and share that slot, which is dispatch - including a conversion
-            // wrapper, which carries the same declared name as the method it wraps.
-            String identity = semanticNameFromMethodName(method.getName()).equals(declaredName(method))
-                ? "declared:" + declaredName(method)
-                : "mangled:" + System.identityHashCode(method);
-            String previous = claimedBy.put(composed, identity);
-            if (previous != null && !previous.equals(identity)) {
+            boolean namesThisMethod = semanticNameFromMethodName(method.getName())
+                .equals(declaredName(method));
+            declaredByAnyone.merge(composed, namesThisMethod, (a, b) -> a || b);
+            // Counted by object identity: two methods are two claimants, and nothing about how many
+            // there are may depend on where the JVM happened to allocate them.
+            composedBy.computeIfAbsent(composed,
+                    name -> Collections.newSetFromMap(new IdentityHashMap<>()))
+                .add(method);
+        }
+
+        Set<String> ambiguous = new HashSet<>();
+        composedBy.forEach((composed, methods) -> {
+            if (!declaredByAnyone.getOrDefault(composed, false) && methods.size() > 1) {
                 ambiguous.add(composed);
             }
-        }
+        });
         return ambiguous;
     }
 

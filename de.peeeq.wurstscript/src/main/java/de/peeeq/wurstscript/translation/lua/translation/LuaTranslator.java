@@ -1068,7 +1068,8 @@ public class LuaTranslator {
 
     private Set<String> ambiguousSemanticNames(ImClass c) {
         return ambiguousSemanticNamesByClass.computeIfAbsent(c, owner -> {
-            Map<String, Set<String>> claimants = new TreeMap<>();
+            Map<String, Boolean> declaredByAnyone = new TreeMap<>();
+            Map<String, Set<ImMethod>> composedBy = new TreeMap<>();
             for (ImMethod m : collectMethodsInHierarchy(owner)) {
                 if (m == null) {
                     continue;
@@ -1077,18 +1078,17 @@ public class LuaTranslator {
                 if (semanticName.isEmpty()) {
                     continue;
                 }
-                // A name which is the method's own declared name belongs to it and to its overrides,
-                // a conversion wrapper included, since the wrapper carries that name too. One built
-                // from a mangled segment belongs to none of them, and counting each such method
-                // separately is what makes the name read as claimed by several and left uncomposed.
-                String declared = LuaDispatchPreparation.declaredName(m);
-                claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
-                    .add(semanticName.equals(declared) ? "declared:" + declared
-                        : "mangled:" + System.identityHashCode(m));
+                boolean namesThisMethod = semanticName.equals(LuaDispatchPreparation.declaredName(m));
+                declaredByAnyone.merge(semanticName, namesThisMethod, (a, b) -> a || b);
+                // By object identity, so the count cannot depend on where the JVM allocated them.
+                composedBy.computeIfAbsent(semanticName,
+                        name -> Collections.newSetFromMap(new IdentityHashMap<>()))
+                    .add(m);
             }
+
             Set<String> ambiguous = new TreeSet<>();
-            claimants.forEach((name, keys) -> {
-                if (keys.size() > 1) {
+            composedBy.forEach((name, methods) -> {
+                if (!declaredByAnyone.getOrDefault(name, false) && methods.size() > 1) {
                     ambiguous.add(name);
                 }
             });
