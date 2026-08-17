@@ -332,6 +332,13 @@ public class AttrExprType {
             case MOD_INT:
             case JASS_MOD_INT:
             case DIV_INT:
+                // The left operand's type is returned deliberately, so that `real r = 7 div 2` compiles.
+                // caseMathOperation below does the opposite for + - * /, collapsing two int literals to
+                // int precisely so that `real r = 1 + 1` is an error, and the difference between the two
+                // is easy to read as an oversight here. It is not: these operators are integer-only, an
+                // int literal is a subtype of real, and narrowing the result would break assignments
+                // which compile today. ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal
+                // pins it, and OptimizerTests.realFormatting_consistent_fromIntOps depends on it.
                 if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
                     return leftType;
                 }
