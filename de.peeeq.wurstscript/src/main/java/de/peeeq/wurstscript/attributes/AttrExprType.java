@@ -333,6 +333,14 @@ public class AttrExprType {
             case JASS_MOD_INT:
             case DIV_INT:
                 if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+                    // The left operand's type, deliberately, which is not what caseMathOperation does:
+                    // that collapses two literals to int so `real r = 1 + 1` is an error. Returning it
+                    // here means `real r = 7 div 2` compiles, and it is meant to - the division is
+                    // integer either way and the result is then widened.
+                    //
+                    // Asked and settled rather than left as an accident.
+                    // ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal pins it, and
+                    // OptimizerTests.realFormatting_consistent_fromIntOps opens with that assignment.
                     return leftType;
                 }
                 term.addError("Operator " + term.getOp() + " is not defined for " +
