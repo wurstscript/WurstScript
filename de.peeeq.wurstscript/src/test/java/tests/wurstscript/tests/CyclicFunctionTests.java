@@ -90,6 +90,48 @@ public class CyclicFunctionTests extends WurstScriptTest {
         assertMergedCycleTakes(jass, 9);
     }
 
+    /**
+     * Audit probe for the sharing this got more aggressive about. Slots are shared by Jass type, so a
+     * class reference and an {@code int} are interchangeable and so are two tuples with the same
+     * components - the slot keeps the IM type of whichever parameter claimed it first, and the other
+     * function's body then reads a variable typed as something else. Searching backwards reaches those
+     * slots far more often than searching forwards did, so what used to be rare is now the common case.
+     * <p>
+     * Every parameter here is a mismatch of that kind: {@code down} takes an int where the slot is a
+     * class, a point where the slot is a pair, and a class where the slot is an int.
+     */
+    @Test
+    public void slotsSharedBetweenUnlikeTypesWithTheSameJassTypeStillCarryTheirValues() throws IOException {
+        test().executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(real x, real y)",
+            "tuple point(real a, real b)",
+            "class Foo",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "function up(Foo f, pair p, int n) returns int",
+            "    if n <= 0",
+            "        return f.v",
+            "    return down(n - 1, point(p.x, p.y), f)",
+            "function down(int n, point q, Foo f) returns int",
+            "    if n <= 0",
+            "        return f.v",
+            "    return up(f, pair(q.a, q.b), n - 1)",
+            "init",
+            "    Foo f = new Foo(5)",
+            "    if up(f, pair(1., 2.), 3) == 5",
+            "        testSuccess()"
+        );
+        String jass = compiledJass("slotsSharedBetweenUnlikeTypesWithTheSameJassTypeStillCarryTheirValues");
+        assertNoFunctionExceedsTheJassLimit(jass);
+        // Three slots for six parameters, every one of them shared across a type mismatch: an integer
+        // for the class or the count, a tuple, and an integer for the other. Five Jass parameters with
+        // the choice, since the tuple is two of them.
+        assertMergedCycleTakes(jass, 5);
+    }
+
     private String compiledJass(String testName) throws IOException {
         return Files.toString(
             new File(TEST_OUTPUT_PATH + "CyclicFunctionTests_" + testName + "_no_opts.j"),
