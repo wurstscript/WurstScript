@@ -1418,7 +1418,102 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String second = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);
 
-        assertEquals(first, second);
+        if (!first.equals(second)) {
+            // This has failed once on CI and not since, and 250 compiles in one JVM did not
+            // reproduce it. A bare "expected X but got Y" over two whole scripts is unreadable and
+            // the run's output is gone by the time anyone looks, so the failure carries what it
+            // takes to act on: both scripts kept beside the test output, and the differing lines
+            // named. Without this the next occurrence is as unactionable as the first.
+            File firstFile = new File(TEST_OUTPUT_PATH, "determinism-first.lua");
+            File secondFile = new File(TEST_OUTPUT_PATH, "determinism-second.lua");
+            Files.write(first.getBytes(Charsets.UTF_8), firstFile);
+            Files.write(second.getBytes(Charsets.UTF_8), secondFile);
+            fail("the same program compiled to different Lua twice in one run."
+                + "\n" + describeFirstDifferences(first, second)
+                + "\nboth kept at " + firstFile.getPath() + " and " + secondFile.getPath());
+        }
+    }
+
+    /**
+     * What changed between the two scripts, aligned rather than compared line by line.
+     * <p>
+     * Comparing equal indexes is not a diff: emission order moving a block shifts every line after
+     * it, so the count becomes "everything from here down" and the listed pairs are unrelated. That
+     * is the shape this diagnostic exists to investigate, so it is the shape it has to describe.
+     * Aligned on the longest common subsequence, a moved block reads as one removal and one addition.
+     * <p>
+     * The scripts are also uploaded as an artifact on a failing CI run, but the message has to stand
+     * on its own: an artifact needs fetching, and the check is what gets read first. Bounded so a
+     * wholesale difference does not bury the report, with the totals stated either way.
+     */
+    /**
+     * Splits on either terminator, so a CRLF script aligns against an LF one line for line. Splitting
+     * on "\n" alone leaves the carriage return in the line text, which makes every line of a CRLF
+     * script differ from its LF counterpart and buries the actual difference.
+     */
+    private static final String NEWLINE_RE = "\r?\n";
+    private static final char NEWLINE = '\n';
+
+    static String describeFirstDifferences(String first, String second) {
+        final int reportLimit = 40;
+        String[] a = first.split(NEWLINE_RE, -1);
+        String[] b = second.split(NEWLINE_RE, -1);
+
+        // O(n*m) in memory, so a pathological pair falls back to reporting the sizes rather than
+        // exhausting the worker. The scripts this compares are a few hundred lines.
+        if ((long) a.length * b.length > 4_000_000L) {
+            return "  too large to align: " + a.length + " lines against " + b.length;
+        }
+
+        int[][] common = new int[a.length + 1][b.length + 1];
+        for (int i = a.length - 1; i >= 0; i--) {
+            for (int j = b.length - 1; j >= 0; j--) {
+                common[i][j] = a[i].equals(b[j])
+                    ? common[i + 1][j + 1] + 1
+                    : Math.max(common[i + 1][j], common[i][j + 1]);
+            }
+        }
+
+        List<String> entries = new ArrayList<>();
+        int removed = 0;
+        int added = 0;
+        int i = 0;
+        int j = 0;
+        while (i < a.length || j < b.length) {
+            if (i < a.length && j < b.length && a[i].equals(b[j])) {
+                i++;
+                j++;
+            } else if (j >= b.length || (i < a.length && common[i + 1][j] >= common[i][j + 1])) {
+                removed++;
+                if (entries.size() < reportLimit) {
+                    entries.add("    only in first, line " + (i + 1) + ":  " + a[i]);
+                }
+                i++;
+            } else {
+                added++;
+                if (entries.size() < reportLimit) {
+                    entries.add("    only in second, line " + (j + 1) + ": " + b[j]);
+                }
+                j++;
+            }
+        }
+
+        if (removed == 0 && added == 0) {
+            // Reached because the split accepts either terminator: two scripts whose lines all match
+            // and which are still unequal differ in how those lines end, or in bytes after the last
+            // one. Worth saying plainly rather than reporting every line as changed, which is what
+            // splitting on "\n" alone did - it left the carriage returns in the line text.
+            return "  every line matches, so the two differ only in line terminators or trailing"
+                + " bytes: " + first.length() + " characters against " + second.length();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("  ").append(removed).append(" line(s) only in the first, ")
+            .append(added).append(" only in the second");
+        sb.append(removed + added > entries.size() ? ", first " + entries.size() + ":" + NEWLINE : ":" + NEWLINE);
+        for (String entry : entries) {
+            sb.append(entry).append(NEWLINE);
+        }
+        return sb.toString();
     }
 
     @Test

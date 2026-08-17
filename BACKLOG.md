@@ -128,22 +128,27 @@ itself, and one gap in what the suite can see.
     this stops being dead weight, because the cost of getting it wrong is a real mis-binding while
     the cost of leaving it is one unused table key per specialised class.
 
-24. **`luaOutputIsDeterministicForGenericOverrideSlots` fails intermittently.** It failed once on
-    Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request
+24. **`luaOutputIsDeterministicForGenericOverrideSlots` failed once and has not since.** It failed
+    on Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request
     in between.
 
     Do not weaken the assertion. It compiles one repro twice and compares the output byte for byte,
-    so an intermittent mismatch is evidence of intermittent nondeterminism in Lua emission, which is
-    exactly what it exists to catch — a re-run passing says the nondeterminism is intermittent, not
-    that the test is at fault. Calling it flaky was too quick.
+    so a mismatch is evidence of nondeterminism in Lua emission, which is what it exists to catch.
 
-    Diagnose it instead: capture both outputs on a failing run and diff them, and rule out harness
-    interference rather than assuming it. The two compiles do start from the same cache state, but
-    that comes from two separate resets: `WurstScriptTest`'s `@BeforeMethod` clears before the
-    first, and the explicit `GlobalCaches.clearAll()` between the compilations inside the test
-    clears before the second. Both are load bearing — remove either and the comparison stops being
-    between equal starting states, which would invalidate the conclusion rather than explain the
-    failure.
+    **Not reproduced.** 250 compiles of that repro in one JVM, caches cleared between each, came out
+    byte-identical. Sources of hash-ordered iteration in the emission path were read rather than
+    guessed at: `TypeId.calculate` sorts by name and package, `createMethods` groups through a
+    `TreeMap`, `assignDispatchAliases` collects into a `TreeSet` and iterates a list, and
+    `collectSuperClasses` uses its set only to mark what it has seen. None of those can vary.
+
+    So whatever differs is either rarer than one in 250, or comes from something the local run does
+    not vary — a different core count changing the fork layout, memory pressure, or the interpreter
+    build on that runner.
+
+    What changed meanwhile is that the failure now carries evidence: both scripts are written beside
+    the test output and the first differing lines are named with their numbers. The one occurrence so
+    far produced nothing to work from, which is why it cost a re-run and no diagnosis. The next one
+    will say what differed.
 
 25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
     `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
