@@ -77,26 +77,6 @@ public class DeterminismDiffReportTest {
             "no line should be reported as removed:\n" + report);
     }
 
-    @Test
-    public void probeShowsTheWording() {
-        System.err.println("PROBE-CRLF: " + LuaTranslationTests.describeFirstDifferences(
-            "alpha
-beta
-", "alpha
-beta
-"));
-        System.err.println("PROBE-MOVE: " + LuaTranslationTests.describeFirstDifferences(
-            "one
-moved
-two
-three
-", "one
-two
-three
-moved
-"));
-    }
-
     /** Bytes after the last line reach the same branch: every line matches, the scripts do not. */
     @Test
     public void trailingBytesReachTheSameCase() {

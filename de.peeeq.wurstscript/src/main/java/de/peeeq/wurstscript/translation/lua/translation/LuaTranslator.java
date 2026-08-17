@@ -1029,45 +1029,15 @@ public class LuaTranslator {
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
-            // A semantic name which several of the class's methods share names none of them, so a
-            // slot composed from it would be claimed by whichever is bound first. For a specialised
-            // class every method's trailing segment is the type argument, which is exactly that
-            // case, and the resulting slot is never called. Left uncomposed rather than bound
-            // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
-            Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
             Set<String> classNames = new TreeSet<>();
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
             for (String className : classNames) {
                 for (String semanticName : semanticNames) {
-                    if (ambiguous.contains(semanticName)) {
-                        continue;
-                    }
                     slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
         return slotNames;
-    }
-
-    /** The semantic names which more than one method of {@code c}'s hierarchy produces. */
-    private Set<String> ambiguousSemanticNames(ImClass c) {
-        Map<String, Integer> counts = new TreeMap<>();
-        for (ImMethod m : collectMethodsInHierarchy(c)) {
-            if (m == null) {
-                continue;
-            }
-            String semanticName = semanticNameFromMethodName(m.getName());
-            if (!semanticName.isEmpty()) {
-                counts.merge(semanticName, 1, Integer::sum);
-            }
-        }
-        Set<String> ambiguous = new TreeSet<>();
-        counts.forEach((name, count) -> {
-            if (count > 1) {
-                ambiguous.add(name);
-            }
-        });
-        return ambiguous;
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {

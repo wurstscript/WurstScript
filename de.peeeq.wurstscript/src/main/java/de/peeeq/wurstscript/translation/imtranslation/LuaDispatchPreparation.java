@@ -18,8 +18,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import org.eclipse.jdt.annotation.Nullable;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,11 +114,9 @@ public final class LuaDispatchPreparation {
         Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache = new HashMap<>();
         Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor = new HashMap<>();
 
-        Set<String> ambiguousDirectAliases = ambiguousDirectAliases(allMethods);
-
         for (ImMethod method : allMethods) {
             TreeSet<String> aliases = new TreeSet<>();
-            addDirectAliases(method, aliases, ambiguousDirectAliases);
+            addDirectAliases(method, aliases);
             addHierarchyAliases(method, aliases, sortedMethodsByClass);
             addClosureFamilyAliases(prog, method, aliases, sortedMethodsByClass, closureFamilyAnchorsCache, closureFamilyClassesByAnchor);
             method.setLuaMethodDispatchAliases(new ArrayList<>(aliases));
@@ -150,46 +146,7 @@ public final class LuaDispatchPreparation {
         return result;
     }
 
-    /**
-     * The composed names which more than one method of the same class produces.
-     * <p>
-     * The name is the owner's plus the segment after the last underscore of the method's. For a
-     * specialised class that segment is the type argument, so every method of
-     * {@code FastHashMap<int, int>} composes the same one, which then names no method in particular.
-     * Whichever is bound first would claim it, so it is left unbound: a name meaning "one of these,
-     * arbitrarily" is worse than a name meaning nothing. {@code LuaTranslator} skips composing the
-     * matching slot for the same reason.
-     */
-    private static Set<String> ambiguousDirectAliases(List<ImMethod> allMethods) {
-        Map<String, ImMethod> claimedBy = new LinkedHashMap<>();
-        Set<String> ambiguous = new HashSet<>();
-        for (ImMethod method : allMethods) {
-            String composed = directAliasFor(method);
-            if (composed == null) {
-                continue;
-            }
-            ImMethod previous = claimedBy.put(composed, method);
-            if (previous != null && previous != method) {
-                ambiguous.add(composed);
-            }
-        }
-        return ambiguous;
-    }
-
-    private static @Nullable String directAliasFor(ImMethod method) {
-        if (method == null) {
-            return null;
-        }
-        ImClass owner = method.attrClass();
-        String semanticName = semanticNameFromMethodName(method.getName());
-        if (owner == null || semanticName.isEmpty()) {
-            return null;
-        }
-        return owner.getName() + "_" + semanticName;
-    }
-
-    private static void addDirectAliases(ImMethod method, Set<String> aliases,
-                                         Set<String> ambiguousDirectAliases) {
+    private static void addDirectAliases(ImMethod method, Set<String> aliases) {
         if (method == null) {
             return;
         }
@@ -198,9 +155,9 @@ public final class LuaDispatchPreparation {
             aliases.add(methodName);
         }
         ImClass owner = method.attrClass();
-        String composed = directAliasFor(method);
-        if (composed != null && !ambiguousDirectAliases.contains(composed)) {
-            aliases.add(composed);
+        String semanticName = semanticNameFromMethodName(methodName);
+        if (owner != null && !semanticName.isEmpty()) {
+            aliases.add(owner.getName() + "_" + semanticName);
         }
         String sourceSemanticName = sourceSemanticName(method);
         if (owner != null && isClosureGeneratedClass(owner) && !sourceSemanticName.isEmpty()) {
