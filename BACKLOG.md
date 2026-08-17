@@ -212,6 +212,17 @@ itself, and one gap in what the suite can see.
     still class-prefixed: `GlobalCheckState_update`, where the ancestor's slot is `State_update`. The
     tail is load-bearing precisely because the prefix is there.
 
+    A third attempt gets closest and shows why none of these can work. Stripping the owner's name as a
+    known prefix - the boundary is not a guess, the owner is right there to be asked - does fix the
+    underscore case, and the pin above flipped to passing, the first time anything has moved it. It
+    breaks `genericOverrideChainBindsRootSlotToMostSpecificImplInLua` and
+    `genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua` instead, because
+    `normalizeMethodNames` assigns one name per dispatch group derived from the first member's already
+    class-prefixed name and sets it on every member. The prefix a method's name carries is therefore not
+    necessarily its own owner's - an ancestor's method can be named after a descendant's class - so no
+    prefix known locally is the right anchor. Cutting at the last underscore survives that by accident,
+    which is the whole reason it is still here.
+
     So the name has to arrive as data rather than be recovered from a string: `ImMethod` carries its
     declared name and the index the translation gave it among its overloads, recorded where the
     translation assigns them, and slots compose from that pair. `luaDispatchGroupKey` is already a
