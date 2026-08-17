@@ -1409,6 +1409,102 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void overloadedOverrideOnAGenericBaseIsReachedThroughTheBase() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Base<T>",
+            "    function route(T t) returns int",
+            "        return 1",
+            "    function route(T t, int extra) returns int",
+            "        return 2",
+            "class Child extends Base<int>",
+            "    override function route(int t) returns int",
+            "        return 10",
+            "    override function route(int t, int extra) returns int",
+            "        return 20",
+            "init",
+            "    Base<int> b = new Child()",
+            "    if b.route(1) == 10 and b.route(1, 2) == 20",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A type argument whose name is a method's name followed by a number, which is what the rule
+     * allowing an overload number could in principle be fooled by.
+     * <p>
+     * It holds, because the type argument is part of the owning class's name rather than the tail of the
+     * method's: the segment a slot name is composed from is {@code route} for {@code route} and
+     * {@code route1} for {@code route1}, and neither needs the number tolerated. The case is kept
+     * because it was raised against that rule and reasoning about which segment carries the type is
+     * exactly the kind of thing to check rather than argue about.
+     */
+    /**
+     * A type argument whose name is a method's name followed by a number, which is what the rule
+     * allowing an overload number could in principle be fooled by.
+     * <p>
+     * It holds, because the type argument is part of the owning class's name rather than the tail of the
+     * method's: the segment a slot name is composed from is {@code route} for {@code route} and
+     * {@code route1} for {@code route1}, and neither needs the number tolerated. The case is kept
+     * because it was raised against that rule, and which segment carries the type argument is exactly
+     * the kind of thing to check rather than argue about.
+     */
+    @Test
+    public void aTypeNamedLikeAnOverloadNumberDoesNotStealTheSlot() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class route1",
+            "    int v = 3",
+            "class Holder<T>",
+            "    T item",
+            "    construct(T item)",
+            "        this.item = item",
+            "    function route() returns int",
+            "        return 1",
+            "    function route1() returns int",
+            "        return 2",
+            "init",
+            "    let h = new Holder<route1>(new route1())",
+            "    if h.route() == 1 and h.route1() == 2",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * An override whose declared name contains an underscore does not dispatch inside a generic
+     * hierarchy on Lua, and this pins that rather than leaving it to be met by surprise.
+     * <p>
+     * A dispatch slot's name is composed by cutting the method's name at its last underscore and taking
+     * the tail, so {@code get_it} contributes {@code it} - which is nobody's method - and the slot the
+     * call goes through is not the one the override was bound to. The same shape without the underscore
+     * works, and so does this one outside a generic hierarchy.
+     */
+    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
+    public void underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Holder<T>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function get_it() returns T",
+            "        return value",
+            "class Doubler extends Holder<int>",
+            "    construct(int value)",
+            "        super(value)",
+            "    override function get_it() returns int",
+            "        return value * 2",
+            "init",
+            "    Holder<int> h = new Doubler(21)",
+            "    if h.get_it() == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void luaOutputIsDeterministicForGenericOverrideSlots() throws IOException {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String first = Files.toString(new File("test-output/lua/LuaTranslationTests_luaOutputIsDeterministicForGenericOverrideSlots.lua"), Charsets.UTF_8);

@@ -49,54 +49,43 @@ itself, and one gap in what the suite can see.
 
    Collecting from types on the Lua path runs straight into item 23, so settle that first.
 
-23. **The Lua erasure model, which items 6 and 13 both end at.** On Lua a generic class is erased,
-    and specialised copies are made only where a construction names the instantiation. Every
-    remaining gap on that target is one question: an object allocated from a specialised class while
-    its methods are bound to the erased one breaks, and an object allocated from the erased class
-    cannot reach a specialised method.
+23. **The Lua erasure model.** Decided: **specialise only the paths which need a concrete type and
+    leave the object erased throughout.** Generated scripts stay small, which is the reason for the
+    choice; the cost is that it is more compiler work than the alternative of not erasing at all.
 
-    Two ways out, and it is a decision rather than a patch. Either specialise only the paths which
-    need a concrete type and leave the object erased throughout, or stop erasing constructed generic
-    classes on Lua and pay the code size.
+    What that means in practice. An object keeps coming from the erased class, so it must never need a
+    specialised method - the concrete type is threaded to the places which use it rather than to the
+    object. Items 6 and 13 both end here: a constructor's dispatch needs the type at the construction
+    site, and a subclass's `super` call needs it on the call rather than on the receiver's class.
 
-    #1239 is a reason to take it seriously rather than leave it. Both class shapes existing at once
-    is what let an instance be allocated with no fields at all, and then with its fields under a key
-    nothing read. Both are fixed; the shape which produced them is still there.
+    Take it seriously rather than working around it. Two class shapes existing at once is what let an
+    instance be allocated with no fields at all, and then with its fields under a key nothing read
+    (#1239). Both are fixed; the shape which produced them is what this decision removes.
 
-    Do not start this autonomously.
+    Unblocks items 6 and 13's Lua half. Not blocking the container, which works on both targets today.
 
-7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today, and
-   `TypeClassTests.boundOnModuleTypeParameterIsRejected` pins that. Tried and reverted; what follows
-   is why, because the earlier note here suggested a fix which cannot work.
+7. **Module bounds.** Decided: the instantiation declares the module's type parameters **only so a
+   dispatch receiver has a name to resolve**, and they are excluded from type inference, which keeps
+   resolving a generic module's parameters by matching the receiver type as it does today.
 
-   Expansion copies the module body into the user and replaces the module's type parameters
-   **in type positions**. A requirement is called on the parameter itself — `T.show(x)` — and that
-   receiver is a name, resolved by `lookupBoundedTypeParam` through `lookupType`, so the replacement
-   never touches it.
+   Why that way. A requirement of a bound is called on the parameter itself - `T.show(x)` - and that
+   receiver is a name, which the type replacement during expansion never touches. Renaming it to the
+   using class's parameter cannot work: `NameResolution.nextScope` sends a `ModuleInstanciation` to
+   `attrModuleOrigin()` rather than to the class using it, deliberately, so a module body cannot see
+   the names of whoever uses it. The parameter therefore has to be declared where the body can see it.
 
-   Renaming the receiver to the using class's parameter, which is what "receiver rewriting during
-   expansion" meant, does not work. `NameResolution.nextScope` sends a `ModuleInstanciation` to
-   `attrModuleOrigin()` rather than to the class using it:
+   Why only for the receiver. Declaring it and letting inference see it collides with the existing
+   mechanism: `GenericsModuleTests.genericModuleInGenericClassGet` fails with "Cannot infer type for
+   type parameter T". Two mechanisms answering one question is the cost of the alternative; this is
+   the smaller change, at the price of the parameter meaning something narrower than it looks.
 
-       if (currentScope instanceof ModuleInstanciation) {
-           return nextScope(moduleInstanciation.attrModuleOrigin());
-       }
-
-   That is deliberate — a module body resolves in the module's own scope so it cannot capture the
-   names of whoever uses it — so the renamed receiver names something that scope cannot see. The
-   rename itself works: with it, the error moves from the rejection to `Could not find variable K`
-   at the dispatch, which is this scope rule and not a mistake in the rename.
-
-   That leaves the other half of the original note: **type parameters on `ModuleInstanciation`**. The
-   instantiation declares the parameter itself, bound to the argument, so the copied body keeps
-   saying `T` and `T` resolves without any rename. It needs `ModuleInstanciation` to carry type
-   parameters in the grammar, so it is a change to `wurstscript.parseq` and everything reading that
-   node, not a patch to the expander.
-
-   Worth knowing before starting: an argument which is a concrete type (`use Shower<int>`) is a
-   second case even then. A requirement is dispatched on a type parameter, so `int.show(x)` is not a
-   dispatch at all — that one has to resolve to the instance during expansion rather than resolve by
-   name.
+   Started on `feat/module-instanciation-type-params`, unpushed. The grammar carries `typeParameters`
+   and `typeArgs` (resolved, since an argument names something only the user's scope can see),
+   resolution binds a declared parameter to its argument through `WurstTypeBoundTypeParam`, and
+   `isTypeClassDispatch` accepts a receiver which denotes a parameter through a binding. The error
+   chain reached "Could not find function show", which is the requirement lookup not following a
+   binding to the underlying parameter's bounds - the same widening, wherever a bound's functions are
+   surfaced. Verify before continuing that inference can be told to ignore the declared parameters.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
@@ -200,6 +189,37 @@ itself, and one gap in what the suite can see.
     path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
     against a list which does not include the class's.
 
+26. **A dispatch slot's name is recovered from another name instead of being asked for, and that is
+    where four bugs came from.** The slot name is composed by cutting a method's name at its last
+    underscore and taking the tail. That tail is the declared name only when the declared name has no
+    underscore in it and the method is not a specialised copy, so:
+
+    - `get_it` contributes `it`, which is nobody's method, and an override named `get_it` in a generic
+      hierarchy does not dispatch on Lua. Pinned by
+      `LuaTranslationTests.underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua`.
+    - a specialised method's tail is the type argument, composing a slot named after a type rather than
+      a method - the case `dea459b45` stopped by refusing the composition.
+    - an overload numbered by the translation carries the number in the tail, so requiring the tail to
+      equal the declared name loses the slot an override of that overload has to replace. Covered by
+      `overloadedOverrideOnAGenericBaseIsReachedThroughTheBase`.
+    - a type argument named like a numbered overload could in principle collide with a tolerance for
+      that number. Not reachable, and covered by `aTypeNamedLikeAnOverloadNumberDoesNotStealTheSlot`.
+
+    Two attempts at the obvious fix both fail, and both failures say what the real one has to be.
+    Asking `declaredName` alone collapses overloads, because two overloads share a declared name -
+    `overloadedMethodsDoNotAliasInLuaDispatchTables` catches it. Using the method's name whole instead
+    of its tail breaks cross-class matching, because at the point slots are composed a method's name is
+    still class-prefixed: `GlobalCheckState_update`, where the ancestor's slot is `State_update`. The
+    tail is load-bearing precisely because the prefix is there.
+
+    So the name has to arrive as data rather than be recovered from a string: `ImMethod` carries its
+    declared name and the index the translation gave it among its overloads, recorded where the
+    translation assigns them, and slots compose from that pair. `luaDispatchGroupKey` is already a
+    recorded field on the method, so the shape exists. Then the cut is deleted rather than tolerated,
+    both composers ask one question, the pin above starts passing, and
+    `ProgramState.identifyGenericStaticGlobals` - which takes the longest prefix of a global's name
+    ending at an underscore that matches a class name - gets the same treatment.
+
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
     caught a bug already found; a place where two mechanisms do the same job and disagree; a
@@ -208,23 +228,11 @@ itself, and one gap in what the suite can see.
 
 ## Blocked on a decision
 
-- **8. Should `div` and `mod` keep returning the left operand's type?** Tried returning
-  `WurstTypeInt.instance()` to match `caseMathOperation` and reverted it: it is a user-visible
-  breaking change, and the suite already defines the current behaviour as correct.
-
-  The asymmetry is real and reachable. `WurstTypeIntLiteral` is a proper subtype of both int and
-  real, and `caseMathOperation` collapses two literals to int precisely so `real r = 1 + 1` is an
-  error. `div`/`mod` return `leftType`, so `real r = 7 div 2` compiles. Changing that made exactly
-  one test fail — `OptimizerTests.realFormatting_consistent_fromIntOps`, which opens with
-  `real a = 1 div 2` — and AGENTS.md says the existing suite is the authoritative definition of
-  behaviour. Real maps will contain the same shape.
-
-  So the question is the owner's: is `real r = 7 div 2` meant to compile? If yes, the branch in
-  `AttrExprType` wants a comment saying so, and this item closes. If no, it is a deliberate
-  breaking change that needs the changelog, and `realFormatting_consistent_fromIntOps` needs
-  rewriting to say what it actually tests, which is real formatting rather than that assignment.
-  `ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal` pins the behaviour meanwhile,
-  so whichever way it goes is deliberate rather than accidental.
+- **8. Settled: `div` and `mod` keep returning the left operand's type**, so `real r = 7 div 2`
+  compiles and is meant to. The branch in `AttrExprType` now says so, rather than looking like an
+  oversight next to `caseMathOperation`, which collapses two literals to int precisely so
+  `real r = 1 + 1` is an error. `ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal`
+  pins it and `OptimizerTests.realFormatting_consistent_fromIntOps` depends on it. Nothing to do.
 
 - **Eliminating the remaining `castTo int`.** The motivating case is timer data attachment
   (`ClosureTimers.wurst`), and the containers behind it: `Table` has 81 casts, `HashList` 13,
@@ -233,6 +241,10 @@ itself, and one gap in what the suite can see.
   for a whole family — every class type, or every handle type — which is a language design
   question: what the syntax is, where such an instance may be declared under the orphan rule,
   and whether a specific instance always beats a family one. Do not start this autonomously.
+
+  Deferred deliberately, not forgotten. It decides whether type class bounds stay a tool for new
+  containers or become how the existing ones work, which is worth deciding when there is appetite for
+  the language design rather than alongside compiler work.
 
 ## Out of scope
 
