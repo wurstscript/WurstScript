@@ -509,6 +509,14 @@ public class ProgramState extends State implements AutoCloseable {
             for (Map.Entry<ImTypeVar, ImTypeArgument> e : frame.entrySet()) {
                 // A class and its constructor hold separate nodes for the same source type
                 // parameter, so identity alone is not enough to find the binding.
+                //
+                // EliminateGenerics no longer needs this: it records what each copy was made from and
+                // compares that. The record lives on the ImTranslator, which the interpreter is not
+                // given - it is handed a program, not the translation that produced it - so matching
+                // on the name is what is left here. It is wrong in the same way it was wrong there:
+                // two parameters which merely share a name look like one. Reaching the record from
+                // here means threading the translator through the interpreter, which is its own
+                // change; backlog item 10 carries it.
                 boolean sameVar = e.getKey() == typeVar || e.getKey().getName().equals(typeVar.getName());
                 if (sameVar && !e.getValue().getTypeClassBinding().isEmpty()) {
                     return e.getValue();

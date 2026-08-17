@@ -75,15 +75,30 @@ itself, and one gap in what the suite can see.
    the repository root, which is easy to miss when looking for it. Fold an update into whichever
    item changes the behaviour rather than doing it as a separate pass.
 
-10. **One `ImTypeVar` per type parameter.** Name-tolerant lookups remain in
-   `EliminateGenerics.indexOfTypeVar`, `inheritTypeClassBinding` and
-   `ProgramState.getCurrentTypeArgument`, compensating for several nodes standing for one
-   source parameter. Making the node canonical lets all three compare by identity and removes
-   a class of silent wrong dispatch. Mechanical, well covered by the suite.
+10. **The interpreter still finds a type argument by name.**
+    `ProgramState.getCurrentTypeArgument` compares `ImTypeVar` nodes by name, so two parameters which
+    merely share one look like the same parameter.
 
-   Note before starting: `moveFunctionsOutOfClass` copies a class's type variables onto each
-   function it moves out, deliberately, and #1237 depends on that copy. Identity cannot hold across
-   that boundary, so what is being made canonical is per scope rather than per program.
+    The two lookups in `EliminateGenerics` no longer do. What they compare is what each node was
+    copied from: three places copy a function's or a class's type variables and then empty the copy's
+    list, which leaves every reference inside pointing at a node belonging to nothing — the name
+    match was not compensating for the odd duplicate, it was the only thing holding those references
+    together. Recording the copy before the list is emptied replaces it entirely, and name matching
+    is gone from `indexOfTypeVar` and from `inheritTypeClassBinding` through it.
+
+    The record lives on the `ImTranslator`. The interpreter is handed a program rather than the
+    translation which produced it, so reaching the record from `ProgramState` means threading the
+    translator through the interpreter — four construction sites, three of them tests, but an API
+    change all the same. That is what is left of this item.
+
+    Pinned by `TypeClassTests.aBoundedMethodParameterMayShareTheClassParameterName`: a class over int
+    whose instance doubles, and a method parameter of the same name bounded and called with string,
+    whose instance answers 7. Without the change the string is dispatched through the int instance and
+    the interpreter dies casting it to a number, which is what telling the two apart prevents.
+
+    A weaker version of that test - same names, method parameter unbounded - passes either way, so it
+    proved nothing. The bound and the second instance are what make the two parameters reach the same
+    lookup.
 
 13. **A bounded generic class cannot be subclassed on Lua.** The Jass half landed in #1237: a call
     which names its target outright now carries the class's type arguments, taken from the class its
@@ -129,6 +144,22 @@ itself, and one gap in what the suite can see.
     clears before the second. Both are load bearing — remove either and the comparison stops being
     between equal starting states, which would invalidate the conclusion rather than explain the
     failure.
+
+25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
+    `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
+    match class method type variables", while the same program compiles and runs on the other target.
+    On master as well, so it is not a regression — found while trying to give item 10's fix Lua
+    coverage, which is what it blocks: the only shape reaching that lookup with two parameters at once
+    is a class parameter beside a method parameter, and Lua will not compile it.
+
+    Pinned by `TypeClassTests.aBoundedMethodParameterInAGenericClassIsRejectedForLua`. A version with
+    the second parameter on a free function does compile on Lua and passes with or without item 10's
+    change, so it covers nothing; that is why the rejection is pinned instead.
+
+    Where to start: the message comes from the arity check between a call's generics and the callee's
+    type variables. A method of a generic class has the class's variables lifted onto it on the Jass
+    path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
+    against a list which does not include the class's.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have

@@ -393,6 +393,64 @@ public class TypeClassTests extends WurstScriptTest {
         testAssertOkLines(true, SUPER_CALL_TO_A_GENERIC_METHOD);
     }
 
+    /**
+     * A class and a method inside it may each declare a bounded type parameter spelled the same, and
+     * they are different parameters bound to different types at the same moment. Which instance a
+     * requirement dispatches to therefore depends on telling the two apart.
+     * <p>
+     * The class is built over int, whose instance doubles; the method is called with string, whose
+     * instance answers 7. Reading the method's parameter as the class's dispatches the string through
+     * the int instance, which multiplies it.
+     */
+    private static final String[] SAME_NAMED_BOUNDED_PARAMETERS = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns int",
+        "implements Show<int>",
+        "    function show(int x) returns int",
+        "        return x * 2",
+        "implements Show<string>",
+        "    function show(string x) returns int",
+        "        return 7",
+        "class Holder<T: Show>",
+        "    T held",
+        "    construct(T held)",
+        "        this.held = held",
+        "    function shown() returns int",
+        "        return T.show(held)",
+        // A different parameter which happens to share the name, bound to a different instance.
+        "    function convert<T: Show>(T other) returns int",
+        "        return T.show(other)",
+        "init",
+        "    let h = new Holder<int>(21)",
+        "    if h.shown() == 42 and h.convert<string>(\"x\") == 7",
+        "        testSuccess()",
+    };
+
+    @Test
+    public void aBoundedMethodParameterMayShareTheClassParameterName() {
+        testAssertOkLines(true, SAME_NAMED_BOUNDED_PARAMETERS);
+    }
+
+    /**
+     * The same program on Lua, where it does not compile at all — and not because of the collision.
+     * A bounded type parameter on a method of a generic class is rejected on that target with
+     * "Generics should match class method type variables", on master as well as here, so the shape
+     * which exercises this lookup cannot be run there to check the dispatch.
+     * <p>
+     * A version Lua does compile, with the second parameter on a free function rather than a method,
+     * passes without the change as well as with it: the two parameters never reach one lookup that
+     * way, so it would be coverage in name only. This pins the rejection instead, and the gap behind
+     * it is backlog item 25. Should that be fixed, this test fails and gains a dispatch assertion.
+     */
+    @Test
+    public void aBoundedMethodParameterInAGenericClassIsRejectedForLua() {
+        test().testLua(true).executeProg()
+            .expectError("Generics should match class method type variables")
+            .lines(SAME_NAMED_BOUNDED_PARAMETERS);
+    }
+
     /** Each type argument picks its own instance, so one generic serves several types. */
     @Test
     public void twoInstancesOfOneClass() {
