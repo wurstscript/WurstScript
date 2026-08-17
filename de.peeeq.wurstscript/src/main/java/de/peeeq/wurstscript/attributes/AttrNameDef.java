@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
 import org.eclipse.jdt.annotation.Nullable;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 /**
  * this attribute find the variable definition for every variable reference
@@ -136,7 +137,7 @@ public class AttrNameDef {
         if (!(typeDef instanceof TypeParamDef tp) || !TypeClassConstraints.hasBounds(tp)) {
             return null;
         }
-        WurstTypeTypeParam typ = new WurstTypeTypeParam(tp).asStaticRef();
+        WurstType typ = staticRefTypeFor(tp, node);
         return new OtherLink(Visibility.LOCAL, varName, typ) {
             @Override
             public de.peeeq.wurstscript.jassIm.ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
@@ -144,6 +145,34 @@ public class AttrNameDef {
                         "Type parameter " + varName + " is not a value; it can only be used to call a method required by its bounds.");
             }
         };
+    }
+
+    /**
+     * The type a bounded parameter's name denotes in receiver position.
+     * <p>
+     * A parameter declared on a module instantiation stands for the argument the user supplied, so it
+     * denotes that type bound to this parameter: the requirement's own parameter types then substitute
+     * to the argument rather than to a name only the module can see. Everywhere else the parameter
+     * stands for itself.
+     */
+    private static WurstType staticRefTypeFor(TypeParamDef tp, NameRef node) {
+        WurstType argument = moduleInstanciationArgument(tp);
+        if (argument != null) {
+            return new WurstTypeBoundTypeParam(tp, argument, node).asStaticRef();
+        }
+        return new WurstTypeTypeParam(tp).asStaticRef();
+    }
+
+    /** The argument a module instantiation supplied for this parameter, or null if it is not one. */
+    private static @Nullable WurstType moduleInstanciationArgument(TypeParamDef tp) {
+        if (!(tp.getParent() != null && tp.getParent().getParent() instanceof ModuleInstanciation mi)) {
+            return null;
+        }
+        int index = mi.getTypeParameters().indexOf(tp);
+        if (index < 0 || index >= mi.getTypeArgs().size()) {
+            return null;
+        }
+        return mi.getTypeArgs().get(index).attrTyp();
     }
 
     private static @Nullable NameLink lookupImplicitClosureSelf(NameRef node, boolean showErrors) {

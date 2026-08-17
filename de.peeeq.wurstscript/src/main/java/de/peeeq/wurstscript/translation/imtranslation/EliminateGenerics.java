@@ -131,7 +131,65 @@ public class EliminateGenerics {
         }
         eliminateRemainingGenericNewCalls();
         assertNoReachableGenericNewMarkers();
+        bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+    }
+
+    /**
+     * Moves a specialisation's methods to the class its objects are actually allocated from.
+     * <p>
+     * Specialising a method leaves the copy on the specialised class. That is where the object comes
+     * from when a construction on this path was redirected there, and a virtual call finds the slot
+     * through the object as usual. Otherwise the object stays erased — which is this target's normal
+     * representation — and is allocated from the class the method was declared on, so the slot the
+     * call names resolves to nothing and the call fails at runtime rather than at compile time.
+     * <p>
+     * Decided from what the program allocates rather than from the shape of the class, because one
+     * class can be reached both ways: a container whose constructor was specialised is allocated from
+     * the copy, while an ordinary generic object beside it is not. A specialised name carries its
+     * instantiation, so two specialisations of one method stay distinct on the erased class.
+     * <p>
+     * When both are allocated the methods stay where they are. Giving the erased class a copy of its
+     * own looks safer and is not: a copy is a dispatch group of its own, so it is named separately and
+     * the binding lands under a name no call site asks for, and joining it to the method it came from
+     * to share the name merges two groups which are deliberately distinct. The one shape reaching this
+     * is a closure, where each class binds its own implementation under the same slot names already
+     * and the erased allocation is dead. Left alone rather than fixed blind.
+     */
+    private void bindSpecialisedMethodsToTheAllocatedClass() {
+        Map<ImClass, ImClass> erasedOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            erasedOf.put(cell.getValue(), cell.getRowKey());
+        }
+        Set<ImClass> allocated = allocatedClasses();
+        // Walked in program order rather than over the specialisation table, whose iteration is
+        // hash-ordered: what ends up on a class, and in which order, decides its emitted slot names.
+        for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
+            ImClass erased = erasedOf.get(specialized);
+            if (erased == null || erased == specialized || !allocated.contains(erased)) {
+                continue;
+            }
+            if (allocated.contains(specialized)) {
+                continue;
+            }
+            for (ImMethod method : specialized.getMethods().removeAll()) {
+                method.setMethodClass(JassIm.ImClassType(erased, JassIm.ImTypeArguments()));
+                erased.getMethods().add(method);
+            }
+        }
+    }
+
+    /** Every class the program allocates an instance of. */
+    private Set<ImClass> allocatedClasses() {
+        Set<ImClass> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                result.add(alloc.getClazz().getClassDef());
+            }
+        });
+        return result;
     }
 
     /**
@@ -170,6 +228,7 @@ public class EliminateGenerics {
 
 
     private void collectGenericNewRoots() {
+        classByFunction = null;
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
@@ -249,8 +308,79 @@ public class EliminateGenerics {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
+            return;
+        }
+        if (call.getTypeArguments().isEmpty()) {
+            collectCallThroughGenericReceiver(call);
         }
     }
+
+    /**
+     * Collects a call which names a function of a generic class outright, taking the instantiation
+     * from the receiver it was handed.
+     * <p>
+     * {@code super.m()} is the case that shows why: the call names its target, so there is no receiver
+     * to read type arguments from, and this target never lifts the class's type variables onto the
+     * function, so nothing on the call says which instantiation to specialise for and the erased
+     * original is reached instead — where the dispatch it contains is dead. The receiver is still the
+     * first argument, and the class it is used as gives the same answer the lift gives elsewhere. A
+     * constructor's own body is reached the same way, its {@code this} being that first argument.
+     * <p>
+     * Only for a target which reaches one of the operations needing a concrete type. Being able to
+     * read an instantiation off a receiver says nothing about whether anything wants it, and this
+     * target keeps generics erased: specialising every call into a generic superclass would make a
+     * copy per instantiation of functions with no dispatch and no construction in them.
+     */
+    private void collectCallThroughGenericReceiver(ImFunctionCall call) {
+        ImClass owningClass = classOwning(call.getFunc());
+        if (owningClass == null || owningClass.getTypeVariables().isEmpty()
+            || !call.getFunc().getTypeVariables().isEmpty()) {
+            return;
+        }
+        if (call.getArguments().isEmpty()
+            || !(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(receiverType, owningClass);
+        if (classType == null
+            || classType.getTypeArguments().size() != owningClass.getTypeVariables().size()
+            || typeArgumentsContainTypeVariable(classType.getTypeArguments())) {
+            return;
+        }
+        if (!functionNeedsSpecialization(call.getFunc(),
+            Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            return;
+        }
+        genericsUses.add(new GenericClassFunctionCall(call, owningClass,
+            new GenericTypes(classType.getTypeArguments())));
+    }
+
+    /**
+     * The class a function belongs to, whether as a method's implementation or as a function of its
+     * own, and null when it belongs to none.
+     * <p>
+     * Rebuilt per collection pass rather than kept, because specialising adds more. This target leaves
+     * both on their classes, so there is no owner map of the kind moving them out builds.
+     */
+    private @Nullable ImClass classOwning(ImFunction function) {
+        if (classByFunction == null) {
+            classByFunction = new IdentityHashMap<>();
+            for (ImClass imClass : prog.getClasses()) {
+                for (ImFunction f : imClass.getFunctions()) {
+                    classByFunction.putIfAbsent(f, imClass);
+                }
+                for (ImMethod method : imClass.getMethods()) {
+                    if (method.getImplementation() != null) {
+                        classByFunction.putIfAbsent(method.getImplementation(),
+                            method.getMethodClass().getClassDef());
+                    }
+                }
+            }
+        }
+        return classByFunction.get(function);
+    }
+
+    private @Nullable Map<ImFunction, ImClass> classByFunction;
 
     /**
      * A construction states an instantiation that no call site has to mention. A closure is the case
@@ -362,7 +492,7 @@ public class EliminateGenerics {
             Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
         }
-        if (call.getTypeArguments().isEmpty()) {
+        if (isMissingClassTypeArguments(call, method)) {
             addMemberTypeArguments(call, method.attrClass());
         }
         if (typeArgumentsContainTypeVariable(call.getTypeArguments())) {
@@ -375,6 +505,22 @@ public class EliminateGenerics {
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             genericsUses.add(new GenericMethodCall(call));
         }
+    }
+
+    /**
+     * Whether a call is short of the type arguments belonging to the receiver's class.
+     * <p>
+     * A specialisation is matched against the class's type variables followed by the method's own, so
+     * a method declaring parameters of its own leaves the call supplying the shorter list rather than
+     * an empty one. Reading a non-empty list as "already has them" is what rejected a bounded type
+     * parameter on a method of a generic class here, while the same program compiles on Jass, where
+     * lifting the class's variables onto the method gives the call both at once.
+     */
+    private static boolean isMissingClassTypeArguments(ImMethodCall call, ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        int own = implementation == null ? 0 : implementation.getTypeVariables().size();
+        return call.getTypeArguments().size() == own
+            && !method.getMethodClass().getClassDef().getTypeVariables().isEmpty();
     }
 
     /**
@@ -1124,6 +1270,17 @@ public class EliminateGenerics {
         boolean needsGlobals = needsGlobalSpecialization(f);
 
         if (!isGeneric && !needsGlobals) {
+            // A function of a generic class declares no type variables of its own: it uses the
+            // class's, which this target does not lift onto it. The call already says which
+            // instantiation it is for, so match against the class's variables rather than treating
+            // the function as nothing to specialise, strip the arguments and leave the dispatch
+            // inside it with no concrete type. A constructor is the case that needs this - the call
+            // running it is the only place its instantiation is stated, there being no receiver yet.
+            ImClass owner = genericNewOnly ? classOwning(f) : null;
+            if (owner != null && !owner.getTypeVariables().isEmpty()
+                && owner.getTypeVariables().size() == generics.getTypeArguments().size()) {
+                return specializeClassFunction(f, owner, f, generics);
+            }
             return f;
         }
         if (generics.containsTypeVariable()) {
@@ -1207,27 +1364,39 @@ public class EliminateGenerics {
     }
 
     private ImFunction specializeMethodImplementation(ImMethod method, GenericTypes generics) {
-        ImFunction implementation = method.getImplementation();
-        ImFunction specialized = specializedFunctions.get(implementation, generics);
+        return specializeClassFunction(method.getImplementation(),
+            method.getMethodClass().getClassDef(), method, generics);
+    }
+
+    /**
+     * Specialises a function belonging to a generic class, whether it implements a method or is a
+     * function of the class in its own right - a constructor and the body it runs are the latter.
+     * <p>
+     * This target does not lift a class's type variables onto its functions, so such a function uses
+     * them where they are declared and the arguments to match are the class's followed by any the
+     * function declares itself.
+     */
+    private ImFunction specializeClassFunction(ImFunction function, ImClass owningClass,
+                                               Element blameFor, GenericTypes generics) {
+        ImFunction specialized = specializedFunctions.get(function, generics);
         if (specialized != null) {
             return specialized;
         }
 
-        List<ImTypeVar> typeVariables = new ArrayList<>(
-            method.getMethodClass().getClassDef().getTypeVariables());
-        typeVariables.addAll(implementation.getTypeVariables());
+        List<ImTypeVar> typeVariables = new ArrayList<>(owningClass.getTypeVariables());
+        typeVariables.addAll(function.getTypeVariables());
         if (typeVariables.size() != generics.getTypeArguments().size()) {
-            throw new CompileError(method, "Generics should match class method type variables.");
+            throw new CompileError(blameFor, "Generics should match class method type variables.");
         }
 
-        ImFunction newImplementation = implementation.copyWithRefs();
-        specializedFunctions.put(implementation, generics, newImplementation);
+        ImFunction newImplementation = function.copyWithRefs();
+        specializedFunctions.put(function, generics, newImplementation);
         specializedFunctionGenerics.put(newImplementation, generics);
         prog.getFunctions().add(newImplementation);
-        translator.recordSpecialisation(newImplementation, implementation, generics.getTypeArguments());
-        recordCopiedTypeVars(implementation.getTypeVariables(), newImplementation.getTypeVariables());
+        translator.recordSpecialisation(newImplementation, function, generics.getTypeArguments());
+        recordCopiedTypeVars(function.getTypeVariables(), newImplementation.getTypeVariables());
         newImplementation.getTypeVariables().removeAll();
-        newImplementation.setName(implementation.getName() + "_specialized");
+        newImplementation.setName(function.getName() + "_specialized");
         rewriteGenerics(newImplementation, generics, typeVariables);
         collectGenericNewUses(newImplementation);
         return newImplementation;
@@ -2090,6 +2259,30 @@ public class EliminateGenerics {
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
             specializedCallSites.add(fc);
+        }
+    }
+
+    /**
+     * A call naming a function of a generic class, rewritten to the copy specialised for the
+     * instantiation the call is for. That instantiation came from the receiver it was handed or from
+     * the type the result is stored in, rather than from the call, so there are no type arguments on
+     * the call to clear.
+     */
+    class GenericClassFunctionCall implements GenericUse {
+        private final ImFunctionCall call;
+        private final ImClass owningClass;
+        private final GenericTypes generics;
+
+        GenericClassFunctionCall(ImFunctionCall call, ImClass owningClass, GenericTypes generics) {
+            this.call = call;
+            this.owningClass = owningClass;
+            this.generics = generics;
+        }
+
+        @Override
+        public void eliminate() {
+            call.setFunc(specializeClassFunction(call.getFunc(), owningClass, call, generics));
+            specializedCallSites.add(call);
         }
     }
 

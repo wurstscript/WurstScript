@@ -172,17 +172,15 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * Still rejected for Lua, and this pins that it is rejected clearly rather than mistranslated.
-     * A constructor belongs to the class, not to a generic function of its own, so the call that
-     * runs it carries no type arguments — {@code new_Box(21)} in the intermediate language, with
-     * the instantiation only on the type of what it is assigned to. Nothing on the Lua path reads
-     * it from there, so the dispatch inside the constructor is never given a concrete type.
-     * Should that be made to work, this test fails and becomes the success case above.
+     * The same on Lua. A constructor belongs to its class rather than to a generic function of its
+     * own, so it declares no type variables and specialising it was treated as nothing to do — the
+     * call's type argument was stripped and the dispatch inside was left with no concrete type. The
+     * argument was on the call all along; what was missing is that a function of a generic class is
+     * matched against the class's type variables, since this target never lifts them onto it.
      */
     @Test
-    public void dispatchInsideConstructorIsRejectedForLua() {
-        test().testLua(true).executeProg().expectError("could not be resolved for the Lua target")
-            .lines(DISPATCH_IN_CONSTRUCTOR);
+    public void dispatchInsideConstructorLua() {
+        test().testLua(true).executeProg().lines(DISPATCH_IN_CONSTRUCTOR);
     }
 
     /**
@@ -342,17 +340,53 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same program on Lua, where it still does not work, so the difference between the targets is
-     * stated rather than left to be discovered. {@code transformGenericNewOnly} runs neither
-     * {@code simplifyClasses} nor {@code addMemberTypeArguments}, so the class's type variables are
-     * never lifted onto its functions and there is nothing for a super call to carry. The object is
-     * allocated from the erased {@code Box} table while the specialised one holds the method, so it
-     * compiles and runs and never reaches {@code testSuccess}. Tracked as backlog item 13, whose
-     * remaining half is the erasure decision in item 23.
+     * The same program on Lua, where the object stays erased. Both halves of that had to be met: the
+     * specialised method is bound to the class the object is allocated from, so a virtual call finds
+     * it, and the super call — which names its target and so has no receiver to read type arguments
+     * from — is rewritten to the copy specialised for the instantiation the subclass extends.
      */
-    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
-    public void subclassOfBoundedGenericIsStillBrokenOnLua() {
+    @Test
+    public void subclassOfBoundedGenericLua() {
         test().testLua(true).executeProg().lines(SUBCLASS_OF_BOUNDED_GENERIC);
+    }
+
+    /**
+     * Three receivers of one class reaching the same specialised slot, which the subclass makes
+     * virtual: one built by a specialised generic function, one constructed directly, one a subclass
+     * instance. The first two stay erased — a specialised function's copy allocates the erased class
+     * as well — so this says that moving the slot to the class objects come from serves every way of
+     * arriving at it, not only the construction written in place.
+     */
+    @Test
+    public void oneGenericReachedThroughEveryConstructionLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x",
+            "class Box<K: Show>",
+            "    K key",
+            "    construct(K k)",
+            "        key = k",
+            "    function size(int extra) returns int",
+            "        return K.show(key) + extra",
+            "class SubBox extends Box<int>",
+            "    construct(int k)",
+            "        super(k)",
+            "    override function size(int extra) returns int",
+            "        return super.size(extra) + 100",
+            "function make<K: Show>(K k) returns Box<K>",
+            "    return new Box<K>(k)",
+            "init",
+            "    Box<int> made = make(5)",
+            "    Box<int> direct = new Box<int>(7)",
+            "    Box<int> sub = new SubBox(5)",
+            "    if made.size(1) == 6 and direct.size(1) == 8 and sub.size(1) == 106",
+            "        testSuccess()"
+        );
     }
 
     /**
@@ -434,28 +468,28 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same program on Lua, where it does not compile at all — and not because of the collision.
-     * A bounded type parameter on a method of a generic class is rejected on that target with
-     * "Generics should match class method type variables", on master as well as here, so the shape
-     * which exercises this lookup cannot be run there to check the dispatch.
+     * The same program on Lua, which used to be rejected outright with "Generics should match class
+     * method type variables" — a method call there carries the class's type arguments followed by the
+     * method's own, and a method declaring parameters of its own was read as already having both.
      * <p>
-     * A version Lua does compile, with the second parameter on a free function rather than a method,
-     * passes without the change as well as with it: the two parameters never reach one lookup that
-     * way, so it would be coverage in name only. This pins the rejection instead, and the gap behind
-     * it is backlog item 25. Should that be fixed, this test fails and gains a dispatch assertion.
+     * Running it is the point: both parameters reach one lookup only in this shape, so a version with
+     * the second parameter on a free function would be coverage in name only.
+     * <p>
+     * One program running is not the shape being supported. A method combining its own type parameters
+     * with its owning generic class's stays outside the Lua contract - see {@code AGENTS.md} - so this
+     * says the arity check no longer rejects it, and nothing wider.
      */
     @Test
-    public void aBoundedMethodParameterInAGenericClassIsRejectedForLua() {
-        test().testLua(true).executeProg()
-            .expectError("Generics should match class method type variables")
-            .lines(SAME_NAMED_BOUNDED_PARAMETERS);
+    public void aBoundedMethodParameterInAGenericClassLua() {
+        test().testLua(true).executeProg().lines(SAME_NAMED_BOUNDED_PARAMETERS);
     }
 
     /**
      * A module may carry a bounded type parameter, and a class using it supplies the argument. Using
      * a module copies its body into the class, substituting the module's type parameters — and a
      * requirement is called on the parameter itself, {@code T.show(x)}, which is a name rather than a
-     * type, so the substitution never reaches it.
+     * type, so the substitution never reaches it. The instantiation declares the parameter so that
+     * name still resolves.
      */
     private static final String[] BOUND_ON_MODULE = {
         "package test",
@@ -480,23 +514,77 @@ public class TypeClassTests extends WurstScriptTest {
     };
 
     /**
-     * Rejected, and this pins that it is rejected clearly rather than mistranslated.
-     * <p>
      * A module body resolves names in the module's own scope by design — {@code nextScope} sends a
      * {@code ModuleInstanciation} to {@code attrModuleOrigin()} rather than to the class using it, so
      * a module cannot capture the names of whoever uses it. The type replacement during expansion
      * therefore reaches every {@code T} used as a type, and cannot reach the one in {@code T.show(x)}
-     * which is a name: renaming it to the using class's parameter produces a name that scope
+     * which is a name: renaming it to the using class's parameter would produce a name that scope
      * deliberately cannot see.
      * <p>
-     * Making it work means the instantiation declaring the parameter itself, so the body keeps saying
-     * {@code T} and {@code T} resolves — type parameters on {@code ModuleInstanciation}, which is a
-     * grammar change. Backlog item 7.
+     * So the instantiation declares the parameter itself and records the argument. The body keeps
+     * saying {@code T}, that name resolves, and the requirement it reaches is the one {@code T}
+     * declared while its types are the argument's. Here the argument is the using class's own
+     * parameter, so the dispatch is on the class's type variable.
      */
     @Test
-    public void boundOnModuleTypeParameterIsRejected() {
-        testAssertErrorsLines(false, "Type class bounds are not supported on a module type parameter",
-            BOUND_ON_MODULE);
+    public void boundOnModuleTypeParameter() {
+        testAssertOkLines(true, BOUND_ON_MODULE);
+    }
+
+    @Test
+    public void boundOnModuleTypeParameterLua() {
+        test().testLua(true).executeProg().lines(BOUND_ON_MODULE);
+    }
+
+    /**
+     * The bound is checked where the argument is chosen. Nothing else sees both: the instantiation
+     * records the argument already resolved, and by the time the copied body dispatches on it the
+     * module use is no longer there to blame.
+     */
+    @Test
+    public void unsatisfiedBoundOnModuleUse() {
+        testAssertErrorsLines(false, "Type string does not satisfy the bound T: Show",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x * 2",
+            "module Shower<T: Show>",
+            "    T held",
+            "    function shown() returns int",
+            "        return T.show(held)",
+            "class Holder",
+            "    use Shower<string>",
+            "init",
+            "    testSuccess()"
+        );
+    }
+
+    /**
+     * A using class which is itself generic can only supply the bound by declaring it, because no
+     * instance is chosen yet at that point.
+     */
+    @Test
+    public void unsatisfiedBoundOnModuleUseFromClassParameter() {
+        testAssertErrorsLines(false, "Type parameter K does not satisfy the bound T: Show",
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x * 2",
+            "module Shower<T: Show>",
+            "    T held",
+            "    function shown() returns int",
+            "        return T.show(held)",
+            "class Holder<K:>",
+            "    use Shower<K>",
+            "init",
+            "    testSuccess()"
+        );
     }
 
     /** Each type argument picks its own instance, so one generic serves several types. */
@@ -1174,27 +1262,38 @@ public class TypeClassTests extends WurstScriptTest {
         );
     }
 
-    /** A bound on a module type parameter is rejected: using a module copies its body out of scope. */
+    /**
+     * A module used with a concrete argument dispatches to that argument's instance directly: the
+     * using class is not generic, so there is no type variable left for generic elimination to
+     * substitute and the instance is already determined when the body is translated.
+     */
     @Test
     public void boundOnGenericModule() {
-        testAssertErrorsLines(false, "not supported on a module type parameter",
-            "package test",
-            "native testSuccess()",
-            "interface Show<T:>",
-            "    function show(T x) returns string",
-            "implements Show<int>",
-            "    function show(int x) returns string",
-            "        return \"i\"",
-            "module M<T: Show>",
-            "    function render(T x) returns string",
-            "        return T.show(x)",
-            "class C",
-            "    use M<int>",
-            "init",
-            "    if new C().render(1) == \"i\"",
-            "        testSuccess()"
-        );
+        testAssertOkLines(true, BOUND_ON_GENERIC_MODULE);
     }
+
+    @Test
+    public void boundOnGenericModuleLua() {
+        test().testLua(true).executeProg().lines(BOUND_ON_GENERIC_MODULE);
+    }
+
+    private static final String[] BOUND_ON_GENERIC_MODULE = {
+        "package test",
+        "native testSuccess()",
+        "interface Show<T:>",
+        "    function show(T x) returns string",
+        "implements Show<int>",
+        "    function show(int x) returns string",
+        "        return \"i\"",
+        "module M<T: Show>",
+        "    function render(T x) returns string",
+        "        return T.show(x)",
+        "class C",
+        "    use M<int>",
+        "init",
+        "    if new C().render(1) == \"i\"",
+        "        testSuccess()",
+    };
 
     /** A method with its own type parameters must not disturb the class binding taken from the receiver. */
     @Test

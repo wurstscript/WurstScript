@@ -4,6 +4,9 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import de.peeeq.wurstscript.ast.*;
 
+import java.util.Collections;
+import java.util.List;
+
 public class TypeNameLinks {
 
     public static ImmutableMultimap<String, TypeLink> calculate(ClassOrModuleOrModuleInstanciation c) {
@@ -94,13 +97,27 @@ public class TypeNameLinks {
     }
 
     private static void addTypeParametersIfAny(ImmutableMultimap.Builder<String, TypeLink> result, WScope c) {
-        if (c instanceof AstElementWithTypeParameters) {
-            AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) c;
-            for (TypeParamDef i : wtp.getTypeParameters()) {
-                result.put(i.getName(), TypeLink.create(i, c));
-            }
+        for (TypeParamDef i : declaredTypeParameters(c)) {
+            result.put(i.getName(), TypeLink.create(i, c));
         }
+    }
 
+    /**
+     * The type parameter names a scope introduces.
+     * <p>
+     * A module instantiation declares the module's parameters so that a receiver written on one
+     * still resolves once the body has been copied out of the module's scope. It is not an
+     * {@link AstElementWithTypeParameters}: the arguments are recorded on the instantiation, so
+     * these are names to look up rather than variables for a call to infer.
+     */
+    private static List<TypeParamDef> declaredTypeParameters(WScope c) {
+        if (c instanceof AstElementWithTypeParameters wtp) {
+            return wtp.getTypeParameters();
+        }
+        if (c instanceof ModuleInstanciation mi) {
+            return mi.getTypeParameters();
+        }
+        return Collections.emptyList();
     }
 
     private static void addJassTypes(ImmutableMultimap.Builder<String, TypeLink> result, CompilationUnit cu) {

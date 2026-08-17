@@ -27,76 +27,35 @@ itself, and one gap in what the suite can see.
     the two targets have disagreed before, and every disagreement found so far was found by running
     the same program on both.
 
-6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
-   a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
-   `dispatchInsideConstructorIsRejectedForLua`, the second pinning the current diagnostic.
+23. **The Lua erasure model.** Decided: **specialise only the paths which need a concrete type and
+    leave the object erased throughout.** Generated scripts stay small, which is the reason for the
+    choice; the cost is that it is more compiler work than the alternative of not erasing at all.
 
-   Not the same gap as item 5, and the fix from it does not reach: a constructor belongs to the
-   class rather than to a generic function of its own, so the call that runs it carries no type
-   arguments at all. The intermediate language has `b = new_Box(21)` with `b` typed
-   `Box<integer{show}>`, and `new_Box` still generic; the calls *inside* it
-   (`construct_Box<T>`, `Box_init<T>`) do carry the class's type variable, but nothing gives the
-   outermost one a concrete argument. `collectGenericNewUse` requires non-empty type arguments, so
-   it never starts.
+    What that means in practice. An object keeps coming from the erased class, so it must never need a
+    specialised method - the concrete type is threaded to the places which use it rather than to the
+    object. Items 6 and 13 both end here: a constructor's dispatch needs the type at the construction
+    site, and a subclass's `super` call needs it on the call rather than on the receiver's class.
 
-   What Jass does, from `TypeClassTests_dispatchInsideConstructor_no_opts.jim`: it specialises the
-   constructor function itself, `b_8 = new_Box⟪integer⟫(21)`. It gets there from *types*, not from
-   the call — `collectGenericUsages` collects a `GenericVar` for the local declared
-   `Box<integer{show}>` and a `GenericReturnTypeFunc` for `new_Box`, whose return type is generic.
-   The Lua collector has neither; it only ever looks at calls. So attaching type arguments to
-   constructor calls, which an earlier note here proposed, is not what the Jass path relies on and
-   would be a second mechanism rather than the same one.
+    Take it seriously rather than working around it. Two class shapes existing at once is what let an
+    instance be allocated with no fields at all, and then with its fields under a key nothing read
+    (#1239). Both are fixed; the shape which produced them is what this decision removes.
 
-   Collecting from types on the Lua path runs straight into item 23, so settle that first.
+    **Done.** Items 6, 13 and 25 are closed and the model is what closed them: a specialised method is
+    moved to the class its objects are actually allocated from, and every remaining site reads the
+    instantiation off something the call already has rather than off the object. A specialisation
+    nothing allocates is left with no methods and drops out entirely, so the second class shape is gone
+    wherever an ordinary generic object is involved -
+    `FastHashMapTests.assertSpecialisedClassesAllocateTheirFields` states both accepted outcomes rather
+    than the one that used to hold.
 
-23. **The Lua erasure model, which items 6 and 13 both end at.** On Lua a generic class is erased,
-    and specialised copies are made only where a construction names the instantiation. Every
-    remaining gap on that target is one question: an object allocated from a specialised class while
-    its methods are bound to the erased one breaks, and an object allocated from the erased class
-    cannot reach a specialised method.
-
-    Two ways out, and it is a decision rather than a patch. Either specialise only the paths which
-    need a concrete type and leave the object erased throughout, or stop erasing constructed generic
-    classes on Lua and pay the code size.
-
-    #1239 is a reason to take it seriously rather than leave it. Both class shapes existing at once
-    is what let an instance be allocated with no fields at all, and then with its fields under a key
-    nothing read. Both are fixed; the shape which produced them is still there.
-
-    Do not start this autonomously.
-
-7. **Module bounds.** `module M<T: Show>` is rejected with a clear message today, and
-   `TypeClassTests.boundOnModuleTypeParameterIsRejected` pins that. Tried and reverted; what follows
-   is why, because the earlier note here suggested a fix which cannot work.
-
-   Expansion copies the module body into the user and replaces the module's type parameters
-   **in type positions**. A requirement is called on the parameter itself — `T.show(x)` — and that
-   receiver is a name, resolved by `lookupBoundedTypeParam` through `lookupType`, so the replacement
-   never touches it.
-
-   Renaming the receiver to the using class's parameter, which is what "receiver rewriting during
-   expansion" meant, does not work. `NameResolution.nextScope` sends a `ModuleInstanciation` to
-   `attrModuleOrigin()` rather than to the class using it:
-
-       if (currentScope instanceof ModuleInstanciation) {
-           return nextScope(moduleInstanciation.attrModuleOrigin());
-       }
-
-   That is deliberate — a module body resolves in the module's own scope so it cannot capture the
-   names of whoever uses it — so the renamed receiver names something that scope cannot see. The
-   rename itself works: with it, the error moves from the rejection to `Could not find variable K`
-   at the dispatch, which is this scope rule and not a mistake in the rename.
-
-   That leaves the other half of the original note: **type parameters on `ModuleInstanciation`**. The
-   instantiation declares the parameter itself, bound to the argument, so the copied body keeps
-   saying `T` and `T` resolves without any rename. It needs `ModuleInstanciation` to carry type
-   parameters in the grammar, so it is a change to `wurstscript.parseq` and everything reading that
-   node, not a patch to the expander.
-
-   Worth knowing before starting: an argument which is a concrete type (`use Shower<int>`) is a
-   second case even then. A requirement is dispatched on a type parameter, so `int.show(x)` is not a
-   dispatch at all — that one has to resolve to the instance during expansion rather than resolve by
-   name.
+    The type-driven collector this entry expected to need was not needed. Item 6 looked like it wanted
+    one, since a constructor has no receiver and the note below reasoned the instantiation was only on
+    the type of what the result is assigned to. It is not: `new_Box(21)` carries the type argument
+    already. What was missing is that a function of a generic class declares no type variables of its
+    own — it uses the class's, which this target does not lift — so specialising it was read as nothing
+    to do, the argument was stripped and the dispatch inside was left abstract. Matching such a function
+    against its class's variables is the whole fix, and it is the same rule as everywhere else here
+    rather than a second mechanism. Written down because three earlier notes argued for the harder one.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
@@ -184,21 +143,29 @@ itself, and one gap in what the suite can see.
     far produced nothing to work from, which is why it cost a re-run and no diagnosis. The next one
     will say what differed.
 
-25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
-    `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
-    match class method type variables", while the same program compiles and runs on the other target.
-    On master as well, so it is not a regression — found while trying to give item 10's fix Lua
-    coverage, which is what it blocks: the only shape reaching that lookup with two parameters at once
-    is a class parameter beside a method parameter, and Lua will not compile it.
+26. **Done. A dispatch slot's segment is recorded where it is assigned, not recovered from a name.**
+    The segment used to be found by cutting a method's name at its last underscore, which is the right
+    answer only when the rest contains no underscore and the method is not a specialised copy. Four bugs
+    came out of that: a method declared `get_it` composed a slot called `it` and its override never
+    reached it; a specialised method composed a slot named after its type argument; requiring the cut to
+    equal the declared name lost the slot an override of a numbered overload has to replace.
 
-    Pinned by `TypeClassTests.aBoundedMethodParameterInAGenericClassIsRejectedForLua`. A version with
-    the second parameter on a free function does compile on Lua and passes with or without item 10's
-    change, so it covers nothing; that is why the rejection is pinned instead.
+    `LuaDispatchPreparation.normalizeMethodNames` names a dispatch group after one member, sanitises
+    that name into a Lua identifier and uniques it, and now strips the naming member's class from it and
+    records the result on `ImTranslator` for every member of the group. Both composers read the record.
+    `semanticNameFromMethodName` is gone from both.
 
-    Where to start: the message comes from the arity check between a call's generics and the callee's
-    type variables. A method of a generic class has the class's variables lifted onto it on the Jass
-    path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
-    against a list which does not include the class's.
+    Three earlier attempts are worth remembering, because each looked equivalent and was not. Asking the
+    declaration alone collapses overloads, which share a declared name. Using a method's name whole
+    breaks cross-class matching, since the name is class-prefixed. Stripping each method's *own* owner
+    fixes the underscore case and breaks override chains, because a group is named after one member and
+    an ancestor's method can carry a descendant's class in its name - which is exactly why no method can
+    work its segment out for itself, and why the recording happens where the group is in hand.
+
+    `LuaTranslationTests.underscoreNamedOverrideDispatchesInAGenericHierarchy` is now a positive test.
+    Still in the same family: `ProgramState.identifyGenericStaticGlobals` takes the longest prefix of a
+    global's name ending at an underscore which matches a class name. #1249 made the recorded owner
+    preferred where one exists, so this is only the fallback, and it should stop being reachable.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
@@ -208,23 +175,11 @@ itself, and one gap in what the suite can see.
 
 ## Blocked on a decision
 
-- **8. Should `div` and `mod` keep returning the left operand's type?** Tried returning
-  `WurstTypeInt.instance()` to match `caseMathOperation` and reverted it: it is a user-visible
-  breaking change, and the suite already defines the current behaviour as correct.
-
-  The asymmetry is real and reachable. `WurstTypeIntLiteral` is a proper subtype of both int and
-  real, and `caseMathOperation` collapses two literals to int precisely so `real r = 1 + 1` is an
-  error. `div`/`mod` return `leftType`, so `real r = 7 div 2` compiles. Changing that made exactly
-  one test fail — `OptimizerTests.realFormatting_consistent_fromIntOps`, which opens with
-  `real a = 1 div 2` — and AGENTS.md says the existing suite is the authoritative definition of
-  behaviour. Real maps will contain the same shape.
-
-  So the question is the owner's: is `real r = 7 div 2` meant to compile? If yes, the branch in
-  `AttrExprType` wants a comment saying so, and this item closes. If no, it is a deliberate
-  breaking change that needs the changelog, and `realFormatting_consistent_fromIntOps` needs
-  rewriting to say what it actually tests, which is real formatting rather than that assignment.
-  `ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal` pins the behaviour meanwhile,
-  so whichever way it goes is deliberate rather than accidental.
+- **8. Settled: `div` and `mod` keep returning the left operand's type**, so `real r = 7 div 2`
+  compiles and is meant to. The branch in `AttrExprType` now says so, rather than looking like an
+  oversight next to `caseMathOperation`, which collapses two literals to int precisely so
+  `real r = 1 + 1` is an error. `ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal`
+  pins it and `OptimizerTests.realFormatting_consistent_fromIntOps` depends on it. Nothing to do.
 
 - **Eliminating the remaining `castTo int`.** The motivating case is timer data attachment
   (`ClosureTimers.wurst`), and the containers behind it: `Table` has 81 casts, `HashList` 13,
@@ -234,6 +189,10 @@ itself, and one gap in what the suite can see.
   question: what the syntax is, where such an instance may be declared under the orphan rule,
   and whether a specific instance always beats a family one. Do not start this autonomously.
 
+  Deferred deliberately, not forgotten. It decides whether type class bounds stay a tool for new
+  containers or become how the existing ones work, which is worth deciding when there is appetite for
+  the language design rather than alongside compiler work.
+
 ## Out of scope
 
 - The stdlib itself. `de.peeeq.wurstscript/temp/WurstStdlib2` is a fetched artefact for tests;
@@ -241,6 +200,45 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 6. A requirement dispatched from inside the constructor of a bounded generic class works on Lua. The
+  call running a constructor carries its type argument already; what was missing is that a constructor
+  declares no type variables of its own, using its class's, so specialising it was treated as nothing
+  to do — the argument was stripped and the dispatch left with no concrete type. Functions of a generic
+  class are now matched against the class's type variables, which also covers the constructor body and
+  the field initialiser it calls.
+
+- 25. A bounded type parameter on a method of a generic class no longer trips the arity check on Lua. A
+  method call there carries the class's type arguments followed by the method's own, and the check for
+  whether the class's were still missing asked whether the call had *any* — so a method declaring
+  parameters of its own was read as already having both and its specialisation was matched against a
+  list one longer than what the call supplied. `aBoundedMethodParameterInAGenericClassLua` runs the
+  program now instead of pinning the rejection.
+
+  Removing that rejection is not the same as supporting the shape, and `AGENTS.md` says not to promise
+  it: a method combining its own type parameters with its owning generic class's stays outside the Lua
+  contract, one running program being one call site rather than a guarantee. The docs say so rather than
+  reading the fix as general support.
+
+- 13 (Lua half). A subclass of a bounded generic class works on Lua. Two things were wrong and each hid
+  the other. The specialised method was left on the specialised class while the object is allocated
+  from the erased one, so the slot a virtual call named resolved to nothing; it is moved to whichever
+  class the program actually allocates. And `super.m()` names its target, so it reached the erased
+  original whose dispatch had been neutralised as dead — `nil + extra` at runtime. It now takes the
+  instantiation from the class its first argument is used as, which is the same answer the Jass path
+  gets from the lift it does not do here.
+
+- 7. A module's type parameter can carry a bound. The instantiation declares the module's parameters
+  and records the arguments, so the receiver in `T.show(x)` has a name to resolve and something to
+  say what it stands for. Excluding them from inference turned out to mean not making a
+  `ModuleInstanciation` an `AstElementWithTypeParameters` at all: as one, every method of a generic
+  module's instantiation asked its caller to infer a parameter its signature never mentions, which is
+  what `genericModuleInGenericClassGet` was reporting. The parameters are registered as type names in
+  `TypeNameLinks` instead. The receiver denotes the argument bound to the parameter, offering the
+  requirements the parameter declared with the argument's types, and dispatch follows the argument —
+  the using class's type variable when it is one, the instance directly when it is concrete, since a
+  module used with a concrete argument leaves no variable to substitute. The bound is checked at the
+  use, the only place which sees the parameter and the argument together.
 
 - 21. A standard library program executes on Lua (#1242). Three packages could not initialise, each
   on one native the shim did not define — `StringHash` for Colors, `Location` for Vectors,

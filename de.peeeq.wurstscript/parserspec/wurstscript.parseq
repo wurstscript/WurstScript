@@ -82,7 +82,13 @@ ClassSlot =
 	  ConstructorDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, SuperConstructorCall superConstructorCall, WStatements body)
 	| OnDestroyDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ModuleUse(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Identifier moduleNameId, TypeExprList typeArgs)
+	// Carries the module's type parameters, and the arguments chosen for them, so a name inside the
+	// copied body still resolves: a requirement of a bound is called on the parameter itself, which
+	// is a name rather than a type, and a module body resolves names in the module's own scope
+	// rather than the user's. They are declarations, not parameters left to infer, which is why the
+	// instantiation is not an AstElementWithTypeParameters.
 	| ModuleInstanciation(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId,
+			TypeParamDefs typeParameters, TypeExprList typeArgs,
 			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| ClassMember

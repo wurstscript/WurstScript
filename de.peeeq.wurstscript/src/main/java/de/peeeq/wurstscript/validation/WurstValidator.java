@@ -2466,7 +2466,22 @@ public class WurstValidator {
 
             @Override
             public VariableBinding case_ModuleUse(ModuleUse moduleUse) {
-                return null;
+                // A module's type parameters may carry bounds, and the use is the only place where
+                // both the parameter and the argument chosen for it are in view. Pair them by
+                // position, stopping at the shorter list so a wrong arity is reported once, by the
+                // expander, rather than again here as an unsatisfied bound.
+                ModuleDef def = moduleUse.attrModuleDef();
+                if (def == null) {
+                    return null;
+                }
+                VariableBinding mapping = VariableBinding.emptyMapping();
+                int paired = Math.min(def.getTypeParameters().size(), moduleUse.getTypeArgs().size());
+                for (int i = 0; i < paired; i++) {
+                    TypeParamDef tp = def.getTypeParameters().get(i);
+                    mapping = mapping.set(tp, new WurstTypeBoundTypeParam(tp,
+                            moduleUse.getTypeArgs().get(i).attrTyp(), moduleUse));
+                }
+                return mapping;
             }
 
             @Override
@@ -2643,15 +2658,6 @@ public class WurstValidator {
 
     /** Every bound written on a type parameter must be usable as a type class. */
     private void checkTypeParamBounds(TypeParamDef tp) {
-        if (TypeClassConstraints.hasBounds(tp) && tp.attrNearestStructureDef() instanceof ModuleDef) {
-            // Using a module copies its body into the class, replacing the module's type parameters
-            // in type positions. A requirement is called on the parameter itself, which is an
-            // expression, so it survives the copy and no longer resolves. Reject that here rather
-            // than let it fail later as an unknown name.
-            tp.addError("Type class bounds are not supported on a module type parameter."
-                    + "\nMove the bounded generic into a class, or use the module without a bound.");
-            return;
-        }
         for (TypeExpr boundExpr : TypeClassConstraints.boundExprs(tp)) {
             String reason = TypeClassConstraints.invalidBoundReason(boundExpr);
             if (reason != null) {

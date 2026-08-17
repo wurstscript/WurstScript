@@ -964,7 +964,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         timeTaker.endPhase();
 
         beginPhase(13, "prepare lua dispatch");
-        LuaDispatchPreparation.prepare(imProg);
+        LuaDispatchPreparation.prepare(imProg, imTranslator);
         timeTaker.endPhase();
 
         beginPhase(14, "translate to lua");

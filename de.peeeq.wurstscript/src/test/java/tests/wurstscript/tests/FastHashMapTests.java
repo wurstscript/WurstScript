@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import org.eclipse.jdt.annotation.Nullable;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -421,15 +422,33 @@ public class FastHashMapTests extends WurstScriptTest {
     }
 
     /**
-     * A specialised class allocates the same fields as the class it was specialised from. Nothing
-     * refers to the copies it holds - an access made before specialisation still names the original's
-     * variable - so a pass which drops unread fields drops all of them, and an instance allocated
-     * from the specialised class comes out with no fields at all while the emitted code goes on
-     * reading them by name.
+     * The erased class and any specialised copy of it agree on the fields they allocate.
+     * <p>
+     * Nothing refers to the copies a specialised class holds - an access made before specialisation
+     * still names the original's variable - so a pass which drops unread fields drops all of them,
+     * and an instance allocated from the specialised class comes out with no fields at all while the
+     * emitted code goes on reading them by name.
+     * <p>
+     * A specialisation whose methods are bound to the erased class the objects come from has nothing
+     * left to allocate and is not emitted, which is the shape this target aims for and leaves no field
+     * set to disagree. One emitted without being allocated is neither: dead weight, and the two class
+     * shapes coexisting is what produced the bug above. Both accepted states are named, so this cannot
+     * pass by finding nothing.
      */
     private static void assertSpecialisedClassesAllocateTheirFields(String compiled) {
         String erasedFields = allocatedFields(compiled, "FastHashMap");
-        String specialisedFields = allocatedFields(compiled, "FastHashMap_specialized\\w*");
+        String specialisedFields = allocatedFieldsOrNull(compiled, "FastHashMap_specialized\\w*");
+        if (specialisedFields == null) {
+            // The class table, not any name containing it: a specialised function is named after the
+            // one it was copied from, so matching the bare name would read those as a class.
+            if (Pattern.compile("(?m)^\\s*FastHashMap_specialized\\w*\\s*=\\s*\\(\\{\\s*\\}\\)")
+                    .matcher(compiled).find()) {
+                throw new AssertionError("a specialised class is emitted but never allocated;"
+                    + " its methods should be bound to the class the objects come from, leaving nothing"
+                    + " of it behind, in:\n" + compiled);
+            }
+            return;
+        }
         if (!erasedFields.equals(specialisedFields)) {
             throw new AssertionError("the specialised class should allocate the same fields as the erased one."
                 + "\n  erased:      " + erasedFields
@@ -438,12 +457,17 @@ public class FastHashMapTests extends WurstScriptTest {
     }
 
     private static String allocatedFields(String compiled, String classPattern) {
-        Matcher m = Pattern.compile("function " + classPattern + ":create\\d*\\(\\)\\s*\\R"
-            + "\\s*local new_inst = \\(\\{([^}]*)\\}\\)").matcher(compiled);
-        if (!m.find()) {
+        String fields = allocatedFieldsOrNull(compiled, classPattern);
+        if (fields == null) {
             throw new AssertionError("expected an allocation for " + classPattern + " in:\n" + compiled);
         }
-        return m.group(1).trim();
+        return fields;
+    }
+
+    private static @Nullable String allocatedFieldsOrNull(String compiled, String classPattern) {
+        Matcher m = Pattern.compile("function " + classPattern + ":create\\d*\\(\\)\\s*\\R"
+            + "\\s*local new_inst = \\(\\{([^}]*)\\}\\)").matcher(compiled);
+        return m.find() ? m.group(1).trim() : null;
     }
 
     /**

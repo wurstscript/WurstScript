@@ -204,6 +204,20 @@ function outer<R: Show>(R x) returns string   // <R:> alone would not compile
 	return inner(x)
 ```
 
+A module's type parameter may carry a bound, and the class using the module supplies the argument:
+
+```wurst
+module Shower<T: Show>
+	T held
+	function shown() returns string
+		return T.show(held)
+
+class Holder<K: Show>
+	use Shower<K>          // K must declare the bound it is asked to supply
+	construct(K k)
+		held = k
+```
+
 A class with a bounded type parameter can be subclassed, and the subclass may reach the superclass through `super`:
 
 ```wurst
@@ -215,7 +229,11 @@ class SubBox extends Box<int>
 		return super.size(extra) + 100
 ```
 
-On Lua this compiles and runs but the override does not reach the superclass implementation: the object is allocated from the erased class while the method belongs to the specialised one. Use it on Jass only for now.
+This works on both targets.
+
+A requirement may be dispatched from a method, a constructor, a closure, or a `super` call, on both targets.
+
+One shape is not guaranteed on Lua: a method which combines its own type parameters with those of the generic class owning it. Write it as a free generic function, or parameterise the method only by its owning class.
 
 ## Strings
 

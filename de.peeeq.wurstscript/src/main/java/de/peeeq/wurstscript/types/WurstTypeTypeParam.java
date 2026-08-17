@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -13,7 +11,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -99,45 +96,8 @@ public class WurstTypeTypeParam extends WurstType {
         if (!staticRef) {
             return;
         }
-        // Bounds are ordered and an earlier one wins, but only over the same signature: two bounds
-        // may require the very same operation, and offering both would make every call ambiguous.
-        // Differently shaped overloads are not in competition, so later bounds still contribute
-        // them and overload resolution picks between them as usual.
-        List<FuncLink> supplied = new ArrayList<>();
-        for (InterfaceDef bound : TypeClassConstraints.boundInterfaces(def)) {
-            for (FuncDef method : bound.getMethods()) {
-                if (!method.getName().equals(name)) {
-                    continue;
-                }
-                FuncLink candidate = requirementLink(node, bound, method);
-                if (!alreadySupplied(supplied, candidate, node)) {
-                    supplied.add(candidate);
-                }
-            }
-        }
-        result.addAll(supplied);
-    }
-
-    /** True when an earlier bound already supplied a requirement of the same shape. */
-    private static boolean alreadySupplied(List<FuncLink> supplied, FuncLink candidate, Element node) {
-        for (FuncLink existing : supplied) {
-            List<WurstType> a = existing.getParameterTypes();
-            List<WurstType> b = candidate.getParameterTypes();
-            if (a.size() != b.size()) {
-                continue;
-            }
-            boolean same = true;
-            for (int i = 0; i < a.size(); i++) {
-                if (!a.get(i).equalsType(b.get(i), node)) {
-                    same = false;
-                    break;
-                }
-            }
-            if (same) {
-                return true;
-            }
-        }
-        return false;
+        // The parameter stands for itself, so a requirement keeps the shape it was declared with.
+        TypeClassConstraints.addRequirementMethods(def, new WurstTypeTypeParam(def), this, node, name, result);
     }
 
     @Override
@@ -145,23 +105,7 @@ public class WurstTypeTypeParam extends WurstType {
         if (!staticRef) {
             return Stream.empty();
         }
-        return TypeClassConstraints.boundInterfaces(def).stream()
-                .flatMap(bound -> bound.getMethods().stream()
-                        .map(method -> requirementLink(node, bound, method)));
-    }
-
-    /**
-     * Exposes one interface method as a requirement of this type parameter: the interface's own
-     * type parameter is substituted by this one, and the receiver becomes the type parameter, so
-     * the call reads {@code T.f(args)} with the arguments exactly as declared.
-     */
-    private FuncLink requirementLink(Element node, InterfaceDef bound, FuncDef method) {
-        TypeParamDef ifaceParam = bound.getTypeParameters().get(0);
-        VariableBinding binding = VariableBinding.emptyMapping()
-                .set(ifaceParam, new WurstTypeBoundTypeParam(ifaceParam, new WurstTypeTypeParam(def), node));
-        return FuncLink.create(method, bound)
-                .withTypeArgBinding(node, binding)
-                .withReceiverType(this);
+        return TypeClassConstraints.requirementMethods(def, new WurstTypeTypeParam(def), this, node);
     }
 
     @Override
