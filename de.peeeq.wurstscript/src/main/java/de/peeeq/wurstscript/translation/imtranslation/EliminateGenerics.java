@@ -149,10 +149,12 @@ public class EliminateGenerics {
      * the copy, while an ordinary generic object beside it is not. A specialised name carries its
      * instantiation, so two specialisations of one method stay distinct on the erased class.
      * <p>
-     * When both are allocated neither can give up the slot — a call was rewritten to the specialised
-     * method whichever class its receiver came from — so the erased class gets a binding of its own
-     * rather than the method moving. Being allocated is what settles this and not which shape looks
-     * primary; treating the two as alternatives leaves whichever lost without the slot.
+     * When both are allocated the methods stay where they are. Giving the erased class a copy of its
+     * own looks safer and is not: a copy is a dispatch group of its own, so it is named separately and
+     * the binding lands under a name no call site asks for, and joining it to the method it came from
+     * to share the name merges two groups which are deliberately distinct. The one shape reaching this
+     * is a closure, where each class binds its own implementation under the same slot names already
+     * and the erased allocation is dead. Left alone rather than fixed blind.
      */
     private void bindSpecialisedMethodsToTheAllocatedClass() {
         Map<ImClass, ImClass> erasedOf = new IdentityHashMap<>();
@@ -168,16 +170,6 @@ public class EliminateGenerics {
                 continue;
             }
             if (allocated.contains(specialized)) {
-                // Both shapes are allocated, so neither can give up the slot: a call was rewritten to
-                // the specialised method whichever class its receiver came from. The specialised class
-                // keeps its methods and the erased one gets a binding of its own to the same
-                // implementation.
-                for (ImMethod method : new ArrayList<>(specialized.getMethods())) {
-                    ImMethod onErased = method.copyWithRefs();
-                    onErased.setMethodClass(JassIm.ImClassType(erased, JassIm.ImTypeArguments()));
-                    onErased.setImplementation(method.getImplementation());
-                    erased.getMethods().add(onErased);
-                }
                 continue;
             }
             for (ImMethod method : specialized.getMethods().removeAll()) {
@@ -333,6 +325,11 @@ public class EliminateGenerics {
      * original is reached instead — where the dispatch it contains is dead. The receiver is still the
      * first argument, and the class it is used as gives the same answer the lift gives elsewhere. A
      * constructor's own body is reached the same way, its {@code this} being that first argument.
+     * <p>
+     * Only for a target which reaches one of the operations needing a concrete type. Being able to
+     * read an instantiation off a receiver says nothing about whether anything wants it, and this
+     * target keeps generics erased: specialising every call into a generic superclass would make a
+     * copy per instantiation of functions with no dispatch and no construction in them.
      */
     private void collectCallThroughGenericReceiver(ImFunctionCall call) {
         ImClass owningClass = classOwning(call.getFunc());
@@ -348,6 +345,10 @@ public class EliminateGenerics {
         if (classType == null
             || classType.getTypeArguments().size() != owningClass.getTypeVariables().size()
             || typeArgumentsContainTypeVariable(classType.getTypeArguments())) {
+            return;
+        }
+        if (!functionNeedsSpecialization(call.getFunc(),
+            Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
         }
         genericsUses.add(new GenericClassFunctionCall(call, owningClass,
