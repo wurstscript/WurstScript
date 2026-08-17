@@ -1473,16 +1473,15 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * An override whose declared name contains an underscore does not dispatch inside a generic
-     * hierarchy on Lua, and this pins that rather than leaving it to be met by surprise.
+     * An override whose declared name contains an underscore dispatches inside a generic hierarchy.
      * <p>
-     * A dispatch slot's name is composed by cutting the method's name at its last underscore and taking
-     * the tail, so {@code get_it} contributes {@code it} - which is nobody's method - and the slot the
-     * call goes through is not the one the override was bound to. The same shape without the underscore
-     * works, and so does this one outside a generic hierarchy.
+     * It did not until the segment a slot name is composed from stopped being recovered by cutting a
+     * method's name at its last underscore: {@code get_it} yielded {@code it}, which is nobody's method,
+     * so the override and the call it should answer composed different slots. The segment is now
+     * recorded where a dispatch group is named, and this is the case that proves it.
      */
-    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
-    public void underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua() {
+    @Test
+    public void underscoreNamedOverrideDispatchesInAGenericHierarchy() {
         test().testLua(true).executeProg().lines(
             "package test",
             "native testSuccess()",

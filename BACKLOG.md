@@ -189,59 +189,29 @@ itself, and one gap in what the suite can see.
     path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
     against a list which does not include the class's.
 
-26. **A dispatch slot's name is recovered from another name instead of being asked for, and that is
-    where four bugs came from.** The slot name is composed by cutting a method's name at its last
-    underscore and taking the tail. That tail is the declared name only when the declared name has no
-    underscore in it and the method is not a specialised copy, so:
+26. **Done. A dispatch slot's segment is recorded where it is assigned, not recovered from a name.**
+    The segment used to be found by cutting a method's name at its last underscore, which is the right
+    answer only when the rest contains no underscore and the method is not a specialised copy. Four bugs
+    came out of that: a method declared `get_it` composed a slot called `it` and its override never
+    reached it; a specialised method composed a slot named after its type argument; requiring the cut to
+    equal the declared name lost the slot an override of a numbered overload has to replace.
 
-    - `get_it` contributes `it`, which is nobody's method, and an override named `get_it` in a generic
-      hierarchy does not dispatch on Lua. Pinned by
-      `LuaTranslationTests.underscoreNamedOverrideInAGenericHierarchyIsStillBrokenOnLua`.
-    - a specialised method's tail is the type argument, composing a slot named after a type rather than
-      a method - the case `dea459b45` stopped by refusing the composition.
-    - an overload numbered by the translation carries the number in the tail, so requiring the tail to
-      equal the declared name loses the slot an override of that overload has to replace. Covered by
-      `overloadedOverrideOnAGenericBaseIsReachedThroughTheBase`.
-    - a type argument named like a numbered overload could in principle collide with a tolerance for
-      that number. Not reachable, and covered by `aTypeNamedLikeAnOverloadNumberDoesNotStealTheSlot`.
+    `LuaDispatchPreparation.normalizeMethodNames` names a dispatch group after one member, sanitises
+    that name into a Lua identifier and uniques it, and now strips the naming member's class from it and
+    records the result on `ImTranslator` for every member of the group. Both composers read the record.
+    `semanticNameFromMethodName` is gone from both.
 
-    Two attempts at the obvious fix both fail, and both failures say what the real one has to be.
-    Asking `declaredName` alone collapses overloads, because two overloads share a declared name -
-    `overloadedMethodsDoNotAliasInLuaDispatchTables` catches it. Using the method's name whole instead
-    of its tail breaks cross-class matching, because at the point slots are composed a method's name is
-    still class-prefixed: `GlobalCheckState_update`, where the ancestor's slot is `State_update`. The
-    tail is load-bearing precisely because the prefix is there.
+    Three earlier attempts are worth remembering, because each looked equivalent and was not. Asking the
+    declaration alone collapses overloads, which share a declared name. Using a method's name whole
+    breaks cross-class matching, since the name is class-prefixed. Stripping each method's *own* owner
+    fixes the underscore case and breaks override chains, because a group is named after one member and
+    an ancestor's method can carry a descendant's class in its name - which is exactly why no method can
+    work its segment out for itself, and why the recording happens where the group is in hand.
 
-    A third attempt gets closest and shows why none of these can work. Stripping the owner's name as a
-    known prefix - the boundary is not a guess, the owner is right there to be asked - does fix the
-    underscore case, and the pin above flipped to passing, the first time anything has moved it. It
-    breaks `genericOverrideChainBindsRootSlotToMostSpecificImplInLua` and
-    `genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua` instead, because
-    `normalizeMethodNames` assigns one name per dispatch group derived from the first member's already
-    class-prefixed name and sets it on every member. The prefix a method's name carries is therefore not
-    necessarily its own owner's - an ancestor's method can be named after a descendant's class - so no
-    prefix known locally is the right anchor. Cutting at the last underscore survives that by accident,
-    which is the whole reason it is still here.
-
-    So the segment has to arrive as data, recorded at the one point which knows it:
-    `LuaDispatchPreparation.normalizeMethodNames`. That is where a dispatch group is given its name -
-    sanitised into a Lua identifier and uniqued against everything already taken - and where the group
-    is in hand to strip its own prefix from it. `ImMethod` carries the result in a field beside
-    `luaDispatchGroupKey`, so a grammar change and `genAst`, and both composers then read the field
-    instead of cutting a string.
-
-    Recording the source declaration and an overload index earlier in translation looks equivalent and
-    is not: the assigned name may be derived from a different member of the group, and sanitising and
-    uniquing can change it. A declaration-derived pair would have to be matched back to it, which is the
-    same recovery problem again under a new name. The authoritative segment is the one
-    `normalizeMethodNames` produced, so that is the one to keep.
-
-    The rest of the family, for the same treatment once this exists:
-    `ProgramState.identifyGenericStaticGlobals` takes the longest prefix of a global's name ending at an
-    underscore which matches a class name, which a class whose name contains an underscore answers
-    wrongly and silently. #1249 made the recorded owner preferred where one exists, so this is now only
-    the fallback.
-
+    `LuaTranslationTests.underscoreNamedOverrideDispatchesInAGenericHierarchy` is now a positive test.
+    Still in the same family: `ProgramState.identifyGenericStaticGlobals` takes the longest prefix of a
+    global's name ending at an underscore which matches a class name. #1249 made the recorded owner
+    preferred where one exists, so this is only the fallback, and it should stop being reachable.
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have

@@ -1020,7 +1020,7 @@ public class LuaTranslator {
                     slotNames.add(dispatchSlotName(alias));
                 }
             }
-            String semanticName = semanticNameFromMethodName(m.getName());
+            String semanticName = imTr.dispatchSegmentOf(m);
             if (!semanticName.isEmpty()) {
                 semanticNames.add(semanticName);
             }
@@ -1078,7 +1078,7 @@ public class LuaTranslator {
                 if (m == null) {
                     continue;
                 }
-                String semanticName = semanticNameFromMethodName(m.getName());
+                String semanticName = imTr.dispatchSegmentOf(m);
                 if (semanticName.isEmpty()) {
                     continue;
                 }
@@ -1238,17 +1238,6 @@ public class LuaTranslator {
     private String dispatchGroupKey(ImMethod method) {
         String key = method.getLuaDispatchGroupKey();
         return key == null || key.isEmpty() ? methodSortKey(method) : key;
-    }
-
-    private String semanticNameFromMethodName(String methodName) {
-        if (methodName == null || methodName.isEmpty()) {
-            return "";
-        }
-        int lastUnderscore = methodName.lastIndexOf('_');
-        if (lastUnderscore >= 0 && lastUnderscore + 1 < methodName.length()) {
-            return methodName.substring(lastUnderscore + 1);
-        }
-        return methodName;
     }
 
     private String sourceSemanticName(ImMethod method) {

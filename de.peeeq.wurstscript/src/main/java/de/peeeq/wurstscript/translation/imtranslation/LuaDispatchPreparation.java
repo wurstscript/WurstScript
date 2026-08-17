@@ -34,11 +34,11 @@ public final class LuaDispatchPreparation {
     private LuaDispatchPreparation() {
     }
 
-    public static void prepare(ImProg prog) {
+    public static void prepare(ImProg prog, ImTranslator tr) {
         List<ImMethod> allMethods = collectAllMethods(prog);
         assignDispatchGroupKeys(allMethods);
-        normalizeMethodNames(prog, allMethods);
-        assignDispatchAliases(prog, allMethods);
+        normalizeMethodNames(prog, allMethods, tr);
+        assignDispatchAliases(prog, allMethods, tr);
     }
 
     private static List<ImMethod> collectAllMethods(ImProg prog) {
@@ -87,7 +87,7 @@ public final class LuaDispatchPreparation {
         }
     }
 
-    private static void normalizeMethodNames(ImProg prog, List<ImMethod> allMethods) {
+    private static void normalizeMethodNames(ImProg prog, List<ImMethod> allMethods, ImTranslator tr) {
         Set<String> usedNames = new HashSet<>(LUA_RESERVED_NAMES);
         collectPredefinedNames(prog, usedNames);
 
@@ -105,24 +105,31 @@ public final class LuaDispatchPreparation {
             // The name is about to become a Lua table key. Sanitising before uniquing means two
             // names that only differed in characters Lua has no place for still get one slot each.
             String name = uniqueName(LuaIdentifiers.toIdentifier(group.get(0).getName()), usedNames);
+            // The group is named after one member, whose name is that member's own class and then
+            // the method, so stripping the class here is the one place the boundary is known rather
+            // than guessed at. Every member shares the segment, including members of other classes
+            // whose own name appears nowhere in it - which is why no method can work this out for
+            // itself afterwards.
+            String segment = segmentOf(name, group.get(0));
             for (ImMethod method : group) {
                 method.setName(name);
+                tr.recordDispatchSegment(method, segment);
             }
         }
     }
 
-    private static void assignDispatchAliases(ImProg prog, List<ImMethod> allMethods) {
+    private static void assignDispatchAliases(ImProg prog, List<ImMethod> allMethods, ImTranslator tr) {
         Map<ImClass, List<ImMethod>> sortedMethodsByClass = new HashMap<>();
         Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache = new HashMap<>();
         Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor = new HashMap<>();
 
-        Set<String> ambiguousDirectAliases = ambiguousDirectAliases(allMethods);
+        Set<String> ambiguousDirectAliases = ambiguousDirectAliases(allMethods, tr);
 
         for (ImMethod method : allMethods) {
             TreeSet<String> aliases = new TreeSet<>();
-            addDirectAliases(method, aliases, ambiguousDirectAliases);
-            addHierarchyAliases(method, aliases, sortedMethodsByClass);
-            addClosureFamilyAliases(prog, method, aliases, sortedMethodsByClass, closureFamilyAnchorsCache, closureFamilyClassesByAnchor);
+            addDirectAliases(method, aliases, ambiguousDirectAliases, tr);
+            addHierarchyAliases(method, aliases, sortedMethodsByClass, tr);
+            addClosureFamilyAliases(prog, method, aliases, sortedMethodsByClass, closureFamilyAnchorsCache, closureFamilyClassesByAnchor, tr);
             method.setLuaMethodDispatchAliases(new ArrayList<>(aliases));
         }
     }
@@ -160,11 +167,11 @@ public final class LuaDispatchPreparation {
      * arbitrarily" is worse than a name meaning nothing. {@code LuaTranslator} skips composing the
      * matching slot for the same reason.
      */
-    private static Set<String> ambiguousDirectAliases(List<ImMethod> allMethods) {
+    private static Set<String> ambiguousDirectAliases(List<ImMethod> allMethods, ImTranslator tr) {
         Map<String, String> claimedBy = new LinkedHashMap<>();
         Set<String> ambiguous = new HashSet<>();
         for (ImMethod method : allMethods) {
-            String composed = directAliasFor(method);
+            String composed = directAliasFor(method, tr);
             if (composed == null) {
                 continue;
             }
@@ -186,12 +193,12 @@ public final class LuaDispatchPreparation {
         return ambiguous;
     }
 
-    private static @Nullable String directAliasFor(ImMethod method) {
+    private static @Nullable String directAliasFor(ImMethod method, ImTranslator tr) {
         if (method == null) {
             return null;
         }
         ImClass owner = method.attrClass();
-        String semanticName = semanticNameFromMethodName(method.getName());
+        String semanticName = tr.dispatchSegmentOf(method);
         if (owner == null || semanticName.isEmpty()) {
             return null;
         }
@@ -199,7 +206,7 @@ public final class LuaDispatchPreparation {
     }
 
     private static void addDirectAliases(ImMethod method, Set<String> aliases,
-                                         Set<String> ambiguousDirectAliases) {
+                                         Set<String> ambiguousDirectAliases, ImTranslator tr) {
         if (method == null) {
             return;
         }
@@ -208,7 +215,7 @@ public final class LuaDispatchPreparation {
             aliases.add(methodName);
         }
         ImClass owner = method.attrClass();
-        String composed = directAliasFor(method);
+        String composed = directAliasFor(method, tr);
         if (composed != null && !ambiguousDirectAliases.contains(composed)) {
             aliases.add(composed);
         }
@@ -219,21 +226,21 @@ public final class LuaDispatchPreparation {
         }
     }
 
-    private static void addHierarchyAliases(ImMethod method, Set<String> aliases, Map<ImClass, List<ImMethod>> sortedMethodsByClass) {
+    private static void addHierarchyAliases(ImMethod method, Set<String> aliases, Map<ImClass, List<ImMethod>> sortedMethodsByClass, ImTranslator tr) {
         ImClass owner = method.attrClass();
         if (owner == null) {
             return;
         }
-        Set<String> semanticNames = semanticNames(method);
+        Set<String> semanticNames = semanticNames(method, tr);
         if (semanticNames.isEmpty()) {
             return;
         }
         String dispatchKey = dispatchSignatureKey(method);
-        collectHierarchyAliases(owner, method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>());
+        collectHierarchyAliases(owner, method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>(), tr);
     }
 
     private static void collectHierarchyAliases(ImClass c, ImMethod method, String dispatchKey, Set<String> semanticNames, Set<String> aliases,
-                                                Map<ImClass, List<ImMethod>> sortedMethodsByClass, Set<ImClass> visited) {
+                                                Map<ImClass, List<ImMethod>> sortedMethodsByClass, Set<ImClass> visited, ImTranslator tr) {
         if (c == null || !visited.add(c)) {
             return;
         }
@@ -241,7 +248,7 @@ public final class LuaDispatchPreparation {
             if (!dispatchKey.equals(dispatchSignatureKey(candidate))) {
                 continue;
             }
-            if (!sharesSemanticName(method, candidate, semanticNames)) {
+            if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
                 continue;
             }
             String candidateName = candidate.getName();
@@ -251,19 +258,19 @@ public final class LuaDispatchPreparation {
             }
         }
         for (ImClassType sc : c.getSuperClasses()) {
-            collectHierarchyAliases(sc.getClassDef(), method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, visited);
+            collectHierarchyAliases(sc.getClassDef(), method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, visited, tr);
         }
     }
 
     private static void addClosureFamilyAliases(ImProg prog, ImMethod method, Set<String> aliases,
                                                 Map<ImClass, List<ImMethod>> sortedMethodsByClass,
                                                 Map<ImClass, Set<ImClass>> closureFamilyAnchorsCache,
-                                                Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor) {
+                                                Map<ImClass, List<ImClass>> closureFamilyClassesByAnchor, ImTranslator tr) {
         ImClass owner = method.attrClass();
         if (owner == null || !isClosureGeneratedClass(owner)) {
             return;
         }
-        Set<String> semanticNames = semanticNames(method);
+        Set<String> semanticNames = semanticNames(method, tr);
         if (semanticNames.isEmpty()) {
             return;
         }
@@ -274,7 +281,7 @@ public final class LuaDispatchPreparation {
                     if (!runtimeKey.equals(closureRuntimeDispatchKey(candidate))) {
                         continue;
                     }
-                    if (!sharesSemanticName(method, candidate, semanticNames)) {
+                    if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
                         continue;
                     }
                     String candidateName = candidate.getName();
@@ -287,9 +294,9 @@ public final class LuaDispatchPreparation {
         }
     }
 
-    private static Set<String> semanticNames(ImMethod method) {
+    private static Set<String> semanticNames(ImMethod method, ImTranslator tr) {
         Set<String> names = new HashSet<>();
-        String semanticName = semanticNameFromMethodName(method.getName());
+        String semanticName = tr.dispatchSegmentOf(method);
         if (!semanticName.isEmpty()) {
             names.add(semanticName);
         }
@@ -309,20 +316,20 @@ public final class LuaDispatchPreparation {
      * is a fragment of the type argument: two unrelated methods of one specialisation both end in
      * {@code integer} and would otherwise be taken for one another.
      */
-    private static boolean sharesSemanticName(ImMethod method, ImMethod candidate, Set<String> semanticNames) {
+    private static boolean sharesSemanticName(ImMethod method, ImMethod candidate, Set<String> semanticNames, ImTranslator tr) {
         String declared = declaredName(method);
         String candidateDeclared = declaredName(candidate);
         if (!declared.isEmpty() && !candidateDeclared.isEmpty()) {
             return declared.equals(candidateDeclared);
         }
-        return sharesSemanticName(candidate, semanticNames);
+        return sharesSemanticName(candidate, semanticNames, tr);
     }
 
-    private static boolean sharesSemanticName(ImMethod method, Set<String> semanticNames) {
+    private static boolean sharesSemanticName(ImMethod method, Set<String> semanticNames, ImTranslator tr) {
         if (semanticNames.isEmpty()) {
             return false;
         }
-        return semanticNames.contains(semanticNameFromMethodName(method.getName()))
+        return semanticNames.contains(tr.dispatchSegmentOf(method))
             || semanticNames.contains(sourceSemanticName(method));
     }
 
@@ -458,15 +465,14 @@ public final class LuaDispatchPreparation {
         return c == null ? "" : c.getName();
     }
 
-    private static String semanticNameFromMethodName(String methodName) {
-        if (methodName == null || methodName.isEmpty()) {
-            return "";
+    /** The assigned name without the prefix naming the class whose member the group was named after. */
+    private static String segmentOf(String assignedName, ImMethod namedAfter) {
+        ImClass owner = namedAfter == null ? null : namedAfter.attrClass();
+        if (owner == null) {
+            return assignedName;
         }
-        int lastUnderscore = methodName.lastIndexOf('_');
-        if (lastUnderscore >= 0 && lastUnderscore + 1 < methodName.length()) {
-            return methodName.substring(lastUnderscore + 1);
-        }
-        return methodName;
+        String prefix = LuaIdentifiers.toIdentifier(owner.getName()) + "_";
+        return assignedName.startsWith(prefix) ? assignedName.substring(prefix.length()) : assignedName;
     }
 
     private static boolean isClosureGeneratedClass(ImClass c) {

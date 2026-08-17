@@ -2453,4 +2453,28 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public RunArgs getRunArgs() {
         return runArgs;
     }
+
+    private final Map<ImMethod, String> dispatchSegments = new IdentityHashMap<>();
+
+    /**
+     * The part of a dispatch group's assigned name which identifies the method rather than a class.
+     * <p>
+     * Recorded by {@code LuaDispatchPreparation.normalizeMethodNames}, the only place which knows it: it
+     * names a whole group after one member's already class-prefixed name, sanitises that into a Lua
+     * identifier, and uniques it against every name taken. Reconstructing the segment afterwards means
+     * cutting the result at a boundary nobody recorded, which is where four dispatch bugs came from -
+     * most memorably a method declared {@code get_it} composing a slot called {@code it}.
+     */
+    public void recordDispatchSegment(ImMethod method, String segment) {
+        dispatchSegments.put(method, segment);
+    }
+
+    /** The recorded segment, or the method's whole name when nothing recorded one - never a cut. */
+    public String dispatchSegmentOf(ImMethod method) {
+        if (method == null) {
+            return "";
+        }
+        String segment = dispatchSegments.get(method);
+        return segment != null ? segment : method.getName();
+    }
 }
