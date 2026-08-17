@@ -1053,18 +1053,13 @@ public class LuaTranslator {
     /**
      * The semantic names which name no method in particular, cached per class.
      * <p>
-     * A method and its overrides share a semantic name and must share a slot: that is dispatch, and
-     * they all declare the same name in the source. The siblings of one specialisation declare
-     * different names and still compose the same segment, because for a specialised method that
-     * segment is the type argument - and the slot composed from it is claimed by whichever is bound
-     * first, then never called.
-     * <p>
-     * The dispatch group key would be a sharper identity but cannot be used: it embeds the signature,
-     * and a generic override chain's signatures differ by the type variable of each class in it
-     * ({@code void|T192,real} against {@code void|T636,real}), so overrides would read as unrelated
-     * and their shared slot would be dropped. What that leaves uncovered is recorded in backlog
-     * item 15: overloads of one source method inside a specialised class share a declared name, so
-     * their composed name is not seen as ambiguous and one dead key survives there.
+     * A method and its overrides share a semantic name and must share a slot: that is dispatch. The
+     * family key says which methods are that one thing - the union of a method with its overrides,
+     * taken before the split by signature which would separate the members of a generic chain, since
+     * their signatures differ by each class's own type variable. The siblings of one specialisation
+     * belong to different families and still compose the same segment, because for a specialised
+     * method that segment is the type argument, and the slot composed from it is claimed by whichever
+     * is bound first and then never called.
      * <p>
      * Cached because {@code createMethods} asks twice per dispatch group and each ask would otherwise
      * rebuild and sort the whole inherited method list.
@@ -1082,8 +1077,9 @@ public class LuaTranslator {
                 if (semanticName.isEmpty()) {
                     continue;
                 }
+                String family = m.getLuaDispatchFamilyKey();
                 claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
-                    .add(LuaDispatchPreparation.declaredName(m));
+                    .add(family == null ? "" : family);
             }
             Set<String> ambiguous = new TreeSet<>();
             claimants.forEach((name, keys) -> {

@@ -70,6 +70,11 @@ ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	java.util.List<ImMethod> subMethods,
 	java.util.List<String> luaMethodDispatchAliases,
 	String luaDispatchGroupKey,
+	// A method and its overrides, before the group is split by signature. Overrides of one method
+	// share this; overloads and unrelated methods do not. The group key cannot answer that, because
+	// it embeds the signature and a generic override chain's signatures differ by each class's own
+	// type variable.
+	String luaDispatchFamilyKey,
 	boolean isAbstract)
 	
 	

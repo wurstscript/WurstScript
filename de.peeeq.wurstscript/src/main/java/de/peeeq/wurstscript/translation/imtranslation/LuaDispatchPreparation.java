@@ -68,6 +68,16 @@ public final class LuaDispatchPreparation {
             grouped.computeIfAbsent(root, ignored -> new ArrayList<>()).add(method);
         }
 
+        // The union above is a method together with its overrides, which is one dispatchable thing.
+        // Recorded before the group is split by signature, because that split separates the members of
+        // a generic override chain - their signatures differ by each class's own type variable.
+        for (Map.Entry<ImMethod, List<ImMethod>> family : grouped.entrySet()) {
+            String familyKey = methodSortKey(family.getKey());
+            for (ImMethod method : family.getValue()) {
+                method.setLuaDispatchFamilyKey(familyKey);
+            }
+        }
+
         for (List<ImMethod> group : grouped.values()) {
             Map<String, List<ImMethod>> partitions = new LinkedHashMap<>();
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
@@ -169,15 +179,11 @@ public final class LuaDispatchPreparation {
                 continue;
             }
             // A method and its overrides are one dispatchable thing and must share a slot - that is
-            // what dispatch is - so they are not a collision, and they all declare the same name in
-            // the source. The siblings of one specialisation declare different ones and merely end up
-            // composing the same segment, because for them that segment is the type argument.
-            //
-            // The dispatch group key would separate overloads too, but it embeds the signature, and a
-            // generic override chain's signatures differ by each class's type variable - so overrides
-            // would read as unrelated and lose the slot they must share. Backlog item 15 records what
-            // that leaves: overloads inside a specialised class keep one dead key.
-            String identity = declaredName(method);
+            // what dispatch is - so they are not a collision. The family key says exactly that: the
+            // union of a method with its overrides, before the split by signature which would have
+            // separated the members of a generic chain. Unlike the declared name it also separates
+            // overloads, which are not one dispatchable thing however they are spelled.
+            String identity = method.getLuaDispatchFamilyKey();
             String previous = claimedBy.put(composed, identity);
             if (previous != null && !previous.equals(identity)) {
                 ambiguous.add(composed);

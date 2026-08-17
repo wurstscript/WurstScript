@@ -516,6 +516,55 @@ public class FastHashMapTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * Overloads of one method inside a specialised class, which nothing else covers.
+     * <p>
+     * It passes under the previous identity as well, so it does not pin the dispatch family: the two
+     * overloads compose different names rather than colliding, which means the residual backlog item
+     * 15 described is narrower than it claimed, or not reachable this way. Kept for the shape.
+     */
+    @Test
+    public void overloadsInASpecialisedClassLeaveNoDeadSlot() throws IOException {
+        String[] withOverload = program(fastHashMap(
+            "    function get(K key, V fallback) returns V",
+            "        let s = slotFor(key)",
+            "        if s < base or not used[s]",
+            "            return fallback",
+            "        return values[s]"
+        ), INT_INSTANCE, USE_WITH_COLLISION);
+
+        test().testLua(true).executeProg().lines(withOverload);
+        assertSpecialisedClassesAllocateTheirFields(
+            compiledLua("overloadsInASpecialisedClassLeaveNoDeadSlot"));
+
+        assertEverySlotNamesAMethod(compiledLua("overloadsInASpecialisedClassLeaveNoDeadSlot"));
+    }
+
+    /** Every slot assigned on a specialised class table carries one of the container's method names. */
+    private static void assertEverySlotNamesAMethod(String lua) {
+        Matcher table = Pattern.compile("(FastHashMap_specialized\\w*)\\.(\\w+)\\s*=").matcher(lua);
+        java.util.List<String> unnamed = new java.util.ArrayList<>();
+        while (table.find()) {
+            String slot = table.group(2);
+            if (slot.startsWith("__")) {
+                continue;
+            }
+            boolean namesAMethod = false;
+            for (String method : METHOD_NAMES) {
+                if (slot.contains(method)) {
+                    namesAMethod = true;
+                    break;
+                }
+            }
+            if (!namesAMethod) {
+                unnamed.add(slot);
+            }
+        }
+        if (!unnamed.isEmpty()) {
+            throw new AssertionError("these slots name no method: " + unnamed + "\n" + lua);
+        }
+    }
+
     private String compiledJass(String testName) throws IOException {
         return Files.toString(new File(TEST_OUTPUT_PATH, "FastHashMapTests_" + testName + ".j"), Charsets.UTF_8);
     }
