@@ -17,27 +17,15 @@ The container these bounds were added for now compiles and runs against the stan
 Jass, and compiles on Lua (#1239). What is left is generality around it rather than the feature
 itself, and one gap in what the suite can see.
 
-21. **Nothing executes a standard library program on Lua.** Every test which puts the library on
-    that target compiles only, because the runtime shim cannot initialise the library's own
-    packages — `GameTimer` fails first, and the generated fallback for an undefined native raises
-    rather than returning. So the one thing a user actually does, running library code on Lua, is
-    the one thing never run here.
+22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
+    them, collected by importing every package in the checkout whose name ends in `Tests`. That
+    half is done; this is the other one.
 
-    This is why `fastHashMapAgainstTheStandardLibraryLua` asserts on emitted shape instead of on a
-    result. It is also how the empty-allocation bug in #1239 survived as long as it did: the paths
-    which would have caught it are compiled and never executed.
-
-    Worth finding out how far it is. If it is a handful of missing natives in `wc3shim.lua`, the
-    payoff is every existing library test on that target becoming a real one. Start by capturing
-    what `GameTimer` actually fails on rather than the message Wurst wraps it in.
-
-22. **A bump of the pinned library is only checked for compiling.** Nothing runs the library's own
-    test functions, so a behaviour change in it is invisible here. `StdLibStringTests` (#1240)
-    covers the string handling one bump turned on, which is a start rather than a solution: the
-    library's multibyte detection degrades quietly to an ascii-only path when it cannot find what
-    it probes for, so a version where it silently gave up would otherwise look exactly like one
-    where it worked. Running the library's own tests generalises this, and its Lua half depends on
-    item 21.
+    `executeTests` runs them through `RunTests` on the intermediate language, so it covers the
+    interpreter only. Running them on Lua needs the harness to execute a Wurst test function on
+    that target rather than an `init` block, which is new machinery rather than a flag. Worth it:
+    the two targets have disagreed before, and every disagreement found so far was found by running
+    the same program on both.
 
 6. **Lua dispatch inside the constructor** of a bounded generic class. Works on Jass; there is now
    a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
@@ -183,6 +171,19 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 21. A standard library program executes on Lua (#1242). Three packages could not initialise, each
+  on one native the shim did not define — `StringHash` for Colors, `Location` for Vectors,
+  `TimerStart` for GameTimer — and `StringCase` made a fourth once the program itself ran. The
+  larger half was the harness: success is read off stdout and the library's own `testSuccess` is
+  empty, so such a test could not have passed whatever it did.
+
+- 22 (interpreter half). The library's 460 test functions run. They were invisible because a library
+  compiles in only what is imported, so a program importing nothing runs none of them and passes;
+  the imports are collected from the checkout so a bump brings its new tests with it. `executeTests`
+  now reports how many ran and `expectAtLeastTests` fails when too few do, because "every test
+  passed" and "there were no tests" were the same green — which is how the first version of this
+  test looked right while running nothing.
 
 - 5, 11, 14. The container these bounds were added for works. `FastHashMapTests` runs a whole hash
   map — two type parameters with only the first bounded, static arrays of a bounded parameter, a
