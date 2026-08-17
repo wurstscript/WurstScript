@@ -229,7 +229,9 @@ class SubBox extends Box<int>
 		return super.size(extra) + 100
 ```
 
-On Lua this compiles and runs but the override does not reach the superclass implementation: the object is allocated from the erased class while the method belongs to the specialised one. Use it on Jass only for now.
+This works on both targets. A method of such a class may also declare bounded type parameters of its own, on both targets.
+
+One gap is left on Lua: a requirement dispatched from inside the constructor of a bounded generic class is rejected there, because a constructor call has no receiver to take the instantiation from. Dispatch from a method, a closure, or a `super` call is supported.
 
 ## Strings
 

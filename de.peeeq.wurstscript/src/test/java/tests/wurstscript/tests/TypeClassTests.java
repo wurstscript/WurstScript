@@ -342,16 +342,13 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same program on Lua, where it still does not work, so the difference between the targets is
-     * stated rather than left to be discovered. {@code transformGenericNewOnly} runs neither
-     * {@code simplifyClasses} nor {@code addMemberTypeArguments}, so the class's type variables are
-     * never lifted onto its functions and there is nothing for a super call to carry. The object is
-     * allocated from the erased {@code Box} table while the specialised one holds the method, so it
-     * compiles and runs and never reaches {@code testSuccess}. Tracked as backlog item 13, whose
-     * remaining half is the erasure decision in item 23.
+     * The same program on Lua, where the object stays erased. Both halves of that had to be met: the
+     * specialised method is bound to the class the object is allocated from, so a virtual call finds
+     * it, and the super call — which names its target and so has no receiver to read type arguments
+     * from — is rewritten to the copy specialised for the instantiation the subclass extends.
      */
-    @Test(expectedExceptions = Error.class, expectedExceptionsMessageRegExp = ".*Succeed function not called.*")
-    public void subclassOfBoundedGenericIsStillBrokenOnLua() {
+    @Test
+    public void subclassOfBoundedGenericLua() {
         test().testLua(true).executeProg().lines(SUBCLASS_OF_BOUNDED_GENERIC);
     }
 
@@ -434,21 +431,16 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
-     * The same program on Lua, where it does not compile at all — and not because of the collision.
-     * A bounded type parameter on a method of a generic class is rejected on that target with
-     * "Generics should match class method type variables", on master as well as here, so the shape
-     * which exercises this lookup cannot be run there to check the dispatch.
+     * The same program on Lua, which used to be rejected outright with "Generics should match class
+     * method type variables" — a method call there carries the class's type arguments followed by the
+     * method's own, and a method declaring parameters of its own was read as already having both.
      * <p>
-     * A version Lua does compile, with the second parameter on a free function rather than a method,
-     * passes without the change as well as with it: the two parameters never reach one lookup that
-     * way, so it would be coverage in name only. This pins the rejection instead, and the gap behind
-     * it is backlog item 25. Should that be fixed, this test fails and gains a dispatch assertion.
+     * Running it is the point: both parameters reach one lookup only in this shape, so a version with
+     * the second parameter on a free function would be coverage in name only.
      */
     @Test
-    public void aBoundedMethodParameterInAGenericClassIsRejectedForLua() {
-        test().testLua(true).executeProg()
-            .expectError("Generics should match class method type variables")
-            .lines(SAME_NAMED_BOUNDED_PARAMETERS);
+    public void aBoundedMethodParameterInAGenericClassLua() {
+        test().testLua(true).executeProg().lines(SAME_NAMED_BOUNDED_PARAMETERS);
     }
 
     /**

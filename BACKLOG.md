@@ -31,6 +31,12 @@ itself, and one gap in what the suite can see.
    a repro for both targets, `TypeClassTests.dispatchInsideConstructor` and
    `dispatchInsideConstructorIsRejectedForLua`, the second pinning the current diagnostic.
 
+   Still open after item 23's first half landed. The two mechanisms that closed items 13 and 25 both
+   read the instantiation off a receiver — the first argument of a call which names its target, or the
+   receiver of a method call. A constructor has neither: `new_Box(21)` takes no receiver, and the only
+   thing stating `Box<integer>` is the type of the variable it is assigned to. So this still needs the
+   type-driven collector below, which is a second mechanism rather than a widening of the one there is.
+
    Not the same gap as item 5, and the fix from it does not reach: a constructor belongs to the
    class rather than to a generic function of its own, so the call that runs it carries no type
    arguments at all. The intermediate language has `b = new_Box(21)` with `b` typed
@@ -62,7 +68,22 @@ itself, and one gap in what the suite can see.
     instance be allocated with no fields at all, and then with its fields under a key nothing read
     (#1239). Both are fixed; the shape which produced them is what this decision removes.
 
-    Unblocks items 6 and 13's Lua half. Not blocking the container, which works on both targets today.
+    **Half done.** Items 13 and 25 are closed, and the two things that closed them are the model
+    working: a specialised method is moved to the class its objects are actually allocated from, and a
+    call which names its target reads the instantiation off its receiver argument rather than off the
+    object's class. A specialisation nothing allocates is now left with no methods and drops out
+    entirely, so the second class shape is gone wherever an ordinary generic object is involved -
+    `FastHashMapTests.assertSpecialisedClassesAllocateTheirFields` states both accepted outcomes rather
+    than the one that used to hold.
+
+    What is left is item 6, and it is the part this decision said would be the work: reading the
+    instantiation from a *type* rather than from a receiver. The classes which still allocate a
+    specialised copy are the ones whose construction was itself specialised, which is the same
+    question. Deciding it from what the program allocates, as the pass above does, is a fact rather
+    than a guess - but it is decided after the fact, and the model would rather no specialised class
+    were ever allocated.
+
+    Not blocking the container, which works on both targets today.
 
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
@@ -150,22 +171,6 @@ itself, and one gap in what the suite can see.
     far produced nothing to work from, which is why it cost a re-run and no diagnosis. The next one
     will say what differed.
 
-25. **A bounded type parameter on a method of a generic class is rejected on Lua.**
-    `class Holder<T: Show>` with `function convert<Q: Show>(Q other)` fails there with "Generics should
-    match class method type variables", while the same program compiles and runs on the other target.
-    On master as well, so it is not a regression — found while trying to give item 10's fix Lua
-    coverage, which is what it blocks: the only shape reaching that lookup with two parameters at once
-    is a class parameter beside a method parameter, and Lua will not compile it.
-
-    Pinned by `TypeClassTests.aBoundedMethodParameterInAGenericClassIsRejectedForLua`. A version with
-    the second parameter on a free function does compile on Lua and passes with or without item 10's
-    change, so it covers nothing; that is why the rejection is pinned instead.
-
-    Where to start: the message comes from the arity check between a call's generics and the callee's
-    type variables. A method of a generic class has the class's variables lifted onto it on the Jass
-    path, and `transformGenericNewOnly` does not lift them, so the method's own parameter is counted
-    against a list which does not include the class's.
-
 26. **Done. A dispatch slot's segment is recorded where it is assigned, not recovered from a name.**
     The segment used to be found by cutting a method's name at its last underscore, which is the right
     answer only when the rest contains no underscore and the method is not a specialised copy. Four bugs
@@ -223,6 +228,21 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 25. A bounded type parameter on a method of a generic class compiles and runs on Lua. A method call
+  there carries the class's type arguments followed by the method's own, and the check for whether the
+  class's were still missing asked whether the call had *any* — so a method declaring parameters of its
+  own was read as already having both and its specialisation was matched against a list one longer than
+  what the call supplied. `aBoundedMethodParameterInAGenericClassLua` runs the program now instead of
+  pinning the rejection.
+
+- 13 (Lua half). A subclass of a bounded generic class works on Lua. Two things were wrong and each hid
+  the other. The specialised method was left on the specialised class while the object is allocated
+  from the erased one, so the slot a virtual call named resolved to nothing; it is moved to whichever
+  class the program actually allocates. And `super.m()` names its target, so it reached the erased
+  original whose dispatch had been neutralised as dead — `nil + extra` at runtime. It now takes the
+  instantiation from the class its first argument is used as, which is the same answer the Jass path
+  gets from the lift it does not do here.
 
 - 7. A module's type parameter can carry a bound. The instantiation declares the module's parameters
   and records the arguments, so the receiver in `T.show(x)` has a name to resolve and something to

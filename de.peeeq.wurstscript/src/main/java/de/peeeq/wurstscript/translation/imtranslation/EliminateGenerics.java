@@ -131,7 +131,56 @@ public class EliminateGenerics {
         }
         eliminateRemainingGenericNewCalls();
         assertNoReachableGenericNewMarkers();
+        bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+    }
+
+    /**
+     * Moves a specialisation's methods to the class its objects are actually allocated from.
+     * <p>
+     * Specialising a method leaves the copy on the specialised class. That is where the object comes
+     * from when a construction on this path was redirected there, and a virtual call finds the slot
+     * through the object as usual. Otherwise the object stays erased — which is this target's normal
+     * representation — and is allocated from the class the method was declared on, so the slot the
+     * call names resolves to nothing and the call fails at runtime rather than at compile time.
+     * <p>
+     * Decided from what the program allocates rather than from the shape of the class, because one
+     * class can be reached both ways: a container whose constructor was specialised is allocated from
+     * the copy, while an ordinary generic object beside it is not. A specialised name carries its
+     * instantiation, so two specialisations of one method stay distinct on the erased class.
+     */
+    private void bindSpecialisedMethodsToTheAllocatedClass() {
+        Map<ImClass, ImClass> erasedOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            erasedOf.put(cell.getValue(), cell.getRowKey());
+        }
+        Set<ImClass> allocated = allocatedClasses();
+        // Walked in program order rather than over the specialisation table, whose iteration is
+        // hash-ordered: what ends up on a class, and in which order, decides its emitted slot names.
+        for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
+            ImClass erased = erasedOf.get(specialized);
+            if (erased == null || erased == specialized
+                || allocated.contains(specialized) || !allocated.contains(erased)) {
+                continue;
+            }
+            for (ImMethod method : specialized.getMethods().removeAll()) {
+                method.setMethodClass(JassIm.ImClassType(erased, JassIm.ImTypeArguments()));
+                erased.getMethods().add(method);
+            }
+        }
+    }
+
+    /** Every class the program allocates an instance of. */
+    private Set<ImClass> allocatedClasses() {
+        Set<ImClass> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                result.add(alloc.getClazz().getClassDef());
+            }
+        });
+        return result;
     }
 
     /**
@@ -170,6 +219,7 @@ public class EliminateGenerics {
 
 
     private void collectGenericNewRoots() {
+        methodsByImplementation = null;
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunction function) {
@@ -249,8 +299,69 @@ public class EliminateGenerics {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
+            return;
+        }
+        if (call.getTypeArguments().isEmpty()) {
+            collectSuperCallToGenericMethod(call);
         }
     }
+
+    /**
+     * Collects a call which names the implementation of a generic class's method outright, which is
+     * what {@code super.m()} becomes.
+     * <p>
+     * Such a call has no receiver to read type arguments from, and this target never lifts the class's
+     * type variables onto the function, so there is nothing on the call to specialise against and the
+     * erased original is reached instead — where the dispatch it contains is dead. The receiver is
+     * still the first argument, and the class it is used as says which instantiation the caller
+     * extends, so the type the body needs is threaded to the call rather than taken from the object.
+     */
+    private void collectSuperCallToGenericMethod(ImFunctionCall call) {
+        if (call.getArguments().isEmpty()) {
+            return;
+        }
+        ImMethod method = methodImplementedBy(call.getFunc());
+        if (method == null || !call.getFunc().getTypeVariables().isEmpty()) {
+            return;
+        }
+        ImClass owningClass = method.getMethodClass().getClassDef();
+        if (owningClass.getTypeVariables().isEmpty()
+            || !(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(receiverType, owningClass);
+        if (classType == null
+            || classType.getTypeArguments().size() != owningClass.getTypeVariables().size()
+            || typeArgumentsContainTypeVariable(classType.getTypeArguments())) {
+            return;
+        }
+        genericsUses.add(new GenericSuperCall(call, method, new GenericTypes(classType.getTypeArguments())));
+    }
+
+    /**
+     * The method a function is the implementation of, or null when it is not one.
+     * <p>
+     * Rebuilt per collection pass rather than kept, because specialising a method adds another. This
+     * target leaves methods on their classes, so there is no owner map of the kind moving them out
+     * builds.
+     */
+    private @Nullable ImMethod methodImplementedBy(ImFunction function) {
+        if (methodsByImplementation == null) {
+            methodsByImplementation = new IdentityHashMap<>();
+            prog.accept(new Element.DefaultVisitor() {
+                @Override
+                public void visit(ImMethod method) {
+                    super.visit(method);
+                    if (method.getImplementation() != null) {
+                        methodsByImplementation.putIfAbsent(method.getImplementation(), method);
+                    }
+                }
+            });
+        }
+        return methodsByImplementation.get(function);
+    }
+
+    private @Nullable Map<ImFunction, ImMethod> methodsByImplementation;
 
     /**
      * A construction states an instantiation that no call site has to mention. A closure is the case
@@ -362,7 +473,7 @@ public class EliminateGenerics {
             Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
         }
-        if (call.getTypeArguments().isEmpty()) {
+        if (isMissingClassTypeArguments(call, method)) {
             addMemberTypeArguments(call, method.attrClass());
         }
         if (typeArgumentsContainTypeVariable(call.getTypeArguments())) {
@@ -375,6 +486,22 @@ public class EliminateGenerics {
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             genericsUses.add(new GenericMethodCall(call));
         }
+    }
+
+    /**
+     * Whether a call is short of the type arguments belonging to the receiver's class.
+     * <p>
+     * A specialisation is matched against the class's type variables followed by the method's own, so
+     * a method declaring parameters of its own leaves the call supplying the shorter list rather than
+     * an empty one. Reading a non-empty list as "already has them" is what rejected a bounded type
+     * parameter on a method of a generic class here, while the same program compiles on Jass, where
+     * lifting the class's variables onto the method gives the call both at once.
+     */
+    private static boolean isMissingClassTypeArguments(ImMethodCall call, ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        int own = implementation == null ? 0 : implementation.getTypeVariables().size();
+        return call.getTypeArguments().size() == own
+            && !method.getMethodClass().getClassDef().getTypeVariables().isEmpty();
     }
 
     /**
@@ -2090,6 +2217,29 @@ public class EliminateGenerics {
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
             specializedCallSites.add(fc);
+        }
+    }
+
+    /**
+     * A {@code super} call reaching a generic class's method, rewritten to the copy specialised for
+     * the instantiation the caller extends. The instantiation came from the receiver's class rather
+     * than from the call, so there are no type arguments on the call to clear.
+     */
+    class GenericSuperCall implements GenericUse {
+        private final ImFunctionCall call;
+        private final ImMethod method;
+        private final GenericTypes generics;
+
+        GenericSuperCall(ImFunctionCall call, ImMethod method, GenericTypes generics) {
+            this.call = call;
+            this.method = method;
+            this.generics = generics;
+        }
+
+        @Override
+        public void eliminate() {
+            call.setFunc(specializeMethodImplementation(method, generics));
+            specializedCallSites.add(call);
         }
     }
 

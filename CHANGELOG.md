@@ -58,6 +58,14 @@
     arguments chosen for them, so that name resolves and says what it stands for. The argument must satisfy
     the bound, which is reported at the `use`. This works on both targets.
 
+- On the Lua target, a bounded generic class can now be subclassed and a method of one may declare
+  bounded type parameters of its own. A generic object stays erased there and only the paths needing a
+  concrete type are specialised, so the concrete type has to reach those paths rather than the object: a
+  specialised method is bound to the class its objects are allocated from, and a call which names its
+  target — `super.m()` is one — takes the instantiation from the class its receiver is used as. A
+  specialisation nothing allocates is no longer emitted at all. A requirement dispatched from inside a
+  constructor is still rejected on Lua, where a constructor call has no receiver to read.
+
 - Added new pseudo-natives for debugging memory leaks:
 
         // returns the maximum type id, can be usd to
