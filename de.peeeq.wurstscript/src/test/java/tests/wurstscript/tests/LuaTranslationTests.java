@@ -1435,40 +1435,73 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
-     * Every differing line, with its number, so the failure itself says what changed.
+     * What changed between the two scripts, aligned rather than compared line by line.
+     * <p>
+     * Comparing equal indexes is not a diff: emission order moving a block shifts every line after
+     * it, so the count becomes "everything from here down" and the listed pairs are unrelated. That
+     * is the shape this diagnostic exists to investigate, so it is the shape it has to describe.
+     * Aligned on the longest common subsequence, a moved block reads as one removal and one addition.
      * <p>
      * The scripts are also uploaded as an artifact on a failing CI run, but the message has to stand
      * on its own: an artifact needs fetching, and the check is what gets read first. Bounded so a
-     * wholesale difference does not bury the report, with the total stated either way.
+     * wholesale difference does not bury the report, with the totals stated either way.
      */
-    private static String describeFirstDifferences(String first, String second) {
+    private static final String NEWLINE_RE = "\n";
+    private static final char NEWLINE = '\n';
+
+    static String describeFirstDifferences(String first, String second) {
         final int reportLimit = 40;
-        String[] a = first.split("\n", -1);
-        String[] b = second.split("\n", -1);
+        String[] a = first.split(NEWLINE_RE, -1);
+        String[] b = second.split(NEWLINE_RE, -1);
+
+        // O(n*m) in memory, so a pathological pair falls back to reporting the sizes rather than
+        // exhausting the worker. The scripts this compares are a few hundred lines.
+        if ((long) a.length * b.length > 4_000_000L) {
+            return "  too large to align: " + a.length + " lines against " + b.length;
+        }
+
+        int[][] common = new int[a.length + 1][b.length + 1];
+        for (int i = a.length - 1; i >= 0; i--) {
+            for (int j = b.length - 1; j >= 0; j--) {
+                common[i][j] = a[i].equals(b[j])
+                    ? common[i + 1][j + 1] + 1
+                    : Math.max(common[i + 1][j], common[i][j + 1]);
+            }
+        }
+
+        List<String> entries = new ArrayList<>();
+        int removed = 0;
+        int added = 0;
+        int i = 0;
+        int j = 0;
+        while (i < a.length || j < b.length) {
+            if (i < a.length && j < b.length && a[i].equals(b[j])) {
+                i++;
+                j++;
+            } else if (j >= b.length || (i < a.length && common[i + 1][j] >= common[i][j + 1])) {
+                removed++;
+                if (entries.size() < reportLimit) {
+                    entries.add("    only in first, line " + (i + 1) + ":  " + a[i]);
+                }
+                i++;
+            } else {
+                added++;
+                if (entries.size() < reportLimit) {
+                    entries.add("    only in second, line " + (j + 1) + ": " + b[j]);
+                }
+                j++;
+            }
+        }
+
+        if (removed == 0 && added == 0) {
+            return "  the scripts differ but no line does, so it is line endings or trailing bytes";
+        }
         StringBuilder sb = new StringBuilder();
-        int differing = 0;
-        for (int i = 0; i < Math.max(a.length, b.length); i++) {
-            String lineA = i < a.length ? a[i] : "<missing>";
-            String lineB = i < b.length ? b[i] : "<missing>";
-            if (!lineA.equals(lineB)) {
-                differing++;
-            }
-        }
-        sb.append("  ").append(differing).append(" line(s) differ")
-            .append(differing > reportLimit ? ", first " + reportLimit + ":\n" : ":\n");
-        int reported = 0;
-        for (int i = 0; i < Math.max(a.length, b.length) && reported < reportLimit; i++) {
-            String lineA = i < a.length ? a[i] : "<missing>";
-            String lineB = i < b.length ? b[i] : "<missing>";
-            if (!lineA.equals(lineB)) {
-                sb.append("  line ").append(i + 1).append(":\n")
-                    .append("    first:  ").append(lineA).append('\n')
-                    .append("    second: ").append(lineB).append('\n');
-                reported++;
-            }
-        }
-        if (reported == 0) {
-            sb.append("  the scripts differ but no line does, so it is line endings or trailing bytes");
+        sb.append("  ").append(removed).append(" line(s) only in the first, ")
+            .append(added).append(" only in the second");
+        sb.append(removed + added > entries.size() ? ", first " + entries.size() + ":" + NEWLINE : ":" + NEWLINE);
+        for (String entry : entries) {
+            sb.append(entry).append(NEWLINE);
         }
         return sb.toString();
     }
