@@ -41,6 +41,23 @@
     Lua reaches such a class through the interface it implements, so no call names the instantiation and the
     construction is what the specialisation is taken from.
 
+- A module's type parameter may now carry a type class bound, and the class using the module supplies the
+  argument:
+
+        module Shower<T: Show>
+            T held
+            function shown() returns string
+                return T.show(held)
+
+        class Holder<K: Show>
+            use Shower<K>
+
+    Using a module copies its body into the class and replaces the module's type parameters wherever they
+    are used as types. The receiver in `T.show(held)` is a name rather than a type, so the replacement never
+    reached it and the bound was rejected. The instantiation now declares the parameters and records the
+    arguments chosen for them, so that name resolves and says what it stands for. The argument must satisfy
+    the bound, which is reported at the `use`. This works on both targets.
+
 - Added new pseudo-natives for debugging memory leaks:
 
         // returns the maximum type id, can be usd to

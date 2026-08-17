@@ -204,6 +204,20 @@ function outer<R: Show>(R x) returns string   // <R:> alone would not compile
 	return inner(x)
 ```
 
+A module's type parameter may carry a bound, and the class using the module supplies the argument:
+
+```wurst
+module Shower<T: Show>
+	T held
+	function shown() returns string
+		return T.show(held)
+
+class Holder<K: Show>
+	use Shower<K>          // K must declare the bound it is asked to supply
+	construct(K k)
+		held = k
+```
+
 A class with a bounded type parameter can be subclassed, and the subclass may reach the superclass through `super`:
 
 ```wurst

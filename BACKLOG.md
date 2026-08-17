@@ -64,29 +64,6 @@ itself, and one gap in what the suite can see.
 
     Unblocks items 6 and 13's Lua half. Not blocking the container, which works on both targets today.
 
-7. **Module bounds.** Decided: the instantiation declares the module's type parameters **only so a
-   dispatch receiver has a name to resolve**, and they are excluded from type inference, which keeps
-   resolving a generic module's parameters by matching the receiver type as it does today.
-
-   Why that way. A requirement of a bound is called on the parameter itself - `T.show(x)` - and that
-   receiver is a name, which the type replacement during expansion never touches. Renaming it to the
-   using class's parameter cannot work: `NameResolution.nextScope` sends a `ModuleInstanciation` to
-   `attrModuleOrigin()` rather than to the class using it, deliberately, so a module body cannot see
-   the names of whoever uses it. The parameter therefore has to be declared where the body can see it.
-
-   Why only for the receiver. Declaring it and letting inference see it collides with the existing
-   mechanism: `GenericsModuleTests.genericModuleInGenericClassGet` fails with "Cannot infer type for
-   type parameter T". Two mechanisms answering one question is the cost of the alternative; this is
-   the smaller change, at the price of the parameter meaning something narrower than it looks.
-
-   Started on `feat/module-instanciation-type-params`, unpushed. The grammar carries `typeParameters`
-   and `typeArgs` (resolved, since an argument names something only the user's scope can see),
-   resolution binds a declared parameter to its argument through `WurstTypeBoundTypeParam`, and
-   `isTypeClassDispatch` accepts a receiver which denotes a parameter through a binding. The error
-   chain reached "Could not find function show", which is the requirement lookup not following a
-   binding to the underlying parameter's bounds - the same widening, wherever a bound's functions are
-   surfaced. Verify before continuing that inference can be told to ignore the declared parameters.
-
 9. **Keep `WURST_LANGUAGE.md` and `CHANGELOG.md` current** as items land — a standing practice
    rather than a task to finish. `WURST_LANGUAGE.md` is tracked, at
    `de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`, and it already documents
@@ -246,6 +223,18 @@ itself, and one gap in what the suite can see.
   compiler-side proof is complete, and that is a separate decision.
 
 ## Done
+
+- 7. A module's type parameter can carry a bound. The instantiation declares the module's parameters
+  and records the arguments, so the receiver in `T.show(x)` has a name to resolve and something to
+  say what it stands for. Excluding them from inference turned out to mean not making a
+  `ModuleInstanciation` an `AstElementWithTypeParameters` at all: as one, every method of a generic
+  module's instantiation asked its caller to infer a parameter its signature never mentions, which is
+  what `genericModuleInGenericClassGet` was reporting. The parameters are registered as type names in
+  `TypeNameLinks` instead. The receiver denotes the argument bound to the parameter, offering the
+  requirements the parameter declared with the argument's types, and dispatch follows the argument —
+  the using class's type variable when it is one, the instance directly when it is concrete, since a
+  module used with a concrete argument leaves no variable to substitute. The bound is checked at the
+  use, the only place which sees the parameter and the argument together.
 
 - 21. A standard library program executes on Lua (#1242). Three packages could not initialise, each
   on one native the shim did not define — `StringHash` for Colors, `Location` for Vectors,
