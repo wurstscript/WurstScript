@@ -223,13 +223,25 @@ itself, and one gap in what the suite can see.
     prefix known locally is the right anchor. Cutting at the last underscore survives that by accident,
     which is the whole reason it is still here.
 
-    So the name has to arrive as data rather than be recovered from a string: `ImMethod` carries its
-    declared name and the index the translation gave it among its overloads, recorded where the
-    translation assigns them, and slots compose from that pair. `luaDispatchGroupKey` is already a
-    recorded field on the method, so the shape exists. Then the cut is deleted rather than tolerated,
-    both composers ask one question, the pin above starts passing, and
-    `ProgramState.identifyGenericStaticGlobals` - which takes the longest prefix of a global's name
-    ending at an underscore that matches a class name - gets the same treatment.
+    So the segment has to arrive as data, recorded at the one point which knows it:
+    `LuaDispatchPreparation.normalizeMethodNames`. That is where a dispatch group is given its name -
+    sanitised into a Lua identifier and uniqued against everything already taken - and where the group
+    is in hand to strip its own prefix from it. `ImMethod` carries the result in a field beside
+    `luaDispatchGroupKey`, so a grammar change and `genAst`, and both composers then read the field
+    instead of cutting a string.
+
+    Recording the source declaration and an overload index earlier in translation looks equivalent and
+    is not: the assigned name may be derived from a different member of the group, and sanitising and
+    uniquing can change it. A declaration-derived pair would have to be matched back to it, which is the
+    same recovery problem again under a new name. The authoritative segment is the one
+    `normalizeMethodNames` produced, so that is the one to keep.
+
+    The rest of the family, for the same treatment once this exists:
+    `ProgramState.identifyGenericStaticGlobals` takes the longest prefix of a global's name ending at an
+    underscore which matches a class name, which a class whose name contains an underscore answers
+    wrongly and silently. #1249 made the recorded owner preferred where one exists, so this is now only
+    the fallback.
+
 
 12. **Standing item, never finished.** When nothing above is left, find the next thing worth
     doing and add it here rather than stopping. Good sources, in order: a test that would have
