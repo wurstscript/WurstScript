@@ -148,6 +148,11 @@ public class EliminateGenerics {
      * class can be reached both ways: a container whose constructor was specialised is allocated from
      * the copy, while an ordinary generic object beside it is not. A specialised name carries its
      * instantiation, so two specialisations of one method stay distinct on the erased class.
+     * <p>
+     * When both are allocated neither can give up the slot — a call was rewritten to the specialised
+     * method whichever class its receiver came from — so the erased class gets a binding of its own
+     * rather than the method moving. Being allocated is what settles this and not which shape looks
+     * primary; treating the two as alternatives leaves whichever lost without the slot.
      */
     private void bindSpecialisedMethodsToTheAllocatedClass() {
         Map<ImClass, ImClass> erasedOf = new IdentityHashMap<>();
@@ -159,8 +164,20 @@ public class EliminateGenerics {
         // hash-ordered: what ends up on a class, and in which order, decides its emitted slot names.
         for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
             ImClass erased = erasedOf.get(specialized);
-            if (erased == null || erased == specialized
-                || allocated.contains(specialized) || !allocated.contains(erased)) {
+            if (erased == null || erased == specialized || !allocated.contains(erased)) {
+                continue;
+            }
+            if (allocated.contains(specialized)) {
+                // Both shapes are allocated, so neither can give up the slot: a call was rewritten to
+                // the specialised method whichever class its receiver came from. The specialised class
+                // keeps its methods and the erased one gets a binding of its own to the same
+                // implementation.
+                for (ImMethod method : new ArrayList<>(specialized.getMethods())) {
+                    ImMethod onErased = method.copyWithRefs();
+                    onErased.setMethodClass(JassIm.ImClassType(erased, JassIm.ImTypeArguments()));
+                    onErased.setImplementation(method.getImplementation());
+                    erased.getMethods().add(onErased);
+                }
                 continue;
             }
             for (ImMethod method : specialized.getMethods().removeAll()) {

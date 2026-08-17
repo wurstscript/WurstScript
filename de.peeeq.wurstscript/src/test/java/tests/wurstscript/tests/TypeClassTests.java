@@ -353,6 +353,45 @@ public class TypeClassTests extends WurstScriptTest {
     }
 
     /**
+     * Three receivers of one class reaching the same specialised slot, which the subclass makes
+     * virtual: one built by a specialised generic function, one constructed directly, one a subclass
+     * instance. The first two stay erased — a specialised function's copy allocates the erased class
+     * as well — so this says that moving the slot to the class objects come from serves every way of
+     * arriving at it, not only the construction written in place.
+     */
+    @Test
+    public void oneGenericReachedThroughEveryConstructionLua() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "interface Show<T:>",
+            "    function show(T x) returns int",
+            "implements Show<int>",
+            "    function show(int x) returns int",
+            "        return x",
+            "class Box<K: Show>",
+            "    K key",
+            "    construct(K k)",
+            "        key = k",
+            "    function size(int extra) returns int",
+            "        return K.show(key) + extra",
+            "class SubBox extends Box<int>",
+            "    construct(int k)",
+            "        super(k)",
+            "    override function size(int extra) returns int",
+            "        return super.size(extra) + 100",
+            "function make<K: Show>(K k) returns Box<K>",
+            "    return new Box<K>(k)",
+            "init",
+            "    Box<int> made = make(5)",
+            "    Box<int> direct = new Box<int>(7)",
+            "    Box<int> sub = new SubBox(5)",
+            "    if made.size(1) == 6 and direct.size(1) == 8 and sub.size(1) == 106",
+            "        testSuccess()"
+        );
+    }
+
+    /**
      * A method may have type parameters of its own on top of the class's. The call already carries an
      * argument for its own, so what it is short of is the class's prefix rather than everything, and
      * the two lists have to end up in the order the lift put the variables in.
