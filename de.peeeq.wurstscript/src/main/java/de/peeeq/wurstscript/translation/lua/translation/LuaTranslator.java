@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
@@ -1029,15 +1030,69 @@ public class LuaTranslator {
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
+            // A semantic name which several of the class's methods share names none of them, so a
+            // slot composed from it would be claimed by whichever is bound first. For a specialised
+            // class every method's trailing segment is the type argument, which is exactly that
+            // case, and the resulting slot is never called. Left uncomposed rather than bound
+            // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
+            Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
             Set<String> classNames = new TreeSet<>();
             collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
             for (String className : classNames) {
                 for (String semanticName : semanticNames) {
+                    if (ambiguous.contains(semanticName)) {
+                        continue;
+                    }
                     slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
         return slotNames;
+    }
+
+    /**
+     * The semantic names which name no method in particular, cached per class.
+     * <p>
+     * A method and its overrides share a semantic name and must share a slot: that is dispatch, and
+     * they all declare the same name in the source. The siblings of one specialisation declare
+     * different names and still compose the same segment, because for a specialised method that
+     * segment is the type argument - and the slot composed from it is claimed by whichever is bound
+     * first, then never called.
+     * <p>
+     * The dispatch group key would be a sharper identity but cannot be used: it embeds the signature,
+     * and a generic override chain's signatures differ by the type variable of each class in it
+     * ({@code void|T192,real} against {@code void|T636,real}), so overrides would read as unrelated
+     * and their shared slot would be dropped. What that leaves uncovered is recorded in backlog
+     * item 15: overloads of one source method inside a specialised class share a declared name, so
+     * their composed name is not seen as ambiguous and one dead key survives there.
+     * <p>
+     * Cached because {@code createMethods} asks twice per dispatch group and each ask would otherwise
+     * rebuild and sort the whole inherited method list.
+     */
+    private final Map<ImClass, Set<String>> ambiguousSemanticNamesByClass = new LinkedHashMap<>();
+
+    private Set<String> ambiguousSemanticNames(ImClass c) {
+        return ambiguousSemanticNamesByClass.computeIfAbsent(c, owner -> {
+            Map<String, Set<String>> claimants = new TreeMap<>();
+            for (ImMethod m : collectMethodsInHierarchy(owner)) {
+                if (m == null) {
+                    continue;
+                }
+                String semanticName = semanticNameFromMethodName(m.getName());
+                if (semanticName.isEmpty()) {
+                    continue;
+                }
+                claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
+                    .add(LuaDispatchPreparation.declaredName(m));
+            }
+            Set<String> ambiguous = new TreeSet<>();
+            claimants.forEach((name, keys) -> {
+                if (keys.size() > 1) {
+                    ambiguous.add(name);
+                }
+            });
+            return ambiguous;
+        });
     }
 
     private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {

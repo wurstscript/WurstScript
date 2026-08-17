@@ -140,23 +140,27 @@ itself, and one gap in what the suite can see.
     `simplifyClasses` nor `addMemberTypeArguments`, so the type variables are never lifted there and
     a super call has nothing to carry. Closing it is item 23.
 
-15. **One junk dispatch slot per specialised class.** `addDirectAliases` and
-    `LuaTranslator.collectDispatchSlotNames` both compose `owner.getName() + "_" +
-    semanticNameFromMethodName(name)`, and for a specialised method that trailing segment is the
-    type argument — so every method of `FastHashMap<int, int>` claims one shared
-    `FastHashMap_specialized_integer__integer` slot and the alphabetically first wins it.
-    Nothing calls it, so it is dead weight rather than a wrong result.
+15. **A dead dispatch slot survives for overloads inside a specialised class.** What is left of the
+    junk slot, which is otherwise gone.
 
-    Tried using the declared name instead and reverted it: overloads share a declared name, so
-    `setup(int)` and `setup(string)` collapse into one slot, which is what
-    `LuaTranslationTests.overloadedMethodsDoNotAliasInLuaDispatchTables` and
-    `moduleProvidedOverloadedOverrideDoesNotCollapseLuaSlots` exist to prevent. Both sources of a
-    semantic name are wrong, in opposite directions: the mangled trailing segment collides across
-    the siblings of one specialisation, the declared name collides across overloads. A fix needs a
-    name separating both — the declared name together with the dispatch signature key would, since
-    that is already what distinguishes overloads elsewhere in the same file. Worth doing only if
-    this stops being dead weight, because the cost of getting it wrong is a real mis-binding while
-    the cost of leaving it is one unused table key per specialised class.
+    A slot's name is the owner's plus the segment after the last underscore of the method's, and for a
+    specialised method that segment is the type argument, so every method of one specialisation
+    composes the same name. Both composers now leave such a name uncomposed, deciding by how many
+    distinct declared names produce it: a method and its overrides declare one name and must share a
+    slot, while siblings declare different ones.
+
+    That leaves overloads. Two overloads of one source method share a declared name, so a specialised
+    class holding only overloads still composes one shared name and binds it to whichever is reached
+    first. Dead weight as before - nothing calls it - but no longer true of the general case.
+
+    The sharper identity is the dispatch group key, which separates overloads by signature. It cannot
+    be used here: the signature embeds each class's type variable, so a generic override chain reads as
+    `void|T192,real` against `void|T636,real` and the overrides look unrelated, which drops the slot
+    they must share. `LuaTranslationTests.genericOverrideChainBindsRootSlotToMostSpecificImplInLua`
+    fails exactly that way, and is how this was found rather than shipped.
+
+    A fix needs an identity which treats a chain's differing type variables as the same signature while
+    still separating real parameter differences. Worth doing only if this stops being dead weight.
 
 24. **`luaOutputIsDeterministicForGenericOverrideSlots` failed once and has not since.** It failed
     on Windows CI and passed on a re-run of the same commit, having blocked an unrelated pull request
