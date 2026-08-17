@@ -1434,13 +1434,30 @@ public class LuaTranslationTests extends WurstScriptTest {
         }
     }
 
-    /** The first few differing lines, with their numbers, so a failure says where to look. */
+    /**
+     * Every differing line, with its number, so the failure itself says what changed.
+     * <p>
+     * The scripts are also uploaded as an artifact on a failing CI run, but the message has to stand
+     * on its own: an artifact needs fetching, and the check is what gets read first. Bounded so a
+     * wholesale difference does not bury the report, with the total stated either way.
+     */
     private static String describeFirstDifferences(String first, String second) {
+        final int reportLimit = 40;
         String[] a = first.split("\n", -1);
         String[] b = second.split("\n", -1);
         StringBuilder sb = new StringBuilder();
+        int differing = 0;
+        for (int i = 0; i < Math.max(a.length, b.length); i++) {
+            String lineA = i < a.length ? a[i] : "<missing>";
+            String lineB = i < b.length ? b[i] : "<missing>";
+            if (!lineA.equals(lineB)) {
+                differing++;
+            }
+        }
+        sb.append("  ").append(differing).append(" line(s) differ")
+            .append(differing > reportLimit ? ", first " + reportLimit + ":\n" : ":\n");
         int reported = 0;
-        for (int i = 0; i < Math.max(a.length, b.length) && reported < 5; i++) {
+        for (int i = 0; i < Math.max(a.length, b.length) && reported < reportLimit; i++) {
             String lineA = i < a.length ? a[i] : "<missing>";
             String lineB = i < b.length ? b[i] : "<missing>";
             if (!lineA.equals(lineB)) {
