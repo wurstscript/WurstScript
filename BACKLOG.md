@@ -107,6 +107,52 @@ itself, and one gap in what the suite can see.
     `FASTHASHMAP_CAPACITY`, `isFull()` and `Hashable.hash` to the public API when the Lua path makes
     all three meaningless on that target.
 
+28. **Two costs the Lua emission pays which look avoidable.** Found by reading the emitted script
+    for `FastHashMapTests_fastHashMapRuntimeLua`, not by profiling. **Measure both before touching
+    either**; each proposal below is a structural argument and a call count, which is not the same as
+    knowing what the game's interpreter charges for it.
+
+    *Every primitive array read is a function call.* `LuaNativeLowering.lowerPrimitiveArrayEnsure`
+    wraps each non-lvalue primitive array access in `ensureInt`/`ensureBool`/`ensureReal`, and the
+    wrapper survives the optimiser into the emitted script:
+
+        if not(__wurst_ensureBool(FastHashMap_used[s])) then
+        return ((s2 >= this5.FastHashMap_base) and __wurst_ensureBool(FastHashMap_used[s2]))
+
+    Writes are raw, lvalues being skipped, so only reads pay. `slotFor` reads `used` and `dead` every
+    probe step, which is two Lua calls per step in the hottest loop the container has. The shim itself
+    is needed: an untouched table key is `nil` where Jass reads `0` or `false`, and class and handle
+    typed arrays already skip it because `nil` is the right default for them.
+
+    The fix is to move the default off the access site and onto the table, which is the ordinary Lua
+    idiom for exactly this:
+
+        __wurst_default_false = ({__index = function() return false end})
+        setmetatable(FastHashMap_used, __wurst_default_false)
+
+    A present key is then a raw table index with no call at all, and the function runs only on a miss
+    - which is the rare case, a read of a slot never written. One metatable per primitive array global
+    replaces a wrapper at every read site. Three shared metatables cover int, bool and real. `pairs`
+    is unaffected by `__index`, so nothing which iterates an array changes. What has to be checked:
+    where the `setmetatable` calls are emitted (globals init, before any read), that a `0` or `false`
+    actually stored still reads back rather than falling through, and whether anything relies on the
+    stacktrace argument `callWithStacktrace` adds to the current wrapper.
+
+    *A method with an override stops being a direct call.* Without one, a bounded generic's method
+    lowers to a direct call - `Box_render_specialized(Box_new_Box(), 42)`. Add a subclass which
+    overrides it and the same call becomes `b:Box_size_specialized_integer(1)`, an instance miss
+    followed by an `__index` hop to the class table. The tables are flat rather than chained -
+    `SubBox.Box_size_specialized_integer` is assigned on `SubBox` itself, so it is one hop and not a
+    walk up the hierarchy - so the cost is that hop plus a dynamic lookup against a global function
+    call, and adding an override anywhere silently converts every call site of that slot.
+
+    The fix is class hierarchy analysis at the call site: if the receiver's static type has exactly one
+    reachable implementation of the slot, emit the direct call. `ImMethod.getSubMethods()` already
+    holds what that question needs, and `RemoveGarbage` already establishes reachability, so this is
+    reading data which exists rather than computing anything new. It also composes with the erasure
+    model in item 23: fewer virtual slots means fewer of the naming and binding problems items 15 and
+    26 came from.
+
 22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
     them, collected by importing every package in the checkout whose name ends in `Tests`. That
     half is done; this is the other one.
