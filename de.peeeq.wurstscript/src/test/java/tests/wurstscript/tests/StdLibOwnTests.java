@@ -69,4 +69,36 @@ public class StdLibOwnTests extends WurstScriptTest {
         // count: it is there to catch the program holding none, not to be updated on every bump.
         test().withStdLib().expectAtLeastTests(100).lines(program.toArray(new String[0]));
     }
+
+    /**
+     * A failing library test says which one it was.
+     * <p>
+     * The name is printed to stdout, which a CI run does not keep, so the thrown message was all that
+     * was left of it - and it carried the counts followed by every warning the library compiles with.
+     * A failure on a runner one does not have therefore said that one test of four hundred and sixty
+     * failed and nothing more, which is how a slow-runner timeout cost an afternoon to place.
+     * <p>
+     * The name has to arrive before the warnings, because a report which truncates a long message
+     * keeps the front of it.
+     */
+    @Test
+    public void aFailingLibraryTestIsNamed() {
+        try {
+            test().withStdLib().executeTests().lines(
+                "package test",
+                "import Wurstunit",
+                "@Test function deliberatelyFails()",
+                "    let one = 1",
+                "    one.assertEquals(2)",
+                "init",
+                "    skip"
+            );
+        } catch (Error e) {
+            String message = e.getMessage();
+            assertTrue(message.contains("deliberatelyFails"),
+                "the failure should name the test, but said:\n" + message);
+            return;
+        }
+        throw new AssertionError("a failing library test should have failed the suite");
+    }
 }
