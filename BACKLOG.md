@@ -26,9 +26,11 @@ itself, and one gap in what the suite can see.
     `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also get string
     keys off `StringHash`, which this library documents as unusable for the purpose - case insensitive
     (`String.wurst:81`, so `a` and `A` share a key), collapsing every partial multibyte slice to one
-    constant (`MultibyteDiagnostics`), undocumented and changed between game versions, and **not
-    emulated by the interpreter**, so `FastHashMapTests.testStringKeys` passing says nothing about the
-    game. Other containers - a set, a memo cache, adjacency maps - then build on the one store.
+    constant (`MultibyteDiagnostics`), and undocumented and changed between game versions. It *is*
+    emulated - `StringProvider` delegates to `Wc3StringHash` and `Wc3StringHashTest` checks parity with
+    the Lua shim - so a test does see the real behaviour; an earlier draft of this entry said otherwise
+    and was wrong. What makes it unusable is the behaviour itself, not the fidelity of the emulation.
+    Other containers - a set, a memo cache, adjacency maps - then build on the one store.
 
     Why the type class is load bearing rather than incidental. A Lua table matches keys by raw
     identity, which for a class is reference identity. An instance whose `equals` is structural -
@@ -38,11 +40,17 @@ itself, and one gap in what the suite can see.
 
         public interface RawKeyed<T:>          // no requirements; a promise that equality is identity
 
-        class FastHashMap<K: Hashable>              // probing on both targets, any key
-        class FastHashMap<K: Hashable and RawKeyed> // t[k] on Lua
+    How the two are then selected is unsettled, and the obvious spelling does not work: Wurst does not
+    overload a type on its bounds, so declaring `FastHashMap<K: Hashable>` beside
+    `FastHashMap<K: Hashable and RawKeyed>` makes every mention of the name ambiguous before any
+    instance is considered. Either the native variant is a separate type - `RawHashMap`, say, with the
+    bound as its entry condition - or one type carries both strategies and picks per operation, which
+    costs a branch and gives up the limits being lifted. Decide that before writing any of it.
 
-    which is what the `and` bound is for, and what makes the choice of representation a property of
-    the key type rather than of the container.
+    A further constraint on admitting reference-keyed classes: `null` is a value of any class type and
+    lowers to `nil`, and `t[nil]` is a runtime error in Lua while the probing implementation accepts
+    it wherever `Hashable` does. So identity alone is not sufficient for the native path - null keys
+    have to be rejected or special-cased.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
