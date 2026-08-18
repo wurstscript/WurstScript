@@ -77,6 +77,32 @@ itself, and one gap in what the suite can see.
     `wurstMapFields` assigns back to fields, which is a different mechanism and may be the cleaner
     one. Settle that before writing the surface.
 
+    **Two things this now has to answer, from discussion.**
+
+    *Which target is `FastHashMap` for.* The owner's read is that it is really a Lua container. That
+    is right about speed and not about usefulness. On Jass a native `Table` does the hashing outside
+    the script, so probing arrays with a hash computed in Wurst will not beat `HashMap` - the name
+    only earns itself on Lua. But `HashMap` cannot take a `vec2`, a tuple or anything else not
+    castable, and two keys which cast to one int collide there, which is the niche `FastHashMap`
+    exists for and which is target independent. So: keep it working on both, take the native table on
+    Lua, and stop presenting the Jass path as the fast one. If that holds, the native table becomes
+    the primary implementation rather than an optimisation, and the capacity limits and probing become
+    the Jass fallback - which also settles the selection question above, since the two variants stop
+    being peers.
+
+    *A `Hashing` package.* Wanted so instances and future containers stop hand-rolling a mix each.
+    The modern choices - MurmurHash3's `fmix32`, xxHash, FxHash - are all xor, shift and wrapping
+    multiply, and that is where the targets diverge sharply. `Bitwise.bwXor32` extracts eight bytes
+    and does four table lookups per xor, so `fmix32` would cost roughly twenty four divisions and
+    twelve lookups per integer on Jass, worse than the arithmetic mix it would replace and for
+    avalanche nobody observes at `mod 32`. On Lua those ops are native and `fmix32` is the right
+    answer outright. `fmix32` also depends on 32 bit wrapping multiply, which Jass has and Lua does
+    not, so identical values across targets need masking - two more `and32`, another sixteen
+    divisions. Conclusion: one surface, `hashInt`/`hashString`/`combine`, split by target on the same
+    `isLuaTarget()` lowering this entry is about, which makes the package a second consumer of it
+    rather than separate work. Measure `bwXor32` before committing to any of this; its cost is the
+    whole argument and it was read from the source rather than timed.
+
     Blocks `WurstStdlib2#468`, deliberately: shipping `FastHashMap` first would commit
     `FASTHASHMAP_CAPACITY`, `isFull()` and `Hashable.hash` to the public API when the Lua path makes
     all three meaningless on that target.
