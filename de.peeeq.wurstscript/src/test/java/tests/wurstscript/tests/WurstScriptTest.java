@@ -1183,7 +1183,9 @@ public class WurstScriptTest {
         }
         StringBuilder sb = new StringBuilder();
         for (RunTests.TestFailure failure : failures) {
-            sb.append("FAILED ").append(failure.getFunction().getName());
+            // Package qualified: the library imports every test package it has, and two of them
+            // may name a test the same, which an unqualified name could not tell apart.
+            sb.append("FAILED ").append(runTests.qualifiedTestName(failure.getFunction()));
             String message = failure.getMessage();
             if (message != null && !message.isEmpty()) {
                 sb.append(": ").append(message);

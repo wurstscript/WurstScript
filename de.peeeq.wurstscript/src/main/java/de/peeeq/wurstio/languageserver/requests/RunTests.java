@@ -381,7 +381,7 @@ public class RunTests extends UserRequest<Object> {
         globalState.setOutStream(new PrintStream(os, true, StandardCharsets.UTF_8));
     }
 
-    private String qualifiedTestName(ImFunction f) {
+    public String qualifiedTestName(ImFunction f) {
         String packageName = f.attrTrace().attrNearestPackage().tryGetNameDef().getName();
         return packageName + "." + f.getName();
     }

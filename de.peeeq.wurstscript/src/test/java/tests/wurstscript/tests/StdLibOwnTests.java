@@ -95,7 +95,8 @@ public class StdLibOwnTests extends WurstScriptTest {
             );
         } catch (Error e) {
             String message = e.getMessage();
-            assertTrue(message.contains("deliberatelyFails"),
+            // Qualified, so that two packages naming a test the same stay distinguishable.
+            assertTrue(message.contains("test.deliberatelyFails"),
                 "the failure should name the test, but said:\n" + message);
             return;
         }
