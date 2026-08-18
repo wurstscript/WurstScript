@@ -1160,9 +1160,37 @@ public class WurstScriptTest {
         RunTests.TestResult res = runTests.runTests(translator, imProg, Optional.empty(), Optional.empty());
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
-                    gui.getErrors());
+                    describeFailures(runTests) + gui.getErrors());
         }
         return res.getTotalTests();
+    }
+
+    /**
+     * Names the tests which failed, and says how each one did.
+     * <p>
+     * The count alone does not say which of several hundred it was, and the name is only printed to
+     * stdout, which a CI run does not keep - so a failure on a runner one does not have says that one
+     * test of the library failed and nothing else. Ahead of the warnings deliberately: a library
+     * compiles with hundreds of them, and a report which truncates a long message cuts off the end,
+     * which is where the name would otherwise sit.
+     */
+    private static String describeFailures(RunTests runTests) {
+        List<RunTests.TestFailure> failures = runTests.getFailTests();
+        if (failures.isEmpty()) {
+            // The counts disagreed without a recorded failure, which is itself worth saying rather
+            // than leaving a blank where the explanation belongs.
+            return "no failure was recorded, which is the thing to look at\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (RunTests.TestFailure failure : failures) {
+            sb.append("FAILED ").append(failure.getFunction().getName());
+            String message = failure.getMessage();
+            if (message != null && !message.isEmpty()) {
+                sb.append(": ").append(message);
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
     }
 
     /**
