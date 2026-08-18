@@ -17,6 +17,62 @@ The container these bounds were added for now compiles and runs against the stan
 Jass, and compiles on Lua (#1239). What is left is generality around it rather than the feature
 itself, and one gap in what the suite can see.
 
+27. **A natively keyed store on Lua, selected by a type class.** Decided with the repo owner:
+    **the native path is taken only where the key's equality is identity**, and a type class says
+    which keys those are. Everything else keeps today's probing on both targets.
+
+    Why it is worth doing. `FastHashMap` does its own hashing and linear probing on both targets, but
+    a Lua table already is a hash map: `t[key] = value` would let Lua hash, and would lift the fixed
+    `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also get string
+    keys off `StringHash`, which this library documents as unusable for the purpose - case insensitive
+    (`String.wurst:81`, so `a` and `A` share a key), collapsing every partial multibyte slice to one
+    constant (`MultibyteDiagnostics`), undocumented and changed between game versions, and **not
+    emulated by the interpreter**, so `FastHashMapTests.testStringKeys` passing says nothing about the
+    game. Other containers - a set, a memo cache, adjacency maps - then build on the one store.
+
+    Why the type class is load bearing rather than incidental. A Lua table matches keys by raw
+    identity, which for a class is reference identity. An instance whose `equals` is structural -
+    `Hashable<vec2>` comparing components - would therefore have Jass treat two equal-valued keys as
+    one key and Lua treat them as two, silently, from one program. So the native path is sound only
+    for `int`, `real`, `string`, `boolean` and reference-keyed classes. A second bound states that:
+
+        public interface RawKeyed<T:>          // no requirements; a promise that equality is identity
+
+        class FastHashMap<K: Hashable>              // probing on both targets, any key
+        class FastHashMap<K: Hashable and RawKeyed> // t[k] on Lua
+
+    which is what the `and` bound is for, and what makes the choice of representation a property of
+    the key type rather than of the container.
+
+    Groundwork already established, so the next attempt does not have to find it again:
+
+    - Intrinsics are declared in Wurst with `@compilerintrinsic` in `wurst/_wurst/MagicFunctions.wurst`
+      and bounds parse there; `wurstNewInstance<T:>() returns T` is the shape to copy. Recognition is
+      by name plus `!AttrFuncDef.hasApplicableUserFunction(call)` in `CompilerIntrinsics`.
+    - `ImTranslator.isLuaTarget()` is available during Wurst-to-IM lowering, which is what makes this
+      feasible: the intrinsic can lower differently per target rather than needing dead-branch
+      elimination to have happened first. An `if isLua` guard alone does not help, because folding
+      runs after translation and both branches are lowered.
+    - A Wurst array access already lowers to a plain `t[i]` on Lua
+      (`lua.translation.ExprTranslation.translateArrayAccessRaw` builds `LuaExprArrayAccess`). Nothing
+      in the backend needs changing; the only obstacle is that the language requires an `int` index,
+      and typechecking is target independent, so relaxing it for Lua alone would let a program compile
+      for one target and fail on the other.
+    - `ImTranslator.imError(trace, message)` gives a runtime error call, for the Jass lowering of an
+      intrinsic that has no Jass meaning. `ImStatementExpr` is available for pairing statements with a
+      value.
+
+    Left to settle. The read is straightforward - `wurstKeyedRead(store, key)` lowering to
+    `store[key]`. The write is the open question: as an `ExprFunctionCall` it must lower to an
+    `ImExpr`, while what it wants to be is an `ImSet` to an array access. Either wrap it in an
+    `ImStatementExpr` with a discarded value, or expand it at AST level after validation the way
+    `wurstMapFields` assigns back to fields, which is a different mechanism and may be the cleaner
+    one. Settle that before writing the surface.
+
+    Blocks `WurstStdlib2#468`, deliberately: shipping `FastHashMap` first would commit
+    `FASTHASHMAP_CAPACITY`, `isFull()` and `Hashable.hash` to the public API when the Lua path makes
+    all three meaningless on that target.
+
 22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
     them, collected by importing every package in the checkout whose name ends in `Tests`. That
     half is done; this is the other one.
