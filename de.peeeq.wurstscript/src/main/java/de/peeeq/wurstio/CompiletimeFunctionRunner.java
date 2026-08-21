@@ -13,6 +13,7 @@ import de.peeeq.wurstio.jassinterpreter.providers.HashtableProvider;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -750,7 +751,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             .thenComparing(ImVar::getName);
         modifiedScalars.sort(stableGlobalOrder);
         for (ImVar var : modifiedScalars) {
-            if (!imProg.getGlobals().contains(var) || var.getType() instanceof ImArrayLikeType) {
+            if (!imProg.getGlobals().contains(var) || var.getType() instanceof ImArrayLikeType
+                || !isCompiletimeStateMigrationTarget(var)) {
                 continue;
             }
             StateReplayLocation replayLocation = findReplayTarget(var);
@@ -779,7 +781,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
         modifiedArrays.sort(stableGlobalOrder);
         for (ImVar var : modifiedArrays) {
-            if (!imProg.getGlobals().contains(var)) {
+            if (!imProg.getGlobals().contains(var) || !isCompiletimeStateMigrationTarget(var)) {
                 continue;
             }
             if (!(var.getType() instanceof ImArrayLikeType)) {
@@ -809,6 +811,13 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
                     + "runtime initialization remains authoritative (" + sourceDiagnostic(var) + ")");
             }
         }
+    }
+
+    private boolean isCompiletimeStateMigrationTarget(ImVar var) {
+        // Compiletime state is deliberately opt-in per global. This keeps
+        // compiletime-only scratch values and incidental writes out of runtime init.
+        return var.getTrace() instanceof GlobalVarDef
+            && ((GlobalVarDef) var.getTrace()).hasAnnotation("@compiletime");
     }
 
     private String sourceDiagnostic(ImVar var) {

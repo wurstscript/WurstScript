@@ -60,7 +60,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             new RunArgs().with("-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1"),
             "package Test",
             "class Box<T:>",
-            "    static T array store",
+            "    @compiletime static T array store",
             "    static function set(int index, T value)",
             "        store[index] = value",
             "    static function get(int index) returns T",
@@ -93,10 +93,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         RunArgs runArgs = new RunArgs().with(
             "-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1");
         String[] source = {
-            "package A", "public int array a = [1]", "@compiletime function fillA()", "    a[0] = 10", "endpackage",
-            "package B", "public int array b = [1]", "@compiletime function fillB()", "    b[0] = 20", "endpackage",
-            "package C", "public int array c = [1]", "@compiletime function fillC()", "    c[0] = 30", "endpackage",
-            "package D", "public int array d = [1]", "@compiletime function fillD()", "    d[0] = 40", "endpackage",
+            "package A", "@compiletime public int array a = [1]", "@compiletime function fillA()", "    a[0] = 10", "endpackage",
+            "package B", "@compiletime public int array b = [1]", "@compiletime function fillB()", "    b[0] = 20", "endpackage",
+            "package C", "@compiletime public int array c = [1]", "@compiletime function fillC()", "    c[0] = 30", "endpackage",
+            "package D", "@compiletime public int array d = [1]", "@compiletime function fillD()", "    d[0] = 40", "endpackage",
             "package Test", "import A", "import B", "import C", "import D", "native testSuccess()", "init",
             "    if a[0] + b[0] + c[0] + d[0] == 100", "        testSuccess()"
         };
@@ -111,10 +111,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         RunArgs runArgs = new RunArgs().with(
             "-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1");
         String[] source = {
-            "package A", "public int a", "@compiletime function fillA()", "    a = 10", "endpackage",
-            "package B", "public int b", "@compiletime function fillB()", "    b = 20", "endpackage",
-            "package C", "public int c", "@compiletime function fillC()", "    c = 30", "endpackage",
-            "package D", "public int d", "@compiletime function fillD()", "    d = 40", "endpackage",
+            "package A", "@compiletime public int a", "@compiletime function fillA()", "    a = 10", "endpackage",
+            "package B", "@compiletime public int b", "@compiletime function fillB()", "    b = 20", "endpackage",
+            "package C", "@compiletime public int c", "@compiletime function fillC()", "    c = 30", "endpackage",
+            "package D", "@compiletime public int d", "@compiletime function fillD()", "    d = 40", "endpackage",
             "package Test", "import A", "import B", "import C", "import D", "native testSuccess()", "init",
             "    if a + b + c + d == 100", "        testSuccess()"
         };
@@ -140,6 +140,42 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void compiletimeScalarMigrationIsDisabledByDefault() {
+        String compiled = compileLuaWithRunArgs(
+            "compiletimeScalarMigrationIsDisabledByDefault",
+            new RunArgs().with("-lua", "-runcompiletimefunctions"),
+            "package Test",
+            "int source = 1",
+            "@compiletime function fill()",
+            "    source = 42",
+            "native testSuccess()",
+            "init",
+            "    if source == 1",
+            "        testSuccess()"
+        );
+
+        assertFalse("scalar compiletime state must not be emitted without the opt-in flag", compiled.contains("initCompiletimeScalarState"));
+    }
+
+    @Test
+    public void compiletimeArrayMigrationIsDisabledByDefault() {
+        String compiled = compileLuaWithRunArgs(
+            "compiletimeArrayMigrationIsDisabledByDefault",
+            new RunArgs().with("-lua", "-runcompiletimefunctions"),
+            "package Test",
+            "int array source = [1]",
+            "@compiletime function fill()",
+            "    source[0] = 42",
+            "native testSuccess()",
+            "init",
+            "    if source[0] == 1",
+            "        testSuccess()"
+        );
+
+        assertFalse("array compiletime state must not be emitted without the opt-in annotation", compiled.contains("initCompiletimeArrayState"));
+    }
+
+    @Test
     public void compiletimeInterpreterSeesLuaTarget() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeInterpreterSeesLuaTarget",
@@ -149,7 +185,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "endpackage",
             "package Test",
             "import MagicFunctions",
-            "int observedBackend",
+            "@compiletime int observedBackend",
             "@compiletime function detectBackend()",
             "    if isLua",
             "        observedBackend = 1",
