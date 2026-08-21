@@ -752,7 +752,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         modifiedScalars.sort(stableGlobalOrder);
         for (ImVar var : modifiedScalars) {
             if (!imProg.getGlobals().contains(var) || var.getType() instanceof ImArrayLikeType
-                || !isScalarStateMigrationTarget(var)) {
+                || !isCompiletimeStateMigrationTarget(var)) {
                 continue;
             }
             StateReplayLocation replayLocation = findReplayTarget(var);
@@ -781,7 +781,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
         modifiedArrays.sort(stableGlobalOrder);
         for (ImVar var : modifiedArrays) {
-            if (!imProg.getGlobals().contains(var)) {
+            if (!imProg.getGlobals().contains(var) || !isCompiletimeStateMigrationTarget(var)) {
                 continue;
             }
             if (!(var.getType() instanceof ImArrayLikeType)) {
@@ -813,8 +813,8 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
         }
     }
 
-    private boolean isScalarStateMigrationTarget(ImVar var) {
-        // Scalar compiletime state is deliberately opt-in per global. This keeps
+    private boolean isCompiletimeStateMigrationTarget(ImVar var) {
+        // Compiletime state is deliberately opt-in per global. This keeps
         // compiletime-only scratch values and incidental writes out of runtime init.
         return var.getTrace() instanceof GlobalVarDef
             && ((GlobalVarDef) var.getTrace()).hasAnnotation("@compiletime");
