@@ -3000,10 +3000,6 @@ public class WurstValidator {
                     } else {
                         check(VisibilityPublic.class, ModConstant.class, ModReadonly.class, Annotation.class);
                     }
-                    if (g.hasAnnotation("@compiletime")) {
-                        g.getAnnotation("@compiletime")
-                            .addWarning("The annotation '@compiletime' has no effect on variables.");
-                    }
                 }
 
                 @Override

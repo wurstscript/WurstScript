@@ -111,10 +111,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         RunArgs runArgs = new RunArgs().with(
             "-lua", "-runcompiletimefunctions", "-functionSplitLimit", "1");
         String[] source = {
-            "package A", "public int a", "@compiletime function fillA()", "    a = 10", "endpackage",
-            "package B", "public int b", "@compiletime function fillB()", "    b = 20", "endpackage",
-            "package C", "public int c", "@compiletime function fillC()", "    c = 30", "endpackage",
-            "package D", "public int d", "@compiletime function fillD()", "    d = 40", "endpackage",
+            "package A", "@compiletime public int a", "@compiletime function fillA()", "    a = 10", "endpackage",
+            "package B", "@compiletime public int b", "@compiletime function fillB()", "    b = 20", "endpackage",
+            "package C", "@compiletime public int c", "@compiletime function fillC()", "    c = 30", "endpackage",
+            "package D", "@compiletime public int d", "@compiletime function fillD()", "    d = 40", "endpackage",
             "package Test", "import A", "import B", "import C", "import D", "native testSuccess()", "init",
             "    if a + b + c + d == 100", "        testSuccess()"
         };
@@ -140,6 +140,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void compiletimeScalarMigrationIsDisabledByDefault() {
+        String compiled = compileLuaWithRunArgs(
+            "compiletimeScalarMigrationIsDisabledByDefault",
+            new RunArgs().with("-lua", "-runcompiletimefunctions"),
+            "package Test",
+            "int source = 1",
+            "@compiletime function fill()",
+            "    source = 42",
+            "native testSuccess()",
+            "init",
+            "    if source == 1",
+            "        testSuccess()"
+        );
+
+        assertFalse("scalar compiletime state must not be emitted without the opt-in flag", compiled.contains("initCompiletimeScalarState"));
+    }
+
+    @Test
     public void compiletimeInterpreterSeesLuaTarget() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeInterpreterSeesLuaTarget",
@@ -149,7 +167,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "endpackage",
             "package Test",
             "import MagicFunctions",
-            "int observedBackend",
+            "@compiletime int observedBackend",
             "@compiletime function detectBackend()",
             "    if isLua",
             "        observedBackend = 1",
