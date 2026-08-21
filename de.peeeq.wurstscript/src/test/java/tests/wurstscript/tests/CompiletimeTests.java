@@ -14,6 +14,13 @@ import static org.testng.Assert.assertTrue;
 
 public class CompiletimeTests extends WurstScriptTest {
 
+    @Test
+    public void compiletimeAnnotationWarnsOnInstanceFields() {
+        test().expectWarning("has no effect on instance fields")
+            .lines("package Test",
+                   "class C",
+                   "    @compiletime int value");
+    }
 
     @Test
     public void testSimpleCompiletime() {
