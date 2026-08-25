@@ -682,6 +682,35 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both<T> implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both<int>())",
+            "    readString(new Both<int>())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.StringValue_value\\s*=\\s*Both_[^\\n]*IntValueImpl_value");
+    }
+
+    @Test
     public void superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua() {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua",

@@ -1,20 +1,35 @@
 package de.peeeq.wurstio.mpq;
 
 import com.google.common.base.Preconditions;
-import systems.crigges.jmpq3.JMpqEditor;
-import systems.crigges.jmpq3.JMpqException;
-import systems.crigges.jmpq3.MPQOpenOption;
+import org.inwc3.jmpq.MpqArchive;
+import org.inwc3.jmpq.MpqArchiveWriter;
+import org.inwc3.jmpq.MpqOpenOptions;
+import org.inwc3.jmpq.MpqWriteOptions;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 class Jmpq3BasedEditor implements MpqEditor {
-    private final JMpqEditor editor;
+    private final File mpqArchive;
+    private final boolean readonly;
+    private final MpqArchive archive;
+    private final List<Consumer<MpqArchiveWriter>> changes = new ArrayList<>();
+    private boolean keepHeaderOffset = true;
+    private boolean closed;
 
-    private JMpqEditor getEditor() {
-        return editor;
+    private MpqArchiveWriter getStagingWriter() throws IOException {
+        MpqArchiveWriter writer = MpqArchiveWriter.from(archive,
+            MpqWriteOptions.defaults().withPrefix(keepHeaderOffset));
+        for (Consumer<MpqArchiveWriter> change : changes) {
+            change.accept(writer);
+        }
+        return writer;
     }
 
     public Jmpq3BasedEditor(File mpqArchive, boolean readonly) throws Exception {
@@ -22,79 +37,91 @@ class Jmpq3BasedEditor implements MpqEditor {
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
-
+        this.mpqArchive = mpqArchive;
+        this.readonly = readonly;
+        this.archive = MpqArchive.open(mpqArchive.toPath(), MpqOpenOptions.warcraft3());
     }
 
     static void createEmptyArchive(File mpqArchive) throws IOException {
-        try {
-            JMpqEditor.class.getMethod("createEmptyArchive", File.class).invoke(null, mpqArchive);
-        } catch (NoSuchMethodException e) {
-            throw new IOException("JMPQ3 is missing createEmptyArchive(File); update the JMPQ3 dependency.", e);
-        } catch (IllegalAccessException e) {
-            throw new IOException("Cannot access JMPQ3 createEmptyArchive(File).", e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof IOException) {
-                throw (IOException) cause;
-            }
-            throw new IOException("JMPQ3 could not create an empty MPQ archive.", cause);
-        }
+        byte[] image = MpqArchiveWriter.create(MpqWriteOptions.defaults()).toByteArray();
+        Files.write(mpqArchive.toPath(), image);
     }
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) {
-        getEditor().deleteFile(filenameInMpq);
-        getEditor().insertByteArray(filenameInMpq, contents);
+        if (readonly) throw new IllegalStateException("MPQ archive is read-only");
+        byte[] copy = contents.clone();
+        changes.add(writer -> writer.put(filenameInMpq, copy));
     }
 
     @Override
     public void insertFile(String filenameInMpq, File contents) throws Exception {
-        getEditor().deleteFile(filenameInMpq);
-        getEditor().insertFile(filenameInMpq, contents);
+        if (readonly) throw new IllegalStateException("MPQ archive is read-only");
+        Path path = contents.toPath();
+        changes.add(writer -> writer.put(filenameInMpq, path));
     }
 
     @Override
     public boolean canWrite() {
-        return editor.isCanWrite();
+        return !readonly;
     }
 
     @Override
     public byte[] extractFile(String fileToExtract) throws Exception {
-        return getEditor().extractFileAsBytes(fileToExtract);
+        return archive.read(fileToExtract);
     }
 
     @Override
     public void deleteFile(String filenameInMpq) {
-        getEditor().deleteFile(filenameInMpq);
+        if (readonly) throw new IllegalStateException("MPQ archive is read-only");
+        changes.add(writer -> writer.remove(filenameInMpq));
     }
 
     @Override
     public void close() throws IOException {
-        try {
-            editor.close();
-        } catch (JMpqException e) {
-            throw new IOException(e);
+        if (closed) return;
+        if (readonly) {
+            archive.close();
+            closed = true;
+            return;
         }
+        save(MpqWriteOptions.defaults());
     }
 
     @Override
     public boolean hasFile(String fileName) {
-        return getEditor().hasFile(fileName);
+        try {
+            return getStagingWriter().contains(fileName);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not inspect MPQ archive", e);
+        }
     }
 
     @Override
     public void setKeepHeaderOffset(boolean flag) {
-        editor.setKeepHeaderOffset(flag);
+        keepHeaderOffset = flag;
     }
 
     @Override
     public void closeWithCompression() throws IOException {
-        try {
-            editor.close(true, false, true);
-        } catch (JMpqException e) {
-            throw new IOException(e);
+        if (closed) return;
+        if (readonly) {
+            archive.close();
+            closed = true;
+            return;
         }
+        save(MpqWriteOptions.recompressed().withPrefix(keepHeaderOffset));
+    }
+
+    private void save(MpqWriteOptions options) throws IOException {
+        MpqArchiveWriter writer = MpqArchiveWriter.from(archive, options.withPrefix(keepHeaderOffset));
+        for (Consumer<MpqArchiveWriter> change : changes) {
+            change.accept(writer);
+        }
+        byte[] image = writer.toByteArray();
+        archive.close();
+        closed = true;
+        Files.write(mpqArchive.toPath(), image);
     }
 
 }

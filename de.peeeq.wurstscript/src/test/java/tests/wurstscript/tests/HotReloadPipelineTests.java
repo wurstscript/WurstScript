@@ -11,9 +11,7 @@ import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import org.testng.SkipException;
 import org.testng.annotations.Test;
-import systems.crigges.jmpq3.JMpqEditor;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -136,10 +134,6 @@ public class HotReloadPipelineTests {
 
     @Test
     public void folderMapInputIsMaterializedAsCachedArchive() throws Exception {
-        if (!jmpqCreateEmptyArchiveAvailable()) {
-            throw new SkipException("Requires JMPQ3 createEmptyArchive(File).");
-        }
-
         File projectFolder = new File("./temp/testProject_folder_map_cache/");
         File wurstFolder = new File(projectFolder, "wurst");
         newCleanFolder(wurstFolder);
@@ -167,15 +161,6 @@ public class HotReloadPipelineTests {
             assertEquals(mpqEditor.hasFile("war3mapImported\\asset.txt"), true);
             assertEquals(new String(mpqEditor.extractFile("war3map.j"), StandardCharsets.UTF_8), "folder script");
             assertEquals(new String(mpqEditor.extractFile("war3mapImported\\asset.txt"), StandardCharsets.UTF_8), "asset data");
-        }
-    }
-
-    private boolean jmpqCreateEmptyArchiveAvailable() {
-        try {
-            JMpqEditor.class.getMethod("createEmptyArchive", File.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
         }
     }
 
