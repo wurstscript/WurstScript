@@ -1,11 +1,13 @@
 package tests.wurstscript.tests;
 
 import org.wurstscript.projectconfig.WurstProjectConfigData;
+import org.wurstscript.projectconfig.WurstProjectBuildMapData;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.WurstCommands;
 import de.peeeq.wurstio.utils.W3InstallationData;
+import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.testng.annotations.Test;
 
@@ -221,6 +223,57 @@ public class WurstBuildConfigTests {
             effectiveConfigInjectionVersion(project.resolve("_build").toFile(), detectedReforged),
             new GameVersion("1.27")
         );
+    }
+
+    @Test
+    public void mapHeaderConfigAcceptsAnArchiveWithoutAnHm3wPrefix() throws Exception {
+        Path mapWithoutHeader = Files.createTempFile("wurst-map-without-header", ".w3x");
+        byte[] original = new byte[1024];
+        original[0] = 'M';
+        original[1] = 'P';
+        original[2] = 'Q';
+        original[3] = 0x1a;
+        Files.write(mapWithoutHeader, original);
+
+        Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
+            "applyMapHeader", WurstProjectConfigData.class, File.class
+        );
+        applyMapHeader.setAccessible(true);
+
+        applyMapHeader.invoke(
+            null,
+            new WurstProjectConfigData(
+                "Test",
+                List.of(),
+                new WurstProjectBuildMapData("Configured map", null, null, null, null, List.of(), List.of()),
+                null,
+                null
+            ),
+            mapWithoutHeader.toFile()
+        );
+
+        assertEquals(Files.readAllBytes(mapWithoutHeader)[0], (byte) 'H');
+        assertEquals(MapHeader.ofFile(mapWithoutHeader.toFile()).getMaxPlayersCount(), 0);
+        assertEquals(Files.size(mapWithoutHeader), original.length + 512);
+    }
+
+    @Test
+    public void mapHeaderConfigDoesNotReadAnArchiveWhenNothingNeedsChanging() throws Exception {
+        Path mapWithoutHeader = Files.createTempFile("wurst-map-without-header-noop", ".w3x");
+        byte[] original = new byte[1024];
+        original[0] = 'M';
+        original[1] = 'P';
+        original[2] = 'Q';
+        original[3] = 0x1a;
+        Files.write(mapWithoutHeader, original);
+
+        Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
+            "applyMapHeader", WurstProjectConfigData.class, File.class
+        );
+        applyMapHeader.setAccessible(true);
+        applyMapHeader.invoke(null, WurstProjectConfigData.empty(), mapWithoutHeader.toFile());
+
+        assertEquals(Files.readAllBytes(mapWithoutHeader), original);
     }
 
     private static String calculateProjectConfigHash(File buildDir) throws Exception {

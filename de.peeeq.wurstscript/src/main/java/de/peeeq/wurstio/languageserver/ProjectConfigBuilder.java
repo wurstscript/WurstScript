@@ -358,18 +358,37 @@ public class ProjectConfigBuilder {
 
     private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         boolean shouldWrite = false;
-        MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        if (!projectConfig.buildMapData().players().isEmpty()) {
-            mapHeader.setMaxPlayersCount(projectConfig.buildMapData().players().size());
+        WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        if (buildMapData.players().isEmpty() && StringUtils.isBlank(buildMapData.name())) {
+            return;
+        }
+
+        // A Warcraft III map may omit the optional 512-byte HM3W prefix and start
+        // directly with its MPQ archive. MapHeader.ofFile only reads the prefix,
+        // so use a new header in that case; writeToMapFile will insert it before
+        // the archive.
+        MapHeader mapHeader = startsWithMpqArchive(targetMap)
+            ? new MapHeader()
+            : MapHeader.ofFile(targetMap);
+        if (!buildMapData.players().isEmpty()) {
+            mapHeader.setMaxPlayersCount(buildMapData.players().size());
             shouldWrite = true;
         }
-        if (StringUtils.isNotBlank(projectConfig.buildMapData().name())) {
-            mapHeader.setMapName(projectConfig.buildMapData().name());
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            mapHeader.setMapName(buildMapData.name());
             shouldWrite = true;
         }
         if (shouldWrite) {
             WLogger.info("Applying map header");
             mapHeader.writeToMapFile(targetMap);
+        }
+    }
+
+    private static boolean startsWithMpqArchive(File targetMap) throws IOException {
+        try (InputStream input = new FileInputStream(targetMap)) {
+            byte[] startToken = input.readNBytes(4);
+            return startToken.length == 4
+                && new String(startToken, StandardCharsets.US_ASCII).startsWith("MPQ");
         }
     }
 }
