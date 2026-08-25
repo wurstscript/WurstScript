@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.ast.AstElementWithFuncName;
+import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
@@ -251,6 +253,9 @@ public final class LuaDispatchPreparation {
             if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
                 continue;
             }
+            if (!compatibleReturnTypes(method, candidate, tr)) {
+                continue;
+            }
             String candidateName = candidate.getName();
             if (!candidateName.isEmpty()) {
                 aliases.add(candidateName);
@@ -442,6 +447,67 @@ public final class LuaDispatchPreparation {
             sb.append(typeKey(params.get(i).getType()));
         }
         return sb.toString();
+    }
+
+    /**
+     * Alias a covariant implementation return, such as a concrete class returned for an
+     * interface method returning {@code thistype}, but keep unrelated same-name methods apart.
+     */
+    public static boolean compatibleReturnTypes(ImMethod left, ImMethod right) {
+        return compatibleReturnTypes(left, right, null);
+    }
+
+    public static boolean compatibleReturnTypes(ImMethod left, ImMethod right, ImTranslator tr) {
+        ImType leftReturnType = dispatchReturnType(left, tr);
+        ImType rightReturnType = dispatchReturnType(right, tr);
+        if (leftReturnType == null || rightReturnType == null) {
+            return false;
+        }
+        if (leftReturnType.equalsType(rightReturnType)) {
+            return true;
+        }
+        // A generic method's return type can still be represented by the owning type variable
+        // when comparing it with an erased/specialized override. The generic dispatch machinery
+        // already guarantees that relationship; the Lua alias check must not discard that slot.
+        if (leftReturnType instanceof ImTypeVarRef || rightReturnType instanceof ImTypeVarRef) {
+            return true;
+        }
+        if (hasGenericOwner(left) || hasGenericOwner(right)
+            || hasGenericSourceOwner(left) || hasGenericSourceOwner(right)) {
+            return true;
+        }
+        if (!(leftReturnType instanceof ImClassType leftClassType)
+            || !(rightReturnType instanceof ImClassType rightClassType)) {
+            return false;
+        }
+        ImClass leftClass = leftClassType.getClassDef();
+        ImClass rightClass = rightClassType.getClassDef();
+        return leftClass != rightClass
+            && (leftClass.isSubclassOf(rightClass) || rightClass.isSubclassOf(leftClass));
+    }
+
+    private static boolean hasGenericOwner(ImMethod method) {
+        return method != null
+            && method.attrClass() != null
+            && !method.attrClass().getTypeVariables().isEmpty();
+    }
+
+    private static boolean hasGenericSourceOwner(ImMethod method) {
+        return method != null
+            && method.attrTrace() instanceof FuncDef funcDef
+            && funcDef.attrNearestClassOrInterface() instanceof AstElementWithTypeParameters owner
+            && !owner.getTypeParameters().isEmpty();
+    }
+
+    private static ImType dispatchReturnType(ImMethod method, ImTranslator tr) {
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation != null) {
+            return implementation.getReturnType();
+        }
+        if (tr != null && method != null && method.attrTrace() instanceof FuncDef funcDef) {
+            return funcDef.attrReturnTyp().imTranslateType(tr);
+        }
+        return null;
     }
 
     private static ImFunction resolveDispatchSignatureImplementation(ImMethod method, Set<ImMethod> visited) {

@@ -652,6 +652,36 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void incompatibleSameNameInterfaceReturnsDoNotAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_incompatibleSameNameInterfaceReturnsDoNotAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both())",
+            "    readString(new Both())"
+        );
+
+        assertContainsRegex(compiled, "return value:Both_IntValueImpl_value\\(");
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.IntValue_value\\s*=\\s*StringValue_StringValue_value");
+    }
+
+    @Test
     public void multiLevelOverloadedOverridesKeepDistinctLuaSlots() {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_multiLevelOverloadedOverridesKeepDistinctLuaSlots",
