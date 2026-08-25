@@ -9,9 +9,9 @@ import org.inwc3.jmpq.MpqWriteOptions;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -113,6 +113,11 @@ class Jmpq3BasedEditor implements MpqEditor {
             closed = true;
             return;
         }
+        if (changes.isEmpty()) {
+            closeArchive();
+            closed = true;
+            return;
+        }
         save(MpqWriteOptions.defaults());
     }
 
@@ -145,6 +150,11 @@ class Jmpq3BasedEditor implements MpqEditor {
             closed = true;
             return;
         }
+        if (changes.isEmpty()) {
+            closeArchive();
+            closed = true;
+            return;
+        }
         save(MpqWriteOptions.recompressed().withPrefix(keepHeaderOffset));
     }
 
@@ -153,48 +163,20 @@ class Jmpq3BasedEditor implements MpqEditor {
         for (Consumer<MpqArchiveWriter> change : changes) {
             change.accept(writer);
         }
+        Path temporaryArchive = null;
+        boolean installed = false;
         try {
-            try (OutputStream output = new DeferredArchiveOutputStream()) {
-                writer.save(output);
-            }
+            Path parent = mpqArchive.toPath().toAbsolutePath().getParent();
+            temporaryArchive = Files.createTempFile(parent, ".wurst-mpq-", ".tmp");
+            writer.save(temporaryArchive);
+            closeArchive();
+            Files.move(temporaryArchive, mpqArchive.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            installed = true;
         } finally {
             closeArchive();
             closed = true;
-        }
-    }
-
-    private final class DeferredArchiveOutputStream extends OutputStream {
-        private OutputStream delegate;
-
-        private OutputStream delegate() throws IOException {
-            if (delegate == null) {
-                closeArchive();
-                delegate = Files.newOutputStream(mpqArchive.toPath());
-            }
-            return delegate;
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            delegate().write(b);
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            delegate().write(b, off, len);
-        }
-
-        @Override
-        public void flush() throws IOException {
-            if (delegate != null) {
-                delegate.flush();
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (delegate != null) {
-                delegate.close();
+            if (!installed && temporaryArchive != null) {
+                Files.deleteIfExists(temporaryArchive);
             }
         }
     }
