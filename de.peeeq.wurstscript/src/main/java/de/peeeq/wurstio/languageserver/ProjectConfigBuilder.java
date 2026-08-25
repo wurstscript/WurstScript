@@ -107,7 +107,7 @@ public class ProjectConfigBuilder {
         w3I.write(result.w3i);
 
         // Apply map header (this is cheap, so we always do it)
-        applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size());
+        applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size(), w3I.getMapName());
 
         // Update the manifest with new config hash (must open writable to insert)
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
@@ -357,7 +357,7 @@ public class ProjectConfigBuilder {
     }
 
     private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap,
-                                       int existingPlayerCount) throws IOException {
+                                       int existingPlayerCount, String existingMapName) throws IOException {
         boolean shouldWrite = false;
         WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
         if (buildMapData.players().isEmpty() && StringUtils.isBlank(buildMapData.name())) {
@@ -377,6 +377,9 @@ public class ProjectConfigBuilder {
             shouldWrite = true;
         } else if (hasNoMapHeader) {
             mapHeader.setMaxPlayersCount(existingPlayerCount);
+        }
+        if (hasNoMapHeader && StringUtils.isBlank(buildMapData.name())) {
+            mapHeader.setMapName(existingMapName);
         }
         if (StringUtils.isNotBlank(buildMapData.name())) {
             mapHeader.setMapName(buildMapData.name());
