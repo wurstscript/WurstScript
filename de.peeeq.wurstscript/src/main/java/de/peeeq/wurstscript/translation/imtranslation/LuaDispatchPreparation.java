@@ -245,7 +245,7 @@ public final class LuaDispatchPreparation {
             return;
         }
         for (ImMethod candidate : sortedMethodsForClass(c, sortedMethodsByClass)) {
-            if (!dispatchKey.equals(dispatchSignatureKey(candidate))) {
+            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))) {
                 continue;
             }
             if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
