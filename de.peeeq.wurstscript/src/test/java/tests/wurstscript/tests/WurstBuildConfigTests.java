@@ -238,7 +238,7 @@ public class WurstBuildConfigTests {
         Files.write(mapWithoutHeader, original);
 
         Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
-            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class
+            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class, int.class
         );
         applyMapHeader.setAccessible(true);
 
@@ -253,7 +253,8 @@ public class WurstBuildConfigTests {
             ),
             mapWithoutHeader.toFile(),
             3,
-            "Existing map"
+            "Existing map",
+            0x1234
         );
 
         assertEquals(Files.readAllBytes(mapWithoutHeader)[0], (byte) 'H');
@@ -272,10 +273,10 @@ public class WurstBuildConfigTests {
         Files.write(mapWithoutHeader, original);
 
         Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
-            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class
+            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class, int.class
         );
         applyMapHeader.setAccessible(true);
-        applyMapHeader.invoke(null, WurstProjectConfigData.empty(), mapWithoutHeader.toFile(), 0, null);
+        applyMapHeader.invoke(null, WurstProjectConfigData.empty(), mapWithoutHeader.toFile(), 0, null, 0);
 
         assertEquals(Files.readAllBytes(mapWithoutHeader), original);
     }
@@ -291,7 +292,7 @@ public class WurstBuildConfigTests {
         Files.write(mapWithoutHeader, original);
 
         Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
-            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class
+            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class, String.class, int.class
         );
         applyMapHeader.setAccessible(true);
 
@@ -310,11 +311,13 @@ public class WurstBuildConfigTests {
             ),
             mapWithoutHeader.toFile(),
             4,
-            "Existing map"
+            "Existing map",
+            0x1234
         );
 
         byte[] result = Files.readAllBytes(mapWithoutHeader);
         assertEquals(MapHeader.ofFile(mapWithoutHeader.toFile()).getMaxPlayersCount(), 1);
+        assertEquals(MapHeader.ofFile(mapWithoutHeader.toFile()).getFlags(), 0x1234);
         assertTrue(new String(result, StandardCharsets.UTF_8).contains("Existing map"));
     }
 
