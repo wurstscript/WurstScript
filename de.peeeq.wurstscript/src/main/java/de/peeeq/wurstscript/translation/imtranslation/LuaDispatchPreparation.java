@@ -472,6 +472,15 @@ public final class LuaDispatchPreparation {
         if (leftReturnType instanceof ImTypeVarRef || rightReturnType instanceof ImTypeVarRef) {
             return true;
         }
+        // A specialized generic override can have concrete return types on both sides after
+        // elimination (Holder<T>.get_it() -> Doubler.get_it() is one example). That is safe only
+        // when the IM method union links the two methods; unrelated same-name methods in a generic
+        // owner must still remain separate.
+        if ((hasGenericOwner(left) || hasGenericOwner(right)
+            || hasGenericSourceOwner(left) || hasGenericSourceOwner(right))
+            && sameOverrideFamily(left, right)) {
+            return true;
+        }
         if (!(leftReturnType instanceof ImClassType leftClassType)
             || !(rightReturnType instanceof ImClassType rightClassType)) {
             return false;
@@ -494,6 +503,38 @@ public final class LuaDispatchPreparation {
                 : leftClass.isSubclassOf(rightClass);
         }
         return false;
+    }
+
+    private static boolean sameOverrideFamily(ImMethod left, ImMethod right) {
+        return reaches(left, right, new HashSet<>()) || reaches(right, left, new HashSet<>());
+    }
+
+    private static boolean reaches(ImMethod current, ImMethod target, Set<ImMethod> visited) {
+        if (current == null || !visited.add(current)) {
+            return false;
+        }
+        if (current == target) {
+            return true;
+        }
+        for (ImMethod subMethod : current.getSubMethods()) {
+            if (reaches(subMethod, target, visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasGenericOwner(ImMethod method) {
+        return method != null
+            && method.attrClass() != null
+            && !method.attrClass().getTypeVariables().isEmpty();
+    }
+
+    private static boolean hasGenericSourceOwner(ImMethod method) {
+        return method != null
+            && method.attrTrace() instanceof FuncDef funcDef
+            && funcDef.attrNearestClassOrInterface() instanceof AstElementWithTypeParameters owner
+            && !owner.getTypeParameters().isEmpty();
     }
 
     private static ImType dispatchReturnType(ImMethod method, ImTranslator tr) {

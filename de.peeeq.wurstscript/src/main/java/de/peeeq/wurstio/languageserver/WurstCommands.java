@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -90,7 +91,7 @@ public class WurstCommands {
         }
 
         Optional<File> map = mapPath.map(File::new);
-        List<String> compileArgs = getCompileArgs(workspaceRoot);
+        List<String> compileArgs = getCompileArgs(workspaceRoot, true);
         return server.worker().handle(new BuildMap(server, workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
@@ -121,26 +122,53 @@ public class WurstCommands {
     private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects", "-stacktraces");
 
     public static List<String> getCompileArgs(WFile rootPath, String... additionalArgs) {
+        return getCompileArgs(rootPath, false, additionalArgs);
+    }
+
+    /**
+     * Reads the workspace run-args file. A leading '-' is shared by run and build;
+     * a leading '+' is build-only and is normalized to '-' for the compiler.
+     */
+    public static List<String> getCompileArgs(WFile rootPath, boolean forBuild, String... additionalArgs) {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {
                 try (Stream<String> lines = Files.lines(configFile)) {
-                    List<String> args = Stream.concat(
-                        lines.filter(s -> s.startsWith("-")),
-                        Stream.of(additionalArgs)
-                    ).collect(Collectors.toList());
+                    List<String> args = new ArrayList<>(lines
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty() && !s.startsWith("#"))
+                        .filter(s -> s.startsWith("-") || (forBuild && s.startsWith("+")))
+                        .map(s -> forBuild && s.startsWith("+") ? "-" + s.substring(1) : s)
+                        .collect(Collectors.toList()));
+                    if (forBuild) {
+                        addBuildDefault(args, "-opt");
+                        addBuildDefault(args, "-inline");
+                        addBuildDefault(args, "-localOptimizations");
+                    }
+                    args.addAll(List.of(additionalArgs));
                     return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(args);
                 }
             } else {
-
-                String cfg = String.join("\n", defaultArgs) + "\n";
+                String cfg = String.join("\n", defaultArgs)
+                    + "\n+opt\n+inline\n+localOptimizations\n";
                 Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
-                return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(
-                    Stream.concat(defaultArgs.stream(), Stream.of(additionalArgs)).collect(Collectors.toList())
-                );
+                List<String> args = new ArrayList<>(defaultArgs);
+                if (forBuild) {
+                    args.add("-opt");
+                    args.add("-inline");
+                    args.add("-localOptimizations");
+                }
+                args.addAll(List.of(additionalArgs));
+                return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(args);
             }
         } catch (IOException e) {
             throw new RuntimeException("Could not access wurst_run.args config file", e);
+        }
+    }
+
+    private static void addBuildDefault(List<String> args, String option) {
+        if (!args.contains(option)) {
+            args.add(option);
         }
     }
 
