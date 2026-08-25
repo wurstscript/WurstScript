@@ -173,8 +173,8 @@ class Jmpq3BasedEditor implements MpqEditor {
         try {
             Path parent = mpqArchive.toPath().toAbsolutePath().getParent();
             temporaryArchive = Files.createTempFile(parent, ".wurst-mpq-", ".tmp");
-            copyPosixPermissions(mpqArchive.toPath(), temporaryArchive);
             writer.save(temporaryArchive);
+            copyPosixPermissions(mpqArchive.toPath(), temporaryArchive);
             closeArchive();
             Files.move(temporaryArchive, mpqArchive.toPath(), StandardCopyOption.REPLACE_EXISTING);
             installed = true;
