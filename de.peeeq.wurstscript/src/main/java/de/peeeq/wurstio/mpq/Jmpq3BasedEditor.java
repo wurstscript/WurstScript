@@ -80,7 +80,13 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public boolean canWrite() {
-        return !readonly && stagingWriterAvailable && Files.isWritable(mpqArchive.toPath());
+        Path archivePath = mpqArchive.toPath().toAbsolutePath();
+        Path parent = archivePath.getParent();
+        return !readonly
+            && stagingWriterAvailable
+            && Files.isWritable(archivePath)
+            && parent != null
+            && Files.isWritable(parent);
     }
 
     @Override
