@@ -48,9 +48,10 @@ class Jmpq3BasedEditor implements MpqEditor {
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.mpqArchive = mpqArchive;
+        Path resolvedArchive = mpqArchive.toPath().toRealPath();
+        this.mpqArchive = resolvedArchive.toFile();
         this.readonly = readonly;
-        this.archive = MpqArchive.open(mpqArchive.toPath(), MpqOpenOptions.warcraft3());
+        this.archive = MpqArchive.open(resolvedArchive, MpqOpenOptions.warcraft3());
         if (!readonly) {
             try {
                 getStagingWriter();
@@ -191,7 +192,9 @@ class Jmpq3BasedEditor implements MpqEditor {
         PosixFileAttributeView sourceView = Files.getFileAttributeView(source, PosixFileAttributeView.class);
         PosixFileAttributeView targetView = Files.getFileAttributeView(target, PosixFileAttributeView.class);
         if (sourceView != null && targetView != null) {
-            targetView.setPermissions(sourceView.readAttributes().permissions());
+            var attributes = sourceView.readAttributes();
+            targetView.setPermissions(attributes.permissions());
+            targetView.setGroup(attributes.group());
         }
     }
 
