@@ -107,7 +107,7 @@ public class ProjectConfigBuilder {
         w3I.write(result.w3i);
 
         // Apply map header (this is cheap, so we always do it)
-        applyMapHeader(projectConfig, targetMap);
+        applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size(), w3I.getMapName(), w3I.getFlags().toInt());
 
         // Update the manifest with new config hash (must open writable to insert)
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
@@ -356,20 +356,50 @@ public class ProjectConfigBuilder {
         }
     }
 
-    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap,
+                                       int existingPlayerCount, String existingMapName,
+                                       int existingMapFlags) throws IOException {
         boolean shouldWrite = false;
-        MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        if (!projectConfig.buildMapData().players().isEmpty()) {
-            mapHeader.setMaxPlayersCount(projectConfig.buildMapData().players().size());
-            shouldWrite = true;
+        WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        if (buildMapData.players().isEmpty() && StringUtils.isBlank(buildMapData.name())) {
+            return;
         }
-        if (StringUtils.isNotBlank(projectConfig.buildMapData().name())) {
-            mapHeader.setMapName(projectConfig.buildMapData().name());
+
+        // A Warcraft III map may omit the optional 512-byte HM3W prefix and start
+        // directly with its MPQ archive. MapHeader.ofFile only reads the prefix,
+        // so use a new header in that case; writeToMapFile will insert it before
+        // the archive.
+        boolean hasNoMapHeader = startsWithMpqArchive(targetMap);
+        MapHeader mapHeader = hasNoMapHeader
+            ? new MapHeader()
+            : MapHeader.ofFile(targetMap);
+        if (!buildMapData.players().isEmpty()) {
+            mapHeader.setMaxPlayersCount(buildMapData.players().size());
+            shouldWrite = true;
+        } else if (hasNoMapHeader) {
+            mapHeader.setMaxPlayersCount(existingPlayerCount);
+        }
+        if (hasNoMapHeader && StringUtils.isBlank(buildMapData.name())) {
+            mapHeader.setMapName(existingMapName);
+        }
+        if (hasNoMapHeader) {
+            mapHeader.setFlags(existingMapFlags);
+        }
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            mapHeader.setMapName(buildMapData.name());
             shouldWrite = true;
         }
         if (shouldWrite) {
             WLogger.info("Applying map header");
             mapHeader.writeToMapFile(targetMap);
+        }
+    }
+
+    private static boolean startsWithMpqArchive(File targetMap) throws IOException {
+        try (InputStream input = new FileInputStream(targetMap)) {
+            byte[] startToken = input.readNBytes(4);
+            return startToken.length == 4
+                && new String(startToken, StandardCharsets.US_ASCII).startsWith("MPQ");
         }
     }
 }
