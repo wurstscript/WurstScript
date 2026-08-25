@@ -1442,8 +1442,9 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void genericOverrideChainBindsRootSlotToMostSpecificImplInLua() throws IOException {
+        String outputFile = "test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua";
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
+        String compiled = Files.toString(new File(outputFile), Charsets.UTF_8);
 
         Matcher slotMatcher = Pattern.compile("FSM_currentState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
         assertTrue("Expected FSM to dispatch through a virtual *_update slot.", slotMatcher.find());
@@ -1454,6 +1455,11 @@ public class LuaTranslationTests extends WurstScriptTest {
             assertContainsRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*" + state + "_" + state + "_update");
             assertDoesNotContainRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
         }
+
+        GlobalCaches.clearAll();
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String compiledAgain = Files.toString(new File(outputFile), Charsets.UTF_8);
+        assertEquals("The root-slot fixture must emit deterministic Lua across compilations.", compiled, compiledAgain);
     }
 
     @Test
