@@ -136,11 +136,9 @@ class Jmpq3BasedEditor implements MpqEditor {
         if (stagedFiles.containsKey(key)) {
             return true;
         }
-        try {
-            return getStagingWriter().contains(fileName);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not inspect MPQ archive", e);
-        }
+        return stagingWriter != null
+            ? stagingWriter.contains(fileName)
+            : archive.contains(fileName);
     }
 
     @Override

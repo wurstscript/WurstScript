@@ -88,4 +88,12 @@ public class MpqTest {
         }
     }
 
+    @Test
+    public void test_readOnlyMembershipDoesNotRequireWriter() throws Exception {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)), true)) {
+            Assert.assertTrue(edit.hasFile("war3map.j"));
+            Assert.assertFalse(edit.hasFile("missing.txt"));
+        }
+    }
+
 }
