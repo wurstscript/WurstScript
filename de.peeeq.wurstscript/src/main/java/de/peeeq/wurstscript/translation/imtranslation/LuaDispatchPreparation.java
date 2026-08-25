@@ -469,7 +469,8 @@ public final class LuaDispatchPreparation {
         // A generic method's return type can still be represented by the owning type variable
         // when comparing it with an erased/specialized override. The generic dispatch machinery
         // already guarantees that relationship; the Lua alias check must not discard that slot.
-        if (leftReturnType instanceof ImTypeVarRef || rightReturnType instanceof ImTypeVarRef) {
+        if ((leftReturnType instanceof ImTypeVarRef || rightReturnType instanceof ImTypeVarRef)
+            && sameOverrideFamily(left, right)) {
             return true;
         }
         // A specialized generic override can have concrete return types on both sides after
