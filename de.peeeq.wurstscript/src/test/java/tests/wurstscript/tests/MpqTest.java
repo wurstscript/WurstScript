@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public class MpqTest {
@@ -71,6 +72,19 @@ public class MpqTest {
         }
         try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             Assert.assertFalse(edit.hasFile("test.txt"));
+        }
+    }
+
+    @Test
+    public void test_stagedChangesAreVisibleBeforeClose() throws Exception {
+        byte[] contents = "staged contents".getBytes(StandardCharsets.UTF_8);
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
+            edit.insertFile("staged.txt", contents);
+            Assert.assertTrue(edit.hasFile("staged.txt"));
+            Assert.assertEquals(edit.extractFile("STAGED.TXT"), contents);
+
+            edit.deleteFile("staged.txt");
+            Assert.assertFalse(edit.hasFile("staged.txt"));
         }
     }
 
