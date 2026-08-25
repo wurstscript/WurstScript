@@ -604,6 +604,145 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void moduleProvidedInterfaceDispatchSurvivesLuaOptimizations() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_moduleProvidedInterfaceDispatchSurvivesLuaOptimizations",
+            false,
+            "package Test",
+            "interface Greeter",
+            "    function greet() returns thistype",
+            "module GreeterLifecycle",
+            "    abstract function greet() returns thistype",
+            "module FirstGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module NestedFirstGreeter",
+            "    use FirstGreeter",
+            "module SecondGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module GreeterCaller",
+            "    function call(Greeter greeter) returns Greeter",
+            "        return greeter.greet()",
+            "class First implements Greeter",
+            "    use NestedFirstGreeter",
+            "    use GreeterCaller",
+            "class Second implements Greeter",
+            "    use SecondGreeter",
+            "    use GreeterCaller",
+            "init",
+            "    Greeter first = new First()",
+            "    Greeter second = new Second()",
+            "    First firstObject = new First()",
+            "    Second secondObject = new Second()",
+            "    Greeter firstResult = firstObject.call(second)",
+            "    Greeter secondResult = secondObject.call(first)"
+        );
+        Matcher callMatcher = Pattern.compile("return greeter\\d*:(\\w+)\\(").matcher(compiled);
+        List<String> slots = new ArrayList<>();
+        while (callMatcher.find() && !slots.contains(callMatcher.group(1))) {
+            slots.add(callMatcher.group(1));
+        }
+        assertEquals("Both optimized module callers must use one interface dispatch slot.", 1, slots.size());
+        String slot = slots.get(0);
+        assertContainsRegex(compiled, "First\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*First_[^\\n]*greet");
+        assertContainsRegex(compiled, "Second\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*Second_[^\\n]*greet");
+    }
+
+    @Test
+    public void incompatibleSameNameInterfaceReturnsDoNotAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_incompatibleSameNameInterfaceReturnsDoNotAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both())",
+            "    readString(new Both())"
+        );
+
+        assertContainsRegex(compiled, "return value:Both_IntValueImpl_value\\(");
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.IntValue_value\\s*=\\s*StringValue_StringValue_value");
+    }
+
+    @Test
+    public void genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both<T> implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both<int>())",
+            "    readString(new Both<int>())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.StringValue_value\\s*=\\s*Both_[^\\n]*IntValueImpl_value");
+    }
+
+    @Test
+    public void superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua",
+            false,
+            "package Test",
+            "class Base",
+            "class Derived extends Base",
+            "interface DerivedValue",
+            "    function value() returns Derived",
+            "        return new Derived()",
+            "interface BaseValue",
+            "    function value() returns Base",
+            "module BaseValueImpl",
+            "    function value() returns Base",
+            "        return new Base()",
+            "class Both implements DerivedValue, BaseValue",
+            "    use BaseValueImpl",
+            "@noinline function readDerived(DerivedValue value) returns Derived",
+            "    return value.value()",
+            "@noinline function readBase(BaseValue value) returns Base",
+            "    return value.value()",
+            "init",
+            "    readDerived(new Both())",
+            "    readBase(new Both())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.DerivedValue_DerivedValue_value\\s*=\\s*DerivedValue_DerivedValue_value");
+        assertContainsRegex(compiled, "Both\\.BaseValue_value\\s*=\\s*Both_Both_BaseValueImpl_value");
+        assertDoesNotContainRegex(compiled, "Both\\.DerivedValue_value\\s*=\\s*BaseValue_BaseValue_value");
+    }
+
+    @Test
     public void multiLevelOverloadedOverridesKeepDistinctLuaSlots() {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_multiLevelOverloadedOverridesKeepDistinctLuaSlots",
@@ -1394,8 +1533,9 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void genericOverrideChainBindsRootSlotToMostSpecificImplInLua() throws IOException {
+        String outputFile = "test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua";
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
+        String compiled = Files.toString(new File(outputFile), Charsets.UTF_8);
 
         Matcher slotMatcher = Pattern.compile("FSM_currentState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
         assertTrue("Expected FSM to dispatch through a virtual *_update slot.", slotMatcher.find());
@@ -1406,6 +1546,11 @@ public class LuaTranslationTests extends WurstScriptTest {
             assertContainsRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*" + state + "_" + state + "_update");
             assertDoesNotContainRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
         }
+
+        GlobalCaches.clearAll();
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String compiledAgain = Files.toString(new File(outputFile), Charsets.UTF_8);
+        assertEquals("The root-slot fixture must emit deterministic Lua across compilations.", compiled, compiledAgain);
     }
 
     @Test

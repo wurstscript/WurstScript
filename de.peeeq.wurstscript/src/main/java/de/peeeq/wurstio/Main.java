@@ -137,7 +137,7 @@ public class Main {
                 List<String> mergedArgs = new ArrayList<>(asList(args));
                 if (workspaceroot != null) {
                     WLogger.info("workspaceroot: " + workspaceroot);
-                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot));
+                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot), runArgs.isBuild());
                     WLogger.info("workspaceroot: " + (argsList == null));
                     mergedArgs.addAll(argsList);
                     compileArgs = new RunArgs(mergedArgs);

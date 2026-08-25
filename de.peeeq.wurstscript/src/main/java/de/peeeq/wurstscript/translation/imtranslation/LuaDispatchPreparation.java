@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.ast.AstElementWithFuncName;
+import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.translation.lua.translation.LuaIdentifiers;
 
@@ -235,7 +237,7 @@ public final class LuaDispatchPreparation {
         if (semanticNames.isEmpty()) {
             return;
         }
-        String dispatchKey = dispatchSignatureKey(method);
+        String dispatchKey = dispatchParameterSignatureKey(method);
         collectHierarchyAliases(owner, method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>(), tr);
     }
 
@@ -245,10 +247,13 @@ public final class LuaDispatchPreparation {
             return;
         }
         for (ImMethod candidate : sortedMethodsForClass(c, sortedMethodsByClass)) {
-            if (!dispatchKey.equals(dispatchSignatureKey(candidate))) {
+            if (!dispatchKey.equals(dispatchParameterSignatureKey(candidate))) {
                 continue;
             }
             if (!sharesSemanticName(method, candidate, semanticNames, tr)) {
+                continue;
+            }
+            if (!compatibleReturnTypes(method, candidate, tr)) {
                 continue;
             }
             String candidateName = candidate.getName();
@@ -420,6 +425,128 @@ public final class LuaDispatchPreparation {
             sb.append(typeKey(params.get(i).getType()));
         }
         return sb.toString();
+    }
+
+    /**
+     * The runtime dispatch slot is selected by the receiver and parameters, not by the return
+     * type. This matters for interface methods returning {@code thistype}: the interface method
+     * resolves to the interface type while a module-provided implementation resolves to the
+     * concrete class type, but both still need the interface alias on the concrete class table.
+     */
+    private static String dispatchParameterSignatureKey(ImMethod method) {
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation == null) {
+            return "<abstract>";
+        }
+        StringBuilder sb = new StringBuilder();
+        ImVars params = implementation.getParameters();
+        for (int i = 1; i < params.size(); i++) {
+            if (i > 1) {
+                sb.append(",");
+            }
+            sb.append(typeKey(params.get(i).getType()));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Alias a covariant implementation return, such as a concrete class returned for an
+     * interface method returning {@code thistype}, but keep unrelated same-name methods apart.
+     */
+    public static boolean compatibleReturnTypes(ImMethod left, ImMethod right) {
+        return compatibleReturnTypes(left, right, null);
+    }
+
+    public static boolean compatibleReturnTypes(ImMethod left, ImMethod right, ImTranslator tr) {
+        ImType leftReturnType = dispatchReturnType(left, tr);
+        ImType rightReturnType = dispatchReturnType(right, tr);
+        if (leftReturnType == null || rightReturnType == null) {
+            return false;
+        }
+        if (leftReturnType.equalsType(rightReturnType)) {
+            return true;
+        }
+        // A generic method's return type can still be represented by the owning type variable
+        // when comparing it with an erased/specialized override. The generic dispatch machinery
+        // already guarantees that relationship; the Lua alias check must not discard that slot.
+        if ((leftReturnType instanceof ImTypeVarRef || rightReturnType instanceof ImTypeVarRef)
+            && sameOverrideFamily(left, right)) {
+            return true;
+        }
+        // A specialized generic override can have concrete return types on both sides after
+        // elimination (Holder<T>.get_it() -> Doubler.get_it() is one example). That is safe only
+        // when the IM method union links the two methods; unrelated same-name methods in a generic
+        // owner must still remain separate.
+        if ((hasGenericOwner(left) || hasGenericOwner(right)
+            || hasGenericSourceOwner(left) || hasGenericSourceOwner(right))
+            && sameOverrideFamily(left, right)) {
+            return true;
+        }
+        if (!(leftReturnType instanceof ImClassType leftClassType)
+            || !(rightReturnType instanceof ImClassType rightClassType)) {
+            return false;
+        }
+        ImClass leftClass = leftClassType.getClassDef();
+        ImClass rightClass = rightClassType.getClassDef();
+        ImClass leftOwner = left == null ? null : left.attrClass();
+        ImClass rightOwner = right == null ? null : right.attrClass();
+        if (leftOwner != null && rightOwner != null && leftOwner != rightOwner) {
+            if (leftOwner.isSubclassOf(rightOwner)) {
+                return leftClass.isSubclassOf(rightClass);
+            }
+            if (rightOwner.isSubclassOf(leftOwner)) {
+                return rightClass.isSubclassOf(leftClass);
+            }
+        }
+        if (left != null && right != null && left.getIsAbstract() != right.getIsAbstract()) {
+            return left.getIsAbstract()
+                ? rightClass.isSubclassOf(leftClass)
+                : leftClass.isSubclassOf(rightClass);
+        }
+        return false;
+    }
+
+    private static boolean sameOverrideFamily(ImMethod left, ImMethod right) {
+        return reaches(left, right, new HashSet<>()) || reaches(right, left, new HashSet<>());
+    }
+
+    private static boolean reaches(ImMethod current, ImMethod target, Set<ImMethod> visited) {
+        if (current == null || !visited.add(current)) {
+            return false;
+        }
+        if (current == target) {
+            return true;
+        }
+        for (ImMethod subMethod : current.getSubMethods()) {
+            if (reaches(subMethod, target, visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasGenericOwner(ImMethod method) {
+        return method != null
+            && method.attrClass() != null
+            && !method.attrClass().getTypeVariables().isEmpty();
+    }
+
+    private static boolean hasGenericSourceOwner(ImMethod method) {
+        return method != null
+            && method.attrTrace() instanceof FuncDef funcDef
+            && funcDef.attrNearestClassOrInterface() instanceof AstElementWithTypeParameters owner
+            && !owner.getTypeParameters().isEmpty();
+    }
+
+    private static ImType dispatchReturnType(ImMethod method, ImTranslator tr) {
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation != null) {
+            return implementation.getReturnType();
+        }
+        if (tr != null && method != null && method.attrTrace() instanceof FuncDef funcDef) {
+            return funcDef.attrReturnTyp().imTranslateType(tr);
+        }
+        return null;
     }
 
     private static ImFunction resolveDispatchSignatureImplementation(ImMethod method, Set<ImMethod> visited) {

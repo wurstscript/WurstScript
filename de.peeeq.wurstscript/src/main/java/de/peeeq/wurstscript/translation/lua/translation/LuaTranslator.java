@@ -968,7 +968,8 @@ public class LuaTranslator {
                 }
                 ImMethod current = slotToImpl.get(slotName);
                 if (current != null && directSlots.contains(slotName)
-                    && implArity(chosen) != implArity(current)) {
+                    && (implArity(chosen) != implArity(current)
+                        || !LuaDispatchPreparation.compatibleReturnTypes(chosen, current))) {
                     continue;
                 }
                 if (current == null || compareDispatchCandidates(c, chosen, current) < 0) {
@@ -1036,11 +1037,13 @@ public class LuaTranslator {
             // case, and the resulting slot is never called. Left uncomposed rather than bound
             // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
             Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
-            Set<String> classNames = new TreeSet<>();
-            collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
-            for (String className : classNames) {
+            List<ImClass> classes = collectClassesInHierarchy(receiverClass);
+            for (ImClass targetClass : classes) {
+                String className = targetClass.getName();
                 for (String semanticName : semanticNames) {
-                    if (ambiguous.contains(semanticName)) {
+                    if (ambiguous.contains(semanticName)
+                        || (isInterfaceClass(targetClass)
+                            && !hasCompatibleSemanticMethod(targetClass, groupMethods, semanticName))) {
                         continue;
                     }
                     slotNames.add(dispatchSlotName(className + "_" + semanticName));
@@ -1095,14 +1098,46 @@ public class LuaTranslator {
         });
     }
 
-    private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {
+    private List<ImClass> collectClassesInHierarchy(ImClass c) {
+        List<ImClass> result = new ArrayList<>();
+        collectClassesInHierarchy(c, result, new HashSet<>());
+        result.sort(Comparator.comparing(this::classSortKey));
+        return result;
+    }
+
+    private void collectClassesInHierarchy(ImClass c, List<ImClass> out, Set<ImClass> visited) {
         if (c == null || !visited.add(c)) {
             return;
         }
-        out.add(c.getName());
+        out.add(c);
         for (ImClassType sc : c.getSuperClasses()) {
-            collectClassNamesInHierarchy(sc.getClassDef(), out, visited);
+            collectClassesInHierarchy(sc.getClassDef(), out, visited);
         }
+    }
+
+    private boolean hasCompatibleSemanticMethod(ImClass targetClass, List<ImMethod> groupMethods, String semanticName) {
+        for (ImMethod candidate : collectMethodsInHierarchy(targetClass)) {
+            String candidateSemanticName = imTr.dispatchSegmentOf(candidate);
+            if (!semanticName.equals(candidateSemanticName)
+                && !semanticName.equals(sourceSemanticName(candidate))) {
+                continue;
+            }
+            for (ImMethod groupMethod : groupMethods) {
+                // The semantic alias is deliberately broader than the exact dispatch-group key:
+                // generic overrides may have different erased parameter types while still sharing
+                // the same runtime slot. Return compatibility is the part that must remain strict;
+                // otherwise an unrelated int value() and string value() can claim one another's
+                // class-qualified alias.
+                if (LuaDispatchPreparation.compatibleReturnTypes(groupMethod, candidate, imTr)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isInterfaceClass(ImClass c) {
+        return c != null && c.attrTrace() instanceof InterfaceDef;
     }
 
     private List<ImMethod> collectMethodsInHierarchy(ImClass c) {

@@ -72,6 +72,7 @@ public class RunMap extends MapRequest {
         // TODO use normal compiler for this, avoid code duplication
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
+            warnAboutRunOptimizations(gui);
             String ok = compileMap(modelManager, gui, projectConfig);
             if (ok != null) return ok;
         } catch (CompileError e) {
@@ -89,6 +90,17 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    private void warnAboutRunOptimizations(WurstGui gui) {
+        if (!runArgs.isOptimize() && !runArgs.isInline() && !runArgs.isLocalOptimizations()) {
+            return;
+        }
+        String message = "Run map is using compiler optimizations (opt/inline/localOptimizations), "
+            + "which can significantly slow the build. Put these options behind '+' in wurst_run.args "
+            + "or use Build Map to produce an optimized release map.";
+        WLogger.warning(message);
+        gui.sendProgress(message);
     }
 
     @Nullable
