@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -172,6 +173,7 @@ class Jmpq3BasedEditor implements MpqEditor {
         try {
             Path parent = mpqArchive.toPath().toAbsolutePath().getParent();
             temporaryArchive = Files.createTempFile(parent, ".wurst-mpq-", ".tmp");
+            copyPosixPermissions(mpqArchive.toPath(), temporaryArchive);
             writer.save(temporaryArchive);
             closeArchive();
             Files.move(temporaryArchive, mpqArchive.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -182,6 +184,14 @@ class Jmpq3BasedEditor implements MpqEditor {
             if (!installed && temporaryArchive != null) {
                 Files.deleteIfExists(temporaryArchive);
             }
+        }
+    }
+
+    private static void copyPosixPermissions(Path source, Path target) throws IOException {
+        PosixFileAttributeView sourceView = Files.getFileAttributeView(source, PosixFileAttributeView.class);
+        PosixFileAttributeView targetView = Files.getFileAttributeView(target, PosixFileAttributeView.class);
+        if (sourceView != null && targetView != null) {
+            targetView.setPermissions(sourceView.readAttributes().permissions());
         }
     }
 
