@@ -235,7 +235,7 @@ public final class LuaDispatchPreparation {
         if (semanticNames.isEmpty()) {
             return;
         }
-        String dispatchKey = dispatchSignatureKey(method);
+        String dispatchKey = dispatchParameterSignatureKey(method);
         collectHierarchyAliases(owner, method, dispatchKey, semanticNames, aliases, sortedMethodsByClass, new HashSet<>(), tr);
     }
 
@@ -412,6 +412,28 @@ public final class LuaDispatchPreparation {
         }
         StringBuilder sb = new StringBuilder();
         sb.append(typeKey(implementation.getReturnType())).append("|");
+        ImVars params = implementation.getParameters();
+        for (int i = 1; i < params.size(); i++) {
+            if (i > 1) {
+                sb.append(",");
+            }
+            sb.append(typeKey(params.get(i).getType()));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * The runtime dispatch slot is selected by the receiver and parameters, not by the return
+     * type. This matters for interface methods returning {@code thistype}: the interface method
+     * resolves to the interface type while a module-provided implementation resolves to the
+     * concrete class type, but both still need the interface alias on the concrete class table.
+     */
+    private static String dispatchParameterSignatureKey(ImMethod method) {
+        ImFunction implementation = resolveDispatchSignatureImplementation(method, new HashSet<>());
+        if (implementation == null) {
+            return "<abstract>";
+        }
+        StringBuilder sb = new StringBuilder();
         ImVars params = implementation.getParameters();
         for (int i = 1; i < params.size(); i++) {
             if (i > 1) {

@@ -604,6 +604,54 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void moduleProvidedInterfaceDispatchSurvivesLuaOptimizations() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_moduleProvidedInterfaceDispatchSurvivesLuaOptimizations",
+            false,
+            "package Test",
+            "interface Greeter",
+            "    function greet() returns thistype",
+            "module GreeterLifecycle",
+            "    abstract function greet() returns thistype",
+            "module FirstGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module NestedFirstGreeter",
+            "    use FirstGreeter",
+            "module SecondGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module GreeterCaller",
+            "    function call(Greeter greeter) returns Greeter",
+            "        return greeter.greet()",
+            "class First implements Greeter",
+            "    use NestedFirstGreeter",
+            "    use GreeterCaller",
+            "class Second implements Greeter",
+            "    use SecondGreeter",
+            "    use GreeterCaller",
+            "init",
+            "    Greeter first = new First()",
+            "    Greeter second = new Second()",
+            "    First firstObject = new First()",
+            "    Second secondObject = new Second()",
+            "    Greeter firstResult = firstObject.call(second)",
+            "    Greeter secondResult = secondObject.call(first)"
+        );
+        Matcher callMatcher = Pattern.compile("return greeter\\d*:(\\w+)\\(").matcher(compiled);
+        List<String> slots = new ArrayList<>();
+        while (callMatcher.find() && !slots.contains(callMatcher.group(1))) {
+            slots.add(callMatcher.group(1));
+        }
+        assertEquals("Both optimized module callers must use one interface dispatch slot.", 1, slots.size());
+        String slot = slots.get(0);
+        assertContainsRegex(compiled, "First\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*First_[^\\n]*greet");
+        assertContainsRegex(compiled, "Second\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*Second_[^\\n]*greet");
+    }
+
+    @Test
     public void multiLevelOverloadedOverridesKeepDistinctLuaSlots() {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_multiLevelOverloadedOverridesKeepDistinctLuaSlots",
