@@ -682,6 +682,38 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua",
+            false,
+            "package Test",
+            "class Base",
+            "class Derived extends Base",
+            "interface DerivedValue",
+            "    function value() returns Derived",
+            "        return new Derived()",
+            "interface BaseValue",
+            "    function value() returns Base",
+            "module BaseValueImpl",
+            "    function value() returns Base",
+            "        return new Base()",
+            "class Both implements DerivedValue, BaseValue",
+            "    use BaseValueImpl",
+            "@noinline function readDerived(DerivedValue value) returns Derived",
+            "    return value.value()",
+            "@noinline function readBase(BaseValue value) returns Base",
+            "    return value.value()",
+            "init",
+            "    readDerived(new Both())",
+            "    readBase(new Both())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.DerivedValue_DerivedValue_value\\s*=\\s*DerivedValue_DerivedValue_value");
+        assertContainsRegex(compiled, "Both\\.BaseValue_value\\s*=\\s*Both_Both_BaseValueImpl_value");
+        assertDoesNotContainRegex(compiled, "Both\\.DerivedValue_value\\s*=\\s*BaseValue_BaseValue_value");
+    }
+
+    @Test
     public void multiLevelOverloadedOverridesKeepDistinctLuaSlots() {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_multiLevelOverloadedOverridesKeepDistinctLuaSlots",

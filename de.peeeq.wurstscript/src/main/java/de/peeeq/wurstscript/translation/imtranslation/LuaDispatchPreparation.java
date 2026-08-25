@@ -482,8 +482,22 @@ public final class LuaDispatchPreparation {
         }
         ImClass leftClass = leftClassType.getClassDef();
         ImClass rightClass = rightClassType.getClassDef();
-        return leftClass != rightClass
-            && (leftClass.isSubclassOf(rightClass) || rightClass.isSubclassOf(leftClass));
+        ImClass leftOwner = left == null ? null : left.attrClass();
+        ImClass rightOwner = right == null ? null : right.attrClass();
+        if (leftOwner != null && rightOwner != null && leftOwner != rightOwner) {
+            if (leftOwner.isSubclassOf(rightOwner)) {
+                return leftClass.isSubclassOf(rightClass);
+            }
+            if (rightOwner.isSubclassOf(leftOwner)) {
+                return rightClass.isSubclassOf(leftClass);
+            }
+        }
+        if (left != null && right != null && left.getIsAbstract() != right.getIsAbstract()) {
+            return left.getIsAbstract()
+                ? rightClass.isSubclassOf(leftClass)
+                : leftClass.isSubclassOf(rightClass);
+        }
+        return false;
     }
 
     private static boolean hasGenericOwner(ImMethod method) {
