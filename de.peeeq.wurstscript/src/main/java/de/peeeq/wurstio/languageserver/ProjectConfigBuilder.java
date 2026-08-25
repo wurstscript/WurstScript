@@ -107,7 +107,7 @@ public class ProjectConfigBuilder {
         w3I.write(result.w3i);
 
         // Apply map header (this is cheap, so we always do it)
-        applyMapHeader(projectConfig, targetMap);
+        applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size());
 
         // Update the manifest with new config hash (must open writable to insert)
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
@@ -356,7 +356,8 @@ public class ProjectConfigBuilder {
         }
     }
 
-    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap,
+                                       int existingPlayerCount) throws IOException {
         boolean shouldWrite = false;
         WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
         if (buildMapData.players().isEmpty() && StringUtils.isBlank(buildMapData.name())) {
@@ -367,12 +368,15 @@ public class ProjectConfigBuilder {
         // directly with its MPQ archive. MapHeader.ofFile only reads the prefix,
         // so use a new header in that case; writeToMapFile will insert it before
         // the archive.
-        MapHeader mapHeader = startsWithMpqArchive(targetMap)
+        boolean hasNoMapHeader = startsWithMpqArchive(targetMap);
+        MapHeader mapHeader = hasNoMapHeader
             ? new MapHeader()
             : MapHeader.ofFile(targetMap);
         if (!buildMapData.players().isEmpty()) {
             mapHeader.setMaxPlayersCount(buildMapData.players().size());
             shouldWrite = true;
+        } else if (hasNoMapHeader) {
+            mapHeader.setMaxPlayersCount(existingPlayerCount);
         }
         if (StringUtils.isNotBlank(buildMapData.name())) {
             mapHeader.setMapName(buildMapData.name());

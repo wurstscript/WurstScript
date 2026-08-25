@@ -236,7 +236,7 @@ public class WurstBuildConfigTests {
         Files.write(mapWithoutHeader, original);
 
         Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
-            "applyMapHeader", WurstProjectConfigData.class, File.class
+            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class
         );
         applyMapHeader.setAccessible(true);
 
@@ -249,11 +249,12 @@ public class WurstBuildConfigTests {
                 null,
                 null
             ),
-            mapWithoutHeader.toFile()
+            mapWithoutHeader.toFile(),
+            3
         );
 
         assertEquals(Files.readAllBytes(mapWithoutHeader)[0], (byte) 'H');
-        assertEquals(MapHeader.ofFile(mapWithoutHeader.toFile()).getMaxPlayersCount(), 0);
+        assertEquals(MapHeader.ofFile(mapWithoutHeader.toFile()).getMaxPlayersCount(), 3);
         assertEquals(Files.size(mapWithoutHeader), original.length + 512);
     }
 
@@ -268,10 +269,10 @@ public class WurstBuildConfigTests {
         Files.write(mapWithoutHeader, original);
 
         Method applyMapHeader = ProjectConfigBuilder.class.getDeclaredMethod(
-            "applyMapHeader", WurstProjectConfigData.class, File.class
+            "applyMapHeader", WurstProjectConfigData.class, File.class, int.class
         );
         applyMapHeader.setAccessible(true);
-        applyMapHeader.invoke(null, WurstProjectConfigData.empty(), mapWithoutHeader.toFile());
+        applyMapHeader.invoke(null, WurstProjectConfigData.empty(), mapWithoutHeader.toFile(), 0);
 
         assertEquals(Files.readAllBytes(mapWithoutHeader), original);
     }
