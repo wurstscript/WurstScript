@@ -239,10 +239,10 @@ public class ConfigPackageTests extends WurstScriptTest {
 
     @Test
     public void configGenericExtensionWithRenamedTypeParameter() {
-        testAssertOkLines(true,
+        test().testLua(true).executeProg().lines(
                 "package Test",
                 "native testSuccess()",
-                "@configurable function T.pick<T>(T other) returns T",
+                "@configurable function T.pick<T:>(T other) returns T",
                 "    return this",
                 "init",
                 "    int value = 1",
@@ -250,7 +250,7 @@ public class ConfigPackageTests extends WurstScriptTest {
                 "        testSuccess()",
                 "endpackage",
                 "package Test_config",
-                "@config function U.pick<U>(U other) returns U",
+                "@config function U.pick<U:>(U other) returns U",
                 "    return other",
                 "endpackage"
         );

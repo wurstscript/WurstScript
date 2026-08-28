@@ -155,7 +155,7 @@ public class NameResolution {
         List<FuncLink> fromType = new ArrayList<>(4);
         addMemberMethods(node, receiverType, name, fromType);
         for (FuncLink cand : fromType) {
-            DefLink m = matchDefLinkReceiver(cand, receiverType, node, showErrors);
+            DefLink m = matchDefLinkReceiver(cand.withConfigDef(), receiverType, node, showErrors);
             if (m instanceof FuncLink) {
                 result.add((FuncLink) m);
             }
@@ -185,7 +185,7 @@ public class NameResolution {
                 if (!(n instanceof FuncLink)) {
                     continue;
                 }
-                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, false);
+                DefLink n2 = matchDefLinkReceiver(((FuncLink) n).withConfigDef(), receiverType, node, false);
                 if (n2 != null) {
                     FuncLink f = (FuncLink) n2;
                     result.add(f);
@@ -193,12 +193,7 @@ public class NameResolution {
             }
         }
 
-        ImmutableCollection<FuncLink> rawResult = removeDuplicates(result);
-        ImmutableList.Builder<FuncLink> configuredResult = ImmutableList.builderWithExpectedSize(rawResult.size());
-        for (FuncLink function : rawResult) {
-            configuredResult.add(function.withConfigDef());
-        }
-        ImmutableCollection<FuncLink> immutableResult = configuredResult.build();
+        ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
 
         if (!showErrors) {
             GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_FUNC);
