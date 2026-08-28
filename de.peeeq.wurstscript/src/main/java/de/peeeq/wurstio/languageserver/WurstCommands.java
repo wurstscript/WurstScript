@@ -140,11 +140,6 @@ public class WurstCommands {
                         .filter(s -> s.startsWith("-") || (forBuild && s.startsWith("+")))
                         .map(s -> forBuild && s.startsWith("+") ? "-" + s.substring(1) : s)
                         .collect(Collectors.toList()));
-                    if (forBuild) {
-                        addBuildDefault(args, "-opt");
-                        addBuildDefault(args, "-inline");
-                        addBuildDefault(args, "-localOptimizations");
-                    }
                     args.addAll(List.of(additionalArgs));
                     return WurstBuildConfig.fromWorkspaceRoot(rootPath).applyToCompileArgs(args);
                 }
@@ -163,12 +158,6 @@ public class WurstCommands {
             }
         } catch (IOException e) {
             throw new RuntimeException("Could not access wurst_run.args config file", e);
-        }
-    }
-
-    private static void addBuildDefault(List<String> args, String option) {
-        if (!args.contains(option)) {
-            args.add(option);
         }
     }
 

@@ -35,7 +35,7 @@ public class WurstCommandsTests {
         assertTrue(buildArgs.contains("-stacktraces"));
         assertTrue(buildArgs.contains("-inline"));
         assertTrue(buildArgs.contains("-localOptimizations"));
-        assertTrue(buildArgs.contains("-opt"), "builds enable output optimization by default");
+        assertFalse(buildArgs.contains("-opt"), "build options require their corresponding '+' entry");
     }
 
     @Test
