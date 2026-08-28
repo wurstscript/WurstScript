@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ConfigFunctionMatcher;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
@@ -805,19 +806,9 @@ public class WurstValidator {
                         + "It is still possible to configure this var but it is not recommended.");
             }
 
-        } else if (e instanceof FuncDef) {
-            FuncDef funcDef = (FuncDef) e;
-            Collection<FuncLink> funcs = origPackage.getElements().lookupFuncsNoConfig(funcDef.getName(), false);
-            FuncDef configuredFunc = null;
-            for (NameLink nameLink : funcs) {
-                if (nameLink.getDef() instanceof FuncDef) {
-                    FuncDef f = (FuncDef) nameLink.getDef();
-                    if (equalSignatures(funcDef, f)) {
-                        configuredFunc = f;
-                        break;
-                    }
-                }
-            }
+        } else if (e instanceof FuncDef || e instanceof ExtensionFuncDef) {
+            FunctionDefinition funcDef = (FunctionDefinition) e;
+            FunctionDefinition configuredFunc = ConfigFunctionMatcher.findMatchingFunction(origPackage, funcDef);
             if (configuredFunc == null) {
                 funcDef.addError("Could not find a function " + funcDef.getName()
                         + " with the same signature in the configured package.");
@@ -831,22 +822,6 @@ public class WurstValidator {
         } else {
             e.addError("Configuring " + Utils.printElement(e) + " is not supported by Wurst.");
         }
-    }
-
-    private boolean equalSignatures(FuncDef f, FuncDef g) {
-        if (f.getParameters().size() != g.getParameters().size()) {
-            return false;
-        }
-        if (!f.attrReturnTyp().equalsType(g.attrReturnTyp(), f)) {
-            return false;
-        }
-        for (int i = 0; i < f.getParameters().size(); i++) {
-            if (!f.getParameters().get(i).attrTyp().equalsType(g.getParameters().get(i).attrTyp(), f)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void checkExprEmpty(ExprEmpty e) {

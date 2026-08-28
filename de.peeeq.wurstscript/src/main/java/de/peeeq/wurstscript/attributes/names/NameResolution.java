@@ -193,7 +193,12 @@ public class NameResolution {
             }
         }
 
-        ImmutableCollection<FuncLink> immutableResult = removeDuplicates(result);
+        ImmutableCollection<FuncLink> rawResult = removeDuplicates(result);
+        ImmutableList.Builder<FuncLink> configuredResult = ImmutableList.builderWithExpectedSize(rawResult.size());
+        for (FuncLink function : rawResult) {
+            configuredResult.add(function.withConfigDef());
+        }
+        ImmutableCollection<FuncLink> immutableResult = configuredResult.build();
 
         if (!showErrors) {
             GlobalCaches.CacheKey key = new GlobalCaches.CacheKey(node, memberFuncCacheName(name, receiverType), GlobalCaches.LookupType.MEMBER_FUNC);
