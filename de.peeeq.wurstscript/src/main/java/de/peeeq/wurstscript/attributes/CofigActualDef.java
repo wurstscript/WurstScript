@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
-import com.google.common.collect.ImmutableCollection;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -27,16 +25,24 @@ public class CofigActualDef {
     }
 
     public static NameDef calculate(FuncDef f) {
+        return configuredFunctionOrSelf(f);
+    }
+
+    public static NameDef calculate(ExtensionFuncDef f) {
+        return configuredFunctionOrSelf(f);
+    }
+
+    private static NameDef configuredFunctionOrSelf(FunctionDefinition f) {
+        if (f instanceof FuncDef && f.attrNearestStructureDef() != null) {
+            return f;
+        }
         WPackage p = getConfigPackage(f);
         if (p != null) {
-            ImmutableCollection<FuncLink> links = p.getElements().lookupFuncsNoConfig(f.getName(), false);
-            for (NameLink link : links) {
-                if (hasConfigAnnotation(link.getDef())) {
-                    return link.getDef();
-                }
+            FunctionDefinition configured = ConfigFunctionMatcher.findMatchingFunction(p, f, true);
+            if (configured != null) {
+                return configured;
             }
         }
-        // not configured
         return f;
     }
 
