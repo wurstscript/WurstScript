@@ -452,6 +452,29 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "init",
+            "    Marker box = new Box<pair>(pair(6, 7))",
+            "    if box != null",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm");
+        assertTrue(compiled.contains("Box_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void tupleReturningCallsAreCapturedBeforeComparison() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",

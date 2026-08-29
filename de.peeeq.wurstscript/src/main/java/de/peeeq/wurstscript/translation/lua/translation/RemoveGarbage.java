@@ -19,12 +19,17 @@ import java.util.Set;
 public class RemoveGarbage {
 
     private static class Used {
+        private final ImTranslator translator;
         private final Set<ImFunction> functions = new HashSet<>();
         private final Set<ImMethod> methods = new HashSet<>();
         // methods that will be added once the class is used:
         private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
         private final Set<ImClass> classes = new HashSet<>();
         private final Set<ImVar> vars = new HashSet<>();
+
+        private Used(ImTranslator translator) {
+            this.translator = translator;
+        }
 
         public void addMethod(ImMethod m) {
             methods.add(m);
@@ -65,6 +70,13 @@ public class RemoveGarbage {
 
         public void addClass(ImClass c) {
             classes.add(c);
+            ImClass nominalClass = translator.canonical(c);
+            if (nominalClass != c) {
+                // A targeted specialization has a distinct storage layout but keeps the source
+                // class's nominal type id and instanceof identity. The canonical class is therefore
+                // a real metadata dependency even when no source expression names it directly.
+                visitClass(nominalClass, this);
+            }
             Collection<ImMethod> imMethods = waitingMethods.get(c);
             Iterator<ImMethod> it = imMethods.iterator();
             while (it.hasNext()) {
@@ -76,7 +88,7 @@ public class RemoveGarbage {
     }
 
     public static void removeGarbage(ImProg prog, ImTranslator translator) {
-        Used used = new Used();
+        Used used = new Used(translator);
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.getName().equals("main")
                 || f.getName().equals("config")) {
