@@ -205,6 +205,9 @@ public class RemoveGarbage {
             }
             prog.getGlobalInits().remove(candidate.getKey());
             for (ImSet initializer : candidate.getValue()) {
+                if (initializer.getParent() == null) {
+                    continue;
+                }
                 if (!(initializer.getParent() instanceof ImStmts statements)) {
                     throw new IllegalStateException("Global initializer is not attached to an ImStmts node.");
                 }

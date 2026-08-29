@@ -1278,7 +1278,9 @@ public class EliminateGenerics {
             List<ImSet> inits = prog.getGlobalInits().remove(imVar);
             if (inits != null) {
                 for (ImSet init : inits) {
-                    init.replaceBy(ImHelper.nullExpr());
+                    if (init.getParent() != null) {
+                        init.replaceBy(ImHelper.nullExpr());
+                    }
                 }
             }
         }
@@ -2243,17 +2245,28 @@ public class EliminateGenerics {
             List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
             if (originalInits != null && !originalInits.isEmpty()) {
 
-                ImSet firstOrig = originalInits.getFirst();
-                if (!(firstOrig.getParent() instanceof ImStmts parentStmts)) {
-                    throw new CompileError(originalGlobal,
-                        "Initializer for global " + originalGlobal.getName() + " is not inside ImStmts.");
-                }
-                // ensure all original init sets share the same parent statement list
+                ImStmts parentStmts = null;
+                boolean hasDetachedInits = false;
                 for (ImSet s : originalInits) {
-                    if (s.getParent() != parentStmts) {
+                    if (s.getParent() == null) {
+                        hasDetachedInits = true;
+                        continue;
+                    }
+                    if (!(s.getParent() instanceof ImStmts)) {
+                        throw new CompileError(originalGlobal,
+                            "Initializer for global " + originalGlobal.getName() + " is not inside ImStmts.");
+                    }
+                    ImStmts currParent = (ImStmts) s.getParent();
+                    if (parentStmts == null) {
+                        parentStmts = currParent;
+                    } else if (parentStmts != currParent) {
                         throw new CompileError(originalGlobal,
                             "Initializer statements for global " + originalGlobal.getName() + " are not in the same ImStmts.");
                     }
+                }
+                if (hasDetachedInits && parentStmts != null) {
+                    throw new CompileError(originalGlobal,
+                        "Initializer statements for global " + originalGlobal.getName() + " are inconsistently attached.");
                 }
 
                 // Helper: rebuild LHS as ImLExpr for specialized global
@@ -2292,11 +2305,13 @@ public class EliminateGenerics {
                     // Append after earlier specializations of this initializer. Each invocation of
                     // createSpecializedGlobals has its own insertion batch; always inserting after
                     // origSet would therefore reverse specialization discovery/initializer order.
-                    ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
-                    IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
-                        insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
-                    byStmt.computeIfAbsent(insertionPoint, k -> new ArrayList<>(1)).add(specSet);
-                    specializedInitializerTails.put(origSet, specSet);
+                    if (parentStmts != null) {
+                        ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
+                        IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
+                            insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
+                        byStmt.computeIfAbsent(insertionPoint, k -> new ArrayList<>(1)).add(specSet);
+                        specializedInitializerTails.put(origSet, specSet);
+                    }
 
                     // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
                     specializedInitsForMap.add((ImSet) specSet.copy());
