@@ -61,6 +61,7 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     private final Map<Element, Specialisation> specialisations = new IdentityHashMap<>();
+    private final Map<ImClass, Set<GenericTypes>> erasedGenericAllocations = new IdentityHashMap<>();
 
     /**
      * @param typeArguments the arguments the copy was made for, empty when a copy carries none of its
@@ -97,6 +98,31 @@ public class ImTranslator implements SpecialisationLookup {
     /** What {@code copy} was made from and for, or null when it is not a copy. */
     public @Nullable Specialisation specialisationOf(Element copy) {
         return specialisations.get(copy);
+    }
+
+    public void recordErasedGenericAllocation(ImClass clazz, List<ImTypeArgument> typeArguments) {
+        erasedGenericAllocations.computeIfAbsent(canonical(clazz), ignored -> new HashSet<>())
+            .add(new GenericTypes(typeArguments));
+    }
+
+    public boolean hasErasedAllocationWithoutStaticSpecialization(ImClass clazz, ImVar originalStatic) {
+        Set<GenericTypes> allocations = erasedGenericAllocations.get(canonical(clazz));
+        if (allocations == null || allocations.isEmpty()) {
+            return false;
+        }
+        Set<GenericTypes> specializedStatics = new HashSet<>();
+        for (Map.Entry<Element, Specialisation> entry : specialisations.entrySet()) {
+            Specialisation specialization = entry.getValue();
+            if (specialization.original() == originalStatic) {
+                specializedStatics.add(new GenericTypes(specialization.typeArguments()));
+            }
+        }
+        for (GenericTypes allocation : allocations) {
+            if (!specializedStatics.contains(allocation)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -870,7 +870,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
-    public void tupleSpecializedStaticKeepsLiveErasedInitializer() {
+    public void tupleSpecializedStaticKeepsAllLiveInitializers() {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -902,10 +902,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "class Box<T:>",
             "    static int value = bump()",
             "    construct()",
+            "    static function get() returns int",
+            "        return value",
             "init",
             "    new Box<int>()",
             "    new Box<pair>()",
-            "    if bumps == 2",
+            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
             "        testSuccess()"
         );
     }
@@ -932,6 +934,509 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if reader.read() == 1 and bumps == 1",
             "        testSuccess()"
         );
+    }
+
+    @Test
+    public void nestedConcreteGenericStaticStorageCompilesInLua() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class List<T:>",
+            "    static T array store",
+            "    int size",
+            "    construct()",
+            "    function add(T value)",
+            "        store[size] = value",
+            "        size++",
+            "    function get(int index) returns T",
+            "        return store[index]",
+            "class Item",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value",
+            "init",
+            "    let nested = new List<List<Item>>()",
+            "    let inner = new List<Item>()",
+            "    nested.add(inner)",
+            "    inner.add(new Item(7))",
+            "    let pairs = new List<pair>()",
+            "    pairs.add(pair(2, 3))",
+            "    if nested.get(0) == inner and inner.get(0).value == 7 and pairs.get(0).x == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("nestedConcreteGenericStaticStorageCompilesInLua");
+        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
+            .compile("(?m)^(List_store\\S*) = nil$")
+            .matcher(compiled);
+        List<String> storageNames = new ArrayList<>();
+        while (storageDeclarations.find()) {
+            storageNames.add(storageDeclarations.group(1));
+        }
+        assertEquals("each concrete List instantiation needs independent static storage",
+            3, storageNames.size());
+        assertEquals("each structural List specialization must emit one storage slot",
+            3L, storageNames.stream().distinct().count());
+    }
+
+    @Test
+    public void genericStaticsAreIndependentWithoutTupleInstantiation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Slot<T:>",
+            "    static T value",
+            "    static function set(T newValue)",
+            "        value = newValue",
+            "    static function get() returns T",
+            "        return value",
+            "init",
+            "    Slot<int>.set(7)",
+            "    Slot<string>.set(\"ok\")",
+            "    if Slot<int>.get() == 7 and Slot<string>.get() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericStaticsAreIndependentWithoutTupleInstantiation");
+        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
+            .compile("(?m)^Slot_value_\\S* = nil$")
+            .matcher(compiled);
+        int storages = 0;
+        while (storageDeclarations.find()) {
+            storages++;
+        }
+        assertEquals("each concrete Slot instantiation needs its own static",
+            2, storages);
+    }
+
+    @Test
+    public void constructedErasedInstantiationDoesNotDuplicateSpecializedStaticInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    new Box<int>()",
+            "    if Box<int>.get() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void eachConstructedErasedInstantiationGetsItsOwnStaticInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    new Box<string>()",
+            "    new Box<real>()",
+            "    if Box<string>.get() == 1 and Box<real>.get() == 2 and Box<int>.get() == 3 and bumps == 3",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericFactoryAllocationSpecializesStaticOwningClass() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "function make<T:>() returns Box<T>",
+            "    return new Box<T>()",
+            "function forward<T:>() returns Box<T>",
+            "    return make<T>()",
+            "class Maker<T:>",
+            "    construct()",
+            "    function makeBox() returns Box<T>",
+            "        return new Box<T>()",
+            "init",
+            "    let first = forward<int>()",
+            "    let second = forward<string>()",
+            "    let third = new Maker<real>().makeBox()",
+            "    if first != null and second != null and third != null",
+            "        and Box<int>.get() == 1 and Box<string>.get() == 2",
+            "        and Box<real>.get() == 3 and bumps == 3",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericFactoryAllocationSpecializesStaticOwningClass");
+        assertEquals("the shared constructor must allocate ordinary objects on the erased Lua class",
+            1, countOccurrences(compiled, "= Box:create()"));
+        assertFalse("static specialization must not create specialized object classes",
+            java.util.regex.Pattern.compile("(?m)^Box_specialized\\S* = \\(\\{\\}\\)$")
+                .matcher(compiled).find());
+    }
+
+    @Test
+    public void inheritedGenericStaticUsesDeclaringOwnerSpecialization() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base<T:>",
+            "    static T value",
+            "class Child<Unused:, T:> extends Base<T>",
+            "    construct()",
+            "    function set(T newValue)",
+            "        value = newValue",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let ints = new Child<real, int>()",
+            "    let strings = new Child<int, string>()",
+            "    ints.set(7)",
+            "    strings.set(\"ok\")",
+            "    if ints.get() == 7 and strings.get() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("inheritedGenericStaticUsesDeclaringOwnerSpecialization");
+        java.util.regex.Matcher declarations = java.util.regex.Pattern
+            .compile("(?m)^Base_value_\\S* = nil$").matcher(compiled);
+        int storages = 0;
+        while (declarations.find()) {
+            storages++;
+        }
+        assertEquals("each inherited Base<T> static needs independent storage", 2, storages);
+    }
+
+    @Test
+    public void constructedSubclassInitializesInheritedGenericStatic() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Base<T:>",
+            "    static int value = bump()",
+            "class Child<T:> extends Base<T>",
+            "    construct()",
+            "init",
+            "    new Child<int>()",
+            "    new Child<string>()",
+            "    if bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void fixedConcreteConstructionDoesNotSpecializeUnrelatedGenericCaller() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "function helper<T:>() returns Box<int>",
+            "    return new Box<int>()",
+            "init",
+            "    let first = helper<string>()",
+            "    let second = helper<real>()",
+            "    if first != null and second != null and Box<string>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedConcreteConstructionDoesNotSpecializeUnrelatedGenericCaller");
+        assertFalse("fixed Box<int> construction must not clone helper<T>",
+            compiled.contains("helper_specialized"));
+    }
+
+    @Test
+    public void inheritedGenericStaticInitializerUsesDeclaringOwnerMapping() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Base<T:>",
+            "    static int serial = bump()",
+            "class Child<Unused:, T:> extends Base<T>",
+            "    static int copied = serial",
+            "    static function get() returns int",
+            "        return copied",
+            "init",
+            "    if Child<real, int>.get() == 1 and Child<int, string>.get() == 2",
+            "        and bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void fixedAllocationInsideErasedGenericMethodIsRegistered() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "class Factory<T:>",
+            "    construct()",
+            "    function make() returns Box<int>",
+            "        return new Box<int>()",
+            "init",
+            "    let factory = new Factory<real>()",
+            "    let made = factory.make()",
+            "    let fresh = new Factory<string>().make()",
+            "    if made != null and fresh != null and Box<string>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedAllocationInsideErasedGenericMethodIsRegistered");
+        assertFalse("fixed generic method body must not be cloned for its class argument",
+            compiled.contains("Factory_make_specialized"));
+    }
+
+    @Test
+    public void fixedStaticCalleeDoesNotSpecializeUnrelatedGenericCaller() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "function helper<T:>() returns int",
+            "    return Box<int>.get()",
+            "init",
+            "    if helper<string>() == 1 and helper<real>() == 1",
+            "        and Box<string>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedStaticCalleeDoesNotSpecializeUnrelatedGenericCaller");
+        assertFalse("fixed Box<int> static call must not clone helper<T>",
+            compiled.contains("helper_specialized"));
+    }
+
+    @Test
+    public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
+        record Shape(String type, String value, int constructions) {}
+
+        Random random = new Random(0x6E3571A9L);
+        List<String> declarations = new ArrayList<>();
+        List<Shape> shapes = new ArrayList<>();
+        for (int i = 0; i < 18; i++) {
+            int first = random.nextInt(17) + 1;
+            int second = random.nextInt(17) + 1;
+            Shape shape = i % 2 == 0
+                ? new Shape("int", Integer.toString(first), 0)
+                : new Shape("pair", "pair(" + first + ", " + second + ")",
+                    0);
+            int depth = 2 + random.nextInt(3);
+            for (int d = 0; d < depth; d++) {
+                switch ((i + d + random.nextInt(3)) % 3) {
+                    case 0 -> shape = new Shape("Box<" + shape.type() + ">",
+                        "new Box<" + shape.type() + ">(" + shape.value() + ")",
+                        shape.constructions() + 1);
+                    case 1 -> shape = new Shape("Child<" + shape.type() + ">",
+                        "new Child<" + shape.type() + ">(" + shape.value() + ")",
+                        shape.constructions() + 1);
+                    case 2 -> {
+                        String tupleName = "Wrapped" + i + "_" + d;
+                        int tag = random.nextInt(11) + 1;
+                        declarations.add("tuple " + tupleName + "(" + shape.type()
+                            + " value, int tag)");
+                        shape = new Shape(tupleName,
+                            tupleName + "(" + shape.value() + ", " + tag + ")",
+                            shape.constructions());
+                    }
+                }
+            }
+            shapes.add(shape);
+        }
+
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("int constructions");
+        source.add("int writes");
+        source.add("interface Marker<T:>");
+        source.add("class Box<T:> implements Marker<T>");
+        source.add("    T value");
+        source.add("    construct(T value)");
+        source.add("        this.value = value");
+        source.add("        constructions++");
+        source.add("class Child<T:> extends Box<T>");
+        source.add("    construct(T value)");
+        source.add("        super(value)");
+        source.add("class Vault<T:>");
+        source.add("    static T value");
+        source.add("    static function set(T newValue)");
+        source.add("        value = newValue");
+        source.add("        writes++");
+        source.addAll(declarations);
+        source.add("init");
+        int expectedConstructions = 0;
+        for (Shape shape : shapes) {
+            source.add("    Vault<" + shape.type() + ">.set(" + shape.value() + ")");
+            expectedConstructions += shape.constructions();
+        }
+        source.add("    if writes == " + shapes.size()
+            + " and constructions == " + expectedConstructions);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+    }
+
+    @Test
+    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() {
+        Random random = new Random(0xD15A7C4L);
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native testSuccess()",
+            "int destroyed",
+            "interface Primary",
+            "    function score() returns int",
+            "interface Secondary",
+            "    function bonus() returns int",
+            "module Payload",
+            "    int moduleValue",
+            "    function payload() returns int",
+            "        return moduleValue * 3",
+            "    ondestroy",
+            "        destroyed++",
+            "class Root implements Primary",
+            "    use Payload",
+            "    int base",
+            "    construct(int base)",
+            "        this.base = base",
+            "        moduleValue = base + 1",
+            "    override function score() returns int",
+            "        return base + payload()",
+            "class Alpha extends Root implements Secondary",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() + 11",
+            "    override function bonus() returns int",
+            "        return base * 5 + 1",
+            "class AlphaLeaf extends Alpha",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() * 2",
+            "    override function bonus() returns int",
+            "        return super.bonus() + 5",
+            "class Beta extends Root implements Secondary",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() - 7",
+            "    override function bonus() returns int",
+            "        return base * 7 + 2",
+            "module ScoreContract",
+            "    abstract function score() returns int",
+            "module StandaloneScore",
+            "    use ScoreContract",
+            "    use Payload",
+            "    override function score() returns int",
+            "        return moduleValue * 9 + 4",
+            "class ModuleOnly implements Primary",
+            "    use StandaloneScore",
+            "    construct(int base)",
+            "        moduleValue = base",
+            "function viaPrimary(Primary value) returns int",
+            "    return value.score()",
+            "function viaSecondary(Secondary value) returns int",
+            "    return value.bonus()",
+            "init",
+            "    int checksum = 0");
+
+        int expected = 0;
+        int objectCount = 40;
+        for (int i = 0; i < objectCount; i++) {
+            int value = random.nextInt(30) + 1;
+            int kind = random.nextInt(5);
+            String className;
+            int score;
+            Integer bonus = null;
+            switch (kind) {
+                case 0 -> {
+                    className = "Root";
+                    score = 4 * value + 3;
+                }
+                case 1 -> {
+                    className = "Alpha";
+                    score = 4 * value + 14;
+                    bonus = value * 5 + 1;
+                }
+                case 2 -> {
+                    className = "AlphaLeaf";
+                    score = (4 * value + 14) * 2;
+                    bonus = value * 5 + 6;
+                }
+                case 3 -> {
+                    className = "Beta";
+                    score = 4 * value - 4;
+                    bonus = value * 7 + 2;
+                }
+                default -> {
+                    className = "ModuleOnly";
+                    score = value * 9 + 4;
+                }
+            }
+            source.add("    let object" + i + " = new " + className + "(" + value + ")");
+            source.add("    Primary primary" + i + " = object" + i);
+            source.add("    checksum += viaPrimary(primary" + i + ")");
+            expected += score;
+            if (bonus != null) {
+                source.add("    Secondary secondary" + i + " = object" + i);
+                source.add("    checksum += viaSecondary(secondary" + i + ")");
+                expected += bonus;
+            }
+            source.add("    destroy object" + i);
+        }
+        source.add("    if checksum == " + expected + " and destroyed == " + objectCount);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
     }
 
     @Test
@@ -987,7 +1492,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             .matcher(compiled);
         int persistedAssignments = 0;
         while (replayBody.find()) {
-            int assignmentsInFunction = countOccurrences(replayBody.group(1), "Box_store[");
+            int assignmentsInFunction = (int) java.util.regex.Pattern
+                .compile("Box_store[^\\[]*\\[")
+                .matcher(replayBody.group(1)).results().count();
             assertTrue("each generic replay leaf must honor the configured split limit:\n" + replayBody.group(),
                 assignmentsInFunction <= 1);
             persistedAssignments += assignmentsInFunction;
