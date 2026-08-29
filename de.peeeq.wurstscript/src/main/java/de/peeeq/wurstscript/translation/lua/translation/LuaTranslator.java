@@ -741,8 +741,7 @@ public class LuaTranslator {
         ImVar firstParam = f.getParameters().get(0);
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
 
-        if ("objectToIndex".equals(tcFunc)
-            || (firstParam.getType() instanceof ImClassType && TypesHelper.isIntType(f.getReturnType()))) {
+        if (firstParam.getType() instanceof ImClassType && TypesHelper.isIntType(f.getReturnType())) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaIf(
                 LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
@@ -751,14 +750,26 @@ public class LuaTranslator {
             lf.getBody().add(LuaAst.LuaReturn(arg));
             return true;
         }
-        if ("objectFromIndex".equals(tcFunc)
-            || (TypesHelper.isIntType(firstParam.getType()) && f.getReturnType() instanceof ImClassType)) {
+        if (TypesHelper.isIntType(firstParam.getType()) && f.getReturnType() instanceof ImClassType) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaIf(
                 LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
                 LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
                 LuaAst.LuaStatements()));
             lf.getBody().add(LuaAst.LuaReturn(arg));
+            return true;
+        }
+
+        if ("objectToIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(
+                LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
+            return true;
+        }
+        if ("objectFromIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(
+                LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
             return true;
         }
 

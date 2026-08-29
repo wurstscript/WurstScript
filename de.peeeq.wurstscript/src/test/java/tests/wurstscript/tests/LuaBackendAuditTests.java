@@ -111,6 +111,36 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "type timer extends handle",
+            "package Test",
+            "native testSuccess()",
+            "native CreateTimer() returns timer",
+            "function timerToIndex(timer value) returns int",
+            "    return 0",
+            "function timerFromIndex(int value) returns timer",
+            "    return null",
+            "function toIndex<T>(T value) returns int",
+            "    return value castTo int",
+            "init",
+            "    let value = CreateTimer()",
+            "    let first = toIndex(value)",
+            "    let second = toIndex(value)",
+            "    if first > 0 and first == second",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("legacyGenericHandleCastsUseObjectIndexMap");
+        assertTrue(java.util.regex.Pattern.compile(
+            "function toIndex\\((\\w+)\\)\\s*\\R\\s*return __wurst_objectToIndex\\(\\1\\)")
+            .matcher(compiled).find());
+        assertFalse(java.util.regex.Pattern.compile(
+            "function toIndex\\((\\w+)\\)\\s*\\R\\s*return __wurst_classToIndex\\(\\1\\)")
+            .matcher(compiled).find());
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
