@@ -316,7 +316,7 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImVarargLoop va) {
                 super.visit(va);
-                imVars.add(va.getLoopVar());
+                va.getLoopVars().forEach(v -> imVars.add(v.getVar()));
             }
 
         });
@@ -405,7 +405,7 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImVarargLoop va) {
                 super.visit(va);
-                imVars.add(va.getLoopVar());
+                va.getLoopVars().forEach(v -> imVars.add(v.getVar()));
             }
 
         });

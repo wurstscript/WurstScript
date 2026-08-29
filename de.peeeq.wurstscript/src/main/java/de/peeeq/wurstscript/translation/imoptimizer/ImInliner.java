@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
@@ -278,7 +279,10 @@ public class ImInliner {
             ImStmts loopBody = JassIm.ImStmts();
             loopBody.add(JassIm.ImExitwhen(l.getTrace(), JassIm.ImVarAccess(doneVar)));
             loopBody.addAll(rewriteForEarlyReturns(l.getBody().copy(), doneVar, retVar).removeAll());
-            return JassIm.ImStmts(JassIm.ImVarargLoop(l.getTrace(), loopBody, l.getLoopVar()));
+            return JassIm.ImStmts(JassIm.ImVarargLoop(l.getTrace(), loopBody,
+                JassIm.ImVarargLoopVars(l.getLoopVars().stream()
+                    .map(v -> JassIm.ImVarargLoopVar(v.getVar()))
+                    .collect(Collectors.toList()))));
         }
         // Keep tree ownership valid when rewrapping statements into new blocks.
         return JassIm.ImStmts(s.copy());

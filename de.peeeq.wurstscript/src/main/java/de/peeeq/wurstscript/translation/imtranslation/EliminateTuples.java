@@ -428,6 +428,20 @@ public class EliminateTuples {
             }
 
             @Override
+            public void visit(ImVarargLoop loop) {
+                super.visit(loop);
+                Preconditions.checkState(loop.getLoopVars().size() == 1,
+                    "Expected one vararg loop variable before tuple elimination.");
+                ImVar loopVar = loop.getLoopVars().get(0).getVar();
+                if (TypesHelper.typeContainsTuples(loopVar.getType())) {
+                    loop.setLoopVars(JassIm.ImVarargLoopVars(
+                        translator.getTupleScalarVars(loopVar).stream()
+                            .map(JassIm::ImVarargLoopVar)
+                            .collect(Collectors.toList())));
+                }
+            }
+
+            @Override
             public void visit(ImVarArrayAccess va) {
                 super.visit(va);
                 if (va.attrTyp() instanceof ImTupleType) {

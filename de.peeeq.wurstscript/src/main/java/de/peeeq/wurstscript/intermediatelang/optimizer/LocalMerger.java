@@ -110,8 +110,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
             @Override public void visit(ImVarargLoop varargLoop) {
                 super.visit(varargLoop);
-                ImVar m = merges.get(varargLoop.getLoopVar());
-                if (m != null) varargLoop.setLoopVar(m);
+                for (ImVarargLoopVar loopVar : varargLoop.getLoopVars()) {
+                    ImVar m = merges.get(loopVar.getVar());
+                    if (m != null) loopVar.setVar(m);
+                }
             }
         });
     }
@@ -123,6 +125,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             @Override public void visit(ImVarAccess va) { super.visit(va); used.add(va.getVar()); }
             @Override public void visit(ImMemberAccess ma) { super.visit(ma); used.add(ma.getVar()); }
             @Override public void visit(ImVarArrayAccess vaa) { super.visit(vaa); used.add(vaa.getVar()); }
+            @Override public void visit(ImVarargLoop loop) {
+                super.visit(loop);
+                loop.getLoopVars().forEach(v -> used.add(v.getVar()));
+            }
         });
         List<ImVar> locals = new ArrayList<>(f.getLocals());
         int before = locals.size();
