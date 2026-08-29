@@ -346,6 +346,26 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void discardedTupleComponentsThatCanFailAreStillEvaluated() {
+        String compiled = compileLuaWithRunArgs(
+            "discardedTupleComponentsThatCanFailAreStillEvaluated",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box",
+            "    int value",
+            "Box nullable",
+            "init",
+            "    let selected = pair(1, nullable.value).x"
+        );
+
+        assertTrue("discarded member access must still be evaluated so null access can fail",
+            java.util.regex.Pattern.compile("__wurst_tuple_discard_\\d+\\([^\\n]*nullable[^\\n]*\\.Box_value\\)")
+                .matcher(compiled).find());
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void tupleAssignmentCapturesLvalueBeforeRhs() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",

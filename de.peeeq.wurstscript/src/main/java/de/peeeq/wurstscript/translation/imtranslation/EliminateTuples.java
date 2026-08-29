@@ -23,6 +23,7 @@ public class EliminateTuples {
 
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
+        DiscardEvaluation discardEvaluation = new DiscardEvaluation(imProg);
         List<Runnable> removeOldVars = new ArrayList<>();
         removeOldVars.add(transformVars(imProg.getGlobals(), translator));
         for (ImClass c : imProg.getClasses()) {
@@ -35,7 +36,7 @@ public class EliminateTuples {
             transformFunctionReturnsAndParameters(f, translator);
         }
         for (ImFunction f : functions) {
-            eliminateTuplesFunc(f, translator);
+            eliminateTuplesFunc(f, translator, discardEvaluation);
         }
         removeOldVars.forEach(Runnable::run);
         assertNoTuples(imProg);
@@ -159,18 +160,21 @@ public class EliminateTuples {
     }
 
 
-    private static void eliminateTuplesFunc(ImFunction f, final ImTranslator translator) {
+    private static void eliminateTuplesFunc(ImFunction f, final ImTranslator translator,
+                                            DiscardEvaluation discardEvaluation) {
         transformVars(f.getLocals(), translator).run();
 
         tryStep(f, translator, EliminateTuples::toTupleExpressions);
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
-        tryStep(f, translator, EliminateTuples::removeTupleSelections);
+        tryStep(f, translator, (stmts, tr, fn) ->
+            removeTupleSelections(stmts, tr, fn, discardEvaluation));
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
         tryStep(f, translator, (stmts, translator1, fn) -> removeTupleExprs(0, stmts, translator1, fn));
 
     }
 
-    private static void removeTupleSelections(ImStmts stmts, ImTranslator tr, ImFunction f) {
+    private static void removeTupleSelections(ImStmts stmts, ImTranslator tr, ImFunction f,
+                                              DiscardEvaluation discardEvaluation) {
         Replacer replacer = new Replacer();
         stmts.accept(new Element.DefaultVisitor() {
             @Override
@@ -197,11 +201,11 @@ public class EliminateTuples {
                     de.peeeq.wurstscript.ast.Element trace = te.attrTrace();
                     te.setParent(null);
                     if (i != ti) {
-                        // if not the thing we want to return, just keep it in statements for side-effects
+                        // Constructing a tuple evaluates every component. A read can be free of
+                        // side effects and still fail (for example, a member access on null), so
+                        // only values proven trivial to evaluate may disappear here.
                         ImExpr remaining = extractSideEffect(te, stmts);
-                        if (SideEffectAnalyzer.quickcheckHasSideeffects(remaining)) {
-                            stmts.add(remaining);
-                        }
+                        retainDiscardedValue(remaining, stmts, tr, discardEvaluation);
                     } else { // if it is the part we want to return ...
                         ImExpr selected = extractSideEffect(te, stmts);
                         if (i < tupleExpr.getExprs().size() - 1 && !ts.isUsedAsLValue()) {
@@ -239,6 +243,66 @@ public class EliminateTuples {
         selected.setParent(null);
         stmts.add(JassIm.ImSet(selected.attrTrace(), JassIm.ImVarAccess(temp), selected));
         return JassIm.ImVarAccess(temp);
+    }
+
+    private static void retainDiscardedValue(ImExpr value, ImStmts stmts, ImTranslator tr,
+                                             DiscardEvaluation discardEvaluation) {
+        if (value instanceof ImTupleExpr tuple) {
+            for (ImExpr component : tuple.getExprs()) {
+                component.setParent(null);
+                retainDiscardedValue(extractSideEffect(component, stmts), stmts, tr,
+                    discardEvaluation);
+            }
+            return;
+        }
+        if (isTriviallyDiscardable(value)) {
+            return;
+        }
+        if (SideEffectAnalyzer.quickcheckHasSideeffects(value)) {
+            value.setParent(null);
+            stmts.add(value);
+        } else if (tr.isLuaTarget()) {
+            value.setParent(null);
+            stmts.add(discardEvaluation.call(value));
+        }
+    }
+
+    private static boolean isTriviallyDiscardable(ImExpr value) {
+        return value instanceof ImBoolVal
+            || value instanceof ImIntVal
+            || value instanceof ImRealVal
+            || value instanceof ImStringVal
+            || value instanceof ImNull
+            || value instanceof ImVarAccess
+            || value instanceof ImFuncRef;
+    }
+
+    /**
+     * Lua must evaluate unused tuple components which can still trap. Passing such a value to a
+     * tiny non-native sink makes argument evaluation explicit and keeps later optimizers from
+     * deleting it as an unread local assignment. One sink is shared by every scalar IM type.
+     */
+    private static final class DiscardEvaluation {
+        private final ImProg prog;
+        private final Map<String, ImFunction> functionsByType = new LinkedHashMap<>();
+
+        private DiscardEvaluation(ImProg prog) {
+            this.prog = prog;
+        }
+
+        private ImFunctionCall call(ImExpr value) {
+            ImFunction sink = functionsByType.computeIfAbsent(value.attrTyp().toString(), ignored -> {
+                ImVar parameter = JassIm.ImVar(value.attrTrace(), value.attrTyp().copy(), "value", false);
+                ImFunction result = JassIm.ImFunction(value.attrTrace(),
+                    "__wurst_tuple_discard_" + functionsByType.size(), JassIm.ImTypeVars(),
+                    JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+                    Collections.emptyList());
+                prog.getFunctions().add(result);
+                return result;
+            });
+            return JassIm.ImFunctionCall(value.attrTrace(), sink, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(value), false, CallType.NORMAL);
+        }
     }
 
     interface Step {
