@@ -23,16 +23,84 @@ public class EliminateTuples {
 
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
+        List<Runnable> removeOldVars = new ArrayList<>();
+        removeOldVars.add(transformVars(imProg.getGlobals(), translator));
+        for (ImClass c : imProg.getClasses()) {
+            removeOldVars.add(transformVars(c.getFields(), translator));
+        }
 
-        Runnable removeOldGlobals = transformVars(imProg.getGlobals(), translator);
-        for (ImFunction f : imProg.getFunctions()) {
+        shareTupleReturnSlotsAcrossOverrides(imProg, translator);
+        List<ImFunction> functions = allFunctions(imProg);
+        for (ImFunction f : functions) {
             transformFunctionReturnsAndParameters(f, translator);
         }
-        for (ImFunction f : imProg.getFunctions()) {
+        for (ImFunction f : functions) {
             eliminateTuplesFunc(f, translator);
         }
-        removeOldGlobals.run();
-        translator.assertProperties(AssertProperty.NOTUPLES);
+        removeOldVars.forEach(Runnable::run);
+        assertNoTuples(imProg);
+    }
+
+    private static void assertNoTuples(Element element) {
+        AssertProperty.NOTUPLES.check(element);
+        for (int i = 0; i < element.size(); i++) {
+            assertNoTuples(element.get(i));
+        }
+    }
+
+    private static List<ImFunction> allFunctions(ImProg prog) {
+        LinkedHashSet<ImFunction> result = new LinkedHashSet<>(prog.getFunctions());
+        for (ImClass c : prog.getClasses()) {
+            result.addAll(c.getFunctions());
+        }
+        return new ArrayList<>(result);
+    }
+
+    /** Lua retains virtual methods, so all implementations in a dispatch group must write
+     * additional tuple return components to the same scalar return slots. */
+    private static void shareTupleReturnSlotsAcrossOverrides(ImProg prog, ImTranslator translator) {
+        LinkedHashSet<ImMethod> methods = new LinkedHashSet<>(prog.getMethods());
+        for (ImClass c : prog.getClasses()) {
+            methods.addAll(c.getMethods());
+        }
+        Set<ImMethod> children = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImMethod method : methods) {
+            children.addAll(method.getSubMethods());
+        }
+        Set<ImMethod> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImMethod method : methods) {
+            if (!children.contains(method)) {
+                shareTupleReturnSlots(method, translator, visited);
+            }
+        }
+        for (ImMethod method : methods) {
+            shareTupleReturnSlots(method, translator, visited);
+        }
+    }
+
+    private static void shareTupleReturnSlots(ImMethod root, ImTranslator translator, Set<ImMethod> visited) {
+        if (visited.contains(root)) {
+            return;
+        }
+        ImFunction implementation = root.getImplementation();
+        VarsForTupleResult shared = null;
+        if (implementation != null && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
+            shared = translator.getTupleTempReturnVarsFor(implementation);
+        }
+        shareTupleReturnSlots(root, shared, translator, visited);
+    }
+
+    private static void shareTupleReturnSlots(ImMethod method, VarsForTupleResult shared,
+                                               ImTranslator translator, Set<ImMethod> visited) {
+        if (!visited.add(method)) {
+            return;
+        }
+        if (shared != null && method.getImplementation() != null) {
+            translator.setTupleTempReturnVarsFor(method.getImplementation(), shared);
+        }
+        for (ImMethod subMethod : method.getSubMethods()) {
+            shareTupleReturnSlots(subMethod, shared, translator, visited);
+        }
     }
 
     private static void transformFunctionReturnsAndParameters(ImFunction f, ImTranslator translator) {
@@ -237,6 +305,25 @@ public class EliminateTuples {
                 }
             }
 
+            @Override
+            public void visit(ImMemberAccess ma) {
+                super.visit(ma);
+                if (ma.attrTyp() instanceof ImTupleType) {
+                    ImStmts stmts = JassIm.ImStmts();
+                    ImExpr receiver = captureOnceIfNeeded(ma.getReceiver(), "tupleReceiver", stmts, f);
+                    ImExprs indexes = captureIndexesOnceIfNeeded(ma.getIndexes(), stmts, f);
+                    VarsForTupleResult vars = translator.getVarsForTuple(ma.getVar());
+                    ImExpr replacement = vars.<ImExpr>map(
+                        parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                        var -> JassIm.ImMemberAccess(ma.getTrace(), receiver.copy(), ma.getTypeArguments().copy(),
+                            var, indexes.copy()));
+                    if (!stmts.isEmpty()) {
+                        replacement = JassIm.ImStatementExpr(stmts, replacement);
+                    }
+                    replacer.replace(ma, replacement);
+                }
+            }
+
 
             @Override
             public void visit(ImFunctionCall fc) {
@@ -261,7 +348,51 @@ public class EliminateTuples {
                 }
             }
 
+            @Override
+            public void visit(ImMethodCall mc) {
+                super.visit(mc);
+                ImFunction implementation = mc.getMethod().getImplementation();
+                if (implementation != null && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
+                    Element parent = mc.getParent();
+                    mc.setParent(null);
+                    VarsForTupleResult returnVars = translator.getTupleTempReturnVarsFor(implementation);
+                    ImVar firstVar = returnVars.allValuesStream().findFirst().get();
+                    ImExpr newCall = returnVars.map(
+                        parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                        var -> var == firstVar ? mc.copy() : JassIm.ImVarAccess(var));
+                    replacer.replaceInParent(parent, mc, newCall);
+                }
+            }
+
         });
+    }
+
+    private static ImExpr captureOnceIfNeeded(ImExpr expr, String name, ImStmts stmts, ImFunction f) {
+        if (!SideEffectAnalyzer.quickcheckHasSideeffects(expr)) {
+            return expr;
+        }
+        ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), name, false);
+        f.getLocals().add(temp);
+        expr.setParent(null);
+        stmts.add(JassIm.ImSet(expr.attrTrace(), JassIm.ImVarAccess(temp), expr));
+        return JassIm.ImVarAccess(temp);
+    }
+
+    private static ImExprs captureIndexesOnceIfNeeded(ImExprs original, ImStmts stmts, ImFunction f) {
+        boolean capture = original.stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+        ImExprs result = JassIm.ImExprs();
+        for (ImExpr index : original) {
+            if (capture) {
+                ImVar temp = JassIm.ImVar(index.attrTrace(), index.attrTyp(), "tupleIndex", false);
+                f.getLocals().add(temp);
+                index.setParent(null);
+                stmts.add(JassIm.ImSet(index.attrTrace(), JassIm.ImVarAccess(temp), index));
+                result.add(JassIm.ImVarAccess(temp));
+            } else {
+                result.add(index.copy());
+            }
+        }
+        return result;
     }
 
 
@@ -330,7 +461,7 @@ public class EliminateTuples {
                     newElem = inReturn((ImReturn) elem, tupleExpr, translator, f);
                 } else if (elem instanceof ImSet) {
                     ImSet imSet = (ImSet) elem;
-                    newElem = inSet(imSet, f);
+                    newElem = inSet(imSet, translator, f);
                 } else if (elem instanceof ImExprs) {
                     ImExprs exprs = (ImExprs) elem;
                     if (exprs.getParent() instanceof ImOperatorCall) {
@@ -421,9 +552,26 @@ public class EliminateTuples {
         replacer.replace(opCall, newExpr);
     }
 
-    private static ImStatementExpr inSet(ImSet imSet, ImFunction f) {
+    private static ImStatementExpr inSet(ImSet imSet, ImTranslator translator, ImFunction f) {
+        registerConcreteTupleStorage(imSet.getLeft(), imSet.getRight(), translator);
+        registerConcreteTupleStorage(imSet.getRight(), imSet.getLeft(), translator);
+        if (!(imSet.getLeft() instanceof ImTupleExpr) && imSet.getRight() instanceof ImTupleExpr) {
+            ImTupleExpr expanded = expandTupleStorageAccess(imSet.getLeft(), translator);
+            if (expanded != null) {
+                imSet.setLeft(expanded);
+            }
+        }
+        if (!(imSet.getRight() instanceof ImTupleExpr) && imSet.getLeft() instanceof ImTupleExpr
+            && imSet.getRight() instanceof ImLExpr) {
+            ImTupleExpr expanded = expandTupleStorageAccess((ImLExpr) imSet.getRight(), translator);
+            if (expanded != null) {
+                imSet.setRight(expanded);
+            }
+        }
         if (!(imSet.getLeft() instanceof ImTupleExpr && imSet.getRight() instanceof ImTupleExpr)) {
-            throw new RuntimeException("invalid set statement:\n" + imSet);
+            throw new RuntimeException("invalid set statement:\n" + imSet
+                + "\nleft type=" + imSet.getLeft().attrTyp()
+                + " right type=" + imSet.getRight().attrTyp());
         }
         ImTupleExpr left  = (ImTupleExpr) imSet.getLeft();
         ImTupleExpr right = (ImTupleExpr) imSet.getRight();
@@ -506,6 +654,56 @@ public class EliminateTuples {
         }
 
         return ImHelper.statementExprVoid(stmts);
+    }
+
+    private static void registerConcreteTupleStorage(ImExpr storage, ImExpr value,
+                                                     ImTranslator translator) {
+        if (!(value.attrTyp() instanceof ImTupleType tupleType)) {
+            return;
+        }
+        ImVar var;
+        ImType concreteType;
+        if (storage instanceof ImVarAccess access) {
+            var = access.getVar();
+            concreteType = tupleType.copy();
+        } else if (storage instanceof ImVarArrayAccess access) {
+            var = access.getVar();
+            concreteType = JassIm.ImArrayType(tupleType.copy());
+        } else if (storage instanceof ImMemberAccess access) {
+            var = access.getVar();
+            if (var.getType() instanceof ImArrayType) {
+                concreteType = JassIm.ImArrayType(tupleType.copy());
+            } else {
+                concreteType = tupleType.copy();
+            }
+        } else {
+            return;
+        }
+        translator.getVarsForTuple(var, concreteType);
+    }
+
+    private static @org.eclipse.jdt.annotation.Nullable ImTupleExpr expandTupleStorageAccess(
+            ImLExpr left, ImTranslator translator) {
+        if (left instanceof ImVarAccess access) {
+            ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                JassIm::ImVarAccess);
+            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+        }
+        if (left instanceof ImVarArrayAccess access) {
+            ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                var -> JassIm.ImVarArrayAccess(access.getTrace(), var, access.getIndexes().copy()));
+            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+        }
+        if (left instanceof ImMemberAccess access) {
+            ImExpr expanded = translator.getVarsForTuple(access.getVar()).<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                var -> JassIm.ImMemberAccess(access.getTrace(), access.getReceiver().copy(),
+                    access.getTypeArguments().copy(), var, access.getIndexes().copy()));
+            return expanded instanceof ImTupleExpr ? (ImTupleExpr) expanded : null;
+        }
+        return null;
     }
 
     private static boolean isSimpleLiteral(ImExpr expr) {

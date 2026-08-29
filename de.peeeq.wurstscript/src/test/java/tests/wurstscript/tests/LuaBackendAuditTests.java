@@ -12,7 +12,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
@@ -51,6 +54,71 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         StringBuilder result = new StringBuilder();
         luaCode.print(result, 0);
         return result.toString();
+    }
+
+    @Test
+    public void tuplesAreScalarizedWithoutLuaAllocations() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple vec2(real x, real y)",
+            "tuple segment(vec2 start, vec2 finish)",
+            "vec2 array points",
+            "abstract class Producer",
+            "    vec2 offset",
+            "    abstract function produce(real x) returns vec2",
+            "class Concrete extends Producer",
+            "    override function produce(real x) returns vec2",
+            "        return vec2(x + offset.x, x + offset.y)",
+            "function shifted(segment s, vec2 delta) returns segment",
+            "    return segment(vec2(s.start.x + delta.x, s.start.y + delta.y),",
+            "        vec2(s.finish.x + delta.x, s.finish.y + delta.y))",
+            "init",
+            "    Producer producer = new Concrete()",
+            "    producer.offset = vec2(3., 4.)",
+            "    points[2] = producer.produce(5.)",
+            "    let result = shifted(segment(points[2], vec2(10., 20.)), vec2(1., 2.))",
+            "    if points[2] == vec2(8., 9.) and result.start == vec2(9., 11.)",
+            "        and result.finish == vec2(11., 22.)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tuplesAreScalarizedWithoutLuaAllocations");
+        assertFalse("tuple assignment must not allocate through a copy helper", compiled.contains("tupleCopy"));
+        assertFalse("tuple comparison must be lowered to scalar comparisons", compiled.contains("tupleEquals"));
+        assertFalse("tuple arrays must be split into scalar arrays", compiled.contains("__wurst_arrIndex("));
+    }
+
+    @Test
+    public void randomizedTupleValueSemanticsStayScalar() throws IOException {
+        Random random = new Random(0x5CA1A2L);
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("init");
+        source.add("    int checksum = 0");
+        int expected = 0;
+        for (int i = 0; i < 64; i++) {
+            int ax = random.nextInt(101) - 50;
+            int ay = random.nextInt(101) - 50;
+            int bx = random.nextInt(101) - 50;
+            int by = random.nextInt(101) - 50;
+            int resultX = ay + bx;
+            int resultY = ax - by;
+            source.add("    pair a" + i + " = pair(" + ax + ", " + ay + ")");
+            source.add("    let b" + i + " = pair(" + bx + ", " + by + ")");
+            source.add("    a" + i + " = pair(a" + i + ".y + b" + i + ".x, a" + i + ".x - b" + i + ".y)");
+            source.add("    checksum += a" + i + ".x * " + (i + 1) + " + a" + i + ".y");
+            expected += resultX * (i + 1) + resultY;
+        }
+        source.add("    if checksum == " + expected);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        String compiled = compiledLua("randomizedTupleValueSemanticsStayScalar");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
     }
 
     @Test
@@ -814,7 +882,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("primitive array default reads must not write back into the array table",
             compiled.substring(fnStart, fnEnd).contains("="));
 
-        assertTrue("tuple array defaults must still be lazily materialized per-slot for identity",
+        assertFalse("tuple arrays are value types and must be split into scalar arrays",
             compiled.contains("function __wurst_arrIndex("));
     }
 

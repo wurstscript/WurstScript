@@ -87,6 +87,10 @@ public class RemoveGarbage {
         prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
         prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !TRVEHelper.protectedVariables.contains(g.getName()));
         prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
+        prog.getMethods().removeIf(m -> !used.getMethods().contains(m));
+        for (ImMethod m : prog.getMethods()) {
+            m.getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+        }
         // A field of a specialised class is a copy which nothing refers to, an access made before
         // specialisation still naming the original's variable. It is live exactly when the field it
         // was copied from is; dropping it leaves an instance of the specialised class allocated with

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
+import de.peeeq.wurstscript.types.TypesHelper;
 import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +30,7 @@ public class EliminateGenerics {
     private final ImTranslator translator;
     private final ImProg prog;
     private boolean genericNewOnly;
+    private boolean specializeTupleValueTypes;
     private final Deque<GenericUse> genericsUses = new ArrayDeque<>();
     /**
      * Call sites already rewritten to a specialisation.
@@ -112,12 +114,21 @@ public class EliminateGenerics {
     }
 
     /**
-     * Lua normally erases new generics. Generic construction is the one operation which needs the
-     * concrete type, so only specialize functions on paths leading to {@code wurstNewInstance}. All other
-     * generic calls and classes keep the Lua backend's normal erased representation.
+     * Lua normally erases generics. Generic construction and scalar storage for tuple type arguments
+     * are the operations which need the concrete type, so only specialize paths leading to those
+     * operations. All other generic calls and classes keep the Lua backend's erased representation.
      */
     public void transformGenericNewOnly() {
+        transformGenericNewOnly(false);
+    }
+
+    public void transformGenericNewOnly(boolean specializeTupleValueTypes) {
         genericNewOnly = true;
+        this.specializeTupleValueTypes = specializeTupleValueTypes;
+        if (specializeTupleValueTypes) {
+            addMemberTypeArguments();
+            identifyGenericGlobals();
+        }
         collectUnspecializedGenericClassMethods();
         // Specialising a constructor makes its result type concrete, which is what lets a method
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
@@ -133,6 +144,14 @@ public class EliminateGenerics {
         assertNoReachableGenericNewMarkers();
         bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+        if (specializeTupleValueTypes) {
+            for (Map.Entry<ImFunction, GenericTypes> entry :
+                    new ArrayList<>(specializedFunctionGenerics.entrySet())) {
+                if (genericTypesContainTuple(entry.getValue())) {
+                    rewriteGenericGlobals(entry.getKey(), entry.getValue());
+                }
+            }
+        }
     }
 
     /**
@@ -290,6 +309,26 @@ public class EliminateGenerics {
                 super.visit(memberAccess);
                 collectGenericNewUse(memberAccess);
             }
+
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                if (specializedContextContainsTuple(access)
+                    && globalToClass.containsKey(access.getVar())) {
+                    recordGenericGlobalUse(access, access.getVar());
+                    genericsUses.add(new GenericGlobalAccess(access));
+                }
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                super.visit(access);
+                if (specializedContextContainsTuple(access)
+                    && globalToClass.containsKey(access.getVar())) {
+                    recordGenericGlobalUse(access, access.getVar());
+                    genericsUses.add(new GenericGlobalArrayAccess(access));
+                }
+            }
         });
     }
 
@@ -304,7 +343,8 @@ public class EliminateGenerics {
             return;
         }
         if (!call.getTypeArguments().isEmpty()
-            && functionNeedsSpecialization(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            && (shouldSpecializeTupleArguments(call.getTypeArguments())
+                || functionNeedsSpecialization(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>())))) {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
             }
@@ -347,8 +387,9 @@ public class EliminateGenerics {
             || typeArgumentsContainTypeVariable(classType.getTypeArguments())) {
             return;
         }
-        if (!functionNeedsSpecialization(call.getFunc(),
-            Collections.newSetFromMap(new IdentityHashMap<>()))) {
+        if (!shouldSpecializeTupleArguments(classType.getTypeArguments())
+            && !functionNeedsSpecialization(call.getFunc(),
+                Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
         }
         genericsUses.add(new GenericClassFunctionCall(call, owningClass,
@@ -393,7 +434,8 @@ public class EliminateGenerics {
         ImClassType clazz = alloc.getClazz();
         if (clazz.getTypeArguments().isEmpty()
             || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
-            || !isConstructionOnlyInstantiation(clazz.getClassDef())) {
+            || (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+                && !isConstructionOnlyInstantiation(clazz.getClassDef()))) {
             return;
         }
         genericsUses.add(new GenericClazzUse(alloc));
@@ -468,7 +510,7 @@ public class EliminateGenerics {
         // A class that has already been specialised has nothing left to select, and asking the
         // receiver to adapt to it fails outright: the receiver is still typed by the generic class
         // the specialised one was copied from, which is not a superclass of it.
-        if (owningClass.getTypeVariables().isEmpty() || !isConstructionOnlyInstantiation(owningClass)) {
+        if (owningClass.getTypeVariables().isEmpty()) {
             return;
         }
         if (memberAccess.getTypeArguments().isEmpty()) {
@@ -479,6 +521,10 @@ public class EliminateGenerics {
             || typeArgumentsContainTypeVariable(memberAccess.getTypeArguments())) {
             return;
         }
+        if (!shouldSpecializeTupleArguments(memberAccess.getTypeArguments())
+            && !isConstructionOnlyInstantiation(owningClass)) {
+            return;
+        }
         genericsUses.add(new GenericMemberAccess(memberAccess));
     }
 
@@ -487,7 +533,8 @@ public class EliminateGenerics {
             return;
         }
         ImMethod method = call.getMethod();
-        if (!methodNeedsSpecialization(method,
+        if (!shouldSpecializeTupleArguments(call.getTypeArguments())
+            && !methodNeedsSpecialization(method,
             Collections.newSetFromMap(new IdentityHashMap<>()),
             Collections.newSetFromMap(new IdentityHashMap<>()))) {
             return;
@@ -548,6 +595,29 @@ public class EliminateGenerics {
             }
         }
         return false;
+    }
+
+    private boolean typeArgumentsContainTuple(Iterable<ImTypeArgument> typeArguments) {
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (TypesHelper.typeContainsTuples(typeArgument.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldSpecializeTupleArguments(ImTypeArguments typeArguments) {
+        return specializeTupleValueTypes && typeArgumentsContainTuple(typeArguments);
+    }
+
+    private boolean genericTypesContainTuple(GenericTypes generics) {
+        return typeArgumentsContainTuple(generics.getTypeArguments());
+    }
+
+    private boolean specializedContextContainsTuple(Element element) {
+        ImFunction function = enclosingFunction(element);
+        GenericTypes generics = function == null ? null : specializedFunctionGenerics.get(function);
+        return specializeTupleValueTypes && generics != null && genericTypesContainTuple(generics);
     }
 
     private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visited) {
@@ -1307,6 +1377,10 @@ public class EliminateGenerics {
             rewriteGenerics(newF, generics, typeVars);
         }
 
+        if (genericNewOnly && specializeTupleValueTypes && genericTypesContainTuple(generics)) {
+            rewriteGenericGlobals(newF, generics);
+        }
+
         // Fix calls inside this specialized function so they also point to specialized callees
         if (genericNewOnly) {
             collectGenericNewUses(newF);
@@ -1318,6 +1392,36 @@ public class EliminateGenerics {
         }
 
         return newF;
+    }
+
+    private void rewriteGenericGlobals(ImFunction function, GenericTypes generics) {
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                access.setVar(specializedGlobal(access.getVar()));
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                super.visit(access);
+                access.setVar(specializedGlobal(access.getVar()));
+            }
+
+            private ImVar specializedGlobal(ImVar original) {
+                ImClass owner = globalToClass.get(original);
+                if (owner == null) {
+                    return original;
+                }
+                GenericTypes concrete = normalizeToClassArity(generics, owner,
+                    "specialized function " + function.getName());
+                if (concrete == null || concrete.containsTypeVariable()) {
+                    return original;
+                }
+                ImVar result = ensureSpecializedGlobal(original, owner, concrete);
+                return result == null ? original : result;
+            }
+        });
     }
 
     /**
@@ -1398,6 +1502,9 @@ public class EliminateGenerics {
         newImplementation.getTypeVariables().removeAll();
         newImplementation.setName(function.getName() + "_specialized");
         rewriteGenerics(newImplementation, generics, typeVariables);
+        if (specializeTupleValueTypes && genericTypesContainTuple(generics)) {
+            rewriteGenericGlobals(newImplementation, generics);
+        }
         collectGenericNewUses(newImplementation);
         return newImplementation;
     }
