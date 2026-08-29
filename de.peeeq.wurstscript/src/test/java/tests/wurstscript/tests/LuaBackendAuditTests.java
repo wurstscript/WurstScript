@@ -122,6 +122,119 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void randomizedTupleEvaluationMatchesInterpreterAndLua() throws IOException {
+        Random random = new Random(0x0D1FF3A7L);
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("tuple nested(pair left, pair right)");
+        source.add("int trace");
+        source.add("int calls");
+        source.add("class Holder");
+        source.add("    pair value");
+        source.add("Holder current");
+        source.add("Holder replacement");
+        source.add("int currentIndex");
+        source.add("pair array values");
+        source.add("function mark(int value) returns int");
+        source.add("    trace = trace * 37 + value");
+        source.add("    return value");
+        source.add("@noinline function produce(int seed) returns pair");
+        source.add("    calls++");
+        source.add("    return pair(mark(seed), mark(seed + 1))");
+        source.add("@noinline function recursive(int seed) returns pair");
+        source.add("    if seed == 0");
+        source.add("        return pair(mark(7), recursive(1).x)");
+        source.add("    return pair(mark(seed), mark(seed + 10))");
+        source.add("function retarget(int x, int y) returns pair");
+        source.add("    current = replacement");
+        source.add("    currentIndex = 2");
+        source.add("    return pair(mark(x), mark(y))");
+        source.add("init");
+        source.add("    int checksum = 0");
+
+        int expected = 0;
+        for (int i = 0; i < 96; i++) {
+            int a = random.nextInt(9) + 1;
+            int b = random.nextInt(9) + 1;
+            int c = random.nextInt(9) + 1;
+            int d = random.nextInt(9) + 1;
+            switch (random.nextInt(6)) {
+                case 0 -> {
+                    boolean selectFirst = random.nextBoolean();
+                    source.add("    trace = 0");
+                    source.add("    let selected" + i + " = pair(mark(" + a + "), mark(" + b + "))."
+                        + (selectFirst ? "x" : "y"));
+                    source.add("    checksum += trace + selected" + i + " * 13");
+                    expected += a * 37 + b + (selectFirst ? a : b) * 13;
+                }
+                case 1 -> {
+                    int selection = random.nextInt(4);
+                    String[] paths = {"left.x", "left.y", "right.x", "right.y"};
+                    int[] values = {a, b, c, d};
+                    source.add("    trace = 0");
+                    source.add("    let selected" + i + " = nested(pair(mark(" + a + "), mark(" + b
+                        + ")), pair(mark(" + c + "), mark(" + d + ")))." + paths[selection]);
+                    source.add("    checksum += trace + selected" + i + " * 17");
+                    expected += (((a * 37 + b) * 37 + c) * 37 + d) + values[selection] * 17;
+                }
+                case 2 -> {
+                    source.add("    trace = 0");
+                    source.add("    calls = 0");
+                    source.add("    let selected" + i + " = produce(" + a + ").y");
+                    source.add("    checksum += trace + selected" + i + " * 19 + calls * 23");
+                    expected += a * 37 + (a + 1) + (a + 1) * 19 + 23;
+                }
+                case 3 -> {
+                    source.add("    trace = 0");
+                    source.add("    calls = 0");
+                    source.add("    if produce(" + a + ") != produce(" + b + ")");
+                    source.add("        checksum += " + (a == b ? 29 : 31));
+                    source.add("    else");
+                    source.add("        checksum += " + (a == b ? 31 : 29));
+                    source.add("    checksum += trace + calls * 37");
+                    expected += 31
+                        + (((a * 37 + (a + 1)) * 37 + b) * 37 + (b + 1)) + 2 * 37;
+                }
+                case 4 -> {
+                    source.add("    let original" + i + " = new Holder()");
+                    source.add("    replacement = new Holder()");
+                    source.add("    current = original" + i);
+                    source.add("    trace = 0");
+                    source.add("    current.value = retarget(" + a + ", " + b + ")");
+                    source.add("    checksum += original" + i + ".value.x * 41 + original" + i
+                        + ".value.y * 43 + replacement.value.x + trace");
+                    expected += a * 41 + b * 43 + a * 37 + b;
+                }
+                case 5 -> {
+                    source.add("    values[1] = pair(0, 0)");
+                    source.add("    values[2] = pair(0, 0)");
+                    source.add("    replacement = new Holder()");
+                    source.add("    currentIndex = 1");
+                    source.add("    trace = 0");
+                    source.add("    values[currentIndex] = retarget(" + a + ", " + b + ")");
+                    source.add("    checksum += values[1].x * 47 + values[1].y * 53 + values[2].x + trace");
+                    expected += a * 47 + b * 53 + a * 37 + b;
+                }
+            }
+        }
+        source.add("    trace = 0");
+        source.add("    let recursiveResult = recursive(0)");
+        source.add("    checksum += recursiveResult.x * 59 + recursiveResult.y * 61 + trace");
+        expected += 7 * 59 + 61 + ((7 * 37 + 1) * 37 + 11);
+        source.add("    if checksum == " + expected);
+        source.add("        testSuccess()");
+
+        // executeProg validates the source-level IM interpreter; testLua additionally runs the
+        // scalarized output in Lua 5.3, making the generated program a deterministic differential test.
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        String compiled = compiledLua("randomizedTupleEvaluationMatchesInterpreterAndLua");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
     public void tupleReturnSlotsAreSharedAcrossMultipleInterfaceRoots() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
