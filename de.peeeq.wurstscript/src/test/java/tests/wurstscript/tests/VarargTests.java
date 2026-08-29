@@ -152,6 +152,23 @@ public class VarargTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleVarargPreservesElementGroupingInLua() {
+        test().testLua(true).executeProg().lines(
+                "package Test",
+                "native testSuccess()",
+                "tuple pair(int x, int y)",
+                "function sumPairs(vararg pair pairs) returns int",
+                "    var result = 0",
+                "    for p in pairs",
+                "        result = result * 100 + p.x * 10 + p.y",
+                "    return result",
+                "init",
+                "    if sumPairs(pair(1, 2), pair(3, 4), pair(5, 6)) == 123456",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
     public void varargReceiverCountsAsJassParameter() {
         testAssertErrorsLines(false, "would generate 32 Jass parameters; the maximum is 31",
                 "package Test",

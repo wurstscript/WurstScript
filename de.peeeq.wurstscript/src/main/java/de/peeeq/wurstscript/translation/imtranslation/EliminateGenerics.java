@@ -47,6 +47,8 @@ public class EliminateGenerics {
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
     /** Concrete generic identities named by runtime instanceof checks. */
     private final Table<ImClass, GenericTypes, Boolean> runtimeTypeSpecializations = HashBasedTable.create();
+    private record RuntimeTypeUse(ImClass clazz, GenericTypes generics) {
+    }
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
     // Track concrete generic arguments for specialized functions to simplify later lookups
@@ -319,14 +321,22 @@ public class EliminateGenerics {
                     && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
                     GenericTypes generics = new GenericTypes(clazz.getTypeArguments());
                     ImClass original = clazz.getClassDef();
-                    runtimeTypeSpecializations.put(original, generics, true);
-                    ImClass existing = specializedClasses.get(original, generics);
-                    if (existing != null) {
-                        rewriteRuntimeTypeSuperEdges(original, generics, existing);
+                    if (runtimeTypeSpecializations.put(original, generics, true) == null) {
+                        rewriteExistingRuntimeTypeSuperEdges();
                     }
                 }
             }
         });
+    }
+
+    private void rewriteExistingRuntimeTypeSuperEdges() {
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell
+            : new ArrayList<>(specializedClasses.cellSet())) {
+            if (needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
+                new HashSet<>())) {
+                rewriteRuntimeTypeSuperEdges(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+            }
+        }
     }
 
     /** Redirects concrete inheritance edges to the same class identity used by instanceof. */
@@ -345,10 +355,35 @@ public class EliminateGenerics {
     }
 
     private boolean needsRuntimeTypeSpecialization(ImClassType clazz) {
-        return !clazz.getTypeArguments().isEmpty()
-            && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())
-            && runtimeTypeSpecializations.contains(clazz.getClassDef(),
-                new GenericTypes(clazz.getTypeArguments()));
+        if (typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+            return false;
+        }
+        return needsRuntimeTypeSpecialization(clazz.getClassDef(),
+            new GenericTypes(clazz.getTypeArguments()),
+            new HashSet<>());
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClass clazz, GenericTypes generics,
+                                                   Set<RuntimeTypeUse> visited) {
+        if (!visited.add(new RuntimeTypeUse(clazz, generics))) {
+            return false;
+        }
+        if (runtimeTypeSpecializations.contains(clazz, generics)) {
+            return true;
+        }
+        if (generics.getTypeArguments().size() != clazz.getTypeVariables().size()) {
+            return false;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            ImClassType concreteSuper = (ImClassType) transformType(superType, generics,
+                clazz.getTypeVariables());
+            if (!typeArgumentsContainTypeVariable(concreteSuper.getTypeArguments())
+                && needsRuntimeTypeSpecialization(concreteSuper.getClassDef(),
+                    new GenericTypes(concreteSuper.getTypeArguments()), visited)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean needsRuntimeTypeSpecialization(ImClass clazz,
@@ -365,7 +400,8 @@ public class EliminateGenerics {
             }
             classArguments.add(argument);
         }
-        return runtimeTypeSpecializations.contains(clazz, new GenericTypes(classArguments));
+        return needsRuntimeTypeSpecialization(clazz, new GenericTypes(classArguments),
+            new HashSet<>());
     }
 
     private boolean needsRuntimeTypeSpecialization(ImFunctionCall call) {
@@ -1893,7 +1929,7 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
-        if (runtimeTypeSpecializations.contains(c, generics)) {
+        if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
             rewriteRuntimeTypeSuperEdges(c, generics, newC);
         }
 

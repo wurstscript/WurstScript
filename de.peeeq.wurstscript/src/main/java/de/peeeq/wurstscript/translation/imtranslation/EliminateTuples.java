@@ -154,9 +154,25 @@ public class EliminateTuples {
     }
 
     private static void transformFunctionReturnsAndParameters(ImFunction f, ImTranslator translator) {
+        preserveVarargParameter(f);
         transformVars(f.getParameters(), translator).run();
         translator.setOriginalReturnValue(f, f.getReturnType());
         f.setReturnType(getFirstType(f.getReturnType()));
+    }
+
+    /**
+     * A Lua vararg is represented by one placeholder parameter which the backend renames to `...`.
+     * Keep that single parameter even when each source element is a tuple; calls are flattened, and
+     * the vararg loop regroups those scalar values into the loop variable's scalar leaves.
+     */
+    private static void preserveVarargParameter(ImFunction f) {
+        if (!f.hasFlag(FunctionFlagEnum.IS_VARARG) || f.getParameters().isEmpty()) {
+            return;
+        }
+        ImVar parameter = f.getParameters().getLast();
+        if (TypesHelper.typeContainsTuples(parameter.getType())) {
+            parameter.setType(getFirstType(parameter.getType()).copy());
+        }
     }
 
 

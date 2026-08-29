@@ -1925,6 +1925,11 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return result;
     }
 
+    /** Scalar leaves assigned for one source-level tuple variable, in source order. */
+    public List<ImVar> getTupleScalarVars(ImVar v) {
+        return getVarsForTuple(v).allValuesStream().toList();
+    }
+
     VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {
         if (!TypesHelper.typeContainsTuples(v.getType())
             && TypesHelper.typeContainsTuples(concreteStorageType)) {
