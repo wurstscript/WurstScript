@@ -771,6 +771,51 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedStaticInitializerRunsOnceWithoutErasedInstantiation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    if Box<pair>.get() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedStaticInitializerRunsOnceWithoutErasedInstantiation");
+        assertEquals("only the live tuple instantiation may call the static initializer",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
+    }
+
+    @Test
+    public void tupleSpecializedStaticKeepsLiveErasedInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
