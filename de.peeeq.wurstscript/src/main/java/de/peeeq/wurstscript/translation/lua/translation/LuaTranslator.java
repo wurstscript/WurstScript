@@ -150,6 +150,16 @@ public class LuaTranslator {
         }
     };
 
+    /**
+     * Runtime class instances are positive integer ids. Field values live in one static Lua table
+     * per canonical IM field, indexed by that id; class descriptors remain static tables and are
+     * reached through {@link #objectClass}. Allocation therefore creates no per-instance table.
+     *
+     * <p>Destroy clears every field slot before putting the id on the free stack. As in the Jass
+     * backend, a stale reference aliases a later object after that id is recycled; before reuse its
+     * descriptor is absent, so virtual dispatch fails and {@code instanceof} is false. Capturing
+     * closures use the same representation and, like Jass closures, retain their id until destroyed.
+     */
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
@@ -1003,21 +1013,27 @@ public class LuaTranslator {
 
     private List<ImVar> collectFieldsForAllocation(ImClass c) {
         List<ImVar> result = new ArrayList<>();
-        Set<ImClass> visited = new HashSet<>();
-        collectFieldsForAllocation(c, result, visited);
+        Set<ImClass> visitedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<ImVar> visitedFields = Collections.newSetFromMap(new IdentityHashMap<>());
+        collectFieldsForAllocation(c, result, visitedClasses, visitedFields);
         return result;
     }
 
-    private void collectFieldsForAllocation(ImClass c, List<ImVar> out, Set<ImClass> visited) {
-        if (!visited.add(c)) {
+    private void collectFieldsForAllocation(ImClass c, List<ImVar> out,
+                                            Set<ImClass> visitedClasses, Set<ImVar> visitedFields) {
+        if (!visitedClasses.add(c)) {
             return;
         }
         List<ImClassType> superClasses = new ArrayList<>(c.getSuperClasses());
         superClasses.sort(Comparator.comparing(sc -> classSortKey(sc.getClassDef())));
         for (ImClassType sc : superClasses) {
-            collectFieldsForAllocation(sc.getClassDef(), out, visited);
+            collectFieldsForAllocation(sc.getClassDef(), out, visitedClasses, visitedFields);
         }
-        out.addAll(c.getFields());
+        for (ImVar field : c.getFields()) {
+            if (visitedFields.add(imTr.canonical(field))) {
+                out.add(field);
+            }
+        }
     }
 
     private void initClassTables(ImClass c) {
