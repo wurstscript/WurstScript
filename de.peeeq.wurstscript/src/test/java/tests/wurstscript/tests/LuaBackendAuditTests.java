@@ -170,6 +170,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void selectingLaterTupleComponentStillInvokesProducer() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Producer",
+            "    int calls",
+            "    @noinline function produce(int seed) returns pair",
+            "        calls++",
+            "        return pair(seed, seed + calls)",
+            "init",
+            "    let producer = new Producer()",
+            "    let selected = producer.produce(5).y",
+            "    if selected == 6 and producer.calls == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("selectingLaterTupleComponentStillInvokesProducer");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",

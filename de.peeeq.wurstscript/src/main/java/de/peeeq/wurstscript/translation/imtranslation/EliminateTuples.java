@@ -198,7 +198,10 @@ public class EliminateTuples {
                     te.setParent(null);
                     if (i != ti) {
                         // if not the thing we want to return, just keep it in statements for side-effects
-                        extractSideEffect(te, stmts);
+                        ImExpr remaining = extractSideEffect(te, stmts);
+                        if (SideEffectAnalyzer.quickcheckHasSideeffects(remaining)) {
+                            stmts.add(remaining);
+                        }
                     } else { // if it is the part we want to return ...
                         result = extractSideEffect(te, stmts);
                     }
