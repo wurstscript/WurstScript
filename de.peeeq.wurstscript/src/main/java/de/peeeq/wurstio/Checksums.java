@@ -9,6 +9,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -42,7 +44,7 @@ public class Checksums {
 
     private static List<Data> getData(File f) {
         List<Data> result = new ArrayList<>();
-        for (File p : f.listFiles()) {
+        for (File p : sortedChildren(f)) {
             getDataRec(result, "", p);
         }
         return result;
@@ -50,12 +52,21 @@ public class Checksums {
 
     private static void getDataRec(List<Data> result, String path, File f) {
         if (f.isDirectory()) {
-            for (File p : f.listFiles()) {
+            for (File p : sortedChildren(f)) {
                 getDataRec(result, path + "/" + f.getName(), p);
             }
         } else {
             result.add(new Data(path + "/" + f.getName(), md5(f)));
         }
+    }
+
+    private static File[] sortedChildren(File directory) {
+        File[] children = directory.listFiles();
+        if (children == null) {
+            throw new IllegalArgumentException("Cannot list directory " + directory);
+        }
+        Arrays.sort(children, Comparator.comparing(File::getName));
+        return children;
     }
 
     // stolen from http://stackoverflow.com/a/304350/303637
