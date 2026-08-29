@@ -157,8 +157,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             de.peeeq.wurstscript.jassIm.Element s = interpreter.getLastStatement();
             Element origin = s == null ? null : s.attrTrace();
             if (origin != null) {
-                String msg = e.getMessage();
-                sendErrors(origin, msg, e);
+                sendErrors(origin, describeFailure(e), e);
             } else {
                 throw new Error("could not get origin", e);
             }
@@ -234,12 +233,19 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
     }
 
     private void sendErrors(Element origin, String msg, Throwable ex) {
-        gui.sendError(new CompileError(origin.attrSource(), msg, CompileError.ErrorType.ERROR, ex));
+        gui.sendError(new CompileError(origin.attrSource(),
+                msg == null || msg.isBlank() ? describeFailure(ex) : msg,
+                CompileError.ErrorType.ERROR, ex));
 
         // stackframe messages ...
         for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
             gui.sendError(sf.makeCompileError());
         }
+    }
+
+    static String describeFailure(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 
     /**
