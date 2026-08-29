@@ -1009,6 +1009,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void constructedErasedInstantiationDoesNotDuplicateSpecializedStaticInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    new Box<int>()",
+            "    if Box<int>.get() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
         record Shape(String type, String value, int constructions) {}
 

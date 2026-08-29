@@ -465,6 +465,7 @@ public class EliminateGenerics {
             }
             return;
         }
+        recordErasedConstructorAllocation(call);
         if (!call.getTypeArguments().isEmpty()
             && (shouldSpecializeTupleArguments(call.getTypeArguments())
                 || needsRuntimeTypeSpecialization(call)
@@ -476,6 +477,23 @@ public class EliminateGenerics {
         }
         if (call.getTypeArguments().isEmpty()) {
             collectCallThroughGenericReceiver(call);
+        }
+    }
+
+    private void recordErasedConstructorAllocation(ImFunctionCall call) {
+        if (call.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(call.getTypeArguments())
+            || !(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !(call.getFunc().getReturnType() instanceof ImClassType)
+            || shouldSpecializeTupleArguments(call.getTypeArguments())
+            || needsRuntimeTypeSpecialization(call)) {
+            return;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        if (owner != null && classOwnsGenericGlobals(owner)
+            && !functionNeedsSpecialization(call.getFunc(),
+            Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            translator.recordErasedGenericAllocation(owner, call.getTypeArguments());
         }
     }
 
@@ -571,10 +589,15 @@ public class EliminateGenerics {
     private void collectGenericNewUse(ImAlloc alloc) {
         ImClassType clazz = alloc.getClazz();
         if (clazz.getTypeArguments().isEmpty()
-            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
-            || (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
-                && !needsRuntimeTypeSpecialization(clazz)
-                && !isConstructionOnlyInstantiation(clazz.getClassDef()))) {
+            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+            return;
+        }
+        if (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+            && !needsRuntimeTypeSpecialization(clazz)
+            && !isConstructionOnlyInstantiation(clazz.getClassDef())) {
+            if (classOwnsGenericGlobals(clazz.getClassDef())) {
+                translator.recordErasedGenericAllocation(clazz.getClassDef(), clazz.getTypeArguments());
+            }
             return;
         }
         genericsUses.add(new GenericClazzUse(alloc));

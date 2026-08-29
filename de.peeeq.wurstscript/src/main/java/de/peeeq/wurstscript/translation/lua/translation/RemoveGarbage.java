@@ -190,7 +190,9 @@ public class RemoveGarbage {
             changed = false;
             for (ImVar original : candidates.keySet()) {
                 ImClass owner = translator.genericStaticOwnerOf(original);
-                if ((used.getVars().contains(original) || used.getInstantiatedClasses().contains(owner))
+                boolean erasedInstantiationNeedsOriginal = used.getInstantiatedClasses().contains(owner)
+                    && translator.hasErasedAllocationWithoutStaticSpecialization(owner, original);
+                if ((used.getVars().contains(original) || erasedInstantiationNeedsOriginal)
                     && liveOriginals.add(original)) {
                     changed = true;
                 }
