@@ -1158,18 +1158,42 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "class Box<T:>",
             "    static int value = bump()",
             "    construct()",
+            "    static function get() returns int",
+            "        return value",
             "function helper<T:>() returns Box<int>",
             "    return new Box<int>()",
             "init",
             "    let first = helper<string>()",
             "    let second = helper<real>()",
-            "    if first != null and second != null and bumps == 1",
+            "    if first != null and second != null and Box<string>.get() == 2 and bumps == 2",
             "        testSuccess()"
         );
 
         String compiled = compiledLua("fixedConcreteConstructionDoesNotSpecializeUnrelatedGenericCaller");
         assertFalse("fixed Box<int> construction must not clone helper<T>",
             compiled.contains("helper_specialized"));
+    }
+
+    @Test
+    public void inheritedGenericStaticInitializerUsesDeclaringOwnerMapping() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Base<T:>",
+            "    static int serial = bump()",
+            "class Child<Unused:, T:> extends Base<T>",
+            "    static int copied = serial",
+            "    static function get() returns int",
+            "        return copied",
+            "init",
+            "    if Child<real, int>.get() == 1 and Child<int, string>.get() == 2",
+            "        and bumps == 2",
+            "        testSuccess()"
+        );
     }
 
     @Test

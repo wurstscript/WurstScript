@@ -481,7 +481,33 @@ public class EliminateGenerics {
         }
         if (call.getTypeArguments().isEmpty()) {
             collectCallThroughGenericReceiver(call);
+        } else if (!typeArgumentsContainTypeVariable(call.getTypeArguments())
+            && !(call.getFunc().getTrace() instanceof ConstructorDef)) {
+            // The generic callee remains erased, so its body is skipped by collectGenericNewRoots.
+            // Fixed concrete allocations inside it still name real per-instantiation statics and
+            // must be registered without cloning the caller for unrelated type arguments.
+            recordFixedErasedStaticAllocations(call.getFunc(),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
         }
+    }
+
+    private void recordFixedErasedStaticAllocations(ImFunction function,
+                                                     Set<ImFunction> visited) {
+        if (!visited.add(function)) {
+            return;
+        }
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall nestedCall) {
+                super.visit(nestedCall);
+                recordErasedConstructorAllocation(nestedCall);
+                if (!nestedCall.getTypeArguments().isEmpty()
+                    && !typeArgumentsContainTypeVariable(nestedCall.getTypeArguments())
+                    && !(nestedCall.getFunc().getTrace() instanceof ConstructorDef)) {
+                    recordFixedErasedStaticAllocations(nestedCall.getFunc(), visited);
+                }
+            }
+        });
     }
 
     private void recordErasedConstructorAllocation(ImFunctionCall call) {
@@ -2133,7 +2159,7 @@ public class EliminateGenerics {
                 ImClass owner = globalToClass.get(v);
                 if (owner == null) return;
 
-                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                GenericTypes g = adaptGenericsToOwner(owningClass, generics, owner);
                 if (g == null || g.containsTypeVariable()) return;
 
                 ImVar sg = ensureSpecializedGlobal(v, owner, g);
@@ -2146,7 +2172,7 @@ public class EliminateGenerics {
                 ImClass owner = globalToClass.get(v);
                 if (owner == null) return;
 
-                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                GenericTypes g = adaptGenericsToOwner(owningClass, generics, owner);
                 if (g == null || g.containsTypeVariable()) return;
 
                 ImVar sg = ensureSpecializedGlobal(v, owner, g);
