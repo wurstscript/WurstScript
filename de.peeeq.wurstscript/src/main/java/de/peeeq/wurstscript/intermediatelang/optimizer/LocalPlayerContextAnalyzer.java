@@ -189,55 +189,69 @@ public final class LocalPlayerContextAnalyzer {
         return false;
     }
 
-    private void indexElement(Element element, ImFunction owner, Object controlContext) {
-        indexedElements.add(element);
+    private record IndexTask(Element element, Object controlContext, boolean afterChildren) {
+    }
 
-        Object branchControl = null;
-        if (element instanceof ImIf) {
-            ImIf ifStmt = (ImIf) element;
-            branchControl = new Fact(FactKind.CONTROL, ifStmt);
-            addDependency(ifStmt.getCondition(), branchControl);
-            addEnclosingControlDependency(controlContext, branchControl);
-        }
+    private record ReturnTask(Element element, boolean afterChildren) {
+    }
 
-        Object loopControl = null;
-        if (element instanceof ImLoop) {
-            ImLoop loop = (ImLoop) element;
-            loopControl = new Fact(FactKind.CONTROL, loop);
-            addEnclosingControlDependency(controlContext, loopControl);
-            addLoopExitDependencies(loop.getBody(), loopControl);
-        }
+    private record LoopExitTask(Element element, boolean afterChildren) {
+    }
 
-        if (element instanceof ImStmts) {
-            indexStatementSequence((ImStmts) element, owner, controlContext);
-            return;
-        }
-
-        for (int i = 0; i < element.size(); i++) {
-            Element child = element.get(i);
-            if (element instanceof ImOperatorCall
-                && ((ImOperatorCall) element).getOp().isLazy()
-                && child == ((ImOperatorCall) element).getArguments()) {
-                indexShortCircuitArguments(
-                    ((ImOperatorCall) element).getArguments(),
-                    owner,
-                    controlContext);
-                addDependency(child, element);
+    private void indexElement(Element root, ImFunction owner, Object controlContext) {
+        Deque<IndexTask> work = new ArrayDeque<>();
+        work.addFirst(new IndexTask(root, controlContext, false));
+        while (!work.isEmpty()) {
+            IndexTask task = work.removeFirst();
+            Element element = task.element();
+            if (task.afterChildren()) {
+                indexElementAfterChildren(element, owner, task.controlContext());
                 continue;
             }
-            Object childControl = controlContext;
-            if (element instanceof ImIf
-                && (child == ((ImIf) element).getThenBlock()
-                || child == ((ImIf) element).getElseBlock())) {
-                childControl = branchControl;
-            } else if (element instanceof ImLoop
-                && child == ((ImLoop) element).getBody()) {
-                childControl = loopControl;
-            }
-            indexElement(child, owner, childControl);
-            addDependency(child, element);
-        }
 
+            indexedElements.add(element);
+            Object branchControl = null;
+            if (element instanceof ImIf ifStmt) {
+                branchControl = new Fact(FactKind.CONTROL, ifStmt);
+                addDependency(ifStmt.getCondition(), branchControl);
+                addEnclosingControlDependency(task.controlContext(), branchControl);
+            }
+
+            Object loopControl = null;
+            if (element instanceof ImLoop loop) {
+                loopControl = new Fact(FactKind.CONTROL, loop);
+                addEnclosingControlDependency(task.controlContext(), loopControl);
+                addLoopExitDependencies(loop.getBody(), loopControl);
+            }
+
+            if (element instanceof ImStmts statements) {
+                scheduleStatementSequence(statements, task.controlContext(), work);
+                continue;
+            }
+
+            work.addFirst(new IndexTask(element, task.controlContext(), true));
+            for (int i = element.size() - 1; i >= 0; i--) {
+                Element child = element.get(i);
+                addDependency(child, element);
+                if (element instanceof ImOperatorCall operator
+                    && operator.getOp().isLazy()
+                    && child == operator.getArguments()) {
+                    scheduleShortCircuitArguments(operator.getArguments(), task.controlContext(), work);
+                    continue;
+                }
+                Object childControl = task.controlContext();
+                if (element instanceof ImIf ifStmt
+                    && (child == ifStmt.getThenBlock() || child == ifStmt.getElseBlock())) {
+                    childControl = branchControl;
+                } else if (element instanceof ImLoop loop && child == loop.getBody()) {
+                    childControl = loopControl;
+                }
+                work.addFirst(new IndexTask(child, childControl, false));
+            }
+        }
+    }
+
+    private void indexElementAfterChildren(Element element, ImFunction owner, Object controlContext) {
         if (element instanceof ImVarAccess) {
             addDependency(variableFact(((ImVarAccess) element).getVar()), element);
         } else if (element instanceof ImVarArrayAccess) {
@@ -273,13 +287,14 @@ public final class LocalPlayerContextAnalyzer {
         }
     }
 
-    private void indexStatementSequence(ImStmts statements,
-                                        ImFunction owner,
-                                        Object controlContext) {
+    private void scheduleStatementSequence(ImStmts statements,
+                                           Object controlContext,
+                                           Deque<IndexTask> work) {
+        List<IndexTask> tasks = new ArrayList<>(statements.size());
         Object continuationControl = controlContext;
         for (ImStmt statement : statements) {
-            indexElement(statement, owner, continuationControl);
             addDependency(statement, statements);
+            tasks.add(new IndexTask(statement, continuationControl, false));
 
             if (containsFunctionReturn(statement)) {
                 Fact followingStatementControl =
@@ -291,36 +306,60 @@ public final class LocalPlayerContextAnalyzer {
                 continuationControl = followingStatementControl;
             }
         }
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            work.addFirst(tasks.get(i));
+        }
     }
 
-    private boolean containsFunctionReturn(Element element) {
-        Boolean cached = containsReturnCache.get(element);
+    private boolean containsFunctionReturn(Element root) {
+        Boolean cached = containsReturnCache.get(root);
         if (cached != null) {
             return cached;
         }
-        if (element instanceof ImReturn) {
-            containsReturnCache.put(element, true);
-            return true;
-        }
-        for (int i = 0; i < element.size(); i++) {
-            if (containsFunctionReturn(element.get(i))) {
-                containsReturnCache.put(element, true);
-                return true;
+        Deque<ReturnTask> work = new ArrayDeque<>();
+        work.addFirst(new ReturnTask(root, false));
+        while (!work.isEmpty()) {
+            ReturnTask task = work.removeFirst();
+            Element element = task.element();
+            if (containsReturnCache.containsKey(element)) {
+                continue;
             }
+            if (element instanceof ImReturn) {
+                containsReturnCache.put(element, true);
+                continue;
+            }
+            if (!task.afterChildren()) {
+                work.addFirst(new ReturnTask(element, true));
+                for (int i = element.size() - 1; i >= 0; i--) {
+                    Element child = element.get(i);
+                    if (!containsReturnCache.containsKey(child)) {
+                        work.addFirst(new ReturnTask(child, false));
+                    }
+                }
+                continue;
+            }
+            boolean containsReturn = false;
+            for (int i = 0; i < element.size(); i++) {
+                if (Boolean.TRUE.equals(containsReturnCache.get(element.get(i)))) {
+                    containsReturn = true;
+                    break;
+                }
+            }
+            containsReturnCache.put(element, containsReturn);
         }
-        containsReturnCache.put(element, false);
-        return false;
+        return Boolean.TRUE.equals(containsReturnCache.get(root));
     }
 
-    private void indexShortCircuitArguments(ImExprs arguments,
-                                            ImFunction owner,
-                                            Object controlContext) {
+    private void scheduleShortCircuitArguments(ImExprs arguments,
+                                               Object controlContext,
+                                               Deque<IndexTask> work) {
         indexedElements.add(arguments);
+        List<IndexTask> tasks = new ArrayList<>(arguments.size());
         Object operandControl = controlContext;
         for (int i = 0; i < arguments.size(); i++) {
             ImExpr argument = arguments.get(i);
-            indexElement(argument, owner, operandControl);
             addDependency(argument, arguments);
+            tasks.add(new IndexTask(argument, operandControl, false));
 
             if (i + 1 < arguments.size()) {
                 Fact followingOperandControl =
@@ -331,6 +370,9 @@ public final class LocalPlayerContextAnalyzer {
                 addDependency(argument, followingOperandControl);
                 operandControl = followingOperandControl;
             }
+        }
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            work.addFirst(tasks.get(i));
         }
     }
 
@@ -402,22 +444,40 @@ public final class LocalPlayerContextAnalyzer {
         }
     }
 
-    private boolean addLoopExitDependencies(Element element, Object loopControl) {
-        if (element instanceof ImExitwhen) {
-            addDependency(((ImExitwhen) element).getCondition(), loopControl);
-            return true;
-        } else if (element instanceof ImLoop || element instanceof ImVarargLoop) {
-            return false;
-        }
+    private boolean addLoopExitDependencies(Element root, Object loopControl) {
+        Map<Element, Boolean> containsExit = new IdentityHashMap<>();
+        Deque<LoopExitTask> work = new ArrayDeque<>();
+        work.addFirst(new LoopExitTask(root, false));
+        while (!work.isEmpty()) {
+            LoopExitTask task = work.removeFirst();
+            Element element = task.element();
+            if (element instanceof ImExitwhen exitwhen) {
+                addDependency(exitwhen.getCondition(), loopControl);
+                containsExit.put(element, true);
+                continue;
+            }
+            if (element instanceof ImLoop || element instanceof ImVarargLoop) {
+                containsExit.put(element, false);
+                continue;
+            }
+            if (!task.afterChildren()) {
+                work.addFirst(new LoopExitTask(element, true));
+                for (int i = element.size() - 1; i >= 0; i--) {
+                    work.addFirst(new LoopExitTask(element.get(i), false));
+                }
+                continue;
+            }
 
-        boolean containsExit = false;
-        for (int i = 0; i < element.size(); i++) {
-            containsExit |= addLoopExitDependencies(element.get(i), loopControl);
+            boolean elementContainsExit = false;
+            for (int i = 0; i < element.size(); i++) {
+                elementContainsExit |= Boolean.TRUE.equals(containsExit.get(element.get(i)));
+            }
+            if (elementContainsExit && element instanceof ImIf ifStmt) {
+                addDependency(ifStmt.getCondition(), loopControl);
+            }
+            containsExit.put(element, elementContainsExit);
         }
-        if (containsExit && element instanceof ImIf) {
-            addDependency(((ImIf) element).getCondition(), loopControl);
-        }
-        return containsExit;
+        return Boolean.TRUE.equals(containsExit.get(root));
     }
 
     private boolean collectMethodImplementations(ImMethod method,

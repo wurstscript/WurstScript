@@ -240,8 +240,15 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         setVisible(true);
         this.errorDetailsPanel.setText(err.getMessage());
 
-        File errFile = new File(err.getSource().getFile());
-        File workspaceErrFile = new File(workspaceRoot + "/" + err.getSource().getFile());
+        String sourceFile = err.getSource().getFile();
+        if (isSyntheticSource(sourceFile)) {
+            currentFile = null;
+            codeArea.setText("No source file is available for this compiler-generated error.");
+            return;
+        }
+
+        File errFile = new File(sourceFile);
+        File workspaceErrFile = new File(workspaceRoot + "/" + sourceFile);
 
         if (!errFile.exists() && workspaceErrFile.exists()) {
             errFile = workspaceErrFile;
@@ -312,6 +319,11 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         } catch (BadLocationException e) {
             WLogger.severe(e);
         }
+    }
+
+    static boolean isSyntheticSource(String sourceFile) {
+        return sourceFile == null || sourceFile.isBlank()
+                || sourceFile.startsWith("<") && sourceFile.endsWith(">");
     }
 
     //	@Override

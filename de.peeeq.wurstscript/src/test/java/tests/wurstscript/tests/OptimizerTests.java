@@ -2375,6 +2375,37 @@ public class OptimizerTests extends WurstScriptTest {
             "GetLocalPlayer usage must propagate through the complete call chain");
     }
 
+    @Test(timeOut = 10_000)
+    public void deeplyNestedImDoesNotOverflowLocalPlayerAnalysis() {
+        Element trace = Ast.NoExpr();
+        ImStmts nested = JassIm.ImStmts();
+        for (int i = 0; i < 20_000; i++) {
+            nested = JassIm.ImStmts(JassIm.ImIf(trace, JassIm.ImBoolVal(true),
+                nested, JassIm.ImStmts()));
+        }
+        ImFunction main = JassIm.ImFunction(
+            trace,
+            "main",
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            JassIm.ImVoid(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImLoop(trace, nested)),
+            Collections.emptyList()
+        );
+        ImProg prog = JassIm.ImProg(
+            trace,
+            JassIm.ImVars(),
+            JassIm.ImFunctions(main),
+            JassIm.ImMethods(),
+            JassIm.ImClasses(),
+            JassIm.ImTypeClassFuncs(),
+            new java.util.HashMap<>()
+        );
+
+        new LocalPlayerContextAnalyzer(prog);
+    }
+
     private static int countOccurrences(String text, String needle) {
         int count = 0;
         int from = 0;
