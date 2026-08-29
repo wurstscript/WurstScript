@@ -602,6 +602,11 @@ public class EliminateTuples {
                         ImOperatorCall opCall = (ImOperatorCall) exprs.getParent();
                         handleTupleInOpCall(replacer, opCall, f);
                         return;
+                    } else if (exprs.getParent() instanceof ImFunctionCall
+                        || exprs.getParent() instanceof ImMethodCall) {
+                        ImExpr call = (ImExpr) exprs.getParent();
+                        replacer.replace(call, stageTupleCallArguments(call, exprs, f));
+                        return;
                     } else {
                         // in function arguments, other tuples
                         // just flatten tuples
@@ -631,6 +636,38 @@ public class EliminateTuples {
 
         }
 
+    }
+
+    private static ImStatementExpr stageTupleCallArguments(ImExpr call, ImExprs arguments,
+                                                            ImFunction f) {
+        ImStmts evaluation = JassIm.ImStmts();
+
+        // A dynamic receiver is evaluated before the arguments in the source program. Keep it in
+        // the same ordered prelude as the flattened tuple components.
+        if (call instanceof ImMethodCall methodCall) {
+            ImExpr receiver = methodCall.getReceiver();
+            receiver.setParent(null);
+            methodCall.setReceiver(captureValue(receiver, "tuple_argument_receiver", evaluation, f));
+        }
+
+        List<ImExpr> originalArguments = arguments.removeAll();
+        for (ImExpr argument : originalArguments) {
+            argument.setParent(null);
+            List<ImExpr> components = new ArrayList<>();
+            if (argument instanceof ImTupleExpr) {
+                flattenTupleExpr(argument, evaluation, components);
+            } else {
+                components.add(argument);
+            }
+            for (ImExpr component : components) {
+                component.setParent(null);
+                arguments.add(captureValue(component, "tuple_argument", evaluation, f));
+            }
+        }
+
+        // Keep the original node in place until Replacer has found its parent. The detached copy is
+        // the scalar-only call evaluated after the complete left-to-right argument prelude.
+        return JassIm.ImStatementExpr(evaluation, (ImExpr) call.copy());
     }
 
     private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall, ImFunction f) {

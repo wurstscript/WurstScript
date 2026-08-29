@@ -331,6 +331,32 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturningCallArgumentsAreStagedInOrder() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int trace",
+            "@noinline function produce(int seed) returns pair",
+            "    trace = trace * 10 + seed",
+            "    return pair(seed, seed + 10)",
+            "@noinline function consume(pair first, int middle, pair second) returns bool",
+            "    return first == pair(1, 11) and middle == 7 and second == pair(2, 12)",
+            "function mark(int value) returns int",
+            "    trace = trace * 10 + value",
+            "    return value",
+            "init",
+            "    if consume(produce(1), mark(7), produce(2)) and trace == 172",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturningCallArgumentsAreStagedInOrder");
+        assertTrue("tuple arguments must be materialized before the scalar call",
+            compiled.contains("tuple_argument"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void selectingLaterTupleComponentStillInvokesProducer() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
