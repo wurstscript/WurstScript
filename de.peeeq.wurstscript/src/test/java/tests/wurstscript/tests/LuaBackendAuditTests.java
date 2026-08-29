@@ -447,6 +447,34 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializationPreservesExplicitGenericStaticOwner() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Box<T:>",
+            "    static int counter",
+            "    static function setCounter(int value)",
+            "        counter = value",
+            "    static function incrementCounter()",
+            "        counter++",
+            "    static function getCounter() returns int",
+            "        return counter",
+            "function touch<T:>(T value)",
+            "    Box<int>.incrementCounter()",
+            "init",
+            "    Box<int>.setCounter(10)",
+            "    Box<pair>.setCounter(100)",
+            "    touch<pair>(pair(1, 2))",
+            "    if Box<int>.getCounter() == 11 and Box<pair>.getCounter() == 100",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializationPreservesExplicitGenericStaticOwner");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",

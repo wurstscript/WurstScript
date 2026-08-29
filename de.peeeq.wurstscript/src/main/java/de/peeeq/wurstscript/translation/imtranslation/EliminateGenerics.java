@@ -1443,6 +1443,15 @@ public class EliminateGenerics {
             }
 
             private ImVar specializedGlobal(ImVar original) {
+                ImTranslator.Specialisation existing = translator.specialisationOf(original);
+                if (existing != null && translator.genericStaticOwnerOf(original) != null
+                    && !existing.typeArguments().isEmpty()) {
+                    // This access already names a concrete instantiation of the static field.
+                    // Its own binding wins over the type arguments of the function which happens
+                    // to contain it; in particular, specialising touch<pair> must not turn an
+                    // access produced by Box<int> into one for Box<pair>.
+                    return original;
+                }
                 ImClass owner = globalToClass.get(original);
                 if (owner == null) {
                     return original;
