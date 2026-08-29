@@ -881,10 +881,14 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImFunctionCall call) {
-                boolean dependsOnTypeVariable = typeArgumentsContainTypeVariable(call.getTypeArguments());
+                // Empty arguments may be supplied implicitly by the enclosing generic receiver.
+                // Only an explicit, already-concrete call is independent of the caller context.
+                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
                 if (constructsClassOwningGenericGlobals(function, call)
-                    || (dependsOnTypeVariable && (translator.isGenericNewMarker(call.getFunc())
-                    || functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods)))) {
+                    || translator.isGenericNewMarker(call.getFunc())
+                    || (dependsOnCaller
+                    && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods))) {
                     found[0] = true;
                     return;
                 }
@@ -893,7 +897,9 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImMethodCall call) {
-                if (typeArgumentsContainTypeVariable(call.getTypeArguments())
+                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
+                if (dependsOnCaller
                     && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
