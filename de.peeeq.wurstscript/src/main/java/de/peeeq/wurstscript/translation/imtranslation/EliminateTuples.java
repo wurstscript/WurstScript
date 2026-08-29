@@ -169,7 +169,8 @@ public class EliminateTuples {
         tryStep(f, translator, (stmts, tr, fn) ->
             removeTupleSelections(stmts, tr, fn, discardEvaluation));
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
-        tryStep(f, translator, (stmts, translator1, fn) -> removeTupleExprs(0, stmts, translator1, fn));
+        tryStep(f, translator, (stmts, translator1, fn) ->
+            removeTupleExprs(0, stmts, translator1, fn, discardEvaluation));
 
     }
 
@@ -588,13 +589,14 @@ public class EliminateTuples {
      * - Assignments: Become several assignments
      * - In Return: Use temp returns
      */
-    private static void removeTupleExprs(int posHint, Element elem, ImTranslator translator, ImFunction f) {
+    private static void removeTupleExprs(int posHint, Element elem, ImTranslator translator,
+                                         ImFunction f, DiscardEvaluation discardEvaluation) {
         if (elem.getParent() == null) {
             throw new RuntimeException("elem not used: " + elem);
         }
         for (int i = 0; i < elem.size(); i++) {
             Element child = elem.get(i);
-            removeTupleExprs(i, child, translator, f);
+            removeTupleExprs(i, child, translator, f, discardEvaluation);
         }
         Replacer replacer = new Replacer();
         for (int i = 0; i < elem.size(); i++) {
@@ -615,7 +617,7 @@ public class EliminateTuples {
                     ImExprs exprs = (ImExprs) elem;
                     if (exprs.getParent() instanceof ImOperatorCall) {
                         ImOperatorCall opCall = (ImOperatorCall) exprs.getParent();
-                        handleTupleInOpCall(replacer, opCall, f);
+                        handleTupleInOpCall(replacer, opCall, f, discardEvaluation);
                         return;
                     } else if (exprs.getParent() instanceof ImFunctionCall
                         || exprs.getParent() instanceof ImMethodCall) {
@@ -688,7 +690,8 @@ public class EliminateTuples {
         return JassIm.ImStatementExpr(evaluation, (ImExpr) call.copy());
     }
 
-    private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall, ImFunction f) {
+    private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall, ImFunction f,
+                                            DiscardEvaluation discardEvaluation) {
         if (opCall.getParent() == null) {
             throw new RuntimeException("opCall not used: " + opCall);
         }
@@ -698,8 +701,10 @@ public class EliminateTuples {
 
         ImStmts evaluation = JassIm.ImStmts();
         boolean forceOrder = needsOrderedCapture(left) || needsOrderedCapture(right);
-        List<ImExpr> leftComponents = captureTupleComponents(left, evaluation, f, forceOrder);
-        List<ImExpr> rightComponents = captureTupleComponents(right, evaluation, f, forceOrder);
+        List<ImExpr> leftComponents = captureTupleComponents(left, evaluation, f, forceOrder,
+            discardEvaluation);
+        List<ImExpr> rightComponents = captureTupleComponents(right, evaluation, f, forceOrder,
+            discardEvaluation);
         if (leftComponents.size() != rightComponents.size()) {
             throw new CompileError(opCall.attrTrace(), "Cannot compare tuples with different arity.");
         }
@@ -748,9 +753,15 @@ public class EliminateTuples {
     }
 
     private static List<ImExpr> captureTupleComponents(ImTupleExpr tuple, ImStmts evaluation,
-                                                       ImFunction f, boolean forceOrder) {
-        OrderedBundle bundle = lowerBundle(tuple, f, forceOrder, "tuple_compare");
+                                                       ImFunction f, boolean forceOrder,
+                                                       DiscardEvaluation discardEvaluation) {
+        OrderedBundle bundle = lowerBundle(tuple, f, forceOrder, "tuple_compare", true);
         bundle.appendPreludeTo(evaluation);
+        for (int i = 0; i < bundle.values.size(); i++) {
+            if (bundle.requiresEagerEvaluation.get(i)) {
+                evaluation.add(discardEvaluation.call(bundle.values.get(i).copy()));
+            }
+        }
         return bundle.values;
     }
 
@@ -922,6 +933,7 @@ public class EliminateTuples {
     private static final class OrderedBundle {
         private final ImStmts prelude = JassIm.ImStmts();
         private final List<ImExpr> values = new ArrayList<>();
+        private final List<Boolean> requiresEagerEvaluation = new ArrayList<>();
 
         private void appendPreludeTo(ImStmts target) {
             for (ImStmt statement : prelude.removeAll()) {
@@ -933,33 +945,45 @@ public class EliminateTuples {
 
     private static OrderedBundle lowerBundle(ImExpr expression, ImFunction f, boolean forceOrder,
                                              String temporaryName) {
+        return lowerBundle(expression, f, forceOrder, temporaryName, false);
+    }
+
+    private static OrderedBundle lowerBundle(ImExpr expression, ImFunction f, boolean forceOrder,
+                                             String temporaryName,
+                                             boolean capturePotentiallyFailingValues) {
         OrderedBundle result = new OrderedBundle();
         lowerBundleInto(expression, f, forceOrder || needsOrderedCapture(expression), temporaryName,
-            result);
+            capturePotentiallyFailingValues, result);
         return result;
     }
 
     private static void lowerBundleInto(ImExpr expression, ImFunction f, boolean capture,
-                                        String temporaryName, OrderedBundle result) {
+                                        String temporaryName, boolean capturePotentiallyFailingValues,
+                                        OrderedBundle result) {
         ImExpr value = extractSideEffect(expression, result.prelude);
         if (value instanceof ImNull nullValue && nullValue.getType() instanceof ImTupleType) {
             lowerBundleInto(ImHelper.defaultValueForComplexType(nullValue.getType()), f, capture,
-                temporaryName, result);
+                temporaryName, capturePotentiallyFailingValues, result);
             return;
         }
         if (value instanceof ImTupleExpr tuple) {
             for (ImExpr component : new ArrayList<>(tuple.getExprs())) {
-                lowerBundleInto(component, f, capture, temporaryName, result);
+                lowerBundleInto(component, f, capture, temporaryName,
+                    capturePotentiallyFailingValues, result);
             }
             return;
         }
 
         value.setParent(null);
-        if (capture && !isImmutableValue(value)) {
+        boolean requiresEagerEvaluation = capturePotentiallyFailingValues
+            && !isTriviallyDiscardable(value)
+            && !SideEffectAnalyzer.quickcheckHasSideeffects(value);
+        if ((capture || requiresEagerEvaluation) && !isImmutableValue(value)) {
             result.values.add(captureValue(value, temporaryName, result.prelude, f));
         } else {
             result.values.add(value);
         }
+        result.requiresEagerEvaluation.add(requiresEagerEvaluation);
     }
 
     private static boolean needsOrderedCapture(ImExpr expression) {

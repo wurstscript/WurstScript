@@ -631,6 +631,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleComparisonEagerlyEvaluatesPotentiallyFailingComponents() {
+        String compiled = compileLuaWithRunArgs(
+            "tupleComparisonEagerlyEvaluatesPotentiallyFailingComponents",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box",
+            "    int value",
+            "Box nullable",
+            "init",
+            "    let equal = pair(1, nullable.value) == pair(2, 0)"
+        );
+
+        assertTrue("comparison operands must cross the eager-evaluation barrier before and/or",
+            java.util.regex.Pattern.compile(
+                "__wurst_tuple_discard_\\d+\\([^\\n]*tuple_compare[^\\n]*\\)")
+                .matcher(compiled).find());
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
     public void tupleAssignmentCapturesLvalueBeforeRhs() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
