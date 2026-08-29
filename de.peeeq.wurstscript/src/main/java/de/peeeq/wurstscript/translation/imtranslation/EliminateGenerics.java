@@ -317,11 +317,31 @@ public class EliminateGenerics {
                 ImClassType clazz = instanceOf.getClazz();
                 if (!clazz.getTypeArguments().isEmpty()
                     && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
-                    runtimeTypeSpecializations.put(clazz.getClassDef(),
-                        new GenericTypes(clazz.getTypeArguments()), true);
+                    GenericTypes generics = new GenericTypes(clazz.getTypeArguments());
+                    ImClass original = clazz.getClassDef();
+                    runtimeTypeSpecializations.put(original, generics, true);
+                    ImClass existing = specializedClasses.get(original, generics);
+                    if (existing != null) {
+                        rewriteRuntimeTypeSuperEdges(original, generics, existing);
+                    }
                 }
             }
         });
+    }
+
+    /** Redirects concrete inheritance edges to the same class identity used by instanceof. */
+    private void rewriteRuntimeTypeSuperEdges(ImClass original, GenericTypes generics,
+                                              ImClass specialized) {
+        for (ImClass clazz : prog.getClasses()) {
+            clazz.getSuperClasses().replaceAll(superType -> {
+                if (superType.getClassDef() != original
+                    || typeArgumentsContainTypeVariable(superType.getTypeArguments())
+                    || !new GenericTypes(superType.getTypeArguments()).equals(generics)) {
+                    return superType;
+                }
+                return JassIm.ImClassType(specialized, JassIm.ImTypeArguments());
+            });
+        }
     }
 
     private boolean needsRuntimeTypeSpecialization(ImClassType clazz) {
@@ -1873,6 +1893,9 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
+        if (runtimeTypeSpecializations.contains(c, generics)) {
+            rewriteRuntimeTypeSuperEdges(c, generics, newC);
+        }
 
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);

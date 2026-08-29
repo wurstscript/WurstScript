@@ -466,10 +466,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        return value",
             "function isIntBox<T:>(Marker value) returns bool",
             "    return value instanceof Box<T>",
+            "class Child extends Box<int>",
+            "    construct(int initial)",
+            "        super(initial)",
             "init",
             "    Marker tupleBox = new Box<pair>(pair(6, 7))",
             "    Box<int> intBox = new Box<int>(1)",
             "    Marker intMarker = intBox",
+            "    Marker child = new Child(2)",
             "    if tupleBox instanceof Box<pair>",
             "        and not (tupleBox instanceof Box<int>)",
             "        and intMarker instanceof Box<int>",
@@ -478,6 +482,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        and intBox.value == 1",
             "        and isIntBox<int>(intMarker)",
             "        and not isIntBox<int>(tupleBox)",
+            "        and child instanceof Box<int>",
+            "        and not (child instanceof Box<pair>)",
             "        testSuccess()"
         );
     }
