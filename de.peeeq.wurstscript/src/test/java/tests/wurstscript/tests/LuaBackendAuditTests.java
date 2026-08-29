@@ -6,7 +6,12 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.testng.annotations.Test;
 
@@ -1007,6 +1012,56 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             storages++;
         }
         assertEquals("each concrete Slot instantiation needs its own static",
+            2, storages);
+    }
+
+    @Test
+    public void detachedGenericStaticInitializerRemainsMetadataOnly() {
+        RunArgs runArgs = new RunArgs().with("-lua");
+        WurstGuiCliImpl gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+        WurstModel model = parseFiles(Collections.emptyList(), Collections.singletonList(new CU(
+            "detachedGenericStaticInitializerRemainsMetadataOnly.wurst", String.join("\n",
+                "package Test",
+                "native testSuccess()",
+                "class Slot<T:>",
+                "    static T value",
+                "    static function set(T newValue)",
+                "        value = newValue",
+                "    static function get() returns T",
+                "        return value",
+                "init",
+                "    Slot<int>.set(7)",
+                "    Slot<string>.set(\"ok\")",
+                "    if Slot<int>.get() == 7 and Slot<string>.get() == \"ok\"",
+                "        testSuccess()"
+            ))), false, compiler);
+        assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        ImProg prog = compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+
+        ImVar genericStatic = prog.getGlobals().stream()
+            .filter(global -> global.getName().contains("value"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected the translated Slot.value global"));
+        ImSet detached = JassIm.ImSet(genericStatic.attrTrace(), JassIm.ImVarAccess(genericStatic),
+            ImHelper.nullExpr());
+        prog.getGlobalInits().put(genericStatic, Collections.singletonList(detached));
+        assertTrue("default initializer must remain detached metadata", detached.getParent() == null);
+
+        LuaCompilationUnit luaCode = compiler.transformProgToLua();
+        StringBuilder output = new StringBuilder();
+        luaCode.print(output, 0);
+        java.util.regex.Matcher declarations = java.util.regex.Pattern
+            .compile("(?m)^Slot_value_\\S* = nil$")
+            .matcher(output);
+        int storages = 0;
+        while (declarations.find()) {
+            storages++;
+        }
+        assertEquals("both concrete static specializations must survive detached initialization",
             2, storages);
     }
 
