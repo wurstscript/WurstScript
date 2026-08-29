@@ -23,7 +23,7 @@ public class SmallCheckViaJUnitCoreTestNG {
   private void assertNoFailures(Result r, String suiteName) {
     if (!r.wasSuccessful()) {
       String msg = r.getFailures().stream()
-          .map(Failure::toString)
+          .map(Failure::getTrace)
           .collect(Collectors.joining("\n\n"));
       Assert.fail("SmallCheck failures (" + suiteName + "):\n" + msg);
     }

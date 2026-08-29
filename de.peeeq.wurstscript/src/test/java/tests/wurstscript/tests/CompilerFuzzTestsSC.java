@@ -11,6 +11,7 @@ import smallcheck.generators.SeriesGen;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @RunWith(SmallCheckRunner.class)
@@ -70,8 +71,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
         return test()
             .setStopOnFirstError(false)
             .executeProg(false)
-            .compilationUnits(asCompilationUnits(program))
-            .run();
+            .compilationUnits(asCompilationUnits(program));
     }
 
     private CU[] asCompilationUnits(Program program) {
@@ -251,8 +251,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
         return join(lines, newline);
     }
 
-    private static String buildRandomSupportPackage(int seed, String newline) {
-        String pkg = "FuzzLib_" + Math.abs(seed % 997);
+    private static String buildRandomSupportPackage(int seed, String newline, String pkg) {
         String indent = "    ";
         List<String> lines = new ArrayList<>();
         lines.add("package " + pkg);
@@ -277,7 +276,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
         lines.add(indent + "function visit(int value) returns int");
         lines.add("function run(Visitor visitor, int value) returns int");
         lines.add(indent + "return visitor.visit(value)");
-        lines.add("class Delegate");
+        lines.add("class Delegate implements Visitor");
         lines.add(indent + "public function visit(int value) returns int");
         lines.add(indent + indent + "return value + 1");
         lines.add("init");
@@ -293,27 +292,33 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
     public static class RandomProgram extends SeriesGen<Program> {
         @Override
         public Stream<Program> generate(int depth) {
-            int seed = Math.max(0, depth) + 17_213;
-            String newline = ((seed & 4) == 0) ? "\n" : "\r\n";
-            String source = buildRandomSingleProgram(seed, newline);
-            return Stream.of(new Program(new String[]{"random_fuzz.wurst"}, new String[]{source}, newline));
+            int firstSeed = Math.max(0, depth) * 64 + 17_213;
+            return IntStream.range(0, 64).mapToObj(offset -> {
+                int seed = firstSeed + offset;
+                String newline = ((seed & 4) == 0) ? "\n" : "\r\n";
+                String source = buildRandomSingleProgram(seed, newline);
+                return new Program(new String[]{"random_fuzz.wurst"}, new String[]{source}, newline);
+            });
         }
     }
 
     public static class CrossPackageProgram extends SeriesGen<Program> {
         @Override
         public Stream<Program> generate(int depth) {
-            int seed = Math.max(0, depth) + 17_213;
-            String newline = ((seed & 16) == 0) ? "\r\n" : "\n";
-            String supportPkg = "ChainLib" + Math.abs(seed % 999);
-            String mainPkg = "ChainUse" + Math.abs(seed % 999);
-            String supportSource = buildRandomSupportPackage(seed, newline);
-            String mainSource = buildRandomMainPackage(seed, newline, supportPkg);
-            return Stream.of(new Program(
-                new String[]{"support_" + supportPkg + ".wurst", "main_" + mainPkg + ".wurst"},
-                new String[]{supportSource, mainSource},
-                newline
-            ));
+            int firstSeed = Math.max(0, depth) * 24 + 17_213;
+            return IntStream.range(0, 24).mapToObj(offset -> {
+                int seed = firstSeed + offset;
+                String newline = ((seed & 16) == 0) ? "\r\n" : "\n";
+                String supportPkg = "ChainLib" + Math.abs(seed % 999);
+                String mainPkg = "ChainUse" + Math.abs(seed % 999);
+                String supportSource = buildRandomSupportPackage(seed, newline, supportPkg);
+                String mainSource = buildRandomMainPackage(seed, newline, supportPkg);
+                return new Program(
+                    new String[]{"support_" + supportPkg + ".wurst", "main_" + mainPkg + ".wurst"},
+                    new String[]{supportSource, mainSource},
+                    newline
+                );
+            });
         }
     }
 
