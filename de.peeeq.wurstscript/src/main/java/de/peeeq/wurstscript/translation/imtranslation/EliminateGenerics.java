@@ -127,10 +127,11 @@ public class EliminateGenerics {
     public void transformGenericNewOnly(boolean specializeTupleValueTypes) {
         genericNewOnly = true;
         this.specializeTupleValueTypes = specializeTupleValueTypes;
-        if (specializeTupleValueTypes) {
+        identifyGenericGlobals();
+        if (specializeTupleValueTypes || !globalToClass.isEmpty()) {
             addMemberTypeArguments();
-            identifyGenericGlobals();
         }
+        indexGenericGlobalUses();
         collectUnspecializedGenericClassMethods();
         // Specialising a constructor makes its result type concrete, which is what lets a method
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
@@ -149,6 +150,11 @@ public class EliminateGenerics {
         assertNoReachableGenericNewMarkers();
         bindSpecialisedMethodsToTheAllocatedClass();
         settleRemainingDispatches();
+    }
+
+    public boolean hasGenericStatics() {
+        identifyGenericGlobals();
+        return !globalToClass.isEmpty();
     }
 
     /**
@@ -770,6 +776,9 @@ public class EliminateGenerics {
      */
     private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visitedFunctions,
                                                Set<ImMethod> visitedMethods) {
+        if (needsGlobalSpecialization(function)) {
+            return true;
+        }
         if (!visitedFunctions.add(function)) {
             return false;
         }
@@ -988,6 +997,16 @@ public class EliminateGenerics {
         return o != null && !o.isEmpty();
     }
 
+    private boolean classOwnsGenericGlobals(ImClass clazz) {
+        ImClass canonical = translator.canonical(clazz);
+        for (ImClass owner : globalToClass.values()) {
+            if (translator.canonical(owner) == canonical) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ImFunction enclosingFunction(Element e) {
         Element cur = e;
         while (cur != null) {
@@ -1003,6 +1022,22 @@ public class EliminateGenerics {
         ImFunction f = enclosingFunction(site);
         if (f == null) return;
         ownersOf(f).add(owner);
+    }
+
+    private void indexGenericGlobalUses() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                recordGenericGlobalUse(access, access.getVar());
+                super.visit(access);
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                recordGenericGlobalUse(access, access.getVar());
+                super.visit(access);
+            }
+        });
     }
 
     private void dbgMethodsByName(String phase) {
@@ -1496,7 +1531,8 @@ public class EliminateGenerics {
             rewriteGenerics(newF, generics, typeVars);
         }
 
-        if (genericNewOnly && specializeTupleValueTypes && genericTypesContainTuple(generics)) {
+        if (genericNewOnly && (needsGlobalSpecialization(f)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             ImClass owner = classOwning(f);
             if (owner != null && !owner.getTypeVariables().isEmpty()) {
                 GenericTypes ownerGenerics = generics.take(owner.getTypeVariables().size());
@@ -1624,7 +1660,8 @@ public class EliminateGenerics {
         newImplementation.getTypeVariables().removeAll();
         newImplementation.setName(function.getName() + "_specialized");
         rewriteGenerics(newImplementation, generics, typeVariables);
-        if (specializeTupleValueTypes && genericTypesContainTuple(generics)) {
+        if (needsGlobalSpecialization(function)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics))) {
             GenericTypes ownerGenerics = generics.take(owningClass.getTypeVariables().size());
             specializeClass(owningClass, ownerGenerics);
             rewriteOwnedGenericGlobals(newImplementation, owningClass, ownerGenerics);
@@ -1935,7 +1972,8 @@ public class EliminateGenerics {
 
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
-        if (specializeTupleValueTypes && genericTypesContainTuple(generics)) {
+        if (genericNewOnly && (classOwnsGenericGlobals(c)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             rewriteOwnedGenericGlobals(newC, c, generics);
         }
 

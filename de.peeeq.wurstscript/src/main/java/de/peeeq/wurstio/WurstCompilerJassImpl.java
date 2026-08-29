@@ -875,10 +875,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImAttrType.setWurstClassType(null);
         int stage;
         boolean specializeTupleValueTypes = containsTupleTypeArgument();
-        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes) {
+        EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
+        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
+            || luaGenerics.hasGenericStatics()) {
             beginPhase(2, "Specialize generics for Lua-only concrete operations");
-            new EliminateGenerics(getImTranslator(), getImProg())
-                .transformGenericNewOnly(specializeTupleValueTypes);
+            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
             // Remove phantom erased initialization before optimization can preserve only its side
             // effect. A specialized static owns its copied initializer unless the erased static is live.
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());

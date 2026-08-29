@@ -870,7 +870,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
-    public void tupleSpecializedStaticKeepsLiveErasedInitializer() {
+    public void tupleSpecializedStaticKeepsAllLiveInitializers() {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -884,7 +884,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    static function get() returns int",
             "        return value",
             "init",
-            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
+            "    if Box<int>.get() + Box<pair>.get() == 3 and Box<int>.get() != Box<pair>.get() and bumps == 2",
             "        testSuccess()"
         );
     }
@@ -955,11 +955,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        this.value = value",
             "init",
             "    let nested = new List<List<Item>>()",
-            "    nested.add(new List<Item>())",
-            "    nested.get(0).add(new Item(7))",
+            "    let inner = new List<Item>()",
+            "    nested.add(inner)",
+            "    inner.add(new Item(7))",
             "    let pairs = new List<pair>()",
             "    pairs.add(pair(2, 3))",
-            "    if nested.get(0).get(0).value == 7 and pairs.get(0).x == 2",
+            "    if nested.get(0) == inner and inner.get(0).value == 7 and pairs.get(0).x == 2",
             "        testSuccess()"
         );
 
@@ -971,10 +972,40 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         while (storageDeclarations.find()) {
             storageNames.add(storageDeclarations.group(1));
         }
-        assertEquals("one erased class-like and one tuple-specialized storage slot are expected",
-            2, storageNames.size());
+        assertEquals("each concrete List instantiation needs independent static storage",
+            3, storageNames.size());
         assertEquals("each structural List specialization must emit one storage slot",
-            2L, storageNames.stream().distinct().count());
+            3L, storageNames.stream().distinct().count());
+    }
+
+    @Test
+    public void genericStaticsAreIndependentWithoutTupleInstantiation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Slot<T:>",
+            "    static T value",
+            "    static function set(T newValue)",
+            "        value = newValue",
+            "    static function get() returns T",
+            "        return value",
+            "init",
+            "    Slot<int>.set(7)",
+            "    Slot<string>.set(\"ok\")",
+            "    if Slot<int>.get() == 7 and Slot<string>.get() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericStaticsAreIndependentWithoutTupleInstantiation");
+        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
+            .compile("(?m)^Slot_value_\\S* = nil$")
+            .matcher(compiled);
+        int storages = 0;
+        while (storageDeclarations.find()) {
+            storages++;
+        }
+        assertEquals("each concrete Slot instantiation needs its own static",
+            2, storages);
     }
 
     @Test
@@ -1216,7 +1247,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             .matcher(compiled);
         int persistedAssignments = 0;
         while (replayBody.find()) {
-            int assignmentsInFunction = countOccurrences(replayBody.group(1), "Box_store[");
+            int assignmentsInFunction = (int) java.util.regex.Pattern
+                .compile("Box_store[^\\[]*\\[")
+                .matcher(replayBody.group(1)).results().count();
             assertTrue("each generic replay leaf must honor the configured split limit:\n" + replayBody.group(),
                 assignmentsInFunction <= 1);
             persistedAssignments += assignmentsInFunction;
