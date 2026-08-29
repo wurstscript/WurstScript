@@ -12,8 +12,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -30,9 +32,11 @@ public class RemoveGarbage {
         private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
         private final Set<ImClass> classes = new HashSet<>();
         private final Set<ImVar> vars = new HashSet<>();
+        private final Set<ImSet> ignoredInitializers;
 
-        private Used(ImTranslator translator) {
+        private Used(ImTranslator translator, Set<ImSet> ignoredInitializers) {
             this.translator = translator;
+            this.ignoredInitializers = ignoredInitializers;
         }
 
         public void addMethod(ImMethod m) {
@@ -119,7 +123,12 @@ public class RemoveGarbage {
     }
 
     private static Used collectUsed(ImProg prog, ImTranslator translator) {
-        Used used = new Used(translator);
+        return collectUsed(prog, translator, Collections.emptySet());
+    }
+
+    private static Used collectUsed(ImProg prog, ImTranslator translator,
+                                    Set<ImSet> ignoredInitializers) {
+        Used used = new Used(translator, ignoredInitializers);
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.getName().equals("main")
                 || f.getName().equals("config")) {
@@ -130,91 +139,52 @@ public class RemoveGarbage {
     }
 
     public static void removePhantomGenericStaticInitializers(ImProg prog, ImTranslator translator) {
-        while (removePhantomGenericStaticInitializersOnce(prog, translator,
-            collectUsed(prog, translator))) {
-            // Removing one initializer can make a generic static referenced by it unreachable.
-        }
-    }
-
-    /**
-     * A targeted generic specialization owns a copied static initializer. The erased initializer is
-     * not an independent runtime instantiation: when no live code uses its original static, keeping
-     * its side effects would initialize a phantom object and run the source initializer twice.
-     */
-    private static boolean removePhantomGenericStaticInitializersOnce(ImProg prog,
-                                                                      ImTranslator translator,
-                                                                      Used used) {
-        Set<ImVar> originalsWithSpecializations = new LinkedHashSet<>();
+        Map<ImVar, List<ImSet>> candidates = new LinkedHashMap<>();
         for (ImVar global : prog.getGlobals()) {
             ImTranslator.Specialisation specialization = translator.specialisationOf(global);
             if (specialization != null && specialization.original() instanceof ImVar original
                 && translator.genericStaticOwnerOf(original) != null) {
-                originalsWithSpecializations.add(original);
+                List<ImSet> initializers = prog.getGlobalInits().get(original);
+                if (initializers != null) {
+                    candidates.putIfAbsent(original, initializers);
+                }
             }
         }
-        for (ImVar original : originalsWithSpecializations) {
-            List<ImSet> initializers = prog.getGlobalInits().get(original);
-            if (hasUseOutsideOwnInitializer(original, initializers, used)) {
+
+        // First ignore every erased initializer, then mark the originals referenced by real roots.
+        // Re-enable initializers of marked originals until their transitive dependencies are marked.
+        // This is graph reachability rather than deletion order, so unreachable initializer cycles
+        // cannot keep themselves alive.
+        Set<ImVar> liveOriginals = new LinkedHashSet<>();
+        boolean changed;
+        do {
+            Set<ImSet> ignored = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+                if (!liveOriginals.contains(candidate.getKey())) {
+                    ignored.addAll(candidate.getValue());
+                }
+            }
+            Used used = collectUsed(prog, translator, ignored);
+            changed = false;
+            for (ImVar original : candidates.keySet()) {
+                if (used.getVars().contains(original) && liveOriginals.add(original)) {
+                    changed = true;
+                }
+            }
+        } while (changed);
+
+        for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+            if (liveOriginals.contains(candidate.getKey())) {
                 continue;
             }
-            initializers = prog.getGlobalInits().remove(original);
-            if (initializers == null) {
-                continue;
-            }
-            for (ImSet initializer : initializers) {
+            prog.getGlobalInits().remove(candidate.getKey());
+            for (ImSet initializer : candidate.getValue()) {
                 if (!(initializer.getParent() instanceof ImStmts statements)) {
                     throw new IllegalStateException("Global initializer is not attached to an ImStmts node.");
                 }
                 statements.remove(initializer);
             }
-            return true;
         }
-        return false;
-    }
-
-    private static boolean hasUseOutsideOwnInitializer(ImVar global, List<ImSet> initializers,
-                                                       Used used) {
-        Set<ImSet> initializerSet = initializers == null
-            ? Collections.emptySet()
-            : Collections.newSetFromMap(new IdentityHashMap<>());
-        if (initializers != null) {
-            initializerSet.addAll(initializers);
-        }
-        boolean[] found = {false};
-        for (ImFunction function : used.getFunctions()) {
-            function.accept(new Element.DefaultVisitor() {
-                @Override
-                public void visit(ImVarAccess access) {
-                    if (access.getVar() == global && !isInsideInitializer(access, initializerSet)) {
-                        found[0] = true;
-                    }
-                    super.visit(access);
-                }
-
-                @Override
-                public void visit(ImVarArrayAccess access) {
-                    if (access.getVar() == global && !isInsideInitializer(access, initializerSet)) {
-                        found[0] = true;
-                    }
-                    super.visit(access);
-                }
-            });
-            if (found[0]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isInsideInitializer(Element access, Set<ImSet> initializers) {
-        Element current = access;
-        while (current.getParent() instanceof Element parent) {
-            if (parent instanceof ImSet set && initializers.contains(set)) {
-                return true;
-            }
-            current = parent;
-        }
-        return false;
     }
 
     private static void visitFunction(ImFunction f, Used used) {
@@ -225,6 +195,13 @@ public class RemoveGarbage {
 
         visitType(f.getReturnType(), used);
         f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImSet e) {
+                if (!used.ignoredInitializers.contains(e)) {
+                    super.visit(e);
+                }
+            }
+
             @Override
             public void visit(ImFunctionCall e) {
                 super.visit(e);

@@ -816,6 +816,32 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int a = b + bump()",
+            "    static int b = a",
+            "    static function get() returns int",
+            "        return a + b",
+            "init",
+            "    if Box<pair>.get() == 2 and bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy");
+        assertEquals("an unreachable erased initializer cycle must not execute",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
