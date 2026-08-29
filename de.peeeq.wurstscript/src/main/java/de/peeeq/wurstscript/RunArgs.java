@@ -132,7 +132,7 @@ public class RunArgs {
         optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", arg -> mapFile = arg);
         optionExportObjects = addOptionWithArg("exportobjects", "Export object editor data from a map file or map folder to Wurst source.", arg -> exportObjectsFile = arg);
         addOptionWithArg("exportobjectsOut", "Output folder for -exportobjects.", arg -> exportObjectsOut = arg);
-        optionShowVersion = addOption("-version", "Shows the version of the compiler");
+        optionShowVersion = addOption("version", "Shows the version of the compiler");
 
         // other
         optionNoExtractMapScript = addOption("noExtractMapScript", "Do not extract the map script from the map and use the one from the Wurst folder instead.");

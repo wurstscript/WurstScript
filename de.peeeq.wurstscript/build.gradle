@@ -58,7 +58,9 @@ tasks.named("jacocoTestReport", JacocoReport) {
             '**/jassIm/**',
             '**/luaAst/**',
             '**/antlr/**',
-            'de/peeeq/wurstio/gui/**'
+            'de/peeeq/wurstio/gui/**',
+            'de/peeeq/wurstio/AbortCompilationException.class',
+            'de/peeeq/wurstio/ModelChangedException.class'
     ]
 
     classDirectories.setFrom(
