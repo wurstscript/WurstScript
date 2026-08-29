@@ -1062,10 +1062,16 @@ public class LuaTranslator {
         ));
 
         // set typeid metadata:
+        ImClass typeIdClass = c;
+        ImTranslator.Specialisation specialization = imTr.specialisationOf(c);
+        if (specialization != null && specialization.original() instanceof ImClass original) {
+            // Targeted Lua specialization preserves the nominal identity of the erased class.
+            typeIdClass = original;
+        }
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
             ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
+            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
         ));
 
 
@@ -1480,6 +1486,12 @@ public class LuaTranslator {
         }
         superClasses.add(LuaAst.LuaTableExprField(LuaAst.LuaExprVarAccess(luaClassVar.getFor(c)), LuaAst.LuaExprBoolVal(true)));
         visited.add(c);
+        ImTranslator.Specialisation specialization = imTr.specialisationOf(c);
+        if (specialization != null && specialization.original() instanceof ImClass original) {
+            // A targeted Lua specialization is a representation detail, not a new nominal type.
+            // Keep erased-class runtime checks true without inheriting its fields a second time.
+            collectSuperClasses(superClasses, original, visited);
+        }
         for (ImClassType sc : c.getSuperClasses()) {
             collectSuperClasses(superClasses, sc.getClassDef(), visited);
         }

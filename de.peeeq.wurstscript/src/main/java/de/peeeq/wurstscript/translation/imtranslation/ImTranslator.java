@@ -1925,6 +1925,28 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return result;
     }
 
+    VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {
+        if (!TypesHelper.typeContainsTuples(v.getType())
+            && TypesHelper.typeContainsTuples(concreteStorageType)) {
+            VarsForTupleResult result = varsForTupleVar.get(v);
+            if (result != null) {
+                return result;
+            }
+            result = createVarsForType(v.getName(), concreteStorageType, Function.identity(), v.getTrace());
+            varsForTupleVar.put(v, result);
+            if (v.getParent() instanceof ImVars owner) {
+                int position = owner.indexOf(v) + 1;
+                for (ImVar scalar : result.allValues()) {
+                    if (!owner.contains(scalar)) {
+                        owner.add(position++, scalar);
+                    }
+                }
+            }
+            return result;
+        }
+        return getVarsForTuple(v);
+    }
+
 
     /**
      * Creates variables for the given type, eliminating tuple types
@@ -2044,6 +2066,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             tempReturnVars.put(f, result);
         }
         return result;
+    }
+
+    void setTupleTempReturnVarsFor(ImFunction f, VarsForTupleResult vars) {
+        tempReturnVars.put(f, vars);
     }
 
     private final Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();
