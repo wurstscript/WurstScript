@@ -515,7 +515,7 @@ public class EliminateTuples {
                     ImExprs exprs = (ImExprs) elem;
                     if (exprs.getParent() instanceof ImOperatorCall) {
                         ImOperatorCall opCall = (ImOperatorCall) exprs.getParent();
-                        handleTupleInOpCall(replacer, opCall);
+                        handleTupleInOpCall(replacer, opCall, f);
                         return;
                     } else {
                         // in function arguments, other tuples
@@ -548,7 +548,7 @@ public class EliminateTuples {
 
     }
 
-    private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall) {
+    private static void handleTupleInOpCall(Replacer replacer, ImOperatorCall opCall, ImFunction f) {
         if (opCall.getParent() == null) {
             throw new RuntimeException("opCall not used: " + opCall);
         }
@@ -556,12 +556,17 @@ public class EliminateTuples {
         ImTupleExpr right = (ImTupleExpr) opCall.getArguments().get(1);
         WurstOperator op = opCall.getOp();
 
+        ImStmts evaluation = JassIm.ImStmts();
+        List<ImExpr> leftComponents = captureTupleComponents(left, evaluation, f);
+        List<ImExpr> rightComponents = captureTupleComponents(right, evaluation, f);
+        if (leftComponents.size() != rightComponents.size()) {
+            throw new CompileError(opCall.attrTrace(), "Cannot compare tuples with different arity.");
+        }
+
         List<ImExpr> componentComparisons = new ArrayList<>();
-        for (int i = 0; i < left.getExprs().size(); i++) {
-            ImExpr l = left.getExprs().get(i);
-            ImExpr r = right.getExprs().get(i);
-            l.setParent(null);
-            r.setParent(null);
+        for (int i = 0; i < leftComponents.size(); i++) {
+            ImExpr l = leftComponents.get(i);
+            ImExpr r = rightComponents.get(i);
             componentComparisons.add(JassIm.ImOperatorCall(op, JassIm.ImExprs(l, r)));
         }
 
@@ -598,7 +603,21 @@ public class EliminateTuples {
             newExpr = (seen ? Optional.of(acc) : Optional.<ImExpr>empty())
                     .get();
         }
-        replacer.replace(opCall, newExpr);
+        replacer.replace(opCall, JassIm.ImStatementExpr(evaluation, newExpr));
+    }
+
+    private static List<ImExpr> captureTupleComponents(ImTupleExpr tuple, ImStmts evaluation, ImFunction f) {
+        List<ImExpr> components = new ArrayList<>();
+        List<ImExpr> flat = new ArrayList<>();
+        flattenTupleExpr(tuple, evaluation, flat);
+        for (ImExpr expr : flat) {
+            expr.setParent(null);
+            ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_compare", false);
+            f.getLocals().add(temp);
+            evaluation.add(JassIm.ImSet(expr.attrTrace(), JassIm.ImVarAccess(temp), expr));
+            components.add(JassIm.ImVarAccess(temp));
+        }
+        return components;
     }
 
     private static ImStatementExpr inSet(ImSet imSet, ImTranslator translator, ImFunction f) {

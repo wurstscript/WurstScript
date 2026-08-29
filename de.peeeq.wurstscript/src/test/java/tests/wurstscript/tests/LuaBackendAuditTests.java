@@ -152,6 +152,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturningCallsAreCapturedBeforeComparison() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "@noinline function value(int seed) returns pair",
+            "    return pair(0, seed)",
+            "init",
+            "    if value(1) != value(2) and not (value(1) == value(2))",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturningCallsAreCapturedBeforeComparison");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
