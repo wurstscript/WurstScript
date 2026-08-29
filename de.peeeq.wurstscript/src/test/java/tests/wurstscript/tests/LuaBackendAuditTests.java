@@ -1197,6 +1197,63 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void fixedAllocationInsideErasedGenericMethodIsRegistered() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "class Factory<T:>",
+            "    construct()",
+            "    function make() returns Box<int>",
+            "        return new Box<int>()",
+            "init",
+            "    let factory = new Factory<real>()",
+            "    let made = factory.make()",
+            "    let fresh = new Factory<string>().make()",
+            "    if made != null and fresh != null and Box<string>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedAllocationInsideErasedGenericMethodIsRegistered");
+        assertFalse("fixed generic method body must not be cloned for its class argument",
+            compiled.contains("Factory_make_specialized"));
+    }
+
+    @Test
+    public void fixedStaticCalleeDoesNotSpecializeUnrelatedGenericCaller() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "function helper<T:>() returns int",
+            "    return Box<int>.get()",
+            "init",
+            "    if helper<string>() == 1 and helper<real>() == 1",
+            "        and Box<string>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedStaticCalleeDoesNotSpecializeUnrelatedGenericCaller");
+        assertFalse("fixed Box<int> static call must not clone helper<T>",
+            compiled.contains("helper_specialized"));
+    }
+
+    @Test
     public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
         record Shape(String type, String value, int constructions) {}
 

@@ -42,6 +42,8 @@ public class EliminateGenerics {
     private final Set<Element> specializedCallSites = Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<Element> recordedErasedStaticAllocations =
         Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImFunction> scannedFixedStaticCallees =
+        Collections.newSetFromMap(new IdentityHashMap<>());
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     /** The class each function was moved out of, for calls which name their target without a receiver. */
     private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
@@ -486,26 +488,25 @@ public class EliminateGenerics {
             // The generic callee remains erased, so its body is skipped by collectGenericNewRoots.
             // Fixed concrete allocations inside it still name real per-instantiation statics and
             // must be registered without cloning the caller for unrelated type arguments.
-            recordFixedErasedStaticAllocations(call.getFunc(),
-                Collections.newSetFromMap(new IdentityHashMap<>()));
+            recordFixedErasedStaticAllocations(call.getFunc());
         }
     }
 
-    private void recordFixedErasedStaticAllocations(ImFunction function,
-                                                     Set<ImFunction> visited) {
-        if (!visited.add(function)) {
+    private void recordFixedErasedStaticAllocations(ImFunction function) {
+        if (!scannedFixedStaticCallees.add(function)) {
             return;
         }
         function.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall nestedCall) {
                 super.visit(nestedCall);
-                recordErasedConstructorAllocation(nestedCall);
-                if (!nestedCall.getTypeArguments().isEmpty()
-                    && !typeArgumentsContainTypeVariable(nestedCall.getTypeArguments())
-                    && !(nestedCall.getFunc().getTrace() instanceof ConstructorDef)) {
-                    recordFixedErasedStaticAllocations(nestedCall.getFunc(), visited);
-                }
+                collectGenericNewUse(nestedCall);
+            }
+
+            @Override
+            public void visit(ImMethodCall nestedCall) {
+                super.visit(nestedCall);
+                collectGenericNewUse(nestedCall);
             }
         });
     }
@@ -744,20 +745,24 @@ public class EliminateGenerics {
             specializedCallSites.add(call);
             return;
         }
-        if (!shouldSpecializeTupleArguments(call.getTypeArguments())
-            && !methodNeedsSpecialization(method,
-            Collections.newSetFromMap(new IdentityHashMap<>()),
-            Collections.newSetFromMap(new IdentityHashMap<>()))) {
-            return;
-        }
         if (isMissingClassTypeArguments(call, method)) {
             addMemberTypeArguments(call, method.attrClass());
         }
         if (typeArgumentsContainTypeVariable(call.getTypeArguments())) {
-            // The receiver's declared type is still generic, which happens when the method is
-            // called straight on a freshly constructed value. The construction states the
-            // instantiation, so take the arguments from it.
+            // A call directly on a fresh generic construction gets its concrete class arguments
+            // from that construction before deciding between specialization and fixed-body scan.
             useConstructionTypeArguments(call);
+        }
+        boolean needsSpecialization = methodNeedsSpecialization(method,
+            Collections.newSetFromMap(new IdentityHashMap<>()),
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+        if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
+            if (!call.getTypeArguments().isEmpty()
+                && !typeArgumentsContainTypeVariable(call.getTypeArguments())
+                && method.getImplementation() != null) {
+                recordFixedErasedStaticAllocations(method.getImplementation());
+            }
+            return;
         }
         if (!call.getTypeArguments().isEmpty()
             && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
@@ -876,9 +881,10 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImFunctionCall call) {
+                boolean dependsOnTypeVariable = typeArgumentsContainTypeVariable(call.getTypeArguments());
                 if (constructsClassOwningGenericGlobals(function, call)
-                    || translator.isGenericNewMarker(call.getFunc())
-                    || functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods)) {
+                    || (dependsOnTypeVariable && (translator.isGenericNewMarker(call.getFunc())
+                    || functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods)))) {
                     found[0] = true;
                     return;
                 }
@@ -887,7 +893,8 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImMethodCall call) {
-                if (methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
+                if (typeArgumentsContainTypeVariable(call.getTypeArguments())
+                    && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
                 }
