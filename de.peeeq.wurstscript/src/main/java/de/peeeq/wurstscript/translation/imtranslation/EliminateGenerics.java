@@ -281,7 +281,41 @@ public class EliminateGenerics {
                 super.visit(memberAccess);
                 collectGenericNewUse(memberAccess);
             }
+
+            @Override
+            public void visit(ImDealloc dealloc) {
+                super.visit(dealloc);
+                collectGenericNewUse(dealloc);
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                collectGenericNewUse(instanceOf);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj typeId) {
+                super.visit(typeId);
+                collectGenericNewUse(typeId);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfClass typeId) {
+                super.visit(typeId);
+                collectGenericNewUse(typeId);
+            }
         });
+    }
+
+    private void collectGenericNewUse(ImClassRelatedExprWithClass expression) {
+        ImClassType clazz = expression.getClazz();
+        if (clazz.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
+            || !shouldSpecializeTupleArguments(clazz.getTypeArguments())) {
+            return;
+        }
+        genericsUses.add(new GenericClazzUse(expression));
     }
 
     private void collectGenericNewUses(Element element) {
@@ -1796,7 +1830,8 @@ public class EliminateGenerics {
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
 
-        if (genericNewOnly && isConstructionOnlyInstantiation(c)) {
+        if (genericNewOnly && (isConstructionOnlyInstantiation(c)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
             attachSpecializedClassMethods(c, newC, generics);
         }
 

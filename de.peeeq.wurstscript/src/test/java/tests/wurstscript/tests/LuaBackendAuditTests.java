@@ -265,6 +265,54 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedClassBindsNongenericInterfaceDispatch() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Producer",
+            "    function produce() returns pair",
+            "class GenericProducer<T:> implements Producer",
+            "    pair stored",
+            "    construct(pair value)",
+            "        stored = value",
+            "    function produce() returns pair",
+            "        return stored",
+            "init",
+            "    Producer producer = new GenericProducer<pair>(pair(4, 5))",
+            "    if producer.produce() == pair(4, 5)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializedClassBindsNongenericInterfaceDispatch");
+        assertTrue(compiled.contains("GenericProducer_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializedClassPreservesRuntimeTypeOperations() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "init",
+            "    Marker box = new Box<pair>(pair(6, 7))",
+            "    Marker plain = new Box<int>(1)",
+            "    if box instanceof Box and box.typeId == plain.typeId",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializedClassPreservesRuntimeTypeOperations");
+        assertTrue(compiled.contains("Box_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void tupleReturningCallsAreCapturedBeforeComparison() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
