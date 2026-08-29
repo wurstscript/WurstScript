@@ -935,6 +935,222 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void nestedConcreteGenericStaticStorageCompilesInLua() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class List<T:>",
+            "    static T array store",
+            "    int size",
+            "    construct()",
+            "    function add(T value)",
+            "        store[size] = value",
+            "        size++",
+            "    function get(int index) returns T",
+            "        return store[index]",
+            "class Item",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value",
+            "init",
+            "    let nested = new List<List<Item>>()",
+            "    nested.add(new List<Item>())",
+            "    nested.get(0).add(new Item(7))",
+            "    let pairs = new List<pair>()",
+            "    pairs.add(pair(2, 3))",
+            "    if nested.get(0).get(0).value == 7 and pairs.get(0).x == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
+        record Shape(String type, String value, int constructions) {}
+
+        Random random = new Random(0x6E3571A9L);
+        List<String> declarations = new ArrayList<>();
+        List<Shape> shapes = new ArrayList<>();
+        for (int i = 0; i < 18; i++) {
+            int first = random.nextInt(17) + 1;
+            int second = random.nextInt(17) + 1;
+            Shape shape = i % 2 == 0
+                ? new Shape("int", Integer.toString(first), 0)
+                : new Shape("pair", "pair(" + first + ", " + second + ")",
+                    0);
+            int depth = 2 + random.nextInt(3);
+            for (int d = 0; d < depth; d++) {
+                switch ((i + d + random.nextInt(3)) % 3) {
+                    case 0 -> shape = new Shape("Box<" + shape.type() + ">",
+                        "new Box<" + shape.type() + ">(" + shape.value() + ")",
+                        shape.constructions() + 1);
+                    case 1 -> shape = new Shape("Child<" + shape.type() + ">",
+                        "new Child<" + shape.type() + ">(" + shape.value() + ")",
+                        shape.constructions() + 1);
+                    case 2 -> {
+                        String tupleName = "Wrapped" + i + "_" + d;
+                        int tag = random.nextInt(11) + 1;
+                        declarations.add("tuple " + tupleName + "(" + shape.type()
+                            + " value, int tag)");
+                        shape = new Shape(tupleName,
+                            tupleName + "(" + shape.value() + ", " + tag + ")",
+                            shape.constructions());
+                    }
+                }
+            }
+            shapes.add(shape);
+        }
+
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("int constructions");
+        source.add("int writes");
+        source.add("interface Marker<T:>");
+        source.add("class Box<T:> implements Marker<T>");
+        source.add("    T value");
+        source.add("    construct(T value)");
+        source.add("        this.value = value");
+        source.add("        constructions++");
+        source.add("class Child<T:> extends Box<T>");
+        source.add("    construct(T value)");
+        source.add("        super(value)");
+        source.add("class Vault<T:>");
+        source.add("    static T value");
+        source.add("    static function set(T newValue)");
+        source.add("        value = newValue");
+        source.add("        writes++");
+        source.addAll(declarations);
+        source.add("init");
+        int expectedConstructions = 0;
+        for (Shape shape : shapes) {
+            source.add("    Vault<" + shape.type() + ">.set(" + shape.value() + ")");
+            expectedConstructions += shape.constructions();
+        }
+        source.add("    if writes == " + shapes.size()
+            + " and constructions == " + expectedConstructions);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+    }
+
+    @Test
+    public void randomizedClassInterfaceModuleDispatchMatchesAllBackends() {
+        Random random = new Random(0xD15A7C4L);
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native testSuccess()",
+            "int destroyed",
+            "interface Primary",
+            "    function score() returns int",
+            "interface Secondary",
+            "    function bonus() returns int",
+            "module Payload",
+            "    int moduleValue",
+            "    function payload() returns int",
+            "        return moduleValue * 3",
+            "    ondestroy",
+            "        destroyed++",
+            "class Root implements Primary",
+            "    use Payload",
+            "    int base",
+            "    construct(int base)",
+            "        this.base = base",
+            "        moduleValue = base + 1",
+            "    override function score() returns int",
+            "        return base + payload()",
+            "class Alpha extends Root implements Secondary",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() + 11",
+            "    override function bonus() returns int",
+            "        return base * 5 + 1",
+            "class AlphaLeaf extends Alpha",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() * 2",
+            "    override function bonus() returns int",
+            "        return super.bonus() + 5",
+            "class Beta extends Root implements Secondary",
+            "    construct(int base)",
+            "        super(base)",
+            "    override function score() returns int",
+            "        return super.score() - 7",
+            "    override function bonus() returns int",
+            "        return base * 7 + 2",
+            "module ScoreContract",
+            "    abstract function score() returns int",
+            "module StandaloneScore",
+            "    use ScoreContract",
+            "    use Payload",
+            "    override function score() returns int",
+            "        return moduleValue * 9 + 4",
+            "class ModuleOnly implements Primary",
+            "    use StandaloneScore",
+            "    construct(int base)",
+            "        moduleValue = base",
+            "function viaPrimary(Primary value) returns int",
+            "    return value.score()",
+            "function viaSecondary(Secondary value) returns int",
+            "    return value.bonus()",
+            "init",
+            "    int checksum = 0");
+
+        int expected = 0;
+        int objectCount = 40;
+        for (int i = 0; i < objectCount; i++) {
+            int value = random.nextInt(30) + 1;
+            int kind = random.nextInt(5);
+            String className;
+            int score;
+            Integer bonus = null;
+            switch (kind) {
+                case 0 -> {
+                    className = "Root";
+                    score = 4 * value + 3;
+                }
+                case 1 -> {
+                    className = "Alpha";
+                    score = 4 * value + 14;
+                    bonus = value * 5 + 1;
+                }
+                case 2 -> {
+                    className = "AlphaLeaf";
+                    score = (4 * value + 14) * 2;
+                    bonus = value * 5 + 6;
+                }
+                case 3 -> {
+                    className = "Beta";
+                    score = 4 * value - 4;
+                    bonus = value * 7 + 2;
+                }
+                default -> {
+                    className = "ModuleOnly";
+                    score = value * 9 + 4;
+                }
+            }
+            source.add("    let object" + i + " = new " + className + "(" + value + ")");
+            source.add("    Primary primary" + i + " = object" + i);
+            source.add("    checksum += viaPrimary(primary" + i + ")");
+            expected += score;
+            if (bonus != null) {
+                source.add("    Secondary secondary" + i + " = object" + i);
+                source.add("    checksum += viaSecondary(secondary" + i + ")");
+                expected += bonus;
+            }
+            source.add("    destroy object" + i);
+        }
+        source.add("    if checksum == " + expected + " and destroyed == " + objectCount);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+    }
+
+    @Test
     public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",

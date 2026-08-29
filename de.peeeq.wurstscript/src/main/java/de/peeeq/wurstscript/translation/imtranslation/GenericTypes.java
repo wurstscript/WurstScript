@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.jassIm.*;
 
@@ -16,9 +15,6 @@ class GenericTypes {
 
 
     public GenericTypes(List<ImTypeArgument> typeArguments) {
-        for (ImTypeArgument ta : typeArguments) {
-            Preconditions.checkArgument(!EliminateGenerics.isGenericType(ta.getType()), "Type arguments must not be generic: " + typeArguments);
-        }
         this.typeArguments = ImmutableList.copyOf(typeArguments);
     }
 
