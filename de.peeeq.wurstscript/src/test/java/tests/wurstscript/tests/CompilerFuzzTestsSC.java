@@ -25,6 +25,29 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
         Assert.assertNotNull(result.getGui());
     }
 
+    @Property(maxInvocations = 64)
+    public void generatedProgramsCompileForBothBackends(@From(RandomProgram.class) Program program) {
+        assertCompilesForBothBackends(program);
+    }
+
+    @Test
+    public void generatedCorpusCompilesForBothBackends() {
+        new RandomProgram().generate(0).forEach(this::assertCompilesForBothBackends);
+    }
+
+    private void assertCompilesForBothBackends(Program program) {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .testLua(true)
+            .luaOnly(false)
+            .compilationUnits(asCompilationUnits(program));
+
+        Assert.assertTrue(result.getGui().getErrorList().isEmpty(),
+            "generated program produced compiler diagnostics: " + result.getGui().getErrorList()
+                + "\nsource:\n" + String.join("\n---\n", program.sources));
+    }
+
     @Property(maxInvocations = 180)
     public void mixedNewlineStylesAreCrashFree(@From(RandomProgram.class) Program program) {
         String alternateNewline = "\n".equals(program.newline) ? "\r\n" : "\n";
@@ -173,7 +196,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
 
         if (includeInterface) {
             lines.add("interface IHandler");
-            lines.add(indent + "function handle(int value) returns int");
+            lines.add(indent + "function process(int value) returns int");
         }
 
         lines.add("class Counter");
@@ -193,7 +216,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
 
         if (includeInterface) {
             lines.add("class Sink implements IHandler");
-            lines.add(indent + "function handle(int value) returns int");
+            lines.add(indent + "function process(int value) returns int");
             lines.add(indent + indent + "return value + base");
         }
 
@@ -222,7 +245,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
 
         if (includeInterface) {
             lines.add(indent + "IHandler handler = new Sink()");
-            lines.add(indent + "total = handler.handle(total)");
+            lines.add(indent + "total = handler.process(total)");
         }
 
         if (includeTuple) {
