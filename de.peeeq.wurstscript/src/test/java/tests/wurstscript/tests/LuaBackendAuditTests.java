@@ -213,6 +213,59 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSelectionPreservesLeftToRightEvaluation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int trace",
+            "function mark(int value) returns int",
+            "    trace = trace * 10 + value",
+            "    return value",
+            "init",
+            "    let selected = pair(mark(1), mark(2)).x",
+            "    if selected == 1 and trace == 12",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSelectionPreservesLeftToRightEvaluation");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleAssignmentCapturesLvalueBeforeRhs() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Holder",
+            "    pair value",
+            "Holder current",
+            "Holder replacement",
+            "int currentIndex = 1",
+            "pair array values",
+            "function changeTargets() returns pair",
+            "    current = replacement",
+            "    currentIndex = 2",
+            "    return pair(3, 4)",
+            "init",
+            "    let original = new Holder()",
+            "    replacement = new Holder()",
+            "    current = original",
+            "    current.value = changeTargets()",
+            "    current = original",
+            "    currentIndex = 1",
+            "    values[currentIndex] = changeTargets()",
+            "    if original.value == pair(3, 4) and replacement.value == pair(0, 0)",
+            "        and values[1] == pair(3, 4) and values[2] == pair(0, 0)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleAssignmentCapturesLvalueBeforeRhs");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",

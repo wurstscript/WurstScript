@@ -203,7 +203,14 @@ public class EliminateTuples {
                             stmts.add(remaining);
                         }
                     } else { // if it is the part we want to return ...
-                        result = extractSideEffect(te, stmts);
+                        ImExpr selected = extractSideEffect(te, stmts);
+                        if (i < tupleExpr.getExprs().size() - 1 && !ts.isUsedAsLValue()) {
+                            // Later tuple components still have to run, but the selected value is
+                            // evaluated at its original position in the tuple's left-to-right order.
+                            result = captureSelectedValue(selected, stmts, f);
+                        } else {
+                            result = selected;
+                        }
                     }
                 }
                 assert result != null;
@@ -216,6 +223,22 @@ public class EliminateTuples {
                 }
             }
         });
+    }
+
+    private static ImExpr captureSelectedValue(ImExpr selected, ImStmts stmts, ImFunction f) {
+        if (selected instanceof ImTupleExpr tuple) {
+            ImExprs captured = JassIm.ImExprs();
+            for (ImExpr component : tuple.getExprs()) {
+                component.setParent(null);
+                captured.add(captureSelectedValue(extractSideEffect(component, stmts), stmts, f));
+            }
+            return JassIm.ImTupleExpr(captured);
+        }
+        ImVar temp = JassIm.ImVar(selected.attrTrace(), selected.attrTyp(), "tupleSelection", false);
+        f.getLocals().add(temp);
+        selected.setParent(null);
+        stmts.add(JassIm.ImSet(selected.attrTrace(), JassIm.ImVarAccess(temp), selected));
+        return JassIm.ImVarAccess(temp);
     }
 
     interface Step {
@@ -319,13 +342,8 @@ public class EliminateTuples {
                     ImExprs indexes = va.getIndexes();
                     ImExprs indexExprs = JassIm.ImExprs();
                     ImStmts stmts = JassIm.ImStmts();
-                    boolean sideEffects = false;
-                    for (ImExpr index : indexes) {
-                        if (SideEffectAnalyzer.quickcheckHasSideeffects(index)) {
-                            sideEffects = true;
-                            break;
-                        }
-                    }
+                    boolean sideEffects = indexes.stream()
+                        .anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
                     for (ImExpr ie : indexes) {
                         if (sideEffects) {
                             // use temp variables if there are side effects
@@ -652,7 +670,7 @@ public class EliminateTuples {
         // 1) Flatten LHS into L-values (recursively), hoisting side-effects
         List<ImLExpr> lhsLeaves = new ArrayList<>();
         for (ImExpr e : left.getExprs()) {
-            flattenLhsTuple(e, lhsLeaves, stmts);
+            flattenLhsTuple(e, lhsLeaves, stmts, f);
         }
 
         // 2) Flatten RHS into expressions (recursively), expanding null<TUPLE> to defaults, hoisting side-effects
@@ -786,15 +804,43 @@ public class EliminateTuples {
     }
 
     /** Flatten LHS recursively into addressable leaves (ImLExpr), hoisting side-effects */
-    private static void flattenLhsTuple(ImExpr e, List<ImLExpr> out, ImStmts sideStmts) {
+    private static void flattenLhsTuple(ImExpr e, List<ImLExpr> out, ImStmts sideStmts, ImFunction f) {
         ImExpr x = extractSideEffect(e, sideStmts);
         if (x instanceof ImTupleExpr) {
             for (ImExpr sub : ((ImTupleExpr) x).getExprs()) {
-                flattenLhsTuple(sub, out, sideStmts);
+                flattenLhsTuple(sub, out, sideStmts, f);
             }
         } else {
-            out.add((ImLExpr) x);
+            out.add(captureLvalueAddress((ImLExpr) x, sideStmts, f));
         }
+    }
+
+    /** Capture the address-bearing parts of an lvalue before evaluating the assignment RHS. */
+    private static ImLExpr captureLvalueAddress(ImLExpr lvalue, ImStmts stmts, ImFunction f) {
+        if (lvalue instanceof ImMemberAccess access) {
+            ImExpr receiver = access.getReceiver();
+            receiver.setParent(null);
+            access.setReceiver(captureValue(receiver, "tuple_lvalue_receiver", stmts, f));
+            captureLvalueIndexes(access.getIndexes(), stmts, f);
+        } else if (lvalue instanceof ImVarArrayAccess access) {
+            captureLvalueIndexes(access.getIndexes(), stmts, f);
+        }
+        return lvalue;
+    }
+
+    private static void captureLvalueIndexes(ImExprs indexes, ImStmts stmts, ImFunction f) {
+        for (int i = 0; i < indexes.size(); i++) {
+            ImExpr index = indexes.get(i);
+            index.setParent(null);
+            indexes.set(i, captureValue(index, "tuple_lvalue_index", stmts, f));
+        }
+    }
+
+    private static ImExpr captureValue(ImExpr value, String name, ImStmts stmts, ImFunction f) {
+        ImVar temp = JassIm.ImVar(value.attrTrace(), value.attrTyp(), name, false);
+        f.getLocals().add(temp);
+        stmts.add(JassIm.ImSet(value.attrTrace(), JassIm.ImVarAccess(temp), value));
+        return JassIm.ImVarAccess(temp);
     }
 
     /** Flatten RHS recursively into leaves, expanding null<TUPLE> to tuple of defaults, hoisting side-effects */
