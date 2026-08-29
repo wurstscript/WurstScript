@@ -192,6 +192,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturnStagesComponentsBeforeRecursiveSlotWrites() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Producer",
+            "    @noinline function produce(int seed) returns pair",
+            "        if seed == 0",
+            "            return pair(7, produce(1).x)",
+            "        return pair(seed, 99)",
+            "init",
+            "    let result = new Producer().produce(0)",
+            "    if result == pair(7, 1)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturnStagesComponentsBeforeRecursiveSlotWrites");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",

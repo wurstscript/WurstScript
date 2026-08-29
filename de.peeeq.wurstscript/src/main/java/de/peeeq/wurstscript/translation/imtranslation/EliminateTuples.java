@@ -840,23 +840,32 @@ public class EliminateTuples {
                 "Cannot return tuple with " + flatExprs.size() + " element(s) from function expecting " + returnVars.size() + " element(s)");
         }
 
-        // 2) Assign per component, converting nulls to proper defaults of LHS type
+        // 2) Capture every component before publishing any shared return slot. A later
+        // component can call this function (or a sibling in its dispatch group) and write
+        // the same slots, so assigning slots while components are still being evaluated
+        // would corrupt the outer result.
+        List<ImVar> staged = new ArrayList<>(returnVars.size());
         for (int i = 0; i < returnVars.size(); i++) {
             ImVar rv = returnVars.get(i);
             ImExpr rhs = flatExprs.get(i);
             rhs.setParent(null);
 
             if (rhs instanceof ImNull) {
-                // Use the *component target type* to build the correct default (0 for ints,
-                // (0,0) for tuple components if those ever occur, etc)
-                ImExpr defaultRhs = ImHelper.defaultValueForComplexType(rv.getType());
-                stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(rv), defaultRhs));
-            } else {
-                stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(rv), rhs));
+                rhs = ImHelper.defaultValueForComplexType(rv.getType());
             }
+            ImVar temp = JassIm.ImVar(rhs.attrTrace(), rv.getType(), "tuple_return", false);
+            f.getLocals().add(temp);
+            stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(temp), rhs));
+            staged.add(temp);
         }
 
-        // 3) Return the first component temp
+        // 3) Publish the complete value only after all potentially re-entrant evaluation.
+        for (int i = 0; i < returnVars.size(); i++) {
+            stmts.add(JassIm.ImSet(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(i)),
+                JassIm.ImVarAccess(staged.get(i))));
+        }
+
+        // 4) Return the first component slot
         stmts.add(JassIm.ImReturn(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(0))));
         return ImHelper.statementExprVoid(stmts);
     }
