@@ -61,6 +61,8 @@ public class EliminateGenerics {
     // NEW: Track specialized global variables for generic static fields
     // Key: (original generic global var, concrete type instantiation) -> specialized var
     private final Table<ImVar, GenericTypes, ImVar> specializedGlobals = HashBasedTable.create();
+    /** Last specialized initializer emitted for each original initializer, preserving discovery order. */
+    private final Map<ImStmt, ImStmt> specializedInitializerTails = new IdentityHashMap<>();
 
     // NEW: Track which global vars belong to which generic class
     // This helps us know which globals need specialization
@@ -2188,10 +2190,14 @@ public class EliminateGenerics {
                     ImLExpr newLeft = specializeLhs.apply(origSet.getLeft());
                     ImSet specSet = JassIm.ImSet(originalGlobal.attrTrace(), newLeft, rhs);
 
-                    // schedule insertion right after origSet in its parent ImStmts
+                    // Append after earlier specializations of this initializer. Each invocation of
+                    // createSpecializedGlobals has its own insertion batch; always inserting after
+                    // origSet would therefore reverse specialization discovery/initializer order.
+                    ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
                     IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
                         insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
-                    byStmt.computeIfAbsent(origSet, k -> new ArrayList<>(1)).add(specSet);
+                    byStmt.computeIfAbsent(insertionPoint, k -> new ArrayList<>(1)).add(specSet);
+                    specializedInitializerTails.put(origSet, specSet);
 
                     // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
                     specializedInitsForMap.add((ImSet) specSet.copy());

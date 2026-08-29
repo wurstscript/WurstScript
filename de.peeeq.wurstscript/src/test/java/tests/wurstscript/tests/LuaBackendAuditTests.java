@@ -884,7 +884,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    static function get() returns int",
             "        return value",
             "init",
-            "    if Box<int>.get() + Box<pair>.get() == 3 and Box<int>.get() != Box<pair>.get() and bumps == 2",
+            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
             "        testSuccess()"
         );
     }
@@ -902,10 +902,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "class Box<T:>",
             "    static int value = bump()",
             "    construct()",
+            "    static function get() returns int",
+            "        return value",
             "init",
             "    new Box<int>()",
             "    new Box<pair>()",
-            "    if bumps == 2",
+            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
             "        testSuccess()"
         );
     }
@@ -1046,7 +1048,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    new Box<string>()",
             "    new Box<real>()",
-            "    if Box<int>.get() >= 1 and bumps == 3",
+            "    if Box<string>.get() == 1 and Box<real>.get() == 2 and Box<int>.get() == 3 and bumps == 3",
             "        testSuccess()"
         );
     }
