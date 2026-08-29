@@ -458,7 +458,7 @@ public class FastHashMapTests extends WurstScriptTest {
 
     private static String allocatedFields(String compiled, String classPattern) {
         String fields = allocatedFieldsOrNull(compiled, classPattern);
-        if (fields == null) {
+        if (fields == null || fields.isEmpty()) {
             throw new AssertionError("expected an allocation for " + classPattern + " in:\n" + compiled);
         }
         return fields;
@@ -466,7 +466,7 @@ public class FastHashMapTests extends WurstScriptTest {
 
     private static @Nullable String allocatedFieldsOrNull(String compiled, String classPattern) {
         Matcher allocation = Pattern.compile("function " + classPattern + ":create\\d*\\(\\)\\s*\\R"
-            + "(.*?)\\Rend", Pattern.DOTALL).matcher(compiled);
+            + "(.*?)\\R\\s*return new_inst\\s*\\Rend", Pattern.DOTALL).matcher(compiled);
         if (!allocation.find()) {
             return null;
         }
