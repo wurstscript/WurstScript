@@ -796,6 +796,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedTypedLocalDoesNotRootErasedInitializer() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "init",
+            "    let box = new Box<pair>()",
+            "    if bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedTypedLocalDoesNotRootErasedInitializer");
+        assertEquals("a tuple-specialized local type must not retain the erased initializer",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
+    }
+
+    @Test
     public void tupleSpecializedStaticKeepsLiveErasedInitializer() {
         test().testLua(true).executeProg().lines(
             "package Test",

@@ -31,8 +31,8 @@ public class RemoveGarbage {
         // methods that will be added once the class is used:
         private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
         private final Set<ImClass> classes = new HashSet<>();
-        /** Classes named directly by reachable code, excluding canonical metadata dependencies. */
-        private final Set<ImClass> directClasses = new HashSet<>();
+        /** Classes which reachable code actually allocates, excluding nominal type-only references. */
+        private final Set<ImClass> instantiatedClasses = new HashSet<>();
         private final Set<ImVar> vars = new HashSet<>();
         private final Set<ImSet> ignoredInitializers;
 
@@ -66,8 +66,8 @@ public class RemoveGarbage {
             return classes;
         }
 
-        public Set<ImClass> getDirectClasses() {
-            return directClasses;
+        public Set<ImClass> getInstantiatedClasses() {
+            return instantiatedClasses;
         }
 
         public Set<ImVar> getVars() {
@@ -89,7 +89,7 @@ public class RemoveGarbage {
                 // A targeted specialization has a distinct storage layout but keeps the source
                 // class's nominal type id and instanceof identity. The canonical class is therefore
                 // a real metadata dependency even when no source expression names it directly.
-                visitClass(nominalClass, this, false);
+                visitClass(nominalClass, this);
             }
             Collection<ImMethod> imMethods = waitingMethods.get(c);
             Iterator<ImMethod> it = imMethods.iterator();
@@ -97,6 +97,15 @@ public class RemoveGarbage {
                 ImMethod m = it.next();
                 visitMethod(m, this);
                 it.remove();
+            }
+        }
+
+        public void addInstantiatedClass(ImClass c) {
+            if (!instantiatedClasses.add(c)) {
+                return;
+            }
+            for (ImClassType superClass : c.getSuperClasses()) {
+                addInstantiatedClass(superClass.getClassDef());
             }
         }
     }
@@ -173,7 +182,7 @@ public class RemoveGarbage {
             changed = false;
             for (ImVar original : candidates.keySet()) {
                 ImClass owner = translator.genericStaticOwnerOf(original);
-                if ((used.getVars().contains(original) || used.getDirectClasses().contains(owner))
+                if ((used.getVars().contains(original) || used.getInstantiatedClasses().contains(owner))
                     && liveOriginals.add(original)) {
                     changed = true;
                 }
@@ -248,6 +257,7 @@ public class RemoveGarbage {
             @Override
             public void visit(ImAlloc e) {
                 super.visit(e);
+                used.addInstantiatedClass(e.getClazz().getClassDef());
                 visitClass(e.getClazz().getClassDef(), used);
             }
 
@@ -305,19 +315,12 @@ public class RemoveGarbage {
     }
 
     private static void visitClass(ImClass c, Used used) {
-        visitClass(c, used, true);
-    }
-
-    private static void visitClass(ImClass c, Used used, boolean direct) {
-        if (direct) {
-            used.getDirectClasses().add(c);
-        }
         if (used.getClasses().contains(c)) {
             return;
         }
         used.addClass(c);
         for (ImClassType superClass : c.getSuperClasses()) {
-            visitClass(superClass.getClassDef(), used, direct);
+            visitClass(superClass.getClassDef(), used);
         }
     }
 
