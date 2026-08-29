@@ -816,6 +816,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedStaticKeepsInitializerForConstructedErasedClass() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "init",
+            "    new Box<int>()",
+            "    new Box<pair>()",
+            "    if bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
