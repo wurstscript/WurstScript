@@ -212,6 +212,20 @@ For config and run-pipeline changes, prefer these focused checks before broader 
 
 Recent fixes established additional rules for backend work. Follow these for all future changes:
 
+### Compiler phase ownership and lowering invariants
+
+* Fix malformed or underspecified IR in the phase which creates it. Do not add downstream recovery,
+  name parsing, or backend-specific guessing for information an earlier phase discarded.
+* Semantic identity and specialization keys must use referenced AST/IM nodes plus structural type
+  arguments, never generated names or string comparison.
+* Each lowering phase has one explicit input/output contract. After an abstraction is lowered,
+  downstream phases consume the lowered representation and must not reconstruct its source meaning.
+* Prefer backend-appropriate, state-of-the-art lowering when semantics permit it. Jass limitations may
+  require compatibility compromises; do not carry those compromises into Lua without evidence.
+* Behavioral correctness is the primary requirement. Runtime and allocation performance are the next
+  requirement: common optimized paths must not retain avoidable compiler-introduced allocation,
+  dispatch, copying, or bookkeeping overhead.
+
 ### Jass/Lua feature parity
 
 * New language/compiler features must be validated for **both Jass and Lua** backends.

@@ -12,7 +12,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertFalse;
@@ -138,6 +141,823 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse(java.util.regex.Pattern.compile(
             "function toIndex\\((\\w+)\\)\\s*\\R\\s*return __wurst_classToIndex\\(\\1\\)")
             .matcher(compiled).find());
+    }
+
+    @Test
+    public void tuplesAreScalarizedWithoutLuaAllocations() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple vec2(real x, real y)",
+            "tuple segment(vec2 start, vec2 finish)",
+            "vec2 array points",
+            "abstract class Producer",
+            "    vec2 offset",
+            "    abstract function produce(real x) returns vec2",
+            "class Concrete extends Producer",
+            "    override function produce(real x) returns vec2",
+            "        return vec2(x + offset.x, x + offset.y)",
+            "function shifted(segment s, vec2 delta) returns segment",
+            "    return segment(vec2(s.start.x + delta.x, s.start.y + delta.y),",
+            "        vec2(s.finish.x + delta.x, s.finish.y + delta.y))",
+            "init",
+            "    Producer producer = new Concrete()",
+            "    producer.offset = vec2(3., 4.)",
+            "    points[2] = producer.produce(5.)",
+            "    let result = shifted(segment(points[2], vec2(10., 20.)), vec2(1., 2.))",
+            "    if points[2] == vec2(8., 9.) and result.start == vec2(9., 11.)",
+            "        and result.finish == vec2(11., 22.)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tuplesAreScalarizedWithoutLuaAllocations");
+        assertFalse("tuple assignment must not allocate through a copy helper", compiled.contains("tupleCopy"));
+        assertFalse("tuple comparison must be lowered to scalar comparisons", compiled.contains("tupleEquals"));
+        assertFalse("tuple arrays must be split into scalar arrays", compiled.contains("__wurst_arrIndex("));
+    }
+
+    @Test
+    public void optimizedTupleCommonPathIsOnlyScalarCode() {
+        String compiled = compileOptimizedLua(
+            "optimizedTupleCommonPathIsOnlyScalarCode",
+            "package Test",
+            "tuple vec2(real x, real y)",
+            "native consume(real x, real y)",
+            "@noinline function add(vec2 left, vec2 right) returns vec2",
+            "    return vec2(left.x + right.x, left.y + right.y)",
+            "init",
+            "    let result = add(vec2(1., 2.), vec2(3., 4.))",
+            "    consume(result.x, result.y)"
+        );
+
+        java.util.regex.Matcher add = java.util.regex.Pattern
+            .compile("function add\\(([^)]*)\\)\\s*\\n(.*?)\\nend", java.util.regex.Pattern.DOTALL)
+            .matcher(compiled);
+        assertTrue("optimized tuple function must remain for shape inspection", add.find());
+        assertEquals("both vec2 parameters must unfold into four scalar parameters",
+            4, add.group(1).split(",").length);
+        assertFalse("the optimized tuple function body must not allocate a Lua table",
+            add.group(2).contains("{"));
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void randomizedTupleValueSemanticsStayScalar() throws IOException {
+        Random random = new Random(0x5CA1A2L);
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("init");
+        source.add("    int checksum = 0");
+        int expected = 0;
+        for (int i = 0; i < 64; i++) {
+            int ax = random.nextInt(101) - 50;
+            int ay = random.nextInt(101) - 50;
+            int bx = random.nextInt(101) - 50;
+            int by = random.nextInt(101) - 50;
+            int resultX = ay + bx;
+            int resultY = ax - by;
+            source.add("    pair a" + i + " = pair(" + ax + ", " + ay + ")");
+            source.add("    let b" + i + " = pair(" + bx + ", " + by + ")");
+            source.add("    a" + i + " = pair(a" + i + ".y + b" + i + ".x, a" + i + ".x - b" + i + ".y)");
+            source.add("    checksum += a" + i + ".x * " + (i + 1) + " + a" + i + ".y");
+            expected += resultX * (i + 1) + resultY;
+        }
+        source.add("    if checksum == " + expected);
+        source.add("        testSuccess()");
+
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        String compiled = compiledLua("randomizedTupleValueSemanticsStayScalar");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void randomizedTupleEvaluationMatchesInterpreterAndLua() throws IOException {
+        Random random = new Random(0x0D1FF3A7L);
+        List<String> source = new ArrayList<>();
+        source.add("package Test");
+        source.add("native testSuccess()");
+        source.add("tuple pair(int x, int y)");
+        source.add("tuple nested(pair left, pair right)");
+        source.add("int trace");
+        source.add("int calls");
+        source.add("int mutable");
+        source.add("class Holder");
+        source.add("    pair value");
+        source.add("Holder current");
+        source.add("Holder replacement");
+        source.add("int currentIndex");
+        source.add("pair array values");
+        source.add("function mark(int value) returns int");
+        source.add("    trace = trace * 37 + value");
+        source.add("    return value");
+        source.add("@noinline function produce(int seed) returns pair");
+        source.add("    calls++");
+        source.add("    return pair(mark(seed), mark(seed + 1))");
+        source.add("@noinline function recursive(int seed) returns pair");
+        source.add("    if seed == 0");
+        source.add("        return pair(mark(7), recursive(1).x)");
+        source.add("    return pair(mark(seed), mark(seed + 10))");
+        source.add("function retarget(int x, int y) returns pair");
+        source.add("    current = replacement");
+        source.add("    currentIndex = 2");
+        source.add("    return pair(mark(x), mark(y))");
+        source.add("function mutatingPair(int replacementValue, int x, int y) returns pair");
+        source.add("    mutable = replacementValue");
+        source.add("    return pair(mark(x), mark(y))");
+        source.add("function scorePairs(pair first, pair second) returns int");
+        source.add("    return first.x * 41 + first.y * 43 + second.x * 47 + second.y * 53");
+        source.add("init");
+        source.add("    int checksum = 0");
+
+        int expected = 0;
+        for (int i = 0; i < 96; i++) {
+            int a = random.nextInt(9) + 1;
+            int b = random.nextInt(9) + 1;
+            int c = random.nextInt(9) + 1;
+            int d = random.nextInt(9) + 1;
+            switch (random.nextInt(8)) {
+                case 0 -> {
+                    boolean selectFirst = random.nextBoolean();
+                    source.add("    trace = 0");
+                    source.add("    let selected" + i + " = pair(mark(" + a + "), mark(" + b + "))."
+                        + (selectFirst ? "x" : "y"));
+                    source.add("    checksum += trace + selected" + i + " * 13");
+                    expected += a * 37 + b + (selectFirst ? a : b) * 13;
+                }
+                case 1 -> {
+                    int selection = random.nextInt(4);
+                    String[] paths = {"left.x", "left.y", "right.x", "right.y"};
+                    int[] values = {a, b, c, d};
+                    source.add("    trace = 0");
+                    source.add("    let selected" + i + " = nested(pair(mark(" + a + "), mark(" + b
+                        + ")), pair(mark(" + c + "), mark(" + d + ")))." + paths[selection]);
+                    source.add("    checksum += trace + selected" + i + " * 17");
+                    expected += (((a * 37 + b) * 37 + c) * 37 + d) + values[selection] * 17;
+                }
+                case 2 -> {
+                    source.add("    trace = 0");
+                    source.add("    calls = 0");
+                    source.add("    let selected" + i + " = produce(" + a + ").y");
+                    source.add("    checksum += trace + selected" + i + " * 19 + calls * 23");
+                    expected += a * 37 + (a + 1) + (a + 1) * 19 + 23;
+                }
+                case 3 -> {
+                    source.add("    trace = 0");
+                    source.add("    calls = 0");
+                    source.add("    if produce(" + a + ") != produce(" + b + ")");
+                    source.add("        checksum += " + (a == b ? 29 : 31));
+                    source.add("    else");
+                    source.add("        checksum += " + (a == b ? 31 : 29));
+                    source.add("    checksum += trace + calls * 37");
+                    expected += 31
+                        + (((a * 37 + (a + 1)) * 37 + b) * 37 + (b + 1)) + 2 * 37;
+                }
+                case 4 -> {
+                    source.add("    let original" + i + " = new Holder()");
+                    source.add("    replacement = new Holder()");
+                    source.add("    current = original" + i);
+                    source.add("    trace = 0");
+                    source.add("    current.value = retarget(" + a + ", " + b + ")");
+                    source.add("    checksum += original" + i + ".value.x * 41 + original" + i
+                        + ".value.y * 43 + replacement.value.x + trace");
+                    expected += a * 41 + b * 43 + a * 37 + b;
+                }
+                case 5 -> {
+                    source.add("    values[1] = pair(0, 0)");
+                    source.add("    values[2] = pair(0, 0)");
+                    source.add("    replacement = new Holder()");
+                    source.add("    currentIndex = 1");
+                    source.add("    trace = 0");
+                    source.add("    values[currentIndex] = retarget(" + a + ", " + b + ")");
+                    source.add("    checksum += values[1].x * 47 + values[1].y * 53 + values[2].x + trace");
+                    expected += a * 47 + b * 53 + a * 37 + b;
+                }
+                case 6 -> {
+                    source.add("    mutable = " + a);
+                    source.add("    trace = 0");
+                    source.add("    if pair(mutable, mark(" + a + ")) == mutatingPair("
+                        + c + ", " + a + ", " + a + ")");
+                    source.add("        checksum += 71");
+                    source.add("    else");
+                    source.add("        checksum += 67");
+                    source.add("    checksum += trace + mutable * 73");
+                    expected += 71 + ((a * 37 + a) * 37 + a) + c * 73;
+                }
+                case 7 -> {
+                    source.add("    mutable = " + a);
+                    source.add("    trace = 0");
+                    source.add("    checksum += scorePairs(pair(mutable, mark(" + a
+                        + ")), mutatingPair(" + c + ", " + b + ", " + d + "))");
+                    source.add("    checksum += trace + mutable * 79");
+                    expected += a * 41 + a * 43 + b * 47 + d * 53
+                        + ((a * 37 + b) * 37 + d) + c * 79;
+                }
+            }
+        }
+        source.add("    trace = 0");
+        source.add("    let recursiveResult = recursive(0)");
+        source.add("    checksum += recursiveResult.x * 59 + recursiveResult.y * 61 + trace");
+        expected += 7 * 59 + 61 + ((7 * 37 + 1) * 37 + 11);
+        source.add("    if checksum == " + expected);
+        source.add("        testSuccess()");
+
+        // executeProg validates the source-level IM interpreter; testLua additionally runs the
+        // scalarized output in Lua 5.3, making the generated program a deterministic differential test.
+        test().testLua(true).executeProg().lines(source.toArray(new String[0]));
+        String compiled = compiledLua("randomizedTupleEvaluationMatchesInterpreterAndLua");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void tupleReturnSlotsAreSharedAcrossMultipleInterfaceRoots() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface First",
+            "    function value(int seed) returns pair",
+            "interface Second",
+            "    function value(int seed) returns pair",
+            "class Both implements First, Second",
+            "    function value(int seed) returns pair",
+            "        return pair(seed, seed + 1)",
+            "@noinline function fromFirst(First value) returns pair",
+            "    return value.value(10)",
+            "@noinline function fromSecond(Second value) returns pair",
+            "    return value.value(20)",
+            "init",
+            "    let both = new Both()",
+            "    let first = fromFirst(both)",
+            "    let second = fromSecond(both)",
+            "    if first == pair(10, 11) and second == pair(20, 21)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturnSlotsAreSharedAcrossMultipleInterfaceRoots");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void tupleSpecializedClassBindsNongenericInterfaceDispatch() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Producer",
+            "    function produce() returns pair",
+            "class GenericProducer<T:> implements Producer",
+            "    pair stored",
+            "    construct(pair value)",
+            "        stored = value",
+            "    function produce() returns pair",
+            "        return stored",
+            "init",
+            "    Producer producer = new GenericProducer<pair>(pair(4, 5))",
+            "    if producer.produce() == pair(4, 5)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializedClassBindsNongenericInterfaceDispatch");
+        assertTrue(compiled.contains("GenericProducer_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializedClassPreservesRuntimeTypeOperations() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "init",
+            "    Marker box = new Box<pair>(pair(6, 7))",
+            "    Marker plain = new Box<int>(1)",
+            "    if box instanceof Box and box.typeId == plain.typeId",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializedClassPreservesRuntimeTypeOperations");
+        assertTrue(compiled.contains("Box_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializedClassPreservesGenericInstanceofIdentity() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "    function get() returns T",
+            "        return value",
+            "function isIntBox<T:>(Marker value) returns bool",
+            "    return value instanceof Box<T>",
+            "class Child extends Box<int>",
+            "    construct(int initial)",
+            "        super(initial)",
+            "class GenericChild<U:> extends Box<U>",
+            "    construct(U initial)",
+            "        super(initial)",
+            "class GrandChild extends GenericChild<int>",
+            "    construct(int initial)",
+            "        super(initial)",
+            "init",
+            "    Marker tupleBox = new Box<pair>(pair(6, 7))",
+            "    Box<int> intBox = new Box<int>(1)",
+            "    Marker intMarker = intBox",
+            "    Marker child = new Child(2)",
+            "    Marker genericChild = new GenericChild<int>(3)",
+            "    Marker grandChild = new GrandChild(4)",
+            "    if tupleBox instanceof Box<pair>",
+            "        and not (tupleBox instanceof Box<int>)",
+            "        and intMarker instanceof Box<int>",
+            "        and not (intMarker instanceof Box<pair>)",
+            "        and intBox.get() == 1",
+            "        and intBox.value == 1",
+            "        and isIntBox<int>(intMarker)",
+            "        and not isIntBox<int>(tupleBox)",
+            "        and child instanceof Box<int>",
+            "        and not (child instanceof Box<pair>)",
+            "        and genericChild instanceof Box<int>",
+            "        and not (genericChild instanceof Box<pair>)",
+            "        and grandChild instanceof Box<int>",
+            "        and not (grandChild instanceof Box<pair>)",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "init",
+            "    Marker box = new Box<pair>(pair(6, 7))",
+            "    if box != null",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm");
+        assertTrue(compiled.contains("Box_specialized"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleReturningCallsAreCapturedBeforeComparison() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "@noinline function value(int seed) returns pair",
+            "    return pair(0, seed)",
+            "init",
+            "    if value(1) != value(2) and not (value(1) == value(2))",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturningCallsAreCapturedBeforeComparison");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void tupleReturningCallArgumentsAreStagedInOrder() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int trace",
+            "@noinline function produce(int seed) returns pair",
+            "    trace = trace * 10 + seed",
+            "    return pair(seed, seed + 10)",
+            "@noinline function consume(pair first, int middle, pair second) returns bool",
+            "    return first == pair(1, 11) and middle == 7 and second == pair(2, 12)",
+            "function mark(int value) returns int",
+            "    trace = trace * 10 + value",
+            "    return value",
+            "init",
+            "    if consume(produce(1), mark(7), produce(2)) and trace == 172",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturningCallArgumentsAreStagedInOrder");
+        assertTrue("tuple arguments must be materialized before the scalar call",
+            compiled.contains("tuple_argument"));
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void selectingLaterTupleComponentStillInvokesProducer() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Producer",
+            "    int calls",
+            "    @noinline function produce(int seed) returns pair",
+            "        calls++",
+            "        return pair(seed, seed + calls)",
+            "init",
+            "    let producer = new Producer()",
+            "    let selected = producer.produce(5).y",
+            "    if selected == 6 and producer.calls == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("selectingLaterTupleComponentStillInvokesProducer");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleReturnStagesComponentsBeforeRecursiveSlotWrites() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Producer",
+            "    @noinline function produce(int seed) returns pair",
+            "        if seed == 0",
+            "            return pair(7, produce(1).x)",
+            "        return pair(seed, 99)",
+            "init",
+            "    let result = new Producer().produce(0)",
+            "    if result == pair(7, 1)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturnStagesComponentsBeforeRecursiveSlotWrites");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleBundleCapturesEarlierReadsBeforeLaterPreludes() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int mutable",
+            "@noinline function mutate() returns pair",
+            "    mutable = 9",
+            "    return pair(5, 2)",
+            "@noinline function makeResult() returns pair",
+            "    mutable = 7",
+            "    return pair(mutable, mutate().y)",
+            "init",
+            "    mutable = 5",
+            "    pair assigned = pair(mutable, mutate().y)",
+            "    let returned = makeResult()",
+            "    mutable = 5",
+            "    let compared = pair(mutable, 2) == mutate()",
+            "    if assigned == pair(5, 2) and returned == pair(7, 2)",
+            "        and compared and mutable == 9",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleBundleCapturesEarlierReadsBeforeLaterPreludes");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSelectionPreservesLeftToRightEvaluation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int trace",
+            "function mark(int value) returns int",
+            "    trace = trace * 10 + value",
+            "    return value",
+            "init",
+            "    let selected = pair(mark(1), mark(2)).x",
+            "    if selected == 1 and trace == 12",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSelectionPreservesLeftToRightEvaluation");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void discardedTupleComponentsThatCanFailAreStillEvaluated() {
+        String compiled = compileLuaWithRunArgs(
+            "discardedTupleComponentsThatCanFailAreStillEvaluated",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box",
+            "    int value",
+            "Box nullable",
+            "init",
+            "    let selected = pair(1, nullable.value).x"
+        );
+
+        assertTrue("discarded member access must still be evaluated so null access can fail",
+            java.util.regex.Pattern.compile(
+                "__wurst_tuple_discard_\\d+\\([^\\n]*Box_value_storage\\[[^]]*nullable]\\)")
+                .matcher(compiled).find());
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleComparisonEagerlyEvaluatesPotentiallyFailingComponents() {
+        String compiled = compileLuaWithRunArgs(
+            "tupleComparisonEagerlyEvaluatesPotentiallyFailingComponents",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box",
+            "    int value",
+            "Box nullable",
+            "init",
+            "    let equal = pair(1, nullable.value) == pair(2, 0)"
+        );
+
+        assertTrue("comparison operands must cross the eager-evaluation barrier before and/or",
+            java.util.regex.Pattern.compile(
+                "__wurst_tuple_discard_\\d+\\([^\\n]*tuple_compare[^\\n]*\\)")
+                .matcher(compiled).find());
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void tupleAssignmentCapturesLvalueBeforeRhs() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Holder",
+            "    pair value",
+            "Holder current",
+            "Holder replacement",
+            "int currentIndex = 1",
+            "pair array values",
+            "function changeTargets() returns pair",
+            "    current = replacement",
+            "    currentIndex = 2",
+            "    return pair(3, 4)",
+            "init",
+            "    let original = new Holder()",
+            "    replacement = new Holder()",
+            "    current = original",
+            "    current.value = changeTargets()",
+            "    current = original",
+            "    currentIndex = 1",
+            "    values[currentIndex] = changeTargets()",
+            "    if original.value == pair(3, 4) and replacement.value == pair(0, 0)",
+            "        and values[1] == pair(3, 4) and values[2] == pair(0, 0)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleAssignmentCapturesLvalueBeforeRhs");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleFieldReadCapturesReceiverBeforeEffectfulIndex() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Holder",
+            "    pair array[8] values",
+            "Holder current",
+            "Holder replacement",
+            "function retarget() returns int",
+            "    current = replacement",
+            "    return 1",
+            "init",
+            "    let original = new Holder()",
+            "    replacement = new Holder()",
+            "    original.values[1] = pair(3, 4)",
+            "    replacement.values[1] = pair(8, 9)",
+            "    current = original",
+            "    let result = current.values[retarget()]",
+            "    if result == pair(3, 4) and current == replacement",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleFieldReadCapturesReceiverBeforeEffectfulIndex");
+        java.util.regex.Matcher capture = java.util.regex.Pattern.compile(
+            "(tupleReceiver\\w*) = Test_current\\s+(tupleIndex\\w*) = retarget\\(\\)"
+                + "\\s+[^\\n]*_values_x_storage\\[\\1]\\[\\2]")
+            .matcher(compiled);
+        assertTrue("receiver must be captured before the index retargets it", capture.find());
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializationPreservesExplicitGenericStaticOwner() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Box<T:>",
+            "    static int counter",
+            "    static function setCounter(int value)",
+            "        counter = value",
+            "    static function incrementCounter()",
+            "        counter++",
+            "    static function getCounter() returns int",
+            "        return counter",
+            "function touch<T:>(T value)",
+            "    Box<int>.incrementCounter()",
+            "init",
+            "    Box<int>.setCounter(10)",
+            "    Box<pair>.setCounter(100)",
+            "    touch<pair>(pair(1, 2))",
+            "    if Box<int>.getCounter() == 11 and Box<pair>.getCounter() == 100",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleSpecializationPreservesExplicitGenericStaticOwner");
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializedStaticsEmitDeterministically() {
+        String[] source = {
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box<T:>",
+            "    static T first",
+            "    static T second",
+            "    static T third",
+            "    static function set(T a, T b, T c)",
+            "        first = a",
+            "        second = b",
+            "        third = c",
+            "init",
+            "    Box<pair>.set(pair(1, 2), pair(3, 4), pair(5, 6))"
+        };
+        RunArgs runArgs = new RunArgs().with("-lua");
+        String first = compileLuaWithRunArgs("tupleSpecializedStaticsEmitDeterministically1",
+            runArgs, source);
+        String second = compileLuaWithRunArgs("tupleSpecializedStaticsEmitDeterministically2",
+            runArgs, source);
+        assertEquals("tuple-specialized statics must emit byte-identically", first, second);
+    }
+
+    @Test
+    public void tupleSpecializedStaticInitializerRunsOnceWithoutErasedInstantiation() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    if Box<pair>.get() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedStaticInitializerRunsOnceWithoutErasedInstantiation");
+        assertEquals("only the live tuple instantiation may call the static initializer",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
+    }
+
+    @Test
+    public void tupleSpecializedTypedLocalDoesNotRootErasedInitializer() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "init",
+            "    let box = new Box<pair>()",
+            "    if bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedTypedLocalDoesNotRootErasedInitializer");
+        assertEquals("a tuple-specialized local type must not retain the erased initializer",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
+    }
+
+    @Test
+    public void tupleSpecializedStaticKeepsLiveErasedInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    static function get() returns int",
+            "        return value",
+            "init",
+            "    if Box<int>.get() == 1 and Box<pair>.get() == 2 and bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleSpecializedStaticKeepsInitializerForConstructedErasedClass() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "init",
+            "    new Box<int>()",
+            "    new Box<pair>()",
+            "    if bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleSpecializedInterfaceDispatchDoesNotRootErasedStaticInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "interface Reader",
+            "    function read() returns int",
+            "class Box<T:> implements Reader",
+            "    static int value = bump()",
+            "    construct()",
+            "    function read() returns int",
+            "        return value",
+            "init",
+            "    Reader reader = new Box<pair>()",
+            "    if reader.read() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int a = b + bump()",
+            "    static int b = a",
+            "    static function get() returns int",
+            "        return a + b",
+            "init",
+            "    if Box<pair>.get() == 2 and bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua(
+            "tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy");
+        assertEquals("an unreachable erased initializer cycle must not execute",
+            2, countOccurrences(compiled, "bump()")); // one function declaration plus one call
     }
 
     @Test
@@ -900,7 +1720,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("primitive array default reads must not write back into the array table",
             compiled.substring(fnStart, fnEnd).contains("="));
 
-        assertTrue("tuple array defaults must still be lazily materialized per-slot for identity",
+        assertFalse("tuple arrays are value types and must be split into scalar arrays",
             compiled.contains("function __wurst_arrIndex("));
     }
 

@@ -874,12 +874,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
-        if (containsGenericNewCall() || containsTypeClassDispatch()) {
-            // Both operations need the concrete type argument, which erasure does not keep. Only
-            // the paths reaching them are specialised: the full elimination used for Jass is
-            // followed there by class elimination, and leaves state this backend cannot consume.
-            beginPhase(2, "Specialize generics for generic construction and type class dispatch");
-            new EliminateGenerics(getImTranslator(), getImProg()).transformGenericNewOnly();
+        boolean specializeTupleValueTypes = containsTupleTypeArgument();
+        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes) {
+            beginPhase(2, "Specialize generics for Lua-only concrete operations");
+            new EliminateGenerics(getImTranslator(), getImProg())
+                .transformGenericNewOnly(specializeTupleValueTypes);
+            // Remove phantom erased initialization before optimization can preserve only its side
+            // effect. A specialized static owns its copied initializer unless the erased static is live.
+            RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
         if (runArgs.isNoDebugMessages()) {
@@ -918,6 +920,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(6, "eliminate local type");
         getImProg().flatten(imTranslator2);
         EliminateLocalTypes.eliminateLocalTypesProg(getImProg(), imTranslator2);
+
+        timeTaker.beginPhase("eliminate tuples");
+        getImProg().flatten(imTranslator2);
+        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
+        imTranslator2.assertProperties(AssertProperty.NOTUPLES);
+        timeTaker.endPhase();
 
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
@@ -992,6 +1000,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    /** Tuple type arguments need monomorphisation before tuples can become scalar storage. */
+    private boolean containsTupleTypeArgument() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeArgument argument) {
+                if (TypesHelper.typeContainsTuples(argument.getType())) {
+                    found[0] = true;
+                }
+                super.visit(argument);
             }
         });
         return found[0];

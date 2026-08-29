@@ -1062,10 +1062,13 @@ public class LuaTranslator {
         ));
 
         // set typeid metadata:
+        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+        // retains this canonical metadata dependency before emission.
+        ImClass typeIdClass = imTr.canonical(c);
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
             ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
+            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
         ));
 
 
@@ -1480,6 +1483,12 @@ public class LuaTranslator {
         }
         superClasses.add(LuaAst.LuaTableExprField(LuaAst.LuaExprVarAccess(luaClassVar.getFor(c)), LuaAst.LuaExprBoolVal(true)));
         visited.add(c);
+        ImClass nominalClass = imTr.canonical(c);
+        if (nominalClass != c) {
+            // A targeted Lua specialization is a representation detail, not a new nominal type.
+            // Keep erased-class runtime checks true without inheriting its fields a second time.
+            collectSuperClasses(superClasses, nominalClass, visited);
+        }
         for (ImClassType sc : c.getSuperClasses()) {
             collectSuperClasses(superClasses, sc.getClassDef(), visited);
         }

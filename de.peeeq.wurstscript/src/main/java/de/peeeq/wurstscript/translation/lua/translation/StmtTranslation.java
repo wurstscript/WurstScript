@@ -80,7 +80,7 @@ public class StmtTranslation {
 
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
-        LuaVariable loopVar = tr.luaVar.getFor(loop.getLoopVar());
+        List<ImVar> loopVars = tr.imTr.getTupleScalarVars(loop.getLoopVar());
         // The loop is built from real AST nodes (a while loop) instead of literal
         // 'for ... do' / 'end' lines: the printer stops printing a statement list
         // after a return/break (Lua forbids trailing statements), which would
@@ -90,10 +90,12 @@ public class StmtTranslation {
         res.add(args);
         res.add(i);
         LuaStatements body = LuaAst.LuaStatements();
-        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(i),
-            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
-        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar),
-            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(args), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        for (ImVar loopVar : loopVars) {
+            body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(i),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+            body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(loopVar)),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(args), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        }
         tr.translateStatements(body, loop.getBody());
         res.add(LuaAst.LuaWhile(
             LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpLess(),
