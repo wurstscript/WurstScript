@@ -32,7 +32,7 @@ class GenericTypes {
             for (int i = 0; i < typeArguments.size(); i++) {
                 ImTypeArgument t1 = typeArguments.get(i);
                 ImTypeArgument t2 = ot.typeArguments.get(i);
-                if (!t1.getType().equalsType(t2.getType())) {
+                if (!equalTypeIgnoringBindings(t1.getType(), t2.getType())) {
                     return false;
                 }
                 // Deliberately not comparing the type class binding. It is only a fast path for
@@ -44,6 +44,60 @@ class GenericTypes {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Type-class bindings are dispatch metadata, not part of a specialization's structural type.
+     * Unlike the general IM type equality operation, this comparison therefore ignores bindings
+     * on every nested class-type argument, not just on the arguments wrapped by this key.
+     */
+    private static boolean equalTypeIgnoringBindings(ImType left, ImType right) {
+        if (left instanceof ImArrayType) {
+            return right instanceof ImArrayType
+                && equalTypeIgnoringBindings(((ImArrayType) left).getEntryType(),
+                ((ImArrayType) right).getEntryType());
+        }
+        if (left instanceof ImArrayTypeMulti) {
+            return right instanceof ImArrayTypeMulti
+                && equalTypeIgnoringBindings(((ImArrayTypeMulti) left).getEntryType(),
+                ((ImArrayTypeMulti) right).getEntryType());
+        }
+        if (left instanceof ImTupleType) {
+            if (!(right instanceof ImTupleType)) {
+                return false;
+            }
+            ImTupleType leftTuple = (ImTupleType) left;
+            ImTupleType rightTuple = (ImTupleType) right;
+            if (leftTuple.getTypes().size() != rightTuple.getTypes().size()) {
+                return false;
+            }
+            for (int i = 0; i < leftTuple.getTypes().size(); i++) {
+                if (!equalTypeIgnoringBindings(leftTuple.getTypes().get(i),
+                    rightTuple.getTypes().get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (left instanceof ImClassType) {
+            if (!(right instanceof ImClassType)) {
+                return false;
+            }
+            ImClassType leftClass = (ImClassType) left;
+            ImClassType rightClass = (ImClassType) right;
+            if (leftClass.getClassDef() != rightClass.getClassDef()
+                || leftClass.getTypeArguments().size() != rightClass.getTypeArguments().size()) {
+                return false;
+            }
+            for (int i = 0; i < leftClass.getTypeArguments().size(); i++) {
+                if (!equalTypeIgnoringBindings(leftClass.getTypeArguments().get(i).getType(),
+                    rightClass.getTypeArguments().get(i).getType())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return left.equalsType(right);
     }
 
     @Override

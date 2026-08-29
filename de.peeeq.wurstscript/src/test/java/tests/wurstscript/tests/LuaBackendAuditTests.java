@@ -935,7 +935,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
-    public void nestedConcreteGenericStaticStorageCompilesInLua() {
+    public void nestedConcreteGenericStaticStorageCompilesInLua() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -962,6 +962,19 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if nested.get(0).get(0).value == 7 and pairs.get(0).x == 2",
             "        testSuccess()"
         );
+
+        String compiled = compiledLua("nestedConcreteGenericStaticStorageCompilesInLua");
+        java.util.regex.Matcher storageDeclarations = java.util.regex.Pattern
+            .compile("(?m)^(List_store\\S*) = nil$")
+            .matcher(compiled);
+        List<String> storageNames = new ArrayList<>();
+        while (storageDeclarations.find()) {
+            storageNames.add(storageDeclarations.group(1));
+        }
+        assertEquals("one erased class-like and one tuple-specialized storage slot are expected",
+            2, storageNames.size());
+        assertEquals("each structural List specialization must emit one storage slot",
+            2L, storageNames.stream().distinct().count());
     }
 
     @Test
