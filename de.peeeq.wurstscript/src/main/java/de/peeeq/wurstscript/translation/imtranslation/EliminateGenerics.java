@@ -40,6 +40,8 @@ public class EliminateGenerics {
      * has them re-derived from its receiver, which would collect and specialise it again forever.
      */
     private final Set<Element> specializedCallSites = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Element> recordedErasedStaticAllocations =
+        Collections.newSetFromMap(new IdentityHashMap<>());
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     /** The class each function was moved out of, for calls which name their target without a receiver. */
     private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
@@ -493,8 +495,18 @@ public class EliminateGenerics {
         if (owner != null && classOwnsGenericGlobals(owner)
             && !functionNeedsSpecialization(call.getFunc(),
             Collections.newSetFromMap(new IdentityHashMap<>()))) {
-            translator.recordErasedGenericAllocation(owner, call.getTypeArguments());
+            recordErasedStaticInstantiation(call, owner, call.getTypeArguments());
         }
+    }
+
+    private void recordErasedStaticInstantiation(Element site, ImClass owner,
+                                                  List<ImTypeArgument> typeArguments) {
+        if (!recordedErasedStaticAllocations.add(site)) {
+            return;
+        }
+        GenericTypes generics = new GenericTypes(typeArguments);
+        translator.recordErasedGenericAllocation(owner, typeArguments);
+        genericsUses.add(() -> specializeClass(owner, generics));
     }
 
     /**
@@ -596,7 +608,7 @@ public class EliminateGenerics {
             && !needsRuntimeTypeSpecialization(clazz)
             && !isConstructionOnlyInstantiation(clazz.getClassDef())) {
             if (classOwnsGenericGlobals(clazz.getClassDef())) {
-                translator.recordErasedGenericAllocation(clazz.getClassDef(), clazz.getTypeArguments());
+                recordErasedStaticInstantiation(alloc, clazz.getClassDef(), clazz.getTypeArguments());
             }
             return;
         }
