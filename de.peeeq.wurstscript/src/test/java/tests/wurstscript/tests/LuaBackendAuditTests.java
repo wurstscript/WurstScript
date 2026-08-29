@@ -911,6 +911,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedInterfaceDispatchDoesNotRootErasedStaticInitializer() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "interface Reader",
+            "    function read() returns int",
+            "class Box<T:> implements Reader",
+            "    static int value = bump()",
+            "    construct()",
+            "    function read() returns int",
+            "        return value",
+            "init",
+            "    Reader reader = new Box<pair>()",
+            "    if reader.read() == 1 and bumps == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",

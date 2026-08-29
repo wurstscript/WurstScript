@@ -31,6 +31,8 @@ public class RemoveGarbage {
         // methods that will be added once the class is used:
         private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
         private final Set<ImClass> classes = new HashSet<>();
+        /** Classes whose reachable runtime objects may dispatch virtual methods. */
+        private final Set<ImClass> dispatchClasses = new HashSet<>();
         /** Classes which reachable code actually allocates, excluding nominal type-only references. */
         private final Set<ImClass> instantiatedClasses = new HashSet<>();
         private final Set<ImVar> vars = new HashSet<>();
@@ -47,7 +49,7 @@ public class RemoveGarbage {
 
         public void maybeVisitMethod(ImMethod m) {
             ImClass c = m.attrClass();
-            if (classes.contains(c)) {
+            if (dispatchClasses.contains(c)) {
                 visitMethod(m, this);
             } else {
                 waitingMethods.put(c, m);
@@ -82,22 +84,28 @@ public class RemoveGarbage {
             vars.add(var);
         }
 
-        public void addClass(ImClass c) {
-            classes.add(c);
-            ImClass nominalClass = translator.canonical(c);
-            if (nominalClass != c) {
-                // A targeted specialization has a distinct storage layout but keeps the source
-                // class's nominal type id and instanceof identity. The canonical class is therefore
-                // a real metadata dependency even when no source expression names it directly.
-                visitClass(nominalClass, this);
+        public boolean addClass(ImClass c, boolean dispatchReachable) {
+            boolean newClass = classes.add(c);
+            boolean newDispatchClass = dispatchReachable && dispatchClasses.add(c);
+            if (newClass) {
+                ImClass nominalClass = translator.canonical(c);
+                if (nominalClass != c) {
+                    // A targeted specialization has a distinct storage layout but keeps the source
+                    // class's nominal type id and instanceof identity. The canonical class is therefore
+                    // a metadata dependency, not evidence that erased instances can dispatch.
+                    visitClass(nominalClass, this, false);
+                }
             }
-            Collection<ImMethod> imMethods = waitingMethods.get(c);
-            Iterator<ImMethod> it = imMethods.iterator();
-            while (it.hasNext()) {
-                ImMethod m = it.next();
-                visitMethod(m, this);
-                it.remove();
+            if (newDispatchClass) {
+                Collection<ImMethod> imMethods = waitingMethods.get(c);
+                Iterator<ImMethod> it = imMethods.iterator();
+                while (it.hasNext()) {
+                    ImMethod m = it.next();
+                    visitMethod(m, this);
+                    it.remove();
+                }
             }
+            return newClass || newDispatchClass;
         }
 
         public void addInstantiatedClass(ImClass c) {
@@ -264,25 +272,25 @@ public class RemoveGarbage {
             @Override
             public void visit(ImDealloc e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImInstanceof e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImTypeIdOfObj e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImTypeIdOfClass e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
@@ -304,7 +312,7 @@ public class RemoveGarbage {
             return;
         }
         used.addMethod(m);
-        visitClass(m.getMethodClass().getClassDef(), used);
+        visitClass(m.getMethodClass().getClassDef(), used, false);
         if (m.getImplementation() != null) {
             // abstract methods can have no implementation
             visitFunction(m.getImplementation(), used);
@@ -315,12 +323,15 @@ public class RemoveGarbage {
     }
 
     private static void visitClass(ImClass c, Used used) {
-        if (used.getClasses().contains(c)) {
+        visitClass(c, used, true);
+    }
+
+    private static void visitClass(ImClass c, Used used, boolean dispatchReachable) {
+        if (!used.addClass(c, dispatchReachable)) {
             return;
         }
-        used.addClass(c);
         for (ImClassType superClass : c.getSuperClasses()) {
-            visitClass(superClass.getClassDef(), used);
+            visitClass(superClass.getClassDef(), used, dispatchReachable);
         }
     }
 
@@ -361,7 +372,7 @@ public class RemoveGarbage {
 
             @Override
             public void case_ImClassType(ImClassType tt) {
-                visitClass(tt.getClassDef(), used);
+                visitClass(tt.getClassDef(), used, false);
                 for (ImTypeArgument ta : tt.getTypeArguments()) {
                     visitType(ta.getType(), used);
                 }
