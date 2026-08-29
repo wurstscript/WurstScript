@@ -15,7 +15,9 @@ class LuaPolyfillSetup {
     static void createInstanceOfFunction(LuaTranslator tr) {
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
-        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("return x ~= nil and x." + WURST_SUPERTYPES + "[A]"));
+        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral(
+            "return x ~= nil and __wurst_objectClass[x] ~= nil and __wurst_objectClass[x]."
+                + WURST_SUPERTYPES + "[A]"));
         tr.luaModel.add(tr.instanceOfFunction);
     }
 

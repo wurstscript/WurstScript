@@ -48,14 +48,8 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        // Deliberate no-op: Lua instances are garbage collected, so 'destroy'
-        // only runs onDestroy (emitted separately) and drops nothing here.
-        // KNOWN DIVERGENCE from the Jass backend: a destroyed object stays
-        // fully usable (fields, dispatch, instanceof, typeId), whereas the
-        // Jass backend recycles the instance id and (with runtime checks)
-        // errors on use-after-destroy. Use-after-destroy bugs therefore stay
-        // silent on Lua but crash on Jass.
-        return LuaAst.LuaExprNull();
+        return LuaAst.LuaExprFunctionCall(tr.objectDealloc,
+            LuaAst.LuaExprlist(e.getObj().translateToLua(tr)));
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
@@ -117,7 +111,17 @@ public class ExprTranslation {
         String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
         if (tcFunc != null && !e.getArguments().isEmpty()) {
             LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
-            if (tcFunc.equals("stringToIndex")) {
+            ImType argumentType = e.getArguments().get(0).attrTyp();
+            ImType resultType = e.attrTyp();
+            if (argumentType instanceof ImClassType && TypesHelper.isIntType(resultType)) {
+                return LuaAst.LuaExprFunctionCall(tr.classToIndex, LuaAst.LuaExprlist(arg));
+            } else if (TypesHelper.isIntType(argumentType) && resultType instanceof ImClassType) {
+                return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("objectToIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("objectFromIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("stringToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringFromIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
@@ -181,7 +185,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImMemberAccess e, LuaTranslator tr) {
-        LuaExpr res = LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), e.getVar().getName());
+        LuaExpr res = LuaAst.LuaExprArrayAccess(
+            LuaAst.LuaExprVarAccess(tr.fieldStorage(e.getVar())),
+            LuaAst.LuaExprlist(e.getReceiver().translateToLua(tr)));
         if (!e.getIndexes().isEmpty()) {
             LuaExprlist indexes = LuaAst.LuaExprlist();
             for (ImExpr index : e.getIndexes()) {
@@ -204,7 +210,9 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(method.getImplementation()), args);
         }
-        return LuaAst.LuaExprMethodCall(e.getReceiver().translateToLua(tr), tr.luaMethod.getFor(e.getMethod()), tr.translateExprList(e.getArguments()));
+        LuaExprlist args = LuaAst.LuaExprlist(e.getReceiver().translateToLua(tr));
+        args.addAll(tr.translateExprList(e.getArguments()).removeAll());
+        return LuaAst.LuaExprFunctionCall(tr.luaDispatchFunc.getFor(e.getMethod()), args);
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
@@ -423,7 +431,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeIdOfObj e, LuaTranslator tr) {
-        return LuaAst.LuaExprFieldAccess(e.getObj().translateToLua(tr), TYPE_ID);
+        return LuaAst.LuaExprFieldAccess(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.objectClass),
+                LuaAst.LuaExprlist(e.getObj().translateToLua(tr))),
+            TYPE_ID);
     }
 
     public static LuaExpr translate(ImVarAccess e, LuaTranslator tr) {
@@ -476,9 +487,13 @@ public class ExprTranslation {
             if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
             }
+            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+                return LuaAst.LuaExprFunctionCall(tr.classToIndex, LuaAst.LuaExprlist(translated));
+            }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
-        } else if (imCast.getToType() instanceof ImClassType
-            || imCast.getToType() instanceof ImAnyType) {
+        } else if (imCast.getToType() instanceof ImClassType) {
+            return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(translated));
+        } else if (imCast.getToType() instanceof ImAnyType) {
             return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
         } else {
             return translated;
