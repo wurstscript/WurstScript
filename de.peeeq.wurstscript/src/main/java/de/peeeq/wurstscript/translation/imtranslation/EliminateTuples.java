@@ -59,47 +59,96 @@ public class EliminateTuples {
     /** Lua retains virtual methods, so all implementations in a dispatch group must write
      * additional tuple return components to the same scalar return slots. */
     private static void shareTupleReturnSlotsAcrossOverrides(ImProg prog, ImTranslator translator) {
-        LinkedHashSet<ImMethod> methods = new LinkedHashSet<>(prog.getMethods());
-        for (ImClass c : prog.getClasses()) {
-            methods.addAll(c.getMethods());
-        }
-        Set<ImMethod> children = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImMethod method : methods) {
-            children.addAll(method.getSubMethods());
-        }
-        Set<ImMethod> visited = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (ImMethod method : methods) {
-            if (!children.contains(method)) {
-                shareTupleReturnSlots(method, translator, visited);
+        List<ImMethod> methods = new ArrayList<>();
+        Set<ImMethod> knownMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImMethod method : prog.getMethods()) {
+            if (knownMethods.add(method)) {
+                methods.add(method);
             }
         }
+        for (ImClass c : prog.getClasses()) {
+            for (ImMethod method : c.getMethods()) {
+                if (knownMethods.add(method)) {
+                    methods.add(method);
+                }
+            }
+        }
+        for (int i = 0; i < methods.size(); i++) {
+            for (ImMethod subMethod : methods.get(i).getSubMethods()) {
+                if (knownMethods.add(subMethod)) {
+                    methods.add(subMethod);
+                }
+            }
+        }
+
+        Map<ImMethod, ImMethod> parents = new IdentityHashMap<>();
+        Map<ImFunction, ImMethod> methodForImplementation = new IdentityHashMap<>();
         for (ImMethod method : methods) {
-            shareTupleReturnSlots(method, translator, visited);
+            parents.put(method, method);
+        }
+        for (ImMethod method : methods) {
+            for (ImMethod subMethod : method.getSubMethods()) {
+                unionMethods(method, subMethod, parents);
+            }
+            ImFunction implementation = method.getImplementation();
+            if (implementation != null) {
+                ImMethod other = methodForImplementation.putIfAbsent(implementation, method);
+                if (other != null) {
+                    unionMethods(method, other, parents);
+                }
+            }
+        }
+
+        Map<ImMethod, List<ImMethod>> groupsByRoot = new IdentityHashMap<>();
+        List<List<ImMethod>> groups = new ArrayList<>();
+        for (ImMethod method : methods) {
+            ImMethod root = findMethodRoot(method, parents);
+            List<ImMethod> group = groupsByRoot.get(root);
+            if (group == null) {
+                group = new ArrayList<>();
+                groupsByRoot.put(root, group);
+                groups.add(group);
+            }
+            group.add(method);
+        }
+
+        for (List<ImMethod> group : groups) {
+            VarsForTupleResult shared = null;
+            for (ImMethod method : group) {
+                ImFunction implementation = method.getImplementation();
+                if (implementation != null
+                    && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
+                    shared = translator.getTupleTempReturnVarsFor(implementation);
+                    break;
+                }
+            }
+            if (shared == null) {
+                continue;
+            }
+            for (ImMethod method : group) {
+                ImFunction implementation = method.getImplementation();
+                if (implementation != null
+                    && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
+                    translator.setTupleTempReturnVarsFor(implementation, shared);
+                }
+            }
         }
     }
 
-    private static void shareTupleReturnSlots(ImMethod root, ImTranslator translator, Set<ImMethod> visited) {
-        if (visited.contains(root)) {
-            return;
+    private static ImMethod findMethodRoot(ImMethod method, Map<ImMethod, ImMethod> parents) {
+        ImMethod parent = parents.get(method);
+        if (parent != method) {
+            parent = findMethodRoot(parent, parents);
+            parents.put(method, parent);
         }
-        ImFunction implementation = root.getImplementation();
-        VarsForTupleResult shared = null;
-        if (implementation != null && translator.getOriginalReturnValue(implementation) instanceof ImTupleType) {
-            shared = translator.getTupleTempReturnVarsFor(implementation);
-        }
-        shareTupleReturnSlots(root, shared, translator, visited);
+        return parent;
     }
 
-    private static void shareTupleReturnSlots(ImMethod method, VarsForTupleResult shared,
-                                               ImTranslator translator, Set<ImMethod> visited) {
-        if (!visited.add(method)) {
-            return;
-        }
-        if (shared != null && method.getImplementation() != null) {
-            translator.setTupleTempReturnVarsFor(method.getImplementation(), shared);
-        }
-        for (ImMethod subMethod : method.getSubMethods()) {
-            shareTupleReturnSlots(subMethod, shared, translator, visited);
+    private static void unionMethods(ImMethod left, ImMethod right, Map<ImMethod, ImMethod> parents) {
+        ImMethod leftRoot = findMethodRoot(left, parents);
+        ImMethod rightRoot = findMethodRoot(right, parents);
+        if (leftRoot != rightRoot) {
+            parents.put(rightRoot, leftRoot);
         }
     }
 

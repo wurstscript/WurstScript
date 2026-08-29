@@ -122,6 +122,36 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleReturnSlotsAreSharedAcrossMultipleInterfaceRoots() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface First",
+            "    function value(int seed) returns pair",
+            "interface Second",
+            "    function value(int seed) returns pair",
+            "class Both implements First, Second",
+            "    function value(int seed) returns pair",
+            "        return pair(seed, seed + 1)",
+            "@noinline function fromFirst(First value) returns pair",
+            "    return value.value(10)",
+            "@noinline function fromSecond(Second value) returns pair",
+            "    return value.value(20)",
+            "init",
+            "    let both = new Both()",
+            "    let first = fromFirst(both)",
+            "    let second = fromSecond(both)",
+            "    if first == pair(10, 11) and second == pair(20, 21)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleReturnSlotsAreSharedAcrossMultipleInterfaceRoots");
+        assertFalse(compiled.contains("tupleCopy"));
+        assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
