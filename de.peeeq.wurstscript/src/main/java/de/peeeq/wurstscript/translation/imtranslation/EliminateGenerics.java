@@ -58,7 +58,8 @@ public class EliminateGenerics {
 
     // NEW: Track which global vars belong to which generic class
     // This helps us know which globals need specialization
-    private final Map<ImVar, ImClass> globalToClass = new HashMap<>();
+    /** Generic statics in source/program order; specialization emission must be deterministic. */
+    private final Map<ImVar, ImClass> globalToClass = new LinkedHashMap<>();
 
     // NEW: which functions touch generic globals (identity-based)
     private final Map<ImFunction, Set<ImClass>> functionToGenericGlobalOwners = new IdentityHashMap<>();

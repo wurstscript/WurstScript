@@ -455,7 +455,10 @@ public class EliminateTuples {
                 super.visit(ma);
                 if (ma.attrTyp() instanceof ImTupleType) {
                     ImStmts stmts = JassIm.ImStmts();
-                    ImExpr receiver = captureOnceIfNeeded(ma.getReceiver(), "tupleReceiver", stmts, f);
+                    boolean indexesAreEffectful = ma.getIndexes().stream()
+                        .anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                    ImExpr receiver = captureOnceIfNeeded(ma.getReceiver(), "tupleReceiver", stmts,
+                        f, indexesAreEffectful);
                     ImExprs indexes = captureIndexesOnceIfNeeded(ma.getIndexes(), stmts, f);
                     VarsForTupleResult vars = translator.getVarsForTuple(ma.getVar());
                     ImExpr replacement = vars.<ImExpr>map(
@@ -512,8 +515,9 @@ public class EliminateTuples {
         });
     }
 
-    private static ImExpr captureOnceIfNeeded(ImExpr expr, String name, ImStmts stmts, ImFunction f) {
-        if (!SideEffectAnalyzer.quickcheckHasSideeffects(expr)) {
+    private static ImExpr captureOnceIfNeeded(ImExpr expr, String name, ImStmts stmts, ImFunction f,
+                                              boolean forceCapture) {
+        if (!forceCapture && !SideEffectAnalyzer.quickcheckHasSideeffects(expr)) {
             return expr;
         }
         ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), name, false);
@@ -894,6 +898,9 @@ public class EliminateTuples {
     private static void captureLvalueIndexes(ImExprs indexes, ImStmts stmts, ImFunction f) {
         for (int i = 0; i < indexes.size(); i++) {
             ImExpr index = indexes.get(i);
+            if (isImmutableValue(index)) {
+                continue;
+            }
             index.setParent(null);
             indexes.set(i, captureValue(index, "tuple_lvalue_index", stmts, f));
         }

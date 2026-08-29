@@ -664,6 +664,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleFieldReadCapturesReceiverBeforeEffectfulIndex() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "class Holder",
+            "    pair array[8] values",
+            "Holder current",
+            "Holder replacement",
+            "function retarget() returns int",
+            "    current = replacement",
+            "    return 1",
+            "init",
+            "    let original = new Holder()",
+            "    replacement = new Holder()",
+            "    original.values[1] = pair(3, 4)",
+            "    replacement.values[1] = pair(8, 9)",
+            "    current = original",
+            "    let result = current.values[retarget()]",
+            "    if result == pair(3, 4) and current == replacement",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleFieldReadCapturesReceiverBeforeEffectfulIndex");
+        java.util.regex.Matcher capture = java.util.regex.Pattern.compile(
+            "(tupleReceiver\\w*) = Test_current\\s+(tupleIndex\\w*) = retarget\\(\\)"
+                + "\\s+[^\\n]*_values_x_storage\\[\\1]\\[\\2]")
+            .matcher(compiled);
+        assertTrue("receiver must be captured before the index retargets it", capture.find());
+        assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
     public void tupleSpecializationPreservesExplicitGenericStaticOwner() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
@@ -689,6 +722,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         String compiled = compiledLua("tupleSpecializationPreservesExplicitGenericStaticOwner");
         assertFalse(compiled.contains("tupleCopy"));
+    }
+
+    @Test
+    public void tupleSpecializedStaticsEmitDeterministically() {
+        String[] source = {
+            "package Test",
+            "tuple pair(int x, int y)",
+            "class Box<T:>",
+            "    static T first",
+            "    static T second",
+            "    static T third",
+            "    static function set(T a, T b, T c)",
+            "        first = a",
+            "        second = b",
+            "        third = c",
+            "init",
+            "    Box<pair>.set(pair(1, 2), pair(3, 4), pair(5, 6))"
+        };
+        RunArgs runArgs = new RunArgs().with("-lua");
+        String first = compileLuaWithRunArgs("tupleSpecializedStaticsEmitDeterministically1",
+            runArgs, source);
+        String second = compileLuaWithRunArgs("tupleSpecializedStaticsEmitDeterministically2",
+            runArgs, source);
+        assertEquals("tuple-specialized statics must emit byte-identically", first, second);
     }
 
     @Test
