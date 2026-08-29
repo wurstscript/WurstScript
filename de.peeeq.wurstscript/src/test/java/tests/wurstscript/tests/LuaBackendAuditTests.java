@@ -54,6 +54,58 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void classInstancesUseRecycledIntegerIdsAndStaticFieldStorage() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int destroyed = 0",
+            "class Base",
+            "    int scalar",
+            "    Child reference",
+            "    int array[8] values",
+            "    function score() returns int",
+            "        return scalar",
+            "    ondestroy",
+            "        destroyed++",
+            "class Child extends Base",
+            "    int extra",
+            "    override function score() returns int",
+            "        return scalar + extra",
+            "init",
+            "    let first = new Child()",
+            "    let firstId = first castTo int",
+            "    first.scalar = 7",
+            "    first.reference = first",
+            "    first.values[3] = 99",
+            "    first.extra = 5",
+            "    Base polymorphic = first",
+            "    let dispatched = polymorphic.score()",
+            "    destroy first",
+            "    let second = new Child()",
+            "    Base secondBase = second",
+            "    if second castTo int == firstId and dispatched == 12 and destroyed == 1",
+            "        and second.scalar == 0 and second.reference == null",
+            "        and second.values[3] == 0 and second.extra == 0",
+            "        and secondBase instanceof Child and second.typeId == Child.typeId",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("classInstancesUseRecycledIntegerIdsAndStaticFieldStorage");
+        assertTrue("integer-ID lowering must emit the live-object class map",
+            compiled.contains("__wurst_objectClass"));
+        assertTrue("integer-ID lowering must emit an explicit free-ID pool",
+            compiled.contains("__wurst_objectFree"));
+        assertFalse("class allocation must not construct a table per instance",
+            compiled.contains("local new_inst = {"));
+        assertFalse("class allocation must not attach an instance metatable",
+            compiled.contains("setmetatable(new_inst"));
+        assertTrue("class-to-int casts must use the integer object id directly",
+            compiled.contains("__wurst_classToIndex(first)"));
+        assertFalse("class casts must not allocate boxed-number identity wrappers",
+            compiled.contains("firstId = __wurst_objectToIndex(first)"));
+    }
+
+    @Test
     public void compiletimeGenericArrayReplayLeavesAreSplit() {
         String compiled = compileLuaWithRunArgs(
             "compiletimeGenericArrayReplayLeavesAreSplit",
@@ -759,12 +811,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("config must start with the same bootstrap call", config.find());
     }
 
-    /**
-     * Instances used to get a fresh {@code {__index = Class}} metatable per
-     * allocation — pure garbage. All instances of a class share one metatable.
-     */
+    /** Class construction allocates only a scalar id; class descriptors and field storage are static. */
     @Test
-    public void classInstancesShareOneMetatablePerClass() throws IOException {
+    public void classInstancesAllocateIdsWithoutInstanceTables() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -776,11 +825,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if a.v + b.v == 2 and a != b",
             "        testSuccess()"
         );
-        String compiled = compiledLua("classInstancesShareOneMetatablePerClass");
-        assertTrue("expected a shared per-class metatable variable",
-            compiled.contains("Foo_mt = ({__index=Foo, })"));
-        assertFalse("create must not allocate a metatable per instance",
-            compiled.contains("setmetatable(new_inst, ({"));
+        String compiled = compiledLua("classInstancesAllocateIdsWithoutInstanceTables");
+        assertTrue("expected static field storage indexed by object id",
+            compiled.contains("Foo_v_storage[new_inst] = 0"));
+        assertTrue("expected each live id to point at its static class descriptor",
+            compiled.contains("__wurst_objectClass[new_inst] = Foo"));
+        assertFalse("create must not allocate an instance table", compiled.contains("local new_inst = {"));
+        assertFalse("create must not attach an instance metatable", compiled.contains("setmetatable(new_inst"));
     }
 
     /**

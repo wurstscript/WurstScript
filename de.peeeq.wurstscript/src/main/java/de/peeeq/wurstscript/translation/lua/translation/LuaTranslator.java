@@ -150,10 +150,46 @@ public class LuaTranslator {
         }
     };
 
-    GetAForB<ImClass, LuaVariable> luaClassMetaTableVar = new GetAForB<ImClass, LuaVariable>() {
+    GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
-        public LuaVariable initFor(ImClass a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName() + "_mt"), LuaAst.LuaNoExpr());
+        public LuaVariable initFor(ImVar field) {
+            return LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
+                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        }
+    };
+
+    final LuaVariable objectClass = LuaAst.LuaVariable("__wurst_objectClass",
+        LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+    final LuaVariable objectFree = LuaAst.LuaVariable("__wurst_objectFree",
+        LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+    final LuaVariable objectMax = LuaAst.LuaVariable("__wurst_objectMax", LuaAst.LuaExprIntVal("0"));
+    final LuaVariable objectFreeCount = LuaAst.LuaVariable("__wurst_objectFreeCount", LuaAst.LuaExprIntVal("0"));
+    final LuaFunction objectDealloc = LuaAst.LuaFunction("__wurst_deallocObject", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    final LuaFunction classToIndex = LuaAst.LuaFunction("__wurst_classToIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    final LuaFunction classFromIndex = LuaAst.LuaFunction("__wurst_classFromIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    GetAForB<ImClass, LuaFunction> luaClassCleanup = new GetAForB<ImClass, LuaFunction>() {
+        @Override
+        public LuaFunction initFor(ImClass c) {
+            return LuaAst.LuaFunction(uniqueName(c.getName() + "_dealloc"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        }
+    };
+
+    GetAForB<ImMethod, LuaFunction> luaDispatchFunc = new GetAForB<ImMethod, LuaFunction>() {
+        @Override
+        public LuaFunction initFor(ImMethod method) {
+            LuaVariable receiver = LuaAst.LuaVariable("receiver", LuaAst.LuaNoExpr());
+            LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+            LuaFunction result = LuaAst.LuaFunction(uniqueName("dispatch_" + method.getName()),
+                LuaAst.LuaParams(receiver, dots), LuaAst.LuaStatements());
+            LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
+                LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver)));
+            LuaExpr target = LuaAst.LuaExprFieldAccess(descriptor, dispatchSlotName(method.getName()));
+            result.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallE(target,
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)))));
+            luaModel.add(result);
+            return result;
         }
     };
 
@@ -226,12 +262,19 @@ public class LuaTranslator {
 
 //        NormalizeNames.normalizeNames(prog);
 
+        createObjectManagement();
         createInstanceOfFunction();
         createObjectIndexFunctions();
         createStringIndexFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
+        }
+
+        for (ImClass c : prog.getClasses()) {
+            for (ImVar field : c.getFields()) {
+                luaModel.add(luaFieldStorage.getFor(field));
+            }
         }
 
         // first add class variables
@@ -499,6 +542,58 @@ public class LuaTranslator {
         LuaPolyfillSetup.createInstanceOfFunction(this);
     }
 
+    private void createObjectManagement() {
+        luaModel.add(objectClass);
+        luaModel.add(objectFree);
+        luaModel.add(objectMax);
+        luaModel.add(objectFreeCount);
+
+        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        objectDealloc.getParams().add(object);
+        LuaVariable descriptor = LuaAst.LuaVariable("descriptor",
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
+        objectDealloc.getBody().add(descriptor);
+        objectDealloc.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(descriptor), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
+                LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
+            LuaAst.LuaStatements()));
+        objectDealloc.getBody().add(LuaAst.LuaExprFunctionCallE(
+            LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(descriptor), "__wurst_dealloc"),
+            LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
+            LuaAst.LuaExprNull()));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprVarAccess(objectFreeCount),
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
+            LuaAst.LuaExprVarAccess(object)));
+        luaModel.add(objectDealloc);
+
+        LuaVariable toIndexObject = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        classToIndex.getParams().add(toIndexObject);
+        classToIndex.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(toIndexObject), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprIntVal("0"))),
+            LuaAst.LuaStatements()));
+        classToIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(toIndexObject)));
+        luaModel.add(classToIndex);
+
+        LuaVariable fromIndexValue = LuaAst.LuaVariable("index", LuaAst.LuaNoExpr());
+        classFromIndex.getParams().add(fromIndexValue);
+        classFromIndex.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(fromIndexValue), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
+            LuaAst.LuaStatements()));
+        classFromIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(fromIndexValue)));
+        luaModel.add(classFromIndex);
+    }
+
     private void createObjectIndexFunctions() {
         LuaPolyfillSetup.createObjectIndexFunctions(this);
     }
@@ -627,6 +722,27 @@ public class LuaTranslator {
         }
         ImVar firstParam = f.getParameters().get(0);
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
+
+        if ("objectToIndex".equals(tcFunc)
+            || (firstParam.getType() instanceof ImClassType && TypesHelper.isIntType(f.getReturnType()))) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaIf(
+                LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+                LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprIntVal("0"))),
+                LuaAst.LuaStatements()));
+            lf.getBody().add(LuaAst.LuaReturn(arg));
+            return true;
+        }
+        if ("objectFromIndex".equals(tcFunc)
+            || (TypesHelper.isIntType(firstParam.getType()) && f.getReturnType() instanceof ImClassType)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaIf(
+                LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
+                LuaAst.LuaStatements()));
+            lf.getBody().add(LuaAst.LuaReturn(arg));
+            return true;
+        }
 
         if ("stringToIndex".equals(tcFunc)) {
             lf.getBody().clear();
@@ -817,15 +933,21 @@ public class LuaTranslator {
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
-        // one shared instance metatable per class — allocating a fresh
-        // {__index = classVar} table per instance would be pure garbage
-        LuaVariable metaTableVar = luaClassMetaTableVar.getFor(c);
-        metaTableVar.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
-        )));
-        luaModel.add(metaTableVar);
-
         luaModel.add(initMethod);
+
+        LuaFunction cleanup = luaClassCleanup.getFor(c);
+        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        cleanup.getParams().add(object);
+        for (ImVar field : collectFieldsForAllocation(c)) {
+            cleanup.getBody().add(LuaAst.LuaAssignment(
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(luaFieldStorage.getFor(field)),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
+                LuaAst.LuaExprNull()));
+        }
+        luaModel.add(cleanup);
+        deferMainInit(LuaAst.LuaAssignment(
+            LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(classVar), "__wurst_dealloc"),
+            LuaAst.LuaExprFuncRef(cleanup)));
 
         // translate functions
         for (ImFunction f : c.getFunctions()) {
@@ -839,22 +961,35 @@ public class LuaTranslator {
     private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {
         // create init function:
         LuaStatements body = initMethod.getBody();
-        // local new_inst = { ... }
-        LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
-        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
-        for (ImVar field : collectFieldsForAllocation(c)) {
-            initialFieldValues.add(
-                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
-            );
-        }
-
-
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaNoExpr());
         body.add(newInst);
-        // setmetatable(new_inst, <shared class metatable>)
-        body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
-            LuaAst.LuaExprVarAccess(newInst),
-            LuaAst.LuaExprVarAccess(luaClassMetaTableVar.getFor(c))
-        )));
+        LuaStatements fresh = LuaAst.LuaStatements(
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectMax),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectMax), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))),
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst), LuaAst.LuaExprVarAccess(objectMax)));
+        LuaStatements recycled = LuaAst.LuaStatements(
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount)))),
+            LuaAst.LuaAssignment(
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
+                LuaAst.LuaExprNull()),
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectFreeCount),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpMinus(), LuaAst.LuaExprIntVal("1"))));
+        body.add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+            fresh, recycled));
+        body.add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+            LuaAst.LuaExprVarAccess(classVar)));
+        for (ImVar field : collectFieldsForAllocation(c)) {
+            body.add(LuaAst.LuaAssignment(
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(luaFieldStorage.getFor(field)),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+                defaultValue(field.getType())));
+        }
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
 
