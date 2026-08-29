@@ -14,7 +14,6 @@ plugins {
     id 'idea'
     id 'jacoco'
     id 'maven-publish'
-    id 'com.github.kt3k.coveralls' version '2.12.2'
     id 'com.gradleup.shadow' version '9.2.2'
     id 'de.undercouch.download' version '5.6.0'
 }
@@ -53,7 +52,16 @@ tasks.named("jacocoTestReport", JacocoReport) {
 
     reports { xml.required.set(true) }
 
-    def excluded = ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**']
+    def excluded = [
+            '**/ast/**',
+            '**/jassAst/**',
+            '**/jassIm/**',
+            '**/luaAst/**',
+            '**/antlr/**',
+            'de/peeeq/wurstio/gui/**',
+            'de/peeeq/wurstio/AbortCompilationException.class',
+            'de/peeeq/wurstio/ModelChangedException.class'
+    ]
 
     classDirectories.setFrom(
             files(classDirectories.files.collect { dir ->
@@ -471,11 +479,6 @@ tasks.register('create_zips') {
             args("../downloads/Wurstpack/", "../downloads/wurstpack.md5")
         }
     }
-}
-
-// TODO add a modern documentation generator replacement for the removed legacy hotdoc pipeline.
-tasks.named("coveralls") {
-    notCompatibleWithConfigurationCache("coveralls plugin task uses Project at execution time")
 }
 
 /** -------- Apply deployment settings -------- */

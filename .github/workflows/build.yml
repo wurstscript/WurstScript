@@ -117,7 +117,20 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: ./gradlew test --no-daemon --stacktrace
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            ./gradlew test jacocoTestReport --no-daemon --stacktrace
+          else
+            ./gradlew test --no-daemon --stacktrace
+          fi
+
+      - name: Upload coverage to Coveralls
+        if: runner.os == 'Linux'
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: de.peeeq.wurstscript/build/reports/jacoco/test/jacocoTestReport.xml
+          format: jacoco
 
       - name: Report test results
         if: always()
