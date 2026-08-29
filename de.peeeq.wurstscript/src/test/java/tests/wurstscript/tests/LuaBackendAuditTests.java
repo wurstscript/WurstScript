@@ -452,6 +452,37 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleSpecializedClassPreservesGenericInstanceofIdentity() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "interface Marker",
+            "class Box<T:> implements Marker",
+            "    T value",
+            "    construct(T initial)",
+            "        value = initial",
+            "    function get() returns T",
+            "        return value",
+            "function isIntBox<T:>(Marker value) returns bool",
+            "    return value instanceof Box<T>",
+            "init",
+            "    Marker tupleBox = new Box<pair>(pair(6, 7))",
+            "    Box<int> intBox = new Box<int>(1)",
+            "    Marker intMarker = intBox",
+            "    if tupleBox instanceof Box<pair>",
+            "        and not (tupleBox instanceof Box<int>)",
+            "        and intMarker instanceof Box<int>",
+            "        and not (intMarker instanceof Box<pair>)",
+            "        and intBox.get() == 1",
+            "        and intBox.value == 1",
+            "        and isIntBox<int>(intMarker)",
+            "        and not isIntBox<int>(tupleBox)",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void tupleSpecializedClassRetainsNominalMetadataWhenItIsTheOnlyReachableForm() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",

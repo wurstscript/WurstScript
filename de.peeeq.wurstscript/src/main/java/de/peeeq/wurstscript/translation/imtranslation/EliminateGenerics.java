@@ -45,6 +45,8 @@ public class EliminateGenerics {
     private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
     private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
+    /** Concrete generic identities named by runtime instanceof checks. */
+    private final Table<ImClass, GenericTypes, Boolean> runtimeTypeSpecializations = HashBasedTable.create();
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
     // Track concrete generic arguments for specialized functions to simplify later lookups
@@ -111,9 +113,10 @@ public class EliminateGenerics {
     }
 
     /**
-     * Lua normally erases generics. Generic construction and scalar storage for tuple type arguments
-     * are the operations which need the concrete type, so only specialize paths leading to those
-     * operations. All other generic calls and classes keep the Lua backend's erased representation.
+     * Lua normally erases generics. Generic construction and scalar storage for tuple type arguments,
+     * bounded dispatch, and parameterized runtime identity are the operations which need the concrete
+     * type, so only specialize paths leading to those operations. All other generic calls and classes
+     * keep the Lua backend's erased representation.
      */
     public void transformGenericNewOnly() {
         transformGenericNewOnly(false);
@@ -131,6 +134,9 @@ public class EliminateGenerics {
         // call on that result resolve. Repeat until a pass finds nothing new; collection is
         // idempotent, so this terminates once every reachable site has been rewritten.
         while (true) {
+            if (specializeTupleValueTypes) {
+                collectRuntimeTypeSpecializations();
+            }
             collectGenericNewRoots();
             if (genericsUses.isEmpty()) {
                 break;
@@ -297,11 +303,63 @@ public class EliminateGenerics {
         });
     }
 
+    /**
+     * Records parameterized classes whose runtime identity is observed. Lua normally erases
+     * generics, but an instanceof target must denote the same concrete class as allocations of that
+     * instantiation; otherwise a tuple-specialized object is also an instance of every erased
+     * non-tuple instantiation.
+     */
+    private void collectRuntimeTypeSpecializations() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                ImClassType clazz = instanceOf.getClazz();
+                if (!clazz.getTypeArguments().isEmpty()
+                    && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+                    runtimeTypeSpecializations.put(clazz.getClassDef(),
+                        new GenericTypes(clazz.getTypeArguments()), true);
+                }
+            }
+        });
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClassType clazz) {
+        return !clazz.getTypeArguments().isEmpty()
+            && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())
+            && runtimeTypeSpecializations.contains(clazz.getClassDef(),
+                new GenericTypes(clazz.getTypeArguments()));
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClass clazz,
+                                                   ImTypeArguments typeArguments) {
+        int classArgumentCount = clazz.getTypeVariables().size();
+        if (classArgumentCount == 0 || typeArguments.size() < classArgumentCount) {
+            return false;
+        }
+        List<ImTypeArgument> classArguments = new ArrayList<>(classArgumentCount);
+        for (int i = 0; i < classArgumentCount; i++) {
+            ImTypeArgument argument = typeArguments.get(i);
+            if (containsTypeVariable(argument.getType())) {
+                return false;
+            }
+            classArguments.add(argument);
+        }
+        return runtimeTypeSpecializations.contains(clazz, new GenericTypes(classArguments));
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImFunctionCall call) {
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null
+            && needsRuntimeTypeSpecialization(owner, call.getTypeArguments());
+    }
+
     private void collectGenericNewUse(ImClassRelatedExprWithClass expression) {
         ImClassType clazz = expression.getClazz();
         if (clazz.getTypeArguments().isEmpty()
             || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
-            || !shouldSpecializeTupleArguments(clazz.getTypeArguments())) {
+            || (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+                && !needsRuntimeTypeSpecialization(clazz))) {
             return;
         }
         genericsUses.add(new GenericClazzUse(expression));
@@ -347,6 +405,7 @@ public class EliminateGenerics {
         }
         if (!call.getTypeArguments().isEmpty()
             && (shouldSpecializeTupleArguments(call.getTypeArguments())
+                || needsRuntimeTypeSpecialization(call)
                 || functionNeedsSpecialization(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>())))) {
             if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
                 genericsUses.add(new GenericImFunctionCall(call));
@@ -452,6 +511,7 @@ public class EliminateGenerics {
         if (clazz.getTypeArguments().isEmpty()
             || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
             || (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+                && !needsRuntimeTypeSpecialization(clazz)
                 && !isConstructionOnlyInstantiation(clazz.getClassDef()))) {
             return;
         }
@@ -662,6 +722,15 @@ public class EliminateGenerics {
             @Override
             public void visit(ImTypeVarDispatch dispatch) {
                 found[0] = true;
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                if (typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments())) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(instanceOf);
             }
 
             @Override
