@@ -79,13 +79,16 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    first.values[3] = 99",
             "    first.extra = 5",
             "    Base polymorphic = first",
+            "    Base stale = first",
             "    let dispatched = polymorphic.score()",
             "    destroy first",
+            "    let destroyedIsInvalid = not (stale instanceof Child)",
             "    let second = new Child()",
             "    Base secondBase = second",
             "    if second castTo int == firstId and dispatched == 12 and destroyed == 1",
             "        and second.scalar == 0 and second.reference == null",
             "        and second.values[3] == 0 and second.extra == 0",
+            "        and destroyedIsInvalid and stale == second",
             "        and secondBase instanceof Child and second.typeId == Child.typeId",
             "        testSuccess()"
         );
@@ -103,6 +106,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_classToIndex(first)"));
         assertFalse("class casts must not allocate boxed-number identity wrappers",
             compiled.contains("firstId = __wurst_objectToIndex(first)"));
+        assertTrue("deallocation must clear reference-bearing field slots before recycling",
+            compiled.contains("Base_reference_storage[object] = nil"));
     }
 
     @Test

@@ -136,6 +136,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    private String singleDispatchSlot(String compiled, String callerBody) {
+        String helper = singleMatch(callerBody, "(dispatch_[A-Za-z0-9_]+)\\(", 1);
+        String helperBody = getFunctionBody(compiled, helper);
+        return singleMatch(helperBody,
+            "__wurst_objectClass\\[[^\\]]+\\]\\.([A-Za-z0-9_]+)", 1);
+    }
+
     private List<String> nonBaseSubclassBindings(String output, String baseName, String slotName) {
         Matcher matcher = Pattern.compile("([A-Za-z0-9_]+)\\." + Pattern.quote(slotName) + "\\s*=\\s*[A-Za-z0-9_]+").matcher(output);
         List<String> result = new ArrayList<>();
@@ -565,7 +572,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             }
         }
         assertEquals("Expected three distinct Base overload dispatch slots.", 3, baseSlots.size());
-        assertTrue(compiled.contains("this:Base_doThing1(a, 0)"));
+        assertTrue(compiled.contains("dispatch_Base_doThing1(this, a, 0)"));
         assertTrue(compiled.contains("Base_Base_doThing2(this1, a1, b, false)"));
         assertTrue(compiled.contains("Child.Base_doThing1 = Child_Child_doThing"));
         assertTrue(compiled.contains("Child.Base_doThing2 = Base_Base_doThing2"));
@@ -599,7 +606,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertEquals("Expected exactly one overridden setup overload family from module-provided methods.", 1, overriddenSlots.size());
         assertEquals("Expected three distinct setup slots on Base.", 3, baseSlots.size());
-        assertTrue(compiled.contains(":Base_M_setup1(") || compiled.contains(":Base_setup1("));
+        assertTrue(compiled.contains("dispatch_Base_M_setup1(") || compiled.contains("dispatch_Base_setup1("));
         assertContainsRegex(compiled, "Child\\.Base(?:_M)?_setup" + Pattern.quote(overriddenSlots.get(0)) + "\\s*=\\s*Child_Child_setup");
     }
 
@@ -640,13 +647,14 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    Greeter firstResult = firstObject.call(second)",
             "    Greeter secondResult = secondObject.call(first)"
         );
-        Matcher callMatcher = Pattern.compile("return greeter\\d*:(\\w+)\\(").matcher(compiled);
-        List<String> slots = new ArrayList<>();
-        while (callMatcher.find() && !slots.contains(callMatcher.group(1))) {
-            slots.add(callMatcher.group(1));
+        Matcher callMatcher = Pattern.compile("return (dispatch_[A-Za-z0-9_]+)\\(greeter\\d*").matcher(compiled);
+        List<String> helpers = new ArrayList<>();
+        while (callMatcher.find() && !helpers.contains(callMatcher.group(1))) {
+            helpers.add(callMatcher.group(1));
         }
-        assertEquals("Both optimized module callers must use one interface dispatch slot.", 1, slots.size());
-        String slot = slots.get(0);
+        assertEquals("Both optimized module callers must use one interface dispatch helper.", 1, helpers.size());
+        String slot = singleMatch(getFunctionBody(compiled, helpers.get(0)),
+            "__wurst_objectClass\\[[^\\]]+\\]\\.([A-Za-z0-9_]+)", 1);
         assertContainsRegex(compiled, "First\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*First_[^\\n]*greet");
         assertContainsRegex(compiled, "Second\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*Second_[^\\n]*greet");
     }
@@ -676,7 +684,10 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    readString(new Both())"
         );
 
-        assertContainsRegex(compiled, "return value:Both_IntValueImpl_value\\(");
+        String intSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readInt"));
+        assertContainsRegex(compiled, "Both\\." + Pattern.quote(intSlot) + "\\s*=");
+        assertDoesNotContainRegex(compiled,
+            "Both\\." + Pattern.quote(intSlot) + "\\s*=\\s*StringValue_StringValue_value");
         assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
         assertDoesNotContainRegex(compiled, "Both\\.IntValue_value\\s*=\\s*StringValue_StringValue_value");
     }
@@ -901,7 +912,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("run", slotName);
         List<String> subclassBindings = nonBaseSubclassBindings(compiled, "LLItrClosure", slotName);
 
@@ -938,7 +949,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
-        String callbackSlot = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String callbackSlot = singleDispatchSlot(compiled, forEachBody);
         assertEquals("callback", callbackSlot);
         List<String> subclassBindings = nonBaseSubclassBindings(compiled, "ForElementCallback", callbackSlot);
 
@@ -947,7 +958,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(callbackSlot) + "\\s*=");
 
         String otherBody = getFunctionBody(compiled, "OtherRegistry_OtherRegistry_applyTo");
-        String otherSlot = singleMatch(otherBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String otherSlot = singleDispatchSlot(compiled, otherBody);
         assertTrue(otherSlot.startsWith("callback"));
         List<String> otherSubclassBindings = nonBaseSubclassBindings(compiled, "OtherCallback", otherSlot);
 
@@ -985,7 +996,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("LLItrClosure_run", slotName);
         assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
         assertDoesNotContainRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.LLItrClosure_run\\d+\\s*=");
@@ -1015,7 +1026,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("ForElementCallback_callback", slotName);
         assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
         assertDoesNotContainRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\.ForElementCallback_callback\\d+\\s*=");
@@ -1317,9 +1328,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum = 0", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroInt = zeroEnum", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum2 = zeroInt", true);
-        // classes are cast with objectToIndex and objectFromIndex in lua
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
+        // Integer-ID classes use their scalar id directly, with only null/zero normalization.
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_classToIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_classFromIndex", true);
         assertFunctionBodyContains(compiled, "testClass", "cInt = cObj", false);
         assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
@@ -1417,8 +1428,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_objectIndexFunctionsDoNotCollideWithUserFunctions.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("function objectToIndex("));
         assertTrue(compiled.contains("function objectFromIndex("));
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_classToIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "__wurst_classFromIndex", true);
     }
 
     @Test
@@ -1463,8 +1474,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_oldGenericsCastingDoesNotUseGetHandleId.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_classToIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "__wurst_classFromIndex", true);
     }
 
     @Test
@@ -1506,8 +1517,8 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "C_x_storage[c] = \"42\"", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(C_x_storage[c])", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }
@@ -1537,9 +1548,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
         String compiled = Files.toString(new File(outputFile), Charsets.UTF_8);
 
-        Matcher slotMatcher = Pattern.compile("FSM_currentState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
-        assertTrue("Expected FSM to dispatch through a virtual *_update slot.", slotMatcher.find());
-        String dispatchedSlot = slotMatcher.group(1);
+        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        assertTrue("Expected FSM to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         String[] states = {"FindBuilder", "PlanNextAction", "FindSpot", "BuildAtTarget", "QuickBuild", "RescueStrikeTarget"};
         for (String state : states) {
@@ -1761,9 +1771,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideGlobalStateReproUnits());
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
 
-        Matcher slotMatcher = Pattern.compile("FSM_globalState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
-        assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", slotMatcher.find());
-        String dispatchedSlot = slotMatcher.group(1);
+        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");
         assertDoesNotContainRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
@@ -2606,9 +2615,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
 
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorTop=");
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorBottom=");
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----

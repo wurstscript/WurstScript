@@ -184,7 +184,7 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImMemberAccess e, LuaTranslator tr) {
         LuaExpr res = LuaAst.LuaExprArrayAccess(
-            LuaAst.LuaExprVarAccess(tr.luaFieldStorage.getFor(e.getVar())),
+            LuaAst.LuaExprVarAccess(tr.fieldStorage(e.getVar())),
             LuaAst.LuaExprlist(e.getReceiver().translateToLua(tr)));
         if (!e.getIndexes().isEmpty()) {
             LuaExprlist indexes = LuaAst.LuaExprlist();

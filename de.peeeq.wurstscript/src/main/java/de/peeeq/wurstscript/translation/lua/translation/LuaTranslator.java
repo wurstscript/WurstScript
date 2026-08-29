@@ -271,9 +271,13 @@ public class LuaTranslator {
             translateGlobal(v);
         }
 
+        Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
         for (ImClass c : prog.getClasses()) {
             for (ImVar field : c.getFields()) {
-                luaModel.add(luaFieldStorage.getFor(field));
+                LuaVariable storage = fieldStorage(field);
+                if (emittedFieldStorage.add(storage)) {
+                    luaModel.add(storage);
+                }
             }
         }
 
@@ -540,6 +544,10 @@ public class LuaTranslator {
 
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
+    }
+
+    LuaVariable fieldStorage(ImVar field) {
+        return luaFieldStorage.getFor(imTr.canonical(field));
     }
 
     private void createObjectManagement() {
@@ -940,7 +948,7 @@ public class LuaTranslator {
         cleanup.getParams().add(object);
         for (ImVar field : collectFieldsForAllocation(c)) {
             cleanup.getBody().add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(luaFieldStorage.getFor(field)),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
                     LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
                 LuaAst.LuaExprNull()));
         }
@@ -986,7 +994,7 @@ public class LuaTranslator {
             LuaAst.LuaExprVarAccess(classVar)));
         for (ImVar field : collectFieldsForAllocation(c)) {
             body.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(luaFieldStorage.getFor(field)),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
                     LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
                 defaultValue(field.getType())));
         }
