@@ -879,7 +879,8 @@ public class EliminateGenerics {
      */
     private boolean constructsClassOwningGenericGlobals(ImFunction enclosingFunction,
                                                          ImFunctionCall call) {
-        if (!(call.getFunc().getTrace() instanceof ConstructorDef)) {
+        if (!(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
             return false;
         }
         // A lowered constructor wrapper calls the class initializer carrying the same source
@@ -1058,9 +1059,22 @@ public class EliminateGenerics {
     }
 
     private boolean classOwnsGenericGlobals(ImClass clazz) {
+        return classOwnsGenericGlobals(clazz,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean classOwnsGenericGlobals(ImClass clazz, Set<ImClass> visited) {
+        if (!visited.add(clazz)) {
+            return false;
+        }
         ImClass canonical = translator.canonical(clazz);
         for (ImClass owner : globalToClass.values()) {
             if (translator.canonical(owner) == canonical) {
+                return true;
+            }
+        }
+        for (ImClassType superClass : clazz.getSuperClasses()) {
+            if (classOwnsGenericGlobals(superClass.getClassDef(), visited)) {
                 return true;
             }
         }
@@ -1630,14 +1644,37 @@ public class EliminateGenerics {
 
             private ImVar specializedGlobal(ImVar original) {
                 ImClass globalOwner = globalToClass.get(original);
-                if (globalOwner == null
-                    || translator.canonical(globalOwner) != translator.canonical(owner)) {
+                if (globalOwner == null) {
                     return original;
                 }
-                ImVar result = ensureSpecializedGlobal(original, globalOwner, ownerGenerics);
+                GenericTypes globalGenerics = adaptGenericsToOwner(owner, ownerGenerics, globalOwner);
+                if (globalGenerics == null) {
+                    return original;
+                }
+                ImVar result = ensureSpecializedGlobal(original, globalOwner, globalGenerics);
                 return result == null ? original : result;
             }
         });
+    }
+
+    /** Maps a concrete subclass instantiation onto the type arguments of a static's declaring class. */
+    private @Nullable GenericTypes adaptGenericsToOwner(ImClass concreteOwner,
+                                                        GenericTypes concreteGenerics,
+                                                        ImClass declaringOwner) {
+        if (translator.canonical(concreteOwner) == translator.canonical(declaringOwner)) {
+            return concreteGenerics;
+        }
+        ImTypeArguments arguments = JassIm.ImTypeArguments();
+        for (ImTypeArgument argument : concreteGenerics.getTypeArguments()) {
+            arguments.add(argument.copy());
+        }
+        ImClassType adapted = adaptToSuperclass(
+            JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
+        if (adapted == null || adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
+            || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
+            return null;
+        }
+        return new GenericTypes(adapted.getTypeArguments());
     }
 
     /**

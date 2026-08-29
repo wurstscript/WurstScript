@@ -1094,6 +1094,85 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void inheritedGenericStaticUsesDeclaringOwnerSpecialization() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base<T:>",
+            "    static T value",
+            "class Child<Unused:, T:> extends Base<T>",
+            "    construct()",
+            "    function set(T newValue)",
+            "        value = newValue",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let ints = new Child<real, int>()",
+            "    let strings = new Child<int, string>()",
+            "    ints.set(7)",
+            "    strings.set(\"ok\")",
+            "    if ints.get() == 7 and strings.get() == \"ok\"",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("inheritedGenericStaticUsesDeclaringOwnerSpecialization");
+        java.util.regex.Matcher declarations = java.util.regex.Pattern
+            .compile("(?m)^Base_value_\\S* = nil$").matcher(compiled);
+        int storages = 0;
+        while (declarations.find()) {
+            storages++;
+        }
+        assertEquals("each inherited Base<T> static needs independent storage", 2, storages);
+    }
+
+    @Test
+    public void constructedSubclassInitializesInheritedGenericStatic() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Base<T:>",
+            "    static int value = bump()",
+            "class Child<T:> extends Base<T>",
+            "    construct()",
+            "init",
+            "    new Child<int>()",
+            "    new Child<string>()",
+            "    if bumps == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void fixedConcreteConstructionDoesNotSpecializeUnrelatedGenericCaller() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "function helper<T:>() returns Box<int>",
+            "    return new Box<int>()",
+            "init",
+            "    let first = helper<string>()",
+            "    let second = helper<real>()",
+            "    if first != null and second != null and bumps == 1",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("fixedConcreteConstructionDoesNotSpecializeUnrelatedGenericCaller");
+        assertFalse("fixed Box<int> construction must not clone helper<T>",
+            compiled.contains("helper_specialized"));
+    }
+
+    @Test
     public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
         record Shape(String type, String value, int constructions) {}
 
