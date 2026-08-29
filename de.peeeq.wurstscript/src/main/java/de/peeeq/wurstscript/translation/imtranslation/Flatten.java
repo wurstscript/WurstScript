@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -659,7 +660,14 @@ public class Flatten {
 
     public static Result flatten(ImVarargLoop s, ImTranslator translator, ImFunction f) {
         return new Result(Collections.singletonList(
-            JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
+            JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f),
+                copyVarargLoopVars(s.getLoopVars()))));
+    }
+
+    private static ImVarargLoopVars copyVarargLoopVars(ImVarargLoopVars loopVars) {
+        return JassIm.ImVarargLoopVars(loopVars.stream()
+            .map(v -> JassIm.ImVarargLoopVar(v.getVar()))
+            .collect(Collectors.toList()));
     }
 
 

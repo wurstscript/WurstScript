@@ -264,7 +264,8 @@ public class StmtTranslation {
         List<ImStmt> result = Lists.newArrayList();
         ImVar loopVar = t.getVarFor(s.getLoopVar());
 
-        result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody())), loopVar));
+        result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody())),
+            ImVarargLoopVars(ImVarargLoopVar(loopVar))));
 
         f.getLocals().add(loopVar);
         return ImHelper.statementExprVoid(ImStmts(result));

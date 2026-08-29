@@ -261,9 +261,9 @@ public final class LocalPlayerContextAnalyzer {
         } else if (element instanceof ImVarargLoop) {
             ImVar varargParameter = varargParameter(owner);
             if (varargParameter != null) {
-                addDependency(
-                    variableFact(varargParameter),
-                    variableFact(((ImVarargLoop) element).getLoopVar()));
+                for (ImVarargLoopVar loopVar : ((ImVarargLoop) element).getLoopVars()) {
+                    addDependency(variableFact(varargParameter), variableFact(loopVar.getVar()));
+                }
             }
         }
 

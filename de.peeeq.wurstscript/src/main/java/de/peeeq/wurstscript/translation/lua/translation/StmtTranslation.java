@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_ABORT_THREAD_SENTINEL;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -80,7 +81,9 @@ public class StmtTranslation {
 
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
-        List<ImVar> loopVars = tr.imTr.getTupleScalarVars(loop.getLoopVar());
+        List<ImVar> loopVars = loop.getLoopVars().stream()
+            .map(ImVarargLoopVar::getVar)
+            .collect(Collectors.toList());
         // The loop is built from real AST nodes (a while loop) instead of literal
         // 'for ... do' / 'end' lines: the printer stops printing a statement list
         // after a return/break (Lua forbids trailing statements), which would

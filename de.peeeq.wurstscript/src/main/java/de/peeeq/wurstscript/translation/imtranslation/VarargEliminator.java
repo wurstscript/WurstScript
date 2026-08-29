@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import org.jetbrains.annotations.NotNull;
@@ -170,6 +171,9 @@ public class VarargEliminator {
     }
 
     private void unrollVarargLoop(ImVarargLoop imLoop, List<ImVar> newParams) {
+        Preconditions.checkState(imLoop.getLoopVars().size() == 1,
+            "Expected one vararg loop variable before vararg elimination.");
+        ImVar loopVar = imLoop.getLoopVars().get(0).getVar();
         ImStatementExpr stmtExpr = ImHelper.statementExprVoid(JassIm.ImStmts());
 
         for (int i = 0; i < newParams.size(); i++) {
@@ -179,7 +183,7 @@ public class VarargEliminator {
                 @Override
                 public void visit(ImVarAccess access) {
                     super.visit(access);
-                    if (access.getVar() == imLoop.getLoopVar()) {
+                    if (access.getVar() == loopVar) {
                         access.setVar(newParams.get(finalI));
                     }
                 }

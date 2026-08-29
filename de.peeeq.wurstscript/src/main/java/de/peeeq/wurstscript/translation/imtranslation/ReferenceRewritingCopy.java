@@ -50,11 +50,11 @@ public class ReferenceRewritingCopy {
 
 
             @Override
-            public void visit(ImVarargLoop e) {
+            public void visit(ImVarargLoopVar e) {
                 super.visit(e);
-                Element newChild = oldToNew.get(e.getLoopVar());
+                Element newChild = oldToNew.get(e.getVar());
                 if (newChild != null) {
-                    e.setLoopVar((ImVar) newChild);
+                    e.setVar((ImVar) newChild);
                 }
             }
 

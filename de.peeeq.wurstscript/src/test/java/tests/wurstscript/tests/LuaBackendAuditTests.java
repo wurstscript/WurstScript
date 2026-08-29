@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.ImVarargLoop;
+import de.peeeq.wurstscript.jassIm.ImVarargLoopVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -56,6 +58,21 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         compiler.translateProgToIm(model);
         compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
         LuaCompilationUnit luaCode = compiler.transformProgToLua();
+        compiler.getImProg().accept(new ImVarargLoop.DefaultVisitor() {
+            @Override
+            public void visit(ImVarargLoop loop) {
+                de.peeeq.wurstscript.jassIm.Element owner = loop;
+                while (owner != null && !(owner instanceof de.peeeq.wurstscript.jassIm.ImFunction)) {
+                    owner = owner.getParent();
+                }
+                for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
+                    assertTrue("lowered vararg loop variable must remain attached to its declaration list: "
+                            + loopVar.getVar() + " in " + owner,
+                        loopVar.getVar().getParent() != null);
+                }
+                super.visit(loop);
+            }
+        });
         StringBuilder result = new StringBuilder();
         luaCode.print(result, 0);
         return result.toString();
@@ -205,6 +222,29 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             add.group(2).contains("{"));
         assertFalse(compiled.contains("tupleCopy"));
         assertFalse(compiled.contains("tupleEquals"));
+    }
+
+    @Test
+    public void optimizedTupleVarargLoopUsesAttachedScalarLocals() {
+        String compiled = compileOptimizedLua(
+            "optimizedTupleVarargLoopUsesAttachedScalarLocals",
+            "package Test",
+            "nativetype framehandle extends handle",
+            "native makeFrame() returns framehandle",
+            "tuple handles(framehandle first, framehandle second)",
+            "class Bag<T:>",
+            "    private static T array store",
+            "    int size = 0",
+            "    @noinline function add(vararg T elems)",
+            "        for elem in elems",
+            "            store[size] = elem",
+            "            size++",
+            "init",
+            "    let bag = new Bag<handles>()",
+            "    bag.add(handles(makeFrame(), makeFrame()))"
+        );
+        assertTrue(compiled.contains("table.pack(...)"));
+        assertFalse(compiled.contains("tupleCopy"));
     }
 
     @Test

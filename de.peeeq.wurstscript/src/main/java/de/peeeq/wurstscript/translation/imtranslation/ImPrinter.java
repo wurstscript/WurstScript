@@ -507,7 +507,9 @@ public class ImPrinter {
 
     public static void print(ImVarargLoop e, Appendable sb, int indent) {
         append(sb, "foreach vararg ");
-        e.getLoopVar().print(sb, indent);
+        append(sb, e.getLoopVars().stream()
+            .map(v -> v.getVar().getName())
+            .collect(Collectors.joining(", ")));
         append(sb, " {\n");
         e.getBody().print(sb, indent + 1);
         indent(sb, indent);
@@ -597,6 +599,10 @@ public class ImPrinter {
 
     public static String asString(ImTypeArgument s) {
         return s.getType() + "" + s.getTypeClassBinding();
+    }
+
+    public static String asString(ImVarargLoopVar s) {
+        return s.getVar().getName() + smallHash(s.getVar());
     }
 
     public static void print(ImCast e, Appendable sb, int indent) {
