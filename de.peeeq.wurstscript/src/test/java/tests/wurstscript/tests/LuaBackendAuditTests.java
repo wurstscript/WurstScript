@@ -1054,6 +1054,46 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericFactoryAllocationSpecializesStaticOwningClass() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int bumps",
+            "function bump() returns int",
+            "    bumps++",
+            "    return bumps",
+            "class Box<T:>",
+            "    static int value = bump()",
+            "    construct()",
+            "    static function get() returns int",
+            "        return value",
+            "function make<T:>() returns Box<T>",
+            "    return new Box<T>()",
+            "function forward<T:>() returns Box<T>",
+            "    return make<T>()",
+            "class Maker<T:>",
+            "    construct()",
+            "    function makeBox() returns Box<T>",
+            "        return new Box<T>()",
+            "init",
+            "    let first = forward<int>()",
+            "    let second = forward<string>()",
+            "    let third = new Maker<real>().makeBox()",
+            "    if first != null and second != null and third != null",
+            "        and Box<int>.get() == 1 and Box<string>.get() == 2",
+            "        and Box<real>.get() == 3 and bumps == 3",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("genericFactoryAllocationSpecializesStaticOwningClass");
+        assertEquals("the shared constructor must allocate ordinary objects on the erased Lua class",
+            1, countOccurrences(compiled, "= Box:create()"));
+        assertFalse("static specialization must not create specialized object classes",
+            java.util.regex.Pattern.compile("(?m)^Box_specialized\\S* = \\(\\{\\}\\)$")
+                .matcher(compiled).find());
+    }
+
+    @Test
     public void randomizedNestedGenericTupleClassShapesMatchAllBackends() {
         record Shape(String type, String value, int constructions) {}
 

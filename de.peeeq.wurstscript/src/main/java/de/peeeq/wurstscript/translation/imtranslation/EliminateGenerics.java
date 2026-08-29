@@ -807,9 +807,10 @@ public class EliminateGenerics {
     /**
      * Whether a function must be specialised even on Lua, which otherwise keeps generics erased.
      * <p>
-     * Two operations need the concrete type argument: constructing a value of it, and dispatching
-     * on a type class bound. Specialising these paths keeps a bounded generic as cheap on Lua as it
-     * is on Jass, at the cost of one copy per instantiation actually used.
+     * Concrete type arguments are needed when constructing a value of them, dispatching on a type
+     * class bound, or constructing a generic class whose static storage is per instantiation.
+     * Specialising these paths keeps a bounded generic as cheap on Lua as it is on Jass, at the cost
+     * of one copy per instantiation actually used.
      */
     private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visitedFunctions,
                                                Set<ImMethod> visitedMethods) {
@@ -849,7 +850,8 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImFunctionCall call) {
-                if (translator.isGenericNewMarker(call.getFunc())
+                if (constructsClassOwningGenericGlobals(function, call)
+                    || translator.isGenericNewMarker(call.getFunc())
                     || functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods)) {
                     found[0] = true;
                     return;
@@ -867,6 +869,27 @@ public class EliminateGenerics {
             }
         });
         return found[0];
+    }
+
+    /**
+     * A generic caller containing {@code new Box<T>()} must be revisited after {@code T} becomes
+     * concrete so each constructed instantiation can register its own static storage. Detect the
+     * constructor call at the caller boundary; marking the constructor implementation itself would
+     * unnecessarily redirect ordinary objects away from Lua's erased representation.
+     */
+    private boolean constructsClassOwningGenericGlobals(ImFunction enclosingFunction,
+                                                         ImFunctionCall call) {
+        if (!(call.getFunc().getTrace() instanceof ConstructorDef)) {
+            return false;
+        }
+        // A lowered constructor wrapper calls the class initializer carrying the same source
+        // ConstructorDef. That call implements the current allocation; it is not another generic
+        // allocation hidden inside this function and direct callers register it themselves.
+        if (enclosingFunction.getTrace() == call.getFunc().getTrace()) {
+            return false;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null && classOwnsGenericGlobals(owner);
     }
 
     private boolean methodNeedsSpecialization(ImMethod method, Set<ImFunction> visitedFunctions,
