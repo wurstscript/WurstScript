@@ -19,16 +19,22 @@ import java.util.Map.Entry;
 //w(11)->{r(17), r(19)} & w(19)->{r(17), r(19)} & w(22)
 class VarStates {
     final ImmutableMap<LocalVarDef, VState> states;
+    final ImmutableSet<NameDef> destroyedParameters;
     final boolean thisDestroyed;
 
     public VarStates(ImmutableMap<LocalVarDef, VState> states, boolean thisDestroyed) {
+        this(states, ImmutableSet.of(), thisDestroyed);
+    }
+
+    public VarStates(ImmutableMap<LocalVarDef, VState> states, ImmutableSet<NameDef> destroyedParameters, boolean thisDestroyed) {
         this.states = states;
+        this.destroyedParameters = destroyedParameters;
         this.thisDestroyed = thisDestroyed;
     }
 
     VarStates merge(VarStates other) {
         ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, VState::merge);
-        return new VarStates(merged, thisDestroyed || other.thisDestroyed);
+        return new VarStates(merged, ImmutableSet.<NameDef>builder().addAll(destroyedParameters).addAll(other.destroyedParameters).build(), thisDestroyed || other.thisDestroyed);
     }
 
     @Override
@@ -37,12 +43,13 @@ class VarStates {
         if (o == null || getClass() != o.getClass()) return false;
         VarStates varStates = (VarStates) o;
         return thisDestroyed == varStates.thisDestroyed &&
-                Objects.equals(states, varStates.states);
+                Objects.equals(states, varStates.states) &&
+                Objects.equals(destroyedParameters, varStates.destroyedParameters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(states, thisDestroyed);
+        return Objects.hash(states, destroyedParameters, thisDestroyed);
     }
 
     public static VarStates initial(Set<LocalVarDef> r) {
@@ -55,7 +62,7 @@ class VarStates {
 
     public boolean destroyed(NameDef v) {
         VState s = states.get(v);
-        return s != null && s.mightBeDestroyed;
+        return (s != null && s.mightBeDestroyed) || destroyedParameters.contains(v);
     }
 
     public boolean uninitialized(NameDef v) {
@@ -78,7 +85,7 @@ class VarStates {
         ImmutableMap<LocalVarDef, VState> rs = builder
                 .put(v, s)
                 .build();
-        return new VarStates(rs, thisDestroyed);
+        return new VarStates(rs, destroyedParameters, thisDestroyed);
     }
 
     public ImmutableSet<WStatement> getUnreadWrites(NameDef var) {
@@ -107,7 +114,7 @@ class VarStates {
         }
         vState = vState.addWrite(s);
         res.put(var, vState);
-        return new VarStates(res.build(), thisDestroyed);
+        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
     }
 
     public VarStates addDestroy(LocalVarDef var) {
@@ -118,7 +125,26 @@ class VarStates {
             }
         }
         res.put(var, VState.destroyed);
-        return new VarStates(res.build(), thisDestroyed);
+        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
+    }
+
+    public VarStates addDestroyParameter(NameDef var) {
+        ImmutableSet.Builder<NameDef> destroyed = ImmutableSet.builder();
+        destroyed.addAll(destroyedParameters).add(var);
+        return new VarStates(states, destroyed.build(), thisDestroyed);
+    }
+
+    public VarStates clearDestroyParameter(NameDef var) {
+        if (!destroyedParameters.contains(var)) {
+            return this;
+        }
+        ImmutableSet.Builder<NameDef> remaining = ImmutableSet.builder();
+        for (NameDef destroyed : destroyedParameters) {
+            if (destroyed != var) {
+                remaining.add(destroyed);
+            }
+        }
+        return new VarStates(states, remaining.build(), thisDestroyed);
     }
 
 
@@ -144,7 +170,7 @@ class VarStates {
     }
 
     public VarStates withThisDestroyed(boolean thisDestroyed) {
-        return new VarStates(states, thisDestroyed);
+        return new VarStates(states, destroyedParameters, thisDestroyed);
     }
 
 
@@ -300,6 +326,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 if (isLocalVarDef(destroyedVar)) {
                     return incoming.addDestroy((LocalVarDef) destroyedVar);
                 }
+                if (destroyedVar instanceof WParameter || destroyedVar instanceof WShortParameter) {
+                    return incoming.addDestroyParameter(destroyedVar);
+                }
             } else if (destr.getDestroyedObj() instanceof ExprThis) {
                 return incoming.withThisDestroyed(true);
             }
@@ -317,6 +346,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
+            }
+            if (n instanceof WParameter || n instanceof WShortParameter) {
+                return incoming.clearDestroyParameter(n);
             }
         }
         return incoming;
@@ -509,7 +541,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 @Nullable ExprClosure exprClosure = errorPos.attrNearestExprClosure();
                 @Nullable ExprClosure exprClosure1 = var.attrNearestExprClosure();
                 if (exprClosure != null && exprClosure != exprClosure1) {
-                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var) + " has no effect outside the closure.");
+                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var)
+                        + " does not propagate outside the closure because closures capture locals by value. "
+                        + "If you want to update the outer value, use reference(" + var.getName() + ") deliberately.");
                 } else {
                     errorPos.addWarning("The assignment to " + Utils.printElement(var) + " is never read.");
                 }

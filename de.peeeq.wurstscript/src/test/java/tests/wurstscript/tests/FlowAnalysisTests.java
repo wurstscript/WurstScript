@@ -121,6 +121,38 @@ public class FlowAnalysisTests extends WurstScriptTest {
     }
 
     @Test
+    public void destroyParameterThenUseIsReported() {
+        testAssertErrorsLines(false, "Variable a may have been destroyed already",
+                "package test",
+                "class A",
+                "    function foo()",
+                "function consume(A a)",
+                "    destroy a",
+                "    a.foo()",
+                "init",
+                "    consume(new A())"
+        );
+    }
+
+    @Test
+    public void destroyShortParameterThenUseIsReported() {
+        testAssertErrorsLines(false, "Variable a may have been destroyed already",
+                "package test",
+                "class A",
+                "    function foo()",
+                "interface Consumer",
+                "    function accept(A a)",
+                "function apply(Consumer c)",
+                "    c.accept(new A())",
+                "init",
+                "    apply((A a) -> begin",
+                "        destroy a",
+                "        a.foo()",
+                "    end)"
+        );
+    }
+
+    @Test
     public void destroyThisDataflowTest() {
         testAssertErrorsLines(false, "Cannot access 'this' because it might already have been destroyed.",
                 "package test",

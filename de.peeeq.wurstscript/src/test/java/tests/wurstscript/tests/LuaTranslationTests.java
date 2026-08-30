@@ -277,7 +277,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler() throws IOException {
+    public void luaErrorWrappersAvoidUnavailableNativeTraceback() throws IOException {
         String compiled = compileLuaWithRunArgs(
             "LuaTranslationTests_luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler",
             false,
@@ -289,7 +289,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             "init",
             "    fail()"
         );
-        assertTrue(compiled.contains("debug.traceback"));
+        assertFalse(compiled.contains("debug.traceback"));
     }
 
     @Test
@@ -2421,6 +2421,29 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue(compiled.contains(", ...)"));
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
+    }
+
+    @Test
+    public void luaFunctionRefStacktraceHandlerUsesWurstStackPosition() throws IOException {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefStacktraceHandlerUsesWurstStackPosition",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "init",
+            "    apply(() -> error(\"callback\"))"
+        );
+        assertFalse(compiled.contains("debug.traceback"));
+        assertContainsRegex(compiled,
+            "function\\s+error1\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled,
+            "error1\\(tostring\\(err\\), \\\"in lua callback error handler\\\"\\)");
     }
 
     @Test
