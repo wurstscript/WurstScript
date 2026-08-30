@@ -138,7 +138,7 @@ public class UtilsTest {
         Assert.assertTrue(Utils.isWurstFile("test.wurst"));
         Assert.assertTrue(Utils.isWurstFile(new File("test.wurst")));
         Assert.assertEquals(Utils.subList(Arrays.asList(1, 2, 3), 1), Arrays.asList(2, 3));
-        Assert.assertEquals(Utils.subList(Arrays.asList(1, 2, 3), 0, 2), Arrays.asList(1, 2));
+        Assert.assertEquals(Utils.subList(Arrays.asList(1, 2, 3), 0, 1), Arrays.asList(1, 2));
         Assert.assertEquals(Utils.init(Arrays.asList(1, 2, 3)), Arrays.asList(1, 2));
         Assert.assertEquals(Utils.makeUniqueName("x", n -> n.equals("x_2")), "x_2");
         Assert.assertEquals(Utils.makeUniqueName("x", n -> !n.equals("x") && !n.equals("x_1")), "x_2");

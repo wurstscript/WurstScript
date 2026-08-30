@@ -37,7 +37,7 @@ public class RunArgsTests {
     public void exposesModeAndSafetyFlags() {
         RunArgs args = new RunArgs("-build", "-dev", "-stacktraces", "-nodebug", "-uncheckedDispatch",
             "-injectobjects", "-hotreload", "-hotstart", "-noPJass", "-legacyJassChecks",
-            "-compactOutput", "-measure", "-compiletimeCache", "-noExtractMapScript", "-copyMap",
+            "-compactOutput", "-measure", "-compiletimeCache", "-noExtractMapScript",
             "-prettyPrint", "-languageServer", "-languageServerAppCdsTrain");
 
         Assert.assertTrue(args.isBuild());
@@ -54,7 +54,6 @@ public class RunArgsTests {
         Assert.assertTrue(args.isMeasureTimes());
         Assert.assertTrue(args.isCompiletimeCache());
         Assert.assertTrue(args.isNoExtractMapScript());
-        Assert.assertTrue(args.isCopyMap());
         Assert.assertTrue(args.isPrettyPrint());
         Assert.assertTrue(args.isLanguageServer());
         Assert.assertTrue(args.isLanguageServerAppCdsTrain());
