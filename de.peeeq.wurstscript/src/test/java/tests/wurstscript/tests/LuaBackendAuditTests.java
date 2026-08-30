@@ -1652,12 +1652,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    int successes = 0");
 
         int expected = 0;
-        GenericDispatchShape[] shapes = GenericDispatchShape.values();
+        List<GenericDispatchShape> shapes = new ArrayList<>(
+            EnumSet.allOf(GenericDispatchShape.class));
+        Collections.shuffle(shapes, random);
         for (int i = 0; i < 16; i++) {
             int value = random.nextInt(100) + 1;
-            GenericDispatchShape shape = i < shapes.length
-                ? shapes[i]
-                : shapes[random.nextInt(shapes.length)];
+            GenericDispatchShape shape = i < shapes.size()
+                ? shapes.get(i)
+                : shapes.get(random.nextInt(shapes.size()));
             covered.add(shape);
             switch (shape) {
                 case TUPLE_INT -> {
