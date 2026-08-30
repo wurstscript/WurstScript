@@ -134,6 +134,19 @@ class VarStates {
         return new VarStates(states, destroyed.build(), thisDestroyed);
     }
 
+    public VarStates clearDestroyParameter(NameDef var) {
+        if (!destroyedParameters.contains(var)) {
+            return this;
+        }
+        ImmutableSet.Builder<NameDef> remaining = ImmutableSet.builder();
+        for (NameDef destroyed : destroyedParameters) {
+            if (destroyed != var) {
+                remaining.add(destroyed);
+            }
+        }
+        return new VarStates(states, remaining.build(), thisDestroyed);
+    }
+
 
 
     private @Nullable VState getVarState(LocalVarDef var) {
@@ -333,6 +346,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
+            }
+            if (n instanceof WParameter) {
+                return incoming.clearDestroyParameter(n);
             }
         }
         return incoming;
