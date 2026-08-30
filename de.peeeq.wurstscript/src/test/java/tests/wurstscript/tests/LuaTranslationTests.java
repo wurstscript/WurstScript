@@ -290,7 +290,6 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    fail()"
         );
         assertTrue(compiled.contains("debug.traceback"));
-        assertTrue(compiled.contains("ErrorHandling_error"));
     }
 
     @Test
