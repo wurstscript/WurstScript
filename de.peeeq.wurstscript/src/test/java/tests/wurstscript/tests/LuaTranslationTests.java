@@ -1603,6 +1603,9 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        destroy p",
             "        return result",
             "class Foo",
+            "class Impl implements Predicate<Foo>",
+            "    function test(Foo value) returns boolean",
+            "        return value != null",
             "init",
             "    let first = new Box<pair>(pair(1, 2))",
             "    if first.matches(x -> x.a == 1)",
@@ -1612,6 +1615,9 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        testSuccess()",
             "    let ordinary = new Box<Foo>(new Foo())",
             "    if ordinary.matches(x -> x != null)",
+            "        testSuccess()",
+            "    let ordinaryImpl = new Box<Foo>(new Foo())",
+            "    if ordinaryImpl.matches(new Impl())",
             "        testSuccess()"
         );
         String compiled = Files.toString(new File(
