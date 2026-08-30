@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 /**
  * wraps an imType and adds a hashmap and equals method
  */
-class GenericTypes {
+public class GenericTypes {
     private final List<ImTypeArgument> typeArguments;
 
 

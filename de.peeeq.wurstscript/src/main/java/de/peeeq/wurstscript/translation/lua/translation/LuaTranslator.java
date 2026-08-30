@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -103,12 +104,15 @@ public class LuaTranslator {
     /**
      * Identity of a dispatch group. The root is an IM method, not a generated Lua name: two
      * unrelated groups are allowed to have equal names after generic elimination. Specializations
-     * of one override chain intentionally share this identity even when lowering changes types.
+     * moved onto one erased class retain their structural type arguments so distinct lowered
+     * signatures cannot overwrite one another's descriptor slot.
      */
     private static final class DispatchGroupIdentity {
         final ImMethod root;
-        DispatchGroupIdentity(ImMethod root) {
+        final GenericTypes specialization;
+        DispatchGroupIdentity(ImMethod root, GenericTypes specialization) {
             this.root = root;
+            this.specialization = specialization;
         }
 
         @Override
@@ -116,12 +120,13 @@ public class LuaTranslator {
             if (!(other instanceof DispatchGroupIdentity that)) {
                 return false;
             }
-            return root == that.root;
+            return root == that.root
+                && Objects.equals(specialization, that.specialization);
         }
 
         @Override
         public int hashCode() {
-            return System.identityHashCode(root);
+            return 31 * System.identityHashCode(root) + Objects.hashCode(specialization);
         }
     }
 
@@ -1592,12 +1597,28 @@ public class LuaTranslator {
                 }
             }
         }
-        Map<ImMethod, DispatchGroupIdentity> identities = new IdentityHashMap<>();
+        Map<DispatchGroupIdentity, DispatchGroupIdentity> identities = new HashMap<>();
         for (ImMethod method : methods) {
             ImMethod root = findDispatchGroupRoot(parent, method);
-            DispatchGroupIdentity identity = identities.computeIfAbsent(root, DispatchGroupIdentity::new);
+            DispatchGroupIdentity candidate = new DispatchGroupIdentity(root, dispatchSpecializationOf(method));
+            DispatchGroupIdentity identity = identities.computeIfAbsent(candidate, ignored -> candidate);
             dispatchGroups.put(method, identity);
         }
+    }
+
+    /**
+     * Specialised methods which were moved back onto their erased allocation class can coexist
+     * with another specialization of the same virtual root. Keep their structural arguments in
+     * the dispatch identity; specialised methods still living on a specialised class are already
+     * reached through that class and must continue sharing the root family with its overrides.
+     */
+    private GenericTypes dispatchSpecializationOf(ImMethod method) {
+        ImTranslator.Specialisation specialization = imTr.specialisationOf(method);
+        ImClass owner = method.attrClass();
+        if (specialization == null || owner == null || imTr.canonical(owner) != owner) {
+            return null;
+        }
+        return new GenericTypes(specialization.typeArguments());
     }
 
     private static ImMethod findDispatchGroupRoot(Map<ImMethod, ImMethod> parent, ImMethod method) {
