@@ -40,6 +40,7 @@ jobs:
       JAVA_TOOL_OPTIONS: >-
         -XX:+UseCompactObjectHeaders
         -XX:+UseStringDeduplication
+        --enable-native-access=ALL-UNNAMED
       GRADLE_OPTS: -Dorg.gradle.daemon=false
     defaults:
       run:
@@ -119,9 +120,9 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            ./gradlew test jacocoTestReport --no-daemon --stacktrace
+            ./gradlew test jacocoTestReport --no-daemon --stacktrace --quiet
           else
-            ./gradlew test --no-daemon --stacktrace
+            ./gradlew test --no-daemon --stacktrace --quiet
           fi
 
       - name: Upload coverage to Coveralls
