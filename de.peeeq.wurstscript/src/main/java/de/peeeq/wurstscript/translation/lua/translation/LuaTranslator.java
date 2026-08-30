@@ -79,6 +79,8 @@ public class LuaTranslator {
     private final Set<String> usedNames = LuaReservedNames.all();
     private final Set<String> emittedDispatchSlots = new HashSet<>();
     private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
+    private final Map<String, Set<ImClass>> concreteReceiverClassesByAlias = new HashMap<>();
+    private boolean dispatchReceiverIndexBuilt;
     private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
 
     private static final class PendingDispatch {
@@ -1202,6 +1204,7 @@ public class LuaTranslator {
 
     /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
     private void resolveDispatchSlots() {
+        buildDispatchReceiverIndex();
         for (PendingDispatch pending : pendingDispatches) {
             String current = pending.target.getFieldName();
             Set<String> candidates = new TreeSet<>();
@@ -1251,10 +1254,11 @@ public class LuaTranslator {
      */
     private Set<String> commonConcreteReceiverSlots(ImMethod method) {
         Set<String> common = null;
-        for (ImClass c : prog.getClasses()) {
-            if (!hasConcreteDispatchImplementation(c, method)) {
-                continue;
-            }
+        Set<ImClass> receivers = new HashSet<>();
+        for (String key : dispatchReceiverKeys(method)) {
+            receivers.addAll(concreteReceiverClassesByAlias.getOrDefault(key, Collections.emptySet()));
+        }
+        for (ImClass c : receivers) {
             Set<String> slots = emittedDispatchSlotsByClass.get(c);
             if (slots == null || slots.isEmpty()) {
                 continue;
@@ -1269,37 +1273,51 @@ public class LuaTranslator {
     }
 
     private boolean hasClosureReceiver(ImMethod method) {
-        for (ImClass c : prog.getClasses()) {
-            if (c.attrTrace() instanceof ExprClosure && hasConcreteDispatchImplementation(c, method)) {
-                return true;
+        for (String key : dispatchReceiverKeys(method)) {
+            for (ImClass c : concreteReceiverClassesByAlias.getOrDefault(key, Collections.emptySet())) {
+                if (c.attrTrace() instanceof ExprClosure) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    private boolean hasConcreteDispatchImplementation(ImClass receiverClass, ImMethod method) {
-        Set<String> aliases = new HashSet<>();
-        aliases.add(dispatchSlotName(method.getName()));
-        aliases.add(dispatchSlotName(imTr.dispatchSegmentOf(method)));
+    private void buildDispatchReceiverIndex() {
+        if (dispatchReceiverIndexBuilt) {
+            return;
+        }
+        dispatchReceiverIndexBuilt = true;
+        for (ImClass receiver : prog.getClasses()) {
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (candidate.getIsAbstract() || candidate.getImplementation() == null) {
+                    continue;
+                }
+                for (String key : dispatchReceiverKeys(candidate)) {
+                    concreteReceiverClassesByAlias.computeIfAbsent(key, ignored -> new HashSet<>()).add(receiver);
+                }
+            }
+        }
+    }
+
+    private Set<String> dispatchReceiverKeys(ImMethod method) {
+        Set<String> keys = new HashSet<>();
+        keys.add(dispatchSlotName(method.getName()));
+        keys.add(dispatchSlotName(imTr.dispatchSegmentOf(method)));
         for (String alias : method.getLuaMethodDispatchAliases()) {
             if (alias != null && !alias.isEmpty()) {
-                aliases.add(dispatchSlotName(alias));
+                keys.add(dispatchSlotName(alias));
             }
         }
         String declaredName = LuaDispatchPreparation.declaredName(method);
-        String sourceName = sourceSemanticName(method);
-        for (ImMethod candidate : collectMethodsInHierarchy(receiverClass)) {
-            if (!candidate.getIsAbstract()
-                && candidate.getImplementation() != null
-                && (aliases.contains(dispatchSlotName(candidate.getName()))
-                    || aliases.contains(dispatchSlotName(imTr.dispatchSegmentOf(candidate)))
-                    || (!declaredName.isEmpty() && declaredName.equals(LuaDispatchPreparation.declaredName(candidate)))
-                    || (!sourceName.isEmpty() && sourceName.equals(sourceSemanticName(candidate))
-                        && LuaDispatchPreparation.compatibleReturnTypes(method, candidate, imTr)))) {
-                return true;
-            }
+        if (!declaredName.isEmpty()) {
+            keys.add(dispatchSlotName(declaredName));
         }
-        return false;
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            keys.add(dispatchSlotName(sourceName));
+        }
+        return keys;
     }
 
     /**
