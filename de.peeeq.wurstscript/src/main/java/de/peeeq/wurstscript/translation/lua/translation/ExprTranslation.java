@@ -95,7 +95,10 @@ public class ExprTranslation {
         LuaFunction ef = tr.getErrorFunc();
         if (ef != null) {
             if (ef.getParams().size() == 2) {
-                return ef.getName() + "(" + msg + ", \"<lua error>\")";
+                // StackTraceInjector adds the second parameter to ErrorHandling.error.  Lua's
+                // xpcall handler already has the real failing call stack, so pass it through
+                // instead of the old placeholder (which made -stacktraces ineffective in Lua).
+                return ef.getName() + "(" + msg + ", debug.traceback(" + msg + ", 2))";
             }
             return ef.getName() + "(" + msg + ")";
         }

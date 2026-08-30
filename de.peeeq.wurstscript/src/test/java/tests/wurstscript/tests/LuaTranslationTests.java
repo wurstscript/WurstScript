@@ -277,6 +277,25 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler() throws IOException {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler",
+            false,
+            "package ErrorHandling",
+            "function error(string msg)",
+            "    skip",
+            "package Test",
+            "import ErrorHandling",
+            "function fail()",
+            "    error(\"boom\")",
+            "init",
+            "    fail()"
+        );
+        assertTrue(compiled.contains("debug.traceback"));
+        assertTrue(compiled.contains("ErrorHandling_error"));
+    }
+
+    @Test
     public void continueLoweringInLua() throws IOException {
         test().testLua(true).lines(
             "package Test",
