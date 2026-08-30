@@ -1607,17 +1607,20 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    function test(Foo value) returns boolean",
             "        return value != null",
             "init",
+            "    int successes = 0",
             "    let first = new Box<pair>(pair(1, 2))",
             "    if first.matches(x -> x.a == 1)",
-            "        testSuccess()",
+            "        successes++",
             "    let second = new Box<pair2>(pair2(\"two\", 3))",
             "    if second.matches(x -> x.a == \"two\")",
-            "        testSuccess()",
+            "        successes++",
             "    let ordinary = new Box<Foo>(new Foo())",
             "    if ordinary.matches(x -> x != null)",
-            "        testSuccess()",
+            "        successes++",
             "    let ordinaryImpl = new Box<Foo>(new Foo())",
             "    if ordinaryImpl.matches(new Impl())",
+            "        successes++",
+            "    if successes == 4",
             "        testSuccess()"
         );
         String compiled = Files.toString(new File(
