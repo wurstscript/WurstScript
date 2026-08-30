@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 
@@ -1544,7 +1545,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     public void randomizedGenericTupleDispatchMatchesJassAndLua() {
         Random random = new Random(0x71A9D15CL);
         for (int caseIndex = 0; caseIndex < 8; caseIndex++) {
-            List<String> source = genericTupleDispatchCase(random, caseIndex);
+            EnumSet<GenericDispatchShape> covered = EnumSet.noneOf(GenericDispatchShape.class);
+            List<String> source = genericTupleDispatchCase(random, covered);
+            assertEquals("dispatch fuzz case must cover every semantic specialization shape",
+                EnumSet.allOf(GenericDispatchShape.class), covered);
             String[] lines = source.toArray(new String[0]);
             try {
                 test().executeProg().lines(lines);
@@ -1563,6 +1567,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
                     + String.join("\n", lines), e);
             }
         }
+    }
+
+    private enum GenericDispatchShape {
+        TUPLE_INT,
+        TUPLE_TEXT,
+        NESTED_TUPLE_INT,
+        NESTED_TUPLE_TEXT,
+        CLASS_PREDICATE,
+        OTHER_CLASS_PREDICATE,
+        OTHER_CLASS_PREDICATE_SECOND_TYPE,
+        CLASS_IMPLEMENTATION
     }
 
     /** A user method beginning with {@code destroy} is ordinary virtual dispatch, not lifecycle
@@ -1592,7 +1607,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse(dispatchBody.contains(".__wurst_destroy"));
     }
 
-    private List<String> genericTupleDispatchCase(Random random, int caseIndex) {
+    private List<String> genericTupleDispatchCase(Random random,
+                                                  EnumSet<GenericDispatchShape> covered) {
         List<String> source = new ArrayList<>();
         Collections.addAll(source,
             "package Test",
@@ -1636,46 +1652,59 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    int successes = 0");
 
         int expected = 0;
+        List<GenericDispatchShape> shapes = new ArrayList<>(
+            EnumSet.allOf(GenericDispatchShape.class));
+        Collections.shuffle(shapes, random);
         for (int i = 0; i < 16; i++) {
             int value = random.nextInt(100) + 1;
-            switch (random.nextInt(7)) {
-                case 0 -> {
+            GenericDispatchShape shape = i < shapes.size()
+                ? shapes.get(i)
+                : shapes.get(random.nextInt(shapes.size()));
+            covered.add(shape);
+            switch (shape) {
+                case TUPLE_INT -> {
                     source.add("    let value" + i + " = new Box<PairInt>(PairInt(" + value + ", " + (value + 1) + "))");
                     source.add("    if value" + i + ".matches(x -> x.a == " + value + ")");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                case 1 -> {
+                case TUPLE_TEXT -> {
                     source.add("    let value" + i + " = new Box<PairText>(PairText(\"v" + value + "\", " + value + "))");
                     source.add("    if value" + i + ".matches(x -> x.a == \"v" + value + "\")");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                case 2 -> {
+                case NESTED_TUPLE_INT -> {
                     source.add("    let value" + i + " = new Nested<PairInt>(PairInt(" + value + ", " + (value + 2) + "))");
                     source.add("    if value" + i + ".matches(x -> x.b == " + (value + 2) + ")");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                case 3 -> {
+                case NESTED_TUPLE_TEXT -> {
+                    source.add("    let value" + i + " = new Nested<PairText>(PairText(\"v" + value + "\", " + value + "))");
+                    source.add("    if value" + i + ".matches(x -> x.a == \"v" + value + "\")");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case CLASS_PREDICATE -> {
                     source.add("    let value" + i + " = new Box<Foo>(new Foo())");
                     source.add("    if value" + i + ".matches(x -> x != null)");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                case 4 -> {
+                case OTHER_CLASS_PREDICATE -> {
                     source.add("    let value" + i + " = new OtherBox<Foo>(new Foo())");
                     source.add("    if value" + i + ".matches(x -> x != null)");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                case 5 -> {
+                case OTHER_CLASS_PREDICATE_SECOND_TYPE -> {
                     source.add("    let value" + i + " = new OtherBox<Bar>(new Bar())");
                     source.add("    if value" + i + ".matches(x -> x != null)");
                     source.add("        successes++");
                     source.add("    destroy value" + i);
                 }
-                default -> {
+                case CLASS_IMPLEMENTATION -> {
                     source.add("    let value" + i + " = new Box<Foo>(new Foo())");
                     source.add("    if value" + i + ".matches(new FooPredicate())");
                     source.add("        successes++");
