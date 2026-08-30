@@ -1263,6 +1263,11 @@ public class LuaTranslator {
             String methodName = dispatchSlotName(pending.method.getName());
             String segment = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
             Set<ImClass> receivers = concreteReceiversFor(pending.method);
+            if (isDestroyDispatchMethod(pending.method)
+                && emittedDispatchSlots.contains("__wurst_destroy")) {
+                setResolvedDispatchSlot(pending, "__wurst_destroy");
+                continue;
+            }
             Set<String> commonSlots = receivers.isEmpty()
                 ? Collections.emptySet()
                 : commonConcreteReceiverSlots(pending.method);
@@ -1273,11 +1278,6 @@ public class LuaTranslator {
             Set<String> resolutionSlots = receivers.isEmpty() ? emittedDispatchSlots : commonSlots;
             if (!receivers.isEmpty() && commonSlots.isEmpty()) {
                 ensureCanonicalDispatchSlot(pending);
-                continue;
-            }
-            if (isDestroyDispatchMethod(pending.method)
-                && emittedDispatchSlots.contains("__wurst_destroy")) {
-                setResolvedDispatchSlot(pending, "__wurst_destroy");
                 continue;
             }
             if (resolutionSlots.contains(methodName)) {
@@ -1452,7 +1452,7 @@ public class LuaTranslator {
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
             if (slots == null || slots.isEmpty()) {
-                continue;
+                return Collections.emptySet();
             }
             if (common == null) {
                 common = new HashSet<>(slots);
