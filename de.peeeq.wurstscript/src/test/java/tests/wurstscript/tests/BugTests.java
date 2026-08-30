@@ -928,7 +928,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void unreadVarWarning3() { // #380
-        testAssertErrorsLines(true, "closure-captured variable",
+        testAssertErrorsLines(true, "does not propagate outside the closure because closures capture locals by value",
             "package test",
             "@annotation public function annotation()",
             "@annotation public function extern()",

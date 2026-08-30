@@ -541,7 +541,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 @Nullable ExprClosure exprClosure = errorPos.attrNearestExprClosure();
                 @Nullable ExprClosure exprClosure1 = var.attrNearestExprClosure();
                 if (exprClosure != null && exprClosure != exprClosure1) {
-                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var) + " has no effect outside the closure.");
+                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var)
+                        + " does not propagate outside the closure because closures capture locals by value. "
+                        + "If you want to update the outer value, use reference(" + var.getName() + ") deliberately.");
                 } else {
                     errorPos.addWarning("The assignment to " + Utils.printElement(var) + " is never read.");
                 }
