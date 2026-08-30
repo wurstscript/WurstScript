@@ -2424,8 +2424,10 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    apply(() -> error(\"callback\"))"
         );
         assertFalse(compiled.contains("debug.traceback"));
-        assertTrue("callback stack position missing in generated Lua:\n" + compiled,
-            compiled.contains("in lua callback error handler"));
+        assertContainsRegex(compiled,
+            "function\\s+error1\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled,
+            "error1\\(tostring\\(err\\), \\\"in lua callback error handler\\\"\\)");
     }
 
     @Test
