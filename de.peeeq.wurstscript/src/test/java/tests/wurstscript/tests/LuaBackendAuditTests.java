@@ -1534,6 +1534,161 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(source.toArray(new String[0]));
     }
 
+    /**
+     * Differential dispatch corpus: every generated case executes the same generic interface
+     * calls through the Jass interpreter and the Lua runtime. Keeping the seed fixed makes a
+     * failure reproducible while varying specialization order, tuple shapes, nesting, and two
+     * unrelated interfaces whose method names deliberately match.
+     */
+    @Test
+    public void randomizedGenericTupleDispatchMatchesJassAndLua() {
+        Random random = new Random(0x71A9D15CL);
+        for (int caseIndex = 0; caseIndex < 8; caseIndex++) {
+            List<String> source = genericTupleDispatchCase(random, caseIndex);
+            String[] lines = source.toArray(new String[0]);
+            try {
+                test().executeProg().lines(lines);
+            } catch (Exception | Error e) {
+                throw new AssertionError("dispatch fuzz case " + caseIndex + " failed in Jass:\n"
+                    + String.join("\n", lines), e);
+            }
+            try {
+                test().testLua(true).executeProg().lines(lines);
+            } catch (org.testng.SkipException e) {
+                // Lua is optional on developer/CI hosts; preserve the framework's visible skip
+                // instead of turning it into a dispatch failure through the diagnostic wrapper.
+                throw e;
+            } catch (Exception | Error e) {
+                throw new AssertionError("dispatch fuzz case " + caseIndex + " failed in Lua:\n"
+                    + String.join("\n", lines), e);
+            }
+        }
+    }
+
+    /** A user method beginning with {@code destroy} is ordinary virtual dispatch, not lifecycle
+     * destruction.  The lifecycle slot is identified from the generated OnDestroy function. */
+    @Test
+    public void ordinaryDestroyNamedMethodDoesNotUseLifecycleDispatchSlot() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Destroyer",
+            "    function destroyValue() returns int",
+            "class Implementation implements Destroyer",
+            "    override function destroyValue() returns int",
+            "        return 7",
+            "init",
+            "    Destroyer value = new Implementation()",
+            "    if value.destroyValue() == 7",
+            "        testSuccess()",
+            "    destroy value"
+        );
+        String compiled = compiledLua("ordinaryDestroyNamedMethodDoesNotUseLifecycleDispatchSlot");
+        int dispatchStart = compiled.indexOf("function dispatch_Destroyer_destroyValue");
+        int dispatchEnd = compiled.indexOf("\nend", dispatchStart);
+        assertTrue(dispatchStart >= 0 && dispatchEnd > dispatchStart);
+        String dispatchBody = compiled.substring(dispatchStart, dispatchEnd);
+        assertTrue(dispatchBody.contains(".Destroyer_destroyValue"));
+        assertFalse(dispatchBody.contains(".__wurst_destroy"));
+    }
+
+    private List<String> genericTupleDispatchCase(Random random, int caseIndex) {
+        List<String> source = new ArrayList<>();
+        Collections.addAll(source,
+            "package Test",
+            "native testSuccess()",
+            "tuple PairInt(int a, int b)",
+            "tuple PairText(string a, int b)",
+            "interface Predicate<T:>",
+            "    function test(T value) returns boolean",
+            "interface OtherPredicate<T:>",
+            "    function test(T value) returns boolean",
+            "class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(Predicate<T> predicate) returns boolean",
+            "        let result = predicate.test(value)",
+            "        destroy predicate",
+            "        return result",
+            "class OtherBox<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(OtherPredicate<T> predicate) returns boolean",
+            "        let result = predicate.test(value)",
+            "        destroy predicate",
+            "        return result",
+            "class Nested<T:>",
+            "    Box<T> inner",
+            "    construct(T value)",
+            "        inner = new Box<T>(value)",
+            "    function matches(Predicate<T> predicate) returns boolean",
+            "        return inner.matches(predicate)",
+            "    ondestroy",
+            "        destroy inner",
+            "class Foo",
+            "class Bar",
+            "class FooPredicate implements Predicate<Foo>",
+            "    function test(Foo value) returns boolean",
+            "        return value != null",
+            "init",
+            "    int successes = 0");
+
+        int expected = 0;
+        for (int i = 0; i < 16; i++) {
+            int value = random.nextInt(100) + 1;
+            switch (random.nextInt(7)) {
+                case 0 -> {
+                    source.add("    let value" + i + " = new Box<PairInt>(PairInt(" + value + ", " + (value + 1) + "))");
+                    source.add("    if value" + i + ".matches(x -> x.a == " + value + ")");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case 1 -> {
+                    source.add("    let value" + i + " = new Box<PairText>(PairText(\"v" + value + "\", " + value + "))");
+                    source.add("    if value" + i + ".matches(x -> x.a == \"v" + value + "\")");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case 2 -> {
+                    source.add("    let value" + i + " = new Nested<PairInt>(PairInt(" + value + ", " + (value + 2) + "))");
+                    source.add("    if value" + i + ".matches(x -> x.b == " + (value + 2) + ")");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case 3 -> {
+                    source.add("    let value" + i + " = new Box<Foo>(new Foo())");
+                    source.add("    if value" + i + ".matches(x -> x != null)");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case 4 -> {
+                    source.add("    let value" + i + " = new OtherBox<Foo>(new Foo())");
+                    source.add("    if value" + i + ".matches(x -> x != null)");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                case 5 -> {
+                    source.add("    let value" + i + " = new OtherBox<Bar>(new Bar())");
+                    source.add("    if value" + i + ".matches(x -> x != null)");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+                default -> {
+                    source.add("    let value" + i + " = new Box<Foo>(new Foo())");
+                    source.add("    if value" + i + ".matches(new FooPredicate())");
+                    source.add("        successes++");
+                    source.add("    destroy value" + i);
+                }
+            }
+            expected++;
+        }
+        source.add("    if successes == " + expected);
+        source.add("        testSuccess()");
+        return source;
+    }
+
     @Test
     public void tupleSpecializedStaticInitializerCycleDoesNotRootErasedCopy() throws IOException {
         test().testLua(true).executeProg().lines(

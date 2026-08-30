@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -15,6 +16,7 @@ import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
@@ -77,6 +79,56 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    private final Set<String> emittedDispatchSlots = new HashSet<>();
+    private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
+    private final Map<ImClass, Map<String, Set<DispatchGroupIdentity>>> emittedDispatchSlotGroupsByClass = new IdentityHashMap<>();
+    private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
+    private final Map<ImClass, Set<ImClass>> concreteReceiverClassesByNominalType = new IdentityHashMap<>();
+    private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
+    private final Map<ImMethod, Set<ImClass>> concreteReceiverFamilyCache = new IdentityHashMap<>();
+    private final Map<DispatchGroupIdentity, String> canonicalDispatchSlots = new HashMap<>();
+    private boolean dispatchGroupsBuilt;
+    private boolean dispatchReceiverIndexBuilt;
+    private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
+
+    private static final class PendingDispatch {
+        final ImMethod method;
+        final LuaExprFieldAccess target;
+
+        PendingDispatch(ImMethod method, LuaExprFieldAccess target) {
+            this.method = method;
+            this.target = target;
+        }
+    }
+
+    /**
+     * Identity of a dispatch group. The root is an IM method, not a generated Lua name: two
+     * unrelated groups are allowed to have equal names after generic elimination. Specializations
+     * moved onto one erased class retain their structural type arguments so distinct lowered
+     * signatures cannot overwrite one another's descriptor slot.
+     */
+    private static final class DispatchGroupIdentity {
+        final ImMethod root;
+        final GenericTypes specialization;
+        DispatchGroupIdentity(ImMethod root, GenericTypes specialization) {
+            this.root = root;
+            this.specialization = specialization;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof DispatchGroupIdentity that)) {
+                return false;
+            }
+            return root == that.root
+                && Objects.equals(specialization, that.specialization);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * System.identityHashCode(root) + Objects.hashCode(specialization);
+        }
+    }
 
     private ImProg getProg() {
         return prog;
@@ -195,9 +247,18 @@ public class LuaTranslator {
             LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
                 LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver)));
-            LuaExpr target = LuaAst.LuaExprFieldAccess(descriptor, dispatchSlotName(method.getName()));
-            result.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallE(target,
-                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)))));
+            // The final slot is resolved after all class descriptors have been emitted. Generic
+            // lowering can leave an unspecialized call with a mangled method name while the
+            // implementing closure classes register the normalized alias (e.g. Predicate_test
+            // vs. test); the descriptor table is the authoritative source for that choice.
+            LuaExprFieldAccess target = LuaAst.LuaExprFieldAccess(
+                descriptor, isDestroyDispatchMethod(method)
+                    ? "__wurst_destroy"
+                    : dispatchSlotName(imTr.dispatchSegmentOf(method)));
+            LuaExprFunctionCallE call = LuaAst.LuaExprFunctionCallE(target,
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)));
+            pendingDispatches.add(new PendingDispatch(method, target));
+            result.getBody().add(LuaAst.LuaReturn(call));
             luaModel.add(result);
             return result;
         }
@@ -308,6 +369,9 @@ public class LuaTranslator {
         for (ImClass c : prog.getClasses()) {
             initClassTables(c);
         }
+
+        resolveDispatchSlots();
+        assertResolvedDispatchSlots();
 
         createBootstrapFunction();
         cleanStatements();
@@ -1151,6 +1215,14 @@ public class LuaTranslator {
             }
         }
 
+        List<ImMethod> destroyMethods = allMethods.stream()
+            .filter(this::isDestroyDispatchMethod)
+            .toList();
+        ImMethod destroyImplementation = chooseBestImplementationForClass(c, destroyMethods);
+        if (destroyImplementation != null) {
+            slotToImpl.put("__wurst_destroy", destroyImplementation);
+        }
+
         // Constructor helpers (create, create1, ...) live in the same class-table
         // key namespace as dispatch slots. If a slot would overwrite this class's
         // constructor at main() time, rename the constructor instead (allocation
@@ -1165,11 +1237,408 @@ public class LuaTranslator {
             if (impl == null || impl.getImplementation() == null) {
                 continue;
             }
+            registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
                 LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
             ));
+        }
+
+    }
+
+    private void registerDispatchSlot(ImClass receiver, String slot, DispatchGroupIdentity group) {
+        emittedDispatchSlots.add(slot);
+        emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>()).add(slot);
+        if (group != null) {
+            emittedDispatchSlotGroupsByClass
+                .computeIfAbsent(receiver, ignored -> new HashMap<>())
+                .computeIfAbsent(slot, ignored -> new HashSet<>())
+                .add(group);
+        }
+    }
+
+    /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
+    private void resolveDispatchSlots() {
+        buildDispatchReceiverIndex();
+        ensureDestroyFallbackSlots();
+        for (PendingDispatch pending : pendingDispatches) {
+            String current = pending.target.getFieldName();
+            Set<String> candidates = new TreeSet<>();
+            String methodName = dispatchSlotName(pending.method.getName());
+            String segment = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
+            Set<ImClass> receivers = concreteReceiversFor(pending.method);
+            if (isDestroyDispatchMethod(pending.method)
+                && emittedDispatchSlots.contains("__wurst_destroy")) {
+                setResolvedDispatchSlot(pending, "__wurst_destroy");
+                continue;
+            }
+            Set<String> commonSlots = receivers.isEmpty()
+                ? Collections.emptySet()
+                : commonConcreteReceiverSlots(pending.method);
+            // A concrete receiver family with no common emitted slot must be canonicalized. Never
+            // fall back to the program-wide slot union: an unrelated dispatch group can otherwise
+            // satisfy the name check and silently bind the wrong implementation. Opaque native
+            // callbacks are the only case where there is no compiler-known receiver descriptor.
+            Set<String> resolutionSlots = receivers.isEmpty() ? emittedDispatchSlots : commonSlots;
+            if (!receivers.isEmpty() && commonSlots.isEmpty()) {
+                ensureCanonicalDispatchSlot(pending);
+                continue;
+            }
+            if (resolutionSlots.contains(methodName)) {
+                setResolvedDispatchSlot(pending, methodName);
+                continue;
+            }
+            if (resolutionSlots.contains(segment)) {
+                setResolvedDispatchSlot(pending, segment);
+                continue;
+            }
+            if (resolutionSlots.contains(current)) {
+                setResolvedDispatchSlot(pending, current);
+                continue;
+            }
+            candidates.addAll(dispatchCandidateSlots(pending.method));
+            String resolved = candidates.stream()
+                .filter(resolutionSlots::contains)
+                .sorted(Comparator.comparingInt(String::length).thenComparing(String::compareTo))
+                .findFirst().orElse(null);
+            if (resolved != null) {
+                setResolvedDispatchSlot(pending, resolved);
+                continue;
+            }
+            if (!concreteReceiversFor(pending.method).isEmpty()) {
+                ensureCanonicalDispatchSlot(pending);
+            }
+        }
+    }
+
+    private void setResolvedDispatchSlot(PendingDispatch pending, String slot) {
+        Set<ImClass> receivers = concreteReceiversFor(pending.method);
+        if (!receivers.isEmpty() && receivers.stream().anyMatch(c ->
+            !emittedDispatchSlotsByClass.getOrDefault(c, Collections.emptySet()).contains(slot))) {
+            ensureCanonicalDispatchSlot(pending);
+        } else {
+            pending.target.setFieldName(slot);
+        }
+    }
+
+    /** Give a heterogeneous specialization family one private, consistently registered slot. */
+    private void ensureCanonicalDispatchSlot(PendingDispatch pending) {
+        DispatchGroupIdentity group = dispatchGroupOf(pending.method);
+        if (group == null) {
+            return;
+        }
+        String semantic = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
+        if (semantic.isEmpty()) {
+            semantic = "method";
+        }
+        String canonicalName = semantic;
+        String slot = canonicalDispatchSlots.computeIfAbsent(group,
+            ignored -> uniqueName("__wurst_dispatch_" + canonicalName));
+        Set<String> semanticNames = new HashSet<>();
+        if (!imTr.dispatchSegmentOf(pending.method).isEmpty()) {
+            semanticNames.add(imTr.dispatchSegmentOf(pending.method));
+        }
+        String sourceName = sourceSemanticName(pending.method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        Set<ImClass> receivers = concreteReceiversFor(pending.method);
+        List<ImClass> sortedReceivers = new ArrayList<>(receivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
+            List<ImMethod> candidates = new ArrayList<>();
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (sameDispatchFamily(pending.method, candidate)
+                    && sharesDispatchSemanticName(candidate, semanticNames)) {
+                    candidates.add(candidate);
+                }
+            }
+            ImMethod implementation = chooseBestImplementationForClass(receiver, candidates);
+            if (implementation == null) {
+                throw new RuntimeException("Wurst Lua backend assertion failed: no implementation for dispatch slot '"
+                    + slot + "' in descriptor for " + receiver.getName() + ".");
+            }
+            Set<String> registered = emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>());
+            if (registered.add(slot)) {
+                registerDispatchSlot(receiver, slot, group);
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), slot),
+                    LuaAst.LuaExprFuncRef(luaFunc.getFor(implementation.getImplementation()))));
+            }
+        }
+        pending.target.setFieldName(slot);
+    }
+
+    private Set<String> dispatchCandidateSlots(ImMethod method) {
+        Set<String> candidates = new TreeSet<>();
+        candidates.add(dispatchSlotName(method.getName()));
+        candidates.add(dispatchSlotName(imTr.dispatchSegmentOf(method)));
+        for (String alias : method.getLuaMethodDispatchAliases()) {
+            if (alias != null && !alias.isEmpty()) {
+                candidates.add(dispatchSlotName(alias));
+            }
+        }
+        Set<ImClass> receivers = concreteReceiversFor(method);
+        Set<String> semanticNames = new HashSet<>();
+        String segment = imTr.dispatchSegmentOf(method);
+        if (!segment.isEmpty()) {
+            semanticNames.add(segment);
+        }
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        for (ImClass receiver : receivers) {
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (!sameDispatchFamily(method, candidate)
+                    || !sharesDispatchSemanticName(candidate, semanticNames)) {
+                    continue;
+                }
+                candidates.add(dispatchSlotName(candidate.getName()));
+                candidates.add(dispatchSlotName(imTr.dispatchSegmentOf(candidate)));
+                for (String alias : candidate.getLuaMethodDispatchAliases()) {
+                    if (alias != null && !alias.isEmpty()) {
+                        candidates.add(dispatchSlotName(alias));
+                    }
+                }
+            }
+        }
+        candidates.remove("");
+        return candidates;
+    }
+
+    private boolean sharesDispatchSemanticName(ImMethod method, Set<String> semanticNames) {
+        if (isDestroyDispatchMethod(method) && semanticNames.stream().anyMatch(name -> name.startsWith("destroy"))) {
+            return true;
+        }
+        return semanticNames.contains(imTr.dispatchSegmentOf(method))
+            || semanticNames.contains(sourceSemanticName(method));
+    }
+
+    private boolean isDestroyDispatchMethod(ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        return implementation != null && implementation.attrTrace() instanceof OnDestroyDef;
+    }
+
+    /** Verify every descriptor slot used by an emitted dispatch helper is registered by its receivers. */
+    private void assertResolvedDispatchSlots() {
+        for (PendingDispatch pending : pendingDispatches) {
+            String slot = pending.target.getFieldName();
+            Set<ImClass> receivers = concreteReceiversFor(pending.method);
+            if (receivers.isEmpty()) {
+                // Native/opaque callback interfaces can have no concrete IM receiver descriptor;
+                // their slot is supplied by the runtime rather than by this program.
+                continue;
+            }
+            for (ImClass receiver : receivers) {
+                Set<String> slots = emittedDispatchSlotsByClass.getOrDefault(receiver, Collections.emptySet());
+                if (!slots.contains(slot)) {
+                    throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slot '"
+                        + slot + "' is missing from descriptor for " + receiver.getName() + ".");
+                }
+            }
+        }
+    }
+
+    /**
+     * Return only slots shared by every concrete descriptor which can receive this dispatch
+     * group. A global slot union is insufficient: an unrelated specialization may register the
+     * mangled method name while closure descriptors for the same helper register only its alias.
+     */
+    private Set<String> commonConcreteReceiverSlots(ImMethod method) {
+        Set<String> common = null;
+        Set<ImClass> receivers = concreteReceiversFor(method);
+        DispatchGroupIdentity group = dispatchGroupOf(method);
+        for (ImClass c : receivers) {
+            Map<String, Set<DispatchGroupIdentity>> slotGroups = emittedDispatchSlotGroupsByClass.get(c);
+            Set<String> slots = slotGroups == null ? Collections.emptySet() : slotGroups.entrySet().stream()
+                .filter(entry -> group != null && entry.getValue().contains(group))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+            if (slots == null || slots.isEmpty()) {
+                return Collections.emptySet();
+            }
+            if (common == null) {
+                common = new HashSet<>(slots);
+            } else {
+                common.retainAll(slots);
+            }
+        }
+        return common == null ? Collections.emptySet() : common;
+    }
+
+    private void buildDispatchReceiverIndex() {
+        if (dispatchReceiverIndexBuilt) {
+            return;
+        }
+        dispatchReceiverIndexBuilt = true;
+        buildDispatchGroupIndex();
+        for (ImClass receiver : prog.getClasses()) {
+            boolean hasConcreteMethod = false;
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (candidate.getIsAbstract() || candidate.getImplementation() == null) {
+                    continue;
+                }
+                hasConcreteMethod = true;
+                DispatchGroupIdentity group = dispatchGroups.get(candidate);
+                if (group != null) {
+                    concreteReceiverClassesByGroup.computeIfAbsent(group, ignored -> new HashSet<>()).add(receiver);
+                }
+            }
+            if (hasConcreteMethod && !isInterfaceClass(receiver)) {
+                for (ImClass nominalType : collectClassesInHierarchy(receiver)) {
+                    concreteReceiverClassesByNominalType.computeIfAbsent(nominalType, ignored -> new HashSet<>()).add(receiver);
+                }
+            }
+        }
+    }
+
+    private DispatchGroupIdentity dispatchGroupOf(ImMethod method) {
+        buildDispatchGroupIndex();
+        return dispatchGroups.get(method);
+    }
+
+    private Set<ImClass> concreteReceiversFor(ImMethod method) {
+        Set<ImClass> cached = concreteReceiverFamilyCache.get(method);
+        if (cached != null) {
+            return cached;
+        }
+        Set<ImClass> receivers = new HashSet<>(concreteReceiverClassesByGroup.getOrDefault(
+            dispatchGroupOf(method), Collections.emptySet()));
+        ImClass owner = method.attrClass();
+        if (owner != null) {
+            receivers.addAll(concreteReceiverClassesByNominalType.getOrDefault(owner, Collections.emptySet()));
+        }
+        Set<String> semanticNames = new HashSet<>();
+        if (!imTr.dispatchSegmentOf(method).isEmpty()) {
+            semanticNames.add(imTr.dispatchSegmentOf(method));
+        }
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        if (isDestroyDispatchMethod(method)) {
+            // A closure's specialized interface class can omit the generated destroy method from
+            // its IM hierarchy even though it is a valid receiver for the interface's lifecycle
+            // call.  Any concrete receiver of another method declared by that owner is also a
+            // concrete receiver of its destroy slot.
+            if (owner != null) {
+                for (ImMethod ownerMethod : owner.getMethods()) {
+                    receivers.addAll(concreteReceiverClassesByGroup.getOrDefault(
+                        dispatchGroupOf(ownerMethod), Collections.emptySet()));
+                }
+            }
+            receivers.removeIf(this::isInterfaceClass);
+            Set<ImClass> result = Collections.unmodifiableSet(receivers);
+            concreteReceiverFamilyCache.put(method, result);
+            return result;
+        }
+        receivers.removeIf(receiver -> collectMethodsInHierarchy(receiver).stream()
+            .noneMatch(candidate -> !candidate.getIsAbstract()
+                && candidate.getImplementation() != null
+                && sameDispatchFamily(method, candidate)
+                && sharesDispatchSemanticName(candidate, semanticNames)));
+        Set<ImClass> result = Collections.unmodifiableSet(receivers);
+        concreteReceiverFamilyCache.put(method, result);
+        return result;
+    }
+
+    /** Install the fallback only for descriptors that can actually receive a dynamic destroy call. */
+    private void ensureDestroyFallbackSlots() {
+        Set<ImClass> fallbackReceivers = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (PendingDispatch pending : pendingDispatches) {
+            if (!isDestroyDispatchMethod(pending.method)) {
+                continue;
+            }
+            fallbackReceivers.addAll(concreteReceiversFor(pending.method));
+        }
+        List<ImClass> sortedReceivers = new ArrayList<>(fallbackReceivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
+            if (isInterfaceClass(receiver)) {
+                continue;
+            }
+            Set<String> slots = emittedDispatchSlotsByClass.computeIfAbsent(receiver,
+                ignored -> new HashSet<>());
+            if (!slots.contains("__wurst_destroy")) {
+                registerDispatchSlot(receiver, "__wurst_destroy", null);
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), "__wurst_destroy"),
+                    LuaAst.LuaExprFuncRef(objectDealloc)));
+            }
+        }
+    }
+
+    private boolean sameDispatchFamily(ImMethod reference, ImMethod candidate) {
+        return dispatchGroupOf(reference) == dispatchGroupOf(candidate);
+    }
+
+    /** Reconstruct dispatch-group identity from the IM override graph without using names. */
+    private void buildDispatchGroupIndex() {
+        if (dispatchGroupsBuilt) {
+            return;
+        }
+        dispatchGroupsBuilt = true;
+        List<ImMethod> methods = new ArrayList<>();
+        for (ImClass c : prog.getClasses()) {
+            methods.addAll(c.getMethods());
+        }
+        Set<ImMethod> knownMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        knownMethods.addAll(methods);
+        Map<ImMethod, ImMethod> parent = new IdentityHashMap<>();
+        for (ImMethod method : methods) {
+            parent.put(method, method);
+        }
+        for (ImMethod method : methods) {
+            for (ImMethod subMethod : method.getSubMethods()) {
+                if (knownMethods.contains(subMethod)) {
+                    unionDispatchGroups(parent, method, subMethod);
+                }
+            }
+        }
+        Map<DispatchGroupIdentity, DispatchGroupIdentity> identities = new HashMap<>();
+        for (ImMethod method : methods) {
+            ImMethod root = findDispatchGroupRoot(parent, method);
+            DispatchGroupIdentity candidate = new DispatchGroupIdentity(root, dispatchSpecializationOf(method));
+            DispatchGroupIdentity identity = identities.computeIfAbsent(candidate, ignored -> candidate);
+            dispatchGroups.put(method, identity);
+        }
+    }
+
+    /**
+     * Specialised methods which were moved back onto their erased allocation class can coexist
+     * with another specialization of the same virtual root. Keep their structural arguments in
+     * the dispatch identity; specialised methods still living on a specialised class are already
+     * reached through that class and must continue sharing the root family with its overrides.
+     */
+    private GenericTypes dispatchSpecializationOf(ImMethod method) {
+        ImTranslator.Specialisation specialization = imTr.specialisationOf(method);
+        ImClass owner = method.attrClass();
+        if (specialization == null || owner == null || imTr.canonical(owner) != owner) {
+            return null;
+        }
+        return new GenericTypes(specialization.typeArguments());
+    }
+
+    private static ImMethod findDispatchGroupRoot(Map<ImMethod, ImMethod> parent, ImMethod method) {
+        ImMethod root = method;
+        ImMethod next;
+        while ((next = parent.get(root)) != root) {
+            root = next;
+        }
+        while ((next = parent.get(method)) != method) {
+            parent.put(method, root);
+            method = next;
+        }
+        return root;
+    }
+
+    private static void unionDispatchGroups(Map<ImMethod, ImMethod> parent, ImMethod left, ImMethod right) {
+        ImMethod leftRoot = findDispatchGroupRoot(parent, left);
+        ImMethod rightRoot = findDispatchGroupRoot(parent, right);
+        if (leftRoot != rightRoot) {
+            parent.put(rightRoot, leftRoot);
         }
     }
 
