@@ -1554,6 +1554,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             }
             try {
                 test().testLua(true).executeProg().lines(lines);
+            } catch (org.testng.SkipException e) {
+                // Lua is optional on developer/CI hosts; preserve the framework's visible skip
+                // instead of turning it into a dispatch failure through the diagnostic wrapper.
+                throw e;
             } catch (Exception | Error e) {
                 throw new AssertionError("dispatch fuzz case " + caseIndex + " failed in Lua:\n"
                     + String.join("\n", lines), e);
