@@ -9,7 +9,9 @@ import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class WurstOperatorTests {
     @Test
@@ -47,5 +49,22 @@ public class WurstOperatorTests {
         assertFalse(WurstOperator.PLUS.isLazy());
         assertFalse(((ILconstBool) WurstOperator.NOT.evaluateUnaryOperator(ILconstBool.instance(true))).getVal());
         assertEquals(((ILconstInt) WurstOperator.UNARY_MINUS.evaluateUnaryOperator(new ILconstInt(4))).getVal(), -4);
+    }
+
+    @Test
+    public void operatorMetadataAndBackendMappingsAreExplicit() {
+        assertTrue(WurstOperator.PLUS.isBinaryOp());
+        assertFalse(WurstOperator.PLUS.isUnaryOp());
+        assertTrue(WurstOperator.NOT.isUnaryOp());
+        assertFalse(WurstOperator.NOT.isBinaryOp());
+        assertEquals(WurstOperator.DIV_REAL.toString(), "/");
+        assertEquals(WurstOperator.PLUS.getOverloadingFuncName(), "op_plus");
+        assertNotNull(WurstOperator.DIV_INT.jassTranslateBinary());
+        assertNotNull(WurstOperator.MOD_REAL.luaTranslateBinary());
+        assertNotNull(WurstOperator.UNARY_MINUS.jassTranslateUnary());
+        assertNotNull(WurstOperator.NOT.jassTranslateUnary());
+        expectThrows(Error.class, () -> WurstOperator.MOD_INT.jassTranslateBinary());
+        expectThrows(Error.class, () -> WurstOperator.MOD_INT.luaTranslateBinary());
+        expectThrows(Error.class, () -> WurstOperator.PLUS.jassTranslateUnary());
     }
 }
