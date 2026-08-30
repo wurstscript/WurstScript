@@ -1332,7 +1332,9 @@ public class LuaTranslator {
             semanticNames.add(sourceName);
         }
         Set<ImClass> receivers = concreteReceiversFor(pending.method);
-        for (ImClass receiver : receivers) {
+        List<ImClass> sortedReceivers = new ArrayList<>(receivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
             List<ImMethod> candidates = new ArrayList<>();
             for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
                 if (sameDispatchFamily(pending.method, candidate)
@@ -1513,14 +1515,7 @@ public class LuaTranslator {
     }
 
     private boolean sameDispatchFamily(ImMethod reference, ImMethod candidate) {
-        if (dispatchGroupOf(reference) == dispatchGroupOf(candidate)) {
-            return true;
-        }
-        ImClass referenceOwner = reference.attrClass();
-        ImClass candidateOwner = candidate.attrClass();
-        return referenceOwner != null && candidateOwner != null
-            && (collectClassesInHierarchy(referenceOwner).contains(candidateOwner)
-                || collectClassesInHierarchy(candidateOwner).contains(referenceOwner));
+        return dispatchGroupOf(reference) == dispatchGroupOf(candidate);
     }
 
     /** Reconstruct dispatch-group identity from the IM override graph without using names. */
