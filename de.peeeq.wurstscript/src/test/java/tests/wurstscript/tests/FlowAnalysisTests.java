@@ -126,11 +126,11 @@ public class FlowAnalysisTests extends WurstScriptTest {
                 "package test",
                 "class A",
                 "    function foo()",
-                "function use(A a)",
+                "function consume(A a)",
                 "    destroy a",
                 "    a.foo()",
                 "init",
-                "    use(new A())"
+                "    consume(new A())"
         );
     }
 
