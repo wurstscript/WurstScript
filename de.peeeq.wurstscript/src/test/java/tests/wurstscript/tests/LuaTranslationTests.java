@@ -284,8 +284,6 @@ public class LuaTranslationTests extends WurstScriptTest {
             "package ErrorHandling",
             "function error(string msg)",
             "    skip",
-            "package Test",
-            "import ErrorHandling",
             "function fail()",
             "    error(\"boom\")",
             "init",
