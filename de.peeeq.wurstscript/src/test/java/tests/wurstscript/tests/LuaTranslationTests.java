@@ -1627,8 +1627,6 @@ public class LuaTranslationTests extends WurstScriptTest {
             "function dispatch_Predicate_test\\([^\\)]*\\)[\\s\\S]*__wurst_objectClass\\[[^\\]]+\\]\\.test");
         assertDoesNotContainRegex(compiled,
             "__wurst_objectClass\\[[^\\]]+\\]\\.Predicate_test");
-        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
-            .assertDispatchSlotsHaveAssignments(compiled);
     }
 
     @Test
@@ -2941,19 +2939,6 @@ public class LuaTranslationTests extends WurstScriptTest {
             fail("Expected RuntimeException for missing __wurst_GetHandleId helper definition");
         } catch (RuntimeException e) {
             assertTrue(e.getMessage().contains("__wurst_GetHandleId"));
-        }
-    }
-
-    @Test
-    public void dispatchSlotAssertionRequiresAClassTableAssignment() {
-        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
-            .assertDispatchSlotsHaveAssignments("__wurst_objectClass[r].test(r)\nPredicate.test = f");
-        try {
-            de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
-                .assertDispatchSlotsHaveAssignments("__wurst_objectClass[r].missing(r)");
-            fail("Expected RuntimeException for a missing descriptor dispatch slot");
-        } catch (RuntimeException e) {
-            assertTrue(e.getMessage().contains("missing"));
         }
     }
 

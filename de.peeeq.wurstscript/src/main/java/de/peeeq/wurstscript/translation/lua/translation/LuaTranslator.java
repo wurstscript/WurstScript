@@ -79,7 +79,9 @@ public class LuaTranslator {
     private final Set<String> usedNames = LuaReservedNames.all();
     private final Set<String> emittedDispatchSlots = new HashSet<>();
     private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
-    private final Map<String, Set<ImClass>> concreteReceiverClassesByAlias = new HashMap<>();
+    private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
+    private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
+    private boolean dispatchGroupsBuilt;
     private boolean dispatchReceiverIndexBuilt;
     private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
 
@@ -90,6 +92,33 @@ public class LuaTranslator {
         PendingDispatch(ImMethod method, LuaExprFieldAccess target) {
             this.method = method;
             this.target = target;
+        }
+    }
+
+    /**
+     * Identity of a dispatch group. The root is an IM method, not a generated Lua name: two
+     * unrelated groups are allowed to have equal names after generic elimination.
+     */
+    private static final class DispatchGroupIdentity {
+        final ImMethod root;
+        final String signature;
+
+        DispatchGroupIdentity(ImMethod root, String signature) {
+            this.root = root;
+            this.signature = signature;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof DispatchGroupIdentity that)) {
+                return false;
+            }
+            return root == that.root && Objects.equals(signature, that.signature);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * System.identityHashCode(root) + Objects.hashCode(signature);
         }
     }
 
@@ -331,6 +360,7 @@ public class LuaTranslator {
         }
 
         resolveDispatchSlots();
+        assertResolvedDispatchSlots();
 
         createBootstrapFunction();
         cleanStatements();
@@ -431,10 +461,6 @@ public class LuaTranslator {
 
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
         LuaAssertions.assertNoLeakedHashtableNativeCalls(luaCode);
-    }
-
-    public static void assertDispatchSlotsHaveAssignments(String luaCode) {
-        LuaAssertions.assertDispatchSlotsHaveAssignments(luaCode);
     }
 
     static List<String> allHashtableNativeNames() {
@@ -1244,6 +1270,31 @@ public class LuaTranslator {
                 pending.target.setFieldName(resolved);
                 continue;
             }
+            if (!commonSlots.isEmpty()) {
+                throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slot '"
+                    + current + "' is not registered by every concrete receiver descriptor.");
+            }
+        }
+    }
+
+    /** Verify every descriptor slot used by an emitted dispatch helper is registered by its receivers. */
+    private void assertResolvedDispatchSlots() {
+        for (PendingDispatch pending : pendingDispatches) {
+            String slot = pending.target.getFieldName();
+            Set<ImClass> receivers = concreteReceiverClassesByGroup.getOrDefault(
+                dispatchGroupOf(pending.method), Collections.emptySet());
+            if (receivers.isEmpty()) {
+                // Native/opaque callback interfaces can have no concrete IM receiver descriptor;
+                // their slot is supplied by the runtime rather than by this program.
+                continue;
+            }
+            for (ImClass receiver : receivers) {
+                Set<String> slots = emittedDispatchSlotsByClass.getOrDefault(receiver, Collections.emptySet());
+                if (!slots.contains(slot)) {
+                    throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slot '"
+                        + slot + "' is missing from descriptor for " + receiver.getName() + ".");
+                }
+            }
         }
     }
 
@@ -1254,10 +1305,8 @@ public class LuaTranslator {
      */
     private Set<String> commonConcreteReceiverSlots(ImMethod method) {
         Set<String> common = null;
-        Set<ImClass> receivers = new HashSet<>();
-        for (String key : dispatchReceiverKeys(method)) {
-            receivers.addAll(concreteReceiverClassesByAlias.getOrDefault(key, Collections.emptySet()));
-        }
+        Set<ImClass> receivers = concreteReceiverClassesByGroup.getOrDefault(
+            dispatchGroupOf(method), Collections.emptySet());
         for (ImClass c : receivers) {
             Set<String> slots = emittedDispatchSlotsByClass.get(c);
             if (slots == null || slots.isEmpty()) {
@@ -1273,11 +1322,10 @@ public class LuaTranslator {
     }
 
     private boolean hasClosureReceiver(ImMethod method) {
-        for (String key : dispatchReceiverKeys(method)) {
-            for (ImClass c : concreteReceiverClassesByAlias.getOrDefault(key, Collections.emptySet())) {
-                if (c.attrTrace() instanceof ExprClosure) {
-                    return true;
-                }
+        for (ImClass c : concreteReceiverClassesByGroup.getOrDefault(
+            dispatchGroupOf(method), Collections.emptySet())) {
+            if (c.attrTrace() instanceof ExprClosure) {
+                return true;
             }
         }
         return false;
@@ -1288,36 +1336,78 @@ public class LuaTranslator {
             return;
         }
         dispatchReceiverIndexBuilt = true;
+        buildDispatchGroupIndex();
         for (ImClass receiver : prog.getClasses()) {
             for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
                 if (candidate.getIsAbstract() || candidate.getImplementation() == null) {
                     continue;
                 }
-                for (String key : dispatchReceiverKeys(candidate)) {
-                    concreteReceiverClassesByAlias.computeIfAbsent(key, ignored -> new HashSet<>()).add(receiver);
+                DispatchGroupIdentity group = dispatchGroups.get(candidate);
+                if (group != null) {
+                    concreteReceiverClassesByGroup.computeIfAbsent(group, ignored -> new HashSet<>()).add(receiver);
                 }
             }
         }
     }
 
-    private Set<String> dispatchReceiverKeys(ImMethod method) {
-        Set<String> keys = new HashSet<>();
-        keys.add(dispatchSlotName(method.getName()));
-        keys.add(dispatchSlotName(imTr.dispatchSegmentOf(method)));
-        for (String alias : method.getLuaMethodDispatchAliases()) {
-            if (alias != null && !alias.isEmpty()) {
-                keys.add(dispatchSlotName(alias));
+    private DispatchGroupIdentity dispatchGroupOf(ImMethod method) {
+        buildDispatchGroupIndex();
+        return dispatchGroups.get(method);
+    }
+
+    /** Reconstruct dispatch-group identity from the IM override graph without using names. */
+    private void buildDispatchGroupIndex() {
+        if (dispatchGroupsBuilt) {
+            return;
+        }
+        dispatchGroupsBuilt = true;
+        List<ImMethod> methods = new ArrayList<>();
+        for (ImClass c : prog.getClasses()) {
+            methods.addAll(c.getMethods());
+        }
+        Set<ImMethod> knownMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        knownMethods.addAll(methods);
+        Map<ImMethod, ImMethod> parent = new IdentityHashMap<>();
+        for (ImMethod method : methods) {
+            parent.put(method, method);
+        }
+        for (ImMethod method : methods) {
+            for (ImMethod subMethod : method.getSubMethods()) {
+                if (knownMethods.contains(subMethod)) {
+                    unionDispatchGroups(parent, method, subMethod);
+                }
             }
         }
-        String declaredName = LuaDispatchPreparation.declaredName(method);
-        if (!declaredName.isEmpty()) {
-            keys.add(dispatchSlotName(declaredName));
+        Map<ImMethod, Map<String, DispatchGroupIdentity>> identities = new IdentityHashMap<>();
+        for (ImMethod method : methods) {
+            ImMethod root = findDispatchGroupRoot(parent, method);
+            String signature = method.getLuaDispatchGroupKey();
+            DispatchGroupIdentity identity = identities
+                .computeIfAbsent(root, ignored -> new HashMap<>())
+                .computeIfAbsent(signature, ignored -> new DispatchGroupIdentity(root, signature));
+            dispatchGroups.put(method, identity);
         }
-        String sourceName = sourceSemanticName(method);
-        if (!sourceName.isEmpty()) {
-            keys.add(dispatchSlotName(sourceName));
+    }
+
+    private static ImMethod findDispatchGroupRoot(Map<ImMethod, ImMethod> parent, ImMethod method) {
+        ImMethod root = method;
+        ImMethod next;
+        while ((next = parent.get(root)) != root) {
+            root = next;
         }
-        return keys;
+        while ((next = parent.get(method)) != method) {
+            parent.put(method, root);
+            method = next;
+        }
+        return root;
+    }
+
+    private static void unionDispatchGroups(Map<ImMethod, ImMethod> parent, ImMethod left, ImMethod right) {
+        ImMethod leftRoot = findDispatchGroupRoot(parent, left);
+        ImMethod rightRoot = findDispatchGroupRoot(parent, right);
+        if (leftRoot != rightRoot) {
+            parent.put(rightRoot, leftRoot);
+        }
     }
 
     /**
