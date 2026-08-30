@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Static assertion helpers for the Lua backend.
@@ -130,6 +132,37 @@ public class LuaAssertions {
         if (!missingHelpers.isEmpty()) {
             throw new RuntimeException("Wurst Lua backend assertion failed: missing __wurst hashtable helper definitions in generated Lua: "
                 + String.join(", ", missingHelpers));
+        }
+    }
+
+    /**
+     * Every statically emitted descriptor lookup must have a matching descriptor assignment.
+     *
+     * <p>Virtual calls are deliberately emitted as {@code __wurst_objectClass[id].slot(...)}.
+     * A missing slot is valid Lua syntax but fails only when that dispatch path executes, which
+     * makes generic/specialized combinations particularly easy to miss in ordinary compilation
+     * tests. Keep this invariant at the generated-program boundary so every such mismatch is
+     * reported before a map can reach Warcraft.</p>
+     */
+    public static void assertDispatchSlotsHaveAssignments(String luaCode) {
+        Set<String> lookedUp = new TreeSet<>();
+        Matcher lookup = Pattern.compile(
+            "__wurst_objectClass\\s*\\[[^\\]\\r\\n]+\\]\\s*\\.\\s*([A-Za-z_][A-Za-z0-9_]*)")
+            .matcher(luaCode);
+        while (lookup.find()) {
+            lookedUp.add(lookup.group(1));
+        }
+
+        Set<String> assigned = new TreeSet<>();
+        Matcher assignment = Pattern.compile("\\.\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*=").matcher(luaCode);
+        while (assignment.find()) {
+            assigned.add(assignment.group(1));
+        }
+
+        lookedUp.removeAll(assigned);
+        if (!lookedUp.isEmpty()) {
+            throw new RuntimeException("Wurst Lua backend assertion failed: descriptor lookup has no "
+                + "matching class-table assignment: " + String.join(", ", lookedUp));
         }
     }
 

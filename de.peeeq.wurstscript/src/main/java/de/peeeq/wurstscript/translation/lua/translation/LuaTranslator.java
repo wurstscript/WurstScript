@@ -77,6 +77,18 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    private final Set<String> emittedDispatchSlots = new HashSet<>();
+    private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
+
+    private static final class PendingDispatch {
+        final ImMethod method;
+        final LuaExprFieldAccess target;
+
+        PendingDispatch(ImMethod method, LuaExprFieldAccess target) {
+            this.method = method;
+            this.target = target;
+        }
+    }
 
     private ImProg getProg() {
         return prog;
@@ -195,7 +207,13 @@ public class LuaTranslator {
             LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
                 LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver)));
-            LuaExpr target = LuaAst.LuaExprFieldAccess(descriptor, dispatchSlotName(method.getName()));
+            // The final slot is resolved after all class descriptors have been emitted. Generic
+            // lowering can leave an unspecialized call with a mangled method name while the
+            // implementing closure classes register the normalized alias (e.g. Predicate_test
+            // vs. test); the descriptor table is the authoritative source for that choice.
+            LuaExprFieldAccess target = LuaAst.LuaExprFieldAccess(
+                descriptor, dispatchSlotName(imTr.dispatchSegmentOf(method)));
+            pendingDispatches.add(new PendingDispatch(method, target));
             result.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallE(target,
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)))));
             luaModel.add(result);
@@ -309,6 +327,8 @@ public class LuaTranslator {
             initClassTables(c);
         }
 
+        resolveDispatchSlots();
+
         createBootstrapFunction();
         cleanStatements();
         enforceLuaLocalLimits();
@@ -408,6 +428,10 @@ public class LuaTranslator {
 
     public static void assertNoLeakedHashtableNativeCalls(String luaCode) {
         LuaAssertions.assertNoLeakedHashtableNativeCalls(luaCode);
+    }
+
+    public static void assertDispatchSlotsHaveAssignments(String luaCode) {
+        LuaAssertions.assertDispatchSlotsHaveAssignments(luaCode);
     }
 
     static List<String> allHashtableNativeNames() {
@@ -1165,12 +1189,68 @@ public class LuaTranslator {
             if (impl == null || impl.getImplementation() == null) {
                 continue;
             }
+            emittedDispatchSlots.add(e.getKey());
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
                 LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
             ));
         }
+    }
+
+    /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
+    private void resolveDispatchSlots() {
+        for (PendingDispatch pending : pendingDispatches) {
+            String current = pending.target.getFieldName();
+            Set<String> candidates = new TreeSet<>();
+            String methodName = dispatchSlotName(pending.method.getName());
+            String segment = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
+            if (emittedDispatchSlots.contains(methodName)) {
+                pending.target.setFieldName(methodName);
+                continue;
+            }
+            if (emittedDispatchSlots.contains(segment)) {
+                pending.target.setFieldName(segment);
+                continue;
+            }
+            if (emittedDispatchSlots.contains(current)) {
+                continue;
+            }
+            candidates.add(methodName);
+            candidates.add(segment);
+            for (String alias : pending.method.getLuaMethodDispatchAliases()) {
+                if (alias != null && !alias.isEmpty()) {
+                    candidates.add(dispatchSlotName(alias));
+                }
+            }
+            String resolved = candidates.stream()
+                .filter(emittedDispatchSlots::contains)
+                .sorted(Comparator.comparingInt(String::length).thenComparing(String::compareTo))
+                .findFirst().orElse(null);
+            if (resolved != null) {
+                pending.target.setFieldName(resolved);
+                continue;
+            }
+            if (hasConcreteDispatchImplementation(pending.method)) {
+                throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slot '"
+                    + current + "' has no matching class-table assignment.");
+            }
+        }
+    }
+
+    private boolean hasConcreteDispatchImplementation(ImMethod method) {
+        String groupKey = method.getLuaDispatchGroupKey();
+        for (ImClass c : prog.getClasses()) {
+            for (ImMethod candidate : c.getMethods()) {
+                if (candidate.getIsAbstract() || candidate.getImplementation() == null) {
+                    continue;
+                }
+                if (groupKey != null && groupKey.equals(candidate.getLuaDispatchGroupKey())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

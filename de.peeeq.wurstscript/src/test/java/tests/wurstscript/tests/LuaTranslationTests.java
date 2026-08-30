@@ -1579,6 +1579,52 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertEquals("The root-slot fixture must emit deterministic Lua across compilations.", compiled, compiledAgain);
     }
 
+    /**
+     * Generic interface dispatch must use the same normalized slot as the descriptor entries.
+     * Keeping both tuple and ordinary class instantiations in one program is important: tuple
+     * specialization is what exposes the unspecialized generic call path, while the class path
+     * proves that the specialization does not merely work by accident for one representation.
+     */
+    @Test
+    public void genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "tuple pair2(string a, int b)",
+            "interface Predicate<T:>",
+            "    function test(T t) returns boolean",
+            "class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(Predicate<T> p) returns boolean",
+            "        let result = p.test(value)",
+            "        destroy p",
+            "        return result",
+            "class Foo",
+            "init",
+            "    let first = new Box<pair>(pair(1, 2))",
+            "    if first.matches(x -> x.a == 1)",
+            "        testSuccess()",
+            "    let second = new Box<pair2>(pair2(\"two\", 3))",
+            "    if second.matches(x -> x.a == \"two\")",
+            "        testSuccess()",
+            "    let ordinary = new Box<Foo>(new Foo())",
+            "    if ordinary.matches(x -> x != null)",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File(
+            "test-output/lua/LuaTranslationTests_genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths.lua"),
+            Charsets.UTF_8);
+        assertContainsRegex(compiled,
+            "function dispatch_Predicate_test\\([^\\)]*\\)[\\s\\S]*__wurst_objectClass\\[[^\\]]+\\]\\.test");
+        assertDoesNotContainRegex(compiled,
+            "__wurst_objectClass\\[[^\\]]+\\]\\.Predicate_test");
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertDispatchSlotsHaveAssignments(compiled);
+    }
+
     @Test
     public void overloadedOverrideOnAGenericBaseIsReachedThroughTheBase() {
         test().testLua(true).executeProg().lines(
@@ -2889,6 +2935,19 @@ public class LuaTranslationTests extends WurstScriptTest {
             fail("Expected RuntimeException for missing __wurst_GetHandleId helper definition");
         } catch (RuntimeException e) {
             assertTrue(e.getMessage().contains("__wurst_GetHandleId"));
+        }
+    }
+
+    @Test
+    public void dispatchSlotAssertionRequiresAClassTableAssignment() {
+        de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+            .assertDispatchSlotsHaveAssignments("__wurst_objectClass[r].test(r)\nPredicate.test = f");
+        try {
+            de.peeeq.wurstscript.translation.lua.translation.LuaTranslator
+                .assertDispatchSlotsHaveAssignments("__wurst_objectClass[r].missing(r)");
+            fail("Expected RuntimeException for a missing descriptor dispatch slot");
+        } catch (RuntimeException e) {
+            assertTrue(e.getMessage().contains("missing"));
         }
     }
 
