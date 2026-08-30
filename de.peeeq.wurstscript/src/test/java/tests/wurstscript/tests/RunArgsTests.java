@@ -71,13 +71,13 @@ public class RunArgsTests {
         Assert.assertEquals(args.getMapFile(), "map.w3x");
         Assert.assertTrue(args.isLegacyJassTypeChecks());
         Assert.assertEquals(args.getAdditionalLibDirs().size(), 3);
-        Assert.assertThrows(() -> args.getAdditionalLibDirs().add(new File("four")), UnsupportedOperationException.class);
+        Assert.assertThrows(UnsupportedOperationException.class, () -> args.getAdditionalLibDirs().add(new File("four")));
     }
 
     @Test
     public void rejectsUnknownAndMissingArguments() {
-        Assert.assertThrows(() -> new RunArgs("-doesNotExist"), RuntimeException.class);
-        Assert.assertThrows(() -> new RunArgs("-out="), RuntimeException.class);
-        Assert.assertThrows(() -> new RunArgs("-out"), ArrayIndexOutOfBoundsException.class);
+        Assert.assertThrows(RuntimeException.class, () -> new RunArgs("-doesNotExist"));
+        Assert.assertThrows(RuntimeException.class, () -> new RunArgs("-out="));
+        Assert.assertThrows(ArrayIndexOutOfBoundsException.class, () -> new RunArgs("-out"));
     }
 }
