@@ -326,7 +326,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 if (isLocalVarDef(destroyedVar)) {
                     return incoming.addDestroy((LocalVarDef) destroyedVar);
                 }
-                if (destroyedVar instanceof WParameter) {
+                if (destroyedVar instanceof WParameter || destroyedVar instanceof WShortParameter) {
                     return incoming.addDestroyParameter(destroyedVar);
                 }
             } else if (destr.getDestroyedObj() instanceof ExprThis) {
@@ -347,7 +347,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
             }
-            if (n instanceof WParameter) {
+            if (n instanceof WParameter || n instanceof WShortParameter) {
                 return incoming.clearDestroyParameter(n);
             }
         }
