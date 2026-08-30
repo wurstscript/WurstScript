@@ -82,6 +82,7 @@ public class LuaTranslator {
     private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
     private final Map<ImClass, Set<ImClass>> concreteReceiverClassesByNominalType = new IdentityHashMap<>();
     private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
+    private final Map<ImMethod, Set<ImClass>> concreteReceiverFamilyCache = new IdentityHashMap<>();
     private final Map<DispatchGroupIdentity, String> canonicalDispatchSlots = new HashMap<>();
     private boolean dispatchGroupsBuilt;
     private boolean dispatchReceiverIndexBuilt;
@@ -1238,23 +1239,12 @@ public class LuaTranslator {
             ));
         }
 
-        // Closures and erased generic interface implementations may not carry an explicit
-        // destructor method in their specialized IM class.  They are still destroyable objects:
-        // the common deallocator clears their captured fields and recycles the object id.  Give
-        // those descriptors the same destroy slot so a destroy through an interface can never
-        // end up indexing a missing, mangled method name.
-        if (destroyImplementation == null && !isInterfaceClass(c)
-            && emittedDispatchSlotsByClass.computeIfAbsent(c, ignored -> new HashSet<>()).add("__wurst_destroy")) {
-            emittedDispatchSlots.add("__wurst_destroy");
-            deferMainInit(LuaAst.LuaAssignment(
-                LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(classVar), "__wurst_destroy"),
-                LuaAst.LuaExprFuncRef(objectDealloc)));
-        }
     }
 
     /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
     private void resolveDispatchSlots() {
         buildDispatchReceiverIndex();
+        ensureDestroyFallbackSlots();
         for (PendingDispatch pending : pendingDispatches) {
             String current = pending.target.getFieldName();
             Set<String> candidates = new TreeSet<>();
@@ -1492,6 +1482,10 @@ public class LuaTranslator {
     }
 
     private Set<ImClass> concreteReceiversFor(ImMethod method) {
+        Set<ImClass> cached = concreteReceiverFamilyCache.get(method);
+        if (cached != null) {
+            return cached;
+        }
         Set<ImClass> receivers = new HashSet<>(concreteReceiverClassesByGroup.getOrDefault(
             dispatchGroupOf(method), Collections.emptySet()));
         ImClass owner = method.attrClass();
@@ -1506,12 +1500,56 @@ public class LuaTranslator {
         if (!sourceName.isEmpty()) {
             semanticNames.add(sourceName);
         }
+        if (isDestroyDispatchMethod(method)) {
+            // A closure's specialized interface class can omit the generated destroy method from
+            // its IM hierarchy even though it is a valid receiver for the interface's lifecycle
+            // call.  Any concrete receiver of another method declared by that owner is also a
+            // concrete receiver of its destroy slot.
+            if (owner != null) {
+                for (ImMethod ownerMethod : owner.getMethods()) {
+                    receivers.addAll(concreteReceiverClassesByGroup.getOrDefault(
+                        dispatchGroupOf(ownerMethod), Collections.emptySet()));
+                }
+            }
+            receivers.removeIf(this::isInterfaceClass);
+            Set<ImClass> result = Collections.unmodifiableSet(receivers);
+            concreteReceiverFamilyCache.put(method, result);
+            return result;
+        }
         receivers.removeIf(receiver -> collectMethodsInHierarchy(receiver).stream()
             .noneMatch(candidate -> !candidate.getIsAbstract()
                 && candidate.getImplementation() != null
                 && sameDispatchFamily(method, candidate)
                 && sharesDispatchSemanticName(candidate, semanticNames)));
-        return receivers;
+        Set<ImClass> result = Collections.unmodifiableSet(receivers);
+        concreteReceiverFamilyCache.put(method, result);
+        return result;
+    }
+
+    /** Install the fallback only for descriptors that can actually receive a dynamic destroy call. */
+    private void ensureDestroyFallbackSlots() {
+        Set<ImClass> fallbackReceivers = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (PendingDispatch pending : pendingDispatches) {
+            if (!isDestroyDispatchMethod(pending.method)) {
+                continue;
+            }
+            fallbackReceivers.addAll(concreteReceiversFor(pending.method));
+        }
+        List<ImClass> sortedReceivers = new ArrayList<>(fallbackReceivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
+            if (isInterfaceClass(receiver)) {
+                continue;
+            }
+            Set<String> slots = emittedDispatchSlotsByClass.computeIfAbsent(receiver,
+                ignored -> new HashSet<>());
+            if (slots.add("__wurst_destroy")) {
+                emittedDispatchSlots.add("__wurst_destroy");
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), "__wurst_destroy"),
+                    LuaAst.LuaExprFuncRef(objectDealloc)));
+            }
+        }
     }
 
     private boolean sameDispatchFamily(ImMethod reference, ImMethod candidate) {
