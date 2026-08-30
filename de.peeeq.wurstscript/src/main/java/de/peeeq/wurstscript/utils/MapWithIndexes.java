@@ -79,7 +79,7 @@ public class MapWithIndexes<K, V> {
         V oldV = base.put(key, value);
         if (oldV != null) {
             for (BiConsumer<K, V> f : onDelete) {
-                f.accept(key, value);
+                f.accept(key, oldV);
             }
         }
         for (BiConsumer<K, V> f : onInserts) {

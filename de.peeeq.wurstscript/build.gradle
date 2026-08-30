@@ -298,6 +298,12 @@ tasks.register('ensureStdLib', JavaExec) {
 test {
     dependsOn 'ensureStdLib'
     useTestNG()
+    // Keep CI output focused on failures; compiler/runtime tests intentionally exercise native
+    // print paths and can otherwise flood the log with expected diagnostic output.
+    testLogging {
+        showStandardStreams = false
+        events 'failed', 'skipped'
+    }
 
     // The suite is a few thousand independent compilations and was running one at a time, so it
     // took as long as the sum of them. Forks rather than threads: the harness keeps state in

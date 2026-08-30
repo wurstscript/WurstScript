@@ -14,6 +14,8 @@ import org.testng.annotations.Test;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Arrays;
+import java.io.File;
 
 public class UtilsTest {
 
@@ -110,6 +112,36 @@ public class UtilsTest {
         String[] ar2 = {"c", "d", "e"};
         String[] ar3 = {"a", "b", "c", "d", "e"};
         Assert.assertEquals(ar3, Utils.joinArrays(ar1, ar2));
+    }
+
+    @Test
+    public void pureUtilityHelpers() {
+        Assert.assertEquals(Utils.size(Arrays.asList("a", "b")), 2);
+        StringBuilder indented = new StringBuilder();
+        Utils.printIndent(indented, 2);
+        Assert.assertEquals(indented.toString(), "\t\t");
+        Assert.assertEquals(Utils.removedDuplicates(Arrays.asList("a", "b", "a")), Arrays.asList("a", "b"));
+        Assert.assertEquals(Utils.parseInt("123"), 123);
+        Assert.assertEquals(Utils.parseAsciiInt("'a'"), (int) 'a');
+        Assert.assertEquals(Utils.parseOctalInt("17"), 15);
+        Assert.assertEquals(Utils.parseHexInt("ff", 0), 255);
+        Assert.assertEquals(Utils.printSep(",", new String[]{"a", "b"}), "a,b");
+        Assert.assertTrue(Utils.oneOf("b", "a", "b"));
+        Assert.assertEquals(Utils.getFirst(Arrays.asList("a", "b")), "a");
+        Assert.assertEquals(Utils.getLast(Arrays.asList("a", "b")), "b");
+        Assert.assertEquals(Utils.inBorders(0, 5, 3), 3);
+        Assert.assertEquals(Utils.toFirstUpper("hello"), "Hello");
+        Assert.assertEquals(Utils.escapeStringWithoutQuotes("a\n"), "a\\n");
+        Assert.assertEquals(Utils.fileName("dir/file.wurst"), "file.wurst");
+        Assert.assertEquals(Utils.stripHtml("<b>x</b>"), "x");
+        Assert.assertEquals(Utils.repeat('x', 3), "xxx");
+        Assert.assertTrue(Utils.isWurstFile("test.wurst"));
+        Assert.assertTrue(Utils.isWurstFile(new File("test.wurst")));
+        Assert.assertEquals(Utils.subList(Arrays.asList(1, 2, 3), 1), Arrays.asList(2, 3));
+        Assert.assertEquals(Utils.subList(Arrays.asList(1, 2, 3), 0, 1), Arrays.asList(1, 2));
+        Assert.assertEquals(Utils.init(Arrays.asList(1, 2, 3)), Arrays.asList(1, 2));
+        Assert.assertEquals(Utils.makeUniqueName("x", n -> n.equals("x_2")), "x_2");
+        Assert.assertEquals(Utils.makeUniqueName("x", n -> !n.equals("x") && !n.equals("x_1")), "x_2");
     }
 
 /* TODO utils unit tests
