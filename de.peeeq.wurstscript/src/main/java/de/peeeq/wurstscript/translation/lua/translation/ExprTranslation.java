@@ -69,7 +69,7 @@ public class ExprTranslation {
                             LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
                                 LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))))
                     ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
+                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)", "in lua callback error handler") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
                     LuaAst.LuaExprVarAccess(dots.copy())
                 )
             ));
@@ -83,7 +83,7 @@ public class ExprTranslation {
                             LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))
                         )
                     ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
+                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)", "in lua callback error handler") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
                     LuaAst.LuaExprVarAccess(dots.copy())
                 )
             ));
@@ -92,10 +92,14 @@ public class ExprTranslation {
     }
 
     static String callErrorFunc(LuaTranslator tr, String msg) {
+        return callErrorFunc(tr, msg, "<lua error>");
+    }
+
+    static String callErrorFunc(LuaTranslator tr, String msg, String stackPos) {
         LuaFunction ef = tr.getErrorFunc();
         if (ef != null) {
             if (ef.getParams().size() == 2) {
-                return ef.getName() + "(" + msg + ", \"<lua error>\")";
+                return ef.getName() + "(" + msg + ", \"" + stackPos + "\")";
             }
             return ef.getName() + "(" + msg + ")";
         }

@@ -2408,6 +2408,27 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaFunctionRefStacktraceHandlerUsesWurstStackPosition() throws IOException {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefStacktraceHandlerUsesWurstStackPosition",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "init",
+            "    apply(() -> error(\"callback\"))"
+        );
+        assertFalse(compiled.contains("debug.traceback"));
+        assertTrue("callback stack position missing in generated Lua:\n" + compiled,
+            compiled.contains("in lua callback error handler"));
+    }
+
+    @Test
     public void forForceIsRemappedToWurstHelperInLua() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
