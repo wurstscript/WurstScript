@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
@@ -79,6 +80,7 @@ public class LuaTranslator {
     private final Set<String> usedNames = LuaReservedNames.all();
     private final Set<String> emittedDispatchSlots = new HashSet<>();
     private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
+    private final Map<ImClass, Map<String, Set<DispatchGroupIdentity>>> emittedDispatchSlotGroupsByClass = new IdentityHashMap<>();
     private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
     private final Map<ImClass, Set<ImClass>> concreteReceiverClassesByNominalType = new IdentityHashMap<>();
     private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
@@ -1230,8 +1232,7 @@ public class LuaTranslator {
             if (impl == null || impl.getImplementation() == null) {
                 continue;
             }
-            emittedDispatchSlots.add(e.getKey());
-            emittedDispatchSlotsByClass.computeIfAbsent(c, ignored -> new HashSet<>()).add(e.getKey());
+            registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
@@ -1239,6 +1240,17 @@ public class LuaTranslator {
             ));
         }
 
+    }
+
+    private void registerDispatchSlot(ImClass receiver, String slot, DispatchGroupIdentity group) {
+        emittedDispatchSlots.add(slot);
+        emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>()).add(slot);
+        if (group != null) {
+            emittedDispatchSlotGroupsByClass
+                .computeIfAbsent(receiver, ignored -> new HashMap<>())
+                .computeIfAbsent(slot, ignored -> new HashSet<>())
+                .add(group);
+        }
     }
 
     /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
@@ -1344,7 +1356,7 @@ public class LuaTranslator {
             }
             Set<String> registered = emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>());
             if (registered.add(slot)) {
-                emittedDispatchSlots.add(slot);
+                registerDispatchSlot(receiver, slot, group);
                 deferMainInit(LuaAst.LuaAssignment(
                     LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), slot),
                     LuaAst.LuaExprFuncRef(luaFunc.getFor(implementation.getImplementation()))));
@@ -1432,8 +1444,13 @@ public class LuaTranslator {
     private Set<String> commonConcreteReceiverSlots(ImMethod method) {
         Set<String> common = null;
         Set<ImClass> receivers = concreteReceiversFor(method);
+        DispatchGroupIdentity group = dispatchGroupOf(method);
         for (ImClass c : receivers) {
-            Set<String> slots = emittedDispatchSlotsByClass.get(c);
+            Map<String, Set<DispatchGroupIdentity>> slotGroups = emittedDispatchSlotGroupsByClass.get(c);
+            Set<String> slots = slotGroups == null ? Collections.emptySet() : slotGroups.entrySet().stream()
+                .filter(entry -> group != null && entry.getValue().contains(group))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
             if (slots == null || slots.isEmpty()) {
                 continue;
             }
@@ -1539,8 +1556,8 @@ public class LuaTranslator {
             }
             Set<String> slots = emittedDispatchSlotsByClass.computeIfAbsent(receiver,
                 ignored -> new HashSet<>());
-            if (slots.add("__wurst_destroy")) {
-                emittedDispatchSlots.add("__wurst_destroy");
+            if (!slots.contains("__wurst_destroy")) {
+                registerDispatchSlot(receiver, "__wurst_destroy", null);
                 deferMainInit(LuaAst.LuaAssignment(
                     LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), "__wurst_destroy"),
                     LuaAst.LuaExprFuncRef(objectDealloc)));
