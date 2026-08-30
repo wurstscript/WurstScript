@@ -1624,7 +1624,9 @@ public class LuaTranslationTests extends WurstScriptTest {
             "test-output/lua/LuaTranslationTests_genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths.lua"),
             Charsets.UTF_8);
         assertContainsRegex(compiled,
-            "function dispatch_Predicate_test\\([^\\)]*\\)[\\s\\S]*__wurst_objectClass\\[[^\\]]+\\]\\.test");
+            "function dispatch_Predicate_test\\([^\\)]*\\)[\\s\\S]*__wurst_objectClass\\[[^\\]]+\\]\\.__wurst_dispatch_test");
+        assertContainsRegex(compiled, "Predicate_matches_test\\.__wurst_dispatch_test\\s*=");
+        assertContainsRegex(compiled, "Impl\\.__wurst_dispatch_test\\s*=");
         assertDoesNotContainRegex(compiled,
             "__wurst_objectClass\\[[^\\]]+\\]\\.Predicate_test");
     }
