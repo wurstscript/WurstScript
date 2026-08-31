@@ -28,12 +28,9 @@ public class ClassesTests extends WurstScriptTest {
                 "package Test",
                 "class Counter",
                 "    int value",
-                "    function get() returns int",
-                "        return value",
-                "    function readBeforeSet() returns int",
+                "    construct()",
                 "        int oldValue = value",
-                "        value = 42",
-                "        return oldValue"
+                "        value = 42"
             );
     }
 
@@ -70,8 +67,7 @@ public class ClassesTests extends WurstScriptTest {
                 "    int value",
                 "    construct(Counter other)",
                 "        other.value = 1",
-                "    function get() returns int",
-                "        return value"
+                "        int _observed = this.value"
             );
 
         assertEquals(result.getGui().getWarningList().stream()
@@ -105,8 +101,8 @@ public class ClassesTests extends WurstScriptTest {
                 "package Test",
                 "class Counter",
                 "    int values[2]",
-                "    function get() returns int",
-                "        return values[0]"
+                "    construct()",
+                "        int first = values[0]"
             );
     }
 
@@ -120,14 +116,14 @@ public class ClassesTests extends WurstScriptTest {
                 "package Test",
                 "class Counter",
                 "    int value",
-                "    function increment() returns int",
+                "    construct()",
                 "        value = value + 1",
-                "        return value"
+                "        skip"
             );
     }
 
     @Test
-    public void warnsWhenOtherInstanceFieldIsReadAfterThisFieldWrite() {
+    public void warnsWhenOtherInstanceFieldIsReadInConstructor() {
         test()
             .setStopOnFirstError(false)
             .executeProg(false)
@@ -136,9 +132,8 @@ public class ClassesTests extends WurstScriptTest {
                 "package Test",
                 "class Counter",
                 "    int value",
-                "    function getOther(Counter other) returns int",
-                "        value = 1",
-                "        return other.value"
+                "    construct(Counter other)",
+                "        let _observed = other.value"
             );
     }
 
@@ -152,9 +147,9 @@ public class ClassesTests extends WurstScriptTest {
                 "package Test",
                 "class Counter",
                 "    int values[2]",
-                "    function getOther() returns int",
+                "    construct()",
                 "        values[0] = 1",
-                "        return values[1]"
+                "        int observed = values[1]"
             );
     }
 
@@ -300,11 +295,10 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
-    public void warnsForUninitializedFieldReadFromPackageFunction() {
-        test()
+    public void doesNotWarnForUninitializedFieldReadFromPackageFunction() {
+        CompilationResult result = test()
             .setStopOnFirstError(false)
             .executeProg(false)
-            .expectWarning("no explicit initializer and is not definitely assigned")
             .lines(
                 "package Test",
                 "class Counter",
@@ -312,6 +306,10 @@ public class ClassesTests extends WurstScriptTest {
                 "function read(Counter counter) returns int",
                 "    return counter.value"
             );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
     }
 
     @Test

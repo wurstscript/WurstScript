@@ -11,27 +11,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Emit a wider matrix on master pushes (adds macOS), narrow on PRs (saves minutes)
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"},{"os":"macos-latest"},{"os":"macos-15-intel"}]}' >> "$GITHUB_OUTPUT"
-          else
-            echo 'matrix={"include":[{"os":"ubuntu-latest"},{"os":"windows-latest"}]}' >> "$GITHUB_OUTPUT"
-          fi
-
+  # Master pushes exercise every supported host. Pull requests use one Linux job
+  # so that the normal feedback loop does not spend four runner-minutes on the
+  # same compiler test suite; the full host matrix still runs before release.
   build:
     name: Gradle build on ${{ matrix.os }}
-    needs: setup
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+      matrix:
+        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     permissions:
       checks: write
@@ -96,8 +84,10 @@ jobs:
       - name: Setup Gradle (cache)
         uses: gradle/actions/setup-gradle@v4
 
-      # ---- FAIL FAST: package first (so jlink issues show immediately) ----
+      # Packaging is a release artifact, not a pull-request gate. Keeping it on
+      # master avoids paying for a second full build on every PR update.
       - name: Package slim runtime (fail fast)
+        if: github.event_name == 'push'
         shell: bash
         run: ./gradlew packageSlimCompilerDist --no-daemon --stacktrace
 
@@ -105,9 +95,17 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          if [[ -f src/test/resources/lua53 ]]; then
-            chmod +x src/test/resources/lua53
-          fi
+          set -euo pipefail
+          # Use Ubuntu's maintained Lua 5.3 build. The checked-in portable
+          # binary is linked against libreadline.so.6, which is absent from
+          # current runner images.
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lua5.3
+          lua5.3 -e 'assert(_VERSION == "Lua 5.3")'
+          luac5.3 -v
+          # These binaries are tracked with mode 0644 for cross-platform
+          # checkouts; keep them usable as a fallback for local/older images.
+          chmod +x src/test/resources/lua53 src/test/resources/luac53
 
       - name: Install Lua compiler (macOS)
         if: runner.os == 'macOS'
@@ -119,14 +117,14 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${{ runner.os }}" == "Linux" ]]; then
             ./gradlew test jacocoTestReport --no-daemon --stacktrace --quiet
           else
             ./gradlew test --no-daemon --stacktrace --quiet
           fi
 
       - name: Upload coverage to Coveralls
-        if: runner.os == 'Linux'
+        if: github.event_name == 'push' && runner.os == 'Linux'
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -157,6 +155,7 @@ jobs:
           retention-days: 14
 
       - name: Upload packaged artifact (per-OS)
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: wurst-compiler-${{ matrix.os }}

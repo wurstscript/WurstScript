@@ -757,6 +757,10 @@ public class WurstScriptTest {
             candidates.add("lua53.exe");
             candidates.add("lua");
         } else {
+            // Prefer the distribution's versioned Lua 5.3 binary when present.
+            // The checked-in portable binary may depend on an older system
+            // readline ABI on newer Linux runner images.
+            candidates.add("lua5.3");
             if (bundledLuaUnix.exists()) {
                 // best effort in case execute bit was lost by checkout settings
                 // (e.g. core.filemode false on some environments)
@@ -817,6 +821,7 @@ public class WurstScriptTest {
             candidates.add("luac.exe");
             candidates.add("luac");
         } else {
+            candidates.add("luac5.3");
             if (bundledLuacUnix.exists()) {
                 bundledLuacUnix.setExecutable(true);
                 if (bundledLuacUnix.canExecute()) {

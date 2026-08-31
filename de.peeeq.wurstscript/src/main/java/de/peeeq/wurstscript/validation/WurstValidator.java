@@ -1759,12 +1759,13 @@ public class WurstValidator {
 
     /**
      * Instance fields without an initializer are reset to the language default when an object is
-     * allocated, but that value is often accidental. Warn when a method reads such a field and no
-     * constructor is known to assign it on every construction path. This deliberately stays a
-     * cheap, local check: it does not attempt interprocedural or path-sensitive reasoning.
+     * allocated, but that value is often accidental. Warn when a constructor reads such a field
+     * before its value is definitely established. Ordinary methods are intentionally out of scope:
+     * their callers may establish fields through APIs or other construction-time hooks that this
+     * cheap local check cannot see.
      */
     private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
-        if (function instanceof OnDestroyDef) {
+        if (function instanceof OnDestroyDef || !(function instanceof ConstructorDef)) {
             return;
         }
 
