@@ -61,6 +61,7 @@ public class WurstValidator {
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
     private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
+    private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
 
     /**
      * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
@@ -85,6 +86,7 @@ public class WurstValidator {
             heavyFunctions.clear();
             heavyBlocks.clear();
             guaranteedClassFieldInitCache.clear();
+            moduleFieldCopiesCache.clear();
 
             lightValidation(toCheck);
 
@@ -1764,7 +1766,8 @@ public class WurstValidator {
             return;
         }
 
-        Set<GlobalVarDef> writtenFields = Collections.newSetFromMap(new IdentityHashMap<>());
+        Deque<Set<GlobalVarDef>> writtenFieldScopes = new ArrayDeque<>();
+        writtenFieldScopes.push(Collections.newSetFromMap(new IdentityHashMap<>()));
         Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
         FunctionCall delegatedConstructorCall = function instanceof ConstructorDef
             ? getFirstThisConstructorCall((ConstructorDef) function) : null;
@@ -1779,9 +1782,14 @@ public class WurstValidator {
                 }
                 if (!(field.getInitialExpr() instanceof NoExpr)
                     || (isCurrentInstanceAccess(access)
-                        && writtenFields.contains(field))
+                        && writtenFieldScopes.peek().contains(field))
                     || ((!isCurrentInstanceAccess(access) || !(function instanceof ConstructorDef))
                         && hasGuaranteedConstructorAssignment(field))
+                    || (isCurrentInstanceAccess(access)
+                        && function instanceof ConstructorDef
+                        && delegatedConstructorCall == null
+                        && !access.isSubtreeOf(((ConstructorDef) function).getSuperConstructorCall())
+                        && initializedBySuperConstructor((ConstructorDef) function, field))
                     || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
                         && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
@@ -1836,10 +1844,18 @@ public class WurstValidator {
             }
 
             @Override
+            public void visit(ExprClosure closure) {
+                Set<GlobalVarDef> closureScope = Collections.newSetFromMap(new IdentityHashMap<>());
+                closureScope.addAll(writtenFieldScopes.peek());
+                writtenFieldScopes.push(closureScope);
+                super.visit(closure);
+                writtenFieldScopes.pop();
+            }
+
+            @Override
             public void visit(StmtSet assignment) {
                 super.visit(assignment);
                 if (!(assignment.getUpdatedExpr() instanceof NameRef access)
-                    || isInNestedClosure(access)
                     || !isCurrentInstanceAccess(access)
                     || !isWriteTarget(access)) {
                     return;
@@ -1847,7 +1863,7 @@ public class WurstValidator {
                 NameDef nameDef = access.attrNameDef();
                 if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
                     && isWholeFieldAccess(access)) {
-                    writtenFields.add(field);
+                    writtenFieldScopes.peek().add(field);
                 }
             }
 
@@ -1927,17 +1943,27 @@ public class WurstValidator {
             return cached;
         }
         List<ConstructorDef> constructors = constructorsFor(field);
+        if (allConstructorsAssign(constructors, field)
+            || moduleFieldCopies(field).stream().anyMatch(copy ->
+                allConstructorsAssign(constructorsFor(copy), copy)
+                    || allConstructorsAssign(enclosingClassConstructors(copy), copy))
+            || allConstructorsAssign(enclosingClassConstructors(field), field)) {
+            guaranteedClassFieldInitCache.put(field, true);
+            return true;
+        }
+        guaranteedClassFieldInitCache.put(field, false);
+        return false;
+    }
+
+    private boolean allConstructorsAssign(List<ConstructorDef> constructors, GlobalVarDef field) {
         if (constructors.isEmpty()) {
-            guaranteedClassFieldInitCache.put(field, false);
             return false;
         }
         for (ConstructorDef constructor : constructors) {
             if (!constructorAssignsField(constructor, field, Collections.newSetFromMap(new IdentityHashMap<>()))) {
-                guaranteedClassFieldInitCache.put(field, false);
                 return false;
             }
         }
-        guaranteedClassFieldInitCache.put(field, true);
         return true;
     }
 
@@ -1997,6 +2023,73 @@ public class WurstValidator {
         return Collections.emptyList();
     }
 
+    private List<ConstructorDef> enclosingClassConstructors(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ClassDef classDef) {
+                return classDef.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<GlobalVarDef> moduleFieldCopies(GlobalVarDef field) {
+        List<GlobalVarDef> cached = moduleFieldCopiesCache.get(field);
+        if (cached != null) {
+            return cached;
+        }
+        ClassOrModule owner = field.attrNearestClassOrModule();
+        if (!(owner instanceof ModuleDef module)) {
+            cached = Collections.emptyList();
+            moduleFieldCopiesCache.put(field, cached);
+            return cached;
+        }
+        int fieldIndex = module.getVars().indexOf(field);
+        if (fieldIndex < 0) {
+            cached = Collections.emptyList();
+            moduleFieldCopiesCache.put(field, cached);
+            return cached;
+        }
+        List<GlobalVarDef> copies = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ModuleInstanciation instantiation) {
+                if (instantiation.attrModuleOrigin() == module
+                    && fieldIndex < instantiation.getVars().size()) {
+                    copies.add(instantiation.getVars().get(fieldIndex));
+                }
+                super.visit(instantiation);
+            }
+        });
+        cached = List.copyOf(copies);
+        moduleFieldCopiesCache.put(field, cached);
+        return cached;
+    }
+
+    private boolean initializedBySuperConstructor(ConstructorDef constructor, GlobalVarDef field) {
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null
+            && constructorAssignsField(superConstructor, field,
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean initializedBySuperclass(GlobalVarDef initializedField, GlobalVarDef referencedField) {
+        ClassDef child = initializedField.attrNearestClassDef();
+        ClassDef declaringClass = referencedField.attrNearestClassDef();
+        if (child == null || declaringClass == null || child == declaringClass) {
+            return false;
+        }
+        WurstTypeClass superType = child.attrTypC().extendedClass();
+        while (superType != null) {
+            if (superType.getClassDef() == declaringClass) {
+                return hasGuaranteedConstructorAssignment(referencedField);
+            }
+            superType = superType.extendedClass();
+        }
+        return false;
+    }
+
     private void checkClassFieldInitializerReads(GlobalVarDef field) {
         if (!field.attrIsDynamicClassMember() || !(field.getInitialExpr() instanceof Expr initializer)) {
             return;
@@ -2009,6 +2102,8 @@ public class WurstValidator {
                     || !referenced.attrIsDynamicClassMember()
                     || !(referenced.getInitialExpr() instanceof NoExpr)
                     || (!isCurrentInstanceAccess(access) && hasGuaranteedConstructorAssignment(referenced))
+                    || (isCurrentInstanceAccess(access)
+                        && initializedBySuperclass(field, referenced))
                     || !warned.add(referenced)) {
                     return;
                 }
