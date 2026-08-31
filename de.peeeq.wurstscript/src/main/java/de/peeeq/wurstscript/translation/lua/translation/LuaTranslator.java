@@ -503,15 +503,6 @@ public class LuaTranslator {
             }
         }
 
-        for (ImClass clazz : prog.getClasses()) {
-            for (ImFunction function : clazz.getFunctions()) {
-                if (NamePreservation.isPreserved(function)) {
-                    LuaFunction luaFunction = luaFunc.getFor(function);
-                    usedNames.add(luaFunction.getName());
-                }
-            }
-        }
-
         for (ImVar global : prog.getGlobals()) {
             if (global.getIsBJ()) {
                 setNameFromTrace(global);
@@ -1056,9 +1047,7 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            if (!NamePreservation.isPreserved(f)) {
-                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
-            }
+            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
         }
 
         createClassInitFunction(c, classVar, initMethod);

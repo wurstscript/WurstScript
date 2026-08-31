@@ -90,9 +90,6 @@ public class WurstValidator {
             guaranteedClassFieldInitCache.clear();
             moduleFieldCopiesCache.clear();
             moduleFieldCopiesIndexed = false;
-            if (runtimeNameIndex != null) {
-                runtimeNameIndex.clearSyntheticMarkers();
-            }
             trveWrapperFuncs.clear();
             wrapperCalls.clear();
             NamePreservation.clearSyntheticMarkers(prog);

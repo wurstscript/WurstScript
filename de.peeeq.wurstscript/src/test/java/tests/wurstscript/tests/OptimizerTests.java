@@ -572,59 +572,6 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    public void preserveNameAnnotationKeepsClassFunctionNameInLua() throws IOException {
-        test().testLua(true).luaOnly(true).executeProg(false).lines(
-            "package test",
-            "    class ExternalApi",
-            "        @preserveName function callback()",
-            "            skip",
-            "endpackage");
-
-        String output = Files.toString(
-            new File("./test-output/lua/OptimizerTests_preserveNameAnnotationKeepsClassFunctionNameInLua.lua"),
-            Charsets.UTF_8);
-        assertTrue(output.contains("function ExternalApi_callback"),
-            "Expected a preserved class function to keep its emitted name.\n" + output);
-    }
-
-    @Test
-    public void preserveNameAnnotationKeepsStaticClassFunctionReachableInLua() throws IOException {
-        test().testLua(true).luaOnly(true).executeProg(false).lines(
-            "package test",
-            "    class ExternalApi",
-            "        @preserveName static function callback()",
-            "            skip",
-            "endpackage");
-
-        String output = Files.toString(
-            new File("./test-output/lua/OptimizerTests_preserveNameAnnotationKeepsStaticClassFunctionReachableInLua.lua"),
-            Charsets.UTF_8);
-        assertTrue(output.contains("function callback("),
-            "Expected a preserved static class function to keep its emitted name.\n" + output);
-    }
-
-    @Test
-    public void preservedClassFunctionReservesItsLuaNameBeforeClassVariables() throws IOException {
-        test().testLua(true).luaOnly(true).executeProg(false).lines(
-            "package test",
-            "    class Foo",
-            "        @preserveName function bar()",
-            "            skip",
-            "    class Foo_bar",
-            "    init",
-            "        new Foo_bar",
-            "endpackage");
-
-        String output = Files.toString(
-            new File("./test-output/lua/OptimizerTests_preservedClassFunctionReservesItsLuaNameBeforeClassVariables.lua"),
-            Charsets.UTF_8);
-        assertTrue(output.contains("function Foo_bar("),
-            "Expected the preserved class function to keep its Lua name.\n" + output);
-        assertTrue(output.contains("Foo_bar1 = ({})"),
-            "Expected the colliding class variable to be uniqued around the preserved function.\n" + output);
-    }
-
-    @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
             "package test",

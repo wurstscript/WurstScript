@@ -222,12 +222,6 @@ public class RemoveGarbage {
             return;
         }
         used.addFunction(f);
-        if (f.getParent() != null && f.getParent().getParent() instanceof ImClass owner) {
-            // A preserved static method has no receiver type to retain its owner. Keep the class
-            // because Lua emits class methods together with their class table.
-            visitClass(owner, used, false);
-        }
-
         visitType(f.getReturnType(), used);
         f.accept(new Element.DefaultVisitor() {
             @Override
