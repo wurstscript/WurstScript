@@ -7,16 +7,30 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.validation.NamePreservation;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ImCompressor {
 
     private final ImTranslator trans;
     private final ImProg prog;
     private final NameGenerator ng;
+    private final Set<String> preservedNames = new HashSet<>();
 
     public ImCompressor(ImTranslator translator) {
         this.trans = translator;
         this.prog = translator.getImProg();
         ng = new NameGenerator();
+        for (ImVar global : prog.getGlobals()) {
+            if (NamePreservation.isPreserved(global)) {
+                preservedNames.add(global.getName());
+            }
+        }
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
+            if (NamePreservation.isPreserved(function)) {
+                preservedNames.add(function.getName());
+            }
+        }
     }
 
     public void compressNames() {
@@ -32,7 +46,7 @@ public class ImCompressor {
                 continue;
             }
 
-            String replacement = ng.getUniqueToken();
+            String replacement = nextCompressedName();
 
             global.setName(replacement);
         }
@@ -50,10 +64,18 @@ public class ImCompressor {
                 // do not rename main and config functions
                 continue;
             }
-            String rname = ng.getUniqueToken();
+            String rname = nextCompressedName();
             func.setName(rname);
         }
 
+    }
+
+    private String nextCompressedName() {
+        String replacement;
+        do {
+            replacement = ng.getUniqueToken();
+        } while (preservedNames.contains(replacement));
+        return replacement;
     }
 
     private void compressLocals(ImFunction func) {

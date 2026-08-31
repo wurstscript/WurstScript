@@ -492,7 +492,8 @@ public class LuaTranslator {
 
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
-            if (function.isBj() || function.isExtern() || function.isNative()) {
+            if (function.isBj() || function.isExtern() || function.isNative()
+                || NamePreservation.isPreserved(function)) {
                 // Don't rename Wurst-internal stubs (names starting with __wurst_)
                 // since their names are intentionally different from their trace's source name.
                 if (!function.getName().startsWith("__wurst_")) {
@@ -505,6 +506,8 @@ public class LuaTranslator {
         for (ImVar global : prog.getGlobals()) {
             if (global.getIsBJ()) {
                 setNameFromTrace(global);
+                usedNames.add(global.getName());
+            } else if (NamePreservation.isPreserved(global)) {
                 usedNames.add(global.getName());
             }
         }

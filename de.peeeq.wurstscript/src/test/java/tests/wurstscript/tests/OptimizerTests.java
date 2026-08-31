@@ -505,6 +505,29 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void preservedNamesAreReservedBeforeCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    function ordinary()",
+            "        testSuccess()",
+            "    @preserveName function w()",
+            "        testSuccess()",
+            "    init",
+            "        ordinary()",
+            "        w()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preservedNamesAreReservedBeforeCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function w"),
+            "Expected the preserved function name to remain available.\n" + output);
+        assertFalse(output.contains("function w_1"),
+            "Expected compression to reserve the preserved name.\n" + output);
+    }
+
+    @Test
     public void trvePreservesGlobalDespiteLexicalShadow() throws IOException {
         test().optimize().lines(
             "type trigger extends handle",
