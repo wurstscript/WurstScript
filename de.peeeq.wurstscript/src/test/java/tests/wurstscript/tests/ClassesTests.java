@@ -18,6 +18,47 @@ public class ClassesTests extends WurstScriptTest {
     private static final String TEST_DIR2 = "./testscripts/concept/";
 
     @Test
+    public void warnsWhenClassFieldHasNoInitializerOrConstructorAssignment() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    function get() returns int",
+                "        return value",
+                "    function readBeforeSet() returns int",
+                "        int oldValue = value",
+                "        value = 42",
+                "        return oldValue"
+            );
+    }
+
+    @Test
+    public void doesNotWarnWhenEveryConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    function get() returns int",
+                "        return value",
+                "    function setAndGet() returns int",
+                "        value = 42",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")));
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

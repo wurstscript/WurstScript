@@ -60,6 +60,7 @@ public class WurstValidator {
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
+    private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
 
     /**
      * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
@@ -83,6 +84,7 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
+            guaranteedClassFieldInitCache.clear();
 
             lightValidation(toCheck);
 
@@ -1747,7 +1749,154 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
         }
+        checkPotentiallyUninitializedClassFields(f);
         checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
+    }
+
+    /**
+     * Instance fields without an initializer are reset to the language default when an object is
+     * allocated, but that value is often accidental. Warn when a method reads such a field and no
+     * constructor is known to assign it on every construction path. This deliberately stays a
+     * cheap, local check: it does not attempt interprocedural or path-sensitive reasoning.
+     */
+    private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
+        ClassDef owner = function.attrNearestClassDef();
+        if (owner == null || function instanceof OnDestroyDef) {
+            return;
+        }
+
+        Set<GlobalVarDef> writtenFields = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        function.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef field) || !field.attrIsDynamicClassMember()) {
+                    return;
+                }
+                if (isWriteTarget(access)) {
+                    writtenFields.add(field);
+                    return;
+                }
+                if (!(field.getInitialExpr() instanceof NoExpr)
+                    || writtenFields.contains(field)
+                    || hasGuaranteedConstructorAssignment(field)
+                    || !warned.add(field)) {
+                    return;
+                }
+                access.addWarning("Field '" + field.getName()
+                    + "' has no explicit initializer and is not definitely assigned by every constructor;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly in every construction path.");
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+        });
+    }
+
+    private Set<GlobalVarDef> collectWrittenDynamicFields(Element root) {
+        Set<GlobalVarDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        root.accept(new Element.DefaultVisitor() {
+            private void collect(NameRef access) {
+                if (!isWriteTarget(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()) {
+                    result.add(field);
+                }
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+        });
+        return result;
+    }
+
+    private boolean hasGuaranteedConstructorAssignment(GlobalVarDef field) {
+        Boolean cached = guaranteedClassFieldInitCache.get(field);
+        if (cached != null) {
+            return cached;
+        }
+        ClassDef declaringClass = field.attrNearestClassDef();
+        if (declaringClass == null || declaringClass.getConstructors().isEmpty()) {
+            guaranteedClassFieldInitCache.put(field, false);
+            return false;
+        }
+        for (ConstructorDef constructor : declaringClass.getConstructors()) {
+            if (!collectWrittenDynamicFields(constructor).contains(field)) {
+                guaranteedClassFieldInitCache.put(field, false);
+                return false;
+            }
+        }
+        guaranteedClassFieldInitCache.put(field, true);
+        return true;
     }
 
     /**
@@ -1836,11 +1985,15 @@ public class WurstValidator {
     }
 
     private boolean isWriteTarget(ExprVarAccess varAccess) {
-        if (!(varAccess.getParent() instanceof StmtSet)) {
+        return isWriteTarget((Element) varAccess);
+    }
+
+    private boolean isWriteTarget(Element access) {
+        if (!(access.getParent() instanceof StmtSet)) {
             return false;
         }
-        StmtSet set = (StmtSet) varAccess.getParent();
-        return set.getUpdatedExpr() == varAccess;
+        StmtSet set = (StmtSet) access.getParent();
+        return set.getUpdatedExpr() == access;
     }
 
     private @Nullable StmtSet nearestEnclosingStmtSet(Element e) {
