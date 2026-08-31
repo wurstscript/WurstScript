@@ -132,7 +132,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_classToIndex(first)"));
         assertFalse("class casts must not allocate boxed-number identity wrappers",
             compiled.contains("firstId = __wurst_objectToIndex(first)"));
-        assertTrue("deallocation must clear reference-bearing field slots before recycling",
+        assertFalse("deallocation must preserve field values just like Jass storage",
             compiled.contains("Base_reference_storage[object] = nil"));
     }
 

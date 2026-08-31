@@ -60,6 +60,9 @@ public class WurstValidator {
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
+    private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
+    private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
+    private boolean moduleFieldCopiesIndexed;
 
     /**
      * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
@@ -83,6 +86,9 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
+            guaranteedClassFieldInitCache.clear();
+            moduleFieldCopiesCache.clear();
+            moduleFieldCopiesIndexed = false;
 
             lightValidation(toCheck);
 
@@ -1747,7 +1753,413 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
         }
+        checkPotentiallyUninitializedClassFields(f);
         checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
+    }
+
+    /**
+     * Instance fields without an initializer are reset to the language default when an object is
+     * allocated, but that value is often accidental. Warn when a constructor reads such a field
+     * before its value is definitely established. Ordinary methods are intentionally out of scope:
+     * their callers may establish fields through APIs or other construction-time hooks that this
+     * cheap local check cannot see.
+     */
+    private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
+        if (function instanceof OnDestroyDef || !(function instanceof ConstructorDef)) {
+            return;
+        }
+
+        Deque<Set<GlobalVarDef>> writtenFieldScopes = new ArrayDeque<>();
+        writtenFieldScopes.push(Collections.newSetFromMap(new IdentityHashMap<>()));
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        FunctionCall delegatedConstructorCall = function instanceof ConstructorDef
+            ? getFirstThisConstructorCall((ConstructorDef) function) : null;
+        function.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef field) || !field.attrIsDynamicClassMember()) {
+                    return;
+                }
+                if (isWriteTarget(access)) {
+                    return;
+                }
+                if (!(field.getInitialExpr() instanceof NoExpr)
+                    || (isCurrentInstanceAccess(access)
+                        && writtenFieldScopes.peek().contains(field))
+                    || ((!isCurrentInstanceAccess(access) || !(function instanceof ConstructorDef))
+                        && hasGuaranteedConstructorAssignment(field))
+                    || (isCurrentInstanceAccess(access)
+                        && function instanceof ConstructorDef
+                        && delegatedConstructorCall == null
+                        && !access.isSubtreeOf(((ConstructorDef) function).getSuperConstructorCall())
+                        && initializedBySuperConstructor((ConstructorDef) function, field))
+                    || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
+                        && hasGuaranteedConstructorAssignment(field))
+                    || !warned.add(field)) {
+                    return;
+                }
+                access.addWarning("Field '" + field.getName()
+                    + "' has no explicit initializer and is not definitely assigned by every constructor;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly in every construction path.");
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                Set<GlobalVarDef> closureScope = Collections.newSetFromMap(new IdentityHashMap<>());
+                closureScope.addAll(writtenFieldScopes.peek());
+                writtenFieldScopes.push(closureScope);
+                super.visit(closure);
+                writtenFieldScopes.pop();
+            }
+
+            @Override
+            public void visit(StmtSet assignment) {
+                super.visit(assignment);
+                if (!(assignment.getUpdatedExpr() instanceof NameRef access)
+                    || !isCurrentInstanceAccess(access)
+                    || !isWriteTarget(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
+                    writtenFieldScopes.peek().add(field);
+                }
+            }
+
+        });
+    }
+
+    private Set<GlobalVarDef> collectWrittenDynamicFields(Element root) {
+        Set<GlobalVarDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        root.accept(new Element.DefaultVisitor() {
+            private void collect(NameRef access) {
+                if (access.attrNearestExprClosure() != null
+                    || !isWriteTarget(access)
+                    || !isCurrentInstanceAccess(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
+                    result.add(field);
+                }
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so writes in its body do not
+                // initialize the object during construction.
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+        });
+        return result;
+    }
+
+    private boolean hasGuaranteedConstructorAssignment(GlobalVarDef field) {
+        Boolean cached = guaranteedClassFieldInitCache.get(field);
+        if (cached != null) {
+            return cached;
+        }
+        List<ConstructorDef> constructors = constructorsFor(field);
+        if (allConstructorsAssign(constructors, field)
+            || moduleFieldCopies(field).stream().anyMatch(copy ->
+                allConstructorsAssign(constructorsFor(copy), copy)
+                    || allConstructorsAssign(enclosingClassConstructors(copy), copy))
+            || allConstructorsAssign(enclosingClassConstructors(field), field)) {
+            guaranteedClassFieldInitCache.put(field, true);
+            return true;
+        }
+        guaranteedClassFieldInitCache.put(field, false);
+        return false;
+    }
+
+    private boolean allConstructorsAssign(List<ConstructorDef> constructors, GlobalVarDef field) {
+        if (constructors.isEmpty()) {
+            return false;
+        }
+        for (ConstructorDef constructor : constructors) {
+            if (!constructorAssignsField(constructor, field, Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isCurrentInstanceAccess(NameRef access) {
+        return access.attrImplicitParameter() instanceof ExprThis;
+    }
+
+    private boolean isInNestedClosure(NameRef access) {
+        return access.attrNearestExprClosure() != null;
+    }
+
+    private boolean isWholeFieldAccess(NameRef access) {
+        return !(access instanceof AstElementWithIndexes);
+    }
+
+    private boolean constructorAssignsField(ConstructorDef constructor, GlobalVarDef field,
+                                            Set<ConstructorDef> visiting) {
+        if (!visiting.add(constructor)) {
+            return false;
+        }
+        if (collectWrittenDynamicFields(constructor).contains(field)) {
+            return true;
+        }
+        FunctionCall thisCall = getFirstThisConstructorCall(constructor);
+        if (thisCall != null) {
+            ConstructorDef target = OverloadingResolver.resolveThisCall(constructorsFor(constructor), thisCall);
+            return target != null && target != constructor && constructorAssignsField(target, field, visiting);
+        }
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null && constructorAssignsField(superConstructor, field, visiting);
+    }
+
+    private List<ConstructorDef> constructorsFor(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ConstructorDef> constructorsFor(ConstructorDef constructor) {
+        Element current = constructor;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ConstructorDef> enclosingClassConstructors(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ClassDef classDef) {
+                return classDef.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<GlobalVarDef> moduleFieldCopies(GlobalVarDef field) {
+        if (!moduleFieldCopiesIndexed) {
+            indexModuleFieldCopies();
+        }
+        return moduleFieldCopiesCache.getOrDefault(field, Collections.emptyList());
+    }
+
+    private void indexModuleFieldCopies() {
+        if (moduleFieldCopiesIndexed) {
+            return;
+        }
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ModuleInstanciation instantiation) {
+                ModuleDef origin = instantiation.attrModuleOrigin();
+                if (origin != null) {
+                    int count = Math.min(origin.getVars().size(), instantiation.getVars().size());
+                    for (int i = 0; i < count; i++) {
+                        GlobalVarDef originField = origin.getVars().get(i);
+                        moduleFieldCopiesCache.computeIfAbsent(originField, ignored -> new ArrayList<>())
+                            .add(instantiation.getVars().get(i));
+                    }
+                }
+                super.visit(instantiation);
+            }
+        });
+        moduleFieldCopiesIndexed = true;
+    }
+
+    private boolean initializedBySuperConstructor(ConstructorDef constructor, GlobalVarDef field) {
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null
+            && constructorAssignsField(superConstructor, field,
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean initializedBySuperclass(GlobalVarDef initializedField, GlobalVarDef referencedField) {
+        ClassDef child = initializedField.attrNearestClassDef();
+        ClassDef declaringClass = referencedField.attrNearestClassDef();
+        if (child == null || declaringClass == null || child == declaringClass) {
+            return false;
+        }
+        WurstTypeClass superType = child.attrTypC().extendedClass();
+        while (superType != null) {
+            if (superType.getClassDef() == declaringClass) {
+                return hasGuaranteedConstructorAssignment(referencedField);
+            }
+            superType = superType.extendedClass();
+        }
+        return false;
+    }
+
+    private void checkClassFieldInitializerReads(GlobalVarDef field) {
+        if (!field.attrIsDynamicClassMember() || !(field.getInitialExpr() instanceof Expr initializer)) {
+            return;
+        }
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        initializer.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef referenced)
+                    || !referenced.attrIsDynamicClassMember()
+                    || !(referenced.getInitialExpr() instanceof NoExpr)
+                    || (!isCurrentInstanceAccess(access) && hasGuaranteedConstructorAssignment(referenced))
+                    || (isCurrentInstanceAccess(access)
+                        && initializedBySuperclass(field, referenced))
+                    || !warned.add(referenced)) {
+                    return;
+                }
+                access.addWarning("Field '" + referenced.getName()
+                    + "' is read from a field initializer without an explicit initializer;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly before using it.");
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so its body is not field initialization.
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+        });
     }
 
     /**
@@ -1836,11 +2248,15 @@ public class WurstValidator {
     }
 
     private boolean isWriteTarget(ExprVarAccess varAccess) {
-        if (!(varAccess.getParent() instanceof StmtSet)) {
+        return isWriteTarget((Element) varAccess);
+    }
+
+    private boolean isWriteTarget(Element access) {
+        if (!(access.getParent() instanceof StmtSet)) {
             return false;
         }
-        StmtSet set = (StmtSet) varAccess.getParent();
-        return set.getUpdatedExpr() == varAccess;
+        StmtSet set = (StmtSet) access.getParent();
+        return set.getUpdatedExpr() == access;
     }
 
     private @Nullable StmtSet nearestEnclosingStmtSet(Element e) {
@@ -3574,7 +3990,9 @@ public class WurstValidator {
         }
 
         if (v instanceof GlobalVarDef) {
-            checkClassMemberInitializerOrder((GlobalVarDef) v);
+            GlobalVarDef field = (GlobalVarDef) v;
+            checkClassMemberInitializerOrder(field);
+            checkClassFieldInitializerReads(field);
         }
 
     }

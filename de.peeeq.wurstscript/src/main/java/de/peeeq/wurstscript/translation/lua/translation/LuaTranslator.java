@@ -207,8 +207,9 @@ public class LuaTranslator {
      * per canonical IM field, indexed by that id; class descriptors remain static tables and are
      * reached through {@link #objectClass}. Allocation therefore creates no per-instance table.
      *
-     * <p>Destroy clears every field slot before putting the id on the free stack. As in the Jass
-     * backend, a stale reference aliases a later object after that id is recycled; before reuse its
+     * <p>Destroy only removes the live-object descriptor before putting the id on the free stack.
+     * Field storage intentionally retains its value, matching the Jass backend's array-backed
+     * fields. A stale reference aliases a later object after that id is recycled; before reuse its
      * descriptor is absent, so virtual dispatch fails and {@code instanceof} is false. Capturing
      * closures use the same representation and, like Jass closures, retain their id until destroyed.
      */
@@ -1031,12 +1032,6 @@ public class LuaTranslator {
         LuaFunction cleanup = luaClassCleanup.getFor(c);
         LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
         cleanup.getParams().add(object);
-        for (ImVar field : collectFieldsForAllocation(c)) {
-            cleanup.getBody().add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
-                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
-                LuaAst.LuaExprNull()));
-        }
         luaModel.add(cleanup);
         deferMainInit(LuaAst.LuaAssignment(
             LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(classVar), "__wurst_dealloc"),
