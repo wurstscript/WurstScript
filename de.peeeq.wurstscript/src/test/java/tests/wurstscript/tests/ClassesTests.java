@@ -180,6 +180,43 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void doesNotWarnAfterDelegatingConstructorBeforeLaterRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    construct()",
+                "        this(1)",
+                "        int observed = value",
+                "        value = observed",
+                "    function get() returns int",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer")));
+    }
+
+    @Test
+    public void warnsWhenFieldInitializerReadsUninitializedField() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("read from a field initializer without an explicit initializer")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    int copy = value"
+            );
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

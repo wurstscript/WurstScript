@@ -1767,6 +1767,8 @@ public class WurstValidator {
 
         Set<GlobalVarDef> writtenFields = Collections.newSetFromMap(new IdentityHashMap<>());
         Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        FunctionCall delegatedConstructorCall = function instanceof ConstructorDef
+            ? getFirstThisConstructorCall((ConstructorDef) function) : null;
         function.accept(new Element.DefaultVisitor() {
             private void checkField(NameRef access) {
                 NameDef nameDef = access.attrNameDef();
@@ -1780,6 +1782,8 @@ public class WurstValidator {
                     || (!isInNestedClosure(access) && isCurrentInstanceAccess(access)
                         && writtenFields.contains(field))
                     || (!(function instanceof ConstructorDef) && hasGuaranteedConstructorAssignment(field))
+                    || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
+                        && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
                     return;
                 }
@@ -1846,6 +1850,7 @@ public class WurstValidator {
                     writtenFields.add(field);
                 }
             }
+
         });
     }
 
@@ -1966,6 +1971,70 @@ public class WurstValidator {
         }
         ConstructorDef target = OverloadingResolver.resolveThisCall(owner.getConstructors(), thisCall);
         return target != null && target != constructor && constructorAssignsField(target, field, visiting);
+    }
+
+    private void checkClassFieldInitializerReads(GlobalVarDef field) {
+        if (!field.attrIsDynamicClassMember() || !(field.getInitialExpr() instanceof Expr initializer)) {
+            return;
+        }
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        initializer.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef referenced)
+                    || !referenced.attrIsDynamicClassMember()
+                    || !(referenced.getInitialExpr() instanceof NoExpr)
+                    || !warned.add(referenced)) {
+                    return;
+                }
+                access.addWarning("Field '" + referenced.getName()
+                    + "' is read from a field initializer without an explicit initializer;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly before using it.");
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+        });
     }
 
     /**
@@ -3796,7 +3865,9 @@ public class WurstValidator {
         }
 
         if (v instanceof GlobalVarDef) {
-            checkClassMemberInitializerOrder((GlobalVarDef) v);
+            GlobalVarDef field = (GlobalVarDef) v;
+            checkClassMemberInitializerOrder(field);
+            checkClassFieldInitializerReads(field);
         }
 
     }
