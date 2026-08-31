@@ -62,6 +62,7 @@ public class WurstValidator {
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
     private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
     private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
+    private boolean moduleFieldCopiesIndexed;
 
     /**
      * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
@@ -87,6 +88,7 @@ public class WurstValidator {
             heavyBlocks.clear();
             guaranteedClassFieldInitCache.clear();
             moduleFieldCopiesCache.clear();
+            moduleFieldCopiesIndexed = false;
 
             lightValidation(toCheck);
 
@@ -1988,11 +1990,12 @@ public class WurstValidator {
             return true;
         }
         FunctionCall thisCall = getFirstThisConstructorCall(constructor);
-        if (thisCall == null) {
-            return false;
+        if (thisCall != null) {
+            ConstructorDef target = OverloadingResolver.resolveThisCall(constructorsFor(constructor), thisCall);
+            return target != null && target != constructor && constructorAssignsField(target, field, visiting);
         }
-        ConstructorDef target = OverloadingResolver.resolveThisCall(constructorsFor(constructor), thisCall);
-        return target != null && target != constructor && constructorAssignsField(target, field, visiting);
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null && constructorAssignsField(superConstructor, field, visiting);
     }
 
     private List<ConstructorDef> constructorsFor(GlobalVarDef field) {
@@ -2035,36 +2038,32 @@ public class WurstValidator {
     }
 
     private List<GlobalVarDef> moduleFieldCopies(GlobalVarDef field) {
-        List<GlobalVarDef> cached = moduleFieldCopiesCache.get(field);
-        if (cached != null) {
-            return cached;
+        if (!moduleFieldCopiesIndexed) {
+            indexModuleFieldCopies();
         }
-        ClassOrModule owner = field.attrNearestClassOrModule();
-        if (!(owner instanceof ModuleDef module)) {
-            cached = Collections.emptyList();
-            moduleFieldCopiesCache.put(field, cached);
-            return cached;
+        return moduleFieldCopiesCache.getOrDefault(field, Collections.emptyList());
+    }
+
+    private void indexModuleFieldCopies() {
+        if (moduleFieldCopiesIndexed) {
+            return;
         }
-        int fieldIndex = module.getVars().indexOf(field);
-        if (fieldIndex < 0) {
-            cached = Collections.emptyList();
-            moduleFieldCopiesCache.put(field, cached);
-            return cached;
-        }
-        List<GlobalVarDef> copies = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ModuleInstanciation instantiation) {
-                if (instantiation.attrModuleOrigin() == module
-                    && fieldIndex < instantiation.getVars().size()) {
-                    copies.add(instantiation.getVars().get(fieldIndex));
+                ModuleDef origin = instantiation.attrModuleOrigin();
+                if (origin != null) {
+                    int count = Math.min(origin.getVars().size(), instantiation.getVars().size());
+                    for (int i = 0; i < count; i++) {
+                        GlobalVarDef originField = origin.getVars().get(i);
+                        moduleFieldCopiesCache.computeIfAbsent(originField, ignored -> new ArrayList<>())
+                            .add(instantiation.getVars().get(i));
+                    }
                 }
                 super.visit(instantiation);
             }
         });
-        cached = List.copyOf(copies);
-        moduleFieldCopiesCache.put(field, cached);
-        return cached;
+        moduleFieldCopiesIndexed = true;
     }
 
     private boolean initializedBySuperConstructor(ConstructorDef constructor, GlobalVarDef field) {

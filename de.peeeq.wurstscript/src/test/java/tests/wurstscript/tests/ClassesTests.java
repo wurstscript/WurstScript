@@ -381,6 +381,29 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void doesNotWarnForInheritedFieldAfterGrandparentConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class GrandBase",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Base extends GrandBase",
+                "    construct()",
+                "class Child extends Base",
+                "    construct()",
+                "        int copy = value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
     public void doesNotWarnForInheritedFieldInitializerAfterSuperclassConstructor() {
         CompilationResult result = test()
             .setStopOnFirstError(false)
