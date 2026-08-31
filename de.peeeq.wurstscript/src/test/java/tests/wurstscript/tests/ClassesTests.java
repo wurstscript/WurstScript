@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
@@ -60,10 +61,9 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void warnsWhenConstructorOnlyAssignsOtherInstanceField() {
-        test()
+        CompilationResult result = test()
             .setStopOnFirstError(false)
             .executeProg(false)
-            .expectWarning("no explicit initializer and is not definitely assigned")
             .lines(
                 "package Test",
                 "class Counter",
@@ -72,6 +72,41 @@ public class ClassesTests extends WurstScriptTest {
                 "        other.value = 1",
                 "    function get() returns int",
                 "        return value"
+            );
+
+        assertEquals(result.getGui().getWarningList().stream()
+            .filter(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned"))
+            .count(), 1);
+    }
+
+    @Test
+    public void warnsWhenConstructorReadsFieldBeforeAssigningIt() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        int oldValue = value",
+                "        value = 1"
+            );
+    }
+
+    @Test
+    public void warnsWhenUnqualifiedArrayFieldHasNoInitializer() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int values[2]",
+                "    function get() returns int",
+                "        return values[0]"
             );
     }
 
