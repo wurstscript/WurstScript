@@ -9,9 +9,12 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Metadata for names which are part of the Warcraft III-facing API. */
 public final class NamePreservation {
@@ -65,7 +68,8 @@ public final class NamePreservation {
                 super.visit(variable);
                 String name = runtimeName(variable);
                 result.add(name, variable);
-                addTupleComponentNames(result, name, variable.attrTyp(), variable);
+                addTupleComponentNames(result, name, variable.attrTyp(), variable,
+                    Collections.newSetFromMap(new IdentityHashMap<>()));
             }
         });
         return result;
@@ -87,17 +91,20 @@ public final class NamePreservation {
     }
 
     private static void addTupleComponentNames(RuntimeNameIndex index, String name, WurstType type,
-                                               GlobalVarDef variable) {
+                                               GlobalVarDef variable, Set<TupleDef> expandedTuples) {
         if (type instanceof WurstTypeArray array) {
             type = array.getBaseType();
         }
         if (!(type instanceof WurstTypeTuple tuple)) {
             return;
         }
+        if (!expandedTuples.add(tuple.getTupleDef())) {
+            return;
+        }
         for (WParameter parameter : tuple.getTupleDef().getParameters()) {
             String componentName = name + "_" + parameter.getName();
             index.add(componentName, variable);
-            addTupleComponentNames(index, componentName, parameter.attrTyp(), variable);
+            addTupleComponentNames(index, componentName, parameter.attrTyp(), variable, expandedTuples);
         }
     }
 
