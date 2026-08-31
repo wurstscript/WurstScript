@@ -1777,7 +1777,8 @@ public class WurstValidator {
                     return;
                 }
                 if (!(field.getInitialExpr() instanceof NoExpr)
-                    || (isCurrentInstanceAccess(access) && writtenFields.contains(field))
+                    || (!isInNestedClosure(access) && isCurrentInstanceAccess(access)
+                        && writtenFields.contains(field))
                     || (!(function instanceof ConstructorDef) && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
                     return;
@@ -1834,6 +1835,7 @@ public class WurstValidator {
             public void visit(StmtSet assignment) {
                 super.visit(assignment);
                 if (!(assignment.getUpdatedExpr() instanceof NameRef access)
+                    || isInNestedClosure(access)
                     || !isCurrentInstanceAccess(access)
                     || !isWriteTarget(access)) {
                     return;
@@ -1936,6 +1938,10 @@ public class WurstValidator {
 
     private boolean isCurrentInstanceAccess(NameRef access) {
         return access.attrImplicitParameter() instanceof ExprThis;
+    }
+
+    private boolean isInNestedClosure(NameRef access) {
+        return access.attrNearestExprClosure() != null;
     }
 
     private boolean isWholeFieldAccess(NameRef access) {
