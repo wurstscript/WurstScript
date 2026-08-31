@@ -62,6 +62,7 @@ public class WurstValidator {
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
     private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
     private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
+    private NamePreservation.RuntimeNameIndex runtimeNameIndex;
     private boolean moduleFieldCopiesIndexed;
 
     /**
@@ -89,6 +90,10 @@ public class WurstValidator {
             guaranteedClassFieldInitCache.clear();
             moduleFieldCopiesCache.clear();
             moduleFieldCopiesIndexed = false;
+            if (runtimeNameIndex != null) {
+                runtimeNameIndex.clearSyntheticMarkers();
+            }
+            runtimeNameIndex = NamePreservation.indexGlobals(prog);
 
             lightValidation(toCheck);
 
@@ -177,7 +182,7 @@ public class WurstValidator {
                 for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
-                        preserveVariableName(call, varName.getValS());
+                        preserveVariableName(varName.getValS());
                         WLogger.info("keep: " + varName.getValS());
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
@@ -3670,7 +3675,7 @@ public class WurstValidator {
             if (e.getArgs().size() > 1) {
                 if (e.getArgs().get(1) instanceof ExprStringVal) {
                     ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
-                    preserveVariableName(e, varName.getValS());
+                    preserveVariableName(varName.getValS());
                     WLogger.info("keep: " + varName.getValS());
                     return;
                 } else if (e.getArgs().get(1) instanceof ExprVarAccess) {
@@ -3728,8 +3733,8 @@ public class WurstValidator {
         }
     }
 
-    private void preserveVariableName(Element useSite, String variableName) {
-        NamePreservation.preserveGlobalWithRuntimeName(prog, variableName);
+    private void preserveVariableName(String variableName) {
+        runtimeNameIndex.preserve(variableName);
     }
 
     private boolean isViableSwitchtype(Expr expr) {

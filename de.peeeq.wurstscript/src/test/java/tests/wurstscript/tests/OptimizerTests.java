@@ -551,6 +551,43 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void trvePreservesLoweredTupleComponent() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    tuple pair(real x, real y)",
+            "    pair value = pair(0., 0.)",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    init",
+            "        TriggerRegisterVariableEvent(null, \"test_value_x\", null, 0.0)",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesLoweredTupleComponent_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("real test_value_x"),
+            "Expected TRVE to preserve the lowered tuple component.\n" + output);
+    }
+
+    @Test
+    public void preserveNameAnnotationKeepsClassFunctionNameInLua() throws IOException {
+        test().testLua(true).luaOnly(true).executeProg(false).lines(
+            "package test",
+            "    class ExternalApi",
+            "        @preserveName function callback()",
+            "            skip",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/lua/OptimizerTests_preserveNameAnnotationKeepsClassFunctionNameInLua.lua"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function ExternalApi_callback"),
+            "Expected a preserved class function to keep its emitted name.\n" + output);
+    }
+
+    @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
             "package test",

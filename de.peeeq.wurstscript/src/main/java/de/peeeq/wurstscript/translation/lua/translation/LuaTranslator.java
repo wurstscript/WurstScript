@@ -1047,7 +1047,9 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            if (!NamePreservation.isPreserved(f)) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            }
         }
 
         createClassInitFunction(c, classVar, initMethod);
