@@ -279,6 +279,27 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void doesNotWarnForInitializedExplicitReceiverInsideConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Source",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Holder",
+                "    construct(Source source)",
+                "        int copy = source.value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
     public void warnsForUninitializedFieldReadFromPackageFunction() {
         test()
             .setStopOnFirstError(false)

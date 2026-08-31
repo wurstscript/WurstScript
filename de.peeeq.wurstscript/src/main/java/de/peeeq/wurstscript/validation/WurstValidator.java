@@ -1780,7 +1780,8 @@ public class WurstValidator {
                 if (!(field.getInitialExpr() instanceof NoExpr)
                     || (isCurrentInstanceAccess(access)
                         && writtenFields.contains(field))
-                    || (!(function instanceof ConstructorDef) && hasGuaranteedConstructorAssignment(field))
+                    || ((!isCurrentInstanceAccess(access) || !(function instanceof ConstructorDef))
+                        && hasGuaranteedConstructorAssignment(field))
                     || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
                         && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
