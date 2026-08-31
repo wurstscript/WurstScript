@@ -279,6 +279,43 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void warnsForUninitializedFieldReadFromPackageFunction() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "function read(Counter counter) returns int",
+                "    return counter.value"
+            );
+    }
+
+    @Test
+    public void doesNotWarnForClosureReadAfterPriorAssignment() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "interface Reader",
+                "    function read() returns int",
+                "function consume(Reader reader)",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "        consume(() -> value)"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

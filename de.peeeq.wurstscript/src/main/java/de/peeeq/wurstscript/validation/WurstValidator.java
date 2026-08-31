@@ -1760,8 +1760,7 @@ public class WurstValidator {
      * cheap, local check: it does not attempt interprocedural or path-sensitive reasoning.
      */
     private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
-        ClassOrModule owner = function.attrNearestClassOrModule();
-        if (owner == null || function instanceof OnDestroyDef) {
+        if (function instanceof OnDestroyDef) {
             return;
         }
 
@@ -1779,7 +1778,7 @@ public class WurstValidator {
                     return;
                 }
                 if (!(field.getInitialExpr() instanceof NoExpr)
-                    || (!isInNestedClosure(access) && isCurrentInstanceAccess(access)
+                    || (isCurrentInstanceAccess(access)
                         && writtenFields.contains(field))
                     || (!(function instanceof ConstructorDef) && hasGuaranteedConstructorAssignment(field))
                     || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
