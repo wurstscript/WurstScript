@@ -111,6 +111,38 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void warnsWhenFieldIsReadOnRightHandSideBeforeAssignment() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    function increment() returns int",
+                "        value = value + 1",
+                "        return value"
+            );
+    }
+
+    @Test
+    public void warnsWhenOtherInstanceFieldIsReadAfterThisFieldWrite() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    function getOther(Counter other) returns int",
+                "        value = 1",
+                "        return other.value"
+            );
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

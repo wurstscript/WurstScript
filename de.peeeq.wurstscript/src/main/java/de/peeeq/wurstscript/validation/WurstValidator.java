@@ -1774,13 +1774,10 @@ public class WurstValidator {
                     return;
                 }
                 if (isWriteTarget(access)) {
-                    if (isCurrentInstanceAccess(access)) {
-                        writtenFields.add(field);
-                    }
                     return;
                 }
                 if (!(field.getInitialExpr() instanceof NoExpr)
-                    || writtenFields.contains(field)
+                    || (isCurrentInstanceAccess(access) && writtenFields.contains(field))
                     || (!(function instanceof ConstructorDef) && hasGuaranteedConstructorAssignment(field))
                     || !warned.add(field)) {
                     return;
@@ -1831,6 +1828,20 @@ public class WurstValidator {
             public void visit(ExprMemberArrayVarDotDot access) {
                 super.visit(access);
                 checkField(access);
+            }
+
+            @Override
+            public void visit(StmtSet assignment) {
+                super.visit(assignment);
+                if (!(assignment.getUpdatedExpr() instanceof NameRef access)
+                    || !isCurrentInstanceAccess(access)
+                    || !isWriteTarget(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()) {
+                    writtenFields.add(field);
+                }
             }
         });
     }
