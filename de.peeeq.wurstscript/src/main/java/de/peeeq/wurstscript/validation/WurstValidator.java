@@ -3729,11 +3729,7 @@ public class WurstValidator {
     }
 
     private void preserveVariableName(Element useSite, String variableName) {
-        NameLink variable = de.peeeq.wurstscript.attributes.names.NameResolution
-            .lookupVarNoConfig(useSite, variableName, false);
-        if (variable != null && variable.getDef() instanceof GlobalVarDef) {
-            NamePreservation.preserve((GlobalVarDef) variable.getDef());
-        }
+        NamePreservation.preserveGlobalWithRuntimeName(prog, variableName);
     }
 
     private boolean isViableSwitchtype(Expr expr) {

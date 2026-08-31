@@ -489,6 +489,45 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void preserveNameAnnotationKeepsExternallyCalledFunctionReachable() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationKeepsExternallyCalledFunctionReachable_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected an externally-called @preserveName function to survive garbage collection.\n" + output);
+    }
+
+    @Test
+    public void trvePreservesGlobalDespiteLexicalShadow() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    int myVar = 0",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    function registerVariableEvent()",
+            "        string myVar = \"local\"",
+            "        TriggerRegisterVariableEvent(null, \"test_myVar\", null, 0.0)",
+            "    init",
+            "        registerVariableEvent()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesGlobalDespiteLexicalShadow_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("integer test_myVar"),
+            "Expected TRVE to preserve the global despite a local shadow.\n" + output);
+    }
+
+    @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
             "package test",

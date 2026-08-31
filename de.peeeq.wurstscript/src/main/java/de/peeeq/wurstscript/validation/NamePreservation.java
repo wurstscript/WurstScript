@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.validation;
 
-import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
@@ -42,6 +39,37 @@ public final class NamePreservation {
                 Ast.Identifier(variable.getSource(), ANNOTATION.substring(1)), Ast.Arguments());
             variable.getModifiers().add(marker);
         }
+    }
+
+    /**
+     * Finds globals by their emitted runtime name, without consulting lexical name resolution.
+     * This is needed for native APIs such as TriggerRegisterVariableEvent whose string argument
+     * refers to the generated global name rather than a source-level variable access.
+     */
+    public static void preserveGlobalWithRuntimeName(WurstModel model, String runtimeName) {
+        model.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(GlobalVarDef variable) {
+                super.visit(variable);
+                if (runtimeName(variable).equals(runtimeName)) {
+                    preserve(variable);
+                }
+            }
+        });
+    }
+
+    private static String runtimeName(GlobalVarDef variable) {
+        if (variable.getParent() != null && variable.getParent().getParent() instanceof NamedScope scope) {
+            return runtimeName(scope) + "_" + variable.getName();
+        }
+        return variable.getName();
+    }
+
+    private static String runtimeName(NamedScope scope) {
+        if (scope instanceof ModuleInstanciation instantiation) {
+            return runtimeName(instantiation.getParent().attrNearestNamedScope()) + "_" + instantiation.getName();
+        }
+        return scope.getName();
     }
 
     public static boolean isPreserveAnnotation(String annotation) {

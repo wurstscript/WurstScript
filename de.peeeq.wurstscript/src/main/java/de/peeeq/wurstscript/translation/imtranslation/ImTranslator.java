@@ -1465,6 +1465,14 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         final ImFunction conf = getConfFunc();
         if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
+        // Preserved functions are externally visible entry points even when no Wurst code calls
+        // them. Keep their bodies and everything they call reachable for both backends.
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
+            if (NamePreservation.isPreserved(function)) {
+                calculateCallRelations(function, includeUsedVariables);
+            }
+        }
+
         // Mark externally visible globals as read so they survive garbage collection.
         for (ImVar global : imProg.getGlobals()) {
             if (NamePreservation.isPreserved(global)) readVariables.add(global);

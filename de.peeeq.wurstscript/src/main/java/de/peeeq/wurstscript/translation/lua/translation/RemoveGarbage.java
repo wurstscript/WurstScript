@@ -153,7 +153,8 @@ public class RemoveGarbage {
         Used used = new Used(translator, ignoredInitializers);
         for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
             if (f.getName().equals("main")
-                || f.getName().equals("config")) {
+                || f.getName().equals("config")
+                || NamePreservation.isPreserved(f)) {
                 visitFunction(f, used);
             }
         }
