@@ -143,6 +143,43 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void warnsWhenOnlyOneArrayElementWasAssigned() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int values[2]",
+                "    function getOther() returns int",
+                "        values[0] = 1",
+                "        return values[1]"
+            );
+    }
+
+    @Test
+    public void doesNotWarnWhenDelegatingConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    construct()",
+                "        this(1)",
+                "    function get() returns int",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")));
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

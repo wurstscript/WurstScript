@@ -1839,7 +1839,8 @@ public class WurstValidator {
                     return;
                 }
                 NameDef nameDef = access.attrNameDef();
-                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()) {
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
                     writtenFields.add(field);
                 }
             }
@@ -1850,11 +1851,14 @@ public class WurstValidator {
         Set<GlobalVarDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
         root.accept(new Element.DefaultVisitor() {
             private void collect(NameRef access) {
-                if (!isWriteTarget(access) || !isCurrentInstanceAccess(access)) {
+                if (access.attrNearestExprClosure() != null
+                    || !isWriteTarget(access)
+                    || !isCurrentInstanceAccess(access)) {
                     return;
                 }
                 NameDef nameDef = access.attrNameDef();
-                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()) {
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
                     result.add(field);
                 }
             }
@@ -1869,6 +1873,12 @@ public class WurstValidator {
             public void visit(ExprVarArrayAccess access) {
                 super.visit(access);
                 collect(access);
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so writes in its body do not
+                // initialize the object during construction.
             }
 
             @Override
@@ -1915,7 +1925,7 @@ public class WurstValidator {
             return false;
         }
         for (ConstructorDef constructor : declaringClass.getConstructors()) {
-            if (!collectWrittenDynamicFields(constructor).contains(field)) {
+            if (!constructorAssignsField(constructor, field, Collections.newSetFromMap(new IdentityHashMap<>()))) {
                 guaranteedClassFieldInitCache.put(field, false);
                 return false;
             }
@@ -1926,6 +1936,30 @@ public class WurstValidator {
 
     private boolean isCurrentInstanceAccess(NameRef access) {
         return access.attrImplicitParameter() instanceof ExprThis;
+    }
+
+    private boolean isWholeFieldAccess(NameRef access) {
+        return !(access instanceof AstElementWithIndexes);
+    }
+
+    private boolean constructorAssignsField(ConstructorDef constructor, GlobalVarDef field,
+                                            Set<ConstructorDef> visiting) {
+        if (!visiting.add(constructor)) {
+            return false;
+        }
+        if (collectWrittenDynamicFields(constructor).contains(field)) {
+            return true;
+        }
+        FunctionCall thisCall = getFirstThisConstructorCall(constructor);
+        if (thisCall == null) {
+            return false;
+        }
+        ClassOrModule owner = constructor.attrNearestClassOrModule();
+        if (owner == null) {
+            return false;
+        }
+        ConstructorDef target = OverloadingResolver.resolveThisCall(owner.getConstructors(), thisCall);
+        return target != null && target != constructor && constructorAssignsField(target, field, visiting);
     }
 
     /**
