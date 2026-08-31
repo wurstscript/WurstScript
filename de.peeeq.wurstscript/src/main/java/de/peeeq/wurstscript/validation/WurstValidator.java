@@ -1773,7 +1773,7 @@ public class WurstValidator {
                 if (!(nameDef instanceof GlobalVarDef field) || !field.attrIsDynamicClassMember()) {
                     return;
                 }
-                if (isWriteTarget(access)) {
+                if (isWriteTarget(access) && isCurrentInstanceAccess(access)) {
                     writtenFields.add(field);
                     return;
                 }
@@ -1831,7 +1831,7 @@ public class WurstValidator {
         Set<GlobalVarDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
         root.accept(new Element.DefaultVisitor() {
             private void collect(NameRef access) {
-                if (!isWriteTarget(access)) {
+                if (!isWriteTarget(access) || !isCurrentInstanceAccess(access)) {
                     return;
                 }
                 NameDef nameDef = access.attrNameDef();
@@ -1897,6 +1897,10 @@ public class WurstValidator {
         }
         guaranteedClassFieldInitCache.put(field, true);
         return true;
+    }
+
+    private boolean isCurrentInstanceAccess(NameRef access) {
+        return access.attrImplicitParameter() instanceof ExprThis;
     }
 
     /**

@@ -59,6 +59,23 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void warnsWhenConstructorOnlyAssignsOtherInstanceField() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(Counter other)",
+                "        other.value = 1",
+                "    function get() returns int",
+                "        return value"
+            );
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }
