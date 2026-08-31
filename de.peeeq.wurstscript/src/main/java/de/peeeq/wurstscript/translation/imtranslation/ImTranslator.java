@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -1067,6 +1067,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 if (m instanceof Annotation) {
                     Annotation annotation = (Annotation) m;
                     flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+                    if (NamePreservation.isPreserveAnnotation(annotation.getAnnotationType())) {
+                        flags.add(PRESERVE_NAME);
+                    }
                 }
             }
         }
@@ -1462,12 +1465,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         final ImFunction conf = getConfFunc();
         if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
-        // mark protected globals as read
-        // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
+        // Mark externally visible globals as read so they survive garbage collection.
         for (ImVar global : imProg.getGlobals()) {
-            if (TRVEHelper.protectedVariables.contains(global.getName())) {
-                readVariables.add(global);
-            }
+            if (NamePreservation.isPreserved(global)) readVariables.add(global);
         }
     }
 

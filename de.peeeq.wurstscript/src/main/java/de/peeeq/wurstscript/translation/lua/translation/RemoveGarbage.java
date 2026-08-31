@@ -5,7 +5,7 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -122,7 +122,7 @@ public class RemoveGarbage {
         Used used = collectUsed(prog, translator);
 
         prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
-        prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !TRVEHelper.protectedVariables.contains(g.getName()));
+        prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !NamePreservation.isPreserved(g));
         prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
         prog.getMethods().removeIf(m -> !used.getMethods().contains(m));
         for (ImMethod m : prog.getMethods()) {

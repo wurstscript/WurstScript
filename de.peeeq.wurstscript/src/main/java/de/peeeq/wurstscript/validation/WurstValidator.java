@@ -177,7 +177,7 @@ public class WurstValidator {
                 for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
-                        TRVEHelper.protectedVariables.add(varName.getValS());
+                        preserveVariableName(call, varName.getValS());
                         WLogger.info("keep: " + varName.getValS());
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
@@ -3670,7 +3670,7 @@ public class WurstValidator {
             if (e.getArgs().size() > 1) {
                 if (e.getArgs().get(1) instanceof ExprStringVal) {
                     ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
-                    TRVEHelper.protectedVariables.add(varName.getValS());
+                    preserveVariableName(e, varName.getValS());
                     WLogger.info("keep: " + varName.getValS());
                     return;
                 } else if (e.getArgs().get(1) instanceof ExprVarAccess) {
@@ -3725,6 +3725,14 @@ public class WurstValidator {
             } else {
                 e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
             }
+        }
+    }
+
+    private void preserveVariableName(Element useSite, String variableName) {
+        NameLink variable = de.peeeq.wurstscript.attributes.names.NameResolution
+            .lookupVarNoConfig(useSite, variableName, false);
+        if (variable != null && variable.getDef() instanceof GlobalVarDef) {
+            NamePreservation.preserve((GlobalVarDef) variable.getDef());
         }
     }
 

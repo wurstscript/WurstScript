@@ -17,7 +17,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.stream.Collectors;
 
@@ -174,13 +174,13 @@ public class ImOptimizer {
                         super.visit(e);
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> exprs = new ArrayList<>();
                                 for (ImExpr index : va.getIndexes()) {
                                     exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
@@ -190,13 +190,13 @@ public class ImOptimizer {
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                            if(var != null && !readVars.contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
+                            if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
                             ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }

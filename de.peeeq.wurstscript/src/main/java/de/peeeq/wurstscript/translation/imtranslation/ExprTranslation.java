@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Either;
 import io.vavr.control.Option;
@@ -588,6 +589,7 @@ public class ExprTranslation {
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
             ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
+            NamePreservation.preserve(executedFunc);
             return ImFunctionCall(e, executedFunc, ImTypeArguments(), JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 

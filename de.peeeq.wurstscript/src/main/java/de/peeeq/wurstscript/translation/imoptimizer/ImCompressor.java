@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 public class ImCompressor {
 
@@ -27,9 +27,8 @@ public class ImCompressor {
 
     public void compressGlobals() {
         for (final ImVar global : prog.getGlobals()) {
-            if (global.getIsBJ() || TRVEHelper.protectedVariables.contains(global.getName())) {
-                // do not rename bj constants
-                // do not rename TRVE vars
+            if (global.getIsBJ() || NamePreservation.isPreserved(global)) {
+                // do not rename bj constants or names exposed to Warcraft III
                 continue;
             }
 
@@ -41,7 +40,8 @@ public class ImCompressor {
 
     public void compressFunctions() {
         for (ImFunction func : ImHelper.calculateFunctionsOfProg(prog)) {
-            if (func.isNative() || func.isBj() || func.isCompiletime() || func.isExtern()) {
+            if (func.isNative() || func.isBj() || func.isCompiletime() || func.isExtern()
+                || NamePreservation.isPreserved(func)) {
                 // do not rename builtin an bj functions
                 continue;
             }

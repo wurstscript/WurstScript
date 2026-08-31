@@ -445,6 +445,50 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void preserveNameAnnotationExemptsFunctionFromCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "    function normallyCompressed()",
+            "        testSuccess()",
+            "    init",
+            "        externallyCalled()",
+            "        normallyCompressed()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationExemptsFunctionFromCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected @preserveName function to retain its source name.\n" + output);
+        assertFalse(output.contains("function normallyCompressed"),
+            "Expected an unannotated function to remain eligible for compression.\n" + output);
+    }
+
+    @Test
+    public void executeFuncPreservesResolvedFunctionNameDuringCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    @extern native ExecuteFunc(string name)",
+            "    native testSuccess()",
+            "    function callback()",
+            "        testSuccess()",
+            "    init",
+            "        ExecuteFunc(\"callback\")",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_executeFuncPreservesResolvedFunctionNameDuringCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function callback"),
+            "Expected ExecuteFunc target to retain its source name.\n" + output);
+        assertTrue(output.contains("ExecuteFunc(\"callback\")"),
+            "Expected ExecuteFunc to receive the preserved source name.\n" + output);
+    }
+
+    @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
             "package test",
