@@ -93,6 +93,7 @@ public class WurstValidator {
             if (runtimeNameIndex != null) {
                 runtimeNameIndex.clearSyntheticMarkers();
             }
+            NamePreservation.clearSyntheticMarkers(prog);
             runtimeNameIndex = NamePreservation.indexGlobals(prog);
 
             lightValidation(toCheck);

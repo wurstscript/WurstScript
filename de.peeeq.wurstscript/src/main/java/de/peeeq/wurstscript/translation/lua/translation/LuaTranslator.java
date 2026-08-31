@@ -331,8 +331,8 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
-        assertNoDanglingFunctionReferences(prog);
         collectPredefinedNames();
+        assertNoDanglingFunctionReferences(prog);
 
         normalizeFieldNames();
 
@@ -500,6 +500,15 @@ public class LuaTranslator {
                     setNameFromTrace(function);
                 }
                 usedNames.add(function.getName());
+            }
+        }
+
+        for (ImClass clazz : prog.getClasses()) {
+            for (ImFunction function : clazz.getFunctions()) {
+                if (NamePreservation.isPreserved(function)) {
+                    LuaFunction luaFunction = luaFunc.getFor(function);
+                    usedNames.add(luaFunction.getName());
+                }
             }
         }
 

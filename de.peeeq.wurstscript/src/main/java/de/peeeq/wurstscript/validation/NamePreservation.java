@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeTuple;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,6 +17,7 @@ import java.util.Map;
 public final class NamePreservation {
 
     public static final String ANNOTATION = "@preserveName";
+    private static final String SYNTHETIC_MARKER = "__wurst_trve_preserve_name";
 
     private NamePreservation() {
     }
@@ -42,14 +42,14 @@ public final class NamePreservation {
      * name-based side table. The marker remains attached to the AST definition and is copied to
      * the corresponding IM variable through its trace.
      */
-    public static @Nullable Annotation preserve(GlobalVarDef variable) {
+    public static void preserve(GlobalVarDef variable) {
         if (variable.hasAnnotation(ANNOTATION)) {
-            return null;
+            return;
         }
         Annotation marker = Ast.Annotation(variable.getSource(),
-            Ast.Identifier(variable.getSource(), ANNOTATION.substring(1)), Ast.Arguments());
+            Ast.Identifier(variable.getSource(), ANNOTATION.substring(1)),
+            Ast.Arguments(Ast.ExprStringVal(variable.getSource(), SYNTHETIC_MARKER)));
         variable.getModifiers().add(marker);
-        return marker;
     }
 
     /**
@@ -71,6 +71,21 @@ public final class NamePreservation {
         return result;
     }
 
+    /** Removes markers synthesized for TRVE during an earlier validation run. */
+    public static void clearSyntheticMarkers(WurstModel model) {
+        model.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(GlobalVarDef variable) {
+                super.visit(variable);
+                variable.getModifiers().removeIf(modifier -> modifier instanceof Annotation annotation
+                    && annotation.getAnnotationType().equalsIgnoreCase(ANNOTATION)
+                    && annotation.getArgs().size() == 1
+                    && annotation.getArgs().get(0) instanceof ExprStringVal value
+                    && value.getValS().equals(SYNTHETIC_MARKER));
+            }
+        });
+    }
+
     private static void addTupleComponentNames(RuntimeNameIndex index, String name, WurstType type,
                                                GlobalVarDef variable) {
         if (type instanceof WurstTypeArray array) {
@@ -88,7 +103,6 @@ public final class NamePreservation {
 
     public static final class RuntimeNameIndex {
         private final Map<String, List<GlobalVarDef>> globalsByName = new LinkedHashMap<>();
-        private final Map<GlobalVarDef, Annotation> syntheticMarkers = new LinkedHashMap<>();
 
         private void add(String name, GlobalVarDef variable) {
             globalsByName.computeIfAbsent(name, ignored -> new ArrayList<>()).add(variable);
@@ -96,18 +110,8 @@ public final class NamePreservation {
 
         public void preserve(String runtimeName) {
             for (GlobalVarDef variable : globalsByName.getOrDefault(runtimeName, List.of())) {
-                Annotation marker = NamePreservation.preserve(variable);
-                if (marker != null) {
-                    syntheticMarkers.put(variable, marker);
-                }
+                NamePreservation.preserve(variable);
             }
-        }
-
-        public void clearSyntheticMarkers() {
-            for (Map.Entry<GlobalVarDef, Annotation> entry : syntheticMarkers.entrySet()) {
-                entry.getKey().getModifiers().remove(entry.getValue());
-            }
-            syntheticMarkers.clear();
         }
     }
 
