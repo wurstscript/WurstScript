@@ -588,6 +588,22 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void preserveNameAnnotationKeepsStaticClassFunctionReachableInLua() throws IOException {
+        test().testLua(true).luaOnly(true).executeProg(false).lines(
+            "package test",
+            "    class ExternalApi",
+            "        @preserveName static function callback()",
+            "            skip",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/lua/OptimizerTests_preserveNameAnnotationKeepsStaticClassFunctionReachableInLua.lua"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function callback("),
+            "Expected a preserved static class function to keep its emitted name.\n" + output);
+    }
+
+    @Test
     public void preservedClassFunctionReservesItsLuaNameBeforeClassVariables() throws IOException {
         test().testLua(true).luaOnly(true).executeProg(false).lines(
             "package test",
