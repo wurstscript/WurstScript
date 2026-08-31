@@ -2008,6 +2008,7 @@ public class WurstValidator {
                 if (!(nameDef instanceof GlobalVarDef referenced)
                     || !referenced.attrIsDynamicClassMember()
                     || !(referenced.getInitialExpr() instanceof NoExpr)
+                    || (!isCurrentInstanceAccess(access) && hasGuaranteedConstructorAssignment(referenced))
                     || !warned.add(referenced)) {
                     return;
                 }

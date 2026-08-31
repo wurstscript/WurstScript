@@ -258,6 +258,27 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void doesNotWarnForExplicitReceiverWithGuaranteedConstructorAssignment() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Source",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Holder",
+                "    Source source = new Source()",
+                "    int copy = source.value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("read from a field initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }
