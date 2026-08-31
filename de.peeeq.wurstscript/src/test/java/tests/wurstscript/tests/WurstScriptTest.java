@@ -113,6 +113,7 @@ public class WurstScriptTest {
         private final List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
+        private boolean optimize;
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
@@ -154,6 +155,11 @@ public class WurstScriptTest {
 
         public TestConfig executeTests(boolean b) {
             this.executeTests = b;
+            return this;
+        }
+
+        TestConfig optimize() {
+            this.optimize = true;
             return this;
         }
 
@@ -268,6 +274,9 @@ public class WurstScriptTest {
             }
             if (runCompiletimeFunctions) {
                 runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+            if (optimize) {
+                runArgs = runArgs.with("-opt");
             }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);

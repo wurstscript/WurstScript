@@ -445,6 +445,133 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void preserveNameAnnotationExemptsFunctionFromCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "    function normallyCompressed()",
+            "        testSuccess()",
+            "    init",
+            "        externallyCalled()",
+            "        normallyCompressed()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationExemptsFunctionFromCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected @preserveName function to retain its source name.\n" + output);
+        assertFalse(output.contains("function normallyCompressed"),
+            "Expected an unannotated function to remain eligible for compression.\n" + output);
+    }
+
+    @Test
+    public void executeFuncPreservesResolvedFunctionNameDuringCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    @extern native ExecuteFunc(string name)",
+            "    native testSuccess()",
+            "    function callback()",
+            "        testSuccess()",
+            "    init",
+            "        ExecuteFunc(\"callback\")",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_executeFuncPreservesResolvedFunctionNameDuringCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function callback"),
+            "Expected ExecuteFunc target to retain its source name.\n" + output);
+        assertTrue(output.contains("ExecuteFunc(\"callback\")"),
+            "Expected ExecuteFunc to receive the preserved source name.\n" + output);
+    }
+
+    @Test
+    public void preserveNameAnnotationKeepsExternallyCalledFunctionReachable() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationKeepsExternallyCalledFunctionReachable_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected an externally-called @preserveName function to survive garbage collection.\n" + output);
+    }
+
+    @Test
+    public void preservedNamesAreReservedBeforeCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    function ordinary()",
+            "        testSuccess()",
+            "    @preserveName function w()",
+            "        testSuccess()",
+            "    init",
+            "        ordinary()",
+            "        w()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preservedNamesAreReservedBeforeCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function w"),
+            "Expected the preserved function name to remain available.\n" + output);
+        assertFalse(output.contains("function w_1"),
+            "Expected compression to reserve the preserved name.\n" + output);
+    }
+
+    @Test
+    public void trvePreservesGlobalDespiteLexicalShadow() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    int myVar = 0",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    function registerVariableEvent()",
+            "        string myVar = \"local\"",
+            "        TriggerRegisterVariableEvent(null, \"test_myVar\", null, 0.0)",
+            "    init",
+            "        registerVariableEvent()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesGlobalDespiteLexicalShadow_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("integer test_myVar"),
+            "Expected TRVE to preserve the global despite a local shadow.\n" + output);
+    }
+
+    @Test
+    public void trvePreservesLoweredTupleComponent() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    tuple pair(real x, real y)",
+            "    pair value = pair(0., 0.)",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    init",
+            "        TriggerRegisterVariableEvent(null, \"test_value_x\", null, 0.0)",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesLoweredTupleComponent_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("real test_value_x"),
+            "Expected TRVE to preserve the lowered tuple component.\n" + output);
+    }
+
+    @Test
     public void test_tempVarRemover() throws IOException {
         test().lines(
             "package test",

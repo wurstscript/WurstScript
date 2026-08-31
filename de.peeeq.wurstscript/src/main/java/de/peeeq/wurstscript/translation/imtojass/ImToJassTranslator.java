@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.RestrictedCompressedNames;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -50,6 +51,11 @@ public class ImToJassTranslator {
 
         translateFunctionTransitive(mainFunc);
         translateFunctionTransitive(confFunction);
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
+            if (NamePreservation.isPreserved(function)) {
+                translateFunctionTransitive(function);
+            }
+        }
 
         return prog;
     }

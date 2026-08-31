@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -156,8 +157,10 @@ public class LuaTranslator {
         @Override
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
-            if (!a.getIsBJ()) {
+            if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
                 name = uniqueName(name);
+            } else {
+                usedNames.add(name);
             }
             return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
         }
@@ -168,9 +171,10 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
+            if (!a.isExtern() && !a.isBj() && !a.isNative()
+                && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
                 name = uniqueName(name);
-            } else if (isFixedEntryPoint(a)) {
+            } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
                 usedNames.add(name);
             }
 
@@ -327,8 +331,8 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
-        assertNoDanglingFunctionReferences(prog);
         collectPredefinedNames();
+        assertNoDanglingFunctionReferences(prog);
 
         normalizeFieldNames();
 
@@ -488,7 +492,8 @@ public class LuaTranslator {
 
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
-            if (function.isBj() || function.isExtern() || function.isNative()) {
+            if (function.isBj() || function.isExtern() || function.isNative()
+                || NamePreservation.isPreserved(function)) {
                 // Don't rename Wurst-internal stubs (names starting with __wurst_)
                 // since their names are intentionally different from their trace's source name.
                 if (!function.getName().startsWith("__wurst_")) {
@@ -501,6 +506,8 @@ public class LuaTranslator {
         for (ImVar global : prog.getGlobals()) {
             if (global.getIsBJ()) {
                 setNameFromTrace(global);
+                usedNames.add(global.getName());
+            } else if (NamePreservation.isPreserved(global)) {
                 usedNames.add(global.getName());
             }
         }

@@ -62,6 +62,7 @@ public class WurstValidator {
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
     private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
     private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
+    private NamePreservation.RuntimeNameIndex runtimeNameIndex;
     private boolean moduleFieldCopiesIndexed;
 
     /**
@@ -89,6 +90,11 @@ public class WurstValidator {
             guaranteedClassFieldInitCache.clear();
             moduleFieldCopiesCache.clear();
             moduleFieldCopiesIndexed = false;
+            trveWrapperFuncs.clear();
+            wrapperCalls.clear();
+            NamePreservation.clearSyntheticMarkers(prog);
+            runtimeNameIndex = NamePreservation.indexGlobals(prog);
+            recomputeTrvePreservation();
 
             lightValidation(toCheck);
 
@@ -177,7 +183,7 @@ public class WurstValidator {
                 for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
-                        TRVEHelper.protectedVariables.add(varName.getValS());
+                        preserveVariableName(varName.getValS());
                         WLogger.info("keep: " + varName.getValS());
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
@@ -3670,24 +3676,16 @@ public class WurstValidator {
             if (e.getArgs().size() > 1) {
                 if (e.getArgs().get(1) instanceof ExprStringVal) {
                     ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
-                    TRVEHelper.protectedVariables.add(varName.getValS());
+                    preserveVariableName(varName.getValS());
                     WLogger.info("keep: " + varName.getValS());
                     return;
                 } else if (e.getArgs().get(1) instanceof ExprVarAccess) {
                     // Check if this is a two line hook... thanks Bribe
-                    ExprVarAccess varAccess = (ExprVarAccess) e.getArgs().get(1);
-                    @Nullable FunctionImplementation nearestFunc = e.attrNearestFuncDef();
-                    WStatements fbody = nearestFunc.getBody();
-                    if (e.getParent() instanceof StmtReturn && fbody.size() <= 4 && fbody.get(fbody.size() - 2).structuralEquals(e.getParent())) {
-                        WParameters params = nearestFunc.getParameters();
-                        if (params.size() == 4 && ((TypeExprSimple) params.get(0).getTyp()).getTypeName().equals("trigger")
-                            && ((TypeExprSimple) params.get(1).getTyp()).getTypeName().equals("string")
-                            && ((TypeExprSimple) params.get(2).getTyp()).getTypeName().equals("limitop")
-                            && ((TypeExprSimple) params.get(3).getTyp()).getTypeName().equals("real")) {
-                            trveWrapperFuncs.add(nearestFunc.getName());
-                            WLogger.info("found wrapper: " + nearestFunc.getName());
-                            return;
-                        }
+                    String wrapper = trveWrapperName(e);
+                    if (wrapper != null) {
+                        trveWrapperFuncs.add(wrapper);
+                        WLogger.info("found wrapper: " + wrapper);
+                        return;
                     }
                 }
             } else {
@@ -3726,6 +3724,70 @@ public class WurstValidator {
                 e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
             }
         }
+    }
+
+    private void recomputeTrvePreservation() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (call.getFuncName().equals("TriggerRegisterVariableEvent") && call.getArgs().size() > 1) {
+                    if (call.getArgs().get(1) instanceof ExprStringVal varName) {
+                        preserveVariableName(varName.getValS());
+                    } else if (call.getArgs().get(1) instanceof ExprVarAccess) {
+                        String wrapper = trveWrapperName(call);
+                        if (wrapper != null) {
+                            trveWrapperFuncs.add(wrapper);
+                        }
+                    }
+                }
+            }
+
+        });
+
+        // Repeat the cheap call pass so calls which precede their wrapper declaration are covered.
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (trveWrapperFuncs.contains(call.getFuncName())
+                    && call.getArgs().size() > 1
+                    && call.getArgs().get(1) instanceof ExprStringVal varName) {
+                    preserveVariableName(varName.getValS());
+                }
+            }
+        });
+    }
+
+    private @Nullable String trveWrapperName(ExprFunctionCall e) {
+        @Nullable FunctionImplementation nearestFunc = e.attrNearestFuncDef();
+        if (nearestFunc == null) {
+            return null;
+        }
+        WStatements fbody = nearestFunc.getBody();
+        if (!(e.getParent() instanceof StmtReturn)
+            || fbody.size() < 2
+            || fbody.size() > 4
+            || !fbody.get(fbody.size() - 2).structuralEquals(e.getParent())) {
+            return null;
+        }
+        WParameters params = nearestFunc.getParameters();
+        if (params.size() != 4
+            || !(params.get(0).getTyp() instanceof TypeExprSimple triggerType)
+            || !(params.get(1).getTyp() instanceof TypeExprSimple stringType)
+            || !(params.get(2).getTyp() instanceof TypeExprSimple limitopType)
+            || !(params.get(3).getTyp() instanceof TypeExprSimple realType)
+            || !triggerType.getTypeName().equals("trigger")
+            || !stringType.getTypeName().equals("string")
+            || !limitopType.getTypeName().equals("limitop")
+            || !realType.getTypeName().equals("real")) {
+            return null;
+        }
+        return nearestFunc.getName();
+    }
+
+    private void preserveVariableName(String variableName) {
+        runtimeNameIndex.preserve(variableName);
     }
 
     private boolean isViableSwitchtype(Expr expr) {

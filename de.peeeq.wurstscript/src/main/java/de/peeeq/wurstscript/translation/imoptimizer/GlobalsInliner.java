@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -47,8 +47,8 @@ public class GlobalsInliner implements OptimizerPass {
                 // cannot optimize arrays yet
                 continue;
             }
-            if (TRVEHelper.protectedVariables.contains(v.getName())) {
-                // keep TRVE vars
+            if (NamePreservation.isPreserved(v)) {
+                // keep names which are part of the external Warcraft III API
                 continue;
             }
 
