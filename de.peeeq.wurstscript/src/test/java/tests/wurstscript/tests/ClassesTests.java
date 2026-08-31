@@ -217,6 +217,47 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void doesNotWarnWhenModuleConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "module Values",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "    function get() returns int",
+                "        return value",
+                "class Counter",
+                "    use Values"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotTreatDeferredClosureInitializerAsImmediateFieldRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "interface Reader",
+                "    function read() returns int",
+                "class Counter",
+                "    int value",
+                "    Reader reader = () -> value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("read from a field initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
     public void classes1() throws IOException {
         testAssertOkFile(new File(TEST_DIR + "Classes_1.wurst"), true);
     }

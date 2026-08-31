@@ -1760,7 +1760,7 @@ public class WurstValidator {
      * cheap, local check: it does not attempt interprocedural or path-sensitive reasoning.
      */
     private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
-        ClassDef owner = function.attrNearestClassDef();
+        ClassOrModule owner = function.attrNearestClassOrModule();
         if (owner == null || function instanceof OnDestroyDef) {
             return;
         }
@@ -1926,12 +1926,12 @@ public class WurstValidator {
         if (cached != null) {
             return cached;
         }
-        ClassDef declaringClass = field.attrNearestClassDef();
-        if (declaringClass == null || declaringClass.getConstructors().isEmpty()) {
+        List<ConstructorDef> constructors = constructorsFor(field);
+        if (constructors.isEmpty()) {
             guaranteedClassFieldInitCache.put(field, false);
             return false;
         }
-        for (ConstructorDef constructor : declaringClass.getConstructors()) {
+        for (ConstructorDef constructor : constructors) {
             if (!constructorAssignsField(constructor, field, Collections.newSetFromMap(new IdentityHashMap<>()))) {
                 guaranteedClassFieldInitCache.put(field, false);
                 return false;
@@ -1965,12 +1965,36 @@ public class WurstValidator {
         if (thisCall == null) {
             return false;
         }
-        ClassOrModule owner = constructor.attrNearestClassOrModule();
-        if (owner == null) {
-            return false;
-        }
-        ConstructorDef target = OverloadingResolver.resolveThisCall(owner.getConstructors(), thisCall);
+        ConstructorDef target = OverloadingResolver.resolveThisCall(constructorsFor(constructor), thisCall);
         return target != null && target != constructor && constructorAssignsField(target, field, visiting);
+    }
+
+    private List<ConstructorDef> constructorsFor(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ConstructorDef> constructorsFor(ConstructorDef constructor) {
+        Element current = constructor;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
     }
 
     private void checkClassFieldInitializerReads(GlobalVarDef field) {
@@ -1991,6 +2015,11 @@ public class WurstValidator {
                     + "' is read from a field initializer without an explicit initializer;"
                     + " this access may observe its default value."
                     + " Initialize it explicitly before using it.");
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so its body is not field initialization.
             }
 
             @Override
