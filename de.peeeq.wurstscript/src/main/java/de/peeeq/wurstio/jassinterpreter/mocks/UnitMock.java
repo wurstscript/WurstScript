@@ -6,9 +6,12 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 public class UnitMock {
+    private static final Set<UnitMock> instances = Collections.newSetFromMap(new WeakHashMap<>());
     public IlConstHandle owner;
     public ILconstInt unitid;
     public ILconstReal x;
@@ -25,13 +28,18 @@ public class UnitMock {
     public boolean sleeping;
     public boolean sleepPermanent;
     public ILconstReal acquireRange = ILconstReal.create(0);
+    public ILconstReal defaultAcquireRange = ILconstReal.create(0);
     public ILconstReal waygateX = ILconstReal.create(0);
     public ILconstReal waygateY = ILconstReal.create(0);
     public boolean waygateActive;
     public ILconstReal moveSpeed = ILconstReal.create(0);
+    public ILconstReal defaultMoveSpeed = ILconstReal.create(0);
     public ILconstReal flyHeight = ILconstReal.create(0);
+    public ILconstReal defaultFlyHeight = ILconstReal.create(0);
     public ILconstReal turnSpeed = ILconstReal.create(0);
+    public ILconstReal defaultTurnSpeed = ILconstReal.create(0);
     public ILconstReal propWindow = ILconstReal.create(0);
+    public ILconstReal defaultPropWindow = ILconstReal.create(0);
     public ILconstInt level = ILconstInt.create(1);
     public ILconstInt heroXp = ILconstInt.create(0);
     public ILconstInt heroStr = ILconstInt.create(0);
@@ -47,6 +55,7 @@ public class UnitMock {
     public ILconstInt currentOrder = ILconstInt.create(0);
 
     public UnitMock(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
+        instances.add(this);
         this.owner = owner;
         this.unitid = unitid;
         this.x = x;
@@ -56,5 +65,9 @@ public class UnitMock {
         states.put("unitstate1", ILconstReal.create(100));
         states.put("unitstate2", ILconstReal.create(0));
         states.put("unitstate3", ILconstReal.create(0));
+    }
+
+    public static void clearSelection() {
+        for (UnitMock unit : instances) unit.selected = false;
     }
 }

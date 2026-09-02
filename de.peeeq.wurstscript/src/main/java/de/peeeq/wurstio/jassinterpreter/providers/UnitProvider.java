@@ -24,7 +24,8 @@ public class UnitProvider extends Provider {
     }
 
     public IlConstHandle CreateUnit(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
-        return new IlConstHandle(NameProvider.getRandomName("unit"), new UnitMock(owner, unitid, x, y, face));
+        UnitMock unitMock = new UnitMock(owner, unitid, x, y, face);
+        return new IlConstHandle(NameProvider.getRandomName("unit"), unitMock);
     }
 
     public IlConstHandle CreateUnitByName(IlConstHandle owner, ILconstString unitname, ILconstReal x, ILconstReal y, ILconstReal face) {
@@ -156,7 +157,10 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstReal.create(0) : unitMock.moveSpeed;
     }
 
-    public ILconstReal GetUnitDefaultMoveSpeed(IlConstHandle unit) { return GetUnitMoveSpeed(unit); }
+    public ILconstReal GetUnitDefaultMoveSpeed(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? ILconstReal.create(0) : unitMock.defaultMoveSpeed;
+    }
 
     public void SetUnitMoveSpeed(IlConstHandle unit, ILconstReal newSpeed) {
         UnitMock unitMock = unitOrNull(unit);
@@ -168,7 +172,10 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstReal.create(0) : unitMock.flyHeight;
     }
 
-    public ILconstReal GetUnitDefaultFlyHeight(IlConstHandle unit) { return GetUnitFlyHeight(unit); }
+    public ILconstReal GetUnitDefaultFlyHeight(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? ILconstReal.create(0) : unitMock.defaultFlyHeight;
+    }
 
     public void SetUnitFlyHeight(IlConstHandle unit, ILconstReal newHeight, ILconstReal rate) {
         UnitMock unitMock = unitOrNull(unit);
@@ -180,7 +187,10 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstReal.create(0) : unitMock.turnSpeed;
     }
 
-    public ILconstReal GetUnitDefaultTurnSpeed(IlConstHandle unit) { return GetUnitTurnSpeed(unit); }
+    public ILconstReal GetUnitDefaultTurnSpeed(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? ILconstReal.create(0) : unitMock.defaultTurnSpeed;
+    }
 
     public void SetUnitTurnSpeed(IlConstHandle unit, ILconstReal newTurnSpeed) {
         UnitMock unitMock = unitOrNull(unit);
@@ -192,7 +202,10 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstReal.create(0) : unitMock.propWindow;
     }
 
-    public ILconstReal GetUnitDefaultPropWindow(IlConstHandle unit) { return GetUnitPropWindow(unit); }
+    public ILconstReal GetUnitDefaultPropWindow(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? ILconstReal.create(0) : unitMock.defaultPropWindow;
+    }
 
     public void SetUnitPropWindow(IlConstHandle unit, ILconstReal newPropWindowAngle) {
         UnitMock unitMock = unitOrNull(unit);
@@ -204,7 +217,10 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstReal.create(0) : unitMock.acquireRange;
     }
 
-    public ILconstReal GetUnitDefaultAcquireRange(IlConstHandle unit) { return GetUnitAcquireRange(unit); }
+    public ILconstReal GetUnitDefaultAcquireRange(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? ILconstReal.create(0) : unitMock.defaultAcquireRange;
+    }
 
     public void SetUnitAcquireRange(IlConstHandle unit, ILconstReal newAcquireRange) {
         UnitMock unitMock = unitOrNull(unit);
@@ -491,8 +507,14 @@ public class UnitProvider extends Provider {
         return m == null ? ILconstBool.FALSE : ReviveHero(unit, m.x, m.y, doEyeCandy);
     }
 
-    public void SelectUnit(IlConstHandle unit, ILconstBool flag) { UnitMock m = unitOrNull(unit); if (m != null) m.selected = flag.getVal(); }
-    public void ClearSelection() { }
+    public void SelectUnit(IlConstHandle unit, ILconstBool flag) {
+        UnitMock m = unitOrNull(unit);
+        if (m == null) return;
+        m.selected = flag.getVal();
+    }
+    public void ClearSelection() {
+        UnitMock.clearSelection();
+    }
     public ILconstBool IsUnitSelected(IlConstHandle unit, IlConstHandle player) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.selected); }
     public void SetUnitColor(IlConstHandle unit, IlConstHandle color) { }
     public void SetUnitScale(IlConstHandle unit, ILconstReal x, ILconstReal y, ILconstReal z) { }
@@ -564,32 +586,39 @@ public class UnitProvider extends Provider {
 
     public ILconstBool UnitAddItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);
-        if (m == null || item == null || m.inventory.size() >= 6 || m.inventory.contains(item)) return ILconstBool.FALSE;
-        m.inventory.add(item);
+        if (m == null || item == null || inventoryFull(m) || m.inventory.contains(item)) return ILconstBool.FALSE;
+        m.inventory.set(firstFreeSlot(m), item);
         return ILconstBool.TRUE;
     }
 
-    public IlConstHandle UnitAddItemById(IlConstHandle unit, ILconstInt itemId) {
+    public ILconst UnitAddItemById(IlConstHandle unit, ILconstInt itemId) {
         UnitMock m = unitOrNull(unit);
-        if (m == null || m.inventory.size() >= 6) return null;
+        if (m == null || inventoryFull(m)) return ILconstNull.instance();
         IlConstHandle item = new IlConstHandle(NameProvider.getRandomName("item"), new ItemMock(itemId, m.x, m.y));
-        m.inventory.add(item);
+        m.inventory.set(firstFreeSlot(m), item);
         return item;
     }
 
     public ILconstBool UnitAddItemToSlotById(IlConstHandle unit, ILconstInt itemId, ILconstInt slot) {
         UnitMock m = unitOrNull(unit);
-        if (m == null || slot.getVal() < 0 || slot.getVal() >= 6 || m.inventory.size() >= 6) return ILconstBool.FALSE;
+        if (m == null || slot.getVal() < 0 || slot.getVal() >= 6 || inventoryFull(m)) return ILconstBool.FALSE;
         while (m.inventory.size() <= slot.getVal()) m.inventory.add(null);
         if (m.inventory.get(slot.getVal()) != null) return ILconstBool.FALSE;
         m.inventory.set(slot.getVal(), new IlConstHandle(NameProvider.getRandomName("item"), new ItemMock(itemId, m.x, m.y)));
         return ILconstBool.TRUE;
     }
 
-    public void UnitRemoveItem(IlConstHandle unit, IlConstHandle item) { UnitMock m = unitOrNull(unit); if (m != null) m.inventory.remove(item); }
-    public IlConstHandle UnitRemoveItemFromSlot(IlConstHandle unit, ILconstInt slot) {
+    public void UnitRemoveItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);
-        return m == null || slot.getVal() < 0 || slot.getVal() >= m.inventory.size() ? null : m.inventory.set(slot.getVal(), null);
+        if (m != null) {
+            int index = m.inventory.indexOf(item);
+            if (index >= 0) m.inventory.set(index, null);
+        }
+    }
+    public ILconst UnitRemoveItemFromSlot(IlConstHandle unit, ILconstInt slot) {
+        UnitMock m = unitOrNull(unit);
+        return m == null || slot.getVal() < 0 || slot.getVal() >= m.inventory.size() || m.inventory.get(slot.getVal()) == null
+                ? ILconstNull.instance() : m.inventory.set(slot.getVal(), null);
     }
     public ILconstBool UnitHasItem(IlConstHandle unit, IlConstHandle item) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.inventory.contains(item)); }
     public ILconst UnitItemInSlot(IlConstHandle unit, ILconstInt slot) {
@@ -624,6 +653,7 @@ public class UnitProvider extends Provider {
     public ILconstBool UnitDamageTarget(IlConstHandle unit, IlConstHandle target, ILconstReal amount, ILconstBool attack, ILconstBool ranged, IlConstHandle attackType, IlConstHandle damageType, IlConstHandle weaponType) {
         UnitMock m = unitOrNull(target);
         if (unitOrNull(unit) == null || m == null) return ILconstBool.FALSE;
+        if (m.invulnerable) return ILconstBool.TRUE;
         m.states.put("unitstate0", ILconstReal.create(Math.max(0, m.states.get("unitstate0").getVal() - amount.getVal())));
         return ILconstBool.TRUE;
     }
@@ -668,9 +698,20 @@ public class UnitProvider extends Provider {
     }
 
     private ILconstBool validUnit(IlConstHandle unit) { return ILconstBool.instance(unitOrNull(unit) != null); }
+    private boolean inventoryFull(UnitMock unit) { return firstFreeSlot(unit) >= 6; }
+    private int firstFreeSlot(UnitMock unit) {
+        for (int i = 0; i < 6; i++) {
+            if (i >= unit.inventory.size() || unit.inventory.get(i) == null) return i;
+        }
+        return 6;
+    }
     private ILconstBool dropItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);
-        return ILconstBool.instance(m != null && m.inventory.remove(item));
+        if (m == null) return ILconstBool.FALSE;
+        int index = m.inventory.indexOf(item);
+        if (index < 0) return ILconstBool.FALSE;
+        m.inventory.set(index, null);
+        return ILconstBool.TRUE;
     }
 
     private UnitMock unitOrNull(IlConstHandle unit) {
