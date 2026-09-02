@@ -20,7 +20,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertRace(ILconstInt i) {
-        return new IlConstHandle("race" + i, new LinkedHashSet<>());
+        return enumHandle("race", i.getVal());
     }
 
     public IlConstHandle ConvertAllianceType(ILconstInt i) {

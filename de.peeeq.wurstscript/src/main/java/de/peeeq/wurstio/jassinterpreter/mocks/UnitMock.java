@@ -51,7 +51,7 @@ public class UnitMock {
     public final Set<Integer> permanentAbilities = new HashSet<>();
     public final Set<String> unitTypes = new HashSet<>();
     public final java.util.ArrayList<IlConstHandle> inventory = new java.util.ArrayList<>();
-    public final IlConstHandle race = new IlConstHandle("race0", new Object());
+    public IlConstHandle race;
     public ILconstInt currentOrder = ILconstInt.create(0);
 
     public UnitMock(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {

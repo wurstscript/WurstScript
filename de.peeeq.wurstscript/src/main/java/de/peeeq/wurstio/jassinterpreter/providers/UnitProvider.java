@@ -104,6 +104,7 @@ public class UnitProvider extends Provider {
 
     public IlConstHandle CreateUnit(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
         UnitMock unitMock = new UnitMock(owner, unitid, x, y, face);
+        unitMock.race = ConversionProvider.enumHandle("race", unitRace(unitid));
         units.add(unitMock);
         return new IlConstHandle(NameProvider.getRandomName("unit"), unitMock);
     }
@@ -360,7 +361,8 @@ public class UnitProvider extends Provider {
     public ILconstBool IsUnitMasked(IlConstHandle unit, IlConstHandle player) { return ILconstBool.FALSE; }
     public ILconstBool IsUnitRace(IlConstHandle unit, IlConstHandle race) {
         UnitMock unitMock = unitOrNull(unit);
-        return ILconstBool.instance(unitMock != null && unitMock.race == race);
+        return ILconstBool.instance(unitMock != null && race != null
+                && (unitMock.race == race || unitMock.race.getObj().equals(race.getObj())));
     }
 
     public ILconstBool IsUnitInRange(IlConstHandle unit, IlConstHandle otherUnit, ILconstReal distance) {
@@ -652,9 +654,9 @@ public class UnitProvider extends Provider {
     public ILconstBool IssueBuildOrder(IlConstHandle unit, ILconstString unitToBuild, ILconstReal x, ILconstReal y) { return validUnit(unit); }
     public ILconstBool IssueBuildOrderById(IlConstHandle unit, ILconstInt unitId, ILconstReal x, ILconstReal y) { return validUnit(unit); }
     public ILconstBool IssuePointOrderByIdLoc(IlConstHandle unit, ILconstInt orderId, IlConstHandle location) { return issueOrder(unit, orderId); }
-    public ILconstBool IssueInstantPointOrder(IlConstHandle unit, ILconstString order, ILconstReal x, ILconstReal y, IlConstHandle target) { return validUnit(unit); }
+    public ILconstBool IssueInstantPointOrder(IlConstHandle unit, ILconstString order, ILconstReal x, ILconstReal y, IlConstHandle target) { return issueOrder(unit, orderId(order)); }
     public ILconstBool IssueInstantPointOrderById(IlConstHandle unit, ILconstInt orderId, ILconstReal x, ILconstReal y, IlConstHandle target) { return issueOrder(unit, orderId); }
-    public ILconstBool IssueInstantTargetOrder(IlConstHandle unit, ILconstString order, IlConstHandle target, IlConstHandle instantTarget) { return validUnit(unit); }
+    public ILconstBool IssueInstantTargetOrder(IlConstHandle unit, ILconstString order, IlConstHandle target, IlConstHandle instantTarget) { return issueOrder(unit, orderId(order)); }
     public ILconstBool IssueInstantTargetOrderById(IlConstHandle unit, ILconstInt orderId, IlConstHandle target, IlConstHandle instantTarget) { return issueOrder(unit, orderId); }
     public ILconstBool IssueNeutralImmediateOrder(IlConstHandle player, IlConstHandle structure, ILconstString unitToBuild) { return validUnit(structure); }
     public ILconstBool IssueNeutralImmediateOrderById(IlConstHandle player, IlConstHandle structure, ILconstInt unitId) { return validUnit(structure); }
@@ -825,6 +827,16 @@ public class UnitProvider extends Provider {
     }
     private int playerId(IlConstHandle player) {
         return player != null && player.getObj() instanceof PlayerMock ? ((PlayerMock) player.getObj()).id.getVal() : -1;
+    }
+    private int unitRace(ILconstInt unitid) {
+        String rawcode = ObjectHelper.objectIdIntToString(unitid.getVal()).toLowerCase(Locale.ROOT);
+        return switch (rawcode.charAt(0)) {
+            case 'h' -> 1;
+            case 'o' -> 2;
+            case 'u' -> 3;
+            case 'e' -> 4;
+            default -> 7;
+        };
     }
     private boolean itemHeldByOtherUnit(UnitMock destination, IlConstHandle item) {
         synchronized (units) {
