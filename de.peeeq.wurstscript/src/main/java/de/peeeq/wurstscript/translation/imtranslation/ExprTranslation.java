@@ -104,8 +104,10 @@ public class ExprTranslation {
     }
 
     static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {
-        // use ensureType functions for lua
-        // these functions convert nil to the default value for primitive types (int, string, bool, real)
+        // Erased generic values are the one kind of Wurst value which can lose
+        // its primitive default when represented in Lua.  Keep the
+        // normalization available to callers which explicitly cross an
+        // external boundary; ordinary Wurst expressions must not pay for it.
         if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
 
@@ -125,6 +127,13 @@ public class ExprTranslation {
                     break;
             }
             if(ensureType != null) {
+                // Lua already has the exact cheap operation needed for the
+                // boolean case.  Besides being faster than a helper call,
+                // this also turns every non-nil value into a real boolean.
+                if (ensureType == t.ensureBoolFunc) {
+                    return ImOperatorCall(WurstOperator.NOTEQ, ImExprs(
+                        translated, ImNull(ImAnyType())));
+                }
                 return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
         }
@@ -168,7 +177,10 @@ public class ExprTranslation {
 //            System.out.println("  --> toIndex");
             return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        return wrapLua(trace, t, translated, actualType);
+        // Do not normalize every generic expression.  The Lua backend only
+        // needs this at an external/native boundary (or before the legacy
+        // index conversion handled above).
+        return translated;
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
@@ -659,8 +671,14 @@ public class ExprTranslation {
                 + " -> dynamicDispatch=" + dynamicDispatch);
         }
 
+        ImFunction directFunc = null;
+        if (!dynamicDispatch && !(calledFunc instanceof TupleDef)) {
+            directFunc = t.getFuncFor(calledFunc);
+        }
+
         ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
-        ImExprs imArgs = translateExprs(arguments, t, f);
+        boolean normalizeAtBoundary = directFunc != null && isLuaExternalBoundary(directFunc);
+        ImExprs imArgs = translateExprs(arguments, t, f, normalizeAtBoundary);
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
@@ -686,7 +704,7 @@ public class ExprTranslation {
                 t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
-            ImFunction calledImFunc = t.getFuncFor(calledFunc);
+            ImFunction calledImFunc = directFunc;
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
@@ -784,11 +802,58 @@ public class ExprTranslation {
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f) {
+        return translateExprs(arguments, t, f, false);
+    }
+
+    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
+                                          boolean externalBoundary) {
         ImExprs result = ImExprs();
         for (Expr e : arguments) {
-            result.add(e.imTranslateExpr(t, f));
+            ImExpr translated = e.imTranslateExpr(t, f);
+            if (externalBoundary) {
+                translated = wrapLuaAtExternalBoundary(e, t, translated);
+            }
+            result.add(translated);
         }
         return result;
+    }
+
+    private static boolean isLuaExternalBoundary(ImFunction function) {
+        return function.isNative() || function.isBj() || function.isExtern();
+    }
+
+    private static ImExpr wrapLuaAtExternalBoundary(Expr source, ImTranslator t, ImExpr translated) {
+        WurstType actualType = source.attrTypRaw();
+        // Ordinary Wurst locals and literals already have their normal Lua
+        // representation. Only values which can lose their primitive default
+        // in Lua need normalization: erased generic values and raw array
+        // reads crossing into untyped code.
+        if (!(actualType instanceof WurstTypeBoundTypeParam)
+            && !(translated instanceof ImVarArrayAccess)) {
+            return translated;
+        }
+        if (actualType instanceof WurstTypeBoundTypeParam) {
+            return wrapLua(source, t, translated, actualType);
+        }
+        WurstType normalized = actualType.normalize();
+        ImFunction ensureType = null;
+        if (normalized instanceof WurstTypeInt) {
+            ensureType = t.ensureIntFunc;
+        } else if (normalized instanceof WurstTypeBool) {
+            ensureType = t.ensureBoolFunc;
+        } else if (normalized instanceof WurstTypeReal) {
+            ensureType = t.ensureRealFunc;
+        } else if (normalized instanceof WurstTypeString) {
+            ensureType = t.ensureStrFunc;
+        }
+        if (ensureType == null) {
+            return translated;
+        }
+        if (ensureType == t.ensureBoolFunc) {
+            return ImOperatorCall(WurstOperator.NOTEQ, ImExprs(
+                translated, ImNull(ImAnyType())));
+        }
+        return ImFunctionCall(source, ensureType, ImTypeArguments(), ImExprs(translated), false, CallType.NORMAL);
     }
 
     public static ImExpr translateIntern(ExprIncomplete e, ImTranslator t, ImFunction f) {

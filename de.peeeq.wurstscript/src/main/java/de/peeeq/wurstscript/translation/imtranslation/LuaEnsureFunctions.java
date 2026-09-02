@@ -71,21 +71,16 @@ final class LuaEnsureFunctions {
         return f;
     }
 
-    /** local result = false; if x ~= nil then result = x end; return result */
+    /** return x ~= nil; this is emitted as a cheap boolean expression in Lua. */
     static ImFunction buildEnsureBool(List<ImFunction> out) {
         ImType boolType = TypesHelper.imBool();
         ImVar x = JassIm.ImVar(TRACE, boolType.copy(), "x", false);
-        ImVar result = JassIm.ImVar(TRACE, boolType.copy(), "result", false);
 
         ImStmts body = JassIm.ImStmts(
-            JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImBoolVal(false)),
-            JassIm.ImIf(TRACE, notNull(x),
-                JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(x))),
-                JassIm.ImStmts()),
-            JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
+            JassIm.ImReturn(TRACE, notNull(x))
         );
         ImFunction f = JassIm.ImFunction(TRACE, "__wurst_ensureBool", JassIm.ImTypeVars(), JassIm.ImVars(x), boolType.copy(),
-            JassIm.ImVars(result), body, Collections.emptyList());
+            JassIm.ImVars(), body, Collections.emptyList());
         out.add(f);
         return f;
     }

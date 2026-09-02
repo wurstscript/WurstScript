@@ -2143,7 +2143,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * ImStringVal(""). If their own "x ~= nil" checks were tagged with the
      * string type, that rewrite would silently turn them into "x ~= \"\"",
      * so a genuinely nil Lua value (e.g. an unset bound-generic string
-     * field) would read as "not nil", skip normalization, and come out as
+     * array slot) would read as "not nil", skip normalization, and come out as
      * the literal string "nil" via tostring() instead of "" - or, for
      * stringConcat, get passed straight into raw ".." concatenation.
      * LuaEnsureFunctions#notNull tags its ImNull sentinel with ImAnyType
@@ -2154,16 +2154,121 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
+            "native print(string value)",
             "string array names",
             "function join(string a, string b) returns string",
             "    return a + b",
             "init",
             "    if names[5] == \"\" and join(\"a\", \"b\") == \"ab\"",
+            "        print(names[5])",
             "        testSuccess()"
         );
         String compiled = compiledLua("ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_ensureStr(");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_stringConcat(");
+    }
+
+    @Test
+    public void genericNormalizationIsKeptAtNativeBoundaryOnly() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaBackendAuditTests_genericNormalizationIsKeptAtNativeBoundaryOnly",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "native print(string value)",
+            "native consumeBool(bool value)",
+            "string array values",
+            "function identity<T:>(T value) returns T",
+            "    return value",
+            "function forward<T:>(T value) returns T",
+            "    return identity<T>(value)",
+            "init",
+            "    print(forward<string>(\"value\"))",
+            "    consumeBool(forward<bool>(false))",
+            "    print(values[1])"
+        );
+
+        assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
+        assertTrue("boolean normalization should be a direct nil comparison:\n" + compiled,
+            compiled.contains("consumeBool(not((forward(false) == nil)))"));
+        assertFalse("boolean normalization must not call the ensure helper",
+            compiled.contains("__wurst_ensureBool(forward(false))"));
+        assertTrue("primitive array reads crossing a native boundary must be normalized:\n" + compiled,
+            compiled.contains("__wurst_ensureStr(Test_values[1])"));
+    }
+
+    /**
+     * Seeded boundary corpus for the type-assurance change. Each case varies
+     * the primitive type, literal value, and array slot while checking the two
+     * unsafe paths independently: erased generic propagation and a raw array
+     * read. The intermediate generic functions and an internal array reader
+     * must stay free of assurance calls, while the native call sites must have
+     * the appropriate normalization. This is intentionally compile-only: the
+     * generated native sinks have no Warcraft runtime implementation.
+     */
+    @Test
+    public void seededTypeAssuranceBoundaryFuzz() {
+        Random random = new Random(0x7A55_BA5EL);
+        String[] types = {"int", "bool", "real", "string"};
+        String[] suffixes = {"Int", "Bool", "Real", "Str"};
+        for (int caseIndex = 0; caseIndex < 32; caseIndex++) {
+            int typeIndex = (caseIndex + random.nextInt(types.length)) % types.length;
+            String type = types[typeIndex];
+            String suffix = suffixes[typeIndex];
+            int arrayIndex = random.nextInt(16) + 1;
+            String literal = switch (type) {
+                case "int" -> Integer.toString(random.nextInt(51));
+                case "bool" -> random.nextBoolean() ? "true" : "false";
+                case "real" -> random.nextInt(51) + ".5";
+                case "string" -> "\"fuzz_" + caseIndex + "\"";
+                default -> throw new AssertionError(type);
+            };
+            String sink = "consume" + suffix;
+            String testName = "LuaBackendAuditTests_seededTypeAssuranceBoundaryFuzz_" + caseIndex;
+            String compiled = compileLuaWithRunArgs(
+                testName,
+                new RunArgs().with("-lua"),
+                "package TypeAssuranceFuzz",
+                "native " + sink + "(" + type + " value)",
+                type + " array values",
+                "function identity<T:>(T value) returns T",
+                "    return value",
+                "function forward<T:>(T value) returns T",
+                "    return identity<T>(value)",
+                "function read() returns " + type,
+                "    return values[" + arrayIndex + "]",
+                "init",
+                "    " + sink + "(forward<" + type + ">(" + literal + "))",
+                "    " + sink + "(values[" + arrayIndex + "])",
+                "    " + sink + "(read())",
+                "    " + sink + "(" + literal + ")"
+            );
+
+            assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
+            assertFunctionBodyContains(compiled, "read", "__wurst_ensure", false);
+            String genericArgument = type.equals("bool")
+                ? "not((forward(" + literal + ") == nil))"
+                : "__wurst_ensure" + suffix + "(forward(" + literal + "))";
+            assertTrue("generic boundary case " + caseIndex + " was not normalized:\n" + compiled,
+                compiled.contains(sink + "(" + genericArgument + ")"));
+            String arrayArgument = type.equals("bool")
+                ? "not((TypeAssuranceFuzz_values[" + arrayIndex + "] == nil))"
+                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
+            assertTrue("array boundary case " + caseIndex + " was not normalized:\n" + compiled,
+                compiled.contains(sink + "(" + arrayArgument + ")"));
+            assertTrue("ordinary typed values must not be normalized at the boundary:\n" + compiled,
+                compiled.contains(sink + "(" + literal + ")"));
+        }
+    }
+
+    private static void assertFunctionBodyContains(String compiled, String functionName,
+                                                    String text, boolean expected) {
+        int start = compiled.indexOf("function " + functionName + "(");
+        assertTrue("expected function " + functionName, start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("unterminated function " + functionName, end >= 0);
+        boolean found = compiled.substring(start, end).contains(text);
+        assertEquals("unexpected occurrence of " + text + " in " + functionName,
+            expected, found);
     }
 
     private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {
@@ -2368,18 +2473,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "native print(string message)",
             "native I2S(int value) returns string",
             "native R2S(real value) returns string",
+            "native consumeInt(int value)",
+            "native consumeBool(bool value)",
+            "native consumeReal(real value)",
+            "native consumeString(string value)",
             "int array ints",
             "bool array bools",
             "real array reals",
             "string array strings",
-            "function readInt(int index) returns int",
-            "    return ints[index]",
-            "function readBool(int index) returns bool",
-            "    return bools[index]",
-            "function readReal(int index) returns real",
-            "    return reals[index]",
-            "function readString(int index) returns string",
-            "    return strings[index]",
             "function intDiv(int a, int b) returns int",
             "    return a div b",
             "function intMod(int a, int b) returns int",
@@ -2387,14 +2488,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "function realMod(real a, real b) returns real",
             "    return a % b",
             "init",
-            "    ints[1] = 7",
-            "    bools[1] = true",
-            "    reals[1] = 7.5",
-            "    strings[1] = \"value=\"",
-            "    if readBool(1)",
-            "        print(readString(1) + I2S(intDiv(readInt(1), 2)))",
-            "        print(I2S(intMod(readInt(1), 2)))",
-            "        print(R2S(realMod(readReal(1), 2.)))"
+            "    consumeInt(ints[1])",
+            "    consumeBool(bools[1])",
+            "    consumeReal(reals[1])",
+            "    consumeString(strings[1])",
+            "    print(\"value=\" + I2S(intDiv(7, 2)))",
+            "    print(I2S(intMod(7, 2)))",
+            "    print(R2S(realMod(7.5, 2.)))"
         );
 
         String[] helperNames = {

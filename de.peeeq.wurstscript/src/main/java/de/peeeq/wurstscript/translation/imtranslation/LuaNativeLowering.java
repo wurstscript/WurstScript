@@ -127,7 +127,7 @@ public final class LuaNativeLowering {
 
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog);
-        lowerPrimitiveArrayEnsure(prog, translator);
+        lowerPrimitiveArrayBoundaryEnsure(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -334,40 +334,6 @@ public final class LuaNativeLowering {
             && "I2S".equals(parentCall.getFunc().getName());
     }
 
-    /**
-     * Rewrites reads (never writes - see {@link LValues#isUsedAsLValue}) of
-     * primitive-typed ({@code int}/{@code bool}/{@code real}/{@code string})
-     * array slots into calls against the portable {@code ensureXxx} IM
-     * functions ({@link ImTranslator#ensureIntFunc} and friends), instead of
-     * that normalization being applied later as opaque, always-emitted Lua
-     * source at Lua-emission time. Same treatment as {@link #lowerDivMod}:
-     * this makes a hot read optimizable (inlinable, foldable) instead of a
-     * fixed per-read function-call cost, and lets the helper disappear
-     * entirely from programs whose arrays are never read this way.
-     *
-     * <p>The shared per-type array-default metatable (see {@code
-     * LuaTranslator#newDefaultArray}) already guarantees a typed, non-nil
-     * default on every miss, so this remains defensive hardening against
-     * values written from outside typed Wurst code, not a correctness
-     * requirement for pure Wurst-authored programs.
-     */
-    private static void lowerPrimitiveArrayEnsure(ImProg prog, ImTranslator translator) {
-        prog.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImVarArrayAccess access) {
-                super.visit(access);
-                if (LValues.isUsedAsLValue(access)) {
-                    return;
-                }
-                ImFunction ensureFunc = ensureFunctionFor(access.attrTyp(), translator);
-                if (ensureFunc == null) {
-                    return;
-                }
-                access.replaceBy(callWithStacktrace(access.attrTrace(), ensureFunc, JassIm.ImExprs(access.copy())));
-            }
-        });
-    }
-
     private static ImFunctionCall callWithStacktrace(de.peeeq.wurstscript.ast.Element trace, ImFunction f, ImExprs args) {
         int stacktraceIndex = stacktraceParamIndex(f);
         if (stacktraceIndex >= 0) {
@@ -384,6 +350,58 @@ public final class LuaNativeLowering {
             }
         }
         return -1;
+    }
+
+    /**
+     * Normalizes primitive array reads only when they enter code outside the
+     * typed Wurst world.  Lua's array metatables already provide Wurst
+     * defaults for ordinary reads, so doing this at every read is redundant;
+     * a native/BJ/extern call is the point where an untyped value must be
+     * made safe for the callee.
+     */
+    private static void lowerPrimitiveArrayBoundaryEnsure(ImProg prog, ImTranslator translator) {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                ImFunction function = call.getFunc();
+                if (!isExternalBoundary(function)) {
+                    return;
+                }
+                for (ImExpr argument : new ArrayList<>(call.getArguments())) {
+                    if (!(argument instanceof ImVarArrayAccess)
+                        || isAlreadyNormalized(argument, translator)) {
+                        continue;
+                    }
+                    ImFunction ensure = ensureFunctionFor(argument.attrTyp(), translator);
+                    if (ensure == null) {
+                        continue;
+                    }
+                    ImExpr normalized;
+                    if (ensure == translator.ensureBoolFunc) {
+                        normalized = JassIm.ImOperatorCall(WurstOperator.NOTEQ,
+                            JassIm.ImExprs(argument.copy(), JassIm.ImNull(JassIm.ImAnyType())));
+                    } else {
+                        normalized = JassIm.ImFunctionCall(call.attrTrace(), ensure,
+                            JassIm.ImTypeArguments(), JassIm.ImExprs(argument.copy()), false, CallType.NORMAL);
+                    }
+                    argument.replaceBy(normalized);
+                }
+            }
+        });
+    }
+
+    private static boolean isExternalBoundary(ImFunction function) {
+        return !function.getName().startsWith("__wurst_")
+            && (function.isNative() || function.isBj() || function.isExtern());
+    }
+
+    private static boolean isAlreadyNormalized(ImExpr argument, ImTranslator translator) {
+        return argument instanceof ImFunctionCall
+            && (((ImFunctionCall) argument).getFunc() == translator.ensureIntFunc
+                || ((ImFunctionCall) argument).getFunc() == translator.ensureBoolFunc
+                || ((ImFunctionCall) argument).getFunc() == translator.ensureRealFunc
+                || ((ImFunctionCall) argument).getFunc() == translator.ensureStrFunc);
     }
 
     private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {
