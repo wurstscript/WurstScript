@@ -202,6 +202,8 @@ public class ClosureTranslator {
 
 
         ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
+        translated = ExprTranslation.wrapTranslation(e.getImplementation(), tr, translated,
+            e.getImplementation().attrTypRaw(), superMethod.attrReturnType());
 
 
         if (e.getImplementation().attrTyp().isVoid()) {
