@@ -128,11 +128,11 @@ public class ExprTranslation {
             }
             if(ensureType != null) {
                 // Lua already has the exact cheap operation needed for the
-                // boolean case.  Besides being faster than a helper call,
-                // this also turns every non-nil value into a real boolean.
+                // boolean case.  Equality with true preserves false while
+                // mapping nil (and other non-true values) to false.
                 if (ensureType == t.ensureBoolFunc) {
-                    return ImOperatorCall(WurstOperator.NOTEQ, ImExprs(
-                        translated, ImNull(ImAnyType())));
+                    return ImOperatorCall(WurstOperator.EQ, ImExprs(
+                        translated, ImBoolVal(true)));
                 }
                 return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
@@ -177,9 +177,16 @@ public class ExprTranslation {
 //            System.out.println("  --> toIndex");
             return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        // Do not normalize every generic expression.  The Lua backend only
-        // needs this at an external/native boundary (or before the legacy
-        // index conversion handled above).
+        // Preserve Wurst's primitive defaults when an erased generic value is
+        // consumed by a concrete primitive expression. Generic-to-generic
+        // propagation remains raw and is normalized only at its eventual
+        // concrete/native boundary.
+        if (actualType instanceof WurstTypeBoundTypeParam
+            && !(expectedTypRaw instanceof WurstTypeBoundTypeParam)
+            && !(expectedTypRaw instanceof WurstTypeTypeParam)
+            && isPrimitiveType(expectedTypRaw)) {
+            return wrapLua(trace, t, translated, actualType);
+        }
         return translated;
     }
 
@@ -826,14 +833,11 @@ public class ExprTranslation {
         WurstType actualType = source.attrTypRaw();
         // Ordinary Wurst locals and literals already have their normal Lua
         // representation. Only values which can lose their primitive default
-        // in Lua need normalization: erased generic values and raw array
-        // reads crossing into untyped code.
-        if (!(actualType instanceof WurstTypeBoundTypeParam)
-            && !(translated instanceof ImVarArrayAccess)) {
+        // in Lua need normalization: raw array reads crossing into untyped
+        // code. Erased generic values are normalized by wrapTranslation when
+        // a concrete primitive context consumes them.
+        if (!(translated instanceof ImVarArrayAccess)) {
             return translated;
-        }
-        if (actualType instanceof WurstTypeBoundTypeParam) {
-            return wrapLua(source, t, translated, actualType);
         }
         WurstType normalized = actualType.normalize();
         ImFunction ensureType = null;
@@ -850,10 +854,18 @@ public class ExprTranslation {
             return translated;
         }
         if (ensureType == t.ensureBoolFunc) {
-            return ImOperatorCall(WurstOperator.NOTEQ, ImExprs(
-                translated, ImNull(ImAnyType())));
+            return ImOperatorCall(WurstOperator.EQ, ImExprs(
+                translated, ImBoolVal(true)));
         }
         return ImFunctionCall(source, ensureType, ImTypeArguments(), ImExprs(translated), false, CallType.NORMAL);
+    }
+
+    private static boolean isPrimitiveType(WurstType type) {
+        WurstType normalized = type.normalize();
+        return normalized instanceof WurstTypeInt
+            || normalized instanceof WurstTypeBool
+            || normalized instanceof WurstTypeReal
+            || normalized instanceof WurstTypeString;
     }
 
     public static ImExpr translateIntern(ExprIncomplete e, ImTranslator t, ImFunction f) {

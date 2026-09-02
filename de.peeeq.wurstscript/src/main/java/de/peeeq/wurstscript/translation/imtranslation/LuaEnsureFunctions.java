@@ -71,13 +71,13 @@ final class LuaEnsureFunctions {
         return f;
     }
 
-    /** return x ~= nil; this is emitted as a cheap boolean expression in Lua. */
+    /** return x == true; this preserves false and maps nil to false. */
     static ImFunction buildEnsureBool(List<ImFunction> out) {
         ImType boolType = TypesHelper.imBool();
         ImVar x = JassIm.ImVar(TRACE, boolType.copy(), "x", false);
 
         ImStmts body = JassIm.ImStmts(
-            JassIm.ImReturn(TRACE, notNull(x))
+            JassIm.ImReturn(TRACE, isTrue(x))
         );
         ImFunction f = JassIm.ImFunction(TRACE, "__wurst_ensureBool", JassIm.ImTypeVars(), JassIm.ImVars(x), boolType.copy(),
             JassIm.ImVars(), body, Collections.emptyList());
@@ -189,6 +189,11 @@ final class LuaEnsureFunctions {
      */
     private static ImExpr notNull(ImVar v) {
         return JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImNull(JassIm.ImAnyType())));
+    }
+
+    private static ImExpr isTrue(ImVar v) {
+        return JassIm.ImOperatorCall(WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImBoolVal(true)));
     }
 
     private static ImFunctionCall call(ImFunction f, ImExpr... args) {

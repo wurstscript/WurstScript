@@ -2188,12 +2188,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
-        assertTrue("boolean normalization should be a direct nil comparison:\n" + compiled,
-            compiled.contains("consumeBool(not((forward(false) == nil)))"));
+        assertTrue("boolean normalization should be a direct true comparison:\n" + compiled,
+            compiled.contains("consumeBool((forward(false) == true))"));
         assertFalse("boolean normalization must not call the ensure helper",
             compiled.contains("__wurst_ensureBool(forward(false))"));
         assertTrue("primitive array reads crossing a native boundary must be normalized:\n" + compiled,
             compiled.contains("__wurst_ensureStr(Test_values[1])"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    if box.get() + 1 == 1",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse");
+        assertTrue("concrete generic use must normalize an erased integer",
+            compiled.contains("__wurst_ensureInt"));
     }
 
     /**
@@ -2246,12 +2265,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
             assertFunctionBodyContains(compiled, "read", "__wurst_ensure", false);
             String genericArgument = type.equals("bool")
-                ? "not((forward(" + literal + ") == nil))"
+                ? "(forward(" + literal + ") == true)"
                 : "__wurst_ensure" + suffix + "(forward(" + literal + "))";
             assertTrue("generic boundary case " + caseIndex + " was not normalized:\n" + compiled,
                 compiled.contains(sink + "(" + genericArgument + ")"));
             String arrayArgument = type.equals("bool")
-                ? "not((TypeAssuranceFuzz_values[" + arrayIndex + "] == nil))"
+                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
                 : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
             assertTrue("array boundary case " + caseIndex + " was not normalized:\n" + compiled,
                 compiled.contains(sink + "(" + arrayArgument + ")"));
