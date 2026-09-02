@@ -96,7 +96,7 @@ public class ConversionProvider extends Provider {
     }
 
     public IlConstHandle ConvertUnitType(ILconstInt i) {
-        return new IlConstHandle("unittype" + i, new LinkedHashSet<>());
+        return enumHandle("unittype", i.getVal());
     }
 
     public IlConstHandle ConvertGameSpeed(ILconstInt i) {

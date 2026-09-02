@@ -395,7 +395,7 @@ public class UnitProvider extends Provider {
         return ILconstBool.instance(!rawcode.isEmpty() && Character.isUpperCase(rawcode.charAt(0)));
     }
     public ILconstBool IsUnitIdType(ILconstInt unitId, IlConstHandle unitType) {
-        return IsHeroUnitId(unitId);
+        return ILconstBool.TRUE;
     }
 
     public ILconstBool UnitAddType(IlConstHandle unit, IlConstHandle unitType) {
@@ -537,6 +537,8 @@ public class UnitProvider extends Provider {
     }
 
     public ILconstInt IncUnitAbilityLevel(IlConstHandle unit, ILconstInt abilityId) {
+        UnitMock unitMock = unitOrNull(unit);
+        if (unitMock == null || !unitMock.abilityLevels.containsKey(abilityId.getVal())) return ILconstInt.create(0);
         return SetUnitAbilityLevel(unit, abilityId, ILconstInt.create(GetUnitAbilityLevel(unit, abilityId).getVal() + 1));
     }
 
@@ -563,7 +565,12 @@ public class UnitProvider extends Provider {
 
     public void SetHeroXP(IlConstHandle unit, ILconstInt xp, ILconstBool showEyeCandy) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) unitMock.heroXp = xp;
+        if (unitMock != null) {
+            int oldLevel = unitMock.level.getVal();
+            unitMock.heroXp = xp;
+            unitMock.level = ILconstInt.create(Math.max(1, xp.getVal() / 1000 + 1));
+            unitMock.skillPoints = ILconstInt.create(unitMock.skillPoints.getVal() + Math.max(0, unitMock.level.getVal() - oldLevel));
+        }
     }
 
     public void AddHeroXP(IlConstHandle unit, ILconstInt xp, ILconstBool showEyeCandy) {
