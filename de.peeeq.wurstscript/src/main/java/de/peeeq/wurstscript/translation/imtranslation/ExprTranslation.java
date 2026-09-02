@@ -945,8 +945,11 @@ public class ExprTranslation {
 
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
-            ImExpr expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
-            return JassIm.ImStatementExpr(statements, expr);
+            Expr returnedExpr = (Expr) r.getReturnedObj();
+            ImExpr expr = returnedExpr.imTranslateExpr(translator, f);
+            expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), e.attrExpectedTypRaw());
+            return wrapTranslation(e, translator, JassIm.ImStatementExpr(statements, expr),
+                e.attrTypRaw(), e.attrExpectedTypRaw());
         } else {
             return ImHelper.statementExprVoid(statements);
         }

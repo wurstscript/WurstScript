@@ -2248,6 +2248,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("return __wurst_ensureInt(Box_Box_get("));
     }
 
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedInTypedStatementBlocks() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    int value = begin",
+            "        return box.get()",
+            "    end",
+            "    if value + 1 == 1",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedInTypedStatementBlocks");
+        assertTrue("typed statement blocks must normalize erased primitive results",
+            compiled.contains("value = __wurst_ensureInt(Box_Box_get(box))"));
+    }
+
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
