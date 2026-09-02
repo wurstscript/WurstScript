@@ -14,17 +14,29 @@ import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 public class UnitProvider extends Provider {
+    private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
     private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
+    private final Set<UnitMock> units;
 
     public UnitProvider(AbstractInterpreter interpreter) {
         super(interpreter);
+        synchronized (unitsByInterpreter) {
+            units = unitsByInterpreter.computeIfAbsent(interpreter, ignored ->
+                    Collections.synchronizedSet(new LinkedHashSet<>()));
+        }
     }
 
     public IlConstHandle CreateUnit(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
         UnitMock unitMock = new UnitMock(owner, unitid, x, y, face);
+        units.add(unitMock);
         return new IlConstHandle(NameProvider.getRandomName("unit"), unitMock);
     }
 
@@ -513,7 +525,9 @@ public class UnitProvider extends Provider {
         m.selected = flag.getVal();
     }
     public void ClearSelection() {
-        UnitMock.clearSelection();
+        synchronized (units) {
+            for (UnitMock unit : units) unit.selected = false;
+        }
     }
     public ILconstBool IsUnitSelected(IlConstHandle unit, IlConstHandle player) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.selected); }
     public void SetUnitColor(IlConstHandle unit, IlConstHandle color) { }
@@ -587,7 +601,7 @@ public class UnitProvider extends Provider {
     public ILconstBool UnitAddItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);
         if (m == null || item == null || inventoryFull(m) || m.inventory.contains(item)) return ILconstBool.FALSE;
-        m.inventory.set(firstFreeSlot(m), item);
+        putInFirstFreeSlot(m, item);
         return ILconstBool.TRUE;
     }
 
@@ -595,7 +609,7 @@ public class UnitProvider extends Provider {
         UnitMock m = unitOrNull(unit);
         if (m == null || inventoryFull(m)) return ILconstNull.instance();
         IlConstHandle item = new IlConstHandle(NameProvider.getRandomName("item"), new ItemMock(itemId, m.x, m.y));
-        m.inventory.set(firstFreeSlot(m), item);
+        putInFirstFreeSlot(m, item);
         return item;
     }
 
@@ -704,6 +718,11 @@ public class UnitProvider extends Provider {
             if (i >= unit.inventory.size() || unit.inventory.get(i) == null) return i;
         }
         return 6;
+    }
+    private void putInFirstFreeSlot(UnitMock unit, IlConstHandle item) {
+        int slot = firstFreeSlot(unit);
+        while (unit.inventory.size() <= slot) unit.inventory.add(null);
+        unit.inventory.set(slot, item);
     }
     private ILconstBool dropItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);

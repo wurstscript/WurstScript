@@ -6,12 +6,9 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Collections;
 import java.util.Set;
-import java.util.WeakHashMap;
 
 public class UnitMock {
-    private static final Set<UnitMock> instances = Collections.newSetFromMap(new WeakHashMap<>());
     public IlConstHandle owner;
     public ILconstInt unitid;
     public ILconstReal x;
@@ -55,7 +52,6 @@ public class UnitMock {
     public ILconstInt currentOrder = ILconstInt.create(0);
 
     public UnitMock(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
-        instances.add(this);
         this.owner = owner;
         this.unitid = unitid;
         this.x = x;
@@ -67,7 +63,4 @@ public class UnitMock {
         states.put("unitstate3", ILconstReal.create(0));
     }
 
-    public static void clearSelection() {
-        for (UnitMock unit : instances) unit.selected = false;
-    }
 }
