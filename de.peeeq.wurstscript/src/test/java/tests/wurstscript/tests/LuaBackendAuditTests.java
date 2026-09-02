@@ -2358,6 +2358,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let indexed = values[useBox ? box.get() : 0]",
             "    IntSupplier supplier = () -> (useBox ? box.get() : 0)",
             "    IntSupplier unarySupplier = () -> -box.get()",
+            "    IntSupplier blockSupplier = () -> begin",
+            "        return (useBox ? box.get() : 0)",
+            "    end",
             "    let constructed = new Constructed(useBox ? box.get() : 0)",
             "    int blockValue = begin",
             "        return (useBox ? box.get() : 0)",
@@ -2368,12 +2371,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "            switchValue = 0",
             "    if sum == 0 and builtinSum == 0 and overloaded == 0 and blockOverloaded == 0",
             "        and indexed == 7 and readArrayValue() == 7 and supplier.get() == 0",
-            "        and unarySupplier.get() == 0",
+            "        and unarySupplier.get() == 0 and blockSupplier.get() == 0",
             "        and blockValue == 0 and switchValue == 0 and constructed.get() == 0",
             "        testSuccess()"
         );
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
-        assertEquals("each concrete integer consumer must normalize its erased generic input", 11,
+        assertEquals("each concrete integer consumer must normalize its erased generic input", 12,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
         assertTrue("global primitive array reads must remain safe for foreign writes",
             compiled.contains("__wurst_ensureInt(Test_values[0])"));

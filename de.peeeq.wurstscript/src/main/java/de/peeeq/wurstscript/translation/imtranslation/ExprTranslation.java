@@ -884,7 +884,7 @@ public class ExprTranslation {
         return result;
     }
 
-    private static boolean isCompositeExpectedTypeExpression(Expr e) {
+    static boolean isCompositeExpectedTypeExpression(Expr e) {
         return e instanceof ExprIfElse || e instanceof ExprUnary || e instanceof ExprStatementsBlock;
     }
 
