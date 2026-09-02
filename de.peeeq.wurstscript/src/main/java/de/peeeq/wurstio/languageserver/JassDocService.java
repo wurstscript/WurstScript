@@ -34,11 +34,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -257,7 +259,7 @@ public final class JassDocService {
                 }
                 try (Connection conn = open(dbPath.get())) {
                     List<TableSchema> schemas = discoverSchemas(conn);
-                    boolean hasLegacySchema = hasLegacyJassdocSchema(conn);
+                    boolean hasLegacySchema = hasCompatibleLegacyJassdocSchema(conn);
                     if (schemas.isEmpty() && !hasLegacySchema) {
                         WLogger.warning("JassDoc DB found, but no compatible documentation tables were detected.");
                         initFailed = true;
@@ -365,7 +367,7 @@ public final class JassDocService {
     }
 
     private @Nullable String lookupFromLegacyJassdocTables(Connection conn, LookupKey key) throws SQLException {
-        if (!tableExists(conn, "parameters")) {
+        if (!hasCompatibleLegacyJassdocSchema(conn)) {
             return null;
         }
         Map<String, String> params = readKeyValueRows(conn, "parameters", "fnname", "param", "value", key.symbolName());
@@ -778,17 +780,36 @@ public final class JassDocService {
         try {
             replaceAtomically(downloaded, target);
         } catch (IOException installFailure) {
-            if (!Files.exists(target) && Files.exists(backup)) {
-                Files.copy(backup, target, StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.COPY_ATTRIBUTES);
+            if (Files.exists(backup)) {
+                restoreBackup(backup, target, installFailure);
             }
             throw installFailure;
         }
     }
 
+    void restoreBackup(Path backup, Path target, IOException installFailure) {
+        Path restoreTmp = null;
+        try {
+            restoreTmp = Files.createTempFile(target.getParent(), "jassdoc-restore-", ".tmp");
+            Files.copy(backup, restoreTmp, StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.COPY_ATTRIBUTES);
+            replaceAtomically(restoreTmp, target);
+        } catch (IOException restoreFailure) {
+            installFailure.addSuppressed(restoreFailure);
+        } finally {
+            if (restoreTmp != null) {
+                try {
+                    Files.deleteIfExists(restoreTmp);
+                } catch (IOException cleanupFailure) {
+                    installFailure.addSuppressed(cleanupFailure);
+                }
+            }
+        }
+    }
+
     private void validateDownloadedDatabase(Path downloaded) throws IOException {
         try (Connection conn = open(downloaded)) {
-            if (discoverSchemas(conn).isEmpty() && !hasLegacyJassdocSchema(conn)) {
+            if (discoverSchemas(conn).isEmpty() && !hasCompatibleLegacyJassdocSchema(conn)) {
                 throw new IOException("Downloaded file is not a compatible JassDoc database");
             }
         } catch (SQLException e) {
@@ -818,16 +839,7 @@ public final class JassDocService {
             return (HttpURLConnection) url.openConnection();
         }
 
-        String value = proxySetting.get();
-        URI proxyUri;
-        try {
-            proxyUri = URI.create(value.contains("://") ? value : "http://" + value);
-        } catch (IllegalArgumentException e) {
-            throw new IOException("Invalid JassDoc proxy URL", e);
-        }
-        if (proxyUri.getHost() == null) {
-            throw new IOException("Invalid JassDoc proxy URL: missing host");
-        }
+        URI proxyUri = parseHttpProxyUri(proxySetting.get());
         int port = proxyUri.getPort() >= 0 ? proxyUri.getPort() : 80;
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyUri.getHost(), port));
         HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
@@ -837,6 +849,23 @@ public final class JassDocService {
             connection.setRequestProperty("Proxy-Authorization", "Basic " + credentials);
         }
         return connection;
+    }
+
+    static URI parseHttpProxyUri(String value) throws IOException {
+        URI proxyUri;
+        try {
+            proxyUri = URI.create(value.contains("://") ? value : "http://" + value);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid JassDoc proxy URL", e);
+        }
+        if (proxyUri.getHost() == null) {
+            throw new IOException("Invalid JassDoc proxy URL: missing host");
+        }
+        if (!"http".equalsIgnoreCase(proxyUri.getScheme())) {
+            throw new IOException("Unsupported JassDoc proxy scheme '" + proxyUri.getScheme()
+                + "'; use an http:// proxy URL");
+        }
+        return proxyUri;
     }
 
     static boolean shouldBypassProxy(String host, String noProxySetting) {
@@ -913,8 +942,32 @@ public final class JassDocService {
         return result;
     }
 
-    private boolean hasLegacyJassdocSchema(Connection conn) throws SQLException {
-        return tableExists(conn, "parameters");
+    private boolean hasCompatibleLegacyJassdocSchema(Connection conn) throws SQLException {
+        return tableHasColumns(conn, "parameters", "fnname", "param", "value")
+            && (!tableExists(conn, "annotations")
+                || tableHasColumns(conn, "annotations", "fnname", "anname", "value"))
+            && (!tableExists(conn, "params_extra")
+                || tableHasColumns(conn, "params_extra", "fnname", "param", "anname", "value"));
+    }
+
+    private boolean tableHasColumns(Connection conn, String tableName, String... requiredColumns)
+            throws SQLException {
+        Set<String> columns = new HashSet<>();
+        DatabaseMetaData md = conn.getMetaData();
+        try (ResultSet result = md.getColumns(null, null, tableName, "%")) {
+            while (result.next()) {
+                String name = result.getString("COLUMN_NAME");
+                if (name != null) {
+                    columns.add(name.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        for (String required : requiredColumns) {
+            if (!columns.contains(required)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean tableExists(Connection conn, String tableName) throws SQLException {

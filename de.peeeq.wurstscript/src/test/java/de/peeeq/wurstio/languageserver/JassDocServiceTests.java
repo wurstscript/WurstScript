@@ -15,6 +15,7 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class JassDocServiceTests {
 
@@ -58,6 +59,37 @@ public class JassDocServiceTests {
     }
 
     @Test
+    public void incompleteLegacySchemaDoesNotReplaceExistingDatabase() throws Exception {
+        Path dir = Files.createTempDirectory("jassdoc-incomplete-legacy-");
+        Path target = dir.resolve("jassdoc-latest.db");
+        Path downloaded = dir.resolve("download.tmp");
+        Files.writeString(target, "working database", StandardCharsets.UTF_8);
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + downloaded.toAbsolutePath());
+             Statement statement = conn.createStatement()) {
+            statement.execute("CREATE TABLE parameters(fnname TEXT)");
+        }
+
+        assertThrows(IOException.class,
+            () -> new JassDocService().installDownloadedDatabase(downloaded, target));
+        assertEquals(Files.readString(target, StandardCharsets.UTF_8), "working database");
+    }
+
+    @Test
+    public void restoreOverwritesAResidualPartialTarget() throws IOException {
+        Path dir = Files.createTempDirectory("jassdoc-restore-");
+        Path target = dir.resolve("jassdoc-latest.db");
+        Path backup = dir.resolve("jassdoc-latest.db.bak");
+        Files.writeString(target, "partial replacement", StandardCharsets.UTF_8);
+        Files.writeString(backup, "working database", StandardCharsets.UTF_8);
+        IOException installFailure = new IOException("simulated interrupted replacement");
+
+        new JassDocService().restoreBackup(backup, target, installFailure);
+
+        assertEquals(Files.readString(target, StandardCharsets.UTF_8), "working database");
+        assertEquals(installFailure.getSuppressed().length, 0);
+    }
+
+    @Test
     public void automaticUpdatesCanBeDisabled() {
         String previous = System.getProperty("WURST_JASSDOC_DB_AUTO_UPDATE");
         try {
@@ -82,5 +114,12 @@ public class JassDocServiceTests {
             "internal.example", "localhost, github.com, internal.example:8080"));
         assertFalse(JassDocService.shouldBypassProxy(
             "github.com", "localhost, example.com"));
+    }
+
+    @Test
+    public void unsupportedTlsProxyIsRejectedExplicitly() {
+        IOException error = expectThrows(IOException.class,
+            () -> JassDocService.parseHttpProxyUri("https://proxy.example"));
+        assertTrue(error.getMessage().contains("use an http:// proxy URL"));
     }
 }
