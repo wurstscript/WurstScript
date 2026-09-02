@@ -16,16 +16,32 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
 public class UnitProvider extends Provider {
+    private static final Map<String, Integer> ORDER_IDS = new HashMap<>();
     private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
     private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
     private final Set<UnitMock> units;
+
+    static {
+        ORDER_IDS.put("smart", 851971);
+        ORDER_IDS.put("stop", 851972);
+        ORDER_IDS.put("attack", 851983);
+        ORDER_IDS.put("attackground", 851984);
+        ORDER_IDS.put("attackonce", 851985);
+        ORDER_IDS.put("move", 851986);
+        ORDER_IDS.put("moveitem", 851987);
+        ORDER_IDS.put("patrol", 851990);
+        ORDER_IDS.put("holdposition", 851993);
+        ORDER_IDS.put("build", 851994);
+    }
 
     public UnitProvider(AbstractInterpreter interpreter) {
         super(interpreter);
@@ -583,6 +599,14 @@ public class UnitProvider extends Provider {
     public ILconstBool IssueNeutralTargetOrder(IlConstHandle player, IlConstHandle structure, ILconstString unitToBuild, IlConstHandle target) { return validUnit(structure); }
     public ILconstBool IssueNeutralTargetOrderById(IlConstHandle player, IlConstHandle structure, ILconstInt unitId, IlConstHandle target) { return validUnit(structure); }
 
+    public ILconstInt OrderId(ILconstString order) { return orderId(order); }
+    public ILconstString OrderId2String(ILconstInt orderId) {
+        for (Map.Entry<String, Integer> entry : ORDER_IDS.entrySet()) {
+            if (entry.getValue().equals(orderId.getVal())) return ILconstString.fromText(entry.getKey());
+        }
+        return ILconstString.fromText("");
+    }
+
     public ILconstInt GetUnitCurrentOrder(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
         return unitMock == null ? ILconstInt.create(0) : unitMock.currentOrder;
@@ -654,7 +678,7 @@ public class UnitProvider extends Provider {
     public void UnitAddSleepPerm(IlConstHandle unit, ILconstBool add) { UnitMock m = unitOrNull(unit); if (m != null) m.canSleepPerm = add.getVal(); }
     public ILconstBool UnitCanSleepPerm(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.canSleepPerm); }
     public ILconstBool UnitIsSleeping(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.sleeping); }
-    public void UnitWakeUp(IlConstHandle unit) { UnitAddSleep(unit, ILconstBool.FALSE); }
+    public void UnitWakeUp(IlConstHandle unit) { UnitMock m = unitOrNull(unit); if (m != null) m.sleeping = false; }
     public void UnitApplyTimedLife(IlConstHandle unit, ILconstInt buffId, ILconstReal duration) { }
     public ILconstBool UnitIgnoreAlarm(IlConstHandle unit, ILconstBool flag) { return validUnit(unit); }
     public ILconstBool UnitIgnoreAlarmToggled(IlConstHandle unit) { return ILconstBool.FALSE; }
@@ -679,9 +703,15 @@ public class UnitProvider extends Provider {
         return ILconstBool.TRUE;
     }
     public ILconstBool UnitDamageTarget(IlConstHandle unit, IlConstHandle target, ILconstReal amount, ILconstBool attack, ILconstBool ranged, IlConstHandle attackType, IlConstHandle damageType, IlConstHandle weaponType) {
+        if (unitOrNull(unit) == null) return ILconstBool.FALSE;
         UnitMock m = unitOrNull(target);
-        if (unitOrNull(unit) == null || m == null) return ILconstBool.FALSE;
-        applyDamage(m, amount.getVal());
+        if (m != null) {
+            applyDamage(m, amount.getVal());
+            return ILconstBool.TRUE;
+        }
+        DestructableMock destructable = destructableOrNull(target);
+        if (destructable == null) return ILconstBool.FALSE;
+        destructable.life = ILconstReal.create((float) Math.max(0, destructable.life.getVal() - amount.getVal()));
         return ILconstBool.TRUE;
     }
 
@@ -725,7 +755,10 @@ public class UnitProvider extends Provider {
     }
 
     private ILconstBool validUnit(IlConstHandle unit) { return ILconstBool.instance(unitOrNull(unit) != null); }
-    private ILconstInt orderId(ILconstString order) { return ILconstInt.create(ObjectHelper.objectIdStringToInt(order.getVal())); }
+    private ILconstInt orderId(ILconstString order) {
+        Integer id = ORDER_IDS.get(order.getVal().toLowerCase(Locale.ROOT));
+        return ILconstInt.create(id == null ? 0 : id);
+    }
     private boolean inventoryFull(UnitMock unit) { return firstFreeSlot(unit) >= 6; }
     private int firstFreeSlot(UnitMock unit) {
         for (int i = 0; i < 6; i++) {
