@@ -76,6 +76,11 @@ public class AttrExprExpectedType {
                 if (nearestFuncDef != null) {
                     return nearestFuncDef.attrReturnTyp();
                 }
+            } else if (parent instanceof StmtForRange) {
+                StmtForRange forRange = (StmtForRange) parent;
+                if (forRange.getTo() == expr || forRange.getStep() == expr) {
+                    return WurstTypeInt.instance();
+                }
             } else if (parent instanceof SwitchCase) {
                 SwitchCase sc = (SwitchCase) parent;
                 SwitchStmt s = (SwitchStmt) sc.getParent().getParent();

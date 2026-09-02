@@ -2270,6 +2270,29 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("value = __wurst_ensureInt(Box_Box_get(box))"));
     }
 
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedInCompositeRangeBounds() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    bool useBox = true",
+            "    int iterations = 0",
+            "    for i = 1 to (useBox ? box.get() : 0)",
+            "        iterations++",
+            "    if iterations == 0",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedInCompositeRangeBounds");
+        assertTrue("composite range bounds must normalize erased primitive branches",
+            compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
+    }
+
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
