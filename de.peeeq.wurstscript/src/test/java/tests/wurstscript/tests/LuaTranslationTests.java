@@ -503,7 +503,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void stringArrayReadIsEnsured() throws IOException {
+    public void stringArrayReadIsEnsuredAtNativeBoundary() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "string array playerName",
@@ -511,8 +511,9 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let i = 0",
             "    SetPlayerName(Player(i), playerName[i])"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*__wurst_ensureStr\\(");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsuredAtNativeBoundary.lua"), Charsets.UTF_8);
+        assertTrue("native boundary must normalize an array read",
+            compiled.contains("__wurst_ensureStr(Test_playerName["));
     }
 
     @Test
