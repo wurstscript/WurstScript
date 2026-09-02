@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.AttrExprExpectedType;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.*;
@@ -402,7 +403,7 @@ public class ClassTranslator {
                 ImExprs arguments = ImExprs(ImVarAccess(thisVar));
                 for (int i = 0; i < thisCall.getArgs().size(); i++) {
                     Expr argument = thisCall.getArgs().get(i);
-                    WurstType expectedType = constructorParameterType(calledConstr, i);
+                    WurstType expectedType = AttrExprExpectedType.constructorParameterType(calledConstr, i);
                     arguments.add(ExprTranslation.translateWithExpectedType(
                         argument, translator, f, expectedType));
                 }
@@ -437,16 +438,6 @@ public class ClassTranslator {
         }
         // constructor user code
         f.getBody().addAll(translator.translateStatements(f, constr.getBody().subList(bodyStartIndex, constr.getBody().size())));
-    }
-
-    private static WurstType constructorParameterType(ConstructorDef constructor, int argumentIndex) {
-        int lastParameterIndex = constructor.getParameters().size() - 1;
-        WurstType parameterType = constructor.getParameters()
-            .get(Math.min(argumentIndex, lastParameterIndex)).getTyp().attrTyp();
-        if (argumentIndex >= lastParameterIndex && parameterType instanceof WurstTypeVararg) {
-            return ((WurstTypeVararg) parameterType).getBaseType();
-        }
-        return parameterType;
     }
 
     private int firstRelevantStatementIndex(ConstructorDef constr) {

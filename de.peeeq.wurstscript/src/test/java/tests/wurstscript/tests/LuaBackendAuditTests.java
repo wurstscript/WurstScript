@@ -2399,6 +2399,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        this(box.get())",
             "    function get() returns int",
             "        return value",
+            "class Parent",
+            "    int sum",
+            "    construct(int fixed, vararg int rest)",
+            "        sum = fixed",
+            "        for value in rest",
+            "            sum += value",
+            "class Child extends Parent",
+            "    construct(Box<int> box)",
+            "        super(1, box.get(), box.get())",
+            "    function get() returns int",
+            "        return sum",
             "class Indexed",
             "    bool assignedDefault",
             "    function op_index(int index) returns string",
@@ -2408,13 +2419,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    let box = new Box<int>",
             "    let delegating = new Delegating(box)",
+            "    let child = new Child(box)",
             "    let indexed = new Indexed",
             "    indexed[0] = box.get()",
-            "    if delegating.get() == 1 and indexed.assignedDefault",
+            "    if delegating.get() == 1 and child.get() == 1 and indexed.assignedDefault",
             "        testSuccess()"
         );
         String compiled = compiledLua("erasedGenericDefaultsUseResolvedAssignmentAndDelegationTargets");
-        assertEquals("both resolved primitive consumers must normalize their erased generic input", 2,
+        assertEquals("resolved primitive consumers must normalize their erased generic input", 4,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
     }
 

@@ -153,11 +153,12 @@ public class AttrExprExpectedType {
 
     private static WurstType expectedTypeSuperCall(SuperConstructorCall sc, Expr expr) {
         ConstructorDef constr = (ConstructorDef) sc.getParent();
+        int paramIndex = SmallHelpers.superArgs(constr).indexOf(expr);
         ConstructorDef selected = constr.attrSuperConstructor();
         if (selected != null) {
-            int selectedIndex = SmallHelpers.superArgs(constr).indexOf(expr);
-            if (selectedIndex >= 0 && selectedIndex < selected.getParameters().size()) {
-                return selected.getParameters().get(selectedIndex).getTyp().attrTyp();
+            WurstType selectedType = constructorParameterType(selected, paramIndex);
+            if (!(selectedType instanceof WurstTypeUnknown)) {
+                return selectedType;
             }
         }
         ClassDef c = constr.attrNearestClassDef();
@@ -175,8 +176,6 @@ public class AttrExprExpectedType {
 
         WurstType res = WurstTypeUnknown.instance();
 
-        int paramIndex = SmallHelpers.superArgs(constr).indexOf(expr);
-
         for (ConstructorDef superConstr : constructors) {
             if (superConstr.getParameters().size() == SmallHelpers.superArgs(constr).size()) {
                 res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
@@ -184,6 +183,19 @@ public class AttrExprExpectedType {
         }
 
         return res;
+    }
+
+    public static WurstType constructorParameterType(ConstructorDef constructor, int argumentIndex) {
+        if (argumentIndex < 0 || constructor.getParameters().isEmpty()) {
+            return WurstTypeUnknown.instance();
+        }
+        int lastParameterIndex = constructor.getParameters().size() - 1;
+        WurstType parameterType = constructor.getParameters()
+            .get(Math.min(argumentIndex, lastParameterIndex)).attrTyp();
+        if (argumentIndex >= lastParameterIndex && parameterType instanceof WurstTypeVararg) {
+            return ((WurstTypeVararg) parameterType).getBaseType();
+        }
+        return argumentIndex <= lastParameterIndex ? parameterType : WurstTypeUnknown.instance();
     }
 
     private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
