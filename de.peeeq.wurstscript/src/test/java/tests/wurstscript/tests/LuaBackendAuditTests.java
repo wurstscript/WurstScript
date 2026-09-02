@@ -2559,13 +2559,18 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "package Test",
             "native print(string message)",
             "native I2S(int value) returns string",
+            "native consumeInt(int value)",
+            "native consumeString(string value)",
             "int array values",
+            "string array names",
             "function readValue(int index) returns int",
             "    return values[index]",
             "function join(string left, string right) returns string",
             "    return left + right",
             "init",
             "    values[1] = 7",
+            "    consumeInt(values[1])",
+            "    consumeString(names[1])",
             "    print(join(\"value=\", I2S(readValue(1))))"
         );
     }
