@@ -2338,6 +2338,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let sum = addable + box.get()",
             "    let indexed = values[useBox ? box.get() : 0]",
             "    IntSupplier supplier = () -> (useBox ? box.get() : 0)",
+            "    IntSupplier unarySupplier = () -> -box.get()",
             "    int blockValue = begin",
             "        return (useBox ? box.get() : 0)",
             "    end",
@@ -2346,11 +2347,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        case 0",
             "            switchValue = 0",
             "    if sum == 0 and indexed == 7 and supplier.get() == 0",
+            "        and unarySupplier.get() == 0",
             "        and blockValue == 0 and switchValue == 0",
             "        testSuccess()"
         );
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
-        assertEquals("each concrete integer consumer must normalize its erased generic input", 5,
+        assertEquals("each concrete integer consumer must normalize its erased generic input", 6,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
     }
 

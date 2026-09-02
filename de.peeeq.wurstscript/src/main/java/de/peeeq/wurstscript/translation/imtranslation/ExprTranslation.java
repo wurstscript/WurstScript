@@ -252,6 +252,7 @@ public class ExprTranslation {
 
         FunctionDefinition calledFunc = toString.getDef().attrRealFuncDef();
         FunctionSignature signature = FunctionSignature.fromNameLink(toString);
+        translated = wrapTranslation(operand, t, translated, operand.attrTypRaw(), signature.getReceiverType());
         if (calledFunc instanceof FuncDef
                 && !((FuncDef) calledFunc).attrIsStatic()
                 && operand.attrTyp().allowsDynamicDispatch()) {
@@ -951,14 +952,15 @@ public class ExprTranslation {
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
             Expr returnedExpr = (Expr) r.getReturnedObj();
-            ImExpr expr = returnedExpr instanceof ExprIfElse
+            boolean propagatesExpectedType = returnedExpr instanceof ExprIfElse || returnedExpr instanceof ExprUnary;
+            ImExpr expr = propagatesExpectedType
                 ? translateWithExpectedType(returnedExpr, translator, f, e.attrExpectedTypRaw())
                 : returnedExpr.imTranslateExpr(translator, f);
-            if (!(returnedExpr instanceof ExprIfElse)) {
+            if (!propagatesExpectedType) {
                 expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), e.attrExpectedTypRaw());
             }
             ImExpr result = JassIm.ImStatementExpr(statements, expr);
-            return returnedExpr instanceof ExprIfElse
+            return propagatesExpectedType
                 ? result
                 : wrapTranslation(e, translator, result, e.attrTypRaw(), e.attrExpectedTypRaw());
         } else {
@@ -1016,6 +1018,12 @@ public class ExprTranslation {
     static ImExpr translateWithExpectedType(Expr e, ImTranslator t, ImFunction f, WurstType expectedType) {
         if (e instanceof ExprIfElse) {
             return translateWithExpectedType((ExprIfElse) e, t, f, expectedType);
+        }
+        if (e instanceof ExprUnary) {
+            ExprUnary unary = (ExprUnary) e;
+            ImExpr right = translateWithExpectedType(unary.getRight(), t, f, expectedType);
+            ImExpr translated = ImOperatorCall(unary.getOpU(), ImExprs(right));
+            return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
         }
         ImExpr translated = e.imTranslateExpr(t, f);
         return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);

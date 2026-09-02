@@ -202,7 +202,9 @@ public class ClosureTranslator {
 
 
         ImExpr translated;
-        if (e.getImplementation() instanceof ExprIfElse) {
+        boolean propagatesExpectedType = e.getImplementation() instanceof ExprIfElse
+            || e.getImplementation() instanceof ExprUnary;
+        if (propagatesExpectedType) {
             translated = ExprTranslation.translateWithExpectedType(
                 e.getImplementation(), tr, impl, superMethod.attrReturnType());
         } else {
