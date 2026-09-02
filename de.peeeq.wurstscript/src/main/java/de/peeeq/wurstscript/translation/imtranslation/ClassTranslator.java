@@ -400,8 +400,11 @@ public class ClassTranslator {
             if (calledConstr != null && calledConstr != constr) {
                 ImFunction calledConstrFunc = translator.getConstructFunc(calledConstr);
                 ImExprs arguments = ImExprs(ImVarAccess(thisVar));
-                for (Expr a : thisCall.getArgs()) {
-                    arguments.add(a.imTranslateExpr(translator, f));
+                for (int i = 0; i < thisCall.getArgs().size(); i++) {
+                    Expr argument = thisCall.getArgs().get(i);
+                    WurstType expectedType = calledConstr.getParameters().get(i).getTyp().attrTyp();
+                    arguments.add(ExprTranslation.translateWithExpectedType(
+                        argument, translator, f, expectedType));
                 }
                 f.getBody().add(ImFunctionCall(trace, calledConstrFunc, classTypeArgs(), arguments, false, CallType.NORMAL));
                 bodyStartIndex = firstRelevantIndex + 1;

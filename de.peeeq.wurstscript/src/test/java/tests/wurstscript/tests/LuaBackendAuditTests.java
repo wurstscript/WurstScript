@@ -2382,6 +2382,42 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_ensureInt(Test_values[0])"));
     }
 
+    @Test
+    public void erasedGenericDefaultsUseResolvedAssignmentAndDelegationTargets() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Delegating",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value + 1",
+            "    construct(Box<int> box)",
+            "        this(box.get())",
+            "    function get() returns int",
+            "        return value",
+            "class Indexed",
+            "    bool assignedDefault",
+            "    function op_index(int index) returns string",
+            "        return \"\"",
+            "    function op_indexAssign(int index, int value)",
+            "        assignedDefault = value == 0",
+            "init",
+            "    let box = new Box<int>",
+            "    let delegating = new Delegating(box)",
+            "    let indexed = new Indexed",
+            "    indexed[0] = box.get()",
+            "    if delegating.get() == 1 and indexed.assignedDefault",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericDefaultsUseResolvedAssignmentAndDelegationTargets");
+        assertEquals("both resolved primitive consumers must normalize their erased generic input", 2,
+            countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
+    }
+
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two

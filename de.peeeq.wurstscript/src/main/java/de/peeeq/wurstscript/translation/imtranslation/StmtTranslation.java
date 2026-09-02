@@ -392,8 +392,10 @@ public class StmtTranslation {
         } else {
             receiver = ImVarAccess(receiverVar);
         }
-        ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-        ImExpr value = s.getRight().imTranslateExpr(t, f);
+        ImExpr index = ExprTranslation.translateWithExpectedType(
+            withIndexes.getIndexes().get(0), t, f, setOverload.getParameterType(0));
+        ImExpr value = ExprTranslation.translateWithExpectedType(
+            s.getRight(), t, f, setOverload.getParameterType(1));
         ImFunction calledFunc = t.getFuncFor(setOverload.getDef());
         return ImFunctionCall(s, calledFunc, ImTypeArguments(), ImExprs(receiver, index, value), false, CallType.NORMAL);
     }
