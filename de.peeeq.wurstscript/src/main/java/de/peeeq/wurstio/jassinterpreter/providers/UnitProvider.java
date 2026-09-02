@@ -394,7 +394,9 @@ public class UnitProvider extends Provider {
         String rawcode = ObjectHelper.objectIdIntToString(unitId.getVal());
         return ILconstBool.instance(!rawcode.isEmpty() && Character.isUpperCase(rawcode.charAt(0)));
     }
-    public ILconstBool IsUnitIdType(ILconstInt unitId, IlConstHandle unitType) { return ILconstBool.FALSE; }
+    public ILconstBool IsUnitIdType(ILconstInt unitId, IlConstHandle unitType) {
+        return IsHeroUnitId(unitId);
+    }
 
     public ILconstBool UnitAddType(IlConstHandle unit, IlConstHandle unitType) {
         UnitMock unitMock = unitOrNull(unit);
@@ -594,7 +596,13 @@ public class UnitProvider extends Provider {
     public ILconstString GetHeroProperName(IlConstHandle unit) { return GetUnitName(unit); }
     public void SuspendHeroXP(IlConstHandle unit, ILconstBool flag) { UnitMock m = unitOrNull(unit); if (m != null) m.suspendedXp = flag.getVal(); }
     public ILconstBool IsSuspendedXP(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.suspendedXp); }
-    public void SelectHeroSkill(IlConstHandle unit, ILconstInt abilityId) { UnitAddAbility(unit, abilityId); }
+    public void SelectHeroSkill(IlConstHandle unit, ILconstInt abilityId) {
+        UnitMock m = unitOrNull(unit);
+        if (m == null || m.skillPoints.getVal() <= 0) return;
+        int level = m.abilityLevels.getOrDefault(abilityId.getVal(), ILconstInt.create(0)).getVal();
+        m.abilityLevels.put(abilityId.getVal(), ILconstInt.create(level + 1));
+        m.skillPoints = ILconstInt.create(m.skillPoints.getVal() - 1);
+    }
 
     public ILconstBool ReviveHero(IlConstHandle unit, ILconstReal x, ILconstReal y, ILconstBool doEyeCandy) {
         UnitMock m = unitOrNull(unit);
