@@ -20,7 +20,8 @@ public class UnitMock {
     public boolean invulnerable;
     public boolean pathing = true;
     public boolean useFood = true;
-    public boolean selected;
+    public boolean exploded;
+    public final Set<Integer> selectedPlayers = new HashSet<>();
     public boolean suspendedXp;
     public boolean sleeping;
     public boolean canSleep = true;
@@ -50,6 +51,7 @@ public class UnitMock {
     public final Set<Integer> permanentAbilities = new HashSet<>();
     public final Set<String> unitTypes = new HashSet<>();
     public final java.util.ArrayList<IlConstHandle> inventory = new java.util.ArrayList<>();
+    public final IlConstHandle race = new IlConstHandle("race0", new Object());
     public ILconstInt currentOrder = ILconstInt.create(0);
 
     public UnitMock(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {

@@ -4,6 +4,7 @@ import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.ItemMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.LocationMock;
+import de.peeeq.wurstio.jassinterpreter.mocks.PlayerMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
@@ -16,7 +17,6 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 public class UnitProvider extends Provider {
-    private static final Map<String, Integer> ORDER_IDS = new HashMap<>();
+    private static final Map<String, Integer> ORDER_IDS = new LinkedHashMap<>();
     private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
     private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
     private final Set<UnitMock> units;
@@ -33,6 +33,41 @@ public class UnitProvider extends Provider {
     static {
         ORDER_IDS.put("smart", 851971);
         ORDER_IDS.put("stop", 851972);
+        ORDER_IDS.put("cancel", 851976);
+        ORDER_IDS.put("resumeharvesting", 852017);
+        ORDER_IDS.put("harvest", 852018);
+        ORDER_IDS.put("returnresources", 852020);
+        ORDER_IDS.put("repair", 852024);
+        ORDER_IDS.put("repairon", 852025);
+        ORDER_IDS.put("repairoff", 852026);
+        ORDER_IDS.put("load", 852046);
+        ORDER_IDS.put("unload", 852048);
+        ORDER_IDS.put("unloadall", 852049);
+        ORDER_IDS.put("unloadallcorpses", 852051);
+        ORDER_IDS.put("defend", 852055);
+        ORDER_IDS.put("undefend", 852056);
+        ORDER_IDS.put("heal", 852063);
+        ORDER_IDS.put("healon", 852064);
+        ORDER_IDS.put("healoff", 852065);
+        ORDER_IDS.put("innerfire", 852066);
+        ORDER_IDS.put("innerfireon", 852067);
+        ORDER_IDS.put("innerfireoff", 852068);
+        ORDER_IDS.put("invisibility", 852069);
+        ORDER_IDS.put("holybolt", 852092);
+        ORDER_IDS.put("resurrection", 852094);
+        ORDER_IDS.put("thunderbolt", 852095);
+        ORDER_IDS.put("thunderclap", 852096);
+        ORDER_IDS.put("healingward", 852109);
+        ORDER_IDS.put("lightningshield", 852110);
+        ORDER_IDS.put("chainlightning", 852119);
+        ORDER_IDS.put("cyclone", 852144);
+        ORDER_IDS.put("detonate", 852145);
+        ORDER_IDS.put("flamingarrows", 852174);
+        ORDER_IDS.put("immolation", 852177);
+        ORDER_IDS.put("manaburn", 852179);
+        ORDER_IDS.put("firebolt", 852231);
+        ORDER_IDS.put("inferno", 852232);
+        ORDER_IDS.put("poisonarrows", 852255);
         ORDER_IDS.put("attack", 851983);
         ORDER_IDS.put("attackground", 851984);
         ORDER_IDS.put("attackonce", 851985);
@@ -41,6 +76,22 @@ public class UnitProvider extends Provider {
         ORDER_IDS.put("patrol", 851990);
         ORDER_IDS.put("holdposition", 851993);
         ORDER_IDS.put("build", 851994);
+        ORDER_IDS.put("humanbuild", 851995);
+        ORDER_IDS.put("upgrade", 851997);
+        ORDER_IDS.put("magicdefense", 852478);
+        ORDER_IDS.put("magicleash", 852480);
+        ORDER_IDS.put("magicundefense", 852479);
+        ORDER_IDS.put("healingwave", 852501);
+        ORDER_IDS.put("hex", 852502);
+        ORDER_IDS.put("devourmagic", 852536);
+        ORDER_IDS.put("impale", 852555);
+        ORDER_IDS.put("locustswarm", 852556);
+        ORDER_IDS.put("howlofterror", 852588);
+        ORDER_IDS.put("channel", 852600);
+        ORDER_IDS.put("neutralspell", 852630);
+        ORDER_IDS.put("clusterrockets", 852652);
+        ORDER_IDS.put("chemicalrage", 852663);
+        ORDER_IDS.put("healingspray", 852664);
     }
 
     public UnitProvider(AbstractInterpreter interpreter) {
@@ -258,7 +309,10 @@ public class UnitProvider extends Provider {
 
     public ILconstInt GetUnitFoodMade(IlConstHandle unit) { return ILconstInt.create(0); }
 
-    public IlConstHandle GetUnitRace(IlConstHandle unit) { return new IlConstHandle("race0", new java.util.LinkedHashSet<>()); }
+    public IlConstHandle GetUnitRace(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null ? new IlConstHandle("race0", new Object()) : unitMock.race;
+    }
 
     public ILconstInt BlzGetUnitIntegerField(IlConstHandle whichUnit, IlConstHandle whichField) {
         return ILconstInt.create(0);
@@ -304,7 +358,10 @@ public class UnitProvider extends Provider {
     public ILconstBool IsUnitInvisible(IlConstHandle unit, IlConstHandle player) { return ILconstBool.FALSE; }
     public ILconstBool IsUnitFogged(IlConstHandle unit, IlConstHandle player) { return ILconstBool.FALSE; }
     public ILconstBool IsUnitMasked(IlConstHandle unit, IlConstHandle player) { return ILconstBool.FALSE; }
-    public ILconstBool IsUnitRace(IlConstHandle unit, IlConstHandle race) { return ILconstBool.FALSE; }
+    public ILconstBool IsUnitRace(IlConstHandle unit, IlConstHandle race) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstBool.instance(unitMock != null && unitMock.race == race);
+    }
 
     public ILconstBool IsUnitInRange(IlConstHandle unit, IlConstHandle otherUnit, ILconstReal distance) {
         UnitMock first = unitOrNull(unit), second = unitOrNull(otherUnit);
@@ -539,14 +596,18 @@ public class UnitProvider extends Provider {
     public void SelectUnit(IlConstHandle unit, ILconstBool flag) {
         UnitMock m = unitOrNull(unit);
         if (m == null) return;
-        m.selected = flag.getVal();
+        if (flag.getVal()) m.selectedPlayers.add(0);
+        else m.selectedPlayers.remove(0);
     }
     public void ClearSelection() {
         synchronized (units) {
-            for (UnitMock unit : units) unit.selected = false;
+            for (UnitMock unit : units) unit.selectedPlayers.remove(0);
         }
     }
-    public ILconstBool IsUnitSelected(IlConstHandle unit, IlConstHandle player) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.selected); }
+    public ILconstBool IsUnitSelected(IlConstHandle unit, IlConstHandle player) {
+        UnitMock m = unitOrNull(unit);
+        return ILconstBool.instance(m != null && m.selectedPlayers.contains(playerId(player)));
+    }
     public void SetUnitColor(IlConstHandle unit, IlConstHandle color) { }
     public void SetUnitScale(IlConstHandle unit, ILconstReal x, ILconstReal y, ILconstReal z) { }
     public void SetUnitTimeScale(IlConstHandle unit, ILconstReal scale) { }
@@ -562,7 +623,10 @@ public class UnitProvider extends Provider {
     public void SetUnitRescuable(IlConstHandle unit, IlConstHandle player, ILconstBool flag) { }
     public void SetUnitRescueRange(IlConstHandle unit, ILconstReal range) { }
     public void SetUnitCreepGuard(IlConstHandle unit, ILconstBool creepGuard) { }
-    public void SetUnitExploded(IlConstHandle unit, ILconstBool exploded) { if (exploded.getVal()) RemoveUnit(unit); }
+    public void SetUnitExploded(IlConstHandle unit, ILconstBool exploded) {
+        UnitMock unitMock = unitOrNull(unit);
+        if (unitMock != null) unitMock.exploded = exploded.getVal();
+    }
     public void UnitShareVision(IlConstHandle unit, IlConstHandle player, ILconstBool share) { }
     public void UnitSuspendDecay(IlConstHandle unit, ILconstBool suspend) { }
     public void UnitSetConstructionProgress(IlConstHandle unit, ILconstInt percentage) { }
@@ -625,7 +689,7 @@ public class UnitProvider extends Provider {
 
     public ILconstBool UnitAddItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);
-        if (m == null || item == null || inventoryFull(m) || m.inventory.contains(item)) return ILconstBool.FALSE;
+        if (m == null || item == null || inventoryFull(m) || m.inventory.contains(item) || itemHeldByOtherUnit(m, item)) return ILconstBool.FALSE;
         putInFirstFreeSlot(m, item);
         return ILconstBool.TRUE;
     }
@@ -747,7 +811,7 @@ public class UnitProvider extends Provider {
 
     private ILconstBool issueOrder(IlConstHandle unit, ILconstInt orderId) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock == null) {
+        if (unitMock == null || orderId.getVal() == 0) {
             return ILconstBool.FALSE;
         }
         unitMock.currentOrder = orderId;
@@ -758,6 +822,17 @@ public class UnitProvider extends Provider {
     private ILconstInt orderId(ILconstString order) {
         Integer id = ORDER_IDS.get(order.getVal().toLowerCase(Locale.ROOT));
         return ILconstInt.create(id == null ? 0 : id);
+    }
+    private int playerId(IlConstHandle player) {
+        return player != null && player.getObj() instanceof PlayerMock ? ((PlayerMock) player.getObj()).id.getVal() : -1;
+    }
+    private boolean itemHeldByOtherUnit(UnitMock destination, IlConstHandle item) {
+        synchronized (units) {
+            for (UnitMock unit : units) {
+                if (unit != destination && unit.inventory.contains(item)) return true;
+            }
+        }
+        return false;
     }
     private boolean inventoryFull(UnitMock unit) { return firstFreeSlot(unit) >= 6; }
     private int firstFreeSlot(UnitMock unit) {
