@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.NonNull;
@@ -46,6 +47,14 @@ public class AttrExprExpectedType {
                 return varDef.attrTyp();
             } else if (parent instanceof ExprBinary) {
                 ExprBinary exprBinary = (ExprBinary) parent;
+                if (exprBinary.attrFuncLink() != null) {
+                    FunctionSignature signature = FunctionSignature.fromNameLink(exprBinary.attrFuncLink());
+                    if (exprBinary.getLeft() == expr && signature.getReceiverType() != null) {
+                        return signature.getReceiverType();
+                    } else if (exprBinary.getRight() == expr && !signature.getParamTypes().isEmpty()) {
+                        return signature.getParamType(0);
+                    }
+                }
                 WurstType leftType = exprBinary.getLeft().attrTyp();
                 WurstType rightType = exprBinary.getRight().attrTyp();
                 if (leftType.equalsType(rightType, expr)) {
@@ -72,6 +81,18 @@ public class AttrExprExpectedType {
                 }
             } else if (parent instanceof StmtReturn) {
                 StmtReturn stmtReturn = (StmtReturn) parent;
+                if (stmtReturn.getParent() instanceof ExprStatementsBlock) {
+                    ExprStatementsBlock block = (ExprStatementsBlock) stmtReturn.getParent();
+                    WurstType expectedType = block.attrExpectedTypRaw();
+                    if (expectedType instanceof WurstTypeUnknown
+                        && block.getParent() instanceof ExprClosure) {
+                        FuncLink abstractMethod = ((ExprClosure) block.getParent()).attrClosureAbstractMethod();
+                        if (abstractMethod != null) {
+                            return abstractMethod.getReturnType();
+                        }
+                    }
+                    return expectedType;
+                }
                 FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
                 if (nearestFuncDef != null) {
                     return nearestFuncDef.attrReturnTyp();
@@ -80,6 +101,23 @@ public class AttrExprExpectedType {
                 StmtForRange forRange = (StmtForRange) parent;
                 if (forRange.getTo() == expr || forRange.getStep() == expr) {
                     return WurstTypeInt.instance();
+                }
+            } else if (parent instanceof ExprStatementsBlock) {
+                ExprStatementsBlock block = (ExprStatementsBlock) parent;
+                if (block.getReturnStmt() != null && block.getReturnStmt().getReturnedObj() == expr) {
+                    return block.attrExpectedTypRaw();
+                }
+            } else if (parent instanceof Indexes) {
+                return WurstTypeInt.instance();
+            } else if (parent instanceof SwitchStmt) {
+                SwitchStmt switchStmt = (SwitchStmt) parent;
+                if (switchStmt.getExpr() == expr) {
+                    for (SwitchCase switchCase : switchStmt.getCases()) {
+                        for (Expr caseExpr : switchCase.getExpressions()) {
+                            WurstType type = caseExpr.attrTyp();
+                            return type instanceof WurstTypeIntLiteral ? WurstTypeInt.instance() : type;
+                        }
+                    }
                 }
             } else if (parent instanceof SwitchCase) {
                 SwitchCase sc = (SwitchCase) parent;
@@ -115,6 +153,13 @@ public class AttrExprExpectedType {
 
     private static WurstType expectedTypeSuperCall(SuperConstructorCall sc, Expr expr) {
         ConstructorDef constr = (ConstructorDef) sc.getParent();
+        ConstructorDef selected = constr.attrSuperConstructor();
+        if (selected != null) {
+            int selectedIndex = SmallHelpers.superArgs(constr).indexOf(expr);
+            if (selectedIndex >= 0 && selectedIndex < selected.getParameters().size()) {
+                return selected.getParameters().get(selectedIndex).getTyp().attrTyp();
+            }
+        }
         ClassDef c = constr.attrNearestClassDef();
         if (c == null) {
             return WurstTypeUnknown.instance();

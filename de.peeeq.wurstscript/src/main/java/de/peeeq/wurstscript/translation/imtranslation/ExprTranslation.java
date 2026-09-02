@@ -100,7 +100,8 @@ public class ExprTranslation {
 
     private static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated) {
         WurstType actualType = e.attrTypRaw();
-        WurstType expectedTypRaw = actualType instanceof WurstTypeBoundTypeParam
+        WurstType expectedTypRaw = t.isLuaTarget()
+            && actualType instanceof WurstTypeBoundTypeParam
             && e.getParent() instanceof Arguments
             ? AttrExprExpectedType.afterOverloading(e)
             : e.attrExpectedTypRaw();
@@ -950,10 +951,16 @@ public class ExprTranslation {
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
             Expr returnedExpr = (Expr) r.getReturnedObj();
-            ImExpr expr = returnedExpr.imTranslateExpr(translator, f);
-            expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), e.attrExpectedTypRaw());
-            return wrapTranslation(e, translator, JassIm.ImStatementExpr(statements, expr),
-                e.attrTypRaw(), e.attrExpectedTypRaw());
+            ImExpr expr = returnedExpr instanceof ExprIfElse
+                ? translateWithExpectedType(returnedExpr, translator, f, e.attrExpectedTypRaw())
+                : returnedExpr.imTranslateExpr(translator, f);
+            if (!(returnedExpr instanceof ExprIfElse)) {
+                expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), e.attrExpectedTypRaw());
+            }
+            ImExpr result = JassIm.ImStatementExpr(statements, expr);
+            return returnedExpr instanceof ExprIfElse
+                ? result
+                : wrapTranslation(e, translator, result, e.attrTypRaw(), e.attrExpectedTypRaw());
         } else {
             return ImHelper.statementExprVoid(statements);
         }
@@ -1003,6 +1010,30 @@ public class ExprTranslation {
                                 ))
                 ),
                 JassIm.ImVarAccess(res)
+        );
+    }
+
+    static ImExpr translateWithExpectedType(Expr e, ImTranslator t, ImFunction f, WurstType expectedType) {
+        if (e instanceof ExprIfElse) {
+            return translateWithExpectedType((ExprIfElse) e, t, f, expectedType);
+        }
+        ImExpr translated = e.imTranslateExpr(t, f);
+        return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
+    }
+
+    private static ImExpr translateWithExpectedType(ExprIfElse e, ImTranslator t, ImFunction f,
+                                                    WurstType expectedType) {
+        ImExpr ifTrue = translateWithExpectedType(e.getIfTrue(), t, f, expectedType);
+        ImExpr ifFalse = translateWithExpectedType(e.getIfFalse(), t, f, expectedType);
+        ImVar res = JassIm.ImVar(e, ifTrue.attrTyp(), "cond_result", false);
+        f.getLocals().add(res);
+        return JassIm.ImStatementExpr(
+            ImStmts(
+                ImIf(e, e.getCond().imTranslateExpr(t, f),
+                    ImStmts(ImSet(e.getIfTrue(), ImVarAccess(res), ifTrue)),
+                    ImStmts(ImSet(e.getIfFalse(), ImVarAccess(res), ifFalse)))
+            ),
+            JassIm.ImVarAccess(res)
         );
     }
 

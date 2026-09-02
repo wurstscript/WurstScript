@@ -2315,6 +2315,45 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
     }
 
+    @Test
+    public void erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Addable",
+            "    function op_plus(int value) returns int",
+            "        return value",
+            "interface IntSupplier",
+            "    function get() returns int",
+            "int array values",
+            "init",
+            "    let box = new Box<int>",
+            "    let addable = new Addable()",
+            "    bool useBox = true",
+            "    values[0] = 7",
+            "    let sum = addable + box.get()",
+            "    let indexed = values[useBox ? box.get() : 0]",
+            "    IntSupplier supplier = () -> (useBox ? box.get() : 0)",
+            "    int blockValue = begin",
+            "        return (useBox ? box.get() : 0)",
+            "    end",
+            "    int switchValue = -1",
+            "    switch (useBox ? box.get() : 1)",
+            "        case 0",
+            "            switchValue = 0",
+            "    if sum == 0 and indexed == 7 and supplier.get() == 0",
+            "        and blockValue == 0 and switchValue == 0",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
+        assertEquals("each concrete integer consumer must normalize its erased generic input", 5,
+            countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
+    }
+
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
