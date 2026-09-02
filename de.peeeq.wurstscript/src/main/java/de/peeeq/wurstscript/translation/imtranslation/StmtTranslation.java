@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -293,8 +294,8 @@ public class StmtTranslation {
         List<ImStmt> result = Lists.newArrayList();
         result.add(ImSet(loopVar, ImVarAccess(imLoopVar), fromExpr));
 
-        ImExpr toExpr = addCacheVariableSmart(t, f, result, to, TypesHelper.imInt());
-        ImExpr stepExpr = addCacheVariableSmart(t, f, result, step, TypesHelper.imInt());
+        ImExpr toExpr = addCacheVariableSmart(t, f, result, to, TypesHelper.imInt(), WurstTypeInt.instance());
+        ImExpr stepExpr = addCacheVariableSmart(t, f, result, step, TypesHelper.imInt(), WurstTypeInt.instance());
 
         ImStmts imBody = ImStmts();
         // exitwhen imLoopVar > toExpr
@@ -310,6 +311,18 @@ public class StmtTranslation {
 
     private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache, ImType type) {
         ImExpr r = toCache.imTranslateExpr(t, f);
+        return addCacheVariableSmart(t, f, result, toCache, type, r);
+    }
+
+    private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result,
+                                                Expr toCache, ImType type, WurstType expectedType) {
+        ImExpr r = toCache.imTranslateExpr(t, f);
+        r = ExprTranslation.wrapTranslation(toCache, t, r, toCache.attrTypRaw(), expectedType);
+        return addCacheVariableSmart(t, f, result, toCache, type, r);
+    }
+
+    private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result,
+                                                Expr toCache, ImType type, ImExpr r) {
         if (r instanceof ImConst) {
             return r;
         }

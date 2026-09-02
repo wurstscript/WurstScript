@@ -2210,7 +2210,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let box = new Box<int>",
             "    values[box.get()] = 7",
             "    if box.get() + 1 == 1",
-            "        testSuccess()"
+            "        testSuccess()",
+            "    for i = 1 to box.get()",
+            "        testSuccess()",
+            "    testSuccess()"
         );
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse");
         assertTrue("concrete generic use must normalize an erased integer",
