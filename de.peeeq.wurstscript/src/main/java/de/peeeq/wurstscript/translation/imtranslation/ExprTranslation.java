@@ -208,10 +208,10 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
-        ImExpr left = e.getLeft().imTranslateExpr(t, f);
-        ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
         FuncLink overloadedOperator = e.attrFuncLink();
+        ImExpr left = translateConcatOperand(e, e.getLeft(), t, f, overloadedOperator);
+        ImExpr right = translateConcatOperand(e, e.getRight(), t, f, overloadedOperator);
         if (op == WurstOperator.PLUS && overloadedOperator == null) {
             left = wrapImplicitToString(e, e.getLeft(), left, t);
             right = wrapImplicitToString(e, e.getRight(), right, t);
@@ -241,6 +241,19 @@ public class ExprTranslation {
             }
         }
         return ImOperatorCall(op, ImExprs(left, right));
+    }
+
+    private static ImExpr translateConcatOperand(ExprBinary concat, Expr operand, ImTranslator t, ImFunction f,
+                                                 @Nullable FuncLink overloadedOperator) {
+        if (concat.getOp() == WurstOperator.PLUS && overloadedOperator == null
+            && isCompositeExpectedTypeExpression(operand)) {
+            FuncLink toString = AttrFuncDef.implicitToStringForConcatOperand(concat, operand);
+            if (toString != null) {
+                FunctionSignature signature = FunctionSignature.fromNameLink(toString);
+                return translateWithExpectedType(operand, t, f, signature.getReceiverType());
+            }
+        }
+        return operand.imTranslateExpr(t, f);
     }
 
     private static ImExpr wrapImplicitToString(ExprBinary concat, Expr operand, ImExpr translated,
