@@ -1535,8 +1535,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
         assertFunctionBodyContains(compiled, "testGenericStringField", "C_x_storage[c] = \"42\"", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "C_x_storage[c]", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr", false);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(C_x_storage[c])", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }
