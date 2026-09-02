@@ -2342,6 +2342,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "interface IntSupplier",
             "    function get() returns int",
             "int array values",
+            "function readArrayValue() returns int",
+            "    return values[0]",
             "init",
             "    let box = new Box<int>",
             "    let addable = new Addable()",
@@ -2365,7 +2367,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        case 0",
             "            switchValue = 0",
             "    if sum == 0 and builtinSum == 0 and overloaded == 0 and blockOverloaded == 0",
-            "        and indexed == 7 and supplier.get() == 0",
+            "        and indexed == 7 and readArrayValue() == 7 and supplier.get() == 0",
             "        and unarySupplier.get() == 0",
             "        and blockValue == 0 and switchValue == 0 and constructed.get() == 0",
             "        testSuccess()"
@@ -2373,15 +2375,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
         assertEquals("each concrete integer consumer must normalize its erased generic input", 11,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
+        assertTrue("global primitive array reads must remain safe for foreign writes",
+            compiled.contains("__wurst_ensureInt(Test_values[0])"));
     }
 
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
      * unsafe paths independently: erased generic propagation and a raw array
-     * read. The intermediate generic functions and an internal array reader
-     * must stay free of assurance calls, while the native call sites must have
-     * the appropriate normalization. This is intentionally compile-only: the
+     * read. The intermediate generic functions must stay free of assurance
+     * calls, while global array reads and native call sites must have the
+     * appropriate normalization. This is intentionally compile-only: the
      * generated native sinks have no Warcraft runtime implementation.
      */
     @Test
@@ -2423,7 +2427,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             );
 
             assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
-            assertFunctionBodyContains(compiled, "read", "__wurst_ensure", false);
+            String readNormalization = type.equals("bool")
+                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
+                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
+            assertFunctionBodyContains(compiled, "read", readNormalization, true);
             String genericArgument = type.equals("bool")
                 ? "(forward(" + literal + ") == true)"
                 : "__wurst_ensure" + suffix + "(forward(" + literal + "))";

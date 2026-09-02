@@ -353,14 +353,23 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * Normalizes primitive array reads only when they enter code outside the
-     * typed Wurst world.  Lua's array metatables already provide Wurst
-     * defaults for ordinary reads, so doing this at every read is redundant;
-     * a native/BJ/extern call is the point where an untyped value must be
-     * made safe for the callee.
+     * Normalizes primitive array reads which can cross the Lua/Wurst boundary.
+     * Arrays can be visible to foreign Lua/Jass code, so a present value can
+     * be malformed even though the array metatable supplies defaults for
+     * missing keys. Lvalue writes remain raw; only rvalue reads are wrapped.
      */
     private static void lowerPrimitiveArrayBoundaryEnsure(ImProg prog, ImTranslator translator) {
         prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                super.visit(access);
+                if (access.isUsedAsLValue() || isAlreadyNormalized(access, translator)
+                    || isAlreadyNormalizedAccess(access, translator)) {
+                    return;
+                }
+                replaceWithEnsure(access, access.attrTrace(), translator);
+            }
+
             @Override
             public void visit(ImFunctionCall call) {
                 super.visit(call);
@@ -373,22 +382,26 @@ public final class LuaNativeLowering {
                         || isAlreadyNormalized(argument, translator)) {
                         continue;
                     }
-                    ImFunction ensure = ensureFunctionFor(argument.attrTyp(), translator);
-                    if (ensure == null) {
-                        continue;
-                    }
-                    ImExpr normalized;
-                    if (ensure == translator.ensureBoolFunc) {
-                        normalized = JassIm.ImOperatorCall(WurstOperator.EQ,
-                            JassIm.ImExprs(argument.copy(), JassIm.ImBoolVal(true)));
-                    } else {
-                        normalized = callWithStacktrace(call.attrTrace(), ensure,
-                            JassIm.ImExprs(argument.copy()));
-                    }
-                    argument.replaceBy(normalized);
+                    replaceWithEnsure((ImVarArrayAccess) argument, call.attrTrace(), translator);
                 }
             }
         });
+    }
+
+    private static void replaceWithEnsure(ImVarArrayAccess access, de.peeeq.wurstscript.ast.Element trace,
+                                          ImTranslator translator) {
+        ImFunction ensure = ensureFunctionFor(access.attrTyp(), translator);
+        if (ensure == null) {
+            return;
+        }
+        ImExpr normalized;
+        if (ensure == translator.ensureBoolFunc) {
+            normalized = JassIm.ImOperatorCall(WurstOperator.EQ,
+                JassIm.ImExprs(access.copy(), JassIm.ImBoolVal(true)));
+        } else {
+            normalized = callWithStacktrace(trace, ensure, JassIm.ImExprs(access.copy()));
+        }
+        access.replaceBy(normalized);
     }
 
     private static boolean isExternalBoundary(ImFunction function) {
@@ -397,11 +410,40 @@ public final class LuaNativeLowering {
     }
 
     private static boolean isAlreadyNormalized(ImExpr argument, ImTranslator translator) {
-        return argument instanceof ImFunctionCall
+        if (argument instanceof ImFunctionCall
             && (((ImFunctionCall) argument).getFunc() == translator.ensureIntFunc
                 || ((ImFunctionCall) argument).getFunc() == translator.ensureBoolFunc
                 || ((ImFunctionCall) argument).getFunc() == translator.ensureRealFunc
-                || ((ImFunctionCall) argument).getFunc() == translator.ensureStrFunc);
+                || ((ImFunctionCall) argument).getFunc() == translator.ensureStrFunc)) {
+            return true;
+        }
+        if (argument instanceof ImOperatorCall) {
+            ImOperatorCall operator = (ImOperatorCall) argument;
+            return operator.getOp() == WurstOperator.EQ
+                && operator.getArguments().size() == 2
+                && operator.getArguments().get(1) instanceof ImBoolVal
+                && ((ImBoolVal) operator.getArguments().get(1)).getValB();
+        }
+        return false;
+    }
+
+    private static boolean isAlreadyNormalizedAccess(ImVarArrayAccess access, ImTranslator translator) {
+        Element parent = access.getParent();
+        Element owner = parent == null ? null : parent.getParent();
+        if (owner instanceof ImFunctionCall) {
+            ImFunction function = ((ImFunctionCall) owner).getFunc();
+            return function == translator.ensureIntFunc || function == translator.ensureBoolFunc
+                || function == translator.ensureRealFunc || function == translator.ensureStrFunc;
+        }
+        if (!(owner instanceof ImOperatorCall)) {
+            return false;
+        }
+        ImOperatorCall operator = (ImOperatorCall) owner;
+        return operator.getOp() == WurstOperator.EQ
+            && operator.getArguments().size() == 2
+            && operator.getArguments().get(0) == access
+            && operator.getArguments().get(1) instanceof ImBoolVal
+            && ((ImBoolVal) operator.getArguments().get(1)).getValB();
     }
 
     private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {
