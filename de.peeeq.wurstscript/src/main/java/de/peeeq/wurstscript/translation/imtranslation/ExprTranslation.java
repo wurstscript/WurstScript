@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
+import de.peeeq.wurstscript.attributes.AttrExprExpectedType;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.AttrImplicitParameter;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -99,7 +100,10 @@ public class ExprTranslation {
 
     private static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated) {
         WurstType actualType = e.attrTypRaw();
-        WurstType expectedTypRaw = e.attrExpectedTypRaw();
+        WurstType expectedTypRaw = actualType instanceof WurstTypeBoundTypeParam
+            && e.getParent() instanceof Arguments
+            ? AttrExprExpectedType.afterOverloading(e)
+            : e.attrExpectedTypRaw();
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }
 

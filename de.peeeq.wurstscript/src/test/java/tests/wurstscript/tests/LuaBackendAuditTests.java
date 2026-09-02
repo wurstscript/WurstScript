@@ -2293,6 +2293,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
     }
 
+    @Test
+    public void erasedGenericPrimitiveDefaultsUseTheSelectedOverload() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "function consume(int value)",
+            "    if value == 0",
+            "        testSuccess()",
+            "function consume(string value)",
+            "init",
+            "    let box = new Box<int>",
+            "    consume(box.get())"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsUseTheSelectedOverload");
+        assertTrue("selected integer overload arguments must normalize erased primitive values",
+            compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
+    }
+
     /**
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
