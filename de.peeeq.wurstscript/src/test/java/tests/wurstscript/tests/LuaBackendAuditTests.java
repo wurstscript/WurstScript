@@ -200,6 +200,33 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleMemberArrayAssignmentCapturesIndex() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int first, int second)",
+            "constant SIZE = 10",
+            "class Container",
+            "    pair array[SIZE] values",
+            "    int used",
+            "    function add(pair value)",
+            "        values[used] = value",
+            "        used++",
+            "init",
+            "    let container = new Container()",
+            "    container.add(pair(1, 2))",
+            "    if container.used == 1 and container.values[0] == pair(1, 2)",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("tupleMemberArrayAssignmentCapturesIndex");
+        assertTrue("tuple member-array index must be captured into a declared Lua local",
+            compiled.contains("local tuple_lvalue_index = 0"));
+        assertTrue("tuple member-array index capture must survive dead-store elimination",
+            compiled.contains("tuple_lvalue_index = Container_used_storage[this]"));
+    }
+
+    @Test
     public void optimizedTupleCommonPathIsOnlyScalarCode() {
         String compiled = compileOptimizedLua(
             "optimizedTupleCommonPathIsOnlyScalarCode",
