@@ -212,6 +212,14 @@ public class ExprTranslation {
         FuncLink overloadedOperator = e.attrFuncLink();
         ImExpr left = translateConcatOperand(e, e.getLeft(), t, f, overloadedOperator);
         ImExpr right = translateConcatOperand(e, e.getRight(), t, f, overloadedOperator);
+        if (overloadedOperator == null) {
+            // A built-in operator can leave both operands with the same erased
+            // generic type. In that case there is no concrete expected type to
+            // trigger wrapTranslation, but Lua still needs each operand's
+            // primitive default restored before applying the operator.
+            left = normalizeBuiltinOperand(e.getLeft(), left, t);
+            right = normalizeBuiltinOperand(e.getRight(), right, t);
+        }
         if (op == WurstOperator.PLUS && overloadedOperator == null) {
             left = wrapImplicitToString(e, e.getLeft(), left, t);
             right = wrapImplicitToString(e, e.getRight(), right, t);
@@ -241,6 +249,14 @@ public class ExprTranslation {
             }
         }
         return ImOperatorCall(op, ImExprs(left, right));
+    }
+
+    private static ImExpr normalizeBuiltinOperand(Expr operand, ImExpr translated, ImTranslator t) {
+        if (!t.isLuaTarget() || !(operand.attrTypRaw() instanceof WurstTypeBoundTypeParam)
+            || isAlreadyTypeAssured(translated, t)) {
+            return translated;
+        }
+        return wrapLua(operand, t, translated, operand.attrTypRaw());
     }
 
     private static ImExpr translateConcatOperand(ExprBinary concat, Expr operand, ImTranslator t, ImFunction f,
@@ -926,7 +942,9 @@ public class ExprTranslation {
         WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
         ImClass imClass = t.getClassFor(wurstType.getClassDef());
         ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
-        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        FunctionSignature selectedSignature = t.isLuaTarget() ? sig : null;
+        return ImFunctionCall(e, constructorImFunc, typeArgs,
+            translateExprs(e.getArgs(), t, f, false, selectedSignature), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
