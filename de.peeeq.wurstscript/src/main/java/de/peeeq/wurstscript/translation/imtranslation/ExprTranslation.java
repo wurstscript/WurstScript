@@ -885,7 +885,7 @@ public class ExprTranslation {
     }
 
     private static boolean isCompositeExpectedTypeExpression(Expr e) {
-        return e instanceof ExprIfElse || e instanceof ExprUnary;
+        return e instanceof ExprIfElse || e instanceof ExprUnary || e instanceof ExprStatementsBlock;
     }
 
     private static boolean isLuaExternalBoundary(ImFunction function) {
@@ -986,7 +986,11 @@ public class ExprTranslation {
     }
 
     public static ImExpr translate(ExprStatementsBlock e, ImTranslator translator, ImFunction f) {
+        return translateStatementsBlock(e, translator, f, e.attrExpectedTypRaw());
+    }
 
+    private static ImExpr translateStatementsBlock(ExprStatementsBlock e, ImTranslator translator, ImFunction f,
+                                                   WurstType expectedType) {
         ImStmts statements = JassIm.ImStmts();
         for (WStatement s : e.getBody()) {
             if (s instanceof StmtReturn) {
@@ -999,17 +1003,17 @@ public class ExprTranslation {
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
             Expr returnedExpr = (Expr) r.getReturnedObj();
-            boolean propagatesExpectedType = returnedExpr instanceof ExprIfElse || returnedExpr instanceof ExprUnary;
+            boolean propagatesExpectedType = isCompositeExpectedTypeExpression(returnedExpr);
             ImExpr expr = propagatesExpectedType
-                ? translateWithExpectedType(returnedExpr, translator, f, e.attrExpectedTypRaw())
+                ? translateWithExpectedType(returnedExpr, translator, f, expectedType)
                 : returnedExpr.imTranslateExpr(translator, f);
             if (!propagatesExpectedType) {
-                expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), e.attrExpectedTypRaw());
+                expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), expectedType);
             }
             ImExpr result = JassIm.ImStatementExpr(statements, expr);
             return propagatesExpectedType
                 ? result
-                : wrapTranslation(e, translator, result, e.attrTypRaw(), e.attrExpectedTypRaw());
+                : wrapTranslation(e, translator, result, e.attrTypRaw(), expectedType);
         } else {
             return ImHelper.statementExprVoid(statements);
         }
@@ -1065,6 +1069,9 @@ public class ExprTranslation {
     static ImExpr translateWithExpectedType(Expr e, ImTranslator t, ImFunction f, WurstType expectedType) {
         if (e instanceof ExprIfElse) {
             return translateWithExpectedType((ExprIfElse) e, t, f, expectedType);
+        }
+        if (e instanceof ExprStatementsBlock) {
+            return translateStatementsBlock((ExprStatementsBlock) e, t, f, expectedType);
         }
         if (e instanceof ExprUnary) {
             ExprUnary unary = (ExprUnary) e;
