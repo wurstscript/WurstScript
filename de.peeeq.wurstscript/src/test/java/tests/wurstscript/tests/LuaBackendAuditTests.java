@@ -2201,6 +2201,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
+            "native testFail(string message)",
             "int array values",
             "class Box<T:>",
             "    T value",
@@ -2213,6 +2214,11 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()",
             "    for i = 1 to box.get()",
             "        testSuccess()",
+            "    switch box.get()",
+            "        case 0",
+            "            testSuccess()",
+            "        default",
+            "            testFail(\"switch\")",
             "    testSuccess()"
         );
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse");

@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -484,7 +485,10 @@ public class StmtTranslation {
     public static ImStmt translate(SwitchStmt switchStmt, ImTranslator t, ImFunction f) {
         List<ImStmt> result = Lists.newArrayList();
         ImType type = switchStmt.getExpr().attrTyp().imTranslateType(t);
-        ImExpr tempVar = addCacheVariableSmart(t, f, result, switchStmt.getExpr(), type);
+        WurstType expectedType = switchExpectedType(switchStmt);
+        ImExpr tempVar = expectedType == null
+            ? addCacheVariableSmart(t, f, result, switchStmt.getExpr(), type)
+            : addCacheVariableSmart(t, f, result, switchStmt.getExpr(), type, expectedType);
         // generate ifs
         // leerer Block:
         //ImStmts();
@@ -531,6 +535,16 @@ public class StmtTranslation {
 
 
         return ImHelper.statementExprVoid(ImStmts(result));
+    }
+
+    private static @Nullable WurstType switchExpectedType(SwitchStmt switchStmt) {
+        for (SwitchCase switchCase : switchStmt.getCases()) {
+            for (Expr expression : switchCase.getExpressions()) {
+                WurstType type = expression.attrTyp();
+                return type instanceof WurstTypeIntLiteral ? WurstTypeInt.instance() : type;
+            }
+        }
+        return null;
     }
 
     /**
