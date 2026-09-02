@@ -29,6 +29,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -809,11 +810,23 @@ public final class JassDocService {
 
     private void validateDownloadedDatabase(Path downloaded) throws IOException {
         try (Connection conn = open(downloaded)) {
+            if (!passesIntegrityCheck(conn)) {
+                throw new IOException("Downloaded JassDoc database failed SQLite integrity check");
+            }
             if (discoverSchemas(conn).isEmpty() && !hasCompatibleLegacyJassdocSchema(conn)) {
                 throw new IOException("Downloaded file is not a compatible JassDoc database");
             }
         } catch (SQLException e) {
             throw new IOException("Downloaded file is not a valid JassDoc database", e);
+        }
+    }
+
+    private boolean passesIntegrityCheck(Connection conn) throws SQLException {
+        try (Statement statement = conn.createStatement();
+             ResultSet result = statement.executeQuery("PRAGMA integrity_check")) {
+            return result.next()
+                && "ok".equalsIgnoreCase(result.getString(1))
+                && !result.next();
         }
     }
 
@@ -827,14 +840,7 @@ public final class JassDocService {
     }
 
     private HttpURLConnection openHttpConnection(URL url) throws IOException {
-        Optional<String> proxySetting = Utils.getEnvOrConfig("WURST_JASSDOC_DB_PROXY");
-        if (proxySetting.isEmpty()) {
-            Optional<String> noProxy = firstConfigured("NO_PROXY", "no_proxy");
-            if (noProxy.isPresent() && shouldBypassProxy(url.getHost(), noProxy.get())) {
-                return (HttpURLConnection) url.openConnection();
-            }
-            proxySetting = firstConfigured("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy");
-        }
+        Optional<String> proxySetting = selectProxySetting(url, Utils::getEnvOrConfig);
         if (proxySetting.isEmpty()) {
             return (HttpURLConnection) url.openConnection();
         }
@@ -849,6 +855,25 @@ public final class JassDocService {
             connection.setRequestProperty("Proxy-Authorization", "Basic " + credentials);
         }
         return connection;
+    }
+
+    static Optional<String> selectProxySetting(URL url,
+                                                Function<String, Optional<String>> lookup) {
+        Optional<String> proxySetting = lookup.apply("WURST_JASSDOC_DB_PROXY");
+        if (proxySetting.isPresent()) {
+            return proxySetting;
+        }
+        Optional<String> noProxy = firstConfigured(lookup, "NO_PROXY", "no_proxy");
+        if (noProxy.isPresent() && shouldBypassProxy(url.getHost(), noProxy.get())) {
+            return Optional.empty();
+        }
+        if ("https".equalsIgnoreCase(url.getProtocol())) {
+            return firstConfigured(lookup, "HTTPS_PROXY", "https_proxy");
+        }
+        if ("http".equalsIgnoreCase(url.getProtocol())) {
+            return firstConfigured(lookup, "HTTP_PROXY", "http_proxy");
+        }
+        return Optional.empty();
     }
 
     static URI parseHttpProxyUri(String value) throws IOException {
@@ -895,9 +920,10 @@ public final class JassDocService {
         return false;
     }
 
-    private Optional<String> firstConfigured(String... names) {
+    private static Optional<String> firstConfigured(
+        Function<String, Optional<String>> lookup, String... names) {
         return Stream.of(names)
-            .map(Utils::getEnvOrConfig)
+            .map(lookup)
             .flatMap(Optional::stream)
             .findFirst();
     }
