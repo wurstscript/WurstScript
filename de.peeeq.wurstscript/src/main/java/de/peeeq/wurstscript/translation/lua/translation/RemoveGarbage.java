@@ -11,7 +11,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -98,11 +97,13 @@ public class RemoveGarbage {
             }
             if (newDispatchClass) {
                 Collection<ImMethod> imMethods = waitingMethods.get(c);
-                Iterator<ImMethod> it = imMethods.iterator();
-                while (it.hasNext()) {
-                    ImMethod m = it.next();
-                    visitMethod(m, this);
-                    it.remove();
+                if (!imMethods.isEmpty()) {
+                    Object[] pendingMethods = imMethods.toArray();
+                    for (int i = 0; i < pendingMethods.length; i++) {
+                        ImMethod m = (ImMethod) pendingMethods[i];
+                        visitMethod(m, this);
+                        waitingMethods.remove(c, m);
+                    }
                 }
             }
             return newClass || newDispatchClass;
@@ -112,8 +113,9 @@ public class RemoveGarbage {
             if (!instantiatedClasses.add(c)) {
                 return;
             }
-            for (ImClassType superClass : c.getSuperClasses()) {
-                addInstantiatedClass(superClass.getClassDef());
+            List<ImClassType> superClasses = c.getSuperClasses();
+            for (int i = 0; i < superClasses.size(); i++) {
+                addInstantiatedClass(superClasses.get(i).getClassDef());
             }
         }
     }
@@ -125,20 +127,24 @@ public class RemoveGarbage {
         prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !NamePreservation.isPreserved(g));
         prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
         prog.getMethods().removeIf(m -> !used.getMethods().contains(m));
-        for (ImMethod m : prog.getMethods()) {
-            m.getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+        List<ImMethod> methods = prog.getMethods();
+        for (int i = 0; i < methods.size(); i++) {
+            methods.get(i).getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
         }
         // A field of a specialised class is a copy which nothing refers to, an access made before
         // specialisation still naming the original's variable. It is live exactly when the field it
         // was copied from is; dropping it leaves an instance of the specialised class allocated with
         // no fields at all while the emitted code goes on reading them.
-        for (ImClass c : prog.getClasses()) {
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            ImClass c = classes.get(i);
             c.getFields().removeIf(g -> !used.getVars().contains(g)
                 && !used.getVars().contains(translator.canonical(g)));
             c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
             c.getMethods().removeIf(m -> !used.getMethods().contains(m));
-            for (ImMethod m : c.getMethods()) {
-                m.getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+            List<ImMethod> classMethods = c.getMethods();
+            for (int j = 0; j < classMethods.size(); j++) {
+                classMethods.get(j).getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
             }
         }
 
@@ -151,7 +157,9 @@ public class RemoveGarbage {
     private static Used collectUsed(ImProg prog, ImTranslator translator,
                                     Set<ImSet> ignoredInitializers) {
         Used used = new Used(translator, ignoredInitializers);
-        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+        List<ImFunction> programFunctions = ImHelper.calculateFunctionsOfProg(prog);
+        for (int i = 0; i < programFunctions.size(); i++) {
+            ImFunction f = programFunctions.get(i);
             if (f.getName().equals("main")
                 || f.getName().equals("config")
                 || NamePreservation.isPreserved(f)) {
@@ -163,7 +171,9 @@ public class RemoveGarbage {
 
     public static void removePhantomGenericStaticInitializers(ImProg prog, ImTranslator translator) {
         Map<ImVar, List<ImSet>> candidates = new LinkedHashMap<>();
-        for (ImVar global : prog.getGlobals()) {
+        List<ImVar> globals = prog.getGlobals();
+        for (int i = 0; i < globals.size(); i++) {
+            ImVar global = globals.get(i);
             ImTranslator.Specialisation specialization = translator.specialisationOf(global);
             if (specialization != null && specialization.original() instanceof ImVar original
                 && translator.genericStaticOwnerOf(original) != null) {
@@ -182,14 +192,20 @@ public class RemoveGarbage {
         boolean changed;
         do {
             Set<ImSet> ignored = Collections.newSetFromMap(new IdentityHashMap<>());
-            for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+            Object[] candidateEntries = candidates.entrySet().toArray();
+            for (int i = 0; i < candidateEntries.length; i++) {
+                @SuppressWarnings("unchecked")
+                Map.Entry<ImVar, List<ImSet>> candidate
+                    = (Map.Entry<ImVar, List<ImSet>>) candidateEntries[i];
                 if (!liveOriginals.contains(candidate.getKey())) {
                     ignored.addAll(candidate.getValue());
                 }
             }
             Used used = collectUsed(prog, translator, ignored);
             changed = false;
-            for (ImVar original : candidates.keySet()) {
+            Object[] candidateKeys = candidates.keySet().toArray();
+            for (int i = 0; i < candidateKeys.length; i++) {
+                ImVar original = (ImVar) candidateKeys[i];
                 ImClass owner = translator.genericStaticOwnerOf(original);
                 boolean erasedInstantiationNeedsOriginal = used.getInstantiatedClasses().contains(owner)
                     && translator.hasErasedAllocationWithoutStaticSpecialization(owner, original);
@@ -200,12 +216,18 @@ public class RemoveGarbage {
             }
         } while (changed);
 
-        for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+        Object[] finalCandidateEntries = candidates.entrySet().toArray();
+        for (int i = 0; i < finalCandidateEntries.length; i++) {
+            @SuppressWarnings("unchecked")
+            Map.Entry<ImVar, List<ImSet>> candidate
+                = (Map.Entry<ImVar, List<ImSet>>) finalCandidateEntries[i];
             if (liveOriginals.contains(candidate.getKey())) {
                 continue;
             }
             prog.getGlobalInits().remove(candidate.getKey());
-            for (ImSet initializer : candidate.getValue()) {
+            List<ImSet> initSetters = candidate.getValue();
+            for (int j = 0; j < initSetters.size(); j++) {
+                ImSet initializer = initSetters.get(j);
                 if (initializer.getParent() == null) {
                     continue;
                 }
@@ -322,8 +344,9 @@ public class RemoveGarbage {
             // abstract methods can have no implementation
             visitFunction(m.getImplementation(), used);
         }
-        for (ImMethod subMethod : m.getSubMethods()) {
-            used.maybeVisitMethod(subMethod);
+        List<ImMethod> subMethods = m.getSubMethods();
+        for (int i = 0; i < subMethods.size(); i++) {
+            used.maybeVisitMethod(subMethods.get(i));
         }
     }
 
@@ -335,8 +358,9 @@ public class RemoveGarbage {
         if (!used.addClass(c, dispatchReachable)) {
             return;
         }
-        for (ImClassType superClass : c.getSuperClasses()) {
-            visitClass(superClass.getClassDef(), used, dispatchReachable);
+        List<ImClassType> superClasses = c.getSuperClasses();
+        for (int i = 0; i < superClasses.size(); i++) {
+            visitClass(superClasses.get(i).getClassDef(), used, dispatchReachable);
         }
     }
 
@@ -350,8 +374,9 @@ public class RemoveGarbage {
 
             @Override
             public void case_ImTupleType(ImTupleType tt) {
-                for (ImType type : tt.getTypes()) {
-                    visitType(type, used);
+                List<ImType> types = tt.getTypes();
+                for (int i = 0; i < types.size(); i++) {
+                    visitType(types.get(i), used);
                 }
             }
 
@@ -378,8 +403,9 @@ public class RemoveGarbage {
             @Override
             public void case_ImClassType(ImClassType tt) {
                 visitClass(tt.getClassDef(), used, false);
-                for (ImTypeArgument ta : tt.getTypeArguments()) {
-                    visitType(ta.getType(), used);
+                List<ImTypeArgument> tArgs = tt.getTypeArguments();
+                for (int i = 0; i < tArgs.size(); i++) {
+                    visitType(tArgs.get(i).getType(), used);
                 }
             }
 
