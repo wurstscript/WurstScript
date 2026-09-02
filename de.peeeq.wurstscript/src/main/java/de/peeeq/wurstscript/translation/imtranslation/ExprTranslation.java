@@ -703,7 +703,8 @@ public class ExprTranslation {
 
         ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
         boolean normalizeAtBoundary = directFunc != null && isLuaExternalBoundary(directFunc);
-        ImExprs imArgs = translateExprs(arguments, t, f, normalizeAtBoundary);
+        FunctionSignature selectedSignature = t.isLuaTarget() ? e.attrFunctionSignature() : null;
+        ImExprs imArgs = translateExprs(arguments, t, f, normalizeAtBoundary, selectedSignature);
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
@@ -832,15 +833,30 @@ public class ExprTranslation {
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
                                           boolean externalBoundary) {
+        return translateExprs(arguments, t, f, externalBoundary, null);
+    }
+
+    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
+                                          boolean externalBoundary, @Nullable FunctionSignature selectedSignature) {
         ImExprs result = ImExprs();
-        for (Expr e : arguments) {
-            ImExpr translated = e.imTranslateExpr(t, f);
+        for (int i = 0; i < arguments.size(); i++) {
+            Expr e = arguments.get(i);
+            WurstType expectedType = selectedSignature != null && i < selectedSignature.getMaxNumParams()
+                ? selectedSignature.getParamType(i)
+                : null;
+            ImExpr translated = expectedType != null && isCompositeExpectedTypeExpression(e)
+                ? translateWithExpectedType(e, t, f, expectedType)
+                : e.imTranslateExpr(t, f);
             if (externalBoundary) {
                 translated = wrapLuaAtExternalBoundary(e, t, translated);
             }
             result.add(translated);
         }
         return result;
+    }
+
+    private static boolean isCompositeExpectedTypeExpression(Expr e) {
+        return e instanceof ExprIfElse || e instanceof ExprUnary;
     }
 
     private static boolean isLuaExternalBoundary(ImFunction function) {
@@ -1026,7 +1042,26 @@ public class ExprTranslation {
             return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
         }
         ImExpr translated = e.imTranslateExpr(t, f);
+        if (isAlreadyTypeAssured(translated, t)) {
+            return translated;
+        }
         return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
+    }
+
+    private static boolean isAlreadyTypeAssured(ImExpr translated, ImTranslator t) {
+        if (translated instanceof ImFunctionCall) {
+            ImFunction function = ((ImFunctionCall) translated).getFunc();
+            return function == t.ensureIntFunc || function == t.ensureRealFunc
+                || function == t.ensureStrFunc || function == t.ensureBoolFunc;
+        }
+        if (translated instanceof ImOperatorCall) {
+            ImOperatorCall operator = (ImOperatorCall) translated;
+            return operator.getOp() == WurstOperator.EQ
+                && operator.getArguments().size() == 2
+                && operator.getArguments().get(1) instanceof ImBoolVal
+                && ((ImBoolVal) operator.getArguments().get(1)).getValB();
+        }
+        return false;
     }
 
     private static ImExpr translateWithExpectedType(ExprIfElse e, ImTranslator t, ImFunction f,
