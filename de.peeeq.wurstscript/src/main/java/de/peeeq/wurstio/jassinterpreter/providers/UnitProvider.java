@@ -33,6 +33,7 @@ public class UnitProvider extends Provider {
     static {
         ORDER_IDS.put("smart", 851971);
         ORDER_IDS.put("stop", 851972);
+        ORDER_IDS.put("setrally", 851980);
         ORDER_IDS.put("cancel", 851976);
         ORDER_IDS.put("resumeharvesting", 852017);
         ORDER_IDS.put("harvest", 852018);
@@ -68,6 +69,10 @@ public class UnitProvider extends Provider {
         ORDER_IDS.put("firebolt", 852231);
         ORDER_IDS.put("inferno", 852232);
         ORDER_IDS.put("poisonarrows", 852255);
+        ORDER_IDS.put("blizzard", 852089);
+        ORDER_IDS.put("blink", 852525);
+        ORDER_IDS.put("flamestrike", 852488);
+        ORDER_IDS.put("entangleinstant", 852171);
         ORDER_IDS.put("attack", 851983);
         ORDER_IDS.put("attackground", 851984);
         ORDER_IDS.put("attackonce", 851985);
@@ -385,7 +390,10 @@ public class UnitProvider extends Provider {
     public ILconstBool IsUnitIllusion(IlConstHandle unit) { return ILconstBool.FALSE; }
     public ILconstBool IsUnitInTransport(IlConstHandle unit, IlConstHandle transport) { return ILconstBool.FALSE; }
     public ILconstBool IsUnitLoaded(IlConstHandle unit) { return ILconstBool.FALSE; }
-    public ILconstBool IsHeroUnitId(ILconstInt unitId) { return ILconstBool.FALSE; }
+    public ILconstBool IsHeroUnitId(ILconstInt unitId) {
+        String rawcode = ObjectHelper.objectIdIntToString(unitId.getVal());
+        return ILconstBool.instance(!rawcode.isEmpty() && Character.isUpperCase(rawcode.charAt(0)));
+    }
     public ILconstBool IsUnitIdType(ILconstInt unitId, IlConstHandle unitType) { return ILconstBool.FALSE; }
 
     public ILconstBool UnitAddType(IlConstHandle unit, IlConstHandle unitType) {
@@ -464,7 +472,9 @@ public class UnitProvider extends Provider {
             return unitMock.states.getOrDefault("unitstate0", ILconstReal.create(0));
         }
         DestructableMock destructableMock = destructableOrNull(widget);
-        return destructableMock == null ? ILconstReal.create(0) : destructableMock.life;
+        if (destructableMock != null) return destructableMock.life;
+        ItemMock itemMock = itemOrNull(widget);
+        return itemMock == null ? ILconstReal.create(0) : itemMock.life;
     }
 
     public void SetWidgetLife(IlConstHandle widget, ILconstReal newLife) {
@@ -476,7 +486,10 @@ public class UnitProvider extends Provider {
         DestructableMock destructableMock = destructableOrNull(widget);
         if (destructableMock != null) {
             destructableMock.life = newLife;
+            return;
         }
+        ItemMock itemMock = itemOrNull(widget);
+        if (itemMock != null) itemMock.life = newLife;
     }
 
     public ILconstBool UnitAddAbility(IlConstHandle unit, ILconstInt abilityId) {
@@ -776,8 +789,13 @@ public class UnitProvider extends Provider {
             return ILconstBool.TRUE;
         }
         DestructableMock destructable = destructableOrNull(target);
-        if (destructable == null) return ILconstBool.FALSE;
-        destructable.life = ILconstReal.create((float) Math.max(0, destructable.life.getVal() - amount.getVal()));
+        if (destructable != null) {
+            destructable.life = ILconstReal.create((float) Math.max(0, destructable.life.getVal() - amount.getVal()));
+            return ILconstBool.TRUE;
+        }
+        ItemMock item = itemOrNull(target);
+        if (item == null) return ILconstBool.FALSE;
+        item.life = ILconstReal.create((float) Math.max(0, item.life.getVal() - amount.getVal()));
         return ILconstBool.TRUE;
     }
 
@@ -915,6 +933,11 @@ public class UnitProvider extends Provider {
             return null;
         }
         return (DestructableMock) destructable.getObj();
+    }
+
+    private ItemMock itemOrNull(IlConstHandle item) {
+        if (item == null || !(item.getObj() instanceof ItemMock)) return null;
+        return (ItemMock) item.getObj();
     }
 
     private String unitStateKey(IlConstHandle unitstate) {
