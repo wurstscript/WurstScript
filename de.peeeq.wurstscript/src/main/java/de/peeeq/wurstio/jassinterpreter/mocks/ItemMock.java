@@ -8,6 +8,7 @@ public class ItemMock {
     public ILconstInt id;
     public ILconstReal x;
     public ILconstReal y;
+    public ILconstReal life = ILconstReal.create(100);
     private ILconstBool visible;
 
     public ItemMock(ILconstInt id, ILconstReal x, ILconstReal y) {
