@@ -2201,12 +2201,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
+            "int array values",
             "class Box<T:>",
             "    T value",
             "    function get() returns T",
             "        return value",
             "init",
             "    let box = new Box<int>",
+            "    values[box.get()] = 7",
             "    if box.get() + 1 == 1",
             "        testSuccess()"
         );

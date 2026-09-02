@@ -379,8 +379,8 @@ public final class LuaNativeLowering {
                     }
                     ImExpr normalized;
                     if (ensure == translator.ensureBoolFunc) {
-                        normalized = JassIm.ImOperatorCall(WurstOperator.NOTEQ,
-                            JassIm.ImExprs(argument.copy(), JassIm.ImNull(JassIm.ImAnyType())));
+                        normalized = JassIm.ImOperatorCall(WurstOperator.EQ,
+                            JassIm.ImExprs(argument.copy(), JassIm.ImBoolVal(true)));
                     } else {
                         normalized = JassIm.ImFunctionCall(call.attrTrace(), ensure,
                             JassIm.ImTypeArguments(), JassIm.ImExprs(argument.copy()), false, CallType.NORMAL);

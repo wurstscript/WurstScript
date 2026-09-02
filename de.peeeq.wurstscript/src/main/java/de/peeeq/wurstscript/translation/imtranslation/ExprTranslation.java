@@ -140,7 +140,19 @@ public class ExprTranslation {
         return translated;
     }
 
-    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+    static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+        return wrapTranslation(e, t, translated, actualType, expectedTypRaw,
+            e.getParent() instanceof Indexes);
+    }
+
+    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated,
+                                  WurstType actualType, WurstType expectedTypRaw) {
+        return wrapTranslation(trace, t, translated, actualType, expectedTypRaw, false);
+    }
+
+    private static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated,
+                                          WurstType actualType, WurstType expectedTypRaw,
+                                          boolean indexContext) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -184,7 +196,7 @@ public class ExprTranslation {
         if (actualType instanceof WurstTypeBoundTypeParam
             && !(expectedTypRaw instanceof WurstTypeBoundTypeParam)
             && !(expectedTypRaw instanceof WurstTypeTypeParam)
-            && isPrimitiveType(expectedTypRaw)) {
+            && (isPrimitiveType(expectedTypRaw) || indexContext)) {
             return wrapLua(trace, t, translated, actualType);
         }
         return translated;
