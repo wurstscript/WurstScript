@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
+import de.peeeq.wurstscript.attributes.AttrExprExpectedType;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.AttrImplicitParameter;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -99,13 +100,19 @@ public class ExprTranslation {
 
     private static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated) {
         WurstType actualType = e.attrTypRaw();
-        WurstType expectedTypRaw = e.attrExpectedTypRaw();
+        WurstType expectedTypRaw = t.isLuaTarget()
+            && actualType instanceof WurstTypeBoundTypeParam
+            && e.getParent() instanceof Arguments
+            ? AttrExprExpectedType.afterOverloading(e)
+            : e.attrExpectedTypRaw();
         return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
     }
 
     static ImExpr wrapLua(Element trace, ImTranslator t, ImExpr translated, WurstType actualType) {
-        // use ensureType functions for lua
-        // these functions convert nil to the default value for primitive types (int, string, bool, real)
+        // Erased generic values are the one kind of Wurst value which can lose
+        // its primitive default when represented in Lua.  Keep the
+        // normalization available to callers which explicitly cross an
+        // external boundary; ordinary Wurst expressions must not pay for it.
         if (t.isLuaTarget() && actualType instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
 
@@ -125,13 +132,32 @@ public class ExprTranslation {
                     break;
             }
             if(ensureType != null) {
+                // Lua already has the exact cheap operation needed for the
+                // boolean case.  Equality with true preserves false while
+                // mapping nil (and other non-true values) to false.
+                if (ensureType == t.ensureBoolFunc) {
+                    return ImOperatorCall(WurstOperator.EQ, ImExprs(
+                        translated, ImBoolVal(true)));
+                }
                 return ImFunctionCall(trace, ensureType, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
             }
         }
         return translated;
     }
 
-    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+    static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+        return wrapTranslation(e, t, translated, actualType, expectedTypRaw,
+            e.getParent() instanceof Indexes);
+    }
+
+    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated,
+                                  WurstType actualType, WurstType expectedTypRaw) {
+        return wrapTranslation(trace, t, translated, actualType, expectedTypRaw, false);
+    }
+
+    private static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated,
+                                          WurstType actualType, WurstType expectedTypRaw,
+                                          boolean indexContext) {
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -168,14 +194,32 @@ public class ExprTranslation {
 //            System.out.println("  --> toIndex");
             return wrapLua(trace, t, ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL), actualType);
         }
-        return wrapLua(trace, t, translated, actualType);
+        // Preserve Wurst's primitive defaults when an erased generic value is
+        // consumed by a concrete primitive expression. Generic-to-generic
+        // propagation remains raw and is normalized only at its eventual
+        // concrete/native boundary.
+        if (actualType instanceof WurstTypeBoundTypeParam
+            && !(expectedTypRaw instanceof WurstTypeBoundTypeParam)
+            && !(expectedTypRaw instanceof WurstTypeTypeParam)
+            && (isPrimitiveType(expectedTypRaw) || indexContext)) {
+            return wrapLua(trace, t, translated, actualType);
+        }
+        return translated;
     }
 
     public static ImExpr translateIntern(ExprBinary e, ImTranslator t, ImFunction f) {
-        ImExpr left = e.getLeft().imTranslateExpr(t, f);
-        ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
         FuncLink overloadedOperator = e.attrFuncLink();
+        ImExpr left = translateConcatOperand(e, e.getLeft(), t, f, overloadedOperator);
+        ImExpr right = translateConcatOperand(e, e.getRight(), t, f, overloadedOperator);
+        if (overloadedOperator == null) {
+            // A built-in operator can leave both operands with the same erased
+            // generic type. In that case there is no concrete expected type to
+            // trigger wrapTranslation, but Lua still needs each operand's
+            // primitive default restored before applying the operator.
+            left = normalizeBuiltinOperand(e.getLeft(), left, t);
+            right = normalizeBuiltinOperand(e.getRight(), right, t);
+        }
         if (op == WurstOperator.PLUS && overloadedOperator == null) {
             left = wrapImplicitToString(e, e.getLeft(), left, t);
             right = wrapImplicitToString(e, e.getRight(), right, t);
@@ -207,6 +251,27 @@ public class ExprTranslation {
         return ImOperatorCall(op, ImExprs(left, right));
     }
 
+    private static ImExpr normalizeBuiltinOperand(Expr operand, ImExpr translated, ImTranslator t) {
+        if (!t.isLuaTarget() || !(operand.attrTypRaw() instanceof WurstTypeBoundTypeParam)
+            || isAlreadyTypeAssured(translated, t)) {
+            return translated;
+        }
+        return wrapLua(operand, t, translated, operand.attrTypRaw());
+    }
+
+    private static ImExpr translateConcatOperand(ExprBinary concat, Expr operand, ImTranslator t, ImFunction f,
+                                                 @Nullable FuncLink overloadedOperator) {
+        if (concat.getOp() == WurstOperator.PLUS && overloadedOperator == null
+            && isCompositeExpectedTypeExpression(operand)) {
+            FuncLink toString = AttrFuncDef.implicitToStringForConcatOperand(concat, operand);
+            if (toString != null) {
+                FunctionSignature signature = FunctionSignature.fromNameLink(toString);
+                return translateWithExpectedType(operand, t, f, signature.getReceiverType());
+            }
+        }
+        return operand.imTranslateExpr(t, f);
+    }
+
     private static ImExpr wrapImplicitToString(ExprBinary concat, Expr operand, ImExpr translated,
                                                ImTranslator t) {
         FuncLink toString = AttrFuncDef.implicitToStringForConcatOperand(concat, operand);
@@ -216,6 +281,7 @@ public class ExprTranslation {
 
         FunctionDefinition calledFunc = toString.getDef().attrRealFuncDef();
         FunctionSignature signature = FunctionSignature.fromNameLink(toString);
+        translated = wrapTranslation(operand, t, translated, operand.attrTypRaw(), signature.getReceiverType());
         if (calledFunc instanceof FuncDef
                 && !((FuncDef) calledFunc).attrIsStatic()
                 && operand.attrTyp().allowsDynamicDispatch()) {
@@ -659,8 +725,15 @@ public class ExprTranslation {
                 + " -> dynamicDispatch=" + dynamicDispatch);
         }
 
+        ImFunction directFunc = null;
+        if (!dynamicDispatch && !(calledFunc instanceof TupleDef)) {
+            directFunc = t.getFuncFor(calledFunc);
+        }
+
         ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
-        ImExprs imArgs = translateExprs(arguments, t, f);
+        boolean normalizeAtBoundary = directFunc != null && isLuaExternalBoundary(directFunc);
+        FunctionSignature selectedSignature = t.isLuaTarget() ? e.attrFunctionSignature() : null;
+        ImExprs imArgs = translateExprs(arguments, t, f, normalizeAtBoundary, selectedSignature);
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
@@ -686,7 +759,7 @@ public class ExprTranslation {
                 t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
-            ImFunction calledImFunc = t.getFuncFor(calledFunc);
+            ImFunction calledImFunc = directFunc;
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
@@ -784,11 +857,78 @@ public class ExprTranslation {
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f) {
+        return translateExprs(arguments, t, f, false);
+    }
+
+    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
+                                          boolean externalBoundary) {
+        return translateExprs(arguments, t, f, externalBoundary, null);
+    }
+
+    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
+                                          boolean externalBoundary, @Nullable FunctionSignature selectedSignature) {
         ImExprs result = ImExprs();
-        for (Expr e : arguments) {
-            result.add(e.imTranslateExpr(t, f));
+        for (int i = 0; i < arguments.size(); i++) {
+            Expr e = arguments.get(i);
+            WurstType expectedType = selectedSignature != null && i < selectedSignature.getMaxNumParams()
+                ? selectedSignature.getParamType(i)
+                : null;
+            ImExpr translated = expectedType != null && isCompositeExpectedTypeExpression(e)
+                ? translateWithExpectedType(e, t, f, expectedType)
+                : e.imTranslateExpr(t, f);
+            if (externalBoundary) {
+                translated = wrapLuaAtExternalBoundary(e, t, translated);
+            }
+            result.add(translated);
         }
         return result;
+    }
+
+    static boolean isCompositeExpectedTypeExpression(Expr e) {
+        return e instanceof ExprIfElse || e instanceof ExprUnary || e instanceof ExprStatementsBlock;
+    }
+
+    private static boolean isLuaExternalBoundary(ImFunction function) {
+        return function.isNative() || function.isBj() || function.isExtern();
+    }
+
+    private static ImExpr wrapLuaAtExternalBoundary(Expr source, ImTranslator t, ImExpr translated) {
+        WurstType actualType = source.attrTypRaw();
+        // Ordinary Wurst locals and literals already have their normal Lua
+        // representation. Only values which can lose their primitive default
+        // in Lua need normalization: raw array reads crossing into untyped
+        // code. Erased generic values are normalized by wrapTranslation when
+        // a concrete primitive context consumes them.
+        if (!(translated instanceof ImVarArrayAccess)) {
+            return translated;
+        }
+        WurstType normalized = actualType.normalize();
+        ImFunction ensureType = null;
+        if (normalized instanceof WurstTypeInt) {
+            ensureType = t.ensureIntFunc;
+        } else if (normalized instanceof WurstTypeBool) {
+            ensureType = t.ensureBoolFunc;
+        } else if (normalized instanceof WurstTypeReal) {
+            ensureType = t.ensureRealFunc;
+        } else if (normalized instanceof WurstTypeString) {
+            ensureType = t.ensureStrFunc;
+        }
+        if (ensureType == null) {
+            return translated;
+        }
+        if (ensureType == t.ensureBoolFunc) {
+            return ImOperatorCall(WurstOperator.EQ, ImExprs(
+                translated, ImBoolVal(true)));
+        }
+        return ImFunctionCall(source, ensureType, ImTypeArguments(), ImExprs(translated), false, CallType.NORMAL);
+    }
+
+    private static boolean isPrimitiveType(WurstType type) {
+        WurstType normalized = type.normalize();
+        return normalized instanceof WurstTypeInt
+            || normalized instanceof WurstTypeBool
+            || normalized instanceof WurstTypeReal
+            || normalized instanceof WurstTypeString;
     }
 
     public static ImExpr translateIntern(ExprIncomplete e, ImTranslator t, ImFunction f) {
@@ -802,7 +942,9 @@ public class ExprTranslation {
         WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
         ImClass imClass = t.getClassFor(wurstType.getClassDef());
         ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
-        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        FunctionSignature selectedSignature = t.isLuaTarget() ? sig : null;
+        return ImFunctionCall(e, constructorImFunc, typeArgs,
+            translateExprs(e.getArgs(), t, f, false, selectedSignature), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
@@ -844,7 +986,11 @@ public class ExprTranslation {
     }
 
     public static ImExpr translate(ExprStatementsBlock e, ImTranslator translator, ImFunction f) {
+        return translateStatementsBlock(e, translator, f, e.attrExpectedTypRaw());
+    }
 
+    private static ImExpr translateStatementsBlock(ExprStatementsBlock e, ImTranslator translator, ImFunction f,
+                                                   WurstType expectedType) {
         ImStmts statements = JassIm.ImStmts();
         for (WStatement s : e.getBody()) {
             if (s instanceof StmtReturn) {
@@ -856,8 +1002,18 @@ public class ExprTranslation {
 
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
-            ImExpr expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
-            return JassIm.ImStatementExpr(statements, expr);
+            Expr returnedExpr = (Expr) r.getReturnedObj();
+            boolean propagatesExpectedType = isCompositeExpectedTypeExpression(returnedExpr);
+            ImExpr expr = propagatesExpectedType
+                ? translateWithExpectedType(returnedExpr, translator, f, expectedType)
+                : returnedExpr.imTranslateExpr(translator, f);
+            if (!propagatesExpectedType) {
+                expr = wrapTranslation(e, translator, expr, returnedExpr.attrTypRaw(), expectedType);
+            }
+            ImExpr result = JassIm.ImStatementExpr(statements, expr);
+            return propagatesExpectedType
+                ? result
+                : wrapTranslation(e, translator, result, e.attrTypRaw(), expectedType);
         } else {
             return ImHelper.statementExprVoid(statements);
         }
@@ -907,6 +1063,58 @@ public class ExprTranslation {
                                 ))
                 ),
                 JassIm.ImVarAccess(res)
+        );
+    }
+
+    static ImExpr translateWithExpectedType(Expr e, ImTranslator t, ImFunction f, WurstType expectedType) {
+        if (e instanceof ExprIfElse) {
+            return translateWithExpectedType((ExprIfElse) e, t, f, expectedType);
+        }
+        if (e instanceof ExprStatementsBlock) {
+            return translateStatementsBlock((ExprStatementsBlock) e, t, f, expectedType);
+        }
+        if (e instanceof ExprUnary) {
+            ExprUnary unary = (ExprUnary) e;
+            ImExpr right = translateWithExpectedType(unary.getRight(), t, f, expectedType);
+            ImExpr translated = ImOperatorCall(unary.getOpU(), ImExprs(right));
+            return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
+        }
+        ImExpr translated = e.imTranslateExpr(t, f);
+        if (isAlreadyTypeAssured(translated, t)) {
+            return translated;
+        }
+        return wrapTranslation(e, t, translated, e.attrTypRaw(), expectedType);
+    }
+
+    private static boolean isAlreadyTypeAssured(ImExpr translated, ImTranslator t) {
+        if (translated instanceof ImFunctionCall) {
+            ImFunction function = ((ImFunctionCall) translated).getFunc();
+            return function == t.ensureIntFunc || function == t.ensureRealFunc
+                || function == t.ensureStrFunc || function == t.ensureBoolFunc;
+        }
+        if (translated instanceof ImOperatorCall) {
+            ImOperatorCall operator = (ImOperatorCall) translated;
+            return operator.getOp() == WurstOperator.EQ
+                && operator.getArguments().size() == 2
+                && operator.getArguments().get(1) instanceof ImBoolVal
+                && ((ImBoolVal) operator.getArguments().get(1)).getValB();
+        }
+        return false;
+    }
+
+    private static ImExpr translateWithExpectedType(ExprIfElse e, ImTranslator t, ImFunction f,
+                                                    WurstType expectedType) {
+        ImExpr ifTrue = translateWithExpectedType(e.getIfTrue(), t, f, expectedType);
+        ImExpr ifFalse = translateWithExpectedType(e.getIfFalse(), t, f, expectedType);
+        ImVar res = JassIm.ImVar(e, ifTrue.attrTyp(), "cond_result", false);
+        f.getLocals().add(res);
+        return JassIm.ImStatementExpr(
+            ImStmts(
+                ImIf(e, e.getCond().imTranslateExpr(t, f),
+                    ImStmts(ImSet(e.getIfTrue(), ImVarAccess(res), ifTrue)),
+                    ImStmts(ImSet(e.getIfFalse(), ImVarAccess(res), ifFalse)))
+            ),
+            JassIm.ImVarAccess(res)
         );
     }
 

@@ -2143,7 +2143,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * ImStringVal(""). If their own "x ~= nil" checks were tagged with the
      * string type, that rewrite would silently turn them into "x ~= \"\"",
      * so a genuinely nil Lua value (e.g. an unset bound-generic string
-     * field) would read as "not nil", skip normalization, and come out as
+     * array slot) would read as "not nil", skip normalization, and come out as
      * the literal string "nil" via tostring() instead of "" - or, for
      * stringConcat, get passed straight into raw ".." concatenation.
      * LuaEnsureFunctions#notNull tags its ImNull sentinel with ImAnyType
@@ -2154,16 +2154,358 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
+            "native print(string value)",
             "string array names",
             "function join(string a, string b) returns string",
             "    return a + b",
             "init",
             "    if names[5] == \"\" and join(\"a\", \"b\") == \"ab\"",
+            "        print(names[5])",
             "        testSuccess()"
         );
         String compiled = compiledLua("ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_ensureStr(");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_stringConcat(");
+    }
+
+    @Test
+    public void genericNormalizationIsKeptAtNativeBoundaryOnly() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaBackendAuditTests_genericNormalizationIsKeptAtNativeBoundaryOnly",
+            new RunArgs().with("-lua"),
+            "package Test",
+            "native print(string value)",
+            "native consumeBool(bool value)",
+            "string array values",
+            "function identity<T:>(T value) returns T",
+            "    return value",
+            "function forward<T:>(T value) returns T",
+            "    return identity<T>(value)",
+            "init",
+            "    print(forward<string>(\"value\"))",
+            "    consumeBool(forward<bool>(false))",
+            "    print(values[1])"
+        );
+
+        assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
+        assertTrue("boolean normalization should be a direct true comparison:\n" + compiled,
+            compiled.contains("consumeBool((forward(false) == true))"));
+        assertFalse("boolean normalization must not call the ensure helper",
+            compiled.contains("__wurst_ensureBool(forward(false))"));
+        assertTrue("primitive array reads crossing a native boundary must be normalized:\n" + compiled,
+            compiled.contains("__wurst_ensureStr(Test_values[1])"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string message)",
+            "int array values",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    values[box.get()] = 7",
+            "    if box.get() + 1 == 1",
+            "        testSuccess()",
+            "    for i = 1 to box.get()",
+            "        testSuccess()",
+            "    switch box.get()",
+            "        case 0",
+            "            testSuccess()",
+            "        default",
+            "            testFail(\"switch\")",
+            "    testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedAtConcreteUse");
+        assertTrue("concrete generic use must normalize an erased integer",
+            compiled.contains("__wurst_ensureInt"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedInTypedClosures() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface IntSupplier",
+            "    function get() returns int",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    IntSupplier supplier = () -> box.get()",
+            "    if supplier.get() + 1 == 1",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedInTypedClosures");
+        assertTrue("typed closure implementations must normalize erased primitive results",
+            compiled.contains("return __wurst_ensureInt(Box_Box_get("));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedInTypedStatementBlocks() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    int value = begin",
+            "        return box.get()",
+            "    end",
+            "    if value + 1 == 1",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedInTypedStatementBlocks");
+        assertTrue("typed statement blocks must normalize erased primitive results",
+            compiled.contains("value = __wurst_ensureInt(Box_Box_get(box))"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsAreNormalizedInCompositeRangeBounds() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "init",
+            "    let box = new Box<int>",
+            "    bool useBox = true",
+            "    int iterations = 0",
+            "    for i = 1 to (useBox ? box.get() : 0)",
+            "        iterations++",
+            "    if iterations == 0",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsAreNormalizedInCompositeRangeBounds");
+        assertTrue("composite range bounds must normalize erased primitive branches",
+            compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsUseTheSelectedOverload() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "function consume(int value)",
+            "    if value == 0",
+            "        testSuccess()",
+            "function consume(string value)",
+            "init",
+            "    let box = new Box<int>",
+            "    consume(box.get())"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsUseTheSelectedOverload");
+        assertTrue("selected integer overload arguments must normalize erased primitive values",
+            compiled.contains("__wurst_ensureInt(Box_Box_get(box))"));
+    }
+
+    @Test
+    public void erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Addable",
+            "    function op_plus(int value) returns int",
+            "        return value",
+            "class Constructed",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value",
+            "    construct(string value)",
+            "        this.value = -1",
+            "    function get() returns int",
+            "        return value",
+            "function consume(int value) returns int",
+            "    return value",
+            "function consume(string value) returns int",
+            "    return -1",
+            "interface IntSupplier",
+            "    function get() returns int",
+            "int array values",
+            "function readArrayValue() returns int",
+            "    return values[0]",
+            "init",
+            "    let box = new Box<int>",
+            "    let addable = new Addable()",
+            "    bool useBox = true",
+            "    values[0] = 7",
+            "    let sum = addable + box.get()",
+            "    let builtinSum = box.get() + box.get()",
+            "    let overloaded = consume(useBox ? box.get() : 0)",
+            "    let blockOverloaded = consume(begin",
+            "        return (useBox ? box.get() : 0)",
+            "    end)",
+            "    let indexed = values[useBox ? box.get() : 0]",
+            "    IntSupplier supplier = () -> (useBox ? box.get() : 0)",
+            "    IntSupplier unarySupplier = () -> -box.get()",
+            "    IntSupplier blockSupplier = () -> begin",
+            "        return (useBox ? box.get() : 0)",
+            "    end",
+            "    let constructed = new Constructed(useBox ? box.get() : 0)",
+            "    int blockValue = begin",
+            "        return (useBox ? box.get() : 0)",
+            "    end",
+            "    int switchValue = -1",
+            "    switch (useBox ? box.get() : 1)",
+            "        case 0",
+            "            switchValue = 0",
+            "    if sum == 0 and builtinSum == 0 and overloaded == 0 and blockOverloaded == 0",
+            "        and indexed == 7 and readArrayValue() == 7 and supplier.get() == 0",
+            "        and unarySupplier.get() == 0 and blockSupplier.get() == 0",
+            "        and blockValue == 0 and switchValue == 0 and constructed.get() == 0",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
+        assertEquals("each concrete integer consumer must normalize its erased generic input", 12,
+            countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
+        assertTrue("global primitive array reads must remain safe for foreign writes",
+            compiled.contains("__wurst_ensureInt(Test_values[0])"));
+    }
+
+    @Test
+    public void erasedGenericDefaultsUseResolvedAssignmentAndDelegationTargets() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Delegating",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value + 1",
+            "    construct(Box<int> box)",
+            "        this(box.get())",
+            "    function get() returns int",
+            "        return value",
+            "class Parent",
+            "    int sum",
+            "    construct(int fixed, vararg int rest)",
+            "        sum = fixed",
+            "        for value in rest",
+            "            sum += value",
+            "class Child extends Parent",
+            "    construct(Box<int> box)",
+            "        super(1, box.get(), box.get())",
+            "    function get() returns int",
+            "        return sum",
+            "class Indexed",
+            "    bool assignedDefault",
+            "    function op_index(int index) returns string",
+            "        return \"\"",
+            "    function op_indexAssign(int index, int value)",
+            "        assignedDefault = value == 0",
+            "init",
+            "    let box = new Box<int>",
+            "    let delegating = new Delegating(box)",
+            "    let child = new Child(box)",
+            "    let indexed = new Indexed",
+            "    indexed[0] = box.get()",
+            "    if delegating.get() == 1 and child.get() == 1 and indexed.assignedDefault",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("erasedGenericDefaultsUseResolvedAssignmentAndDelegationTargets");
+        assertEquals("resolved primitive consumers must normalize their erased generic input", 4,
+            countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
+    }
+
+    /**
+     * Seeded boundary corpus for the type-assurance change. Each case varies
+     * the primitive type, literal value, and array slot while checking the two
+     * unsafe paths independently: erased generic propagation and a raw array
+     * read. The intermediate generic functions must stay free of assurance
+     * calls, while global array reads and native call sites must have the
+     * appropriate normalization. This is intentionally compile-only: the
+     * generated native sinks have no Warcraft runtime implementation.
+     */
+    @Test
+    public void seededTypeAssuranceBoundaryFuzz() {
+        Random random = new Random(0x7A55_BA5EL);
+        String[] types = {"int", "bool", "real", "string"};
+        String[] suffixes = {"Int", "Bool", "Real", "Str"};
+        for (int caseIndex = 0; caseIndex < 32; caseIndex++) {
+            int typeIndex = (caseIndex + random.nextInt(types.length)) % types.length;
+            String type = types[typeIndex];
+            String suffix = suffixes[typeIndex];
+            int arrayIndex = random.nextInt(16) + 1;
+            String literal = switch (type) {
+                case "int" -> Integer.toString(random.nextInt(51));
+                case "bool" -> random.nextBoolean() ? "true" : "false";
+                case "real" -> random.nextInt(51) + ".5";
+                case "string" -> "\"fuzz_" + caseIndex + "\"";
+                default -> throw new AssertionError(type);
+            };
+            String sink = "consume" + suffix;
+            String testName = "LuaBackendAuditTests_seededTypeAssuranceBoundaryFuzz_" + caseIndex;
+            String compiled = compileLuaWithRunArgs(
+                testName,
+                new RunArgs().with("-lua"),
+                "package TypeAssuranceFuzz",
+                "native " + sink + "(" + type + " value)",
+                type + " array values",
+                "function identity<T:>(T value) returns T",
+                "    return value",
+                "function forward<T:>(T value) returns T",
+                "    return identity<T>(value)",
+                "function read() returns " + type,
+                "    return values[" + arrayIndex + "]",
+                "init",
+                "    " + sink + "(forward<" + type + ">(" + literal + "))",
+                "    " + sink + "(values[" + arrayIndex + "])",
+                "    " + sink + "(read())",
+                "    " + sink + "(" + literal + ")"
+            );
+
+            assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
+            String readNormalization = type.equals("bool")
+                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
+                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
+            assertFunctionBodyContains(compiled, "read", readNormalization, true);
+            String genericArgument = type.equals("bool")
+                ? "(forward(" + literal + ") == true)"
+                : "__wurst_ensure" + suffix + "(forward(" + literal + "))";
+            assertTrue("generic boundary case " + caseIndex + " was not normalized:\n" + compiled,
+                compiled.contains(sink + "(" + genericArgument + ")"));
+            String arrayArgument = type.equals("bool")
+                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
+                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
+            assertTrue("array boundary case " + caseIndex + " was not normalized:\n" + compiled,
+                compiled.contains(sink + "(" + arrayArgument + ")"));
+            assertTrue("ordinary typed values must not be normalized at the boundary:\n" + compiled,
+                compiled.contains(sink + "(" + literal + ")"));
+        }
+    }
+
+    private static void assertFunctionBodyContains(String compiled, String functionName,
+                                                    String text, boolean expected) {
+        int start = compiled.indexOf("function " + functionName + "(");
+        assertTrue("expected function " + functionName, start >= 0);
+        int end = compiled.indexOf("\nend", start);
+        assertTrue("unterminated function " + functionName, end >= 0);
+        boolean found = compiled.substring(start, end).contains(text);
+        assertEquals("unexpected occurrence of " + text + " in " + functionName,
+            expected, found);
     }
 
     private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {
@@ -2368,18 +2710,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "native print(string message)",
             "native I2S(int value) returns string",
             "native R2S(real value) returns string",
+            "native consumeInt(int value)",
+            "native consumeBool(bool value)",
+            "native consumeReal(real value)",
+            "native consumeString(string value)",
             "int array ints",
             "bool array bools",
             "real array reals",
             "string array strings",
-            "function readInt(int index) returns int",
-            "    return ints[index]",
-            "function readBool(int index) returns bool",
-            "    return bools[index]",
-            "function readReal(int index) returns real",
-            "    return reals[index]",
-            "function readString(int index) returns string",
-            "    return strings[index]",
             "function intDiv(int a, int b) returns int",
             "    return a div b",
             "function intMod(int a, int b) returns int",
@@ -2387,14 +2725,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "function realMod(real a, real b) returns real",
             "    return a % b",
             "init",
-            "    ints[1] = 7",
-            "    bools[1] = true",
-            "    reals[1] = 7.5",
-            "    strings[1] = \"value=\"",
-            "    if readBool(1)",
-            "        print(readString(1) + I2S(intDiv(readInt(1), 2)))",
-            "        print(I2S(intMod(readInt(1), 2)))",
-            "        print(R2S(realMod(readReal(1), 2.)))"
+            "    consumeInt(ints[1])",
+            "    consumeBool(bools[1])",
+            "    consumeReal(reals[1])",
+            "    consumeString(strings[1])",
+            "    print(\"value=\" + I2S(intDiv(7, 2)))",
+            "    print(I2S(intMod(7, 2)))",
+            "    print(R2S(realMod(7.5, 2.)))"
         );
 
         String[] helperNames = {
@@ -2429,13 +2766,18 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "package Test",
             "native print(string message)",
             "native I2S(int value) returns string",
+            "native consumeInt(int value)",
+            "native consumeString(string value)",
             "int array values",
+            "string array names",
             "function readValue(int index) returns int",
             "    return values[index]",
             "function join(string left, string right) returns string",
             "    return left + right",
             "init",
             "    values[1] = 7",
+            "    consumeInt(values[1])",
+            "    consumeString(names[1])",
             "    print(join(\"value=\", I2S(readValue(1))))"
         );
     }

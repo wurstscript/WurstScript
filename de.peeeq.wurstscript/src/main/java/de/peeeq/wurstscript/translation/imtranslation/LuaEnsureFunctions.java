@@ -71,21 +71,16 @@ final class LuaEnsureFunctions {
         return f;
     }
 
-    /** local result = false; if x ~= nil then result = x end; return result */
+    /** return x == true; this preserves false and maps nil to false. */
     static ImFunction buildEnsureBool(List<ImFunction> out) {
         ImType boolType = TypesHelper.imBool();
         ImVar x = JassIm.ImVar(TRACE, boolType.copy(), "x", false);
-        ImVar result = JassIm.ImVar(TRACE, boolType.copy(), "result", false);
 
         ImStmts body = JassIm.ImStmts(
-            JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImBoolVal(false)),
-            JassIm.ImIf(TRACE, notNull(x),
-                JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(x))),
-                JassIm.ImStmts()),
-            JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
+            JassIm.ImReturn(TRACE, isTrue(x))
         );
         ImFunction f = JassIm.ImFunction(TRACE, "__wurst_ensureBool", JassIm.ImTypeVars(), JassIm.ImVars(x), boolType.copy(),
-            JassIm.ImVars(result), body, Collections.emptyList());
+            JassIm.ImVars(), body, Collections.emptyList());
         out.add(f);
         return f;
     }
@@ -194,6 +189,11 @@ final class LuaEnsureFunctions {
      */
     private static ImExpr notNull(ImVar v) {
         return JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImNull(JassIm.ImAnyType())));
+    }
+
+    private static ImExpr isTrue(ImVar v) {
+        return JassIm.ImOperatorCall(WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImBoolVal(true)));
     }
 
     private static ImFunctionCall call(ImFunction f, ImExpr... args) {
