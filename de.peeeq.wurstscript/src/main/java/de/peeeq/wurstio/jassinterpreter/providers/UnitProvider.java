@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -564,10 +565,10 @@ public class UnitProvider extends Provider {
         return issueOrder(unit, orderId);
     }
 
-    public ILconstBool IssueImmediateOrder(IlConstHandle unit, ILconstString order) { return validUnit(unit); }
-    public ILconstBool IssuePointOrder(IlConstHandle unit, ILconstString order, ILconstReal x, ILconstReal y) { return validUnit(unit); }
-    public ILconstBool IssuePointOrderLoc(IlConstHandle unit, ILconstString order, IlConstHandle location) { return validUnit(unit); }
-    public ILconstBool IssueTargetOrder(IlConstHandle unit, ILconstString order, IlConstHandle target) { return validUnit(unit); }
+    public ILconstBool IssueImmediateOrder(IlConstHandle unit, ILconstString order) { return issueOrder(unit, orderId(order)); }
+    public ILconstBool IssuePointOrder(IlConstHandle unit, ILconstString order, ILconstReal x, ILconstReal y) { return issueOrder(unit, orderId(order)); }
+    public ILconstBool IssuePointOrderLoc(IlConstHandle unit, ILconstString order, IlConstHandle location) { return issueOrder(unit, orderId(order)); }
+    public ILconstBool IssueTargetOrder(IlConstHandle unit, ILconstString order, IlConstHandle target) { return issueOrder(unit, orderId(order)); }
     public ILconstBool IssueBuildOrder(IlConstHandle unit, ILconstString unitToBuild, ILconstReal x, ILconstReal y) { return validUnit(unit); }
     public ILconstBool IssueBuildOrderById(IlConstHandle unit, ILconstInt unitId, ILconstReal x, ILconstReal y) { return validUnit(unit); }
     public ILconstBool IssuePointOrderByIdLoc(IlConstHandle unit, ILconstInt orderId, IlConstHandle location) { return issueOrder(unit, orderId); }
@@ -642,16 +643,16 @@ public class UnitProvider extends Provider {
     }
     public ILconstInt UnitInventorySize(IlConstHandle unit) { return ILconstInt.create(6); }
     public ILconstBool UnitDropItemPoint(IlConstHandle unit, IlConstHandle item, ILconstReal x, ILconstReal y) { return dropItem(unit, item); }
-    public ILconstBool UnitDropItemSlot(IlConstHandle unit, IlConstHandle item, ILconstInt slot) { return dropItem(unit, item); }
-    public ILconstBool UnitDropItemTarget(IlConstHandle unit, IlConstHandle item, IlConstHandle target) { return dropItem(unit, item); }
-    public ILconstBool UnitUseItem(IlConstHandle unit, IlConstHandle item) { return dropItem(unit, item); }
-    public ILconstBool UnitUseItemPoint(IlConstHandle unit, IlConstHandle item, ILconstReal x, ILconstReal y) { return dropItem(unit, item); }
-    public ILconstBool UnitUseItemTarget(IlConstHandle unit, IlConstHandle item, IlConstHandle target) { return dropItem(unit, item); }
+    public ILconstBool UnitDropItemSlot(IlConstHandle unit, IlConstHandle item, ILconstInt slot) { return moveItemToSlot(unit, item, slot.getVal()); }
+    public ILconstBool UnitDropItemTarget(IlConstHandle unit, IlConstHandle item, IlConstHandle target) { return transferItem(unit, item, target); }
+    public ILconstBool UnitUseItem(IlConstHandle unit, IlConstHandle item) { return useItem(unit, item); }
+    public ILconstBool UnitUseItemPoint(IlConstHandle unit, IlConstHandle item, ILconstReal x, ILconstReal y) { return useItem(unit, item); }
+    public ILconstBool UnitUseItemTarget(IlConstHandle unit, IlConstHandle item, IlConstHandle target) { return useItem(unit, item); }
 
-    public void UnitAddSleep(IlConstHandle unit, ILconstBool add) { UnitMock m = unitOrNull(unit); if (m != null) m.sleeping = add.getVal(); }
-    public ILconstBool UnitCanSleep(IlConstHandle unit) { return validUnit(unit); }
-    public void UnitAddSleepPerm(IlConstHandle unit, ILconstBool add) { UnitMock m = unitOrNull(unit); if (m != null) m.sleepPermanent = add.getVal(); }
-    public ILconstBool UnitCanSleepPerm(IlConstHandle unit) { return validUnit(unit); }
+    public void UnitAddSleep(IlConstHandle unit, ILconstBool add) { UnitMock m = unitOrNull(unit); if (m != null) m.canSleep = add.getVal(); }
+    public ILconstBool UnitCanSleep(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.canSleep); }
+    public void UnitAddSleepPerm(IlConstHandle unit, ILconstBool add) { UnitMock m = unitOrNull(unit); if (m != null) m.canSleepPerm = add.getVal(); }
+    public ILconstBool UnitCanSleepPerm(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.canSleepPerm); }
     public ILconstBool UnitIsSleeping(IlConstHandle unit) { UnitMock m = unitOrNull(unit); return ILconstBool.instance(m != null && m.sleeping); }
     public void UnitWakeUp(IlConstHandle unit) { UnitAddSleep(unit, ILconstBool.FALSE); }
     public void UnitApplyTimedLife(IlConstHandle unit, ILconstInt buffId, ILconstReal duration) { }
@@ -663,12 +664,24 @@ public class UnitProvider extends Provider {
     public void UnitRemoveBuffsEx(IlConstHandle unit, ILconstBool positive, ILconstBool negative, ILconstBool magic, ILconstBool physical, ILconstBool timedLife, ILconstBool aura, ILconstBool autoDispel) { }
     public ILconstBool UnitHasBuffsEx(IlConstHandle unit, ILconstBool positive, ILconstBool negative, ILconstBool magic, ILconstBool physical, ILconstBool timedLife, ILconstBool aura, ILconstBool autoDispel) { return ILconstBool.FALSE; }
     public ILconstInt UnitCountBuffsEx(IlConstHandle unit, ILconstBool positive, ILconstBool negative, ILconstBool magic, ILconstBool physical, ILconstBool timedLife, ILconstBool aura, ILconstBool autoDispel) { return ILconstInt.create(0); }
-    public ILconstBool UnitDamagePoint(IlConstHandle unit, ILconstReal delay, ILconstReal radius, ILconstReal x, ILconstReal y, ILconstReal amount, ILconstBool attack, ILconstBool ranged, IlConstHandle attackType, IlConstHandle damageType, IlConstHandle weaponType) { return validUnit(unit); }
+    public ILconstBool UnitDamagePoint(IlConstHandle unit, ILconstReal delay, ILconstReal radius, ILconstReal x, ILconstReal y, ILconstReal amount, ILconstBool attack, ILconstBool ranged, IlConstHandle attackType, IlConstHandle damageType, IlConstHandle weaponType) {
+        if (unitOrNull(unit) == null) return ILconstBool.FALSE;
+        ArrayList<UnitMock> targets;
+        synchronized (units) {
+            targets = new ArrayList<>(units);
+        }
+        double radiusValue = radius.getVal();
+        for (UnitMock target : targets) {
+            double dx = target.x.getVal() - x.getVal();
+            double dy = target.y.getVal() - y.getVal();
+            if (dx * dx + dy * dy <= radiusValue * radiusValue) applyDamage(target, amount.getVal());
+        }
+        return ILconstBool.TRUE;
+    }
     public ILconstBool UnitDamageTarget(IlConstHandle unit, IlConstHandle target, ILconstReal amount, ILconstBool attack, ILconstBool ranged, IlConstHandle attackType, IlConstHandle damageType, IlConstHandle weaponType) {
         UnitMock m = unitOrNull(target);
         if (unitOrNull(unit) == null || m == null) return ILconstBool.FALSE;
-        if (m.invulnerable) return ILconstBool.TRUE;
-        m.states.put("unitstate0", ILconstReal.create(Math.max(0, m.states.get("unitstate0").getVal() - amount.getVal())));
+        applyDamage(m, amount.getVal());
         return ILconstBool.TRUE;
     }
 
@@ -712,6 +725,7 @@ public class UnitProvider extends Provider {
     }
 
     private ILconstBool validUnit(IlConstHandle unit) { return ILconstBool.instance(unitOrNull(unit) != null); }
+    private ILconstInt orderId(ILconstString order) { return ILconstInt.create(ObjectHelper.objectIdStringToInt(order.getVal())); }
     private boolean inventoryFull(UnitMock unit) { return firstFreeSlot(unit) >= 6; }
     private int firstFreeSlot(UnitMock unit) {
         for (int i = 0; i < 6; i++) {
@@ -723,6 +737,37 @@ public class UnitProvider extends Provider {
         int slot = firstFreeSlot(unit);
         while (unit.inventory.size() <= slot) unit.inventory.add(null);
         unit.inventory.set(slot, item);
+    }
+    private ILconstBool moveItemToSlot(IlConstHandle unit, IlConstHandle item, int slot) {
+        UnitMock source = unitOrNull(unit);
+        if (source == null || slot < 0 || slot >= 6) return ILconstBool.FALSE;
+        int sourceSlot = source.inventory.indexOf(item);
+        if (sourceSlot < 0 || sourceSlot == slot) return ILconstBool.instance(sourceSlot == slot);
+        while (source.inventory.size() <= slot) source.inventory.add(null);
+        if (source.inventory.get(slot) != null) return ILconstBool.FALSE;
+        source.inventory.set(sourceSlot, null);
+        source.inventory.set(slot, item);
+        return ILconstBool.TRUE;
+    }
+    private ILconstBool transferItem(IlConstHandle unit, IlConstHandle item, IlConstHandle target) {
+        UnitMock source = unitOrNull(unit);
+        UnitMock destination = unitOrNull(target);
+        if (source == null || destination == null || !source.inventory.contains(item)) return ILconstBool.FALSE;
+        if (source == destination) return ILconstBool.TRUE;
+        if (inventoryFull(destination) || destination.inventory.contains(item)) return ILconstBool.FALSE;
+        int sourceSlot = source.inventory.indexOf(item);
+        source.inventory.set(sourceSlot, null);
+        putInFirstFreeSlot(destination, item);
+        return ILconstBool.TRUE;
+    }
+    private ILconstBool useItem(IlConstHandle unit, IlConstHandle item) {
+        UnitMock m = unitOrNull(unit);
+        return ILconstBool.instance(m != null && m.inventory.contains(item));
+    }
+    private void applyDamage(UnitMock target, double amount) {
+        if (!target.invulnerable) {
+            target.states.put("unitstate0", ILconstReal.create((float) Math.max(0, target.states.get("unitstate0").getVal() - amount)));
+        }
     }
     private ILconstBool dropItem(IlConstHandle unit, IlConstHandle item) {
         UnitMock m = unitOrNull(unit);

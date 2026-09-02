@@ -23,7 +23,8 @@ public class UnitMock {
     public boolean selected;
     public boolean suspendedXp;
     public boolean sleeping;
-    public boolean sleepPermanent;
+    public boolean canSleep = true;
+    public boolean canSleepPerm = true;
     public ILconstReal acquireRange = ILconstReal.create(0);
     public ILconstReal defaultAcquireRange = ILconstReal.create(0);
     public ILconstReal waygateX = ILconstReal.create(0);
