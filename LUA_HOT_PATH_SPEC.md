@@ -265,38 +265,35 @@ On Lua, `transformProgToLua` never runs it. `LuaTranslator` renames the last par
 `while` loop. `ImInliner.isInlineCandidate` refuses vararg functions. So `max(a, b)` allocates a
 table, loops over it, and can never be inlined.
 
-### Required change
+### Required change (implemented on `lua-fixed-arity-varargs`, #1286)
 
-Run the same elimination on Lua, with three adjustments:
+`VarargEliminator` gained a target flag, `new VarargEliminator(prog, true)`, and `transformProgToLua`
+runs it after `StackTraceInjector2` and before `LuaNativeLowering`, the same relative position Jass
+uses. On Lua it differs from the Jass run in three ways:
 
-1. **Placement.** In `transformProgToLua`, run `new VarargEliminator(imProg).run()` after
-   `StackTraceInjector2` and after the Lua generics specialisation (`transformGenericNewOnly`), and
-   before `LuaNativeLowering.transform` and inlining. That is the same relative position Jass uses,
-   and it means the specialised copies (`ArrayList_add_specialized`) are what get arity-split.
-2. **No Jass parameter cap on Lua.** `generateVarargFunc` throws when the flattened Jass arity exceeds
-   `ImHelper.JASS_MAX_PARAMETERS` (31). Lua's limit is far higher. Give the eliminator a target-aware
-   limit: on Lua, specialise up to a generous fixed bound (200 parameters is Lua 5.3's local limit;
-   pick something below it, e.g. 100) and, above that, **leave that call and that function on the
-   existing `...` path** instead of erroring. `VarargTests.varargAllowsMoreThan31ArgumentsInLua`
-   (32 arguments) must therefore compile to a 32-parameter function and pass.
-3. **Do not delete originals on Lua.** `run()` does `prog.getFunctions().removeIf(f -> f.hasFlag(IS_VARARG))`.
-   On Jass classes are already eliminated so every call is an `ImFunctionCall`. On Lua classes are
-   still present: a vararg function may also be reached through `ImMethodCall` (virtual dispatch) or
-   `ImFuncRef`, and class methods live in `ImClass.getFunctions()`, not `prog.getFunctions()`. On Lua,
-   redirect `ImFunctionCall` sites only, keep every original, and let `RemoveGarbage` drop the ones
-   that end up unreferenced. Vararg methods still called virtually keep the `...` lowering; that is
-   acceptable and rare.
+- **Method calls are handled too.** On Lua classes still exist when this runs, so `list.add(x)` is an
+  `ImMethodCall`, not an `ImFunctionCall`. The Lua backend already turns a method call with exactly one
+  possible implementation (`!isAbstract`, implementation present, no sub-methods) into a direct call of
+  that implementation, so the eliminator does the same for vararg methods: it generates the copy from the
+  implementation with the receiver as first argument and replaces the `ImMethodCall` with an
+  `ImFunctionCall` to the copy. Without this, `ArrayList.add` would never have been specialised.
+- **No Jass parameter cap; a Lua arity bound instead.** `LUA_MAX_SPECIALISED_VARARG_ARITY = 64`. A call
+  with more vararg arguments than that keeps the original `...` function, which is always still present
+  on this target.
+- **Originals are kept.** `prog.getFunctions().removeIf(IS_VARARG)` runs on Jass only. On Lua a vararg
+  function may still be reached through a polymorphic `ImMethodCall`, an `ImFuncRef`, or a call above
+  the bound; unreferenced originals are removed by `RemoveGarbage`.
 
-Tuples: `EliminateTuples` runs after this point on both backends and already handles the multi-
-parameter form (Jass has done this for years). `EliminateTuples.preserveVarargParameter` only applies
-to functions still flagged `IS_VARARG`, which after elimination is only the `...`-path leftovers.
+Measured on the stdlib probe (release flags): `table.pack` occurrences went from 5 to 0 (one per emitted vararg function; the call sites that fed them numbered in the hundreds, `max` and `min` alone 87). `max` and
+`min` are emitted as `max_2`/`min_2`. `ArrayList.add` no longer exists as a function at all: the
+one-element copy inlines at every call site to a capacity check, one store and one increment.
 
-Stack traces: `StackTraceInjector2` inserts the stack parameter second-to-last for vararg functions.
-`generateVarargFunc` removes the last parameter and appends the arity copies, so the stack parameter
-keeps its position and `redirectCall` keeps argument order. Jass proves this ordering works.
+The remaining `(receiver, ...)` signatures in the output are the `dispatch_*` stubs for polymorphic
+methods; they forward `...` without packing and are not vararg functions in the Wurst sense.
 
-After this task, `ImInliner.isInlineCandidate`'s `IS_VARARG` refusal no longer applies to the
-specialised copies, so `max_2(a, b)` (size well under 20) inlines to a conditional.
+Two language facts learned while writing the tests: a vararg function may have only the one parameter,
+and a vararg parameter cannot be forwarded to another vararg call (`sum(rest)` is a type error). The
+eliminator's forwarding branch is therefore reachable only from its own generated copies.
 
 ### Tests
 
