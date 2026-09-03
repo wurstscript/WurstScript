@@ -226,6 +226,22 @@ Recent fixes established additional rules for backend work. Follow these for all
   requirement: common optimized paths must not retain avoidable compiler-introduced allocation,
   dispatch, copying, or bookkeeping overhead.
 
+### Lua performance policy
+
+* **Wurst-emitted constructs are consumed by Wurst code.** Never add runtime coercion, nil guards,
+  normalisation wrappers or other defensive code to emitted Lua whose justification is that foreign
+  (non-Wurst) Lua might have mutated an emitted table, array or value. A user who bundles raw Lua that
+  writes into Wurst-emitted structures owns the result. Typed arrays already carry a metatable that
+  supplies the typed default; a read of a typed array is a raw table index and nothing else.
+* **Leverage Lua-native mechanisms wherever semantics permit.** Prefer a metatable default over a
+  read-site helper, an operator over a helper call, a fixed-arity function over a `...` pack, and a
+  direct table over an emulated hashtable. Emulating Jass limitations on Lua needs evidence that the
+  limitation actually applies there.
+* **A compiler-introduced call or allocation on an ordinary typed code path is a defect.** The
+  optimiser must be able to inline small pure helpers; an analysis barrier that refuses to inline a
+  function must be justified by what that function does, not by where else it happens to be called.
+* The concrete open items and their acceptance criteria are in `LUA_HOT_PATH_SPEC.md`.
+
 ### Jass/Lua feature parity
 
 * New language/compiler features must be validated for **both Jass and Lua** backends.
