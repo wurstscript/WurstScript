@@ -56,8 +56,11 @@ are open.
 - Tests run five Jass configurations plus the interpreter, then the Lua target separately.
   `testAssertOkLines(true, ...)` covers both the pre-transform interpreter and full monomorphisation.
 - `@Test` functions are interpreter unit tests by design; `StdLibOwnTests` and `grill test` run them
-  there. There is no Wurst-level end-to-end test feature yet; correctness on the Lua target in a real
-  map is asserted in the agent workflow, not by the suite.
+  there. The only Lua-target execution the suite has is `test().testLua(true).executeProg()`, which
+  runs the emitted script in a real Lua 5.3 against the shim in `src/test/resources/luaruntime/`. Its
+  reach is bounded by how much of the roughly one thousand natives the shim models, so those tests
+  stay small and targeted. There is no Wurst-level end-to-end feature; correctness in a real map on
+  the Lua target is asserted in the agent workflow.
 - Test forks: eight forks won on eight cores (7m03s wall against 13m11s serial) even though each
   test runs 2.6 times slower there. Wall time cannot go below the slowest class, `ExportToWurstTest`
   at 108s, until it is split.
