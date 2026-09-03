@@ -406,14 +406,23 @@ public class LuaTranslator {
         callbackAdapters.put(target, adapter);
 
         LuaFunction errorHandler = callbackErrorHandler();
-        String xpcall = "xpcall(" + targetLua.getName() + ", " + errorHandler.getName() + ", ...)";
+        LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall",
+            LuaAst.LuaExprlist(
+                LuaAst.LuaExprFuncRef(targetLua),
+                LuaAst.LuaExprFuncRef(errorHandler),
+                LuaAst.LuaExprVarAccess(dots.copy())));
         if (target.getReturnType() instanceof ImVoid) {
-            adapter.getBody().add(LuaAst.LuaLiteral(xpcall));
+            adapter.getBody().add(xpcall);
         } else {
             // Keep exactly the first callback result. Returning select(2, xpcall(...)) directly
             // could leak additional Lua return values into a surrounding argument list.
-            adapter.getBody().add(LuaAst.LuaLiteral("local _, result = " + xpcall));
-            adapter.getBody().add(LuaAst.LuaLiteral("return result"));
+            LuaVariable ignored = LuaAst.LuaVariable("_", LuaAst.LuaNoExpr());
+            LuaVariable result = LuaAst.LuaVariable("result", LuaAst.LuaNoExpr());
+            adapter.getBody().add(ignored);
+            adapter.getBody().add(result);
+            adapter.getBody().add(LuaAst.LuaAssignment(
+                LuaAst.LuaLiteral("_, result"), xpcall));
+            adapter.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(result)));
         }
         luaModel.add(adapter);
         return adapter;

@@ -2523,9 +2523,36 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertEquals("both Condition calls must reference the cached adapter", 2,
             countMatches(compiled, "Condition\\(" + Pattern.quote(adapter) + "\\)"));
         String adapterBody = getFunctionBody(compiled, adapter);
-        assertTrue(adapterBody.contains("local _, result = xpcall(predicate,"));
+        assertTrue(adapterBody.contains("_, result = xpcall(predicate,"));
         assertTrue(adapterBody.contains("return result"));
         assertFalse("callback sites must not allocate anonymous wrappers", compiled.contains("Condition(function ("));
+    }
+
+    @Test
+    public void luaFunctionRefAdapterTracksLateClassFunctionRename() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefAdapterTracksLateClassFunctionRename",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua"),
+            "package Test",
+            "@extern native consume(code callback)",
+            "@extern native CallbackOwner_staticCallback()",
+            "class CallbackOwner",
+            "    function start()",
+            "        consume(function staticCallback)",
+            "    private static function staticCallback()",
+            "        consume(function staticCallback)",
+            "init",
+            "    CallbackOwner_staticCallback()",
+            "    new CallbackOwner().start()"
+        );
+
+        String callbackName = singleMatch(compiled,
+            "function\\s+(CallbackOwner_[A-Za-z0-9_]*staticCallback[A-Za-z0-9_]*)\\(\\)", 1);
+        assertTrue("adapter must track the class callback's final name:\n" + compiled,
+            compiled.contains("xpcall(" + callbackName + ","));
+        assertFalse(compiled.contains("xpcall(staticCallback,"));
     }
 
     @Test
