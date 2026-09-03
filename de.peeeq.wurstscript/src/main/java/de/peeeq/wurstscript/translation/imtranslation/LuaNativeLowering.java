@@ -126,7 +126,7 @@ public final class LuaNativeLowering {
         }
 
         lowerStringConcatenation(prog, translator);
-        lowerDivMod(prog);
+        lowerDivMod(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -267,8 +267,8 @@ public final class LuaNativeLowering {
      * handler's "was this an intentional abort" check. Leave that one
      * expression untouched so the existing recognition still fires.
      */
-    private static void lowerDivMod(ImProg prog) {
-        DivModFunctions funcs = new DivModFunctions();
+    private static void lowerDivMod(ImProg prog, ImTranslator translator) {
+        DivModFunctions funcs = new DivModFunctions(translator);
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImOperatorCall call) {
@@ -357,6 +357,7 @@ public final class LuaNativeLowering {
      * floor-division/fmod operator of its own).
      */
     private static final class DivModFunctions {
+        private final ImTranslator translator;
         private final List<ImFunction> created = new ArrayList<>();
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
@@ -364,6 +365,10 @@ public final class LuaNativeLowering {
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
+
+        private DivModFunctions(ImTranslator translator) {
+            this.translator = translator;
+        }
 
         List<ImFunction> createdFunctions() {
             return created;
@@ -400,6 +405,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFloorDivInt() {
             if (rawFloorDivInt == null) {
                 rawFloorDivInt = rawNative("__wurst_rawFloorDivInt", TypesHelper.imInt());
+                translator.luaRawFloorDivIntFunc = rawFloorDivInt;
                 created.add(rawFloorDivInt);
             }
             return rawFloorDivInt;
@@ -408,6 +414,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodInt() {
             if (rawFmodInt == null) {
                 rawFmodInt = rawNative("__wurst_rawFmodInt", TypesHelper.imInt());
+                translator.luaRawFmodIntFunc = rawFmodInt;
                 created.add(rawFmodInt);
             }
             return rawFmodInt;
@@ -416,6 +423,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodReal() {
             if (rawFmodReal == null) {
                 rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
+                translator.luaRawFmodRealFunc = rawFmodReal;
                 created.add(rawFmodReal);
             }
             return rawFmodReal;

@@ -141,14 +141,14 @@ public class ExprTranslation {
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
-        if (isRawNumericIntrinsic(imFuncName)) {
+        if (isRawNumericIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
                     imFuncName + " expects exactly two arguments");
             }
             LuaExpr left = e.getArguments().get(0).translateToLua(tr);
             LuaExpr right = e.getArguments().get(1).translateToLua(tr);
-            if ("__wurst_rawFloorDivInt".equals(imFuncName)) {
+            if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
             }
             return LuaAst.LuaExprFunctionCallByName("math.fmod", LuaAst.LuaExprlist(left, right));
@@ -168,10 +168,10 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
 
-    static boolean isRawNumericIntrinsic(String functionName) {
-        return "__wurst_rawFloorDivInt".equals(functionName)
-            || "__wurst_rawFmodInt".equals(functionName)
-            || "__wurst_rawFmodReal".equals(functionName);
+    static boolean isRawNumericIntrinsic(ImFunction function, LuaTranslator tr) {
+        return function == tr.imTr.luaRawFloorDivIntFunc
+            || function == tr.imTr.luaRawFmodIntFunc
+            || function == tr.imTr.luaRawFmodRealFunc;
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {

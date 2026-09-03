@@ -725,7 +725,7 @@ public class LuaTranslator {
             // do not translate blizzard functions
             return;
         }
-        if (f.isNative() && ExprTranslation.isRawNumericIntrinsic(f.getName())) {
+        if (f.isNative() && ExprTranslation.isRawNumericIntrinsic(f, this)) {
             return;
         }
         LuaFunction lf = luaFunc.getFor(f);

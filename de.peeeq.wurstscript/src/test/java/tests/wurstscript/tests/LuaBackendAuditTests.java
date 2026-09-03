@@ -2808,6 +2808,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("__wurst_raw"));
     }
 
+    @Test
+    public void numericIntrinsicRecognitionUsesFunctionIdentity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function __wurst_rawFmodInt(int a, int b) returns int",
+            "    return 123",
+            "init",
+            "    if __wurst_rawFmodInt(7, 2) == 123",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("numericIntrinsicRecognitionUsesFunctionIdentity");
+        assertTrue("an ordinary same-named function must keep its definition:\n" + compiled,
+            compiled.contains("function __wurst_rawFmodInt("));
+        assertFalse("an ordinary same-named call must not lower to fmod:\n" + compiled,
+            compiled.contains("math.fmod("));
+    }
+
     /**
      * String concatenation is lowered to a synthetic stringConcat IM function.
      * The polyfill and its call sites used to be linked only by both happening
