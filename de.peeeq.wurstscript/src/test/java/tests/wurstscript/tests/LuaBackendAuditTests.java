@@ -2129,6 +2129,29 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * Jass erases generics long before this pass, so `redirectCall` could build the replacement with
+     * an empty type-argument list. Lua only specialises concrete operations at that point and leaves
+     * generics live, so dropping them leaves the redirected call typed by an unresolved type variable.
+     * `LuaNativeLowering` decides string concatenation from each operand's type, so a generic vararg
+     * returning its type parameter silently became a numeric addition on strings.
+     */
+    @Test
+    public void genericVarargCallKeepsItsTypeArgumentsOnLua() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "function lastOf<T>(vararg T xs) returns T",
+            "    T result = null",
+            "    for x in xs",
+            "        result = x",
+            "    return result",
+            "init",
+            "    let joined = \"a\" + lastOf<string>(\"b\", \"c\")",
+            "    if joined == \"ac\" and lastOf<int>(1, 2) == 2",
+            "        testSuccess()"
+        );
+    }
+
     @Test
     public void virtuallyDispatchedVarargMethodKeepsThePackedPath() throws IOException {
         test().testLua(true).executeProg().lines(

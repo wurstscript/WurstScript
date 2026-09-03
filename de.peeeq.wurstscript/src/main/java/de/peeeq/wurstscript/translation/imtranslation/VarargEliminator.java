@@ -168,7 +168,8 @@ public class VarargEliminator {
     private void redirectMethodCall(ImMethodCall call, ImFunction newFunc) {
         ImExprs args = JassIm.ImExprs(call.getReceiver().copy());
         args.addAll(call.getArguments().removeAll());
-        call.replaceBy(JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImTypeArguments(), args,
+        call.replaceBy(JassIm.ImFunctionCall(call.getTrace(), newFunc,
+            JassIm.ImTypeArguments(call.getTypeArguments().removeAll()), args,
             call.getTuplesEliminated(), CallType.NORMAL));
     }
 
@@ -350,7 +351,13 @@ public class VarargEliminator {
 
     private void redirectCall(ImFunctionCall call, ImFunction newFunc) {
         // Redirect call to new function
-        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(), call.getCallType());
+        // Carry the type arguments over rather than assuming there are none. Jass erases generics
+        // long before this pass, so an empty list was always right there; on Lua the erasure happens
+        // elsewhere and this list is empty in practice too, but rebuilding the call should not be
+        // the step that decides that.
+        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc,
+            JassIm.ImTypeArguments(call.getTypeArguments().removeAll()),
+            JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(), call.getCallType());
         call.replaceBy(newCall);
     }
 
