@@ -58,7 +58,7 @@ public class VarargEliminator {
         while (generated) {
             generated = false;
             for (ImFunctionCall c : collectVarargCalls()) {
-                if (c.getFunc().hasFlag(IS_VARARG) && shouldSpecialise(c)
+                if (c.getFunc().hasFlag(IS_VARARG) && shouldSpecialise(c) && !forwardsAVarargParameter(c.getArguments())
                     && !varargFuncs.contains(c.getFunc(), c.getArguments().size())) {
                     generateVarargFunc(c);
                     generated = true;
@@ -72,7 +72,7 @@ public class VarargEliminator {
                 for (ImMethodCall c : collectMonomorphicVarargMethodCalls()) {
                     ImFunction implementation = c.getMethod().getImplementation();
                     List<ImExpr> arguments = receiverAndArguments(c);
-                    if (shouldSpecialise(arguments)
+                    if (shouldSpecialise(arguments) && !forwardsAVarargParameter(arguments)
                         && !varargFuncs.contains(implementation, arguments.size())) {
                         generateVarargFunc(implementation, arguments, c);
                         generated = true;
@@ -90,7 +90,7 @@ public class VarargEliminator {
         // (need to collect vararg calls again, because first phase can create copies of calls)
         for (ImFunctionCall call : collectVarargCalls()) {
             ImFunction newFunc = varargFuncs.get(call.getFunc(), call.getArguments().size());
-            if (newFunc != null) {
+            if (newFunc != null && !forwardsAVarargParameter(call.getArguments())) {
                 redirectCall(call, newFunc);
             }
         }
@@ -98,13 +98,48 @@ public class VarargEliminator {
             for (ImMethodCall call : collectMonomorphicVarargMethodCalls()) {
                 ImFunction implementation = call.getMethod().getImplementation();
                 ImFunction newFunc = varargFuncs.get(implementation, 1 + call.getArguments().size());
-                if (newFunc != null) {
+                if (newFunc != null && !forwardsAVarargParameter(receiverAndArguments(call))) {
                     redirectMethodCall(call, newFunc);
                 }
             }
         }
     }
 
+
+    /**
+     * Whether a call passes a vararg placeholder straight through, which is what the generated
+     * `new_C` wrapper of a vararg constructor does with its own parameter. The placeholder is a
+     * single node standing for however many arguments the caller actually passed, so the call's node
+     * count is not an arity: specialising by it would produce a fixed-arity callee and drop every
+     * argument after the first.
+     *
+     * <p>Only reachable on Lua. The forwarding call lives in the body of a vararg original, and a
+     * copy has its placeholder expanded into real parameters before anything looks at it again, so
+     * this matches only originals - which Jass removes and Lua retains.
+     *
+     * <p>Both the generation and the rewrite loop consult this. Skipping generation alone would not
+     * be enough: another call could have produced a copy at the same node count, and the rewrite
+     * would then redirect the forwarding call to it.
+     */
+    private static boolean forwardsAVarargParameter(List<ImExpr> arguments) {
+        for (ImExpr argument : arguments) {
+            if (argument instanceof ImVarAccess access && isVarargPlaceholder(access.getVar())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The trailing parameter of a function still marked vararg, as opposed to a local or a copy's. */
+    private static boolean isVarargPlaceholder(ImVar variable) {
+        if (variable.getParent() == null
+            || !(variable.getParent().getParent() instanceof ImFunction function)
+            || !function.hasFlag(IS_VARARG)) {
+            return false;
+        }
+        List<ImVar> parameters = function.getParameters();
+        return !parameters.isEmpty() && parameters.get(parameters.size() - 1) == variable;
+    }
     /** A method call which can only ever reach one implementation, and that implementation is vararg. */
     private Collection<ImMethodCall> collectMonomorphicVarargMethodCalls() {
         final Collection<ImMethodCall> calls = new ArrayList<>();

@@ -2096,6 +2096,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("table.pack"));
     }
 
+    /**
+     * A vararg constructor is reached through a compiler-generated `new_C` wrapper which forwards its
+     * vararg placeholder to `construct_C`. When a call above the bound keeps that wrapper as the
+     * retained original, its body still holds the forwarding call, and the placeholder is one node
+     * standing for however many arguments the caller passed. Specialising by node count would rewrite
+     * it to a fixed-arity constructor and silently drop every argument after the first.
+     */
+    @Test
+    public void varargConstructorAboveTheLuaArityBoundKeepsThePackedPath() {
+        StringBuilder args = new StringBuilder();
+        int n = 70;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Tally",
+            "    int total = 0",
+            "    construct(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let big = new Tally(" + args + ")",
+            "    let small = new Tally(1, 2)",
+            "    if big.total == " + (n * (n + 1) / 2) + " and small.total == 3",
+            "        testSuccess()"
+        );
+    }
+
     @Test
     public void virtuallyDispatchedVarargMethodKeepsThePackedPath() throws IOException {
         test().testLua(true).executeProg().lines(
