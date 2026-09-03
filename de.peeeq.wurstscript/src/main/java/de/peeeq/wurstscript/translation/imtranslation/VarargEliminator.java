@@ -22,11 +22,14 @@ public class VarargEliminator {
 
     private static final int JASS_MAX_PARAMETERS = ImHelper.JASS_MAX_PARAMETERS;
     /**
-     * Largest vararg arity given a fixed-arity copy on Lua. Lua caps a function at 200 locals
-     * including parameters; this leaves room for the body's own locals. A call above it keeps the
-     * original `...` function, which is always still present on that target.
+     * Largest number of emitted parameters a fixed-arity copy may have on Lua, counted after tuple
+     * flattening: one four-field tuple argument is four parameters, so an arity that looks modest in
+     * source can exceed what the target accepts. Lua caps a function at 200 locals including its
+     * parameters, and the locals-table fallback cannot spill parameters, so this leaves room for the
+     * body's own locals. A call above it keeps the original `...` function, which is always still
+     * present on that target.
      */
-    public static final int LUA_MAX_SPECIALISED_VARARG_ARITY = 64;
+    public static final int LUA_MAX_SPECIALISED_VARARG_PARAMETERS = 64;
     private final ImProg prog;
     /**
      * On Lua classes are still present when this runs, so a vararg function can also be reached
@@ -47,22 +50,32 @@ public class VarargEliminator {
     }
 
     public void run() {
-        // create new vararg functions
-        for (ImFunctionCall c : collectVarargCalls()) {
-            if (c.getFunc().hasFlag(IS_VARARG) && shouldSpecialise(c)) {
-                generateVarargFunc(c);
+        // Create new vararg functions. Repeated to a fixpoint: a generated copy can contain a call
+        // to a vararg function at an arity nothing has needed yet, which is what a recursive vararg
+        // function calling itself with a different argument count produces.
+        boolean generated = true;
+        while (generated) {
+            generated = false;
+            for (ImFunctionCall c : collectVarargCalls()) {
+                if (c.getFunc().hasFlag(IS_VARARG) && shouldSpecialise(c)
+                    && !varargFuncs.contains(c.getFunc(), c.getArguments().size())) {
+                    generateVarargFunc(c);
+                    generated = true;
+                }
             }
-        }
-        if (luaTarget) {
-            // The Lua backend already turns a method call with exactly one possible implementation
-            // into a direct call of that implementation. Doing the same here for vararg methods is
-            // what lets ArrayList.add and friends get a fixed-arity copy at all: on this target the
-            // call is still an ImMethodCall when varargs are eliminated.
-            for (ImMethodCall c : collectMonomorphicVarargMethodCalls()) {
-                ImFunction implementation = c.getMethod().getImplementation();
-                List<ImExpr> arguments = receiverAndArguments(c);
-                if (shouldSpecialise(implementation, arguments.size())) {
-                    generateVarargFunc(implementation, arguments, c);
+            if (luaTarget) {
+                // The Lua backend already turns a method call with exactly one possible
+                // implementation into a direct call of that implementation. Doing the same here for
+                // vararg methods is what lets ArrayList.add and friends get a fixed-arity copy at
+                // all: on this target the call is still an ImMethodCall when varargs are eliminated.
+                for (ImMethodCall c : collectMonomorphicVarargMethodCalls()) {
+                    ImFunction implementation = c.getMethod().getImplementation();
+                    List<ImExpr> arguments = receiverAndArguments(c);
+                    if (shouldSpecialise(arguments)
+                        && !varargFuncs.contains(implementation, arguments.size())) {
+                        generateVarargFunc(implementation, arguments, c);
+                        generated = true;
+                    }
                 }
             }
         }
@@ -123,17 +136,27 @@ public class VarargEliminator {
             call.getTuplesEliminated(), CallType.NORMAL));
     }
 
-    /** Whether a call gets a fixed-arity copy. Always on Jass; on Lua only up to the arity bound. */
+    /** Whether a call gets a fixed-arity copy. Always on Jass; on Lua only within the parameter bound. */
     private boolean shouldSpecialise(ImFunctionCall call) {
-        return shouldSpecialise(call.getFunc(), call.getArguments().size());
+        return shouldSpecialise(call.getArguments());
     }
 
-    private boolean shouldSpecialise(ImFunction func, int totalArguments) {
+    /**
+     * Counted after tuple flattening, because that is what the emitted parameter list costs: twenty
+     * four-field tuples are eighty parameters, not twenty.
+     */
+    private boolean shouldSpecialise(List<ImExpr> arguments) {
         if (!luaTarget) {
             return true;
         }
-        int varargCount = 1 + totalArguments - func.getParameters().size();
-        return varargCount <= LUA_MAX_SPECIALISED_VARARG_ARITY;
+        int parameters = 0;
+        for (ImExpr argument : arguments) {
+            parameters += ImHelper.flattenedJassArity(argument.attrTyp());
+            if (parameters > LUA_MAX_SPECIALISED_VARARG_PARAMETERS) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @NotNull
@@ -184,6 +207,19 @@ public class VarargEliminator {
 
         // Create new function
         ImFunction newFunc = ReferenceRewritingCopy.copy(func);
+        // The copy retargets the function's own references, so a recursive call inside it now names
+        // the copy. That is wrong whenever the recursion uses a different argument count: the call
+        // must go back to naming the vararg original, so the rewrite below maps it to a copy of its
+        // own arity like any other call.
+        newFunc.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getFunc() == newFunc) {
+                    call.setFunc(func);
+                }
+            }
+        });
         newFunc.setName(func.getName() + "_" + argumentSize);
         // replace vararg with special parameters:
         ImVar varargParam = newFunc.getParameters().remove(newFunc.getParameters().size() - 1);

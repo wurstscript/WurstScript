@@ -2123,6 +2123,84 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
     }
 
+    /**
+     * A vararg function may call itself with a different static arity. Copying the function for one
+     * arity must not retarget that inner call to the copy, which has the wrong parameter count; the
+     * call has to be mapped to its own arity like every other call.
+     */
+    @Test
+    public void recursiveVarargCallsAreMappedToTheirOwnArity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function depth(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    if n == 3",
+            "        return 100 + depth(1, 2)",
+            "    if n == 2",
+            "        return 10 + depth(1)",
+            "    return n",
+            "init",
+            "    if depth(1, 2, 3) == 111 and depth(5) == 1 and depth() == 0",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * The Lua arity bound is about emitted parameters, which tuple elimination multiplies: twenty
+     * four-field tuples are eighty formal parameters. Such a call keeps the packed path rather than
+     * emitting a function Lua refuses to load.
+     */
+    @Test
+    public void wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 20;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append("quad(").append(i).append(", 0, 0, 1)");
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple quad(int a, int b, int c, int d)",
+            "@noinline function sumFirst(vararg quad qs) returns int",
+            "    var total = 0",
+            "    for q in qs",
+            "        total += q.a + q.d",
+            "    return total",
+            "init",
+            "    if sumFirst(" + args + ") == " + (n * (n + 1) / 2 + n) + " and sumFirst(quad(1, 2, 3, 4)) == 5",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound");
+        assertTrue("eighty flattened parameters must keep the packed original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    /**
+     * A vararg parameter cannot be passed on, to a function or to a method. Both halves matter here:
+     * a vararg function may have only the one parameter, so a receiver cannot be a second one, and
+     * the argument itself does not type as the element type. The eliminator's forwarding branch is
+     * therefore reachable only from calls it generated itself, which are always ImFunctionCall.
+     */
+    @Test
+    public void varargParameterCannotBeForwardedToAMethod() {
+        testAssertErrorsLines(false, "Found vararg integer",
+            "package Test",
+            "class Sink",
+            "    static Sink instance = null",
+            "    function consume(vararg int xs)",
+            "        skip",
+            "function relay(vararg int xs)",
+            "    Sink.instance.consume(xs)"
+        );
+    }
+
+
     @Test
     public void localPlayerTaintFlowsThroughVarargLoopValues() {
         String compiled = compileOptimizedLua(
