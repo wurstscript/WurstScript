@@ -10,14 +10,6 @@ are open.
 
 ## Open
 
-- **The library's own `@Test` functions run on the interpreter only.** `StdLibOwnTests` collects
-  every `*Tests` package from the pinned checkout and runs them through `test().withStdLib()`, and
-  `grill test` in the library's own CI does the same through `RunTests`; neither executes them on
-  the Lua target. Running them on Lua needs the harness to execute a Wurst test function on that
-  target rather than an `init` block, which is new machinery rather than a flag. Worth it: the two
-  targets have disagreed before, and every disagreement so far was found by running the same program
-  on both.
-
 - **A dead dispatch slot survives for overloads inside a specialised class.** Two overloads of one
   source method share a declared name, so a specialised class holding only overloads still composes
   one shared slot and binds it to whichever is reached first. Nothing calls it. A fix needs an
@@ -63,6 +55,9 @@ are open.
   that pass, not about `LuaTranslator`.
 - Tests run five Jass configurations plus the interpreter, then the Lua target separately.
   `testAssertOkLines(true, ...)` covers both the pre-transform interpreter and full monomorphisation.
+- `@Test` functions are interpreter unit tests by design; `StdLibOwnTests` and `grill test` run them
+  there. There is no Wurst-level end-to-end test feature yet; correctness on the Lua target in a real
+  map is asserted in the agent workflow, not by the suite.
 - Test forks: eight forks won on eight cores (7m03s wall against 13m11s serial) even though each
   test runs 2.6 times slower there. Wall time cannot go below the slowest class, `ExportToWurstTest`
   at 108s, until it is split.
