@@ -271,7 +271,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let bag = new Bag<handles>()",
             "    bag.add(handles(makeFrame(), makeFrame()))"
         );
-        assertTrue(compiled.contains("table.pack(...)"));
+        assertFalse("a static-arity vararg call must not pack a table on Lua", compiled.contains("table.pack(...)"));
         assertFalse(compiled.contains("tupleCopy"));
     }
 
@@ -1986,6 +1986,308 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             definitionOrCall >= 0);
         assertTrue("optimized Lua must retain the call to the local-player probe",
             compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
+    }
+
+    /**
+     * On Lua a vararg function used to keep its {@code ...} parameter and pack it into a table on
+     * every call, and the inliner refused it. With a static argument count at the call site the
+     * call is redirected to a fixed-arity copy, as Jass has always done, so the pack is gone and
+     * the copy inlines like any other small function.
+     */
+    @Test
+    public void staticArityVarargCallsAreFixedArityOnLua() {
+        String compiled = compileOptimizedLua(
+            "staticArityVarargCallsAreFixedArityOnLua",
+            "package Test",
+            "native consume(int i)",
+            "int array values",
+            "function biggest(vararg int xs) returns int",
+            "    var best = -2147483648",
+            "    for x in xs",
+            "        if x > best",
+            "            best = x",
+            "    return best",
+            "@noinline function query(int a, int b, int c)",
+            "    var i = 0",
+            "    while i < 16",
+            "        consume(biggest(a, values[i]))",
+            "        consume(biggest(a, b, c))",
+            "        i++",
+            "init",
+            "    query(1, 2, 3)"
+        );
+        assertFalse("no vararg call site may pack a table:\n" + compiled, compiled.contains("table.pack"));
+        assertFalse("the vararg original must not survive with a ... parameter:\n" + compiled,
+            compiled.contains("function biggest(...)"));
+        assertFunctionBodyContains(compiled, "query", "biggest(", false);
+    }
+
+    @Test
+    public void fixedArityVarargLoweringKeepsSemanticsOnLua() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "function count(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    return n",
+            "function firstOr(vararg int xs) returns int",
+            "    for x in xs",
+            "        return x",
+            "    return -1",
+            "function pairs(vararg pair ps) returns int",
+            "    var result = 0",
+            "    for p in ps",
+            "        result = result * 100 + p.x * 10 + p.y",
+            "    return result",
+            "class Bag",
+            "    int total = 0",
+            "    function add(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let bag = new Bag()",
+            "    bag.add(1)",
+            "    bag.add(2, 3)",
+            "    bag.add()",
+            "    if sum() == 0 and sum(5) == 5 and sum(1, 2, 3, 4) == 10",
+            "        and count() == 0 and count(9, 9, 9) == 3",
+            "        and firstOr() == -1 and firstOr(4, 5) == 4",
+            "        and pairs(pair(1, 2), pair(3, 4)) == 1234",
+            "        and bag.total == 6",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("fixedArityVarargLoweringKeepsSemanticsOnLua");
+        assertFalse("every call above has a static arity, so nothing may pack:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    @Test
+    public void varargCallAboveTheLuaArityBoundKeepsThePackedPath() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 150;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "init",
+            "    if sum(" + args + ") == " + (n * (n + 1) / 2) + " and sum(1, 2) == 3",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("varargCallAboveTheLuaArityBoundKeepsThePackedPath");
+        assertTrue("a call above the bound keeps the vararg original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    /**
+     * A vararg constructor is reached through a compiler-generated `new_C` wrapper which forwards its
+     * vararg placeholder to `construct_C`. When a call above the bound keeps that wrapper as the
+     * retained original, its body still holds the forwarding call, and the placeholder is one node
+     * standing for however many arguments the caller passed. Specialising by node count would rewrite
+     * it to a fixed-arity constructor and silently drop every argument after the first.
+     */
+    @Test
+    public void varargConstructorAboveTheLuaArityBoundKeepsThePackedPath() {
+        StringBuilder args = new StringBuilder();
+        int n = 70;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Tally",
+            "    int total = 0",
+            "    construct(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let big = new Tally(" + args + ")",
+            "    let small = new Tally(1, 2)",
+            "    if big.total == " + (n * (n + 1) / 2) + " and small.total == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Jass erases generics long before this pass, so `redirectCall` could build the replacement with
+     * an empty type-argument list. Lua only specialises concrete operations at that point and leaves
+     * generics live, so dropping them leaves the redirected call typed by an unresolved type variable.
+     * `LuaNativeLowering` decides string concatenation from each operand's type, so a generic vararg
+     * returning its type parameter silently became a numeric addition on strings.
+     */
+    @Test
+    public void genericVarargCallKeepsItsTypeArgumentsOnLua() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "function lastOf<T>(vararg T xs) returns T",
+            "    T result = null",
+            "    for x in xs",
+            "        result = x",
+            "    return result",
+            "init",
+            "    let joined = \"a\" + lastOf<string>(\"b\", \"c\")",
+            "    if joined == \"ac\" and lastOf<int>(1, 2) == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void virtuallyDispatchedVarargMethodKeepsThePackedPath() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Summer",
+            "    function sum(vararg int xs) returns int",
+            "class Plain implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += x",
+            "        return total",
+            "class Doubling implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += 2 * x",
+            "        return total",
+            "init",
+            "    Summer a = new Plain()",
+            "    Summer b = new Doubling()",
+            "    if a.sum(1, 2, 3) == 6 and b.sum(1, 2, 3) == 12",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A vararg function may call itself with a different static arity. Copying the function for one
+     * arity must not retarget that inner call to the copy, which has the wrong parameter count; the
+     * call has to be mapped to its own arity like every other call.
+     */
+    @Test
+    public void recursiveVarargCallsAreMappedToTheirOwnArity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function depth(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    if n == 3",
+            "        return 100 + depth(1, 2)",
+            "    if n == 2",
+            "        return 10 + depth(1)",
+            "    return n",
+            "init",
+            "    if depth(1, 2, 3) == 111 and depth(5) == 1 and depth() == 0",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * The Lua arity bound is about emitted parameters, which tuple elimination multiplies: twenty
+     * four-field tuples are eighty formal parameters. Such a call keeps the packed path rather than
+     * emitting a function Lua refuses to load.
+     */
+    @Test
+    public void wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 20;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append("quad(").append(i).append(", 0, 0, 1)");
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple quad(int a, int b, int c, int d)",
+            "@noinline function sumFirst(vararg quad qs) returns int",
+            "    var total = 0",
+            "    for q in qs",
+            "        total += q.a + q.d",
+            "    return total",
+            "init",
+            "    if sumFirst(" + args + ") == " + (n * (n + 1) / 2 + n) + " and sumFirst(quad(1, 2, 3, 4)) == 5",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound");
+        assertTrue("eighty flattened parameters must keep the packed original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    /**
+     * A vararg parameter cannot be passed on, to a function or to a method. Both halves matter here:
+     * a vararg function may have only the one parameter, so a receiver cannot be a second one, and
+     * the argument itself does not type as the element type. The eliminator's forwarding branch is
+     * therefore reachable only from calls it generated itself, which are always ImFunctionCall.
+     */
+    @Test
+    public void varargParameterCannotBeForwardedToAMethod() {
+        testAssertErrorsLines(false, "Found vararg integer",
+            "package Test",
+            "class Sink",
+            "    static Sink instance = null",
+            "    function consume(vararg int xs)",
+            "        skip",
+            "function relay(vararg int xs)",
+            "    Sink.instance.consume(xs)"
+        );
+    }
+
+
+    /**
+     * `@preserveName` and `ExecuteFunc` mark a function's emitted name as part of the map's
+     * WC3-facing API, and `LuaTranslator.collectPredefinedNames()` resets every function carrying
+     * that flag to its trace's source name. A generated copy shares the original's trace, so an
+     * inherited flag would emit the original and every copy under one name and let the last
+     * definition win. The preserved name belongs to the retained original: that is the one external
+     * code calls, at an arity this pass never gets to see.
+     */
+    @Test
+    public void preservedNameStaysOnTheVarargOriginalNotItsCopies() {
+        String compiled = compileOptimizedLua(
+            "preservedNameStaysOnTheVarargOriginalNotItsCopies",
+            "package Test",
+            "native consume(int i)",
+            "@preserveName @noinline public function tally(vararg int xs) returns int",
+            "    var sum = 0",
+            "    for x in xs",
+            "        sum += x",
+            "    return sum",
+            "init",
+            "    consume(tally(1, 2))"
+        );
+        assertTrue("the fixed-arity copy must keep its own suffixed name:\n" + compiled,
+            compiled.contains("function tally_2("));
+        int definitions = 0;
+        for (int at = compiled.indexOf("function tally("); at >= 0;
+             at = compiled.indexOf("function tally(", at + 1)) {
+            definitions++;
+        }
+        assertEquals("the preserved name must name exactly one function:\n" + compiled,
+            1, definitions);
     }
 
     /**
