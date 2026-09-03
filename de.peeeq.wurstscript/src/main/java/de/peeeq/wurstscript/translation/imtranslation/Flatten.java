@@ -492,9 +492,9 @@ public class Flatten {
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {
         // Choose execution strategy based on flags and size
+        List<ImClass> classes = imProg.getClasses();
         if (USE_PARALLEL_EXECUTION) {
             int total = imProg.getFunctions().size();
-            List<ImClass> classes = imProg.getClasses();
             for (int i = 0; i < classes.size(); i++) {
                 total += classes.get(i).getFunctions().size();
             }
@@ -512,7 +512,6 @@ public class Flatten {
                     ImFunction function = functions.get(i);
                     function.flatten(translator);
                 }
-                List<ImClass> classes = imProg.getClasses();
                 for (int i = 0; i < classes.size(); i++) {
                     ImClass c = classes.get(i);
                     List<ImFunction> classFunctions = c.getFunctions();
@@ -529,7 +528,6 @@ public class Flatten {
                 ImFunction function = functions.get(i);
                 function.flatten(translator);
             }
-            List<ImClass> classes = imProg.getClasses();
             for (int i = 0; i < classes.size(); i++) {
                 ImClass c = classes.get(i);
                 List<ImFunction> classFunctions = c.getFunctions();
