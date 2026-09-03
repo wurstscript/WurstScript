@@ -17,6 +17,142 @@ The container these bounds were added for now compiles and runs against the stan
 Jass, and compiles on Lua (#1239). What is left is generality around it rather than the feature
 itself, and one gap in what the suite can see.
 
+27. **A natively keyed store on Lua, selected by a type class.** Decided with the repo owner:
+    **the native path is taken only where the key's equality is identity**, and a type class says
+    which keys those are. Everything else keeps today's probing on both targets.
+
+    Why it is worth doing. `FastHashMap` does its own hashing and linear probing on both targets, but
+    a Lua table already is a hash map: `t[key] = value` would let Lua hash, and would lift the fixed
+    `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also get string
+    keys off `StringHash`, which this library documents as unusable for the purpose - case insensitive
+    (`String.wurst:81`, so `a` and `A` share a key), collapsing every partial multibyte slice to one
+    constant (`MultibyteDiagnostics`), and undocumented and changed between game versions. It *is*
+    emulated - `StringProvider` delegates to `Wc3StringHash` and `Wc3StringHashTest` checks parity with
+    the Lua shim - so a test does see the real behaviour; an earlier draft of this entry said otherwise
+    and was wrong. What makes it unusable is the behaviour itself, not the fidelity of the emulation.
+    Other containers - a set, a memo cache, adjacency maps - then build on the one store.
+
+    Why the type class is load bearing rather than incidental. A Lua table matches keys by raw
+    identity, which for a class is reference identity. An instance whose `equals` is structural -
+    `Hashable<vec2>` comparing components - would therefore have Jass treat two equal-valued keys as
+    one key and Lua treat them as two, silently, from one program. So the native path is sound only
+    for `int`, `real`, `string`, `boolean` and reference-keyed classes. A second bound states that:
+
+        public interface RawKeyed<T:>          // no requirements; a promise that equality is identity
+
+    How the two are then selected is unsettled, and the obvious spelling does not work: Wurst does not
+    overload a type on its bounds, so declaring `FastHashMap<K: Hashable>` beside
+    `FastHashMap<K: Hashable and RawKeyed>` makes every mention of the name ambiguous before any
+    instance is considered. Either the native variant is a separate type - `RawHashMap`, say, with the
+    bound as its entry condition - or one type carries both strategies and picks per operation, which
+    costs a branch and gives up the limits being lifted. Decide that before writing any of it.
+
+    A further constraint on admitting reference-keyed classes: `null` is a value of any class type and
+    lowers to `nil`, and `t[nil]` is a runtime error in Lua while the probing implementation accepts
+    it wherever `Hashable` does. So identity alone is not sufficient for the native path - null keys
+    have to be rejected or special-cased.
+
+    Groundwork already established, so the next attempt does not have to find it again:
+
+    - Intrinsics are declared in Wurst with `@compilerintrinsic` in `wurst/_wurst/MagicFunctions.wurst`
+      and bounds parse there; `wurstNewInstance<T:>() returns T` is the shape to copy. Recognition is
+      by name plus `!AttrFuncDef.hasApplicableUserFunction(call)` in `CompilerIntrinsics`.
+    - `ImTranslator.isLuaTarget()` is available during Wurst-to-IM lowering, which is what makes this
+      feasible: the intrinsic can lower differently per target rather than needing dead-branch
+      elimination to have happened first. An `if isLua` guard alone does not help, because folding
+      runs after translation and both branches are lowered.
+    - A Wurst array access already lowers to a plain `t[i]` on Lua
+      (`lua.translation.ExprTranslation.translateArrayAccessRaw` builds `LuaExprArrayAccess`). Nothing
+      in the backend needs changing; the only obstacle is that the language requires an `int` index,
+      and typechecking is target independent, so relaxing it for Lua alone would let a program compile
+      for one target and fail on the other.
+    - `ImTranslator.imError(trace, message)` gives a runtime error call, for the Jass lowering of an
+      intrinsic that has no Jass meaning. `ImStatementExpr` is available for pairing statements with a
+      value.
+
+    Left to settle. The read is straightforward - `wurstKeyedRead(store, key)` lowering to
+    `store[key]`. The write is the open question: as an `ExprFunctionCall` it must lower to an
+    `ImExpr`, while what it wants to be is an `ImSet` to an array access. Either wrap it in an
+    `ImStatementExpr` with a discarded value, or expand it at AST level after validation the way
+    `wurstMapFields` assigns back to fields, which is a different mechanism and may be the cleaner
+    one. Settle that before writing the surface.
+
+    **Two things this now has to answer, from discussion.**
+
+    *Which target is `FastHashMap` for.* The owner's read is that it is really a Lua container. That
+    is right about speed and not about usefulness. On Jass a native `Table` does the hashing outside
+    the script, so probing arrays with a hash computed in Wurst will not beat `HashMap` - the name
+    only earns itself on Lua. But `HashMap` cannot take a `vec2`, a tuple or anything else not
+    castable, and two keys which cast to one int collide there, which is the niche `FastHashMap`
+    exists for and which is target independent. So: keep it working on both, take the native table on
+    Lua, and stop presenting the Jass path as the fast one. If that holds, the native table becomes
+    the primary implementation rather than an optimisation, and the capacity limits and probing become
+    the Jass fallback - which also settles the selection question above, since the two variants stop
+    being peers.
+
+    *A `Hashing` package.* Wanted so instances and future containers stop hand-rolling a mix each.
+    The modern choices - MurmurHash3's `fmix32`, xxHash, FxHash - are all xor, shift and wrapping
+    multiply, and that is where the targets diverge sharply. `Bitwise.bwXor32` extracts eight bytes
+    and does four table lookups per xor, so `fmix32` would cost roughly twenty four divisions and
+    twelve lookups per integer on Jass, worse than the arithmetic mix it would replace and for
+    avalanche nobody observes at `mod 32`. On Lua those ops are native and `fmix32` is the right
+    answer outright. `fmix32` also depends on 32 bit wrapping multiply, which Jass has and Lua does
+    not, so identical values across targets need masking - two more `and32`, another sixteen
+    divisions. Conclusion: one surface, `hashInt`/`hashString`/`combine`, split by target on the same
+    `isLuaTarget()` lowering this entry is about, which makes the package a second consumer of it
+    rather than separate work. Measure `bwXor32` before committing to any of this; its cost is the
+    whole argument and it was read from the source rather than timed.
+
+    Blocks `WurstStdlib2#468`, deliberately: shipping `FastHashMap` first would commit
+    `FASTHASHMAP_CAPACITY`, `isFull()` and `Hashable.hash` to the public API when the Lua path makes
+    all three meaningless on that target.
+
+28. **Two costs the Lua emission pays which look avoidable.** Found by reading the emitted script
+    for `FastHashMapTests_fastHashMapRuntimeLua`, not by profiling. **Measure both before touching
+    either**; each proposal below is a structural argument and a call count, which is not the same as
+    knowing what the game's interpreter charges for it.
+
+    *Every primitive array read is a function call.* `LuaNativeLowering.lowerPrimitiveArrayEnsure`
+    wraps each non-lvalue primitive array access in `ensureInt`/`ensureBool`/`ensureReal`, and the
+    wrapper survives the optimiser into the emitted script:
+
+        if not(__wurst_ensureBool(FastHashMap_used[s])) then
+        return ((s2 >= this5.FastHashMap_base) and __wurst_ensureBool(FastHashMap_used[s2]))
+
+    Writes are raw, lvalues being skipped, so only reads pay. `slotFor` reads `used` and `dead` every
+    probe step, which is two Lua calls per step in the hottest loop the container has. The shim itself
+    is needed: an untouched table key is `nil` where Jass reads `0` or `false`, and class and handle
+    typed arrays already skip it because `nil` is the right default for them.
+
+    The fix is to move the default off the access site and onto the table, which is the ordinary Lua
+    idiom for exactly this:
+
+        __wurst_default_false = ({__index = function() return false end})
+        setmetatable(FastHashMap_used, __wurst_default_false)
+
+    A present key is then a raw table index with no call at all, and the function runs only on a miss
+    - which is the rare case, a read of a slot never written. One metatable per primitive array global
+    replaces a wrapper at every read site. Three shared metatables cover int, bool and real. `pairs`
+    is unaffected by `__index`, so nothing which iterates an array changes. What has to be checked:
+    where the `setmetatable` calls are emitted (globals init, before any read), that a `0` or `false`
+    actually stored still reads back rather than falling through, and whether anything relies on the
+    stacktrace argument `callWithStacktrace` adds to the current wrapper.
+
+    *A method with an override stops being a direct call.* Without one, a bounded generic's method
+    lowers to a direct call - `Box_render_specialized(Box_new_Box(), 42)`. Add a subclass which
+    overrides it and the same call becomes `b:Box_size_specialized_integer(1)`, an instance miss
+    followed by an `__index` hop to the class table. The tables are flat rather than chained -
+    `SubBox.Box_size_specialized_integer` is assigned on `SubBox` itself, so it is one hop and not a
+    walk up the hierarchy - so the cost is that hop plus a dynamic lookup against a global function
+    call, and adding an override anywhere silently converts every call site of that slot.
+
+    The fix is class hierarchy analysis at the call site: if the receiver's static type has exactly one
+    reachable implementation of the slot, emit the direct call. `ImMethod.getSubMethods()` already
+    holds what that question needs, and `RemoveGarbage` already establishes reachability, so this is
+    reading data which exists rather than computing anything new. It also composes with the erasure
+    model in item 23: fewer virtual slots means fewer of the naming and binding problems items 15 and
+    26 came from.
+
 22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
     them, collected by importing every package in the checkout whose name ends in `Tests`. That
     half is done; this is the other one.
