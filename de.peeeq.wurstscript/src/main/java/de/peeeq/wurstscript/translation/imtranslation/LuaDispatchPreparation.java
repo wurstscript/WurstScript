@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImVars;
@@ -160,9 +161,9 @@ public final class LuaDispatchPreparation {
                 usedNames.add(function.getName());
             }
         }
-        List<ImVar> globals = prog.getGlobals();
-        for (int i = 0; i < globals.size(); i++) {
-            ImVar global = globals.get(i);
+        ImVar[] globals = prog.getGlobals().toArray(new ImVar[0]);
+        for (int i = 0; i < globals.length; i++) {
+            ImVar global = globals[i];
             if (global.getIsBJ()) {
                 usedNames.add(global.getName());
             }

@@ -157,9 +157,9 @@ public class RemoveGarbage {
     private static Used collectUsed(ImProg prog, ImTranslator translator,
                                     Set<ImSet> ignoredInitializers) {
         Used used = new Used(translator, ignoredInitializers);
-        List<ImFunction> programFunctions = ImHelper.calculateFunctionsOfProg(prog);
-        for (int i = 0; i < programFunctions.size(); i++) {
-            ImFunction f = programFunctions.get(i);
+        ImFunction[] programFunctions = ImHelper.calculateFunctionsOfProg(prog).toArray(new ImFunction[0]);
+        for (int i = 0; i < programFunctions.length; i++) {
+            ImFunction f = programFunctions[i];
             if (f.getName().equals("main")
                 || f.getName().equals("config")
                 || NamePreservation.isPreserved(f)) {
