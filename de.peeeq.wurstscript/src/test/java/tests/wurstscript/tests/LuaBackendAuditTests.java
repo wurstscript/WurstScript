@@ -271,7 +271,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let bag = new Bag<handles>()",
             "    bag.add(handles(makeFrame(), makeFrame()))"
         );
-        assertTrue(compiled.contains("table.pack(...)"));
+        assertFalse("a static-arity vararg call must not pack a table on Lua", compiled.contains("table.pack(...)"));
         assertFalse(compiled.contains("tupleCopy"));
     }
 
@@ -1986,6 +1986,141 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             definitionOrCall >= 0);
         assertTrue("optimized Lua must retain the call to the local-player probe",
             compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
+    }
+
+    /**
+     * On Lua a vararg function used to keep its {@code ...} parameter and pack it into a table on
+     * every call, and the inliner refused it. With a static argument count at the call site the
+     * call is redirected to a fixed-arity copy, as Jass has always done, so the pack is gone and
+     * the copy inlines like any other small function.
+     */
+    @Test
+    public void staticArityVarargCallsAreFixedArityOnLua() {
+        String compiled = compileOptimizedLua(
+            "staticArityVarargCallsAreFixedArityOnLua",
+            "package Test",
+            "native consume(int i)",
+            "int array values",
+            "function biggest(vararg int xs) returns int",
+            "    var best = -2147483648",
+            "    for x in xs",
+            "        if x > best",
+            "            best = x",
+            "    return best",
+            "@noinline function query(int a, int b, int c)",
+            "    var i = 0",
+            "    while i < 16",
+            "        consume(biggest(a, values[i]))",
+            "        consume(biggest(a, b, c))",
+            "        i++",
+            "init",
+            "    query(1, 2, 3)"
+        );
+        assertFalse("no vararg call site may pack a table:\n" + compiled, compiled.contains("table.pack"));
+        assertFalse("the vararg original must not survive with a ... parameter:\n" + compiled,
+            compiled.contains("function biggest(...)"));
+        assertFunctionBodyContains(compiled, "query", "biggest(", false);
+    }
+
+    @Test
+    public void fixedArityVarargLoweringKeepsSemanticsOnLua() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "function count(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    return n",
+            "function firstOr(vararg int xs) returns int",
+            "    for x in xs",
+            "        return x",
+            "    return -1",
+            "function pairs(vararg pair ps) returns int",
+            "    var result = 0",
+            "    for p in ps",
+            "        result = result * 100 + p.x * 10 + p.y",
+            "    return result",
+            "class Bag",
+            "    int total = 0",
+            "    function add(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let bag = new Bag()",
+            "    bag.add(1)",
+            "    bag.add(2, 3)",
+            "    bag.add()",
+            "    if sum() == 0 and sum(5) == 5 and sum(1, 2, 3, 4) == 10",
+            "        and count() == 0 and count(9, 9, 9) == 3",
+            "        and firstOr() == -1 and firstOr(4, 5) == 4",
+            "        and pairs(pair(1, 2), pair(3, 4)) == 1234",
+            "        and bag.total == 6",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("fixedArityVarargLoweringKeepsSemanticsOnLua");
+        assertFalse("every call above has a static arity, so nothing may pack:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    @Test
+    public void varargCallAboveTheLuaArityBoundKeepsThePackedPath() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 150;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "init",
+            "    if sum(" + args + ") == " + (n * (n + 1) / 2) + " and sum(1, 2) == 3",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("varargCallAboveTheLuaArityBoundKeepsThePackedPath");
+        assertTrue("a call above the bound keeps the vararg original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    @Test
+    public void virtuallyDispatchedVarargMethodKeepsThePackedPath() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Summer",
+            "    function sum(vararg int xs) returns int",
+            "class Plain implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += x",
+            "        return total",
+            "class Doubling implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += 2 * x",
+            "        return total",
+            "init",
+            "    Summer a = new Plain()",
+            "    Summer b = new Doubling()",
+            "    if a.sum(1, 2, 3) == 6 and b.sum(1, 2, 3) == 12",
+            "        testSuccess()"
+        );
     }
 
     @Test

@@ -21,30 +21,119 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
 public class VarargEliminator {
 
     private static final int JASS_MAX_PARAMETERS = ImHelper.JASS_MAX_PARAMETERS;
+    /**
+     * Largest vararg arity given a fixed-arity copy on Lua. Lua caps a function at 200 locals
+     * including parameters; this leaves room for the body's own locals. A call above it keeps the
+     * original `...` function, which is always still present on that target.
+     */
+    public static final int LUA_MAX_SPECIALISED_VARARG_ARITY = 64;
     private final ImProg prog;
+    /**
+     * On Lua classes are still present when this runs, so a vararg function can also be reached
+     * through a method dispatch or a function reference. Originals are therefore kept, only direct
+     * calls are redirected, and unreferenced originals are left to garbage removal.
+     */
+    private final boolean luaTarget;
     // original + number of args --> new function
     private final Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
 
     public VarargEliminator(ImProg prog) {
+        this(prog, false);
+    }
+
+    public VarargEliminator(ImProg prog, boolean luaTarget) {
         this.prog = prog;
+        this.luaTarget = luaTarget;
     }
 
     public void run() {
         // create new vararg functions
         for (ImFunctionCall c : collectVarargCalls()) {
-            if (c.getFunc().hasFlag(IS_VARARG)) {
+            if (c.getFunc().hasFlag(IS_VARARG) && shouldSpecialise(c)) {
                 generateVarargFunc(c);
             }
         }
+        if (luaTarget) {
+            // The Lua backend already turns a method call with exactly one possible implementation
+            // into a direct call of that implementation. Doing the same here for vararg methods is
+            // what lets ArrayList.add and friends get a fixed-arity copy at all: on this target the
+            // call is still an ImMethodCall when varargs are eliminated.
+            for (ImMethodCall c : collectMonomorphicVarargMethodCalls()) {
+                ImFunction implementation = c.getMethod().getImplementation();
+                List<ImExpr> arguments = receiverAndArguments(c);
+                if (shouldSpecialise(implementation, arguments.size())) {
+                    generateVarargFunc(implementation, arguments, c);
+                }
+            }
+        }
 
-        // remove original vararg functions:
-        prog.getFunctions().removeIf(f -> f.hasFlag(IS_VARARG));
+        if (!luaTarget) {
+            // remove original vararg functions:
+            prog.getFunctions().removeIf(f -> f.hasFlag(IS_VARARG));
+        }
 
         // rewrite calls to use new functions:
         // (need to collect vararg calls again, because first phase can create copies of calls)
         for (ImFunctionCall call : collectVarargCalls()) {
-            redirectCall(call, varargFuncs.get(call.getFunc(), call.getArguments().size()));
+            ImFunction newFunc = varargFuncs.get(call.getFunc(), call.getArguments().size());
+            if (newFunc != null) {
+                redirectCall(call, newFunc);
+            }
         }
+        if (luaTarget) {
+            for (ImMethodCall call : collectMonomorphicVarargMethodCalls()) {
+                ImFunction implementation = call.getMethod().getImplementation();
+                ImFunction newFunc = varargFuncs.get(implementation, 1 + call.getArguments().size());
+                if (newFunc != null) {
+                    redirectMethodCall(call, newFunc);
+                }
+            }
+        }
+    }
+
+    /** A method call which can only ever reach one implementation, and that implementation is vararg. */
+    private Collection<ImMethodCall> collectMonomorphicVarargMethodCalls() {
+        final Collection<ImMethodCall> calls = new ArrayList<>();
+        prog.accept(new ImProg.DefaultVisitor() {
+            @Override
+            public void visit(ImMethodCall c) {
+                super.visit(c);
+                ImMethod method = c.getMethod();
+                if (method != null && !method.getIsAbstract() && method.getImplementation() != null
+                    && method.getSubMethods().isEmpty() && method.getImplementation().hasFlag(IS_VARARG)) {
+                    calls.add(c);
+                }
+            }
+        });
+        return calls;
+    }
+
+    /** The implementation's argument list: the receiver is its first parameter. */
+    private static List<ImExpr> receiverAndArguments(ImMethodCall call) {
+        List<ImExpr> arguments = new ArrayList<>(1 + call.getArguments().size());
+        arguments.add(call.getReceiver());
+        arguments.addAll(call.getArguments());
+        return arguments;
+    }
+
+    private void redirectMethodCall(ImMethodCall call, ImFunction newFunc) {
+        ImExprs args = JassIm.ImExprs(call.getReceiver().copy());
+        args.addAll(call.getArguments().removeAll());
+        call.replaceBy(JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImTypeArguments(), args,
+            call.getTuplesEliminated(), CallType.NORMAL));
+    }
+
+    /** Whether a call gets a fixed-arity copy. Always on Jass; on Lua only up to the arity bound. */
+    private boolean shouldSpecialise(ImFunctionCall call) {
+        return shouldSpecialise(call.getFunc(), call.getArguments().size());
+    }
+
+    private boolean shouldSpecialise(ImFunction func, int totalArguments) {
+        if (!luaTarget) {
+            return true;
+        }
+        int varargCount = 1 + totalArguments - func.getParameters().size();
+        return varargCount <= LUA_MAX_SPECIALISED_VARARG_ARITY;
     }
 
     @NotNull
@@ -70,13 +159,17 @@ public class VarargEliminator {
      * for the function call.
      */
     private void generateVarargFunc(ImFunctionCall sourceCall) {
-        ImFunction func = sourceCall.getFunc();
-        int numberOfParams = sourceCall.getArguments().size();
-        int jassParameterCount = sourceCall.getArguments().stream()
+        generateVarargFunc(sourceCall.getFunc(), sourceCall.getArguments(), sourceCall);
+    }
+
+    /** {@code arguments} are in the callee's parameter order, so for a method they start with the receiver. */
+    private void generateVarargFunc(ImFunction func, List<ImExpr> arguments, Element trace) {
+        int numberOfParams = arguments.size();
+        int jassParameterCount = arguments.stream()
             .mapToInt(argument -> ImHelper.flattenedJassArity(argument.attrTyp()))
             .sum();
-        if (jassParameterCount > JASS_MAX_PARAMETERS) {
-            throw new CompileError(sourceCall, "Vararg call would generate " + jassParameterCount
+        if (!luaTarget && jassParameterCount > JASS_MAX_PARAMETERS) {
+            throw new CompileError(trace, "Vararg call would generate " + jassParameterCount
                 + " Jass parameters; the maximum is " + JASS_MAX_PARAMETERS
                 + ". Use multiple calls (for example with the cascade operator) or pass a collection instead.");
         }
@@ -131,7 +224,9 @@ public class VarargEliminator {
             params.addAll(list);
 
             // generate function for this new call
-            generateVarargFunc(call);
+            if (shouldSpecialise(call)) {
+                generateVarargFunc(call);
+            }
         }
 
 
