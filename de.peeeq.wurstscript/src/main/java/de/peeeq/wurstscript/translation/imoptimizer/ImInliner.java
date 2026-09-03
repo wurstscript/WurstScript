@@ -21,6 +21,9 @@ public class ImInliner {
     private static final String NOINLINE = "@noinline";
 
     private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
+    private static final int DEFAULT_ALWAYS_INLINE_SIZE = 20;
+    /** Just above the largest measured ordinary Lua leaf: unit_getAbilityLevel at 63 IM nodes. */
+    private static final int LUA_ALWAYS_INLINE_SIZE = 64;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
     private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
@@ -80,6 +83,7 @@ public class ImInliner {
             boolean canInline = f != called && shouldInline(f, call, called);
             if (LOG_INLINER) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
+                    " size=" + getFuncSize(called) + " rating=" + getRating(called) +
                     (canInline ? "" : " reason=" + skipReason(f, call, called));
                 WLogger.info(msg);
                 System.out.println(msg);
@@ -322,7 +326,10 @@ public class ImInliner {
         }
 
         double size = getFuncSize(f);
-        if (size < 20) {
+        int alwaysInlineSize = translator.isLuaTarget()
+            ? LUA_ALWAYS_INLINE_SIZE
+            : DEFAULT_ALWAYS_INLINE_SIZE;
+        if (size < alwaysInlineSize) {
             // always inline small functions
             return 1;
         }
