@@ -732,6 +732,46 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void unusedTotalTupleComponentDoesNotSurviveLuaLowering() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "function selectFirst(int left, int right) returns int",
+            "    return pair(left + 1, right + 2).x",
+            "init",
+            "    if selectFirst(4, 10) == 5",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("unusedTotalTupleComponentDoesNotSurviveLuaLowering");
+        assertFalse("unused total tuple components should not require a Lua discard call",
+            compiled.contains("__wurst_tuple_discard_"));
+        assertFalse("unused total tuple components should not be evaluated",
+            compiled.contains("right + 2"));
+    }
+
+    @Test
+    public void unreadTupleReturnSlotsAreRemoved() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "@noinline function makePair(int left, int right) returns pair",
+            "    return pair(left + 1, right + 2)",
+            "init",
+            "    if makePair(4, 10).x == 5",
+            "        testSuccess()"
+        );
+
+        String compiled = compiledLua("unreadTupleReturnSlotsAreRemoved");
+        assertFalse("unread scalar return slots should be removed after tuple lowering",
+            compiled.contains("makePair_return_y"));
+        assertFalse("the producer for an unread scalar return slot should be removed",
+            compiled.contains("right + 2"));
+    }
+
+    @Test
     public void discardedTupleComponentsThatCanFailAreStillEvaluated() {
         String compiled = compileLuaWithRunArgs(
             "discardedTupleComponentsThatCanFailAreStillEvaluated",

@@ -272,7 +272,7 @@ public class EliminateTuples {
             }
             return;
         }
-        if (isTriviallyDiscardable(value)) {
+        if (isSafelyDiscardable(value)) {
             return;
         }
         if (SideEffectAnalyzer.quickcheckHasSideeffects(value)) {
@@ -284,14 +284,34 @@ public class EliminateTuples {
         }
     }
 
-    private static boolean isTriviallyDiscardable(ImExpr value) {
-        return value instanceof ImBoolVal
+    private static boolean isSafelyDiscardable(ImExpr value) {
+        if (value instanceof ImBoolVal
             || value instanceof ImIntVal
             || value instanceof ImRealVal
             || value instanceof ImStringVal
             || value instanceof ImNull
             || value instanceof ImVarAccess
-            || value instanceof ImFuncRef;
+            || value instanceof ImFuncRef) {
+            return true;
+        }
+        if (value instanceof ImOperatorCall operatorCall
+            && isTotalOperator(operatorCall.getOp())) {
+            return operatorCall.getArguments().stream()
+                .allMatch(EliminateTuples::isSafelyDiscardable);
+        }
+        return false;
+    }
+
+    /**
+     * Operators other than integer division and modulo are total for well-typed scalar IM values.
+     * Keeping their unused results in a Lua discard sink only repeats pure scalar work and prevents
+     * tuple-component DCE. Division and modulo stay conservative because a zero divisor can fail.
+     */
+    private static boolean isTotalOperator(WurstOperator operator) {
+        return switch (operator) {
+            case DIV_INT, MOD_INT, MOD_REAL, JASS_MOD_INT -> false;
+            default -> true;
+        };
     }
 
     /**
@@ -1006,7 +1026,7 @@ public class EliminateTuples {
 
         value.setParent(null);
         boolean requiresEagerEvaluation = capturePotentiallyFailingValues
-            && !isTriviallyDiscardable(value)
+            && !isSafelyDiscardable(value)
             && !SideEffectAnalyzer.quickcheckHasSideeffects(value);
         if ((capture || requiresEagerEvaluation) && !isImmutableValue(value)) {
             result.values.add(captureValue(value, temporaryName, result.prelude, f));
