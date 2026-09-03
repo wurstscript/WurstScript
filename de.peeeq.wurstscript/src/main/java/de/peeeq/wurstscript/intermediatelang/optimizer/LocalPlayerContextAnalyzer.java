@@ -181,8 +181,9 @@ public final class LocalPlayerContextAnalyzer {
         if (localPlayerDependentReturns.contains(method.getImplementation())) {
             return true;
         }
-        for (ImMethod subMethod : method.getSubMethods()) {
-            if (methodReturnsLocalPlayerDependentValue(subMethod)) {
+        List<ImMethod> subMethods = method.getSubMethods();
+        for (int i = 0; i < subMethods.size(); i++) {
+            if (methodReturnsLocalPlayerDependentValue(subMethods.get(i))) {
                 return true;
             }
         }
@@ -259,9 +260,12 @@ public final class LocalPlayerContextAnalyzer {
         } else if (element instanceof ImMemberAccess) {
             addDependency(variableFact(((ImMemberAccess) element).getVar()), element);
         } else if (element instanceof ImVarargLoop) {
+            ImVarargLoop loop = (ImVarargLoop) element;
             ImVar varargParameter = varargParameter(owner);
             if (varargParameter != null) {
-                for (ImVarargLoopVar loopVar : ((ImVarargLoop) element).getLoopVars()) {
+                List<ImVarargLoopVar> loopVars = loop.getLoopVars();
+                for (int i = 0; i < loopVars.size(); i++) {
+                    ImVarargLoopVar loopVar = loopVars.get(i);
                     addDependency(variableFact(varargParameter), variableFact(loopVar.getVar()));
                 }
             }
@@ -292,7 +296,8 @@ public final class LocalPlayerContextAnalyzer {
                                            Deque<IndexTask> work) {
         List<IndexTask> tasks = new ArrayList<>(statements.size());
         Object continuationControl = controlContext;
-        for (ImStmt statement : statements) {
+        for (int i = 0; i < statements.size(); i++) {
+            ImStmt statement = statements.get(i);
             addDependency(statement, statements);
             tasks.add(new IndexTask(statement, continuationControl, false));
 
@@ -380,6 +385,8 @@ public final class LocalPlayerContextAnalyzer {
         ImFunction called = call.getFunc();
         addDependency(returnFact(called), call);
         addDependency(useFact(called), useFact(owner));
+        List<ImExpr> arguments = call.getArguments();
+        List<ImVar> calledParameters = called.getParameters();
         if (!called.isNative()) {
             addEnclosingControlDependency(controlContext, entryControlFact(called));
         }
@@ -388,19 +395,20 @@ public final class LocalPlayerContextAnalyzer {
             addLocalPlayerSource(called);
         }
 
-        int fixedParameterCount = called.getParameters().size();
+        int fixedParameterCount = calledParameters.size();
         if (called.hasFlag(IS_VARARG) && fixedParameterCount > 0) {
             fixedParameterCount--;
         }
-        int positionalCount = Math.min(call.getArguments().size(), fixedParameterCount);
+        int argumentCount = arguments.size();
+        int positionalCount = Math.min(argumentCount, fixedParameterCount);
         for (int i = 0; i < positionalCount; i++) {
-            addDependency(call.getArguments().get(i),
-                variableFact(called.getParameters().get(i)));
+            addDependency(arguments.get(i),
+                variableFact(calledParameters.get(i)));
         }
         ImVar varargParameter = varargParameter(called);
         if (varargParameter != null) {
-            for (int i = fixedParameterCount; i < call.getArguments().size(); i++) {
-                addDependency(call.getArguments().get(i),
+            for (int i = fixedParameterCount; i < argumentCount; i++) {
+                addDependency(arguments.get(i),
                     variableFact(varargParameter));
             }
         }
@@ -425,14 +433,18 @@ public final class LocalPlayerContextAnalyzer {
             addDependency(unknownDispatchSource, useFact(owner));
         }
 
+        List<ImExpr> arguments = call.getArguments();
         for (ImFunction implementation : implementations) {
             addDependency(returnFact(implementation), call);
             addDependency(useFact(implementation), useFact(owner));
             addEnclosingControlDependency(controlContext, entryControlFact(implementation));
-            for (ImVar parameter : implementation.getParameters()) {
-                addDependency(call.getReceiver(), variableFact(parameter));
-                for (ImExpr argument : call.getArguments()) {
-                    addDependency(argument, variableFact(parameter));
+            Element receiver = call.getReceiver();
+            List<ImVar> parameters = implementation.getParameters();
+            for (int i = 0; i < parameters.size(); i++) {
+                ImVar parameter = parameters.get(i);
+                addDependency(receiver, variableFact(parameter));
+                for (int j = 0; j < arguments.size(); j++) {
+                    addDependency(arguments.get(j), variableFact(parameter));
                 }
             }
         }
@@ -487,8 +499,9 @@ public final class LocalPlayerContextAnalyzer {
             return method != null && method.getImplementation() != null;
         }
         implementations.add(method.getImplementation());
-        for (ImMethod subMethod : method.getSubMethods()) {
-            if (!collectMethodImplementations(subMethod, implementations, visited)) {
+        List<ImMethod> subMethods = method.getSubMethods();
+        for (int i = 0; i < subMethods.size(); i++) {
+            if (!collectMethodImplementations(subMethods.get(i), implementations, visited)) {
                 return false;
             }
         }
@@ -508,9 +521,11 @@ public final class LocalPlayerContextAnalyzer {
                 forEachAssignedVariable((ImLExpr) tupleExpr, consumer);
             }
         } else if (left instanceof ImTupleExpr) {
-            for (ImExpr expr : ((ImTupleExpr) left).getExprs()) {
-                if (expr instanceof ImLExpr) {
-                    forEachAssignedVariable((ImLExpr) expr, consumer);
+            ImExprs exprs = ((ImTupleExpr) left).getExprs();
+            for (int i = 0; i < exprs.size(); i++) {
+                ImExpr expr = exprs.get(i);
+                if (expr instanceof ImLExpr lExpr) {
+                    forEachAssignedVariable(lExpr, consumer);
                 }
             }
         } else if (left instanceof ImStatementExpr) {
