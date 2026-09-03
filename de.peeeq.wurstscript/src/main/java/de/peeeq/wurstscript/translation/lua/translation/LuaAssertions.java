@@ -76,7 +76,11 @@ public class LuaAssertions {
             @Override
             public void visit(LuaExprFunctionCallByName call) {
                 super.visit(call);
-                check("call to", call.getFuncName());
+                // Backend-owned qualified standard-library calls are valid Lua expressions,
+                // though they are deliberately not valid single identifiers.
+                if (!"math.fmod".equals(call.getFuncName())) {
+                    check("call to", call.getFuncName());
+                }
             }
         });
         if (!invalid.isEmpty()) {

@@ -136,12 +136,24 @@ public class ExprTranslation {
             }
         }
 
-        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         // Use the immutable ImFunction name rather than f.getName(), because f is a cached
         // LuaFunction object shared across all call sites of this native. The setName() calls
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
+        if (isRawNumericIntrinsic(imFuncName)) {
+            if (e.getArguments().size() != 2) {
+                throw new CompileError(e.attrTrace().attrSource(),
+                    imFuncName + " expects exactly two arguments");
+            }
+            LuaExpr left = e.getArguments().get(0).translateToLua(tr);
+            LuaExpr right = e.getArguments().get(1).translateToLua(tr);
+            if ("__wurst_rawFloorDivInt".equals(imFuncName)) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
+            }
+            return LuaAst.LuaExprFunctionCallByName("math.fmod", LuaAst.LuaExprlist(left, right));
+        }
+        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         if ("I2S".equals(imFuncName) && isIntentionalThreadAbortCall(e)) {
             return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
                 LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
@@ -154,6 +166,12 @@ public class ExprTranslation {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
+    }
+
+    static boolean isRawNumericIntrinsic(String functionName) {
+        return "__wurst_rawFloorDivInt".equals(functionName)
+            || "__wurst_rawFmodInt".equals(functionName)
+            || "__wurst_rawFmodReal".equals(functionName);
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
@@ -445,16 +463,7 @@ public class ExprTranslation {
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
-    /**
-     * Primitive-typed array reads are wrapped in a type-normalizing helper
-     * call at the IM level, before the optimizer runs (see
-     * LuaNativeLowering#lowerPrimitiveArrayEnsure), by rewriting the read into
-     * a call against ImTranslator#ensureIntFunc and friends - so by the time
-     * an ImVarArrayAccess reaches this method, it is already either a
-     * genuine lvalue/raw access or an access whose type never needed
-     * wrapping (e.g. class/handle-typed arrays, which default to nil the
-     * same way an untouched Lua table key already does).
-     */
+    /** Primitive-typed arrays carry their Wurst defaults through metatables, so every read is raw. */
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
         return translateArrayAccessRaw(e, tr);
     }
