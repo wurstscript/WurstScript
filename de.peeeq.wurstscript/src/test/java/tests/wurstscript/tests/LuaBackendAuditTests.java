@@ -1988,6 +1988,50 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
     }
 
+    /**
+     * The inliner used to refuse every function whose return fact the local-player analysis had
+     * marked, and that fact fires for anything reachable from a client-local branch anywhere in the
+     * program. In a stdlib-linked map that is most of the call graph, so pure index arithmetic in
+     * hot loops stayed as calls. Only functions which transitively invoke a client-local native are
+     * an inlining barrier.
+     */
+    @Test
+    public void pureHelpersReachableFromLocalPlayerBranchInlineIntoLuaHotLoops() {
+        String compiled = compileOptimizedLua(
+            "pureHelpersReachableFromLocalPlayerBranchInlineIntoLuaHotLoops",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native consume(int i)",
+            "native consumePlayer(player p)",
+            "int array cells",
+            "int offset = 0",
+            "@inline function slotOf(int cell, int group) returns int",
+            "    return cell * 8 + group",
+            "@inline function chainHead(int cell, int group) returns int",
+            "    return cells[slotOf(cell, group)]",
+            "@inline function localWrapper() returns player",
+            "    return GetLocalPlayer()",
+            "@noinline function query(int group)",
+            "    var cell = 0",
+            "    while cell < 16",
+            "        consume(chainHead(cell, group))",
+            "        cell++",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        consume(slotOf(offset, 1))",
+            "    consumePlayer(localWrapper())",
+            "    query(2)"
+        );
+
+        assertFunctionBodyContains(compiled, "query", "slotOf", false);
+        assertFunctionBodyContains(compiled, "query", "chainHead", false);
+        assertFunctionBodyContains(compiled, "query", "* 8", true);
+        assertTrue("a wrapper which itself calls GetLocalPlayer must stay an explicit call",
+            compiled.contains("consumePlayer(localWrapper())"));
+    }
+
     @Test
     public void localPlayerTaintFlowsThroughVarargLoopValues() {
         String compiled = compileOptimizedLua(

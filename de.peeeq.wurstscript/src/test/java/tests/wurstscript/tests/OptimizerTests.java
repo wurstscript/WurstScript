@@ -2285,6 +2285,44 @@ public class OptimizerTests extends WurstScriptTest {
             "transitive GetLocalPlayer wrappers must remain explicit calls");
     }
 
+    /**
+     * The local-player analysis marks a function's return fact whenever the function is reachable
+     * from a client-local control region, transitively over the call graph. That fact is right for
+     * the passes which move code across control boundaries and wrong as an inlining barrier:
+     * substituting a body at a call site runs it under exactly the control the call already had.
+     * A pure helper called once under a GetLocalPlayer branch must still inline everywhere, while a
+     * wrapper which itself calls GetLocalPlayer must stay an explicit call.
+     */
+    @Test
+    public void pureHelperReachableFromLocalPlayerBranchIsStillInlined() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native consume(integer i)",
+            "native consumePlayer(player p)",
+            "integer offset = 0",
+            "@inline function slot(integer a, integer b) returns integer",
+            "    return a * 8 + b",
+            "@inline function currentPlayer() returns player",
+            "    return GetLocalPlayer()",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        consume(slot(offset, 1))",
+            "    consume(slot(offset, 2))",
+            "    consumePlayer(currentPlayer())"
+        );
+
+        String inlined = Files.toString(
+            new File("test-output/OptimizerTests_pureHelperReachableFromLocalPlayerBranchIsStillInlined_inl.j"),
+            Charsets.UTF_8);
+        assertFalse(inlined.contains("slot("),
+            "a pure helper must inline at every call site, including the one under the local-player branch");
+        assertTrue(inlined.contains("call consumePlayer(currentPlayer())"),
+            "a wrapper which calls GetLocalPlayer itself must remain an explicit call");
+    }
+
     @Test
     public void branchMergerMustNotHoistAcrossClientLocalConditions() throws Exception {
         test().lines(
