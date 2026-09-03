@@ -138,24 +138,6 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.ceil(x)"));
         });
 
-        addNative("__wurst_rawFloorDivInt", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return a // b"));
-        });
-
-        addNative("__wurst_rawFmodInt", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
-        });
-
-        addNative("__wurst_rawFmodReal", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
-        });
-
         addNative(Arrays.asList("__wurst_rawToNumberInt", "__wurst_rawToNumberReal"), f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));

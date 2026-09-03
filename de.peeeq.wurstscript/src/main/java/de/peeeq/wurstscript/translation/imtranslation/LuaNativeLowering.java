@@ -126,8 +126,7 @@ public final class LuaNativeLowering {
         }
 
         lowerStringConcatenation(prog, translator);
-        lowerDivMod(prog);
-        lowerPrimitiveArrayBoundaryEnsure(prog, translator);
+        lowerDivMod(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -268,8 +267,8 @@ public final class LuaNativeLowering {
      * handler's "was this an intentional abort" check. Leave that one
      * expression untouched so the existing recognition still fires.
      */
-    private static void lowerDivMod(ImProg prog) {
-        DivModFunctions funcs = new DivModFunctions();
+    private static void lowerDivMod(ImProg prog, ImTranslator translator) {
+        DivModFunctions funcs = new DivModFunctions(translator);
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImOperatorCall call) {
@@ -353,118 +352,12 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * Normalizes primitive array reads which can cross the Lua/Wurst boundary.
-     * Arrays can be visible to foreign Lua/Jass code, so a present value can
-     * be malformed even though the array metatable supplies defaults for
-     * missing keys. Lvalue writes remain raw; only rvalue reads are wrapped.
-     */
-    private static void lowerPrimitiveArrayBoundaryEnsure(ImProg prog, ImTranslator translator) {
-        prog.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImVarArrayAccess access) {
-                super.visit(access);
-                if (access.isUsedAsLValue() || isAlreadyNormalized(access, translator)
-                    || isAlreadyNormalizedAccess(access, translator)) {
-                    return;
-                }
-                replaceWithEnsure(access, access.attrTrace(), translator);
-            }
-
-            @Override
-            public void visit(ImFunctionCall call) {
-                super.visit(call);
-                ImFunction function = call.getFunc();
-                if (!isExternalBoundary(function)) {
-                    return;
-                }
-                for (ImExpr argument : new ArrayList<>(call.getArguments())) {
-                    if (!(argument instanceof ImVarArrayAccess)
-                        || isAlreadyNormalized(argument, translator)) {
-                        continue;
-                    }
-                    replaceWithEnsure((ImVarArrayAccess) argument, call.attrTrace(), translator);
-                }
-            }
-        });
-    }
-
-    private static void replaceWithEnsure(ImVarArrayAccess access, de.peeeq.wurstscript.ast.Element trace,
-                                          ImTranslator translator) {
-        ImFunction ensure = ensureFunctionFor(access.attrTyp(), translator);
-        if (ensure == null) {
-            return;
-        }
-        ImExpr normalized;
-        if (ensure == translator.ensureBoolFunc) {
-            normalized = JassIm.ImOperatorCall(WurstOperator.EQ,
-                JassIm.ImExprs(access.copy(), JassIm.ImBoolVal(true)));
-        } else {
-            normalized = callWithStacktrace(trace, ensure, JassIm.ImExprs(access.copy()));
-        }
-        access.replaceBy(normalized);
-    }
-
-    private static boolean isExternalBoundary(ImFunction function) {
-        return !function.getName().startsWith("__wurst_")
-            && (function.isNative() || function.isBj() || function.isExtern());
-    }
-
-    private static boolean isAlreadyNormalized(ImExpr argument, ImTranslator translator) {
-        if (argument instanceof ImFunctionCall
-            && (((ImFunctionCall) argument).getFunc() == translator.ensureIntFunc
-                || ((ImFunctionCall) argument).getFunc() == translator.ensureBoolFunc
-                || ((ImFunctionCall) argument).getFunc() == translator.ensureRealFunc
-                || ((ImFunctionCall) argument).getFunc() == translator.ensureStrFunc)) {
-            return true;
-        }
-        if (argument instanceof ImOperatorCall) {
-            ImOperatorCall operator = (ImOperatorCall) argument;
-            return operator.getOp() == WurstOperator.EQ
-                && operator.getArguments().size() == 2
-                && operator.getArguments().get(1) instanceof ImBoolVal
-                && ((ImBoolVal) operator.getArguments().get(1)).getValB();
-        }
-        return false;
-    }
-
-    private static boolean isAlreadyNormalizedAccess(ImVarArrayAccess access, ImTranslator translator) {
-        Element parent = access.getParent();
-        Element owner = parent == null ? null : parent.getParent();
-        if (owner instanceof ImFunctionCall) {
-            ImFunction function = ((ImFunctionCall) owner).getFunc();
-            return function == translator.ensureIntFunc || function == translator.ensureBoolFunc
-                || function == translator.ensureRealFunc || function == translator.ensureStrFunc;
-        }
-        if (!(owner instanceof ImOperatorCall)) {
-            return false;
-        }
-        ImOperatorCall operator = (ImOperatorCall) owner;
-        return operator.getOp() == WurstOperator.EQ
-            && operator.getArguments().size() == 2
-            && operator.getArguments().get(0) == access
-            && operator.getArguments().get(1) instanceof ImBoolVal
-            && ((ImBoolVal) operator.getArguments().get(1)).getValB();
-    }
-
-    private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {
-        if (TypesHelper.isIntType(type)) {
-            return translator.ensureIntFunc;
-        } else if (TypesHelper.isBoolType(type)) {
-            return translator.ensureBoolFunc;
-        } else if (TypesHelper.isRealType(type)) {
-            return translator.ensureRealFunc;
-        } else if (TypesHelper.isStringType(type)) {
-            return translator.ensureStrFunc;
-        }
-        return null;
-    }
-
-    /**
      * Lazily builds (and memoizes) the div/mod helper functions and the tiny
      * raw-Lua-primitive natives they delegate to (Wurst's IM has no
      * floor-division/fmod operator of its own).
      */
     private static final class DivModFunctions {
+        private final ImTranslator translator;
         private final List<ImFunction> created = new ArrayList<>();
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
@@ -472,6 +365,10 @@ public final class LuaNativeLowering {
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
+
+        private DivModFunctions(ImTranslator translator) {
+            this.translator = translator;
+        }
 
         List<ImFunction> createdFunctions() {
             return created;
@@ -508,6 +405,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFloorDivInt() {
             if (rawFloorDivInt == null) {
                 rawFloorDivInt = rawNative("__wurst_rawFloorDivInt", TypesHelper.imInt());
+                translator.luaRawFloorDivIntFunc = rawFloorDivInt;
                 created.add(rawFloorDivInt);
             }
             return rawFloorDivInt;
@@ -516,6 +414,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodInt() {
             if (rawFmodInt == null) {
                 rawFmodInt = rawNative("__wurst_rawFmodInt", TypesHelper.imInt());
+                translator.luaRawFmodIntFunc = rawFmodInt;
                 created.add(rawFmodInt);
             }
             return rawFmodInt;
@@ -524,12 +423,13 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodReal() {
             if (rawFmodReal == null) {
                 rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
+                translator.luaRawFmodRealFunc = rawFmodReal;
                 created.add(rawFmodReal);
             }
             return rawFmodReal;
         }
 
-        /** A native leaf with two params and a return, all of the same primitive type. Body supplied by LuaNatives. */
+        /** A native leaf with two params and a return, translated as a Lua backend intrinsic. */
         private static ImFunction rawNative(String name, ImType numType) {
             ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
             ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);

@@ -2234,7 +2234,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * specifically to stay exempt from that rewrite.
      */
     @Test
-    public void ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes() throws IOException {
+    public void stringConcatNilCheckSurvivesEliminateLocalTypes() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -2247,8 +2247,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        print(names[5])",
             "        testSuccess()"
         );
-        String compiled = compiledLua("ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes");
-        assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_ensureStr(");
+        String compiled = compiledLua("stringConcatNilCheckSurvivesEliminateLocalTypes");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_stringConcat(");
     }
 
@@ -2276,8 +2275,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("consumeBool((forward(false) == true))"));
         assertFalse("boolean normalization must not call the ensure helper",
             compiled.contains("__wurst_ensureBool(forward(false))"));
-        assertTrue("primitive array reads crossing a native boundary must be normalized:\n" + compiled,
-            compiled.contains("__wurst_ensureStr(Test_values[1])"));
+        assertTrue("typed primitive arrays must cross native boundaries as raw reads:\n" + compiled,
+            compiled.contains("print(Test_values[1])"));
     }
 
     @Test
@@ -2462,8 +2461,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
         assertEquals("each concrete integer consumer must normalize its erased generic input", 12,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
-        assertTrue("global primitive array reads must remain safe for foreign writes",
-            compiled.contains("__wurst_ensureInt(Test_values[0])"));
+        assertTrue("global primitive array reads must be raw table indexes",
+            compiled.contains("return Test_values[0]"));
+        assertFalse("typed array reads must not use erased-generic normalization",
+            compiled.contains("ensureInt(Test_values"));
     }
 
     @Test
@@ -2518,9 +2519,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
      * unsafe paths independently: erased generic propagation and a raw array
-     * read. The intermediate generic functions must stay free of assurance
-     * calls, while global array reads and native call sites must have the
-     * appropriate normalization. This is intentionally compile-only: the
+     * read. The intermediate generic functions and typed array reads must stay
+     * free of assurance calls, while erased generic values keep normalization
+     * at concrete uses. This is intentionally compile-only: the
      * generated native sinks have no Warcraft runtime implementation.
      */
     @Test
@@ -2562,23 +2563,96 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             );
 
             assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
-            String readNormalization = type.equals("bool")
-                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
-                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
-            assertFunctionBodyContains(compiled, "read", readNormalization, true);
+            String rawArrayRead = "TypeAssuranceFuzz_values[" + arrayIndex + "]";
+            assertFunctionBodyContains(compiled, "read", rawArrayRead, true);
+            assertFunctionBodyContains(compiled, "read", "__wurst_ensure", false);
+            assertFunctionBodyContains(compiled, "read", "== true", false);
             String genericArgument = type.equals("bool")
                 ? "(forward(" + literal + ") == true)"
                 : "__wurst_ensure" + suffix + "(forward(" + literal + "))";
             assertTrue("generic boundary case " + caseIndex + " was not normalized:\n" + compiled,
                 compiled.contains(sink + "(" + genericArgument + ")"));
-            String arrayArgument = type.equals("bool")
-                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
-                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
-            assertTrue("array boundary case " + caseIndex + " was not normalized:\n" + compiled,
-                compiled.contains(sink + "(" + arrayArgument + ")"));
+            assertTrue("array boundary case " + caseIndex + " was not emitted raw:\n" + compiled,
+                compiled.contains(sink + "(" + rawArrayRead + ")"));
             assertTrue("ordinary typed values must not be normalized at the boundary:\n" + compiled,
                 compiled.contains(sink + "(" + literal + ")"));
         }
+    }
+
+    @Test
+    public void typedPrimitiveArrayReadsAreRawInOptimizedLua() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_typedPrimitiveArrayReadsAreRawInOptimizedLua",
+            primitiveArrayReadShapeLines()
+        );
+        assertFalse("typed array reads must not call assurance helpers:\n" + compiled,
+            compiled.contains("__wurst_ensure"));
+        assertFalse("boolean array reads must not be normalized with a true comparison:\n" + compiled,
+            compiled.contains("== true)"));
+    }
+
+    @Test
+    public void typedPrimitiveArrayDefaultsComeFromMetatables() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array ints",
+            "real array reals",
+            "bool array bools",
+            "string array strings",
+            "function localDefault() returns int",
+            "    int array[8] localInts",
+            "    return localInts[7]",
+            "init",
+            "    if ints[0] == 0 and ints[1000000] == 0",
+            "        and reals[0] == 0. and reals[1000000] == 0.",
+            "        and not bools[0] and not bools[1000000]",
+            "        and strings[0] == \"\" and strings[1000000] == \"\"",
+            "        and localDefault() == 0",
+            "        ints[3] = 0",
+            "        reals[3] = 0.",
+            "        bools[3] = false",
+            "        strings[3] = \"\"",
+            "        if ints[3] == 0 and reals[3] == 0. and not bools[3] and strings[3] == \"\"",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
+    public void typedPrimitiveArrayReadsAreRawWithStacktraces() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaBackendAuditTests_typedPrimitiveArrayReadsAreRawWithStacktraces",
+            new RunArgs().with("-lua", "-stacktraces"),
+            primitiveArrayReadShapeLines()
+        );
+        assertFalse("stacktrace mode must not restore typed-array assurance calls:\n" + compiled,
+            compiled.contains("__wurst_ensure"));
+        assertFalse("stacktrace mode must not normalize boolean reads with a true comparison:\n" + compiled,
+            compiled.contains("== true)"));
+    }
+
+    private static String[] primitiveArrayReadShapeLines() {
+        return new String[]{
+            "package Test",
+            "native consumeInt(int value)",
+            "int array ints",
+            "real array reals",
+            "bool array bools",
+            "string array strings",
+            "function scan(int limit) returns real",
+            "    int array[8] localInts",
+            "    int i = 0",
+            "    real sum = 0.",
+            "    while i < limit",
+            "        sum += ints[i] + reals[i] + localInts[i]",
+            "        if bools[i] and strings[i] == \"\"",
+            "            sum += 1",
+            "        consumeInt(ints[i])",
+            "        i++",
+            "    return sum",
+            "init",
+            "    scan(8)"
+        };
     }
 
     private static void assertFunctionBodyContains(String compiled, String functionName,
@@ -2608,22 +2682,20 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * backend and the interpreter for negative operands
      * (e.g. -7 div 2 was -4 instead of -3, and 7 mod -2 was -1 instead of 1).
      *
-     * Div/mod are now lowered to portable IM functions before the optimizer
-     * runs (see LuaNativeLowering#lowerDivMod), so calls with constant
-     * arguments - like the ones below - may get inlined away entirely rather
-     * than showing up as a helper call in the output. The floor-div/fmod
-     * *native* they delegate to (Wurst has no such IM operator) always
-     * survives somewhere in the output, inlined or not, so checking for it
-     * is robust regardless of the inliner's decision.
+     * Div/mod are lowered to portable IM functions before the optimizer runs
+     * (see LuaNativeLowering#lowerDivMod). Their raw primitive calls are Lua
+     * backend intrinsics, so emitted code uses // and math.fmod directly.
      */
     @Test
     public void integerDivModMatchJassSemanticsInLua() throws IOException {
         test().testLua(true).executeProg().lines(DIV_MOD_PROG);
         String compiled = compiledLua("integerDivModMatchJassSemanticsInLua");
-        assertTrue("div must go through the truncating floor-div correction",
-            compiled.contains("__wurst_rawFloorDivInt("));
-        assertTrue("mod must go through the ModuloInteger-compatible fmod correction",
-            compiled.contains("__wurst_rawFmodInt("));
+        assertTrue("div must use Lua floor division inside the truncating correction",
+            compiled.contains(" // "));
+        assertTrue("mod must use math.fmod inside the ModuloInteger-compatible correction",
+            compiled.contains("math.fmod("));
+        assertFalse("raw numeric primitive calls must be intrinsic",
+            compiled.contains("__wurst_rawF"));
         assertFalse("mod/div must not use math.floor directly",
             compiled.contains("math.floor"));
     }
@@ -2711,6 +2783,47 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             1, countOccurrences(compiled, "function __wurst_intDiv("));
         assertEquals("expected exactly one shared int-mod helper definition",
             1, countOccurrences(compiled, "function __wurst_modInt("));
+    }
+
+    @Test
+    public void optimizedIntegerDivModUsesLuaPrimitivesInLoop() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_optimizedIntegerDivModUsesLuaPrimitivesInLoop",
+            "package Test",
+            "native consumeInt(int value)",
+            "function run(int limit)",
+            "    int x = limit",
+            "    while x > 0",
+            "        consumeInt(x div 8)",
+            "        consumeInt(x mod 8)",
+            "        x--",
+            "init",
+            "    run(32)"
+        );
+        assertTrue("optimized div must contain Lua floor division:\n" + compiled,
+            compiled.contains(" // 8"));
+        assertTrue("optimized mod must contain math.fmod:\n" + compiled,
+            compiled.contains("math.fmod("));
+        assertFalse("optimized loop must not call raw numeric helpers:\n" + compiled,
+            compiled.contains("__wurst_raw"));
+    }
+
+    @Test
+    public void numericIntrinsicRecognitionUsesFunctionIdentity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function __wurst_rawFmodInt(int a, int b) returns int",
+            "    return 123",
+            "init",
+            "    if __wurst_rawFmodInt(7, 2) == 123",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("numericIntrinsicRecognitionUsesFunctionIdentity");
+        assertTrue("an ordinary same-named function must keep its definition:\n" + compiled,
+            compiled.contains("function __wurst_rawFmodInt("));
+        assertFalse("an ordinary same-named call must not lower to fmod:\n" + compiled,
+            compiled.contains("math.fmod("));
     }
 
     /**
@@ -2819,22 +2932,16 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String[] helperNames = {
-            "__wurst_ensureInt", "__wurst_ensureBool", "__wurst_ensureReal", "__wurst_ensureStr",
             "__wurst_stringConcat", "__wurst_intDiv", "__wurst_modInt", "__wurst_modReal",
-            "__wurst_rawToNumberInt", "__wurst_rawToInteger", "__wurst_rawToNumberReal",
-            "__wurst_rawToString", "__wurst_rawConcat", "__wurst_rawFloorDivInt",
-            "__wurst_rawFmodInt", "__wurst_rawFmodReal"
+            "__wurst_rawConcat"
         };
         for (String helperName : helperNames) {
             assertHelperDefinedWhenCalled(compiled, helperName);
         }
-        assertTrue("repro must exercise integer ensure lowering", compiled.contains("__wurst_rawToNumberInt"));
-        assertTrue("repro must exercise real ensure lowering", compiled.contains("__wurst_rawToNumberReal"));
-        assertTrue("repro must exercise string ensure lowering", compiled.contains("__wurst_rawToString"));
         assertTrue("repro must exercise string concat lowering", compiled.contains("__wurst_rawConcat"));
-        assertTrue("repro must exercise integer div lowering", compiled.contains("__wurst_rawFloorDivInt"));
-        assertTrue("repro must exercise integer mod lowering", compiled.contains("__wurst_rawFmodInt"));
-        assertTrue("repro must exercise real mod lowering", compiled.contains("__wurst_rawFmodReal"));
+        assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
+        assertTrue("repro must exercise integer and real mod lowering", compiled.contains("math.fmod("));
+        assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
     }
 
     /**

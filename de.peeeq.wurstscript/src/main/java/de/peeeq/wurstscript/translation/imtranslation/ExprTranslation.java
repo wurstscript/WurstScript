@@ -731,9 +731,8 @@ public class ExprTranslation {
         }
 
         ImExpr receiver = leftExpr == null ? null : leftExpr.imTranslateExpr(t, f);
-        boolean normalizeAtBoundary = directFunc != null && isLuaExternalBoundary(directFunc);
         FunctionSignature selectedSignature = t.isLuaTarget() ? e.attrFunctionSignature() : null;
-        ImExprs imArgs = translateExprs(arguments, t, f, normalizeAtBoundary, selectedSignature);
+        ImExprs imArgs = translateExprs(arguments, t, f, selectedSignature);
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
@@ -857,16 +856,11 @@ public class ExprTranslation {
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f) {
-        return translateExprs(arguments, t, f, false);
+        return translateExprs(arguments, t, f, null);
     }
 
     private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
-                                          boolean externalBoundary) {
-        return translateExprs(arguments, t, f, externalBoundary, null);
-    }
-
-    private static ImExprs translateExprs(List<Expr> arguments, ImTranslator t, ImFunction f,
-                                          boolean externalBoundary, @Nullable FunctionSignature selectedSignature) {
+                                          @Nullable FunctionSignature selectedSignature) {
         ImExprs result = ImExprs();
         for (int i = 0; i < arguments.size(); i++) {
             Expr e = arguments.get(i);
@@ -876,9 +870,6 @@ public class ExprTranslation {
             ImExpr translated = expectedType != null && isCompositeExpectedTypeExpression(e)
                 ? translateWithExpectedType(e, t, f, expectedType)
                 : e.imTranslateExpr(t, f);
-            if (externalBoundary) {
-                translated = wrapLuaAtExternalBoundary(e, t, translated);
-            }
             result.add(translated);
         }
         return result;
@@ -886,41 +877,6 @@ public class ExprTranslation {
 
     static boolean isCompositeExpectedTypeExpression(Expr e) {
         return e instanceof ExprIfElse || e instanceof ExprUnary || e instanceof ExprStatementsBlock;
-    }
-
-    private static boolean isLuaExternalBoundary(ImFunction function) {
-        return function.isNative() || function.isBj() || function.isExtern();
-    }
-
-    private static ImExpr wrapLuaAtExternalBoundary(Expr source, ImTranslator t, ImExpr translated) {
-        WurstType actualType = source.attrTypRaw();
-        // Ordinary Wurst locals and literals already have their normal Lua
-        // representation. Only values which can lose their primitive default
-        // in Lua need normalization: raw array reads crossing into untyped
-        // code. Erased generic values are normalized by wrapTranslation when
-        // a concrete primitive context consumes them.
-        if (!(translated instanceof ImVarArrayAccess)) {
-            return translated;
-        }
-        WurstType normalized = actualType.normalize();
-        ImFunction ensureType = null;
-        if (normalized instanceof WurstTypeInt) {
-            ensureType = t.ensureIntFunc;
-        } else if (normalized instanceof WurstTypeBool) {
-            ensureType = t.ensureBoolFunc;
-        } else if (normalized instanceof WurstTypeReal) {
-            ensureType = t.ensureRealFunc;
-        } else if (normalized instanceof WurstTypeString) {
-            ensureType = t.ensureStrFunc;
-        }
-        if (ensureType == null) {
-            return translated;
-        }
-        if (ensureType == t.ensureBoolFunc) {
-            return ImOperatorCall(WurstOperator.EQ, ImExprs(
-                translated, ImBoolVal(true)));
-        }
-        return ImFunctionCall(source, ensureType, ImTypeArguments(), ImExprs(translated), false, CallType.NORMAL);
     }
 
     private static boolean isPrimitiveType(WurstType type) {
@@ -944,7 +900,7 @@ public class ExprTranslation {
         ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
         FunctionSignature selectedSignature = t.isLuaTarget() ? sig : null;
         return ImFunctionCall(e, constructorImFunc, typeArgs,
-            translateExprs(e.getArgs(), t, f, false, selectedSignature), false, CallType.NORMAL);
+            translateExprs(e.getArgs(), t, f, selectedSignature), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
