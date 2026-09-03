@@ -45,14 +45,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compileOptimizedLua(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations");
-        return compileLuaWithRunArgs(testName, runArgs, lines);
+        return compileLuaWithRunArgs(testName, runArgs, false, lines);
+    }
+
+    private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
+        RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
+            "-runcompiletimefunctions", "-lib", StdLib.getLib());
+        return compileLuaWithRunArgs(testName, runArgs, true, lines);
     }
 
     private String compileLuaWithRunArgs(String testName, RunArgs runArgs, String... lines) {
+        return compileLuaWithRunArgs(testName, runArgs, false, lines);
+    }
+
+    private String compileLuaWithRunArgs(String testName, RunArgs runArgs, boolean withStdLib, String... lines) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         WurstModel model = parseFiles(Collections.emptyList(),
-            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), false, compiler);
+            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), withStdLib, compiler);
         assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
         compiler.checkProg(model);
         assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
@@ -1989,6 +1999,75 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
+     * Lua function calls are expensive enough that tiny leaf helpers should inline regardless of
+     * how many distinct callers use them. The old size * (callerCount - 1) rating did the opposite:
+     * a commonly reused one-expression helper quickly became less likely to inline.
+     */
+    @Test
+    public void tinyPopularLuaHelpersInlineWithoutAnnotations() {
+        String compiled = compileOptimizedLua(
+            "tinyPopularLuaHelpersInlineWithoutAnnotations",
+            tinyPopularLuaHelpersProgram()
+        );
+
+        assertFalse("tiny nil-safe wrapper must inline at every Lua call site:\n" + compiled,
+            compiled.contains("safeCoordinate("));
+        assertFalse("tiny arithmetic helper must inline at every Lua call site:\n" + compiled,
+            compiled.contains("arithmetic("));
+    }
+
+    /**
+     * Measured after Lua native lowering: unit_getX = 59 IM nodes,
+     * unit_getAbilityLevel = 63, real_floor = 35, and __wurst_intDiv = 31. Each helper is called
+     * from eight retained functions so the normal popularity rating exceeds the inline threshold;
+     * Lua's unconditional small-body rule must still remove every call.
+     */
+    @Test
+    public void stdlibHotLeafSizesDefineLuaAlwaysInlineCutoff() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "stdlibHotLeafSizesDefineLuaAlwaysInlineCutoff",
+            popularStdlibHelpersProgram()
+        );
+        for (int i = 1; i <= 8; i++) {
+            String caller = "caller" + i;
+            assertFunctionBodyContains(compiled, caller, "unit_getX(", false);
+            assertFunctionBodyContains(compiled, caller, "unit_getAbilityLevel(", false);
+            assertFunctionBodyContains(compiled, caller, "real_floor(", false);
+            assertFunctionBodyContains(compiled, caller, "__wurst_intDiv(", false);
+        }
+    }
+
+    @Test
+    public void optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations",
+            "package Test",
+            "import SpatialIndexForUnits",
+            "@noinline function query(vec2 center)",
+            "    let result = unitsInRange(center, 512.)",
+            "    destroy result",
+            "init",
+            "    query(vec2(0., 0.))"
+        );
+
+        // The spatial-index helpers each have one call site, so the optimizer folds the whole
+        // query chain into our retained entry point. Inspect that surviving hot-loop owner.
+        String body = topLevelFunctionBodyWithPrefix(compiled, "query");
+        assertTrue("query loop must read the next-link array directly:\n" + body,
+            body.contains("UnitSpatialIndex_nextInCell["));
+        assertTrue("query loop must read cached X directly:\n" + body,
+            body.contains("UnitSpatialIndex_lastX["));
+        assertTrue("query loop must read cached Y directly:\n" + body,
+            body.contains("UnitSpatialIndex_lastY["));
+        assertFalse("typed array reads must not retain assurance calls:\n" + body,
+            body.contains("__wurst_ensure"));
+        assertFalse("static-arity helpers must not allocate vararg packs:\n" + body,
+            body.contains("table.pack"));
+        assertFalse("hot query arithmetic must not retain portable div helpers:\n" + body,
+            body.contains("__wurst_intDiv("));
+    }
+
+    /**
      * On Lua a vararg function used to keep its {@code ...} parameter and pack it into a table on
      * every call, and the inliner refused it. With a static argument count at the call site the
      * call is redirected to a fixed-arity copy, as Jass has always done, so the pack is gone and
@@ -2957,15 +3036,73 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         };
     }
 
+    private static String[] tinyPopularLuaHelpersProgram() {
+        List<String> lines = new ArrayList<>(List.of(
+            "type unit extends handle",
+            "package Test",
+            "@extern native GetUnitX(unit u) returns real",
+            "native consumeReal(real value)",
+            "native consumeInt(int value)",
+            "function safeCoordinate(unit u) returns real",
+            "    return u == null ? 0. : GetUnitX(u)",
+            "function arithmetic(int value) returns int",
+            "    return (value * 31 + 17) div 4"
+        ));
+        for (int i = 1; i <= 8; i++) {
+            lines.add("@noinline function caller" + i + "(unit u, int value)");
+            lines.add("    consumeReal(safeCoordinate(u))");
+            lines.add("    consumeInt(arithmetic(value))");
+        }
+        lines.add("init");
+        for (int i = 1; i <= 8; i++) {
+            lines.add("    caller" + i + "(null, " + i + ")");
+        }
+        return lines.toArray(String[]::new);
+    }
+
+    private static String[] popularStdlibHelpersProgram() {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native consumeReal(real value)",
+            "native consumeInt(int value)"
+        ));
+        for (int i = 1; i <= 8; i++) {
+            lines.add("@noinline function caller" + i + "(unit u, real value, int divisor)");
+            lines.add("    consumeReal(u.getX())");
+            lines.add("    consumeInt(u.getAbilityLevel('A000'))");
+            lines.add("    consumeInt(value.floor())");
+            lines.add("    consumeInt(17 div divisor)");
+        }
+        lines.add("init");
+        for (int i = 1; i <= 8; i++) {
+            lines.add("    caller" + i + "(null, -1.5, 2)");
+        }
+        return lines.toArray(String[]::new);
+    }
+
     private static void assertFunctionBodyContains(String compiled, String functionName,
                                                     String text, boolean expected) {
+        boolean found = functionBody(compiled, functionName).contains(text);
+        assertEquals("unexpected occurrence of " + text + " in " + functionName,
+            expected, found);
+    }
+
+    private static String functionBody(String compiled, String functionName) {
         int start = compiled.indexOf("function " + functionName + "(");
         assertTrue("expected function " + functionName, start >= 0);
         int end = compiled.indexOf("\nend", start);
         assertTrue("unterminated function " + functionName, end >= 0);
-        boolean found = compiled.substring(start, end).contains(text);
-        assertEquals("unexpected occurrence of " + text + " in " + functionName,
-            expected, found);
+        return compiled.substring(start, end);
+    }
+
+    private static String topLevelFunctionBodyWithPrefix(String compiled, String functionNamePrefix) {
+        int start = compiled.indexOf("function " + functionNamePrefix);
+        assertTrue("expected function starting with " + functionNamePrefix, start >= 0);
+        int end = compiled.indexOf("\nfunction ", start + 1);
+        if (end < 0) {
+            end = compiled.length();
+        }
+        return compiled.substring(start, end);
     }
 
     private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {
@@ -3164,9 +3301,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * before its first call was introduced.
      */
     @Test
-    public void optimizedStringConcatKeepsItsHelperDefinition() {
+    public void optimizedStringConcatHasNoDanglingHelperCalls() {
         String compiled = compileOptimizedLua(
-            "LuaBackendAuditTests_optimizedStringConcatKeepsItsHelperDefinition",
+            "LuaBackendAuditTests_optimizedStringConcatHasNoDanglingHelperCalls",
             "package Test",
             "native print(string message)",
             "function join1(string a, string b) returns string",
@@ -3189,10 +3326,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    print(join5(\"a\", \"b\"))",
             "    print(join6(\"a\", \"b\"))"
         );
-        assertTrue("optimized Lua must retain the helper called by lowered string concatenation",
-            compiled.contains("function __wurst_stringConcat("));
-        assertTrue("repro must contain calls in addition to the helper definition",
-            countOccurrences(compiled, "__wurst_stringConcat(") > 1);
+        assertFalse("the tiny lowered concat helper should inline without leaving dangling calls",
+            compiled.contains("__wurst_stringConcat("));
     }
 
     /**
