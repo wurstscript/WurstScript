@@ -22,12 +22,21 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         ImProg prog = trans.getImProg();
         localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
-        for (ImFunction func : de.peeeq.wurstscript.translation.imtranslation.ImHelper.calculateFunctionsOfProg(prog)) {
+        optimizeFunctions(prog.getFunctions());
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            optimizeFunctions(classes.get(i).getFunctions());
+        }
+        return totalLocalsMerged;
+    }
+
+    private void optimizeFunctions(List<ImFunction> functions) {
+        for (int i = 0; i < functions.size(); i++) {
+            ImFunction func = functions.get(i);
             if (!func.isNative() && !func.isBj()) {
                 optimizeFunc(func);
             }
         }
-        return totalLocalsMerged;
     }
 
     @Override
@@ -54,21 +63,23 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         );
         queue.addAll(interference.keySet());
 
-        List<ImVar> params = new ArrayList<>(func.getParameters());
-        if (func.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG) && !params.isEmpty()) {
-            params.remove(params.size() - 1);
+        List<ImVar> colors = new ArrayList<>(func.getParameters());
+        if (func.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG) && !colors.isEmpty()) {
+            colors.remove(colors.size() - 1);
         }
         queue.removeAll(func.getParameters());
 
-        List<ImVar> colors = new ArrayList<>(params);
         Map<ImVar, ImVar> merges = new LinkedHashMap<>();
 
         while (!queue.isEmpty()) {
             ImVar v = queue.poll();
             boolean merged = false;
 
-            for (ImVar color : colors) {
-                if (!canMerge(color.getType(), v.getType())) continue;
+            for (int colorIndex = 0; colorIndex < colors.size(); colorIndex++) {
+                ImVar color = colors.get(colorIndex);
+                if (!canMerge(color.getType(), v.getType())) {
+                    continue;
+                }
                 if (localPlayerContextAnalyzer != null
                     && (localPlayerContextAnalyzer.isLocalPlayerDependent(v)
                     || localPlayerContextAnalyzer.isLocalPlayerDependent(color))) {
@@ -110,7 +121,9 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
             @Override public void visit(ImVarargLoop varargLoop) {
                 super.visit(varargLoop);
-                for (ImVarargLoopVar loopVar : varargLoop.getLoopVars()) {
+                List<ImVarargLoopVar> loopVars = varargLoop.getLoopVars();
+                for (int i = 0; i < loopVars.size(); i++) {
+                    ImVarargLoopVar loopVar = loopVars.get(i);
                     ImVar m = merges.get(loopVar.getVar());
                     if (m != null) loopVar.setVar(m);
                 }
@@ -127,13 +140,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             @Override public void visit(ImVarArrayAccess vaa) { super.visit(vaa); used.add(vaa.getVar()); }
             @Override public void visit(ImVarargLoop loop) {
                 super.visit(loop);
-                loop.getLoopVars().forEach(v -> used.add(v.getVar()));
+                for (int i = 0; i < loop.getLoopVars().size(); i++) {
+                    used.add(loop.getLoopVars().get(i).getVar());
+                }
             }
         });
-        List<ImVar> locals = new ArrayList<>(f.getLocals());
+        List<ImVar> locals = f.getLocals();
         int before = locals.size();
         List<ImVar> kept = new ArrayList<>(locals.size());
-        for (ImVar v : locals) if (used.contains(v)) kept.add(v);
+        for (int i = 0; i < locals.size(); i++) {
+            ImVar v = locals.get(i);
+            if (used.contains(v)) {
+                kept.add(v);
+            }
+        }
         if (kept.size() != locals.size()) { f.getLocals().clear(); f.getLocals().addAll(kept); }
         return before - kept.size();
     }
@@ -183,7 +203,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                     AstEdits.deleteStmt(s);  // remove the dead assignment entirely
                 } else {
                     ImStmts block = JassIm.ImStmts();
-                    for (ImExpr e : raw) {
+                    for (int i = 0; i < raw.size(); i++) {
+                        ImExpr e = raw.get(i);
                         // wrap expression as a statement; add a *copy* to avoid re-parenting conflicts
                         block.add(ImHelper.statementExprVoid(e.copy()));
                     }
@@ -195,10 +216,22 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     private static void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {
         if (lhs instanceof ImVarArrayAccess a) {
-            for (ImExpr idx : a.getIndexes()) if (hasSideEffects(idx)) out.add(idx);
+            ImExprs indexes = a.getIndexes();
+            for (int i = 0; i < indexes.size(); i++) {
+                ImExpr idx = indexes.get(i);
+                if (hasSideEffects(idx)) {
+                    out.add(idx);
+                }
+            }
         } else if (lhs instanceof ImMemberAccess m) {
             if (hasSideEffects(m.getReceiver())) out.add(m.getReceiver());
-            for (ImExpr idx : m.getIndexes()) if (hasSideEffects(idx)) out.add(idx);
+            ImExprs indexes = m.getIndexes();
+            for (int i = 0; i < indexes.size(); i++) {
+                ImExpr idx = indexes.get(i);
+                if (hasSideEffects(idx)) {
+                    out.add(idx);
+                }
+            }
         } else if (lhs instanceof ImTupleSelection ts) {
             Element t = ts.getTupleExpr();
             if (hasSideEffects(t)) out.add((ImExpr) t);
@@ -255,7 +288,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                         @Override public void case_ImVarArrayAccess(ImVarArrayAccess e) { e.getIndexes().accept(me); }
                         @Override public void case_ImMemberAccess(ImMemberAccess e) { e.getReceiver().accept(me); e.getIndexes().accept(me); }
                         @Override public void case_ImStatementExpr(ImStatementExpr e) { e.getStatements().accept(me); ((ImLExpr) e.getExpr()).match(this); }
-                        @Override public void case_ImTupleExpr(ImTupleExpr e) { for (ImExpr ex : e.getExprs()) ((ImLExpr) ex).match(this); }
+                        @Override public void case_ImTupleExpr(ImTupleExpr e) {
+                            ImExprs exprs = e.getExprs();
+                            for (int i = 0; i < exprs.size(); i++) {
+                                ((ImLExpr) exprs.get(i)).match(this);
+                            }
+                        }
                     });
                 }
             });
@@ -291,14 +329,16 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         for (int i = 0; i < N; i++) { in[i] = new ObjectOpenHashSet<>(); out[i] = new ObjectOpenHashSet<>(); }
 
         // 5. Iterate over SCCs in reverse topological order
-        for (List<Node> scc : sccs) {
+        for (int sccIndex = 0; sccIndex < sccs.size(); sccIndex++) {
+            List<Node> scc = sccs.get(sccIndex);
             if (scc.isEmpty()) continue;
 
             // Iterate within this SCC until a fixed point is reached for all its nodes.
             boolean changedInScc = true;
             while (changedInScc) {
                 changedInScc = false;
-                for (Node u_node : scc) {
+                for (int uIndex = 0; uIndex < scc.size(); uIndex++) {
+                    Node u_node = scc.get(uIndex);
                     int u_idx = idx.getInt(u_node);
 
                     // Recalculate OUT[u] from the IN sets of its successors.
