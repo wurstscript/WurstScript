@@ -2202,6 +2202,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
 
     /**
+     * `@preserveName` and `ExecuteFunc` mark a function's emitted name as part of the map's
+     * WC3-facing API, and `LuaTranslator.collectPredefinedNames()` resets every function carrying
+     * that flag to its trace's source name. A generated copy shares the original's trace, so an
+     * inherited flag would emit the original and every copy under one name and let the last
+     * definition win. The preserved name belongs to the retained original: that is the one external
+     * code calls, at an arity this pass never gets to see.
+     */
+    @Test
+    public void preservedNameStaysOnTheVarargOriginalNotItsCopies() {
+        String compiled = compileOptimizedLua(
+            "preservedNameStaysOnTheVarargOriginalNotItsCopies",
+            "package Test",
+            "native consume(int i)",
+            "@preserveName @noinline public function tally(vararg int xs) returns int",
+            "    var sum = 0",
+            "    for x in xs",
+            "        sum += x",
+            "    return sum",
+            "init",
+            "    consume(tally(1, 2))"
+        );
+        assertTrue("the fixed-arity copy must keep its own suffixed name:\n" + compiled,
+            compiled.contains("function tally_2("));
+        int definitions = 0;
+        for (int at = compiled.indexOf("function tally("); at >= 0;
+             at = compiled.indexOf("function tally(", at + 1)) {
+            definitions++;
+        }
+        assertEquals("the preserved name must name exactly one function:\n" + compiled,
+            1, definitions);
+    }
+
+    /**
      * The inliner used to refuse every function whose return fact the local-player analysis had
      * marked, and that fact fires for anything reachable from a client-local branch anywhere in the
      * program. In a stdlib-linked map that is most of the call graph, so pure index arithmetic in

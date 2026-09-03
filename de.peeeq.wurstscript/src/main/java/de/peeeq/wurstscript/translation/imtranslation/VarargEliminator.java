@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.PRESERVE_NAME;
 
 /**
  * Takes a program and eliminates vararg functions, replacing them with
@@ -207,16 +208,28 @@ public class VarargEliminator {
 
         // Create new function
         ImFunction newFunc = ReferenceRewritingCopy.copy(func);
-        // The copy retargets the function's own references, so a recursive call inside it now names
-        // the copy. That is wrong whenever the recursion uses a different argument count: the call
-        // must go back to naming the vararg original, so the rewrite below maps it to a copy of its
-        // own arity like any other call.
+        // ReferenceRewritingCopy retargets the function's own references - both call and reference
+        // nodes - so inside the copy they now name the copy. That is wrong for either kind. A
+        // recursive call must go back to naming the vararg original, so the rewrite below maps it to
+        // a copy of its own arity like any other call; a self reference must name the original too,
+        // because it is invoked at an arity this pass never sees.
         newFunc.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 if (call.getFunc() == newFunc) {
                     call.setFunc(func);
+                }
+            }
+
+            @Override
+            public void visit(ImFuncRef ref) {
+                super.visit(ref);
+                // Lua only: nothing redirects a reference afterwards, so it keeps naming whatever it
+                // is set to here, and only this target retains the original. On Jass the original is
+                // removed below and pointing at it would leave the reference dangling.
+                if (luaTarget && ref.getFunc() == newFunc) {
+                    ref.setFunc(func);
                 }
             }
         });
@@ -266,12 +279,17 @@ public class VarargEliminator {
         }
 
 
-        // Remove vararg flag
+        // Drop the vararg flag, and on Lua the name preservation with it. A preserved name is part
+        // of the map's Warcraft-facing API and belongs to the retained original, which is what
+        // external code calls at an arity this pass never sees. Since a copy shares the original's
+        // trace, and LuaTranslator.collectPredefinedNames() resets every preserved function to its
+        // trace's source name, an inherited flag would emit both under one name.
         List<FunctionFlag> list = new ArrayList<>();
         for (FunctionFlag flag : newFunc.getFlags()) {
-            if (flag != IS_VARARG) {
-                list.add(flag);
+            if (flag == IS_VARARG || (luaTarget && flag == PRESERVE_NAME)) {
+                continue;
             }
+            list.add(flag);
         }
         newFunc.setFlags(list);
         // Add new function to prog
