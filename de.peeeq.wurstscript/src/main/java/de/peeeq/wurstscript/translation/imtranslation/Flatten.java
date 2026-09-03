@@ -501,9 +501,15 @@ public class Flatten {
             if (total >= PARALLEL_THRESHOLD) {
                 // Collect once for parallel traversal.
                 List<ImFunction> allFunctions = new ArrayList<>(total);
-                allFunctions.addAll(imProg.getFunctions());
+                List<ImFunction> functions = imProg.getFunctions();
+                for (int i = 0; i < functions.size(); i++) {
+                    allFunctions.add(functions.get(i));
+                }
                 for (int i = 0; i < classes.size(); i++) {
-                    allFunctions.addAll(classes.get(i).getFunctions());
+                    List<ImFunction> classFunctions = classes.get(i).getFunctions();
+                    for (int j = 0; j < classFunctions.size(); j++) {
+                        allFunctions.add(classFunctions.get(j));
+                    }
                 }
                 allFunctions.parallelStream().forEach(f -> f.flatten(translator));
             } else {

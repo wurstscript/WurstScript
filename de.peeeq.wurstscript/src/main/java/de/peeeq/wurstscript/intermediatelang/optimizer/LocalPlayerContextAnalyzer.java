@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -161,7 +160,17 @@ public final class LocalPlayerContextAnalyzer {
 
     private void analyze(ImProg prog) {
         sourceFacts.add(unknownDispatchSource);
-        for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
+        analyzeFunctions(prog.getFunctions());
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            analyzeFunctions(classes.get(i).getFunctions());
+        }
+        propagateFacts();
+    }
+
+    private void analyzeFunctions(List<ImFunction> functions) {
+        for (int i = 0; i < functions.size(); i++) {
+            ImFunction function = functions.get(i);
             returnFact(function);
             useFact(function);
             if (isClientLocalValueSource(function)) {
@@ -171,7 +180,6 @@ public final class LocalPlayerContextAnalyzer {
                 addDependency(function.getBody(), useFact(function));
             }
         }
-        propagateFacts();
     }
 
     private boolean methodReturnsLocalPlayerDependentValue(ImMethod method) {
@@ -554,8 +562,11 @@ public final class LocalPlayerContextAnalyzer {
         }
         while (!worklist.isEmpty()) {
             Object fact = worklist.removeFirst();
-            for (Object dependent : dependents.getOrDefault(fact, Collections.emptyList())) {
-                activateFact(dependent, worklist);
+            List<Object> factDependents = dependents.get(fact);
+            if (factDependents != null) {
+                for (int i = 0; i < factDependents.size(); i++) {
+                    activateFact(factDependents.get(i), worklist);
+                }
             }
         }
     }

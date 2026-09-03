@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.validation.NamePreservation;
 
@@ -11,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -97,13 +97,13 @@ public class RemoveGarbage {
             }
             if (newDispatchClass) {
                 Collection<ImMethod> imMethods = waitingMethods.get(c);
-                if (!imMethods.isEmpty()) {
-                    Object[] pendingMethods = imMethods.toArray();
-                    for (int i = 0; i < pendingMethods.length; i++) {
-                        ImMethod m = (ImMethod) pendingMethods[i];
-                        visitMethod(m, this);
-                        waitingMethods.remove(c, m);
-                    }
+                // This is a HashMultimap set view, not an indexed list. Keep the one iterator:
+                // taking an array snapshot here allocates one entry for every waiting method.
+                Iterator<ImMethod> iterator = imMethods.iterator();
+                while (iterator.hasNext()) {
+                    ImMethod method = iterator.next();
+                    visitMethod(method, this);
+                    iterator.remove();
                 }
             }
             return newClass || newDispatchClass;
@@ -157,16 +157,23 @@ public class RemoveGarbage {
     private static Used collectUsed(ImProg prog, ImTranslator translator,
                                     Set<ImSet> ignoredInitializers) {
         Used used = new Used(translator, ignoredInitializers);
-        ImFunction[] programFunctions = ImHelper.calculateFunctionsOfProg(prog).toArray(new ImFunction[0]);
-        for (int i = 0; i < programFunctions.length; i++) {
-            ImFunction f = programFunctions[i];
+        visitRootFunctions(prog.getFunctions(), used);
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            visitRootFunctions(classes.get(i).getFunctions(), used);
+        }
+        return used;
+    }
+
+    private static void visitRootFunctions(List<ImFunction> functions, Used used) {
+        for (int i = 0; i < functions.size(); i++) {
+            ImFunction f = functions.get(i);
             if (f.getName().equals("main")
                 || f.getName().equals("config")
                 || NamePreservation.isPreserved(f)) {
                 visitFunction(f, used);
             }
         }
-        return used;
     }
 
     public static void removePhantomGenericStaticInitializers(ImProg prog, ImTranslator translator) {
@@ -192,20 +199,17 @@ public class RemoveGarbage {
         boolean changed;
         do {
             Set<ImSet> ignored = Collections.newSetFromMap(new IdentityHashMap<>());
-            Object[] candidateEntries = candidates.entrySet().toArray();
-            for (int i = 0; i < candidateEntries.length; i++) {
-                @SuppressWarnings("unchecked")
-                Map.Entry<ImVar, List<ImSet>> candidate
-                    = (Map.Entry<ImVar, List<ImSet>>) candidateEntries[i];
+            for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
                 if (!liveOriginals.contains(candidate.getKey())) {
-                    ignored.addAll(candidate.getValue());
+                    List<ImSet> initializers = candidate.getValue();
+                    for (int i = 0; i < initializers.size(); i++) {
+                        ignored.add(initializers.get(i));
+                    }
                 }
             }
             Used used = collectUsed(prog, translator, ignored);
             changed = false;
-            Object[] candidateKeys = candidates.keySet().toArray();
-            for (int i = 0; i < candidateKeys.length; i++) {
-                ImVar original = (ImVar) candidateKeys[i];
+            for (ImVar original : candidates.keySet()) {
                 ImClass owner = translator.genericStaticOwnerOf(original);
                 boolean erasedInstantiationNeedsOriginal = used.getInstantiatedClasses().contains(owner)
                     && translator.hasErasedAllocationWithoutStaticSpecialization(owner, original);
@@ -216,11 +220,7 @@ public class RemoveGarbage {
             }
         } while (changed);
 
-        Object[] finalCandidateEntries = candidates.entrySet().toArray();
-        for (int i = 0; i < finalCandidateEntries.length; i++) {
-            @SuppressWarnings("unchecked")
-            Map.Entry<ImVar, List<ImSet>> candidate
-                = (Map.Entry<ImVar, List<ImSet>>) finalCandidateEntries[i];
+        for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
             if (liveOriginals.contains(candidate.getKey())) {
                 continue;
             }

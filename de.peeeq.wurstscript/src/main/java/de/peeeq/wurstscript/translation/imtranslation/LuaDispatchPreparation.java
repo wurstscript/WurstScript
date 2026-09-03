@@ -49,14 +49,20 @@ public final class LuaDispatchPreparation {
         List<ImClass> classes = prog.getClasses();
         for (int i = 0; i < classes.size(); i++) {
             ImClass c = classes.get(i);
-            methods.addAll(c.getMethods());
+            List<ImMethod> classMethods = c.getMethods();
+            for (int j = 0; j < classMethods.size(); j++) {
+                methods.add(classMethods.get(j));
+            }
         }
         methods.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
         return methods;
     }
 
     private static void assignDispatchGroupKeys(List<ImMethod> allMethods) {
-        Set<ImMethod> knownMethods = new HashSet<>(allMethods);
+        Set<ImMethod> knownMethods = HashSet.newHashSet(allMethods.size());
+        for (int i = 0; i < allMethods.size(); i++) {
+            knownMethods.add(allMethods.get(i));
+        }
         UnionFind<ImMethod> unions = new UnionFind<>();
         for (int i = 0; i < allMethods.size(); i++) {
             ImMethod method = allMethods.get(i);
@@ -77,18 +83,14 @@ public final class LuaDispatchPreparation {
             grouped.computeIfAbsent(root, ignored -> new ArrayList<>()).add(method);
         }
 
-        List<List<ImMethod>> groups = new ArrayList<>(grouped.values());
-        for (int i = 0; i < groups.size(); i++) {
-            List<ImMethod> group = groups.get(i);
+        for (List<ImMethod> group : grouped.values()) {
             Map<String, List<ImMethod>> partitions = new LinkedHashMap<>();
             group.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
             for (int j = 0; j < group.size(); j++) {
                 ImMethod method = group.get(j);
                 partitions.computeIfAbsent(dispatchSignatureKey(method), ignored -> new ArrayList<>()).add(method);
             }
-            List<List<ImMethod>> partitionGroups = new ArrayList<>(partitions.values());
-            for (int j = 0; j < partitionGroups.size(); j++) {
-                List<ImMethod> partition = partitionGroups.get(j);
+            for (List<ImMethod> partition : partitions.values()) {
                 partition.sort(Comparator.comparing(LuaDispatchPreparation::methodSortKey));
                 if (partition.isEmpty()) {
                     continue;
@@ -161,9 +163,9 @@ public final class LuaDispatchPreparation {
                 usedNames.add(function.getName());
             }
         }
-        ImVar[] globals = prog.getGlobals().toArray(new ImVar[0]);
-        for (int i = 0; i < globals.length; i++) {
-            ImVar global = globals[i];
+        List<ImVar> globals = prog.getGlobals();
+        for (int i = 0; i < globals.size(); i++) {
+            ImVar global = globals.get(i);
             if (global.getIsBJ()) {
                 usedNames.add(global.getName());
             }
@@ -306,9 +308,7 @@ public final class LuaDispatchPreparation {
             return;
         }
         String runtimeKey = closureRuntimeDispatchKey(method);
-        List<ImClass> anchors = new ArrayList<>(closureFamilyAnchors(owner, closureFamilyAnchorsCache));
-        for (int i = 0; i < anchors.size(); i++) {
-            ImClass anchor = anchors.get(i);
+        for (ImClass anchor : closureFamilyAnchors(owner, closureFamilyAnchorsCache)) {
             List<ImClass> candidateClasses = closureFamilyClassesForAnchor(prog, anchor, closureFamilyClassesByAnchor);
             for (int j = 0; j < candidateClasses.size(); j++) {
                 ImClass candidateClass = candidateClasses.get(j);

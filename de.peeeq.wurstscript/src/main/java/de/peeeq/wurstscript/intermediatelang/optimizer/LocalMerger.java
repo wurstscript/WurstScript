@@ -22,12 +22,21 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         ImProg prog = trans.getImProg();
         localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
-        for (ImFunction func : de.peeeq.wurstscript.translation.imtranslation.ImHelper.calculateFunctionsOfProg(prog)) {
+        optimizeFunctions(prog.getFunctions());
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            optimizeFunctions(classes.get(i).getFunctions());
+        }
+        return totalLocalsMerged;
+    }
+
+    private void optimizeFunctions(List<ImFunction> functions) {
+        for (int i = 0; i < functions.size(); i++) {
+            ImFunction func = functions.get(i);
             if (!func.isNative() && !func.isBj()) {
                 optimizeFunc(func);
             }
         }
-        return totalLocalsMerged;
     }
 
     @Override
@@ -54,13 +63,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         );
         queue.addAll(interference.keySet());
 
-        List<ImVar> params = new ArrayList<>(func.getParameters());
-        if (func.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG) && !params.isEmpty()) {
-            params.remove(params.size() - 1);
+        List<ImVar> colors = new ArrayList<>(func.getParameters());
+        if (func.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG) && !colors.isEmpty()) {
+            colors.remove(colors.size() - 1);
         }
         queue.removeAll(func.getParameters());
 
-        List<ImVar> colors = new ArrayList<>(params);
         Map<ImVar, ImVar> merges = new LinkedHashMap<>();
 
         while (!queue.isEmpty()) {
@@ -137,7 +145,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 }
             }
         });
-        List<ImVar> locals = new ArrayList<>(f.getLocals());
+        List<ImVar> locals = f.getLocals();
         int before = locals.size();
         List<ImVar> kept = new ArrayList<>(locals.size());
         for (int i = 0; i < locals.size(); i++) {
