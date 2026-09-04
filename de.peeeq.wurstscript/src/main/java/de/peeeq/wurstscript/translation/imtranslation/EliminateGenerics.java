@@ -1162,9 +1162,6 @@ public class EliminateGenerics {
     }
 
     private String checkDanglingMethodRefs(String phase) {
-        IdentityHashMap<ImMethod, Boolean> inProg = new IdentityHashMap<>();
-        for (ImMethod m : prog.getMethods()) inProg.put(m, Boolean.TRUE);
-
         final int[] dangling = {0};
 
         prog.accept(new Element.DefaultVisitor() {

@@ -13,6 +13,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'jacoco'
+    id 'net.ltgt.errorprone' version '5.1.1'
     id 'maven-publish'
     id 'com.gradleup.shadow' version '9.2.2'
     id 'de.undercouch.download' version '5.6.0'
@@ -41,7 +42,43 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
 }
 
-tasks.withType(JavaCompile).configureEach { options.release = 25 }
+/** -------- Compilation and static analysis --------
+ * Both javac lint and Error Prone are ADVISORY: they report at warning severity and
+ * never fail the build. Unit tests and coverage remain the primary quality gate; this
+ * is a supplementary signal, not a merge blocker.
+ * Skip Error Prone entirely with: ./gradlew <task> -PskipErrorProne
+ */
+def errorProneEnabled = !project.hasProperty('skipErrorProne')
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    // 'serial'/'this-escape' are noisy against this codebase's AST and visitor style.
+    // 'auxiliaryclass' fires ~86 times purely on the multi-class-per-file layout - structural, not a defect.
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-serial', '-Xlint:-this-escape',
+                             '-Xlint:-processing', '-Xlint:-auxiliaryclass']
+    // javac silently caps reporting at 100 warnings. Without this, lint noise exhausts the
+    // budget and every Error Prone finding is dropped as overflow - the analysis looks clean
+    // while reporting nothing. Do not remove.
+    options.compilerArgs += ['-Xmaxwarns', '10000']
+
+    options.errorprone {
+        enabled = errorProneEnabled
+        // src-gen holds ~700 generated AST classes - analysing them is pure noise.
+        excludedPaths = '.*src-gen.*'
+        disableWarningsInGeneratedCode = true
+        // Advisory only: demote every check to a warning so the build never fails on it.
+        // Requires the -Xmaxwarns bump above to actually be visible.
+        allErrorsAsWarnings = true
+        // Upstream bug: NonCanonicalType NPEs in SuggestedFixes.qualifyType on anonymous
+        // subclasses of nested types, which this codebase's visitors use everywhere
+        // (e.g. `new LuaModel.DefaultVisitor() {}`). A plugin crash is a hard javac error,
+        // so allErrorsAsWarnings cannot absorb it. Purely stylistic check; safe to drop.
+        disable('NonCanonicalType')
+    }
+}
+
+// Keep the test compile loop fast - tests are the primary gate, not the audit target.
+tasks.named('compileTestJava') { options.errorprone.enabled = false }
 
 jacoco {
     toolVersion = "0.8.13"
@@ -90,6 +127,8 @@ configurations {
 }
 
 dependencies {
+    errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+
     implementation 'org.jetbrains:annotations:23.0.0'
 
     // Antlr

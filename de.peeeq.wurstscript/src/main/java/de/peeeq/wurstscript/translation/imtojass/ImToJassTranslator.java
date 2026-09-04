@@ -67,8 +67,8 @@ public class ImToJassTranslator {
         List<T> sorted = new ArrayList<>(list);
         sorted.sort(Comparator.comparing(JassImElementWithName::getName)
             .thenComparing(v -> v.getTrace().attrSource().getFile())
-            .thenComparing(v -> v.getTrace().attrSource().getLine())
-            .thenComparing(v -> v.getTrace().attrSource().getStartColumn()));
+            .thenComparingInt(v -> v.getTrace().attrSource().getLine())
+            .thenComparingInt(v -> v.getTrace().attrSource().getStartColumn()));
 
         Set<String> used = new HashSet<>(sorted.size() * 2);
         Map<String, Integer> nextSuffix = new HashMap<>();

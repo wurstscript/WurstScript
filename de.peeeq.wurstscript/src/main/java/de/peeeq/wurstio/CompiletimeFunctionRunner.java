@@ -120,7 +120,7 @@ public class CompiletimeFunctionRunner implements AutoCloseable {
             collectCompiletimeFunctions(toExecute);
             long tCollected = System.nanoTime();
 
-            toExecute.sort(Comparator.comparing(this::getOrderIndex));
+            toExecute.sort(Comparator.comparingInt(this::getOrderIndex));
             long tSorted = System.nanoTime();
 
             execute(toExecute);

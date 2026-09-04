@@ -40,6 +40,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -430,6 +433,24 @@ public class WurstScriptTest {
         String name = UtilsIO.getMethodName(WurstScriptTest.class.getName());
         name = this.getClass().getSimpleName() + "_" + name;
         return new TestConfig(name);
+    }
+
+    /**
+     * Like {@link #test()} but with an explicit name for the files written under
+     * {@link #TEST_OUTPUT_PATH}.
+     *
+     * <p>{@link #test()} names those files after the first frame outside WurstScriptTest, which is
+     * the *helper* whenever a test reaches it through one of its own methods. That is deliberate -
+     * DeterministicChecks relies on one test method producing several differently named outputs -
+     * but it means two test methods sharing a helper get the same name, and therefore the same
+     * file. Gradle runs test classes in parallel forks, so when those two methods live in
+     * different suites the JVMs race on one .j file and pjass parses a spliced result.
+     *
+     * <p>Pass an explicit name in that situation. {@code name} is prefixed with the test class,
+     * exactly as {@link #test()} does.
+     */
+    public TestConfig testNamed(String name) {
+        return new TestConfig(this.getClass().getSimpleName() + "_" + name);
     }
 
     void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
@@ -1122,11 +1143,47 @@ public class WurstScriptTest {
     }
 
 
+    /**
+     * Scripts already checked by pjass in this JVM, by content hash.
+     *
+     * <p>pjass parses every file it is given as one program, so independent test scripts cannot be
+     * batched into a single invocation - each one costs a process spawn plus a re-parse of
+     * common.j and blizzard.j (~15k lines). About a third of the scripts this suite emits are
+     * byte-identical to one already checked (the same source compiled under several optimisation
+     * levels, and near-identical fixtures within a test class), and pjass is a pure function of its
+     * input, so checking those again cannot tell us anything new. Spawning is the dominant cost on
+     * Windows, where CreateProcess is an order of magnitude dearer than fork/exec.
+     *
+     * <p>Only successes are recorded: a failure re-runs so the reported message names the file the
+     * caller actually passed.
+     */
+    private static final Set<String> pjassCheckedScripts = ConcurrentHashMap.newKeySet();
+
     private void runPjass(File outputFile) throws Error {
+        String digest = scriptDigest(outputFile);
+        if (digest != null && pjassCheckedScripts.contains(digest)) {
+            return;
+        }
         Result pJassResult = Pjass.runPjass(outputFile);
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
             throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
+        }
+        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+        // it means pjass never validated this script - caching it would make every later identical
+        // script skip validation too, after a failure that may well have been transient.
+        if (digest != null && pJassResult.isOk()) {
+            pjassCheckedScripts.add(digest);
+        }
+    }
+
+    /** Content hash of a generated script, or null if it cannot be read - in which case pjass runs. */
+    private static String scriptDigest(File file) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(java.nio.file.Files.readAllBytes(file.toPath())));
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return null;
         }
     }
 
