@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyze
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
@@ -521,6 +522,36 @@ public class ImInliner {
         return result[0];
     }
 
+    private static int argumentStagingSlots(ImFunctionCall call) {
+        int result = 0;
+        Element current = call;
+        while (current != null) {
+            if (current != call && current instanceof ImStmt) {
+                break;
+            }
+            Element parent = current.getParent();
+            if (parent instanceof ImExprs expressions) {
+                int currentIndex = -1;
+                for (int i = 0; i < expressions.size(); i++) {
+                    if (expressions.get(i) == current) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                for (int i = 0; i < currentIndex; i++) {
+                    ImExpr earlier = expressions.get(i);
+                    if (!(earlier.attrPurity() instanceof Pure)) {
+                        result += ImHelper.flattenedJassArity(earlier.attrTyp());
+                    }
+                }
+                current = expressions.getParent();
+            } else {
+                current = parent;
+            }
+        }
+        return result;
+    }
+
     private LuaPressure pressureOf(Iterable<ImVar> variables) {
         LuaPressure result = new LuaPressure();
         for (ImVar variable : variables) {
@@ -591,6 +622,7 @@ public class ImInliner {
         private boolean fits(ImFunctionCall call, ImFunction callee) {
             if (!translator.getRunArgs().isLocalOptimizations()) {
                 return declarationsWithoutAllocation + declarationsAddedByInline(callee)
+                    + argumentStagingSlots(call)
                     <= LUA_INLINE_REGISTER_BUDGET;
             }
             return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET
@@ -623,6 +655,7 @@ public class ImInliner {
             peakPressure.keepMaximums(pressureDuringInline(call, callee));
             backendLocals += backendGeneratedLuaLocals(callee);
             declarationsWithoutAllocation += declarationsAddedByInline(callee);
+            declarationsWithoutAllocation += argumentStagingSlots(call);
             // Callers are processed after their callees. Publish the expanded pressure so a
             // later caller budgets the body it will actually copy, not the pre-inline callee.
             luaRegisterPressure.put(function, peakPressure.copy());
@@ -648,6 +681,10 @@ public class ImInliner {
             if (earlyReturnLocals > 0) {
                 // These synthetic values cannot be classified by the source locality analysis.
                 concurrent.add("inline-control", earlyReturnLocals);
+            }
+            int stagedArguments = argumentStagingSlots(call);
+            if (stagedArguments > 0) {
+                concurrent.add("argument-staging", stagedArguments);
             }
             return concurrent;
         }

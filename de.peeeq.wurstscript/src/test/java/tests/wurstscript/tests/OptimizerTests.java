@@ -1752,6 +1752,67 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaArithmeticHelperRetryBudgetsEarlierImpureArguments() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVar impureParameter = JassIm.ImVar(model, TypesHelper.imInt(), "value", false);
+        ImFunction impure = JassIm.ImFunction(model, "impure", JassIm.ImTypeVars(),
+            JassIm.ImVars(impureParameter), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 178; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars outerParameters = JassIm.ImVars();
+        ImExprs outerArguments = JassIm.ImExprs();
+        for (int i = 0; i < 11; i++) {
+            outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            outerArguments.add(JassIm.ImFunctionCall(model, impure, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i))), false,
+                de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "last", false));
+        outerArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(11)), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImFunction outer = JassIm.ImFunction(model, "outer", JassIm.ImTypeVars(), outerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "keep" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, outer, JassIm.ImTypeArguments(), outerArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(impure);
+        prog.getFunctions().add(outer);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+    }
+
+    @Test
     public void luaArithmeticHelperRetryPreservesLocalPlayerAllocationClasses() {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false,
