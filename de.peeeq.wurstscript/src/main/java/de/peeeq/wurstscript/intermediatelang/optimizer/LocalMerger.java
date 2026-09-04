@@ -42,9 +42,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     public String getName() { return "Local variables merged"; }
 
     void optimizeFunc(ImFunction func) {
-        Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
+        LivenessAnalysis liveness = analyzeLiveness(func);
+        Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
         eliminateDeadCode(livenessInfo);
-        mergeLocals(livenessInfo, func);
+        mergeLocals(livenessInfo, liveness.liveAtEntry, func);
     }
 
     void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
@@ -54,8 +55,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
 
-    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
-        Map<ImVar, java.util.Set<ImVar>> interference = calculateInterferenceGraph(livenessInfo, func);
+    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, Set<ImVar> liveAtEntry,
+        ImFunction func) {
+        Map<ImVar, java.util.Set<ImVar>> interference =
+            calculateInterferenceGraph(livenessInfo, liveAtEntry, func);
 
         Map<ImVar, Integer> declarationOrder = new IdentityHashMap<>();
         int nextOrder = 0;
@@ -168,7 +171,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     }
 
     private Map<ImVar, java.util.Set<ImVar>> calculateInterferenceGraph(
-        Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        Map<ImStmt, Set<ImVar>> livenessInfo, Set<ImVar> liveAtEntry, ImFunction func) {
         Map<ImVar, java.util.Set<ImVar>> graph = new LinkedHashMap<>();
         for (ImVar parameter : func.getParameters()) {
             graph.put(parameter, new ObjectOpenHashSet<>());
@@ -176,8 +179,6 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         for (ImVar local : func.getLocals()) {
             graph.put(local, new ObjectOpenHashSet<>());
         }
-
-        java.util.Set<ImVar> explicitlyDefined = Collections.newSetFromMap(new IdentityHashMap<>());
 
         // A definition interferes with every compatible value that remains live after it.
         // Building only those edges is equivalent to cliquing every live set, while avoiding
@@ -187,7 +188,6 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             if (defined.isEmpty()) {
                 continue;
             }
-            explicitlyDefined.addAll(defined);
             for (int i = 0; i < defined.size(); i++) {
                 ImVar definition = defined.get(i);
                 java.util.Set<ImVar> neighbors = graph.computeIfAbsent(definition, ignored -> new ObjectOpenHashSet<>());
@@ -210,12 +210,12 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             }
         }
 
-        // Parameters and locals with no explicit assignment receive their values at function
-        // entry. Model that simultaneous definition so a warning-only read of an uninitialized
-        // local cannot be colored onto a parameter (or another implicit entry value).
+        // A local live at entry is read before every control-flow path has assigned it. Its
+        // target-default value must remain distinct from every incoming parameter and from the
+        // other entry-live locals, even if a later assignment eventually defines it.
         List<ImVar> entryDefinitions = new ArrayList<>(func.getParameters());
         for (ImVar local : func.getLocals()) {
-            if (!explicitlyDefined.contains(local)) {
+            if (liveAtEntry.contains(local)) {
                 entryDefinitions.add(local);
             }
         }
@@ -336,6 +336,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
      * over the strongly connected components of the control flow graph.
      */
     public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
+        return analyzeLiveness(func).liveOut;
+    }
+
+    private LivenessAnalysis analyzeLiveness(ImFunction func) {
         // 1. Build Control Flow Graph
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         final List<Node> nodes = cfg.getNodes();
@@ -473,6 +477,19 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
             }
         }
-        return result;
+        Set<ImVar> liveAtEntry = N == 0
+            ? io.vavr.collection.HashSet.empty()
+            : io.vavr.collection.HashSet.ofAll(in[0]);
+        return new LivenessAnalysis(result, liveAtEntry);
+    }
+
+    private static final class LivenessAnalysis {
+        private final Map<ImStmt, Set<ImVar>> liveOut;
+        private final Set<ImVar> liveAtEntry;
+
+        private LivenessAnalysis(Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+            this.liveOut = liveOut;
+            this.liveAtEntry = liveAtEntry;
+        }
     }
 }

@@ -75,6 +75,7 @@ public class ImOptimizer {
 
     public void localOptimizations() {
         totalCount.clear();
+        optCount = 1;
 
         removeGarbage();
 

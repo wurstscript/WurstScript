@@ -75,31 +75,26 @@ public class ImInliner {
         prog.flatten(translator);
         int changed = 0;
         for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
-            int[] declarations = {function.getParameters().size() + function.getLocals().size()
-                + backendGeneratedLuaLocals(function)};
-            changed += inlineLuaDivModHelpers(function, function, declarations);
+            LuaRegisterBudget budget = new LuaRegisterBudget(function);
+            changed += inlineLuaDivModHelpers(function, function, budget);
         }
         return changed;
     }
 
-    private int inlineLuaDivModHelpers(ImFunction function, Element element, int[] declarations) {
+    private int inlineLuaDivModHelpers(ImFunction function, Element element, LuaRegisterBudget budget) {
         int changed = 0;
         for (int i = 0; i < element.size(); i++) {
             Element child = element.get(i);
             if (child instanceof ImFunctionCall call && isLuaDivModHelper(call.getFunc())) {
                 ImFunction callee = call.getFunc();
-                int controlLocals = maxOneReturn(callee)
-                    ? 0
-                    : 1 + (callee.getReturnType() instanceof ImVoid ? 0 : 1);
-                int addedDeclarations = callee.getParameters().size() + callee.getLocals().size() + controlLocals;
-                if (declarations[0] + addedDeclarations <= LUA_INLINE_REGISTER_BUDGET) {
+                if (budget.fits(call, callee)) {
+                    budget.recordInline(call, callee);
                     inlineCall(function, element, i, call);
-                    declarations[0] += addedDeclarations;
                     changed++;
                     child = element.get(i);
                 }
             }
-            changed += inlineLuaDivModHelpers(function, child, declarations);
+            changed += inlineLuaDivModHelpers(function, child, budget);
         }
         return changed;
     }

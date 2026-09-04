@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
@@ -13,6 +14,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyze
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -1557,9 +1559,10 @@ public class OptimizerTests extends WurstScriptTest {
         ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
             JassIm.ImExprs(JassIm.ImVarAccess(parameter), JassIm.ImVarAccess(implicit)), false,
             de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImSet laterDefinition = JassIm.ImSet(model, JassIm.ImVarAccess(implicit), JassIm.ImIntVal(1));
         ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(),
             JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(implicit),
-            JassIm.ImStmts(call), Collections.emptyList());
+            JassIm.ImStmts(call, laterDefinition), Collections.emptyList());
         prog.getFunctions().add(sink);
         prog.getFunctions().add(caller);
 
@@ -1570,6 +1573,28 @@ public class OptimizerTests extends WurstScriptTest {
         ImVar second = ((ImVarAccess) optimizedCall.getArguments().get(1)).getVar();
         assertNotSame(first, second,
             "function-entry values must not be assigned the same allocation slot");
+    }
+
+    @Test
+    public void repeatedLocalOptimizationStartsANewIteration() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        translator.getImProg().getFunctions().add(main);
+        translator.getImProg().getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+        ImOptimizer optimizer = new ImOptimizer(new TimeTaker.Default(), translator);
+
+        optimizer.localOptimizations();
+        main.getLocals().add(JassIm.ImVar(model, TypesHelper.imInt(), "lateUnused", false));
+        optimizer.localOptimizations();
+
+        assertTrue(main.getLocals().isEmpty(),
+            "a second local-optimization invocation must execute its passes");
     }
 
     @Test
@@ -1587,7 +1612,7 @@ public class OptimizerTests extends WurstScriptTest {
         translator.luaModIntFunc = helper;
 
         ImVars callerParameters = JassIm.ImVars();
-        for (int i = 0; i < 170; i++) {
+        for (int i = 0; i < 177; i++) {
             callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
         }
         ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
@@ -1603,16 +1628,60 @@ public class OptimizerTests extends WurstScriptTest {
             JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
             de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
         callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), call));
+        ImVars sinkParameters = JassIm.ImVars();
+        ImExprs sinkArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            sinkArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), sinkArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
         ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
             JassIm.ImVoid(), callerLocals, callerBody,
             Collections.emptyList());
         prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
         prog.getFunctions().add(caller);
 
         assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
         ImSet assignment = (ImSet) caller.getBody().get(6);
         assertTrue(assignment.getRight() instanceof ImFunctionCall,
             "the late retry must retain the helper when declarations exceed the safe budget");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryReusesSequentialSlots() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs().with("-lua"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVars parameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            parameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), parameters,
+            JassIm.ImVoid(), JassIm.ImVars(result), JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(8), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL))),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(caller);
+
+        assertEquals(new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget(), 2,
+            "sequential helper sites should share the same peak allocation slots");
     }
 
     @Test
