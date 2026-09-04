@@ -1598,6 +1598,45 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void localOptimizationRunsTwoBoundedSweepsPerInvocation() {
+        class CountingTimeTaker extends TimeTaker.Default {
+            int measurements;
+
+            @Override
+            public <T> T measure(String name, java.util.function.Supplier<T> f) {
+                measurements++;
+                return f.get();
+            }
+        }
+
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImVar value = JassIm.ImVar(model, TypesHelper.imInt(), "value", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(),
+            JassIm.ImVars(value), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS,
+                JassIm.ImExprs(JassIm.ImIntVal(1), JassIm.ImIntVal(2)))), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(call), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        translator.getImProg().getFunctions().add(sink);
+        translator.getImProg().getFunctions().add(main);
+        translator.getImProg().getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+        CountingTimeTaker timeTaker = new CountingTimeTaker();
+
+        new ImOptimizer(timeTaker, translator).localOptimizations();
+
+        assertEquals(timeTaker.measurements, 16,
+            "the optimizer should run two fixed sweeps rather than iterating to convergence");
+    }
+
+    @Test
     public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false,

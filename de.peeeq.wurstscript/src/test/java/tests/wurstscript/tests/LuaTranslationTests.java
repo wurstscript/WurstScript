@@ -2293,7 +2293,12 @@ public class LuaTranslationTests extends WurstScriptTest {
             false, Collections.emptyList(),
             new RunArgs().with("-lua", "-inline", "-localOptimizations"),
             lines.toArray(new String[0]));
-        String callerBody = getFunctionBody(compiled, "caller");
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerBodyStart = compiled.indexOf('\n', callerStart);
+        int callerEnd = compiled.indexOf("\nend", callerBodyStart);
+        assertTrue("caller function end not found", callerEnd > callerBodyStart);
+        String callerBody = compiled.substring(callerBodyStart + 1, callerEnd);
         assertFalse("low-pressure sequential helper calls should still inline:\n" + callerBody,
             callerBody.contains("helper("));
         assertFalse("sequential inline temporaries should reuse registers:\n" + callerBody,
