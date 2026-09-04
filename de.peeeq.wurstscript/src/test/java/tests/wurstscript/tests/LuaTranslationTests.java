@@ -2236,6 +2236,40 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaInliningWithoutLocalAllocationCountsFlattenedTuples() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function tupleHelper(quad a, quad b, quad c, quad d) returns int");
+        lines.add("    return a.a + b.a + c.a + d.a");
+        String parameters = IntStream.range(0, 47)
+            .mapToObj(i -> "quad p" + i)
+            .collect(Collectors.joining(", "));
+        lines.add("@noinline function caller(" + parameters + ")");
+        lines.add("    takesInt(tupleHelper(p0, p1, p2, p3))");
+        lines.add("init");
+        lines.add("    let value = quad(1, 2, 3, 4)");
+        lines.add("    caller(" + IntStream.range(0, 47)
+            .mapToObj(i -> "value")
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationCountsFlattenedTuples",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("a caller below Lua's hard limit must stay register-backed:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("tuple components must count separately when deciding whether to inline:\n" + body,
+            body.contains("tupleHelper("));
+    }
+
+    @Test
     public void luaInlinerReusesRegistersAcrossSequentialInlineSites() {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");

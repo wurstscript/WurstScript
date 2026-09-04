@@ -1687,6 +1687,72 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaArithmeticHelperRetryPreservesLocalPlayerAllocationClasses() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImFunction localValue = JassIm.ImFunction(model, "GetLocationZ", JassIm.ImTypeVars(),
+            JassIm.ImVars(), TypesHelper.imReal(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars sinkParameters = JassIm.ImVars();
+        for (int i = 0; i < 99; i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imReal(), "value" + i, false));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars callerLocals = JassIm.ImVars();
+        ImStmts callerBody = JassIm.ImStmts();
+        ImExprs localArguments = JassIm.ImExprs();
+        ImExprs synchronizedArguments = JassIm.ImExprs();
+        for (int i = 0; i < 99; i++) {
+            ImVar local = JassIm.ImVar(model, TypesHelper.imReal(), "local" + i, false);
+            ImVar synchronizedVar = JassIm.ImVar(model, TypesHelper.imReal(), "sync" + i, false);
+            callerLocals.add(local);
+            callerLocals.add(synchronizedVar);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(local),
+                JassIm.ImFunctionCall(model, localValue, JassIm.ImTypeArguments(), JassIm.ImExprs(),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)));
+            localArguments.add(JassIm.ImVarAccess(local));
+            synchronizedArguments.add(JassIm.ImVarAccess(synchronizedVar));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), localArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        for (int i = 0; i < 99; i++) {
+            ImVar synchronizedVar = callerLocals.get(i * 2 + 1);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(synchronizedVar), JassIm.ImRealVal("1.")));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), synchronizedArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        callerLocals.add(result);
+        ImFunctionCall helperCall = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), helperCall));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), callerLocals, callerBody, Collections.emptyList());
+        prog.getFunctions().add(localValue);
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        assertTrue(((ImSet) caller.getBody().get(caller.getBody().size() - 1)).getRight()
+                instanceof ImFunctionCall,
+            "local-player-dependent and synchronized allocation classes must both count toward the budget");
+    }
+
+    @Test
     public void testFunctionSplitter() {
         WurstModel model = Ast.WurstModel();
 

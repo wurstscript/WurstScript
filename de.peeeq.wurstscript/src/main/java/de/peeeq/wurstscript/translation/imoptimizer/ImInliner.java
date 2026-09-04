@@ -65,14 +65,15 @@ public class ImInliner {
 
     /**
      * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
-     * caller. Unlike the main inliner's pressure estimate, this late check uses the caller's actual
-     * function-scope declaration count, so it cannot push Lua over the hard local-variable limit.
+     * caller. The late check rebuilds the locality analysis and uses the same allocation classes as
+     * the local merger, so it cannot push Lua over the hard local-variable limit.
      */
     public int inlineLuaDivModHelpersWithinLocalBudget() {
         if (!translator.isLuaTarget()) {
             return 0;
         }
         prog.flatten(translator);
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         int changed = 0;
         for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
             LuaRegisterBudget budget = new LuaRegisterBudget(function);
@@ -567,7 +568,8 @@ public class ImInliner {
             }
             peakPressure = cachedPressure.copy();
             backendLocals = backendGeneratedLuaLocals(function);
-            declarationsWithoutAllocation = function.getParameters().size() + function.getLocals().size()
+            declarationsWithoutAllocation = flattenedDeclarationCount(function.getParameters())
+                + flattenedDeclarationCount(function.getLocals())
                 + backendLocals;
         }
 
@@ -581,11 +583,25 @@ public class ImInliner {
         }
 
         private int declarationsAddedByInline(ImFunction callee) {
-            int controlLocals = maxOneReturn(callee)
-                ? 0
-                : 1 + (callee.getReturnType() instanceof ImVoid ? 0 : 1);
-            return callee.getParameters().size() + callee.getLocals().size() + controlLocals
+            return flattenedDeclarationCount(callee.getParameters())
+                + flattenedDeclarationCount(callee.getLocals()) + inlineControlLocals(callee)
                 + backendGeneratedLuaLocals(callee);
+        }
+
+        private int inlineControlLocals(ImFunction callee) {
+            return maxOneReturn(callee)
+                ? 0
+                : 1 + (callee.getReturnType() instanceof ImVoid
+                    ? 0
+                    : ImHelper.flattenedJassArity(callee.getReturnType()));
+        }
+
+        private int flattenedDeclarationCount(ImVars variables) {
+            int result = 0;
+            for (int i = 0; i < variables.size(); i++) {
+                result += ImHelper.flattenedJassArity(variables.get(i).getType());
+            }
+            return result;
         }
 
         private void recordInline(ImFunctionCall call, ImFunction callee) {
@@ -613,9 +629,7 @@ public class ImInliner {
         private LuaPressure pressureDuringInline(ImFunctionCall call, ImFunction callee) {
             LuaPressure concurrent = pressureAt(call);
             concurrent.addConcurrent(estimateLuaRegisterPressure(callee));
-            int earlyReturnLocals = maxOneReturn(callee)
-                ? 0
-                : 1 + (callee.getReturnType() instanceof ImVoid ? 0 : 1);
+            int earlyReturnLocals = inlineControlLocals(callee);
             if (earlyReturnLocals > 0) {
                 // These synthetic values cannot be classified by the source locality analysis.
                 concurrent.add("inline-control", earlyReturnLocals);
