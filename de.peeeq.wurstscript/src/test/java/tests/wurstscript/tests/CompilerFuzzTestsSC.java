@@ -8,6 +8,10 @@ import smallcheck.annotations.From;
 import smallcheck.annotations.Property;
 import smallcheck.generators.SeriesGen;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,7 +21,18 @@ import java.util.stream.Stream;
 @RunWith(SmallCheckRunner.class)
 public class CompilerFuzzTestsSC extends WurstScriptTest {
 
-    @Property(maxInvocations = 320)
+    /**
+     * How many structurally distinct programs each generator can actually produce.
+     *
+     * <p>buildRandomSingleProgram varies its shape with six bits of the seed - indent style,
+     * tuple, interface, module, loop, callback - so there are 2^6 shapes; the rest of the seed
+     * only renames packages and changes integer literals, which reaches no new compiler path.
+     * Budgets above these counts recompile the same shapes under different names.
+     */
+    private static final int SINGLE_PROGRAM_SHAPES = 64;
+    private static final int CROSS_PACKAGE_SHAPES = 24;
+
+    @Property(maxInvocations = SINGLE_PROGRAM_SHAPES)
     public void generatedProgramsAreCrashFree(@From(RandomProgram.class) Program program) {
         CompilationResult result = runProgram(program);
 
@@ -25,7 +40,7 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
         Assert.assertNotNull(result.getGui());
     }
 
-    @Property(maxInvocations = 64)
+    @Property(maxInvocations = SINGLE_PROGRAM_SHAPES)
     public void generatedProgramsCompileForBothBackends(@From(RandomProgram.class) Program program) {
         assertCompilesForBothBackends(program, "generatedProgramsCompileForBothBackends");
     }
@@ -56,16 +71,58 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
                 + "\nsource:\n" + String.join("\n---\n", program.sources));
     }
 
-    @Property(maxInvocations = 180)
-    public void mixedNewlineStylesAreCrashFree(@From(RandomProgram.class) Program program) {
+    /**
+     * Line endings are a lexer detail: the same source written with LF and with CRLF has to emit
+     * byte-identical Jass. This previously only asserted that compiling the CRLF variant returned
+     * non-null, which no realistic bug would violate.
+     */
+    @Property(maxInvocations = SINGLE_PROGRAM_SHAPES)
+    public void newlineStyleDoesNotAffectEmittedCode(@From(RandomProgram.class) Program program) {
         String alternateNewline = "\n".equals(program.newline) ? "\r\n" : "\n";
-        CompilationResult result = runProgram(program.withNewline(alternateNewline));
 
-        Assert.assertNotNull(result);
-        Assert.assertNotNull(result.getGui());
+        String fromOriginal = compileAndReadJass(program, "newlineOriginal");
+        String fromAlternate = compileAndReadJass(program.withNewline(alternateNewline), "newlineAlternate");
+
+        Assert.assertEquals(fromAlternate, fromOriginal,
+            "line ending style changed the emitted Jass\nsource:\n" + String.join("\n---\n", program.sources));
     }
 
-    @Property(maxInvocations = 120)
+    /**
+     * The same source compiled twice in one process has to emit the same script. DeterministicChecks
+     * pins this for a few hand-written programs; this runs it across every generated shape.
+     */
+    @Property(maxInvocations = SINGLE_PROGRAM_SHAPES)
+    public void compilingTwiceEmitsIdenticalCode(@From(RandomProgram.class) Program program) {
+        String first = compileAndReadJass(program, "determinismFirst");
+        String second = compileAndReadJass(program, "determinismSecond");
+
+        Assert.assertEquals(second, first,
+            "recompiling the same source emitted different Jass\nsource:\n" + String.join("\n---\n", program.sources));
+    }
+
+    /**
+     * Compiles {@code program} and returns the unoptimised Jass it emitted. The output name is
+     * explicit so two compilations inside one property do not overwrite each other's file.
+     */
+    private String compileAndReadJass(Program program, String outputName) {
+        CompilationResult result = testNamed(outputName)
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .compilationUnits(asCompilationUnits(program));
+
+        Assert.assertTrue(result.getGui().getErrorList().isEmpty(),
+            "generated program produced compiler diagnostics: " + result.getGui().getErrorList()
+                + "\nsource:\n" + String.join("\n---\n", program.sources));
+
+        File emitted = new File(TEST_OUTPUT_PATH + getClass().getSimpleName() + "_" + outputName + "_no_opts.j");
+        try {
+            return Files.readString(emitted.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new AssertionError("could not read emitted script " + emitted, e);
+        }
+    }
+
+    @Property(maxInvocations = CROSS_PACKAGE_SHAPES)
     public void crossPackageProgramsAreCrashFree(@From(CrossPackageProgram.class) Program program) {
         CompilationResult result = runProgram(program);
 
