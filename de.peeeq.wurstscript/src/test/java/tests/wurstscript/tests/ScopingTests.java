@@ -95,5 +95,31 @@ public class ScopingTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    /**
+     * A class field whose initializer refers to itself must be rejected.
+     * Globals are caught earlier by "must be declared before it is used" and locals by
+     * flow analysis, so class fields are the only shape that reaches the check in
+     * AttrExprType.calculate(ExprVarAccess). That check compared two freshly allocated
+     * Optionals with ==, so it was unreachable and this compiled silently.
+     */
+    @Test
+    public void test_recursive_class_field_def() {
+        testAssertErrorsLines(false, "Recursive variable definition is not allowed",
+                "package test",
+                "	class C",
+                "		int x = x + 1",
+                "endpackage");
+    }
+
+    /** Guard against the check over-triggering: a field initialized from another field is fine. */
+    @Test
+    public void test_non_recursive_class_field_def_ok() {
+        testAssertOkLines(false,
+                "package test",
+                "	class C",
+                "		int a = 1",
+                "		int b = a + 1",
+                "endpackage");
+    }
 
 }

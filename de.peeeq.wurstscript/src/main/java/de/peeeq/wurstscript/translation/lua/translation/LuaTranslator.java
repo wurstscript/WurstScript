@@ -812,12 +812,10 @@ public class LuaTranslator {
             }
 
             // translate local variables
-            List<LuaVariable> functionLocals = new ArrayList<>();
             for (ImVar local : f.getLocals()) {
                 LuaVariable luaLocal = luaVar.getFor(local);
                 luaLocal.setInitialValue(defaultValue(local.getType()));
                 lf.getBody().add(luaLocal);
-                functionLocals.add(luaLocal);
             }
 
             // translate body:

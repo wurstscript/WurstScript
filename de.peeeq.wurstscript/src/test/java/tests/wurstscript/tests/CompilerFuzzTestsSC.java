@@ -27,16 +27,24 @@ public class CompilerFuzzTestsSC extends WurstScriptTest {
 
     @Property(maxInvocations = 64)
     public void generatedProgramsCompileForBothBackends(@From(RandomProgram.class) Program program) {
-        assertCompilesForBothBackends(program);
+        assertCompilesForBothBackends(program, "generatedProgramsCompileForBothBackends");
     }
 
     @Test
     public void generatedCorpusCompilesForBothBackends() {
-        new RandomProgram().generate(0).forEach(this::assertCompilesForBothBackends);
+        new RandomProgram().generate(0)
+            .forEach(p -> assertCompilesForBothBackends(p, "generatedCorpusCompilesForBothBackends"));
     }
 
-    private void assertCompilesForBothBackends(Program program) {
-        CompilationResult result = test()
+    /**
+     * Both callers used to let test() name the output after this helper, so they shared one file
+     * under ./test-output/. They run in different Gradle forks - the @Test under TestNG, the
+     * @Property under SmallCheckViaJUnitCoreTestNG - so the two JVMs raced on that file and pjass
+     * intermittently parsed a spliced result, reporting word fragments as undefined types. Naming
+     * the output after the calling test keeps them apart.
+     */
+    private void assertCompilesForBothBackends(Program program, String testName) {
+        CompilationResult result = testNamed(testName)
             .setStopOnFirstError(false)
             .executeProg(false)
             .testLua(true)

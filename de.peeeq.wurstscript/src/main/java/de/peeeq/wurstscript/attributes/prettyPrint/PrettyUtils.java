@@ -27,8 +27,11 @@ public class PrettyUtils {
             return;
         }
         String arg = args.get(0);
-        if (args.equals("...")) {
+        // Was args.equals("...") - comparing the List to a String, which is never true, so
+        // the "..." argument silently fell through to being treated as a file name below.
+        if (arg.equals("...")) {
             prettyAll(".");
+            return;
         }
         if (arg.equals("tree") && args.size() >= 2) {
             debug(args.get(1));
