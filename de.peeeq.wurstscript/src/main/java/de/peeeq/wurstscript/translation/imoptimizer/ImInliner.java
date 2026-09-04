@@ -506,6 +506,21 @@ public class ImInliner {
         });
     }
 
+    private static int statementExpressionResultSlots(ImStmt statement) {
+        int[] result = {0};
+        statement.accept(new ImStmt.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr expression) {
+                super.visit(expression);
+                ImType type = expression.getExpr().attrTyp();
+                if (!(type instanceof ImVoid)) {
+                    result[0] += ImHelper.flattenedJassArity(type);
+                }
+            }
+        });
+        return result[0];
+    }
+
     private LuaPressure pressureOf(Iterable<ImVar> variables) {
         LuaPressure result = new LuaPressure();
         for (ImVar variable : variables) {
@@ -646,7 +661,15 @@ public class ImInliner {
                         java.util.Set<ImVar> active = Collections.newSetFromMap(new IdentityHashMap<>());
                         active.addAll(live.toJavaSet());
                         collectReadLocals(statement, active);
-                        return pressureOf(active);
+                        LuaPressure pressure = pressureOf(active);
+                        int stagedResults = statementExpressionResultSlots(statement);
+                        if (stagedResults > 0) {
+                            // Flattening stages each already-inlined sibling result until the
+                            // surrounding expression consumes it. The pre-inline liveness map
+                            // cannot contain those future backend temporaries yet.
+                            pressure.add("statement-expression-results", stagedResults);
+                        }
+                        return pressure;
                     }
                 }
                 current = current.getParent();

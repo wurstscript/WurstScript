@@ -1687,6 +1687,71 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaArithmeticHelperRetryBudgetsOverlappingArgumentResults() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars fiveParameters = JassIm.ImVars();
+        ImExprs overlappingArguments = JassIm.ImExprs();
+        for (int i = 0; i < 5; i++) {
+            fiveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            overlappingArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i)), JassIm.ImIntVal(3)),
+                false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        ImFunction takesFive = JassIm.ImFunction(model, "takesFive", JassIm.ImTypeVars(), fiveParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, takesFive, JassIm.ImTypeArguments(), overlappingArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(takesFive);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        int changed = new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget();
+        assertTrue(changed < 5,
+            "overlapping argument results must stop helper inlining at the register budget");
+        int[] remaining = {0};
+        caller.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getFunc() == helper) {
+                    remaining[0]++;
+                }
+            }
+        });
+        assertTrue(remaining[0] > 0, "some overlapping helper calls must remain after the budget is reached");
+    }
+
+    @Test
     public void luaArithmeticHelperRetryPreservesLocalPlayerAllocationClasses() {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false,
