@@ -63,6 +63,46 @@ public class ImInliner {
         inlineFunctions();
     }
 
+    /**
+     * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
+     * caller. Unlike the main inliner's pressure estimate, this late check uses the caller's actual
+     * function-scope declaration count, so it cannot push Lua over the hard local-variable limit.
+     */
+    public int inlineLuaDivModHelpersWithinLocalBudget() {
+        if (!translator.isLuaTarget()) {
+            return 0;
+        }
+        prog.flatten(translator);
+        int changed = 0;
+        for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
+            int[] declarations = {function.getParameters().size() + function.getLocals().size()};
+            changed += inlineLuaDivModHelpers(function, function, declarations);
+        }
+        return changed;
+    }
+
+    private int inlineLuaDivModHelpers(ImFunction function, Element element, int[] declarations) {
+        int changed = 0;
+        for (int i = 0; i < element.size(); i++) {
+            Element child = element.get(i);
+            if (child instanceof ImFunctionCall call && isLuaDivModHelper(call.getFunc())) {
+                ImFunction callee = call.getFunc();
+                int controlLocals = maxOneReturn(callee)
+                    ? 0
+                    : 1 + (callee.getReturnType() instanceof ImVoid ? 0 : 1);
+                int addedDeclarations = callee.getParameters().size() + callee.getLocals().size() + controlLocals;
+                if (declarations[0] + addedDeclarations <= LUA_INLINE_REGISTER_BUDGET) {
+                    inlineCall(function, element, i, call);
+                    declarations[0] += addedDeclarations;
+                    changed++;
+                    child = element.get(i);
+                }
+            }
+            changed += inlineLuaDivModHelpers(function, child, declarations);
+        }
+        return changed;
+    }
+
     private void inlineFunctions() {
         for (ImFunction f : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
             inlineFunctions(f);
@@ -165,10 +205,6 @@ public class ImInliner {
             return "rating_too_high(" + rating + ">=" + threshold + ")";
         }
         if (translator.isLuaTarget() && !getLuaRegisterBudget(caller).fits(call, f)) {
-            if (isLuaDivModHelper(f)
-                && getLuaRegisterBudget(caller).fitsAggregate(call, f, 199)) {
-                return "unknown";
-            }
             return "lua_register_budget(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
                 + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
         }
@@ -408,9 +444,7 @@ public class ImInliner {
                 && getRating(f) < threshold
                 && !isRecursive(f)
                 && (!translator.isLuaTarget()
-                    || getLuaRegisterBudget(caller).fits(call, f)
-                    || (isLuaDivModHelper(f)
-                        && getLuaRegisterBudget(caller).fitsAggregate(call, f, 199)));
+                    || getLuaRegisterBudget(caller).fits(call, f));
     }
 
     private boolean isLuaDivModHelper(ImFunction function) {
@@ -471,18 +505,15 @@ public class ImInliner {
 
     private static final class LuaPressure {
         private final Map<String, Integer> slotsByTypeAndLocality = new LinkedHashMap<>();
-        private int aggregateLiveSlots;
 
         private LuaPressure copy() {
             LuaPressure result = new LuaPressure();
             result.slotsByTypeAndLocality.putAll(slotsByTypeAndLocality);
-            result.aggregateLiveSlots = aggregateLiveSlots;
             return result;
         }
 
         private void add(String key, int slots) {
             slotsByTypeAndLocality.merge(key, slots, Integer::sum);
-            aggregateLiveSlots += slots;
         }
 
         private void addConcurrent(LuaPressure other) {
@@ -495,7 +526,6 @@ public class ImInliner {
             for (Map.Entry<String, Integer> entry : other.slotsByTypeAndLocality.entrySet()) {
                 slotsByTypeAndLocality.merge(entry.getKey(), entry.getValue(), Math::max);
             }
-            aggregateLiveSlots = Math.max(aggregateLiveSlots, other.aggregateLiveSlots);
         }
 
         private int total() {
@@ -525,12 +555,6 @@ public class ImInliner {
 
         private boolean fits(ImFunctionCall call, ImFunction callee) {
             return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET;
-        }
-
-        private boolean fitsAggregate(ImFunctionCall call, ImFunction callee, int limit) {
-            LuaPressure projected = peakPressure.copy();
-            projected.keepMaximums(pressureDuringInline(call, callee));
-            return projected.aggregateLiveSlots <= limit;
         }
 
         private void recordInline(ImFunctionCall call, ImFunction callee) {

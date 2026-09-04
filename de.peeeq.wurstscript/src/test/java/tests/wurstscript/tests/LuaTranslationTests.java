@@ -2308,6 +2308,32 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaLocalMergerKeepsTupleVarargLoopBindingsDistinct() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("@noinline function sumEdges(vararg quad values) returns int");
+        lines.add("    var result = 0");
+        lines.add("    for value in values");
+        lines.add("        result += value.a + value.d");
+        lines.add("    return result");
+        lines.add("init");
+        String arguments = IntStream.range(0, 33)
+            .mapToObj(i -> "quad(" + i + ", 0, 0, " + (100 + i) + ")")
+            .collect(Collectors.joining(", "));
+        lines.add("    sumEdges(" + arguments + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerKeepsTupleVarargLoopBindingsDistinct",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        String body = getFunctionBody(compiled, "sumEdges");
+        assertEquals("simultaneously assigned tuple components must use distinct Lua locals:\n" + body,
+            4, countMatches(body, "local\\s+value_[abcd]\\b"));
+    }
+
+    @Test
     public void spilledLocalsKeepNestedBlockInitializationsInLua() throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");

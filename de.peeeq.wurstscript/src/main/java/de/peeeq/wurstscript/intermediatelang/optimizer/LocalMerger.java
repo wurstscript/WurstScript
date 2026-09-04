@@ -181,37 +181,56 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         // Building only those edges is equivalent to cliquing every live set, while avoiding
         // the old O(statements * liveValues^2) behavior on large inlined functions.
         for (Map.Entry<ImStmt, Set<ImVar>> entry : livenessInfo.entrySet()) {
-            ImVar defined = definedLocal(entry.getKey());
-            if (defined == null) {
+            List<ImVar> defined = definedLocals(entry.getKey());
+            if (defined.isEmpty()) {
                 continue;
             }
-            java.util.Set<ImVar> neighbors = graph.computeIfAbsent(defined, ignored -> new ObjectOpenHashSet<>());
-            for (ImVar live : entry.getValue()) {
-                if (live == defined || !canMerge(defined.getType(), live.getType())) {
-                    continue;
+            for (int i = 0; i < defined.size(); i++) {
+                ImVar definition = defined.get(i);
+                java.util.Set<ImVar> neighbors = graph.computeIfAbsent(definition, ignored -> new ObjectOpenHashSet<>());
+                for (ImVar live : entry.getValue()) {
+                    if (live == definition || !canMerge(definition.getType(), live.getType())) {
+                        continue;
+                    }
+                    neighbors.add(live);
+                    graph.computeIfAbsent(live, ignored -> new ObjectOpenHashSet<>()).add(definition);
                 }
-                neighbors.add(live);
-                graph.computeIfAbsent(live, ignored -> new ObjectOpenHashSet<>()).add(defined);
+                // Vararg tuple components are assigned at the same loop boundary. They must
+                // occupy distinct slots even when neither component is live before the loop.
+                for (int j = i + 1; j < defined.size(); j++) {
+                    ImVar other = defined.get(j);
+                    if (canMerge(definition.getType(), other.getType())) {
+                        neighbors.add(other);
+                        graph.computeIfAbsent(other, ignored -> new ObjectOpenHashSet<>()).add(definition);
+                    }
+                }
             }
         }
         return graph;
     }
 
-    private static ImVar definedLocal(ImStmt stmt) {
+    private static List<ImVar> definedLocals(ImStmt stmt) {
+        if (stmt instanceof ImVarargLoop loop) {
+            List<ImVar> result = new ArrayList<>(loop.getLoopVars().size());
+            for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
+                result.add(loopVar.getVar());
+            }
+            return result;
+        }
         if (!(stmt instanceof ImSet set)) {
-            return null;
+            return Collections.emptyList();
         }
         ImLExpr left = set.getLeft();
         if (left instanceof ImVarAccess access && !access.getVar().isGlobal()) {
-            return access.getVar();
+            return Collections.singletonList(access.getVar());
         }
         if (left instanceof ImTupleSelection selection) {
             ImVar var = TypesHelper.getSimpleAndPureTupleVar(selection);
             if (var != null && !var.isGlobal()) {
-                return var;
+                return Collections.singletonList(var);
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 
     private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
@@ -314,6 +333,17 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
             ImStmt stmt = node.getStmt();
             if (stmt == null) continue;
+
+            if (stmt instanceof ImVarargLoop loop) {
+                for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
+                    if (!loopVar.getVar().isGlobal()) {
+                        def[i].add(loopVar.getVar());
+                    }
+                }
+                // The loop body has its own CFG nodes. Visiting it here would incorrectly
+                // classify all body reads as uses at the loop header.
+                continue;
+            }
 
             final int ii = i;
             stmt.accept(new ImStmt.DefaultVisitor() {

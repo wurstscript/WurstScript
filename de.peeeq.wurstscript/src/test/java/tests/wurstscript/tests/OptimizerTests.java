@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -1539,6 +1540,41 @@ public class OptimizerTests extends WurstScriptTest {
         for (ImStmt node : body) {
             assertEquals(HashSet.empty(), liveness.get(node));
         }
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs().with("-lua"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 188; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(result),
+            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(result), call)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        ImSet assignment = (ImSet) caller.getBody().get(0);
+        assertTrue(assignment.getRight() instanceof ImFunctionCall,
+            "the late retry must retain the helper when declarations exceed the safe budget");
     }
 
     @Test
