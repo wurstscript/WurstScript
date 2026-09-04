@@ -2048,8 +2048,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String body = topLevelFunctionBodyWithPrefix(compiled, "hotLoop");
         assertFalse("a tiny method with exactly one implementation must inline in optimized Lua:\n" + body,
             body.contains("Accumulator_add("));
-        assertTrue("the inlined method must retain its field read:\n" + body,
-            body.contains("Accumulator_offset_storage["));
+        java.util.regex.Matcher offsetAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = Accumulator_offset_storage").matcher(body);
+        assertTrue("the inlined method's field storage must be localized:\n" + body,
+            offsetAlias.find());
+        assertTrue("the inlined method must retain its field read through the local alias:\n" + body,
+            body.contains(offsetAlias.group(1) + "["));
         String dynamicBody = topLevelFunctionBodyWithPrefix(compiled, "dynamicCall");
         assertTrue("a genuinely virtual method call must retain dispatch:\n" + dynamicBody,
             dynamicBody.contains("dispatch_"));
@@ -2165,16 +2169,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         // Register-pressure-aware inlining may keep the range helper as the hot-loop owner instead
         // of folding it into query. Inspect whichever function actually retains the loop.
         String body = topLevelFunctionBodyWithPrefix(compiled, "query");
-        if (!body.contains("UnitSpatialIndex_nextInCell[")) {
+        if (!body.contains("= UnitSpatialIndex_nextInCell")) {
             assertTrue("query must call the retained range helper:\n" + body,
                 body.contains("addRangeMatches("));
             body = topLevelFunctionBodyWithPrefix(compiled, "addRangeMatches");
         }
-        assertTrue("spatial-index hot loop must read the next-link array directly:\n" + body,
+        java.util.regex.Matcher nextAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = UnitSpatialIndex_nextInCell").matcher(body);
+        java.util.regex.Matcher xAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = UnitSpatialIndex_lastX").matcher(body);
+        java.util.regex.Matcher yAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = UnitSpatialIndex_lastY").matcher(body);
+        assertTrue("spatial-index hot loop must localize the next-link array:\n" + body, nextAlias.find());
+        assertTrue("spatial-index hot loop must localize cached X:\n" + body, xAlias.find());
+        assertTrue("spatial-index hot loop must localize cached Y:\n" + body, yAlias.find());
+        assertTrue("spatial-index hot loop must index the localized next-link array:\n" + body,
+            body.contains(nextAlias.group(1) + "["));
+        assertTrue("spatial-index hot loop must index localized cached X:\n" + body,
+            body.contains(xAlias.group(1) + "["));
+        assertTrue("spatial-index hot loop must index localized cached Y:\n" + body,
+            body.contains(yAlias.group(1) + "["));
+        assertFalse("spatial-index loop must not retain global next-link lookups:\n" + body,
             body.contains("UnitSpatialIndex_nextInCell["));
-        assertTrue("spatial-index hot loop must read cached X directly:\n" + body,
+        assertFalse("spatial-index loop must not retain global cached-X lookups:\n" + body,
             body.contains("UnitSpatialIndex_lastX["));
-        assertTrue("spatial-index hot loop must read cached Y directly:\n" + body,
+        assertFalse("spatial-index loop must not retain global cached-Y lookups:\n" + body,
             body.contains("UnitSpatialIndex_lastY["));
         assertFalse("typed array reads must not retain assurance calls:\n" + body,
             body.contains("__wurst_ensure"));
@@ -2182,6 +2201,114 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             body.contains("table.pack"));
         assertFalse("hot query arithmetic must not retain portable div helpers:\n" + body,
             body.contains("__wurst_intDiv("));
+    }
+
+    @Test
+    public void hotLoopStorageTablesAreLocalizedOnLua() {
+        String compiled = compileOptimizedLua(
+            "hotLoopStorageTablesAreLocalizedOnLua",
+            "package Test",
+            "int array values",
+            "class Counter",
+            "    int total",
+            "@noinline function hotLoop(Counter counter, int limit)",
+            "    var i = 0",
+            "    while i < limit",
+            "        values[i] = values[i] + counter.total",
+            "        counter.total = values[i + 1] + counter.total",
+            "        i++",
+            "@noinline function coldPath(Counter counter) returns int",
+            "    return values[0] + counter.total",
+            "init",
+            "    let counter = new Counter()",
+            "    hotLoop(counter, 16)",
+            "    coldPath(counter)"
+        );
+
+        String hotBody = topLevelFunctionBodyWithPrefix(compiled, "hotLoop");
+        java.util.regex.Matcher arrayAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = Test_values").matcher(hotBody);
+        assertTrue("the loop's generated array table must be cached in a local:\n" + hotBody,
+            arrayAlias.find());
+        String arrayAliasName = arrayAlias.group(1);
+        assertTrue("the localized array must be used in the loop:\n" + hotBody,
+            hotBody.contains(arrayAliasName + "["));
+        assertFalse("loop indexes must not keep resolving the array through a global:\n" + hotBody,
+            hotBody.contains("Test_values["));
+
+        java.util.regex.Matcher fieldAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = Counter_total_storage").matcher(hotBody);
+        assertTrue("the loop's generated field-storage table must be cached in a local:\n" + hotBody,
+            fieldAlias.find());
+        String fieldAliasName = fieldAlias.group(1);
+        assertTrue("the localized field storage must be used in the loop:\n" + hotBody,
+            hotBody.contains(fieldAliasName + "["));
+        assertFalse("loop field accesses must not keep resolving storage through a global:\n" + hotBody,
+            hotBody.contains("Counter_total_storage["));
+
+        String coldBody = topLevelFunctionBodyWithPrefix(compiled, "coldPath");
+        assertFalse("cold array access must not consume a local alias:\n" + coldBody,
+            coldBody.contains("local "));
+        assertTrue("cold array access must keep the generated global table:\n" + coldBody,
+            coldBody.contains("Test_values["));
+        assertTrue("cold field access must keep the generated global storage:\n" + coldBody,
+            coldBody.contains("Counter_total_storage["));
+    }
+
+    @Test
+    public void localizedHotStorageTablesPreserveLuaBehavior() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array values",
+            "class Counter",
+            "    int total",
+            "function hotLoop(Counter counter, int limit)",
+            "    var i = 0",
+            "    while i < limit",
+            "        values[i] = values[i] + counter.total",
+            "        counter.total = values[i + 1] + counter.total",
+            "        i++",
+            "init",
+            "    values[0] = 1",
+            "    let counter = new Counter()",
+            "    counter.total = 2",
+            "    hotLoop(counter, 3)",
+            "    if values[0] == 3 and values[1] == 2 and counter.total == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void hotStorageLocalizationRespectsLuaRegisterHeadroom() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native consume(int value)");
+        lines.add("int array values");
+        lines.add("@noinline function crowded(int limit)");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 187; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    var i = 0");
+        lines.add("    while i < limit");
+        lines.add("        sum += values[i]");
+        lines.add("        i++");
+        lines.add("    consume(sum)");
+        lines.add("init");
+        lines.add("    crowded(1)");
+
+        String compiled = compileLuaWithRunArgs(
+            "hotStorageLocalizationRespectsLuaRegisterHeadroom",
+            new RunArgs().with("-lua"), lines.toArray(new String[0]));
+        String body = topLevelFunctionBodyWithPrefix(compiled, "crowded");
+        assertFalse("localization must retain headroom below Lua's hard local limit:\n" + body,
+            body.contains("= Test_values"));
+        assertTrue("a skipped alias must leave the generated array access intact:\n" + body,
+            body.contains("Test_values[i]"));
+        assertFalse("the optimization must not force the locals-table fallback:\n" + body,
+            body.contains("__wurst_locals"));
     }
 
     /**
