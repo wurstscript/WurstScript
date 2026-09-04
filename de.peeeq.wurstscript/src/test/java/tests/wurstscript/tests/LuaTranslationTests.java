@@ -2209,6 +2209,33 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaInliningWithoutLocalAllocationUsesDeclarationBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function caller(int value)");
+        for (int i = 0; i < 70; i++) {
+            lines.add("    takesInt((value + " + i + ") mod 3)");
+        }
+        lines.add("init");
+        lines.add("    caller(7)");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationUsesDeclarationBudget",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("inlining without allocation must not cross into whole-function spill mode:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("the exact declaration budget must retain residual helper calls near the limit:\n" + body,
+            body.contains("__wurst_modInt("));
+    }
+
+    @Test
     public void luaInlinerReusesRegistersAcrossSequentialInlineSites() {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");
@@ -2354,7 +2381,8 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         String compiled = compileLuaWithCUs(
             "LuaTranslationTests_luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent",
-            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
             lines.toArray(new String[0]));
         assertFalse("sequential loop temporaries must not consume concurrent register budget:\n" + compiled,
             compiled.contains("small("));

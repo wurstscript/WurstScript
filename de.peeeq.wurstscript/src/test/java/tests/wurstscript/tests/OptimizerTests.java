@@ -1600,7 +1600,8 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
         WurstModel model = Ast.WurstModel();
-        ImTranslator translator = new ImTranslator(model, false, new RunArgs().with("-lua"));
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
         ImProg prog = translator.getImProg();
 
         ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
@@ -1654,7 +1655,8 @@ public class OptimizerTests extends WurstScriptTest {
     @Test
     public void luaArithmeticHelperRetryReusesSequentialSlots() {
         WurstModel model = Ast.WurstModel();
-        ImTranslator translator = new ImTranslator(model, false, new RunArgs().with("-lua"));
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
         ImProg prog = translator.getImProg();
         ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
         ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);

@@ -946,10 +946,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
 
-        if (runArgs.isInline()) {
+        if (runArgs.isInline() && runArgs.isLocalOptimizations()) {
             beginPhase(10, "inline Lua arithmetic helpers within allocated local budget");
             int arithmeticHelpersInlined = optimizer.inlineLuaDivModHelpersWithinLocalBudget();
-            if (arithmeticHelpersInlined > 0 && runArgs.isLocalOptimizations()) {
+            if (arithmeticHelpersInlined > 0) {
                 optimizer.localOptimizations();
             }
             timeTaker.endPhase();

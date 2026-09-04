@@ -555,6 +555,7 @@ public class ImInliner {
         private Map<ImStmt, io.vavr.collection.Set<ImVar>> liveness;
         private LuaPressure peakPressure;
         private int backendLocals;
+        private int declarationsWithoutAllocation;
 
         private LuaRegisterBudget(ImFunction function) {
             this.function = function;
@@ -566,16 +567,31 @@ public class ImInliner {
             }
             peakPressure = cachedPressure.copy();
             backendLocals = backendGeneratedLuaLocals(function);
+            declarationsWithoutAllocation = function.getParameters().size() + function.getLocals().size()
+                + backendLocals;
         }
 
         private boolean fits(ImFunctionCall call, ImFunction callee) {
+            if (!translator.getRunArgs().isLocalOptimizations()) {
+                return declarationsWithoutAllocation + declarationsAddedByInline(callee)
+                    <= LUA_INLINE_REGISTER_BUDGET;
+            }
             return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET
                 - backendLocals - backendGeneratedLuaLocals(callee);
+        }
+
+        private int declarationsAddedByInline(ImFunction callee) {
+            int controlLocals = maxOneReturn(callee)
+                ? 0
+                : 1 + (callee.getReturnType() instanceof ImVoid ? 0 : 1);
+            return callee.getParameters().size() + callee.getLocals().size() + controlLocals
+                + backendGeneratedLuaLocals(callee);
         }
 
         private void recordInline(ImFunctionCall call, ImFunction callee) {
             peakPressure.keepMaximums(pressureDuringInline(call, callee));
             backendLocals += backendGeneratedLuaLocals(callee);
+            declarationsWithoutAllocation += declarationsAddedByInline(callee);
             // Callers are processed after their callees. Publish the expanded pressure so a
             // later caller budgets the body it will actually copy, not the pre-inline callee.
             luaRegisterPressure.put(function, peakPressure.copy());
