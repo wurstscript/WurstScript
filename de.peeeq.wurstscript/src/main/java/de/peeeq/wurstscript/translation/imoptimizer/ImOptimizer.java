@@ -39,6 +39,8 @@ public class ImOptimizer {
         localPasses.add(new GlobalsInliner());
         localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());
+        localPasses.add(new LocalMerger());
+        localPasses.add(new DispatchCheckDeduplicator());
     }
 
     private final TimeTaker timeTaker;

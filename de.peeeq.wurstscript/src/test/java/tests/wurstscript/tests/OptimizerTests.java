@@ -1632,7 +1632,7 @@ public class OptimizerTests extends WurstScriptTest {
 
         new ImOptimizer(timeTaker, translator).localOptimizations();
 
-        assertEquals(timeTaker.measurements, 8,
+        assertEquals(timeTaker.measurements, 10,
             "the optimizer should run each configured local pass exactly once per invocation");
     }
 
