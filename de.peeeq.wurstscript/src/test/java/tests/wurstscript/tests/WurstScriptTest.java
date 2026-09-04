@@ -1169,7 +1169,10 @@ public class WurstScriptTest {
         if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
             throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
         }
-        if (digest != null) {
+        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+        // it means pjass never validated this script - caching it would make every later identical
+        // script skip validation too, after a failure that may well have been transient.
+        if (digest != null && pJassResult.isOk()) {
             pjassCheckedScripts.add(digest);
         }
     }

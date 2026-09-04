@@ -22,24 +22,48 @@ public class PrettyUtils {
     /**
      * @param args
      */
-    public static void pretty(List<String> args) throws IOException {
-        if (args.size() == 0) {
-            return;
+    /**
+     * What {@link #pretty(List)} does with a given argument list.
+     *
+     * <p>Split out from the dispatch so it can be asserted directly: the alternative is running the
+     * real thing, and both the directory walk and the single-file branch print to stdout while
+     * readFile swallows its own exceptions, so neither outcome is distinguishable from the other.
+     */
+    public enum PrettyAction {
+        /** No arguments; nothing to do. */
+        NONE,
+        /** "..." - format every .wurst file below the root. */
+        ALL,
+        /** "tree <file>" - dump the parse tree. */
+        TREE,
+        /** Anything else is taken as a file name. */
+        SINGLE_FILE
+    }
+
+    public static PrettyAction selectAction(List<String> args) {
+        if (args.isEmpty()) {
+            return PrettyAction.NONE;
         }
         String arg = args.get(0);
-        // Was args.equals("...") - comparing the List to a String, which is never true, so
-        // the "..." argument silently fell through to being treated as a file name below.
+        // This used to read args.equals("..."), comparing the List itself to a String, which is
+        // never true - so "..." fell through and was treated as a file name.
         if (arg.equals("...")) {
-            prettyAll(".");
-            return;
+            return PrettyAction.ALL;
         }
         if (arg.equals("tree") && args.size() >= 2) {
-            debug(args.get(1));
-            return;
+            return PrettyAction.TREE;
         }
+        return PrettyAction.SINGLE_FILE;
+    }
 
-        String clean = pretty(new File(arg));
-        System.out.println(clean);
+    public static void pretty(List<String> args) throws IOException {
+        switch (selectAction(args)) {
+            case NONE -> {
+            }
+            case ALL -> prettyAll(".");
+            case TREE -> debug(args.get(1));
+            case SINGLE_FILE -> System.out.println(pretty(new File(args.get(0))));
+        }
     }
 
     public static String pretty(String source, String ending) {
