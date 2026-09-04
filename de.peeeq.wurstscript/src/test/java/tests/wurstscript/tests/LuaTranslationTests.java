@@ -2334,6 +2334,33 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function small(int x) returns int");
+        lines.add("    return x + 1");
+        lines.add("@noinline function process(vararg int values)");
+        lines.add("    for value in values");
+        for (int i = 0; i < 191; i++) {
+            lines.add("        let temp" + i + " = value + " + i);
+            lines.add("        takesInt(temp" + i + ")");
+        }
+        lines.add("        takesInt(small(value))");
+        lines.add("init");
+        lines.add("    process(" + IntStream.range(0, 33)
+            .mapToObj(Integer::toString)
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        assertFalse("sequential loop temporaries must not consume concurrent register budget:\n" + compiled,
+            compiled.contains("small("));
+    }
+
+    @Test
     public void spilledLocalsKeepNestedBlockInitializationsInLua() throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");

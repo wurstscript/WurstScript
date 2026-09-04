@@ -481,6 +481,11 @@ public class ImInliner {
     }
 
     private static void collectReadLocals(ImStmt statement, java.util.Set<ImVar> result) {
+        if (statement instanceof ImVarargLoop) {
+            // The loop body has separate liveness entries. Counting all of its reads at the
+            // header would make sequential temporaries appear simultaneously live.
+            return;
+        }
         statement.accept(new ImStmt.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess access) {
