@@ -195,6 +195,9 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFloorDivIntFunc = null;
     @Nullable public ImFunction luaRawFmodIntFunc = null;
     @Nullable public ImFunction luaRawFmodRealFunc = null;
+    @Nullable public ImFunction luaIntDivFunc = null;
+    @Nullable public ImFunction luaModIntFunc = null;
+    @Nullable public ImFunction luaModRealFunc = null;
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 

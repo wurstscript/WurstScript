@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
-import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -56,10 +55,20 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
 
     private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
-        Map<ImVar, Set<ImVar>> interference = calculateInferenceGraph(livenessInfo);
+        Map<ImVar, java.util.Set<ImVar>> interference = calculateInterferenceGraph(livenessInfo, func);
+
+        Map<ImVar, Integer> declarationOrder = new IdentityHashMap<>();
+        int nextOrder = 0;
+        for (ImVar parameter : func.getParameters()) {
+            declarationOrder.put(parameter, nextOrder++);
+        }
+        for (ImVar local : func.getLocals()) {
+            declarationOrder.put(local, nextOrder++);
+        }
 
         PriorityQueue<ImVar> queue = new PriorityQueue<>(
-            (x, y) -> interference.get(y).size() - interference.get(x).size()
+            Comparator.<ImVar>comparingInt(v -> interference.get(v).size()).reversed()
+                .thenComparingInt(declarationOrder::get)
         );
         queue.addAll(interference.keySet());
 
@@ -81,8 +90,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                     continue;
                 }
                 if (localPlayerContextAnalyzer != null
-                    && (localPlayerContextAnalyzer.isLocalPlayerDependent(v)
-                    || localPlayerContextAnalyzer.isLocalPlayerDependent(color))) {
+                    && localPlayerContextAnalyzer.isLocalPlayerDependent(v)
+                    != localPlayerContextAnalyzer.isLocalPlayerDependent(color)) {
                     continue;
                 }
 
@@ -158,17 +167,51 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         return before - kept.size();
     }
 
-    private Map<ImVar, Set<ImVar>> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
-        Map<ImVar, Set<ImVar>> g = new LinkedHashMap<>();
-        for (Map.Entry<ImStmt, Set<ImVar>> e : livenessInfo.entrySet()) {
-            Set<ImVar> live = e.getValue();
-            for (ImVar v1 : live) {
-                Set<ImVar> set = g.getOrDefault(v1, HashSet.empty());
-                set = set.addAll(live.filter(v2 -> canMerge(v1.getType(), v2.getType())));
-                g.put(v1, set);
+    private Map<ImVar, java.util.Set<ImVar>> calculateInterferenceGraph(
+        Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
+        Map<ImVar, java.util.Set<ImVar>> graph = new LinkedHashMap<>();
+        for (ImVar parameter : func.getParameters()) {
+            graph.put(parameter, new ObjectOpenHashSet<>());
+        }
+        for (ImVar local : func.getLocals()) {
+            graph.put(local, new ObjectOpenHashSet<>());
+        }
+
+        // A definition interferes with every compatible value that remains live after it.
+        // Building only those edges is equivalent to cliquing every live set, while avoiding
+        // the old O(statements * liveValues^2) behavior on large inlined functions.
+        for (Map.Entry<ImStmt, Set<ImVar>> entry : livenessInfo.entrySet()) {
+            ImVar defined = definedLocal(entry.getKey());
+            if (defined == null) {
+                continue;
+            }
+            java.util.Set<ImVar> neighbors = graph.computeIfAbsent(defined, ignored -> new ObjectOpenHashSet<>());
+            for (ImVar live : entry.getValue()) {
+                if (live == defined || !canMerge(defined.getType(), live.getType())) {
+                    continue;
+                }
+                neighbors.add(live);
+                graph.computeIfAbsent(live, ignored -> new ObjectOpenHashSet<>()).add(defined);
             }
         }
-        return g;
+        return graph;
+    }
+
+    private static ImVar definedLocal(ImStmt stmt) {
+        if (!(stmt instanceof ImSet set)) {
+            return null;
+        }
+        ImLExpr left = set.getLeft();
+        if (left instanceof ImVarAccess access && !access.getVar().isGlobal()) {
+            return access.getVar();
+        }
+        if (left instanceof ImTupleSelection selection) {
+            ImVar var = TypesHelper.getSimpleAndPureTupleVar(selection);
+            if (var != null && !var.isGlobal()) {
+                return var;
+            }
+        }
+        return null;
     }
 
     private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {

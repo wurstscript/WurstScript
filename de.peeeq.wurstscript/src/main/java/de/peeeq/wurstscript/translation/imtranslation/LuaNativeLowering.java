@@ -377,6 +377,7 @@ public final class LuaNativeLowering {
         ImFunction intDiv() {
             if (intDiv == null) {
                 intDiv = buildIntDiv(rawFloorDivInt());
+                translator.luaIntDivFunc = intDiv;
                 created.add(intDiv);
             }
             return intDiv;
@@ -385,6 +386,7 @@ public final class LuaNativeLowering {
         ImFunction modInt() {
             if (modInt == null) {
                 modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0), rawFmodInt());
+                translator.luaModIntFunc = modInt;
                 created.add(modInt);
             }
             return modInt;
@@ -393,6 +395,7 @@ public final class LuaNativeLowering {
         ImFunction modReal() {
             if (modReal == null) {
                 modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                translator.luaModRealFunc = modReal;
                 created.add(modReal);
             }
             return modReal;

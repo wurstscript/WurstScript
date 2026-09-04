@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.testng.AssertJUnit.*;
 
@@ -2161,6 +2163,148 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertFalse("caller should not spill locals into table in this shape", callerBody.contains("__wurst_locals"));
         assertTrue("caller should keep direct call in this shape", callerBody.contains("small(1)"));
+    }
+
+    @Test
+    public void luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        for (int i = 0; i < 16; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 16)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = helper(1)");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("@inline is a strong preference, but must not force Lua register spilling:\n" + callerBody,
+            callerBody.contains("helper(1)"));
+        assertFalse("budgeted caller must stay out of the heap locals fallback:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInlinerReusesRegistersAcrossSequentialInlineSites() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        lines.add("    let a = x + 1");
+        lines.add("    let b = a + 1");
+        lines.add("    let c = b + 1");
+        lines.add("    return c");
+        lines.add("@noinline function caller()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 80; i++) {
+            lines.add("    sum += helper(" + i + ")");
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerReusesRegistersAcrossSequentialInlineSites",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertFalse("low-pressure sequential helper calls should still inline:\n" + callerBody,
+            callerBody.contains("helper("));
+        assertFalse("sequential inline temporaries should reuse registers:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInlinerBudgetsTheExpandedNestedCallee() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("@inline function leaf(int x) returns int");
+        for (int i = 0; i < 20; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 20)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@inline function middle(int x) returns int");
+        lines.add("    return leaf(x)");
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = middle(1)");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerBudgetsTheExpandedNestedCallee",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("caller must budget the already-expanded middle body:\n" + callerBody,
+            callerBody.contains("middle(1)"));
+        assertFalse("nested inline accounting must prevent a whole-function spill:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native takesPlayer(player p)",
+            "@noinline function caller()",
+            "    let first = GetLocalPlayer()",
+            "    takesPlayer(first)",
+            "    let second = GetLocalPlayer()",
+            "    takesPlayer(second)",
+            "init",
+            "    caller()"
+        );
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertEquals("same-locality values with disjoint live ranges should share one Lua register:\n" + callerBody,
+            1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
     }
 
     @Test
