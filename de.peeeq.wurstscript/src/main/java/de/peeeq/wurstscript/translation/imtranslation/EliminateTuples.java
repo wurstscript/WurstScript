@@ -412,6 +412,17 @@ public class EliminateTuples {
         Replacer replacer = new Replacer();
         body.accept(new Element.DefaultVisitor() {
             @Override
+            public void visit(ImTupleSelection selection) {
+                ImExpr selectedStorage = selectTupleStorageComponent(selection, translator, f);
+                if (selectedStorage != null) {
+                    replacer.replace(selection, selectedStorage);
+                    selectedStorage.accept(this);
+                    return;
+                }
+                super.visit(selection);
+            }
+
+            @Override
             public void visit(ImNull n) {
                 // Expand null<⦅T1, T2, ...⦆>  ==>  <null<T1>, null<T2>, ...>
                 ImType t = n.getType(); // or n.attrTyp() if that's the established source of truth
@@ -564,6 +575,86 @@ public class EliminateTuples {
             }
 
         });
+    }
+
+    /**
+     * Select tuple storage before expanding it. Expanding first turns one array/member read into
+     * reads of every scalar backing variable, which then have to be preserved through discard
+     * calls because those reads can fail. A source-level field read only needs the selected
+     * backing component.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable ImExpr selectTupleStorageComponent(
+            ImTupleSelection selection, ImTranslator translator, ImFunction f) {
+        List<Integer> componentPath = new ArrayList<>();
+        ImExpr storage = selection;
+        while (storage instanceof ImTupleSelection current) {
+            if (current.isUsedAsLValue()) {
+                return null;
+            }
+            componentPath.add(current.getTupleIndex());
+            storage = current.getTupleExpr();
+        }
+        Collections.reverse(componentPath);
+
+        ImExpr expanded;
+        ImStmts prelude = JassIm.ImStmts();
+        if (storage instanceof ImVarAccess access && access.attrTyp() instanceof ImTupleType) {
+            VarsForTupleResult selected = selectTupleComponent(
+                translator.getVarsForTuple(access.getVar()), componentPath);
+            if (selected == null) {
+                return null;
+            }
+            expanded = selected.<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                JassIm::ImVarAccess);
+        } else if (storage instanceof ImVarArrayAccess access
+                && access.attrTyp() instanceof ImTupleType) {
+            ImExprs indexes = captureIndexesOnceIfNeeded(access.getIndexes(), prelude, f);
+            VarsForTupleResult selected = selectTupleComponent(
+                translator.getVarsForTuple(access.getVar()), componentPath);
+            if (selected == null) {
+                return null;
+            }
+            expanded = selected.<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                var -> JassIm.ImVarArrayAccess(access.getTrace(), var, indexes.copy()));
+        } else if (storage instanceof ImMemberAccess access
+                && access.attrTyp() instanceof ImTupleType) {
+            boolean indexesAreEffectful = access.getIndexes().stream()
+                .anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+            ImExpr receiver = captureOnceIfNeeded(access.getReceiver(), "tupleReceiver", prelude,
+                f, indexesAreEffectful);
+            ImExprs indexes = captureIndexesOnceIfNeeded(access.getIndexes(), prelude, f);
+            VarsForTupleResult selected = selectTupleComponent(
+                translator.getVarsForTuple(access.getVar()), componentPath);
+            if (selected == null) {
+                return null;
+            }
+            expanded = selected.<ImExpr>map(
+                parts -> JassIm.ImTupleExpr(parts.collect(Collectors.toCollection(JassIm::ImExprs))),
+                var -> JassIm.ImMemberAccess(access.getTrace(), receiver.copy(),
+                    access.getTypeArguments().copy(), var, indexes.copy()));
+        } else {
+            return null;
+        }
+
+        if (prelude.isEmpty()) {
+            return expanded;
+        }
+        return JassIm.ImStatementExpr(prelude, expanded);
+    }
+
+    private static @org.eclipse.jdt.annotation.Nullable VarsForTupleResult selectTupleComponent(
+            VarsForTupleResult tuple, List<Integer> componentPath) {
+        VarsForTupleResult selected = tuple;
+        for (int index : componentPath) {
+            if (!(selected instanceof ImTranslator.TupleResult tupleResult)
+                    || index < 0 || index >= tupleResult.getItems().size()) {
+                return null;
+            }
+            selected = tupleResult.getItems().get(index);
+        }
+        return selected;
     }
 
     private static ImExpr captureOnceIfNeeded(ImExpr expr, String name, ImStmts stmts, ImFunction f,
