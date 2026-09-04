@@ -39,8 +39,6 @@ public class ImOptimizer {
         localPasses.add(new GlobalsInliner());
         localPasses.add(new DispatchCheckDeduplicator());
         localPasses.add(new SimpleRewrites());
-        localPasses.add(new LocalMerger());
-        localPasses.add(new DispatchCheckDeduplicator());
     }
 
     private final TimeTaker timeTaker;
@@ -78,6 +76,23 @@ public class ImOptimizer {
 
         removeGarbage();
 
+        int optCount = runLocalOptimizationSweep();
+        if (optCount > 0) {
+            removeGarbage();
+            trans.getImProg().flatten(trans);
+        }
+
+        int cleanupCount = runLocalOptimizationSweep();
+        if (cleanupCount > 0) {
+            removeGarbage();
+            trans.getImProg().flatten(trans);
+        }
+
+        WLogger.info("=== Local optimization passes done! Opts: " + (optCount + cleanupCount) + " ===");
+        totalCount.forEach((k, v) -> WLogger.info("== " + k + ":   " + v));
+    }
+
+    private int runLocalOptimizationSweep() {
         int optCount = 0;
         LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
         for (OptimizerPass pass : localPasses) {
@@ -101,14 +116,7 @@ public class ImOptimizer {
             optCount += count;
             totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
         }
-
-        if (optCount > 0) {
-            removeGarbage();
-            trans.getImProg().flatten(trans);
-        }
-
-        WLogger.info("=== Local optimization pass done! Opts: " + optCount + " ===");
-        totalCount.forEach((k, v) -> WLogger.info("== " + k + ":   " + v));
+        return optCount;
     }
 
     public void doNullsetting() {

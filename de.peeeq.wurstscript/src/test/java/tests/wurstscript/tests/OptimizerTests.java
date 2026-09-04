@@ -1598,7 +1598,7 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    public void localOptimizationRunsOneSweepPerInvocation() {
+    public void localOptimizationRunsTwoBoundedSweepsPerInvocation() {
         class CountingTimeTaker extends TimeTaker.Default {
             int measurements;
 
@@ -1632,8 +1632,8 @@ public class OptimizerTests extends WurstScriptTest {
 
         new ImOptimizer(timeTaker, translator).localOptimizations();
 
-        assertEquals(timeTaker.measurements, 10,
-            "the optimizer should run each configured local pass exactly once per invocation");
+        assertEquals(timeTaker.measurements, 16,
+            "the optimizer should run two fixed sweeps rather than iterating to convergence");
     }
 
     @Test
