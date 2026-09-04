@@ -148,8 +148,8 @@ public class VarargEliminator {
             public void visit(ImMethodCall c) {
                 super.visit(c);
                 ImMethod method = c.getMethod();
-                if (method != null && !method.getIsAbstract() && method.getImplementation() != null
-                    && method.getSubMethods().isEmpty() && method.getImplementation().hasFlag(IS_VARARG)) {
+                if (LuaMethodCallLowering.canLowerDirectly(method)
+                    && method.getImplementation().hasFlag(IS_VARARG)) {
                     calls.add(c);
                 }
             }
