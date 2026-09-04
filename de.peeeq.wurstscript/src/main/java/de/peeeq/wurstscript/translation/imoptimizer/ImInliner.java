@@ -75,7 +75,8 @@ public class ImInliner {
         prog.flatten(translator);
         int changed = 0;
         for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
-            int[] declarations = {function.getParameters().size() + function.getLocals().size()};
+            int[] declarations = {function.getParameters().size() + function.getLocals().size()
+                + backendGeneratedLuaLocals(function)};
             changed += inlineLuaDivModHelpers(function, function, declarations);
         }
         return changed;
@@ -453,6 +454,18 @@ public class ImInliner {
             || function == translator.luaModRealFunc;
     }
 
+    private static int backendGeneratedLuaLocals(ImFunction function) {
+        int[] result = {0};
+        function.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImVarargLoop loop) {
+                result[0] += 2; // Lua translation introduces __args and __i for each retained loop.
+                super.visit(loop);
+            }
+        });
+        return result[0];
+    }
+
     private LuaRegisterBudget getLuaRegisterBudget(ImFunction function) {
         return luaRegisterBudgets.computeIfAbsent(function, LuaRegisterBudget::new);
     }
@@ -546,6 +559,7 @@ public class ImInliner {
         private final ImFunction function;
         private Map<ImStmt, io.vavr.collection.Set<ImVar>> liveness;
         private LuaPressure peakPressure;
+        private int backendLocals;
 
         private LuaRegisterBudget(ImFunction function) {
             this.function = function;
@@ -556,14 +570,17 @@ public class ImInliner {
                 luaRegisterPressure.put(function, cachedPressure);
             }
             peakPressure = cachedPressure.copy();
+            backendLocals = backendGeneratedLuaLocals(function);
         }
 
         private boolean fits(ImFunctionCall call, ImFunction callee) {
-            return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET;
+            return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET
+                - backendLocals - backendGeneratedLuaLocals(callee);
         }
 
         private void recordInline(ImFunctionCall call, ImFunction callee) {
             peakPressure.keepMaximums(pressureDuringInline(call, callee));
+            backendLocals += backendGeneratedLuaLocals(callee);
             // Callers are processed after their callees. Publish the expanded pressure so a
             // later caller budgets the body it will actually copy, not the pre-inline callee.
             luaRegisterPressure.put(function, peakPressure.copy());
@@ -572,6 +589,7 @@ public class ImInliner {
         private void refresh() {
             liveness = new LocalMerger().calculateLiveness(function);
             peakPressure = estimateLuaRegisterPressure(function, liveness);
+            backendLocals = backendGeneratedLuaLocals(function);
             luaRegisterPressure.put(function, peakPressure.copy());
         }
 

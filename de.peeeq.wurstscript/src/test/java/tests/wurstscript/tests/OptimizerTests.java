@@ -1543,6 +1543,36 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void localMergerKeepsImplicitEntryLocalSeparateFromParameter() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar sinkA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar sinkB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(),
+            JassIm.ImVars(sinkA, sinkB), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImVar parameter = JassIm.ImVar(model, TypesHelper.imInt(), "parameter", false);
+        ImVar implicit = JassIm.ImVar(model, TypesHelper.imInt(), "implicit", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(parameter), JassIm.ImVarAccess(implicit)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(),
+            JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(implicit),
+            JassIm.ImStmts(call), Collections.emptyList());
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
+        ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
+        ImVar second = ((ImVarAccess) optimizedCall.getArguments().get(1)).getVar();
+        assertNotSame(first, second,
+            "function-entry values must not be assigned the same allocation slot");
+    }
+
+    @Test
     public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
         WurstModel model = Ast.WurstModel();
         ImTranslator translator = new ImTranslator(model, false, new RunArgs().with("-lua"));
@@ -1557,22 +1587,30 @@ public class OptimizerTests extends WurstScriptTest {
         translator.luaModIntFunc = helper;
 
         ImVars callerParameters = JassIm.ImVars();
-        for (int i = 0; i < 188; i++) {
+        for (int i = 0; i < 170; i++) {
             callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
         }
         ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImVars callerLocals = JassIm.ImVars(result);
+        ImStmts callerBody = JassIm.ImStmts();
+        for (int i = 0; i < 6; i++) {
+            ImVar loopVar = JassIm.ImVar(model, TypesHelper.imInt(), "loop" + i, false);
+            callerLocals.add(loopVar);
+            callerBody.add(JassIm.ImVarargLoop(model, JassIm.ImStmts(),
+                JassIm.ImVarargLoopVars(JassIm.ImVarargLoopVar(loopVar))));
+        }
         ImFunctionCall call = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
             JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
             de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), call));
         ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
-            JassIm.ImVoid(), JassIm.ImVars(result),
-            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(result), call)),
+            JassIm.ImVoid(), callerLocals, callerBody,
             Collections.emptyList());
         prog.getFunctions().add(helper);
         prog.getFunctions().add(caller);
 
         assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
-        ImSet assignment = (ImSet) caller.getBody().get(0);
+        ImSet assignment = (ImSet) caller.getBody().get(6);
         assertTrue(assignment.getRight() instanceof ImFunctionCall,
             "the late retry must retain the helper when declarations exceed the safe budget");
     }

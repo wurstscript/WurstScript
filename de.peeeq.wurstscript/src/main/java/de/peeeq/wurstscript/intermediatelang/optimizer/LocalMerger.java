@@ -177,6 +177,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             graph.put(local, new ObjectOpenHashSet<>());
         }
 
+        java.util.Set<ImVar> explicitlyDefined = Collections.newSetFromMap(new IdentityHashMap<>());
+
         // A definition interferes with every compatible value that remains live after it.
         // Building only those edges is equivalent to cliquing every live set, while avoiding
         // the old O(statements * liveValues^2) behavior on large inlined functions.
@@ -185,6 +187,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
             if (defined.isEmpty()) {
                 continue;
             }
+            explicitlyDefined.addAll(defined);
             for (int i = 0; i < defined.size(); i++) {
                 ImVar definition = defined.get(i);
                 java.util.Set<ImVar> neighbors = graph.computeIfAbsent(definition, ignored -> new ObjectOpenHashSet<>());
@@ -203,6 +206,27 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                         neighbors.add(other);
                         graph.computeIfAbsent(other, ignored -> new ObjectOpenHashSet<>()).add(definition);
                     }
+                }
+            }
+        }
+
+        // Parameters and locals with no explicit assignment receive their values at function
+        // entry. Model that simultaneous definition so a warning-only read of an uninitialized
+        // local cannot be colored onto a parameter (or another implicit entry value).
+        List<ImVar> entryDefinitions = new ArrayList<>(func.getParameters());
+        for (ImVar local : func.getLocals()) {
+            if (!explicitlyDefined.contains(local)) {
+                entryDefinitions.add(local);
+            }
+        }
+        for (int i = 0; i < entryDefinitions.size(); i++) {
+            ImVar definition = entryDefinitions.get(i);
+            java.util.Set<ImVar> neighbors = graph.get(definition);
+            for (int j = i + 1; j < entryDefinitions.size(); j++) {
+                ImVar other = entryDefinitions.get(j);
+                if (canMerge(definition.getType(), other.getType())) {
+                    neighbors.add(other);
+                    graph.get(other).add(definition);
                 }
             }
         }
