@@ -283,6 +283,95 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     @Test
+    public void tupleFieldAssignmentsOnlyTouchTheSelectedStorageComponent() throws IOException {
+        String[] source = {
+            "package Test",
+            "native testSuccess()",
+            "tuple vec3(real x, real y, real z)",
+            "tuple segment(vec3 start, vec3 finish)",
+            "vec3 array points",
+            "segment array segments",
+            "int indexCalls",
+            "int trace",
+            "@noinline function nextIndex() returns int",
+            "    indexCalls++",
+            "    trace = trace * 10 + 1",
+            "    return 2",
+            "@noinline function nextValue() returns real",
+            "    trace = trace * 10 + 2",
+            "    return 21.",
+            "@noinline function setAt(int index, real value)",
+            "    points[index].z = value",
+            "@noinline function setAtNext()",
+            "    points[nextIndex()].y = nextValue()",
+            "@noinline function addAt(int index, real value)",
+            "    points[index].x += value",
+            "@noinline function setNested(int index, real value)",
+            "    segments[index].finish.y = value",
+            "@noinline function replaceAt(int index, vec3 value)",
+            "    points[index] = value",
+            "class Entity",
+            "    vec3 pos",
+            "@noinline function setPos(Entity entity, real value)",
+            "    entity.pos.z = value",
+            "init",
+            "    points[1] = vec3(1., 2., 3.)",
+            "    points[2] = vec3(4., 5., 6.)",
+            "    segments[1] = segment(vec3(7., 8., 9.), vec3(10., 11., 12.))",
+            "    let entity = new Entity()",
+            "    entity.pos = vec3(13., 14., 15.)",
+            "    setAt(1, 20.)",
+            "    setAtNext()",
+            "    addAt(1, 22.)",
+            "    setNested(1, 23.)",
+            "    setPos(entity, 24.)",
+            "    replaceAt(2, vec3(25., 26., 27.))",
+            "    if points[1] == vec3(23., 2., 20.) and points[2] == vec3(25., 26., 27.)",
+            "        and segments[1] == segment(vec3(7., 8., 9.), vec3(10., 23., 12.))",
+            "        and entity.pos == vec3(13., 14., 24.) and indexCalls == 1 and trace == 12",
+            "        testSuccess()"
+        };
+        test().testLua(true).executeProg().lines(source);
+
+        String compiled = compileOptimizedLua(
+            "tupleFieldAssignmentsOnlyTouchTheSelectedStorageComponentOptimized", source);
+        String plainWrite = luaFunctionBody(compiled, "setAt");
+        String effectfulWrite = luaFunctionBody(compiled, "setAtNext");
+        String readModifyWrite = luaFunctionBody(compiled, "addAt");
+        String nestedWrite = luaFunctionBody(compiled, "setNested");
+        String memberWrite = luaFunctionBody(compiled, "setPos");
+        String wholeTupleWrite = luaFunctionBody(compiled, "replaceAt");
+
+        assertTrue(plainWrite.contains("points_z["));
+        assertFalse(plainWrite.contains("points_x["));
+        assertFalse(plainWrite.contains("points_y["));
+        assertTrue(effectfulWrite.contains("points_y["));
+        assertFalse(effectfulWrite.contains("points_x["));
+        assertFalse(effectfulWrite.contains("points_z["));
+        assertEquals("a selected tuple-array field must evaluate its write index exactly once",
+            1, effectfulWrite.split("nextIndex\\(", -1).length - 1);
+        assertTrue(readModifyWrite.contains("points_x["));
+        assertFalse(readModifyWrite.contains("points_y["));
+        assertFalse(readModifyWrite.contains("points_z["));
+        assertTrue(nestedWrite.contains("segments_finish_y["));
+        assertFalse(nestedWrite.contains("segments_start_"));
+        assertFalse(nestedWrite.contains("segments_finish_x["));
+        assertFalse(nestedWrite.contains("segments_finish_z["));
+        assertTrue(memberWrite.contains("Entity_pos_z_storage["));
+        assertFalse(memberWrite.contains("Entity_pos_x_storage["));
+        assertFalse(memberWrite.contains("Entity_pos_y_storage["));
+        assertTrue("whole-tuple assignment must still write x", wholeTupleWrite.contains("points_x["));
+        assertTrue("whole-tuple assignment must still write y", wholeTupleWrite.contains("points_y["));
+        assertTrue("whole-tuple assignment must still write z", wholeTupleWrite.contains("points_z["));
+        assertFalse("selected tuple storage writes must not need discard helpers",
+            plainWrite.contains("__wurst_tuple_discard_")
+                || effectfulWrite.contains("__wurst_tuple_discard_")
+                || readModifyWrite.contains("__wurst_tuple_discard_")
+                || nestedWrite.contains("__wurst_tuple_discard_")
+                || memberWrite.contains("__wurst_tuple_discard_"));
+    }
+
+    @Test
     public void tupleMemberArrayAssignmentCapturesIndex() throws IOException {
         test().testLua(true).luaOnly(false).executeProg().lines(
             "package Test",
