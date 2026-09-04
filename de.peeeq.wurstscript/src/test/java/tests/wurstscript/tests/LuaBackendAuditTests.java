@@ -2048,8 +2048,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String body = topLevelFunctionBodyWithPrefix(compiled, "hotLoop");
         assertFalse("a tiny method with exactly one implementation must inline in optimized Lua:\n" + body,
             body.contains("Accumulator_add("));
-        assertTrue("the inlined method must retain its field read:\n" + body,
-            body.contains("Accumulator_offset_storage["));
+        java.util.regex.Matcher offsetAlias = java.util.regex.Pattern
+            .compile("local (\\w+) = Accumulator_offset_storage").matcher(body);
+        assertTrue("the inlined method's field storage must be localized:\n" + body,
+            offsetAlias.find());
+        assertTrue("the inlined method must retain its field read through the local alias:\n" + body,
+            body.contains(offsetAlias.group(1) + "["));
         String dynamicBody = topLevelFunctionBodyWithPrefix(compiled, "dynamicCall");
         assertTrue("a genuinely virtual method call must retain dispatch:\n" + dynamicBody,
             dynamicBody.contains("dispatch_"));
