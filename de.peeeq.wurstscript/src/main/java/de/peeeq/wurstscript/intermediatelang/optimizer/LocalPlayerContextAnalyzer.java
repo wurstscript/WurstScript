@@ -75,11 +75,16 @@ public final class LocalPlayerContextAnalyzer {
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<ImFunction> functionsDirectlyUsingLocalPlayer =
         Collections.newSetFromMap(new IdentityHashMap<>());
+    /** Functions whose return value is derived from a client-local value by data flow alone. */
+    private final Set<ImFunction> localPlayerDataDependentReturns =
+        Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<Element> indexedElements =
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Set<Object> activeFacts =
         Collections.newSetFromMap(new IdentityHashMap<>());
     private final Map<Object, List<Object>> dependents = new IdentityHashMap<>();
+    /** The subset of {@link #dependents} reached without any control edge. */
+    private final Map<Object, List<Object>> dataDependents = new IdentityHashMap<>();
     private final Map<ImVar, Fact> variableFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> returnFacts = new IdentityHashMap<>();
     private final Map<ImFunction, Fact> useFacts = new IdentityHashMap<>();
@@ -143,11 +148,20 @@ public final class LocalPlayerContextAnalyzer {
             && (isClientLocalValueSource(function) || functionsUsingLocalPlayer.contains(function));
     }
 
+    /**
+     * Whether inlining this function must be refused: it is a client-local native, calls one
+     * directly, or returns a value derived from one by data flow. Control taint is deliberately not
+     * consulted. A function reachable from a client-local branch has a tainted return fact, but
+     * inlining substitutes its body at the call site, where it runs under exactly the control the
+     * call already had, so nothing crosses a boundary. The passes which do move code
+     * ({@link BranchMerger}, {@link TempMerger}, ...) run after inlining and re-analyse the inlined
+     * program, where that control is explicit.
+     */
     public boolean functionInliningIsLocalPlayerSensitive(ImFunction function) {
         return function != null
             && (isClientLocalValueSource(function)
             || functionsDirectlyUsingLocalPlayer.contains(function)
-            || localPlayerDependentReturns.contains(function));
+            || localPlayerDataDependentReturns.contains(function));
     }
 
     public boolean isLocalPlayerDependent(ImVar variable) {
@@ -166,6 +180,7 @@ public final class LocalPlayerContextAnalyzer {
             analyzeFunctions(classes.get(i).getFunctions());
         }
         propagateFacts();
+        propagateDataFacts();
     }
 
     private void analyzeFunctions(List<ImFunction> functions) {
@@ -410,13 +425,13 @@ public final class LocalPlayerContextAnalyzer {
         int argumentCount = arguments.size();
         int positionalCount = Math.min(argumentCount, fixedParameterCount);
         for (int i = 0; i < positionalCount; i++) {
-            addDependency(arguments.get(i),
+            addCallArgumentDependency(arguments.get(i),
                 variableFact(calledParameters.get(i)));
         }
         ImVar varargParameter = varargParameter(called);
         if (varargParameter != null) {
             for (int i = fixedParameterCount; i < argumentCount; i++) {
-                addDependency(arguments.get(i),
+                addCallArgumentDependency(arguments.get(i),
                     variableFact(varargParameter));
             }
         }
@@ -450,9 +465,9 @@ public final class LocalPlayerContextAnalyzer {
             List<ImVar> parameters = implementation.getParameters();
             for (int i = 0; i < parameters.size(); i++) {
                 ImVar parameter = parameters.get(i);
-                addDependency(receiver, variableFact(parameter));
+                addCallArgumentDependency(receiver, variableFact(parameter));
                 for (int j = 0; j < arguments.size(); j++) {
-                    addDependency(arguments.get(j), variableFact(parameter));
+                    addCallArgumentDependency(arguments.get(j), variableFact(parameter));
                 }
             }
         }
@@ -460,7 +475,8 @@ public final class LocalPlayerContextAnalyzer {
 
     private void addEnclosingControlDependency(Object controlContext, Object dependent) {
         if (controlContext != null) {
-            addDependency(controlContext, dependent);
+            // A control edge: present in the full graph only, never in the data graph.
+            dependents.computeIfAbsent(controlContext, ignored -> new ArrayList<>()).add(dependent);
         }
     }
 
@@ -550,9 +566,18 @@ public final class LocalPlayerContextAnalyzer {
     }
 
     private void addDependency(Object dependency, Object dependent) {
-        dependents.computeIfAbsent(dependency,
-            ignored -> new ArrayList<>())
-            .add(dependent);
+        dependents.computeIfAbsent(dependency, ignored -> new ArrayList<>()).add(dependent);
+        dataDependents.computeIfAbsent(dependency, ignored -> new ArrayList<>()).add(dependent);
+    }
+
+    /**
+     * A call-site argument flowing into a callee parameter. Present in the full graph only: the data
+     * graph answers what a function computes from its own body, so it must not merge the arguments
+     * of every caller into the parameter. With that merge, one client-local argument to a shared
+     * helper such as {@code max} would taint the helper and everything computed from its result.
+     */
+    private void addCallArgumentDependency(Object argument, Object parameterFact) {
+        dependents.computeIfAbsent(argument, ignored -> new ArrayList<>()).add(parameterFact);
     }
 
     private void propagateFacts() {
@@ -566,6 +591,36 @@ public final class LocalPlayerContextAnalyzer {
             if (factDependents != null) {
                 for (int i = 0; i < factDependents.size(); i++) {
                     activateFact(factDependents.get(i), worklist);
+                }
+            }
+        }
+    }
+
+    /**
+     * Second pass over the data-only graph. Publishes just the RETURN facts, which is what the
+     * inlining barrier needs: whether a return value is derived from a client-local value regardless
+     * of where the function happens to be called from.
+     */
+    private void propagateDataFacts() {
+        Set<Object> reached = Collections.newSetFromMap(new IdentityHashMap<>());
+        Deque<Object> worklist = new ArrayDeque<>();
+        for (Object source : sourceFacts) {
+            if (reached.add(source)) {
+                worklist.addLast(source);
+            }
+        }
+        while (!worklist.isEmpty()) {
+            Object fact = worklist.removeFirst();
+            if (fact instanceof Fact typedFact && typedFact.kind == FactKind.RETURN) {
+                localPlayerDataDependentReturns.add((ImFunction) typedFact.subject);
+            }
+            List<Object> factDependents = dataDependents.get(fact);
+            if (factDependents != null) {
+                for (int i = 0; i < factDependents.size(); i++) {
+                    Object dependent = factDependents.get(i);
+                    if (reached.add(dependent)) {
+                        worklist.addLast(dependent);
+                    }
                 }
             }
         }

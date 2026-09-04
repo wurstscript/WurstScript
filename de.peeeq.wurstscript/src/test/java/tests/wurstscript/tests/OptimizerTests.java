@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
@@ -12,6 +13,8 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -1542,6 +1545,340 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void localMergerKeepsImplicitEntryLocalSeparateFromParameter() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar sinkA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar sinkB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(),
+            JassIm.ImVars(sinkA, sinkB), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImVar parameter = JassIm.ImVar(model, TypesHelper.imInt(), "parameter", false);
+        ImVar implicit = JassIm.ImVar(model, TypesHelper.imInt(), "implicit", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(parameter), JassIm.ImVarAccess(implicit)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImSet laterDefinition = JassIm.ImSet(model, JassIm.ImVarAccess(implicit), JassIm.ImIntVal(1));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(),
+            JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(implicit),
+            JassIm.ImStmts(call, laterDefinition), Collections.emptyList());
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
+        ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
+        ImVar second = ((ImVarAccess) optimizedCall.getArguments().get(1)).getVar();
+        assertNotSame(first, second,
+            "function-entry values must not be assigned the same allocation slot");
+    }
+
+    @Test
+    public void repeatedLocalOptimizationStartsANewIteration() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        translator.getImProg().getFunctions().add(main);
+        translator.getImProg().getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+        ImOptimizer optimizer = new ImOptimizer(new TimeTaker.Default(), translator);
+
+        optimizer.localOptimizations();
+        main.getLocals().add(JassIm.ImVar(model, TypesHelper.imInt(), "lateUnused", false));
+        optimizer.localOptimizations();
+
+        assertTrue(main.getLocals().isEmpty(),
+            "a second local-optimization invocation must execute its passes");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 177; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImVars callerLocals = JassIm.ImVars(result);
+        ImStmts callerBody = JassIm.ImStmts();
+        for (int i = 0; i < 6; i++) {
+            ImVar loopVar = JassIm.ImVar(model, TypesHelper.imInt(), "loop" + i, false);
+            callerLocals.add(loopVar);
+            callerBody.add(JassIm.ImVarargLoop(model, JassIm.ImStmts(),
+                JassIm.ImVarargLoopVars(JassIm.ImVarargLoopVar(loopVar))));
+        }
+        ImFunctionCall call = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), call));
+        ImVars sinkParameters = JassIm.ImVars();
+        ImExprs sinkArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            sinkArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), sinkArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), callerLocals, callerBody,
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        ImSet assignment = (ImSet) caller.getBody().get(6);
+        assertTrue(assignment.getRight() instanceof ImFunctionCall,
+            "the late retry must retain the helper when declarations exceed the safe budget");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryReusesSequentialSlots() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVars parameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            parameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), parameters,
+            JassIm.ImVoid(), JassIm.ImVars(result), JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(8), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL))),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(caller);
+
+        assertEquals(new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget(), 2,
+            "sequential helper sites should share the same peak allocation slots");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryBudgetsOverlappingArgumentResults() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars fiveParameters = JassIm.ImVars();
+        ImExprs overlappingArguments = JassIm.ImExprs();
+        for (int i = 0; i < 5; i++) {
+            fiveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            overlappingArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i)), JassIm.ImIntVal(3)),
+                false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        ImFunction takesFive = JassIm.ImFunction(model, "takesFive", JassIm.ImTypeVars(), fiveParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, takesFive, JassIm.ImTypeArguments(), overlappingArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(takesFive);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        int changed = new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget();
+        assertTrue(changed < 5,
+            "overlapping argument results must stop helper inlining at the register budget");
+        int[] remaining = {0};
+        caller.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getFunc() == helper) {
+                    remaining[0]++;
+                }
+            }
+        });
+        assertTrue(remaining[0] > 0, "some overlapping helper calls must remain after the budget is reached");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryBudgetsEarlierImpureArguments() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVar impureParameter = JassIm.ImVar(model, TypesHelper.imInt(), "value", false);
+        ImFunction impure = JassIm.ImFunction(model, "impure", JassIm.ImTypeVars(),
+            JassIm.ImVars(impureParameter), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 178; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars outerParameters = JassIm.ImVars();
+        ImExprs outerArguments = JassIm.ImExprs();
+        for (int i = 0; i < 11; i++) {
+            outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            outerArguments.add(JassIm.ImFunctionCall(model, impure, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i))), false,
+                de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "last", false));
+        outerArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(11)), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImFunction outer = JassIm.ImFunction(model, "outer", JassIm.ImTypeVars(), outerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "keep" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, outer, JassIm.ImTypeArguments(), outerArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(impure);
+        prog.getFunctions().add(outer);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryPreservesLocalPlayerAllocationClasses() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImFunction localValue = JassIm.ImFunction(model, "GetLocationZ", JassIm.ImTypeVars(),
+            JassIm.ImVars(), TypesHelper.imReal(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars sinkParameters = JassIm.ImVars();
+        for (int i = 0; i < 99; i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imReal(), "value" + i, false));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars callerLocals = JassIm.ImVars();
+        ImStmts callerBody = JassIm.ImStmts();
+        ImExprs localArguments = JassIm.ImExprs();
+        ImExprs synchronizedArguments = JassIm.ImExprs();
+        for (int i = 0; i < 99; i++) {
+            ImVar local = JassIm.ImVar(model, TypesHelper.imReal(), "local" + i, false);
+            ImVar synchronizedVar = JassIm.ImVar(model, TypesHelper.imReal(), "sync" + i, false);
+            callerLocals.add(local);
+            callerLocals.add(synchronizedVar);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(local),
+                JassIm.ImFunctionCall(model, localValue, JassIm.ImTypeArguments(), JassIm.ImExprs(),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)));
+            localArguments.add(JassIm.ImVarAccess(local));
+            synchronizedArguments.add(JassIm.ImVarAccess(synchronizedVar));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), localArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        for (int i = 0; i < 99; i++) {
+            ImVar synchronizedVar = callerLocals.get(i * 2 + 1);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(synchronizedVar), JassIm.ImRealVal("1.")));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), synchronizedArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        callerLocals.add(result);
+        ImFunctionCall helperCall = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), helperCall));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), callerLocals, callerBody, Collections.emptyList());
+        prog.getFunctions().add(localValue);
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        assertTrue(((ImSet) caller.getBody().get(caller.getBody().size() - 1)).getRight()
+                instanceof ImFunctionCall,
+            "local-player-dependent and synchronized allocation classes must both count toward the budget");
+    }
+
+    @Test
     public void testFunctionSplitter() {
         WurstModel model = Ast.WurstModel();
 
@@ -2283,6 +2620,44 @@ public class OptimizerTests extends WurstScriptTest {
             "functions using GetLocalPlayer must remain explicit calls");
         assertTrue(inlined.contains("call consume(forwardedPlayer())"),
             "transitive GetLocalPlayer wrappers must remain explicit calls");
+    }
+
+    /**
+     * The local-player analysis marks a function's return fact whenever the function is reachable
+     * from a client-local control region, transitively over the call graph. That fact is right for
+     * the passes which move code across control boundaries and wrong as an inlining barrier:
+     * substituting a body at a call site runs it under exactly the control the call already had.
+     * A pure helper called once under a GetLocalPlayer branch must still inline everywhere, while a
+     * wrapper which itself calls GetLocalPlayer must stay an explicit call.
+     */
+    @Test
+    public void pureHelperReachableFromLocalPlayerBranchIsStillInlined() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native consume(integer i)",
+            "native consumePlayer(player p)",
+            "integer offset = 0",
+            "@inline function slot(integer a, integer b) returns integer",
+            "    return a * 8 + b",
+            "@inline function currentPlayer() returns player",
+            "    return GetLocalPlayer()",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        consume(slot(offset, 1))",
+            "    consume(slot(offset, 2))",
+            "    consumePlayer(currentPlayer())"
+        );
+
+        String inlined = Files.toString(
+            new File("test-output/OptimizerTests_pureHelperReachableFromLocalPlayerBranchIsStillInlined_inl.j"),
+            Charsets.UTF_8);
+        assertFalse(inlined.contains("slot("),
+            "a pure helper must inline at every call site, including the one under the local-player branch");
+        assertTrue(inlined.contains("call consumePlayer(currentPlayer())"),
+            "a wrapper which calls GetLocalPlayer itself must remain an explicit call");
     }
 
     @Test

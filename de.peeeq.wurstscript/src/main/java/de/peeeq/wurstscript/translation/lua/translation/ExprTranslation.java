@@ -53,42 +53,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
-//        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
-//         alternative: use xpcall to get stacktraces (did not work)
-        boolean returnsValue = !(e.getFunc().getReturnType() instanceof ImVoid);
-        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-        LuaStatements callbackBody = LuaAst.LuaStatements();
-        if (returnsValue) {
-            LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
-            callbackBody.add(tempRes);
-            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprFunctionAbstraction(
-                        LuaAst.LuaParams(dots.copy()),
-                        LuaAst.LuaStatements(
-                            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
-                                LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))))
-                    ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)", "in lua callback error handler") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
-                    LuaAst.LuaExprVarAccess(dots.copy())
-                )
-            ));
-            callbackBody.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes)));
-        } else {
-            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprFunctionAbstraction(
-                        LuaAst.LuaParams(dots.copy()),
-                        LuaAst.LuaStatements(
-                            LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))
-                        )
-                    ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)", "in lua callback error handler") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
-                    LuaAst.LuaExprVarAccess(dots.copy())
-                )
-            ));
-        }
-        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots), callbackBody);
+        return LuaAst.LuaExprFuncRef(tr.callbackAdapterFor(e.getFunc()));
     }
 
     static String callErrorFunc(LuaTranslator tr, String msg) {
@@ -136,12 +101,24 @@ public class ExprTranslation {
             }
         }
 
-        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         // Use the immutable ImFunction name rather than f.getName(), because f is a cached
         // LuaFunction object shared across all call sites of this native. The setName() calls
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
+        if (isRawNumericIntrinsic(e.getFunc(), tr)) {
+            if (e.getArguments().size() != 2) {
+                throw new CompileError(e.attrTrace().attrSource(),
+                    imFuncName + " expects exactly two arguments");
+            }
+            LuaExpr left = e.getArguments().get(0).translateToLua(tr);
+            LuaExpr right = e.getArguments().get(1).translateToLua(tr);
+            if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
+            }
+            return LuaAst.LuaExprFunctionCallByName("math.fmod", LuaAst.LuaExprlist(left, right));
+        }
+        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         if ("I2S".equals(imFuncName) && isIntentionalThreadAbortCall(e)) {
             return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
                 LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
@@ -154,6 +131,12 @@ public class ExprTranslation {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
+    }
+
+    static boolean isRawNumericIntrinsic(ImFunction function, LuaTranslator tr) {
+        return function == tr.imTr.luaRawFloorDivIntFunc
+            || function == tr.imTr.luaRawFmodIntFunc
+            || function == tr.imTr.luaRawFmodRealFunc;
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
@@ -445,16 +428,7 @@ public class ExprTranslation {
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
-    /**
-     * Primitive-typed array reads are wrapped in a type-normalizing helper
-     * call at the IM level, before the optimizer runs (see
-     * LuaNativeLowering#lowerPrimitiveArrayEnsure), by rewriting the read into
-     * a call against ImTranslator#ensureIntFunc and friends - so by the time
-     * an ImVarArrayAccess reaches this method, it is already either a
-     * genuine lvalue/raw access or an access whose type never needed
-     * wrapping (e.g. class/handle-typed arrays, which default to nil the
-     * same way an untouched Lua table key already does).
-     */
+    /** Primitive-typed arrays carry their Wurst defaults through metatables, so every read is raw. */
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
         return translateArrayAccessRaw(e, tr);
     }

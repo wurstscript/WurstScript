@@ -137,6 +137,8 @@ public class LuaTranslator {
 
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
+    private final Map<ImFunction, LuaFunction> callbackAdapters = new IdentityHashMap<>();
+    private LuaFunction callbackErrorHandler;
 
     // Array-default infrastructure (metatables/helper functions) shared across
     // every array of a given entry type, instead of allocated per array
@@ -383,6 +385,68 @@ public class LuaTranslator {
         enforceLuaLocalLimits();
 
         return luaModel;
+    }
+
+    /**
+     * Function references need an xpcall boundary, but the boundary is a property of the referenced
+     * function rather than of each expression which names it. Emit one reusable adapter per target
+     * so evaluating a function reference performs no closure allocation.
+     */
+    LuaFunction callbackAdapterFor(ImFunction target) {
+        LuaFunction existing = callbackAdapters.get(target);
+        if (existing != null) {
+            return existing;
+        }
+
+        LuaFunction targetLua = luaFunc.getFor(target);
+        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+        LuaFunction adapter = LuaAst.LuaFunction(
+            uniqueName("__wurst_callback_" + targetLua.getName()),
+            LuaAst.LuaParams(dots), LuaAst.LuaStatements());
+        callbackAdapters.put(target, adapter);
+
+        LuaFunction errorHandler = callbackErrorHandler();
+        LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall",
+            LuaAst.LuaExprlist(
+                LuaAst.LuaExprFuncRef(targetLua),
+                LuaAst.LuaExprFuncRef(errorHandler),
+                LuaAst.LuaExprVarAccess(dots.copy())));
+        if (target.getReturnType() instanceof ImVoid) {
+            adapter.getBody().add(xpcall);
+        } else {
+            // Keep exactly the first callback result. Returning select(2, xpcall(...)) directly
+            // could leak additional Lua return values into a surrounding argument list.
+            LuaVariable ignored = LuaAst.LuaVariable("_", LuaAst.LuaNoExpr());
+            LuaVariable result = LuaAst.LuaVariable("result", LuaAst.LuaNoExpr());
+            adapter.getBody().add(ignored);
+            adapter.getBody().add(result);
+            adapter.getBody().add(LuaAst.LuaAssignment(
+                LuaAst.LuaLiteral("_, result"), xpcall));
+            adapter.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(result)));
+        }
+        luaModel.add(adapter);
+        return adapter;
+    }
+
+    private LuaFunction callbackErrorHandler() {
+        if (callbackErrorHandler != null) {
+            return callbackErrorHandler;
+        }
+        LuaVariable err = LuaAst.LuaVariable("err", LuaAst.LuaNoExpr());
+        callbackErrorHandler = LuaAst.LuaFunction(uniqueName("__wurst_callback_error"),
+            LuaAst.LuaParams(err), LuaAst.LuaStatements());
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "if err == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL + "\" then return end"));
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "BJDebugMsg(\"lua callback error: \" .. tostring(err))"));
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "xpcall(function() " + ExprTranslation.callErrorFunc(this, "tostring(err)",
+                "in lua callback error handler")
+                + " end, function(err2) if err2 == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL
+                + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2))"
+                + " BJDebugMsg(\"while reporting: \" .. tostring(err)) end)"));
+        luaModel.add(callbackErrorHandler);
+        return callbackErrorHandler;
     }
 
     /**
@@ -723,6 +787,9 @@ public class LuaTranslator {
     private void translateFunc(ImFunction f) {
         if (f.isBj()) {
             // do not translate blizzard functions
+            return;
+        }
+        if (f.isNative() && ExprTranslation.isRawNumericIntrinsic(f, this)) {
             return;
         }
         LuaFunction lf = luaFunc.getFor(f);

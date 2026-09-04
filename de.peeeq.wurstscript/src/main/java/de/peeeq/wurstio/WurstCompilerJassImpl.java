@@ -897,6 +897,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 timeTaker.endPhase();
             }
         }
+        // Same position as on Jass: after stack traces, before lowering and inlining. Calls with a
+        // static argument count go to fixed-arity copies, so the emitted Lua packs no table and the
+        // copies can inline; originals stay for dispatch, function references and calls above the bound.
+        beginPhase(4, "eliminate varargs");
+        new VarargEliminator(imProg, true).run();
+        imTranslator.assertProperties();
+        timeTaker.endPhase();
+
         ImTranslator imTranslator2 = getImTranslator();
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
 
@@ -935,6 +943,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
             optimizer.localOptimizations();
+            timeTaker.endPhase();
+        }
+
+        if (runArgs.isInline() && runArgs.isLocalOptimizations()) {
+            beginPhase(10, "inline Lua arithmetic helpers within allocated local budget");
+            int arithmeticHelpersInlined = optimizer.inlineLuaDivModHelpersWithinLocalBudget();
+            if (arithmeticHelpersInlined > 0) {
+                optimizer.localOptimizations();
+            }
             timeTaker.endPhase();
         }
 

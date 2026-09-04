@@ -45,14 +45,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
     private String compileOptimizedLua(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations");
-        return compileLuaWithRunArgs(testName, runArgs, lines);
+        return compileLuaWithRunArgs(testName, runArgs, false, lines);
+    }
+
+    private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
+        RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
+            "-runcompiletimefunctions", "-lib", StdLib.getLib());
+        return compileLuaWithRunArgs(testName, runArgs, true, lines);
     }
 
     private String compileLuaWithRunArgs(String testName, RunArgs runArgs, String... lines) {
+        return compileLuaWithRunArgs(testName, runArgs, false, lines);
+    }
+
+    private String compileLuaWithRunArgs(String testName, RunArgs runArgs, boolean withStdLib, String... lines) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         WurstModel model = parseFiles(Collections.emptyList(),
-            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), false, compiler);
+            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), withStdLib, compiler);
         assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
         compiler.checkProg(model);
         assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
@@ -271,7 +281,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    let bag = new Bag<handles>()",
             "    bag.add(handles(makeFrame(), makeFrame()))"
         );
-        assertTrue(compiled.contains("table.pack(...)"));
+        assertFalse("a static-arity vararg call must not pack a table on Lua", compiled.contains("table.pack(...)"));
         assertFalse(compiled.contains("tupleCopy"));
     }
 
@@ -1988,6 +1998,421 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.indexOf("localProbe()", definitionOrCall + 1) >= 0);
     }
 
+    /**
+     * Lua function calls are expensive enough that tiny leaf helpers should inline regardless of
+     * how many distinct callers use them. The old size * (callerCount - 1) rating did the opposite:
+     * a commonly reused one-expression helper quickly became less likely to inline.
+     */
+    @Test
+    public void tinyPopularLuaHelpersInlineWithoutAnnotations() {
+        String compiled = compileOptimizedLua(
+            "tinyPopularLuaHelpersInlineWithoutAnnotations",
+            tinyPopularLuaHelpersProgram()
+        );
+
+        assertFalse("tiny nil-safe wrapper must inline at every Lua call site:\n" + compiled,
+            compiled.contains("safeCoordinate("));
+        assertFalse("tiny arithmetic helper must inline at every Lua call site:\n" + compiled,
+            compiled.contains("arithmetic("));
+    }
+
+    /**
+     * Measured after Lua native lowering: unit_getX = 59 IM nodes,
+     * unit_getAbilityLevel = 63, real_floor = 35, and __wurst_intDiv = 31. Each helper is called
+     * from eight retained functions so the normal popularity rating exceeds the inline threshold;
+     * Lua's unconditional small-body rule must still remove every call.
+     */
+    @Test
+    public void stdlibHotLeafSizesDefineLuaAlwaysInlineCutoff() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "stdlibHotLeafSizesDefineLuaAlwaysInlineCutoff",
+            popularStdlibHelpersProgram()
+        );
+        for (int i = 1; i <= 8; i++) {
+            String caller = "caller" + i;
+            assertFunctionBodyContains(compiled, caller, "unit_getX(", false);
+            assertFunctionBodyContains(compiled, caller, "unit_getAbilityLevel(", false);
+            assertFunctionBodyContains(compiled, caller, "real_floor(", false);
+            assertFunctionBodyContains(compiled, caller, "__wurst_intDiv(", false);
+        }
+    }
+
+    @Test
+    public void optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations",
+            "package Test",
+            "import SpatialIndexForUnits",
+            "@noinline function query(vec2 center)",
+            "    let result = unitsInRange(center, 512.)",
+            "    destroy result",
+            "init",
+            "    query(vec2(0., 0.))"
+        );
+
+        // The spatial-index helpers each have one call site, so the optimizer folds the whole
+        // query chain into our retained entry point. Inspect that surviving hot-loop owner.
+        String body = topLevelFunctionBodyWithPrefix(compiled, "query");
+        assertTrue("query loop must read the next-link array directly:\n" + body,
+            body.contains("UnitSpatialIndex_nextInCell["));
+        assertTrue("query loop must read cached X directly:\n" + body,
+            body.contains("UnitSpatialIndex_lastX["));
+        assertTrue("query loop must read cached Y directly:\n" + body,
+            body.contains("UnitSpatialIndex_lastY["));
+        assertFalse("typed array reads must not retain assurance calls:\n" + body,
+            body.contains("__wurst_ensure"));
+        assertFalse("static-arity helpers must not allocate vararg packs:\n" + body,
+            body.contains("table.pack"));
+        assertFalse("hot query arithmetic must not retain portable div helpers:\n" + body,
+            body.contains("__wurst_intDiv("));
+    }
+
+    /**
+     * On Lua a vararg function used to keep its {@code ...} parameter and pack it into a table on
+     * every call, and the inliner refused it. With a static argument count at the call site the
+     * call is redirected to a fixed-arity copy, as Jass has always done, so the pack is gone and
+     * the copy inlines like any other small function.
+     */
+    @Test
+    public void staticArityVarargCallsAreFixedArityOnLua() {
+        String compiled = compileOptimizedLua(
+            "staticArityVarargCallsAreFixedArityOnLua",
+            "package Test",
+            "native consume(int i)",
+            "int array values",
+            "function biggest(vararg int xs) returns int",
+            "    var best = -2147483648",
+            "    for x in xs",
+            "        if x > best",
+            "            best = x",
+            "    return best",
+            "@noinline function query(int a, int b, int c)",
+            "    var i = 0",
+            "    while i < 16",
+            "        consume(biggest(a, values[i]))",
+            "        consume(biggest(a, b, c))",
+            "        i++",
+            "init",
+            "    query(1, 2, 3)"
+        );
+        assertFalse("no vararg call site may pack a table:\n" + compiled, compiled.contains("table.pack"));
+        assertFalse("the vararg original must not survive with a ... parameter:\n" + compiled,
+            compiled.contains("function biggest(...)"));
+        assertFunctionBodyContains(compiled, "query", "biggest(", false);
+    }
+
+    @Test
+    public void fixedArityVarargLoweringKeepsSemanticsOnLua() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple pair(int x, int y)",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "function count(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    return n",
+            "function firstOr(vararg int xs) returns int",
+            "    for x in xs",
+            "        return x",
+            "    return -1",
+            "function pairs(vararg pair ps) returns int",
+            "    var result = 0",
+            "    for p in ps",
+            "        result = result * 100 + p.x * 10 + p.y",
+            "    return result",
+            "class Bag",
+            "    int total = 0",
+            "    function add(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let bag = new Bag()",
+            "    bag.add(1)",
+            "    bag.add(2, 3)",
+            "    bag.add()",
+            "    if sum() == 0 and sum(5) == 5 and sum(1, 2, 3, 4) == 10",
+            "        and count() == 0 and count(9, 9, 9) == 3",
+            "        and firstOr() == -1 and firstOr(4, 5) == 4",
+            "        and pairs(pair(1, 2), pair(3, 4)) == 1234",
+            "        and bag.total == 6",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("fixedArityVarargLoweringKeepsSemanticsOnLua");
+        assertFalse("every call above has a static arity, so nothing may pack:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    @Test
+    public void varargCallAboveTheLuaArityBoundKeepsThePackedPath() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 150;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function sum(vararg int xs) returns int",
+            "    var total = 0",
+            "    for x in xs",
+            "        total += x",
+            "    return total",
+            "init",
+            "    if sum(" + args + ") == " + (n * (n + 1) / 2) + " and sum(1, 2) == 3",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("varargCallAboveTheLuaArityBoundKeepsThePackedPath");
+        assertTrue("a call above the bound keeps the vararg original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    /**
+     * A vararg constructor is reached through a compiler-generated `new_C` wrapper which forwards its
+     * vararg placeholder to `construct_C`. When a call above the bound keeps that wrapper as the
+     * retained original, its body still holds the forwarding call, and the placeholder is one node
+     * standing for however many arguments the caller passed. Specialising by node count would rewrite
+     * it to a fixed-arity constructor and silently drop every argument after the first.
+     */
+    @Test
+    public void varargConstructorAboveTheLuaArityBoundKeepsThePackedPath() {
+        StringBuilder args = new StringBuilder();
+        int n = 70;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append(i);
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Tally",
+            "    int total = 0",
+            "    construct(vararg int xs)",
+            "        for x in xs",
+            "            total += x",
+            "init",
+            "    let big = new Tally(" + args + ")",
+            "    let small = new Tally(1, 2)",
+            "    if big.total == " + (n * (n + 1) / 2) + " and small.total == 3",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * Jass erases generics long before this pass, so `redirectCall` could build the replacement with
+     * an empty type-argument list. Lua only specialises concrete operations at that point and leaves
+     * generics live, so dropping them leaves the redirected call typed by an unresolved type variable.
+     * `LuaNativeLowering` decides string concatenation from each operand's type, so a generic vararg
+     * returning its type parameter silently became a numeric addition on strings.
+     */
+    @Test
+    public void genericVarargCallKeepsItsTypeArgumentsOnLua() {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "function lastOf<T>(vararg T xs) returns T",
+            "    T result = null",
+            "    for x in xs",
+            "        result = x",
+            "    return result",
+            "init",
+            "    let joined = \"a\" + lastOf<string>(\"b\", \"c\")",
+            "    if joined == \"ac\" and lastOf<int>(1, 2) == 2",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void virtuallyDispatchedVarargMethodKeepsThePackedPath() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Summer",
+            "    function sum(vararg int xs) returns int",
+            "class Plain implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += x",
+            "        return total",
+            "class Doubling implements Summer",
+            "    override function sum(vararg int xs) returns int",
+            "        var total = 0",
+            "        for x in xs",
+            "            total += 2 * x",
+            "        return total",
+            "init",
+            "    Summer a = new Plain()",
+            "    Summer b = new Doubling()",
+            "    if a.sum(1, 2, 3) == 6 and b.sum(1, 2, 3) == 12",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * A vararg function may call itself with a different static arity. Copying the function for one
+     * arity must not retarget that inner call to the copy, which has the wrong parameter count; the
+     * call has to be mapped to its own arity like every other call.
+     */
+    @Test
+    public void recursiveVarargCallsAreMappedToTheirOwnArity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function depth(vararg int xs) returns int",
+            "    var n = 0",
+            "    for x in xs",
+            "        n++",
+            "    if n == 3",
+            "        return 100 + depth(1, 2)",
+            "    if n == 2",
+            "        return 10 + depth(1)",
+            "    return n",
+            "init",
+            "    if depth(1, 2, 3) == 111 and depth(5) == 1 and depth() == 0",
+            "        testSuccess()"
+        );
+    }
+
+    /**
+     * The Lua arity bound is about emitted parameters, which tuple elimination multiplies: twenty
+     * four-field tuples are eighty formal parameters. Such a call keeps the packed path rather than
+     * emitting a function Lua refuses to load.
+     */
+    @Test
+    public void wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound() throws IOException {
+        StringBuilder args = new StringBuilder();
+        int n = 20;
+        for (int i = 1; i <= n; i++) {
+            if (i > 1) {
+                args.append(", ");
+            }
+            args.append("quad(").append(i).append(", 0, 0, 1)");
+        }
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "tuple quad(int a, int b, int c, int d)",
+            "@noinline function sumFirst(vararg quad qs) returns int",
+            "    var total = 0",
+            "    for q in qs",
+            "        total += q.a + q.d",
+            "    return total",
+            "init",
+            "    if sumFirst(" + args + ") == " + (n * (n + 1) / 2 + n) + " and sumFirst(quad(1, 2, 3, 4)) == 5",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("wideTupleVarargCallCountsFlattenedParametersAgainstTheLuaBound");
+        assertTrue("eighty flattened parameters must keep the packed original:\n" + compiled,
+            compiled.contains("table.pack"));
+    }
+
+    /**
+     * A vararg parameter cannot be passed on, to a function or to a method. Both halves matter here:
+     * a vararg function may have only the one parameter, so a receiver cannot be a second one, and
+     * the argument itself does not type as the element type. The eliminator's forwarding branch is
+     * therefore reachable only from calls it generated itself, which are always ImFunctionCall.
+     */
+    @Test
+    public void varargParameterCannotBeForwardedToAMethod() {
+        testAssertErrorsLines(false, "Found vararg integer",
+            "package Test",
+            "class Sink",
+            "    static Sink instance = null",
+            "    function consume(vararg int xs)",
+            "        skip",
+            "function relay(vararg int xs)",
+            "    Sink.instance.consume(xs)"
+        );
+    }
+
+
+    /**
+     * `@preserveName` and `ExecuteFunc` mark a function's emitted name as part of the map's
+     * WC3-facing API, and `LuaTranslator.collectPredefinedNames()` resets every function carrying
+     * that flag to its trace's source name. A generated copy shares the original's trace, so an
+     * inherited flag would emit the original and every copy under one name and let the last
+     * definition win. The preserved name belongs to the retained original: that is the one external
+     * code calls, at an arity this pass never gets to see.
+     */
+    @Test
+    public void preservedNameStaysOnTheVarargOriginalNotItsCopies() {
+        String compiled = compileOptimizedLua(
+            "preservedNameStaysOnTheVarargOriginalNotItsCopies",
+            "package Test",
+            "native consume(int i)",
+            "@preserveName @noinline public function tally(vararg int xs) returns int",
+            "    var sum = 0",
+            "    for x in xs",
+            "        sum += x",
+            "    return sum",
+            "init",
+            "    consume(tally(1, 2))"
+        );
+        assertTrue("the fixed-arity copy must keep its own suffixed name:\n" + compiled,
+            compiled.contains("function tally_2("));
+        int definitions = 0;
+        for (int at = compiled.indexOf("function tally("); at >= 0;
+             at = compiled.indexOf("function tally(", at + 1)) {
+            definitions++;
+        }
+        assertEquals("the preserved name must name exactly one function:\n" + compiled,
+            1, definitions);
+    }
+
+    /**
+     * The inliner used to refuse every function whose return fact the local-player analysis had
+     * marked, and that fact fires for anything reachable from a client-local branch anywhere in the
+     * program. In a stdlib-linked map that is most of the call graph, so pure index arithmetic in
+     * hot loops stayed as calls. Only functions which transitively invoke a client-local native are
+     * an inlining barrier.
+     */
+    @Test
+    public void pureHelpersReachableFromLocalPlayerBranchInlineIntoLuaHotLoops() {
+        String compiled = compileOptimizedLua(
+            "pureHelpersReachableFromLocalPlayerBranchInlineIntoLuaHotLoops",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native consume(int i)",
+            "native consumePlayer(player p)",
+            "int array cells",
+            "int offset = 0",
+            "@inline function slotOf(int cell, int group) returns int",
+            "    return cell * 8 + group",
+            "@inline function chainHead(int cell, int group) returns int",
+            "    return cells[slotOf(cell, group)]",
+            "@inline function localWrapper() returns player",
+            "    return GetLocalPlayer()",
+            "@noinline function query(int group)",
+            "    var cell = 0",
+            "    while cell < 16",
+            "        consume(chainHead(cell, group))",
+            "        cell++",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        consume(slotOf(offset, 1))",
+            "    consumePlayer(localWrapper())",
+            "    query(2)"
+        );
+
+        assertFunctionBodyContains(compiled, "query", "slotOf", false);
+        assertFunctionBodyContains(compiled, "query", "chainHead", false);
+        assertFunctionBodyContains(compiled, "query", "* 8", true);
+        assertTrue("a wrapper which itself calls GetLocalPlayer must stay an explicit call",
+            compiled.contains("consumePlayer(localWrapper())"));
+    }
+
     @Test
     public void localPlayerTaintFlowsThroughVarargLoopValues() {
         String compiled = compileOptimizedLua(
@@ -2190,7 +2615,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * specifically to stay exempt from that rewrite.
      */
     @Test
-    public void ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes() throws IOException {
+    public void stringConcatNilCheckSurvivesEliminateLocalTypes() throws IOException {
         test().testLua(true).executeProg().lines(
             "package Test",
             "native testSuccess()",
@@ -2203,8 +2628,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        print(names[5])",
             "        testSuccess()"
         );
-        String compiled = compiledLua("ensureStrAndStringConcatNilChecksSurviveEliminateLocalTypes");
-        assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_ensureStr(");
+        String compiled = compiledLua("stringConcatNilCheckSurvivesEliminateLocalTypes");
         assertNilCheckNotCorruptedToEmptyStringCheck(compiled, "__wurst_stringConcat(");
     }
 
@@ -2232,8 +2656,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("consumeBool((forward(false) == true))"));
         assertFalse("boolean normalization must not call the ensure helper",
             compiled.contains("__wurst_ensureBool(forward(false))"));
-        assertTrue("primitive array reads crossing a native boundary must be normalized:\n" + compiled,
-            compiled.contains("__wurst_ensureStr(Test_values[1])"));
+        assertTrue("typed primitive arrays must cross native boundaries as raw reads:\n" + compiled,
+            compiled.contains("print(Test_values[1])"));
     }
 
     @Test
@@ -2418,8 +2842,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String compiled = compiledLua("erasedGenericPrimitiveDefaultsPropagateThroughCompositeContexts");
         assertEquals("each concrete integer consumer must normalize its erased generic input", 12,
             countOccurrences(compiled, "__wurst_ensureInt(Box_Box_get("));
-        assertTrue("global primitive array reads must remain safe for foreign writes",
-            compiled.contains("__wurst_ensureInt(Test_values[0])"));
+        assertTrue("global primitive array reads must be raw table indexes",
+            compiled.contains("return Test_values[0]"));
+        assertFalse("typed array reads must not use erased-generic normalization",
+            compiled.contains("ensureInt(Test_values"));
     }
 
     @Test
@@ -2474,9 +2900,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * Seeded boundary corpus for the type-assurance change. Each case varies
      * the primitive type, literal value, and array slot while checking the two
      * unsafe paths independently: erased generic propagation and a raw array
-     * read. The intermediate generic functions must stay free of assurance
-     * calls, while global array reads and native call sites must have the
-     * appropriate normalization. This is intentionally compile-only: the
+     * read. The intermediate generic functions and typed array reads must stay
+     * free of assurance calls, while erased generic values keep normalization
+     * at concrete uses. This is intentionally compile-only: the
      * generated native sinks have no Warcraft runtime implementation.
      */
     @Test
@@ -2518,34 +2944,165 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             );
 
             assertFunctionBodyContains(compiled, "forward", "__wurst_ensure", false);
-            String readNormalization = type.equals("bool")
-                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
-                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
-            assertFunctionBodyContains(compiled, "read", readNormalization, true);
+            String rawArrayRead = "TypeAssuranceFuzz_values[" + arrayIndex + "]";
+            assertFunctionBodyContains(compiled, "read", rawArrayRead, true);
+            assertFunctionBodyContains(compiled, "read", "__wurst_ensure", false);
+            assertFunctionBodyContains(compiled, "read", "== true", false);
             String genericArgument = type.equals("bool")
                 ? "(forward(" + literal + ") == true)"
                 : "__wurst_ensure" + suffix + "(forward(" + literal + "))";
             assertTrue("generic boundary case " + caseIndex + " was not normalized:\n" + compiled,
                 compiled.contains(sink + "(" + genericArgument + ")"));
-            String arrayArgument = type.equals("bool")
-                ? "(TypeAssuranceFuzz_values[" + arrayIndex + "] == true)"
-                : "__wurst_ensure" + suffix + "(TypeAssuranceFuzz_values[" + arrayIndex + "])";
-            assertTrue("array boundary case " + caseIndex + " was not normalized:\n" + compiled,
-                compiled.contains(sink + "(" + arrayArgument + ")"));
+            assertTrue("array boundary case " + caseIndex + " was not emitted raw:\n" + compiled,
+                compiled.contains(sink + "(" + rawArrayRead + ")"));
             assertTrue("ordinary typed values must not be normalized at the boundary:\n" + compiled,
                 compiled.contains(sink + "(" + literal + ")"));
         }
     }
 
+    @Test
+    public void typedPrimitiveArrayReadsAreRawInOptimizedLua() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_typedPrimitiveArrayReadsAreRawInOptimizedLua",
+            primitiveArrayReadShapeLines()
+        );
+        assertFalse("typed array reads must not call assurance helpers:\n" + compiled,
+            compiled.contains("__wurst_ensure"));
+        assertFalse("boolean array reads must not be normalized with a true comparison:\n" + compiled,
+            compiled.contains("== true)"));
+    }
+
+    @Test
+    public void typedPrimitiveArrayDefaultsComeFromMetatables() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array ints",
+            "real array reals",
+            "bool array bools",
+            "string array strings",
+            "function localDefault() returns int",
+            "    int array[8] localInts",
+            "    return localInts[7]",
+            "init",
+            "    if ints[0] == 0 and ints[1000000] == 0",
+            "        and reals[0] == 0. and reals[1000000] == 0.",
+            "        and not bools[0] and not bools[1000000]",
+            "        and strings[0] == \"\" and strings[1000000] == \"\"",
+            "        and localDefault() == 0",
+            "        ints[3] = 0",
+            "        reals[3] = 0.",
+            "        bools[3] = false",
+            "        strings[3] = \"\"",
+            "        if ints[3] == 0 and reals[3] == 0. and not bools[3] and strings[3] == \"\"",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
+    public void typedPrimitiveArrayReadsAreRawWithStacktraces() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaBackendAuditTests_typedPrimitiveArrayReadsAreRawWithStacktraces",
+            new RunArgs().with("-lua", "-stacktraces"),
+            primitiveArrayReadShapeLines()
+        );
+        assertFalse("stacktrace mode must not restore typed-array assurance calls:\n" + compiled,
+            compiled.contains("__wurst_ensure"));
+        assertFalse("stacktrace mode must not normalize boolean reads with a true comparison:\n" + compiled,
+            compiled.contains("== true)"));
+    }
+
+    private static String[] primitiveArrayReadShapeLines() {
+        return new String[]{
+            "package Test",
+            "native consumeInt(int value)",
+            "int array ints",
+            "real array reals",
+            "bool array bools",
+            "string array strings",
+            "function scan(int limit) returns real",
+            "    int array[8] localInts",
+            "    int i = 0",
+            "    real sum = 0.",
+            "    while i < limit",
+            "        sum += ints[i] + reals[i] + localInts[i]",
+            "        if bools[i] and strings[i] == \"\"",
+            "            sum += 1",
+            "        consumeInt(ints[i])",
+            "        i++",
+            "    return sum",
+            "init",
+            "    scan(8)"
+        };
+    }
+
+    private static String[] tinyPopularLuaHelpersProgram() {
+        List<String> lines = new ArrayList<>(List.of(
+            "type unit extends handle",
+            "package Test",
+            "@extern native GetUnitX(unit u) returns real",
+            "native consumeReal(real value)",
+            "native consumeInt(int value)",
+            "function safeCoordinate(unit u) returns real",
+            "    return u == null ? 0. : GetUnitX(u)",
+            "function arithmetic(int value) returns int",
+            "    return (value * 31 + 17) div 4"
+        ));
+        for (int i = 1; i <= 8; i++) {
+            lines.add("@noinline function caller" + i + "(unit u, int value)");
+            lines.add("    consumeReal(safeCoordinate(u))");
+            lines.add("    consumeInt(arithmetic(value))");
+        }
+        lines.add("init");
+        for (int i = 1; i <= 8; i++) {
+            lines.add("    caller" + i + "(null, " + i + ")");
+        }
+        return lines.toArray(String[]::new);
+    }
+
+    private static String[] popularStdlibHelpersProgram() {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native consumeReal(real value)",
+            "native consumeInt(int value)"
+        ));
+        for (int i = 1; i <= 8; i++) {
+            lines.add("@noinline function caller" + i + "(unit u, real value, int divisor)");
+            lines.add("    consumeReal(u.getX())");
+            lines.add("    consumeInt(u.getAbilityLevel('A000'))");
+            lines.add("    consumeInt(value.floor())");
+            lines.add("    consumeInt(17 div divisor)");
+        }
+        lines.add("init");
+        for (int i = 1; i <= 8; i++) {
+            lines.add("    caller" + i + "(null, -1.5, 2)");
+        }
+        return lines.toArray(String[]::new);
+    }
+
     private static void assertFunctionBodyContains(String compiled, String functionName,
                                                     String text, boolean expected) {
+        boolean found = functionBody(compiled, functionName).contains(text);
+        assertEquals("unexpected occurrence of " + text + " in " + functionName,
+            expected, found);
+    }
+
+    private static String functionBody(String compiled, String functionName) {
         int start = compiled.indexOf("function " + functionName + "(");
         assertTrue("expected function " + functionName, start >= 0);
         int end = compiled.indexOf("\nend", start);
         assertTrue("unterminated function " + functionName, end >= 0);
-        boolean found = compiled.substring(start, end).contains(text);
-        assertEquals("unexpected occurrence of " + text + " in " + functionName,
-            expected, found);
+        return compiled.substring(start, end);
+    }
+
+    private static String topLevelFunctionBodyWithPrefix(String compiled, String functionNamePrefix) {
+        int start = compiled.indexOf("function " + functionNamePrefix);
+        assertTrue("expected function starting with " + functionNamePrefix, start >= 0);
+        int end = compiled.indexOf("\nfunction ", start + 1);
+        if (end < 0) {
+            end = compiled.length();
+        }
+        return compiled.substring(start, end);
     }
 
     private void assertNilCheckNotCorruptedToEmptyStringCheck(String compiled, String functionNamePrefix) {
@@ -2564,22 +3121,20 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * backend and the interpreter for negative operands
      * (e.g. -7 div 2 was -4 instead of -3, and 7 mod -2 was -1 instead of 1).
      *
-     * Div/mod are now lowered to portable IM functions before the optimizer
-     * runs (see LuaNativeLowering#lowerDivMod), so calls with constant
-     * arguments - like the ones below - may get inlined away entirely rather
-     * than showing up as a helper call in the output. The floor-div/fmod
-     * *native* they delegate to (Wurst has no such IM operator) always
-     * survives somewhere in the output, inlined or not, so checking for it
-     * is robust regardless of the inliner's decision.
+     * Div/mod are lowered to portable IM functions before the optimizer runs
+     * (see LuaNativeLowering#lowerDivMod). Their raw primitive calls are Lua
+     * backend intrinsics, so emitted code uses // and math.fmod directly.
      */
     @Test
     public void integerDivModMatchJassSemanticsInLua() throws IOException {
         test().testLua(true).executeProg().lines(DIV_MOD_PROG);
         String compiled = compiledLua("integerDivModMatchJassSemanticsInLua");
-        assertTrue("div must go through the truncating floor-div correction",
-            compiled.contains("__wurst_rawFloorDivInt("));
-        assertTrue("mod must go through the ModuloInteger-compatible fmod correction",
-            compiled.contains("__wurst_rawFmodInt("));
+        assertTrue("div must use Lua floor division inside the truncating correction",
+            compiled.contains(" // "));
+        assertTrue("mod must use math.fmod inside the ModuloInteger-compatible correction",
+            compiled.contains("math.fmod("));
+        assertFalse("raw numeric primitive calls must be intrinsic",
+            compiled.contains("__wurst_rawF"));
         assertFalse("mod/div must not use math.floor directly",
             compiled.contains("math.floor"));
     }
@@ -2669,6 +3224,47 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             1, countOccurrences(compiled, "function __wurst_modInt("));
     }
 
+    @Test
+    public void optimizedIntegerDivModUsesLuaPrimitivesInLoop() {
+        String compiled = compileOptimizedLua(
+            "LuaBackendAuditTests_optimizedIntegerDivModUsesLuaPrimitivesInLoop",
+            "package Test",
+            "native consumeInt(int value)",
+            "function run(int limit)",
+            "    int x = limit",
+            "    while x > 0",
+            "        consumeInt(x div 8)",
+            "        consumeInt(x mod 8)",
+            "        x--",
+            "init",
+            "    run(32)"
+        );
+        assertTrue("optimized div must contain Lua floor division:\n" + compiled,
+            compiled.contains(" // 8"));
+        assertTrue("optimized mod must contain math.fmod:\n" + compiled,
+            compiled.contains("math.fmod("));
+        assertFalse("optimized loop must not call raw numeric helpers:\n" + compiled,
+            compiled.contains("__wurst_raw"));
+    }
+
+    @Test
+    public void numericIntrinsicRecognitionUsesFunctionIdentity() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function __wurst_rawFmodInt(int a, int b) returns int",
+            "    return 123",
+            "init",
+            "    if __wurst_rawFmodInt(7, 2) == 123",
+            "        testSuccess()"
+        );
+        String compiled = compiledLua("numericIntrinsicRecognitionUsesFunctionIdentity");
+        assertTrue("an ordinary same-named function must keep its definition:\n" + compiled,
+            compiled.contains("function __wurst_rawFmodInt("));
+        assertFalse("an ordinary same-named call must not lower to fmod:\n" + compiled,
+            compiled.contains("math.fmod("));
+    }
+
     /**
      * String concatenation is lowered to a synthetic stringConcat IM function.
      * The polyfill and its call sites used to be linked only by both happening
@@ -2705,9 +3301,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      * before its first call was introduced.
      */
     @Test
-    public void optimizedStringConcatKeepsItsHelperDefinition() {
+    public void optimizedStringConcatHasNoDanglingHelperCalls() {
         String compiled = compileOptimizedLua(
-            "LuaBackendAuditTests_optimizedStringConcatKeepsItsHelperDefinition",
+            "LuaBackendAuditTests_optimizedStringConcatHasNoDanglingHelperCalls",
             "package Test",
             "native print(string message)",
             "function join1(string a, string b) returns string",
@@ -2730,10 +3326,8 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    print(join5(\"a\", \"b\"))",
             "    print(join6(\"a\", \"b\"))"
         );
-        assertTrue("optimized Lua must retain the helper called by lowered string concatenation",
-            compiled.contains("function __wurst_stringConcat("));
-        assertTrue("repro must contain calls in addition to the helper definition",
-            countOccurrences(compiled, "__wurst_stringConcat(") > 1);
+        assertFalse("the tiny lowered concat helper should inline without leaving dangling calls",
+            compiled.contains("__wurst_stringConcat("));
     }
 
     /**
@@ -2775,22 +3369,16 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String[] helperNames = {
-            "__wurst_ensureInt", "__wurst_ensureBool", "__wurst_ensureReal", "__wurst_ensureStr",
             "__wurst_stringConcat", "__wurst_intDiv", "__wurst_modInt", "__wurst_modReal",
-            "__wurst_rawToNumberInt", "__wurst_rawToInteger", "__wurst_rawToNumberReal",
-            "__wurst_rawToString", "__wurst_rawConcat", "__wurst_rawFloorDivInt",
-            "__wurst_rawFmodInt", "__wurst_rawFmodReal"
+            "__wurst_rawConcat"
         };
         for (String helperName : helperNames) {
             assertHelperDefinedWhenCalled(compiled, helperName);
         }
-        assertTrue("repro must exercise integer ensure lowering", compiled.contains("__wurst_rawToNumberInt"));
-        assertTrue("repro must exercise real ensure lowering", compiled.contains("__wurst_rawToNumberReal"));
-        assertTrue("repro must exercise string ensure lowering", compiled.contains("__wurst_rawToString"));
         assertTrue("repro must exercise string concat lowering", compiled.contains("__wurst_rawConcat"));
-        assertTrue("repro must exercise integer div lowering", compiled.contains("__wurst_rawFloorDivInt"));
-        assertTrue("repro must exercise integer mod lowering", compiled.contains("__wurst_rawFmodInt"));
-        assertTrue("repro must exercise real mod lowering", compiled.contains("__wurst_rawFmodReal"));
+        assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
+        assertTrue("repro must exercise integer and real mod lowering", compiled.contains("math.fmod("));
+        assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
     }
 
     /**

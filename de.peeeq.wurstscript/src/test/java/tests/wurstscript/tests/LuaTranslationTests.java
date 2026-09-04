@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.testng.AssertJUnit.*;
 
@@ -128,6 +130,15 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    private int countMatches(String output, String regex) {
+        Matcher matcher = Pattern.compile(regex).matcher(output);
+        int result = 0;
+        while (matcher.find()) {
+            result++;
+        }
+        return result;
+    }
+
     private String singleMatch(String output, String regex, int group) {
         Matcher matcher = Pattern.compile(regex).matcher(output);
         assertTrue("Expected pattern to occur: " + regex, matcher.find());
@@ -173,6 +184,11 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
+        return compileLuaWithCUs(testName, withStdLib, extraCUs, runArgs, lines);
+    }
+
+    private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs,
+                                     RunArgs runArgs, String... lines) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         List<CU> inputs = new ArrayList<>();
@@ -503,7 +519,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void stringArrayReadIsEnsuredAtNativeBoundary() throws IOException {
+    public void stringArrayReadIsRawAtNativeBoundary() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "string array playerName",
@@ -511,8 +527,10 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let i = 0",
             "    SetPlayerName(Player(i), playerName[i])"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsuredAtNativeBoundary.lua"), Charsets.UTF_8);
-        assertTrue("native boundary must normalize an array read",
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsRawAtNativeBoundary.lua"), Charsets.UTF_8);
+        assertTrue("native boundary must receive a raw typed array read",
+            compiled.contains(", Test_playerName["));
+        assertFalse("typed array reads must not use erased-generic normalization",
             compiled.contains("__wurst_ensureStr(Test_playerName["));
     }
 
@@ -2148,6 +2166,263 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
+    public void luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        for (int i = 0; i < 16; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 16)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = helper(1)");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("@inline is a strong preference, but must not force Lua register spilling:\n" + callerBody,
+            callerBody.contains("helper(1)"));
+        assertFalse("budgeted caller must stay out of the heap locals fallback:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInliningWithoutLocalAllocationUsesDeclarationBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function caller(int value)");
+        for (int i = 0; i < 70; i++) {
+            lines.add("    takesInt((value + " + i + ") mod 3)");
+        }
+        lines.add("init");
+        lines.add("    caller(7)");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationUsesDeclarationBudget",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("inlining without allocation must not cross into whole-function spill mode:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("the exact declaration budget must retain residual helper calls near the limit:\n" + body,
+            body.contains("__wurst_modInt("));
+    }
+
+    @Test
+    public void luaInliningWithoutLocalAllocationCountsFlattenedTuples() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function tupleHelper(quad a, quad b, quad c, quad d) returns int");
+        lines.add("    return a.a + b.a + c.a + d.a");
+        String parameters = IntStream.range(0, 47)
+            .mapToObj(i -> "quad p" + i)
+            .collect(Collectors.joining(", "));
+        lines.add("@noinline function caller(" + parameters + ")");
+        lines.add("    takesInt(tupleHelper(p0, p1, p2, p3))");
+        lines.add("init");
+        lines.add("    let value = quad(1, 2, 3, 4)");
+        lines.add("    caller(" + IntStream.range(0, 47)
+            .mapToObj(i -> "value")
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationCountsFlattenedTuples",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("a caller below Lua's hard limit must stay register-backed:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("tuple components must count separately when deciding whether to inline:\n" + body,
+            body.contains("tupleHelper("));
+    }
+
+    @Test
+    public void luaInlinerReusesRegistersAcrossSequentialInlineSites() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        lines.add("    let a = x + 1");
+        lines.add("    let b = a + 1");
+        lines.add("    let c = b + 1");
+        lines.add("    return c");
+        lines.add("@noinline function caller()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 80; i++) {
+            lines.add("    sum += helper(" + i + ")");
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerReusesRegistersAcrossSequentialInlineSites",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertFalse("low-pressure sequential helper calls should still inline:\n" + callerBody,
+            callerBody.contains("helper("));
+        assertFalse("sequential inline temporaries should reuse registers:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInlinerBudgetsTheExpandedNestedCallee() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("@inline function leaf(int x) returns int");
+        for (int i = 0; i < 20; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 20)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@inline function middle(int x) returns int");
+        lines.add("    return leaf(x)");
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = middle(1)");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerBudgetsTheExpandedNestedCallee",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("caller must budget the already-expanded middle body:\n" + callerBody,
+            callerBody.contains("middle(1)"));
+        assertFalse("nested inline accounting must prevent a whole-function spill:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native takesPlayer(player p)",
+            "@noinline function caller()",
+            "    let first = GetLocalPlayer()",
+            "    takesPlayer(first)",
+            "    let second = GetLocalPlayer()",
+            "    takesPlayer(second)",
+            "init",
+            "    caller()"
+        );
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertEquals("same-locality values with disjoint live ranges should share one Lua register:\n" + callerBody,
+            1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
+    }
+
+    @Test
+    public void luaLocalMergerKeepsTupleVarargLoopBindingsDistinct() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("@noinline function sumEdges(vararg quad values) returns int");
+        lines.add("    var result = 0");
+        lines.add("    for value in values");
+        lines.add("        result += value.a + value.d");
+        lines.add("    return result");
+        lines.add("init");
+        String arguments = IntStream.range(0, 33)
+            .mapToObj(i -> "quad(" + i + ", 0, 0, " + (100 + i) + ")")
+            .collect(Collectors.joining(", "));
+        lines.add("    sumEdges(" + arguments + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerKeepsTupleVarargLoopBindingsDistinct",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        String body = getFunctionBody(compiled, "sumEdges");
+        assertEquals("simultaneously assigned tuple components must use distinct Lua locals:\n" + body,
+            4, countMatches(body, "local\\s+value_[abcd]\\b"));
+    }
+
+    @Test
+    public void luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function small(int x) returns int");
+        lines.add("    return x + 1");
+        lines.add("@noinline function process(vararg int values)");
+        lines.add("    for value in values");
+        for (int i = 0; i < 191; i++) {
+            lines.add("        let temp" + i + " = value + " + i);
+            lines.add("        takesInt(temp" + i + ")");
+        }
+        lines.add("        takesInt(small(value))");
+        lines.add("init");
+        lines.add("    process(" + IntStream.range(0, 33)
+            .mapToObj(Integer::toString)
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        assertFalse("sequential loop temporaries must not consume concurrent register budget:\n" + compiled,
+            compiled.contains("small("));
+    }
+
+    @Test
     public void spilledLocalsKeepNestedBlockInitializationsInLua() throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("package Test");
@@ -2473,10 +2748,70 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    ForForce(f, () -> skip)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        assertFalse(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled,
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
         assertTrue(compiled.contains(", ...)"));
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
+    }
+
+    @Test
+    public void luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            "type boolexpr extends handle",
+            "package Test",
+            "@extern native Condition(code callback) returns boolexpr",
+            "function predicate() returns boolean",
+            "    return true",
+            "init",
+            "    let first = Condition(function predicate)",
+            "    let second = Condition(function predicate)"
+        );
+
+        List<String> adapters = uniqueMatches(compiled,
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+        assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
+            1, adapters.size());
+        String adapter = adapters.get(0);
+        assertEquals("both Condition calls must reference the cached adapter", 2,
+            countMatches(compiled, "Condition\\(" + Pattern.quote(adapter) + "\\)"));
+        String adapterBody = getFunctionBody(compiled, adapter);
+        assertTrue(adapterBody.contains("_, result = xpcall(predicate,"));
+        assertTrue(adapterBody.contains("return result"));
+        assertFalse("callback sites must not allocate anonymous wrappers", compiled.contains("Condition(function ("));
+    }
+
+    @Test
+    public void luaFunctionRefAdapterTracksLateClassFunctionRename() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefAdapterTracksLateClassFunctionRename",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua"),
+            "package Test",
+            "@extern native consume(code callback)",
+            "@extern native CallbackOwner_staticCallback()",
+            "class CallbackOwner",
+            "    function start()",
+            "        consume(function staticCallback)",
+            "    private static function staticCallback()",
+            "        consume(function staticCallback)",
+            "init",
+            "    CallbackOwner_staticCallback()",
+            "    new CallbackOwner().start()"
+        );
+
+        String callbackName = singleMatch(compiled,
+            "function\\s+(CallbackOwner_[A-Za-z0-9_]*staticCallback[A-Za-z0-9_]*)\\(\\)", 1);
+        assertTrue("adapter must track the class callback's final name:\n" + compiled,
+            compiled.contains("xpcall(" + callbackName + ","));
+        assertFalse(compiled.contains("xpcall(staticCallback,"));
     }
 
     @Test

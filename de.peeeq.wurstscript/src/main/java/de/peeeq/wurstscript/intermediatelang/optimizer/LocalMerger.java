@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
-import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -43,9 +42,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     public String getName() { return "Local variables merged"; }
 
     void optimizeFunc(ImFunction func) {
-        Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
+        LivenessAnalysis liveness = analyzeLiveness(func);
+        Map<ImStmt, Set<ImVar>> livenessInfo = liveness.liveOut;
         eliminateDeadCode(livenessInfo);
-        mergeLocals(livenessInfo, func);
+        mergeLocals(livenessInfo, liveness.liveAtEntry, func);
     }
 
     void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
@@ -55,11 +55,23 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
 
-    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
-        Map<ImVar, Set<ImVar>> interference = calculateInferenceGraph(livenessInfo);
+    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, Set<ImVar> liveAtEntry,
+        ImFunction func) {
+        Map<ImVar, java.util.Set<ImVar>> interference =
+            calculateInterferenceGraph(livenessInfo, liveAtEntry, func);
+
+        Map<ImVar, Integer> declarationOrder = new IdentityHashMap<>();
+        int nextOrder = 0;
+        for (ImVar parameter : func.getParameters()) {
+            declarationOrder.put(parameter, nextOrder++);
+        }
+        for (ImVar local : func.getLocals()) {
+            declarationOrder.put(local, nextOrder++);
+        }
 
         PriorityQueue<ImVar> queue = new PriorityQueue<>(
-            (x, y) -> interference.get(y).size() - interference.get(x).size()
+            Comparator.<ImVar>comparingInt(v -> interference.get(v).size()).reversed()
+                .thenComparingInt(declarationOrder::get)
         );
         queue.addAll(interference.keySet());
 
@@ -81,8 +93,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                     continue;
                 }
                 if (localPlayerContextAnalyzer != null
-                    && (localPlayerContextAnalyzer.isLocalPlayerDependent(v)
-                    || localPlayerContextAnalyzer.isLocalPlayerDependent(color))) {
+                    && localPlayerContextAnalyzer.isLocalPlayerDependent(v)
+                    != localPlayerContextAnalyzer.isLocalPlayerDependent(color)) {
                     continue;
                 }
 
@@ -158,17 +170,91 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         return before - kept.size();
     }
 
-    private Map<ImVar, Set<ImVar>> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
-        Map<ImVar, Set<ImVar>> g = new LinkedHashMap<>();
-        for (Map.Entry<ImStmt, Set<ImVar>> e : livenessInfo.entrySet()) {
-            Set<ImVar> live = e.getValue();
-            for (ImVar v1 : live) {
-                Set<ImVar> set = g.getOrDefault(v1, HashSet.empty());
-                set = set.addAll(live.filter(v2 -> canMerge(v1.getType(), v2.getType())));
-                g.put(v1, set);
+    private Map<ImVar, java.util.Set<ImVar>> calculateInterferenceGraph(
+        Map<ImStmt, Set<ImVar>> livenessInfo, Set<ImVar> liveAtEntry, ImFunction func) {
+        Map<ImVar, java.util.Set<ImVar>> graph = new LinkedHashMap<>();
+        for (ImVar parameter : func.getParameters()) {
+            graph.put(parameter, new ObjectOpenHashSet<>());
+        }
+        for (ImVar local : func.getLocals()) {
+            graph.put(local, new ObjectOpenHashSet<>());
+        }
+
+        // A definition interferes with every compatible value that remains live after it.
+        // Building only those edges is equivalent to cliquing every live set, while avoiding
+        // the old O(statements * liveValues^2) behavior on large inlined functions.
+        for (Map.Entry<ImStmt, Set<ImVar>> entry : livenessInfo.entrySet()) {
+            List<ImVar> defined = definedLocals(entry.getKey());
+            if (defined.isEmpty()) {
+                continue;
+            }
+            for (int i = 0; i < defined.size(); i++) {
+                ImVar definition = defined.get(i);
+                java.util.Set<ImVar> neighbors = graph.computeIfAbsent(definition, ignored -> new ObjectOpenHashSet<>());
+                for (ImVar live : entry.getValue()) {
+                    if (live == definition || !canMerge(definition.getType(), live.getType())) {
+                        continue;
+                    }
+                    neighbors.add(live);
+                    graph.computeIfAbsent(live, ignored -> new ObjectOpenHashSet<>()).add(definition);
+                }
+                // Vararg tuple components are assigned at the same loop boundary. They must
+                // occupy distinct slots even when neither component is live before the loop.
+                for (int j = i + 1; j < defined.size(); j++) {
+                    ImVar other = defined.get(j);
+                    if (canMerge(definition.getType(), other.getType())) {
+                        neighbors.add(other);
+                        graph.computeIfAbsent(other, ignored -> new ObjectOpenHashSet<>()).add(definition);
+                    }
+                }
             }
         }
-        return g;
+
+        // A local live at entry is read before every control-flow path has assigned it. Its
+        // target-default value must remain distinct from every incoming parameter and from the
+        // other entry-live locals, even if a later assignment eventually defines it.
+        List<ImVar> entryDefinitions = new ArrayList<>(func.getParameters());
+        for (ImVar local : func.getLocals()) {
+            if (liveAtEntry.contains(local)) {
+                entryDefinitions.add(local);
+            }
+        }
+        for (int i = 0; i < entryDefinitions.size(); i++) {
+            ImVar definition = entryDefinitions.get(i);
+            java.util.Set<ImVar> neighbors = graph.get(definition);
+            for (int j = i + 1; j < entryDefinitions.size(); j++) {
+                ImVar other = entryDefinitions.get(j);
+                if (canMerge(definition.getType(), other.getType())) {
+                    neighbors.add(other);
+                    graph.get(other).add(definition);
+                }
+            }
+        }
+        return graph;
+    }
+
+    private static List<ImVar> definedLocals(ImStmt stmt) {
+        if (stmt instanceof ImVarargLoop loop) {
+            List<ImVar> result = new ArrayList<>(loop.getLoopVars().size());
+            for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
+                result.add(loopVar.getVar());
+            }
+            return result;
+        }
+        if (!(stmt instanceof ImSet set)) {
+            return Collections.emptyList();
+        }
+        ImLExpr left = set.getLeft();
+        if (left instanceof ImVarAccess access && !access.getVar().isGlobal()) {
+            return Collections.singletonList(access.getVar());
+        }
+        if (left instanceof ImTupleSelection selection) {
+            ImVar var = TypesHelper.getSimpleAndPureTupleVar(selection);
+            if (var != null && !var.isGlobal()) {
+                return Collections.singletonList(var);
+            }
+        }
+        return Collections.emptyList();
     }
 
     private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
@@ -250,6 +336,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
      * over the strongly connected components of the control flow graph.
      */
     public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
+        return analyzeLiveness(func).liveOut;
+    }
+
+    private LivenessAnalysis analyzeLiveness(ImFunction func) {
         // 1. Build Control Flow Graph
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         final List<Node> nodes = cfg.getNodes();
@@ -271,6 +361,17 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
             ImStmt stmt = node.getStmt();
             if (stmt == null) continue;
+
+            if (stmt instanceof ImVarargLoop loop) {
+                for (ImVarargLoopVar loopVar : loop.getLoopVars()) {
+                    if (!loopVar.getVar().isGlobal()) {
+                        def[i].add(loopVar.getVar());
+                    }
+                }
+                // The loop body has its own CFG nodes. Visiting it here would incorrectly
+                // classify all body reads as uses at the loop header.
+                continue;
+            }
 
             final int ii = i;
             stmt.accept(new ImStmt.DefaultVisitor() {
@@ -376,6 +477,19 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
                 result.put(stmt, io.vavr.collection.HashSet.ofAll(out[i]));
             }
         }
-        return result;
+        Set<ImVar> liveAtEntry = N == 0
+            ? io.vavr.collection.HashSet.empty()
+            : io.vavr.collection.HashSet.ofAll(in[0]);
+        return new LivenessAnalysis(result, liveAtEntry);
+    }
+
+    private static final class LivenessAnalysis {
+        private final Map<ImStmt, Set<ImVar>> liveOut;
+        private final Set<ImVar> liveAtEntry;
+
+        private LivenessAnalysis(Map<ImStmt, Set<ImVar>> liveOut, Set<ImVar> liveAtEntry) {
+            this.liveOut = liveOut;
+            this.liveAtEntry = liveAtEntry;
+        }
     }
 }
