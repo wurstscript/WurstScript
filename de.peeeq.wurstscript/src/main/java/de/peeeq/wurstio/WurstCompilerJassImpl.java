@@ -917,6 +917,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // inliner
         stage = 5;
         if (runArgs.isInline()) {
+            // Expose hot loop calls which cannot dispatch anywhere else to the ordinary inliner.
+            // Calls outside loops keep their established method/slot representation.
+            beginPhase(5, "lower monomorphic Lua method calls");
+            LuaMethodCallLowering.transform(imProg);
+            imTranslator.assertProperties();
+            timeTaker.endPhase();
+
             beginPhase(5, "inlining");
             optimizer.doInlining();
             imTranslator2.assertProperties();
