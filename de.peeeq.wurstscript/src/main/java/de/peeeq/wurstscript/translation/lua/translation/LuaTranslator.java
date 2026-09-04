@@ -24,6 +24,8 @@ import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.W
 
 public class LuaTranslator {
     private static final int LUA_LOCALS_LIMIT = 200;
+    private static final int LUA_STORAGE_ALIAS_LOCAL_BUDGET = 190;
+    private static final int LUA_STORAGE_ALIAS_LIMIT = 16;
     private static final List<String> HASHTABLE_HANDLE_SAVE_NAMES = Arrays.asList(
         "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle", "SaveItemHandle", "SaveUnitHandle",
         "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
@@ -80,6 +82,8 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
+    private LuaFunction bootstrapFunction;
     private final Set<String> emittedDispatchSlots = new HashSet<>();
     private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
     private final Map<ImClass, Map<String, Set<DispatchGroupIdentity>>> emittedDispatchSlotGroupsByClass = new IdentityHashMap<>();
@@ -222,8 +226,10 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar field) {
-            return LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
+            LuaVariable storage = LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
                 LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+            localizableStorageTables.add(storage);
+            return storage;
         }
     };
 
@@ -382,6 +388,7 @@ public class LuaTranslator {
 
         createBootstrapFunction();
         cleanStatements();
+        localizeHotStorageTables();
         enforceLuaLocalLimits();
 
         return luaModel;
@@ -509,6 +516,7 @@ public class LuaTranslator {
         LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
         luaModel.add(doneFlag);
         LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        bootstrapFunction = boot;
         boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
         boot.getBody().add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(doneFlag), LuaAst.LuaExprBoolVal(true)));
         List<LuaStatement> stmts = new ArrayList<>();
@@ -955,6 +963,107 @@ public class LuaTranslator {
                 spillLocalsIntoTableIfNeeded(m.getName(), m.getParams(), m.getBody());
             }
         });
+    }
+
+    /**
+     * Cache compiler-owned array and field-storage tables in function locals when they are indexed
+     * from a loop. This removes a global lookup from every dynamic iteration without changing cold
+     * paths or making assumptions about user-authored Lua tables. The cap and headroom avoid turning
+     * the optimization into register pressure or immediately triggering the locals-table fallback.
+     */
+    private void localizeHotStorageTables() {
+        luaModel.accept(new LuaModel.DefaultVisitor() {
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                localizeHotStorageTables(f.getParams(), f.getBody());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                localizeHotStorageTables(m.getParams(), m.getBody());
+            }
+        });
+    }
+
+    private void localizeHotStorageTables(LuaParams params, LuaStatements body) {
+        Map<LuaVariable, Integer> loopAccessCounts = new IdentityHashMap<>();
+        collectLoopStorageAccesses(body, false, loopAccessCounts);
+        if (loopAccessCounts.isEmpty()) {
+            return;
+        }
+
+        int existingLocals = params.size() + collectFunctionScopeLocals(body).size();
+        int aliasCount = Math.min(LUA_STORAGE_ALIAS_LIMIT,
+            LUA_STORAGE_ALIAS_LOCAL_BUDGET - existingLocals);
+        if (aliasCount <= 0) {
+            return;
+        }
+
+        List<LuaVariable> selected = new ArrayList<>(loopAccessCounts.keySet());
+        selected.sort(Comparator.<LuaVariable>comparingInt(loopAccessCounts::get).reversed()
+            .thenComparing(LuaVariable::getName));
+        if (selected.size() > aliasCount) {
+            selected = new ArrayList<>(selected.subList(0, aliasCount));
+        }
+
+        Map<LuaVariable, LuaVariable> aliases = new IdentityHashMap<>();
+        for (LuaVariable storage : selected) {
+            aliases.put(storage, LuaAst.LuaVariable(uniqueName(storage.getName() + "_local"),
+                LuaAst.LuaExprVarAccess(storage)));
+        }
+        rewriteStorageAccesses(body, aliases);
+
+        int insertionIndex = bootstrapCallInsertionIndex(body);
+        for (LuaVariable storage : selected) {
+            body.add(insertionIndex++, aliases.get(storage));
+        }
+    }
+
+    private void collectLoopStorageAccesses(de.peeeq.wurstscript.luaAst.Element element, boolean insideLoop,
+                                            Map<LuaVariable, Integer> counts) {
+        if (element instanceof LuaExprFunctionAbstraction
+            || element instanceof LuaFunction || element instanceof LuaMethod) {
+            return;
+        }
+        boolean childInsideLoop = insideLoop || element instanceof LuaWhile;
+        if (childInsideLoop && element instanceof LuaExprArrayAccess) {
+            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
+            if (left instanceof LuaExprVarAccess) {
+                LuaVariable storage = ((LuaExprVarAccess) left).getVar();
+                if (localizableStorageTables.contains(storage)) {
+                    counts.merge(storage, 1, Integer::sum);
+                }
+            }
+        }
+        element.forEachElement(child -> collectLoopStorageAccesses(child, childInsideLoop, counts));
+    }
+
+    private void rewriteStorageAccesses(de.peeeq.wurstscript.luaAst.Element element,
+                                        Map<LuaVariable, LuaVariable> aliases) {
+        if (element instanceof LuaExprFunctionAbstraction
+            || element instanceof LuaFunction || element instanceof LuaMethod) {
+            return;
+        }
+        if (element instanceof LuaExprArrayAccess) {
+            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
+            if (left instanceof LuaExprVarAccess) {
+                LuaVariable alias = aliases.get(((LuaExprVarAccess) left).getVar());
+                if (alias != null) {
+                    left.replaceBy(LuaAst.LuaExprVarAccess(alias));
+                }
+            }
+        }
+        element.forEachElement(child -> rewriteStorageAccesses(child, aliases));
+    }
+
+    private int bootstrapCallInsertionIndex(LuaStatements body) {
+        if (bootstrapFunction != null && !body.isEmpty() && body.get(0) instanceof LuaExprFunctionCall
+            && ((LuaExprFunctionCall) body.get(0)).getFunc() == bootstrapFunction) {
+            return 1;
+        }
+        return 0;
     }
 
     private void spillLocalsIntoTableIfNeeded(String functionName, LuaParams params, LuaStatements body) {
@@ -2039,6 +2148,9 @@ public class LuaTranslator {
             return;
         }
         LuaVariable lv = luaVar.getFor(v);
+        if (v.getType() instanceof ImArrayType || v.getType() instanceof ImArrayTypeMulti) {
+            localizableStorageTables.add(lv);
+        }
         lv.setInitialValue(LuaAst.LuaExprNull());
         luaModel.add(lv);
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(lv), defaultValue(v.getType())));
