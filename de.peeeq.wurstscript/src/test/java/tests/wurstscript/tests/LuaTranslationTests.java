@@ -128,6 +128,15 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    private int countMatches(String output, String regex) {
+        Matcher matcher = Pattern.compile(regex).matcher(output);
+        int result = 0;
+        while (matcher.find()) {
+            result++;
+        }
+        return result;
+    }
+
     private String singleMatch(String output, String regex, int group) {
         Matcher matcher = Pattern.compile(regex).matcher(output);
         assertTrue("Expected pattern to occur: " + regex, matcher.find());
@@ -173,6 +182,11 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
+        return compileLuaWithCUs(testName, withStdLib, extraCUs, runArgs, lines);
+    }
+
+    private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs,
+                                     RunArgs runArgs, String... lines) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         List<CU> inputs = new ArrayList<>();
@@ -2475,10 +2489,70 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    ForForce(f, () -> skip)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        assertFalse(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled,
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
         assertTrue(compiled.contains(", ...)"));
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
+    }
+
+    @Test
+    public void luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            "type boolexpr extends handle",
+            "package Test",
+            "@extern native Condition(code callback) returns boolexpr",
+            "function predicate() returns boolean",
+            "    return true",
+            "init",
+            "    let first = Condition(function predicate)",
+            "    let second = Condition(function predicate)"
+        );
+
+        List<String> adapters = uniqueMatches(compiled,
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+        assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
+            1, adapters.size());
+        String adapter = adapters.get(0);
+        assertEquals("both Condition calls must reference the cached adapter", 2,
+            countMatches(compiled, "Condition\\(" + Pattern.quote(adapter) + "\\)"));
+        String adapterBody = getFunctionBody(compiled, adapter);
+        assertTrue(adapterBody.contains("_, result = xpcall(predicate,"));
+        assertTrue(adapterBody.contains("return result"));
+        assertFalse("callback sites must not allocate anonymous wrappers", compiled.contains("Condition(function ("));
+    }
+
+    @Test
+    public void luaFunctionRefAdapterTracksLateClassFunctionRename() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefAdapterTracksLateClassFunctionRename",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua"),
+            "package Test",
+            "@extern native consume(code callback)",
+            "@extern native CallbackOwner_staticCallback()",
+            "class CallbackOwner",
+            "    function start()",
+            "        consume(function staticCallback)",
+            "    private static function staticCallback()",
+            "        consume(function staticCallback)",
+            "init",
+            "    CallbackOwner_staticCallback()",
+            "    new CallbackOwner().start()"
+        );
+
+        String callbackName = singleMatch(compiled,
+            "function\\s+(CallbackOwner_[A-Za-z0-9_]*staticCallback[A-Za-z0-9_]*)\\(\\)", 1);
+        assertTrue("adapter must track the class callback's final name:\n" + compiled,
+            compiled.contains("xpcall(" + callbackName + ","));
+        assertFalse(compiled.contains("xpcall(staticCallback,"));
     }
 
     @Test
