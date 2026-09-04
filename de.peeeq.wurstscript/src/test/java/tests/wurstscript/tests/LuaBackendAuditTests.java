@@ -2016,6 +2016,105 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("arithmetic("));
     }
 
+    @Test
+    public void tinyMonomorphicMethodsInlineOnLua() {
+        String compiled = compileOptimizedLua(
+            "tinyMonomorphicMethodsInlineOnLua",
+            "package Test",
+            "native consume(int value)",
+            "class Accumulator",
+            "    int offset",
+            "    construct(int offset)",
+            "        this.offset = offset",
+            "    function add(int value) returns int",
+            "        return value + offset",
+            "abstract class Operation",
+            "    abstract function apply(int value) returns int",
+            "class DoubleOperation extends Operation",
+            "    override function apply(int value) returns int",
+            "        return value * 2",
+            "@noinline function hotLoop(Accumulator accumulator)",
+            "    var i = 0",
+            "    while i < 16",
+            "        consume(accumulator.add(i))",
+            "        i++",
+            "@noinline function dynamicCall(Operation operation)",
+            "    consume(operation.apply(3))",
+            "init",
+            "    hotLoop(new Accumulator(2))",
+            "    dynamicCall(new DoubleOperation())"
+        );
+
+        String body = topLevelFunctionBodyWithPrefix(compiled, "hotLoop");
+        assertFalse("a tiny method with exactly one implementation must inline in optimized Lua:\n" + body,
+            body.contains("Accumulator_add("));
+        assertTrue("the inlined method must retain its field read:\n" + body,
+            body.contains("Accumulator_offset_storage["));
+        String dynamicBody = topLevelFunctionBodyWithPrefix(compiled, "dynamicCall");
+        assertTrue("a genuinely virtual method call must retain dispatch:\n" + dynamicBody,
+            dynamicBody.contains("dispatch_"));
+    }
+
+    @Test
+    public void monomorphicMethodInliningEvaluatesReceiverOnce() {
+        test().testLua(true).luaOnly(false).optimize().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int receiverEvaluations = 0",
+            "class Accumulator",
+            "    int offset",
+            "    construct(int offset)",
+            "        this.offset = offset",
+            "    function add(int value) returns int",
+            "        return value + offset",
+            "function makeAccumulator() returns Accumulator",
+            "    receiverEvaluations++",
+            "    return new Accumulator(2)",
+            "init",
+            "    if makeAccumulator().add(5) == 7 and receiverEvaluations == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void monomorphicMethodInliningKeepsCallbackBoundary() {
+        String compiled = compileOptimizedLua(
+            "monomorphicMethodInliningKeepsCallbackBoundary",
+            "package Test",
+            "native consume(code callback)",
+            "function callback()",
+            "class Registrar",
+            "    function install()",
+            "        consume(function callback)",
+            "@noinline function hotPath(Registrar registrar)",
+            "    registrar.install()",
+            "init",
+            "    hotPath(new Registrar())"
+        );
+
+        assertFunctionBodyContains(compiled, "hotPath", "Registrar_install(", true);
+    }
+
+    @Test
+    public void monomorphicMethodInliningKeepsLocalPlayerBoundary() {
+        String compiled = compileOptimizedLua(
+            "monomorphicMethodInliningKeepsLocalPlayerBoundary",
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "native consume(bool value)",
+            "class Probe",
+            "    function isLocal() returns bool",
+            "        return GetLocalPlayer() != null",
+            "@noinline function hotPath(Probe probe)",
+            "    consume(probe.isLocal())",
+            "init",
+            "    hotPath(new Probe())"
+        );
+
+        assertFunctionBodyContains(compiled, "hotPath", "Probe_isLocal(", true);
+    }
+
     /**
      * Measured after Lua native lowering: unit_getX = 59 IM nodes,
      * unit_getAbilityLevel = 63, real_floor = 35, and __wurst_intDiv = 31. Each helper is called
@@ -2050,14 +2149,19 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    query(vec2(0., 0.))"
         );
 
-        // The spatial-index helpers each have one call site, so the optimizer folds the whole
-        // query chain into our retained entry point. Inspect that surviving hot-loop owner.
+        // Register-pressure-aware inlining may keep the range helper as the hot-loop owner instead
+        // of folding it into query. Inspect whichever function actually retains the loop.
         String body = topLevelFunctionBodyWithPrefix(compiled, "query");
-        assertTrue("query loop must read the next-link array directly:\n" + body,
+        if (!body.contains("UnitSpatialIndex_nextInCell[")) {
+            assertTrue("query must call the retained range helper:\n" + body,
+                body.contains("addRangeMatches("));
+            body = topLevelFunctionBodyWithPrefix(compiled, "addRangeMatches");
+        }
+        assertTrue("spatial-index hot loop must read the next-link array directly:\n" + body,
             body.contains("UnitSpatialIndex_nextInCell["));
-        assertTrue("query loop must read cached X directly:\n" + body,
+        assertTrue("spatial-index hot loop must read cached X directly:\n" + body,
             body.contains("UnitSpatialIndex_lastX["));
-        assertTrue("query loop must read cached Y directly:\n" + body,
+        assertTrue("spatial-index hot loop must read cached Y directly:\n" + body,
             body.contains("UnitSpatialIndex_lastY["));
         assertFalse("typed array reads must not retain assurance calls:\n" + body,
             body.contains("__wurst_ensure"));

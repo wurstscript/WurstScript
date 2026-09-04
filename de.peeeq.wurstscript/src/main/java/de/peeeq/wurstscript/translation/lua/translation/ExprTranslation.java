@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -187,9 +188,7 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImMethodCall e, LuaTranslator tr) {
         ImMethod method = e.getMethod();
-        if (!method.getIsAbstract()
-            && method.getImplementation() != null
-            && method.getSubMethods().isEmpty()) {
+        if (LuaMethodCallLowering.canLowerDirectly(method)) {
             LuaExprlist args = LuaAst.LuaExprlist();
             args.add(e.getReceiver().translateToLua(tr));
             for (ImExpr arg : e.getArguments()) {
