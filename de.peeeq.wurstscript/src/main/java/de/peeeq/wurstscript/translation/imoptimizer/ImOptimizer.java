@@ -71,49 +71,41 @@ public class ImOptimizer {
         return new ImInliner(trans).inlineLuaDivModHelpersWithinLocalBudget();
     }
 
-    private int optCount = 1;
-
     public void localOptimizations() {
         totalCount.clear();
-        optCount = 1;
 
         removeGarbage();
 
-        int finalItr = 0;
-        for (int i = 1; i <= 10 && optCount > 0; i++) {
-            optCount = 0;
-            LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
-            for (OptimizerPass pass : localPasses) {
-                int count;
-                if (pass instanceof LocalPlayerAwareOptimizerPass) {
-                    if (localPlayerContextAnalyzer == null) {
-                        localPlayerContextAnalyzer =
-                            new LocalPlayerContextAnalyzer(trans.getImProg());
-                    }
-                    LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
-                    LocalPlayerAwareOptimizerPass localPlayerAwarePass =
-                        (LocalPlayerAwareOptimizerPass) pass;
-                    count = timeTaker.measure(
-                        pass.getName(),
-                        () -> localPlayerAwarePass.optimize(trans, analyzer));
-                } else {
-                    count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
-                    // A general mutating pass may invalidate dependency edges.
-                    localPlayerContextAnalyzer = null;
+        int optCount = 0;
+        LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
+        for (OptimizerPass pass : localPasses) {
+            int count;
+            if (pass instanceof LocalPlayerAwareOptimizerPass) {
+                if (localPlayerContextAnalyzer == null) {
+                    localPlayerContextAnalyzer =
+                        new LocalPlayerContextAnalyzer(trans.getImProg());
                 }
-                optCount += count;
-                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
+                LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
+                LocalPlayerAwareOptimizerPass localPlayerAwarePass =
+                    (LocalPlayerAwareOptimizerPass) pass;
+                count = timeTaker.measure(
+                    pass.getName(),
+                    () -> localPlayerAwarePass.optimize(trans, analyzer));
+            } else {
+                count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
+                // A general mutating pass may invalidate dependency edges.
+                localPlayerContextAnalyzer = null;
             }
-
-            if (optCount > 0) {
-                removeGarbage();
-                trans.getImProg().flatten(trans);
-            }
-
-            finalItr = i;
-            WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
+            optCount += count;
+            totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
         }
-        WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
+
+        if (optCount > 0) {
+            removeGarbage();
+            trans.getImProg().flatten(trans);
+        }
+
+        WLogger.info("=== Local optimization pass done! Opts: " + optCount + " ===");
         totalCount.forEach((k, v) -> WLogger.info("== " + k + ":   " + v));
     }
 
