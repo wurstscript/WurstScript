@@ -43,6 +43,16 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
     }
 
+    private String luaFunctionBody(String compiled, String functionName) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                "function " + java.util.regex.Pattern.quote(functionName)
+                    + "\\([^)]*\\)\\s*\\R(.*?)\\Rend",
+                java.util.regex.Pattern.DOTALL)
+            .matcher(compiled);
+        assertTrue("expected generated Lua function " + functionName, matcher.find());
+        return matcher.group(1);
+    }
+
     private String compileOptimizedLua(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations");
         return compileLuaWithRunArgs(testName, runArgs, false, lines);
@@ -207,6 +217,69 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("tuple assignment must not allocate through a copy helper", compiled.contains("tupleCopy"));
         assertFalse("tuple comparison must be lowered to scalar comparisons", compiled.contains("tupleEquals"));
         assertFalse("tuple arrays must be split into scalar arrays", compiled.contains("__wurst_arrIndex("));
+    }
+
+    @Test
+    public void tupleFieldReadsOnlyLoadTheSelectedStorageComponent() throws IOException {
+        String[] source = {
+            "package Test",
+            "native testSuccess()",
+            "tuple vec3(real x, real y, real z)",
+            "tuple segment(vec3 start, vec3 finish)",
+            "vec3 array points",
+            "segment array segments",
+            "int indexCalls",
+            "@noinline function nextIndex() returns int",
+            "    indexCalls++",
+            "    return 2",
+            "@noinline function readAt(int index) returns real",
+            "    return points[index].z",
+            "@noinline function readAtNext() returns real",
+            "    return points[nextIndex()].z",
+            "@noinline function readNested(int index) returns real",
+            "    return segments[index].finish.y",
+            "class Entity",
+            "    vec3 pos",
+            "@noinline function readPos(Entity entity) returns real",
+            "    return entity.pos.z",
+            "init",
+            "    points[2] = vec3(1., 2., 3.)",
+            "    segments[2] = segment(vec3(4., 5., 6.), vec3(7., 8., 9.))",
+            "    let entity = new Entity()",
+            "    entity.pos = vec3(4., 5., 6.)",
+            "    if readAt(2) == 3. and readAtNext() == 3. and indexCalls == 1",
+            "        and readNested(2) == 8. and readPos(entity) == 6.",
+            "        testSuccess()"
+        };
+        test().testLua(true).executeProg().lines(source);
+
+        String compiled = compileOptimizedLua(
+            "tupleFieldReadsOnlyLoadTheSelectedStorageComponentOptimized", source);
+        String plainArrayRead = luaFunctionBody(compiled, "readAt");
+        String effectfulArrayRead = luaFunctionBody(compiled, "readAtNext");
+        String nestedArrayRead = luaFunctionBody(compiled, "readNested");
+        String memberRead = luaFunctionBody(compiled, "readPos");
+
+        assertTrue(plainArrayRead.contains("points_z["));
+        assertFalse(plainArrayRead.contains("points_x["));
+        assertFalse(plainArrayRead.contains("points_y["));
+        assertTrue(effectfulArrayRead.contains("points_z["));
+        assertFalse(effectfulArrayRead.contains("points_x["));
+        assertFalse(effectfulArrayRead.contains("points_y["));
+        assertEquals("a selected tuple-array field must evaluate its index exactly once",
+            1, effectfulArrayRead.split("nextIndex\\(", -1).length - 1);
+        assertTrue(nestedArrayRead.contains("segments_finish_y["));
+        assertFalse(nestedArrayRead.contains("segments_start_"));
+        assertFalse(nestedArrayRead.contains("segments_finish_x["));
+        assertFalse(nestedArrayRead.contains("segments_finish_z["));
+        assertTrue(memberRead.contains("Entity_pos_z_storage["));
+        assertFalse(memberRead.contains("Entity_pos_x_storage["));
+        assertFalse(memberRead.contains("Entity_pos_y_storage["));
+        assertFalse("selected tuple storage reads must not need discard helpers",
+            plainArrayRead.contains("__wurst_tuple_discard_")
+                || effectfulArrayRead.contains("__wurst_tuple_discard_")
+                || nestedArrayRead.contains("__wurst_tuple_discard_")
+                || memberRead.contains("__wurst_tuple_discard_"));
     }
 
     @Test
