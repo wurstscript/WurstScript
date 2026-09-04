@@ -5,8 +5,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
@@ -24,6 +26,10 @@ public class ImInliner {
     private static final int DEFAULT_ALWAYS_INLINE_SIZE = 20;
     /** Just above the largest measured ordinary Lua leaf: unit_getAbilityLevel at 63 IM nodes. */
     private static final int LUA_ALWAYS_INLINE_SIZE = 64;
+    /** Leave room below Lua's hard 200-local limit for backend-introduced locals. */
+    private static final int LUA_INLINE_REGISTER_BUDGET = 190;
+    /** Rebuild CFG liveness after expansions large enough to invalidate the incremental estimate. */
+    private static final int LUA_LIVENESS_REFRESH_INLINE_SIZE = 256;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
     private static final boolean LOG_INLINER = Boolean.getBoolean("wurst.inliner.log");
@@ -34,6 +40,8 @@ public class ImInliner {
     private final Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     private final Set<ImFunction> done = Sets.newLinkedHashSet();
     private final Map<ImFunction, Boolean> containsFuncRefCache = Maps.newLinkedHashMap();
+    private final Map<ImFunction, LuaRegisterBudget> luaRegisterBudgets = Maps.newLinkedHashMap();
+    private final Map<ImFunction, LuaPressure> luaRegisterPressure = Maps.newLinkedHashMap();
     private final double inlineTreshold = 50;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
@@ -54,6 +62,43 @@ public class ImInliner {
         collectInlinableFunctions();
         rateInlinableFunctions();
         inlineFunctions();
+    }
+
+    /**
+     * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
+     * caller. The late check rebuilds the locality analysis and uses the same allocation classes as
+     * the local merger, so it cannot push Lua over the hard local-variable limit.
+     */
+    public int inlineLuaDivModHelpersWithinLocalBudget() {
+        if (!translator.isLuaTarget()) {
+            return 0;
+        }
+        prog.flatten(translator);
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        int changed = 0;
+        for (ImFunction function : sortedFunctions(ImHelper.calculateFunctionsOfProg(prog))) {
+            LuaRegisterBudget budget = new LuaRegisterBudget(function);
+            changed += inlineLuaDivModHelpers(function, function, budget);
+        }
+        return changed;
+    }
+
+    private int inlineLuaDivModHelpers(ImFunction function, Element element, LuaRegisterBudget budget) {
+        int changed = 0;
+        for (int i = 0; i < element.size(); i++) {
+            Element child = element.get(i);
+            if (child instanceof ImFunctionCall call && isLuaDivModHelper(call.getFunc())) {
+                ImFunction callee = call.getFunc();
+                if (budget.fits(call, callee)) {
+                    budget.recordInline(call, callee);
+                    inlineCall(function, element, i, call);
+                    changed++;
+                    child = element.get(i);
+                }
+            }
+            changed += inlineLuaDivModHelpers(function, child, budget);
+        }
+        return changed;
     }
 
     private void inlineFunctions() {
@@ -84,13 +129,23 @@ public class ImInliner {
             if (LOG_INLINER) {
                 String msg = "[INLINER] caller=" + f.getName() + " callee=" + called.getName() + " decision=" + (canInline ? "inline" : "keep") +
                     " size=" + getFuncSize(called) + " rating=" + getRating(called) +
+                    (translator.isLuaTarget() && inlinableFunctions.contains(called)
+                        ? " projectedLuaRegisters=" + getLuaRegisterBudget(f).projectedPressure(call, called)
+                        : "") +
                     (canInline ? "" : " reason=" + skipReason(f, call, called));
                 WLogger.info(msg);
                 System.out.println(msg);
             }
             if (canInline) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
+                    if (translator.isLuaTarget()) {
+                        getLuaRegisterBudget(f).recordInline(call, called);
+                    }
                     inlineCall(f, parent, parentI, call);
+                    if (translator.isLuaTarget()
+                        && getFuncSize(called) >= LUA_LIVENESS_REFRESH_INLINE_SIZE) {
+                        getLuaRegisterBudget(f).refresh();
+                    }
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
                     changed[0] = true;
                     int newSize = estimateSize(f);
@@ -146,6 +201,10 @@ public class ImInliner {
         double rating = getRating(f);
         if (rating >= threshold) {
             return "rating_too_high(" + rating + ">=" + threshold + ")";
+        }
+        if (translator.isLuaTarget() && !getLuaRegisterBudget(caller).fits(call, f)) {
+            return "lua_register_budget(" + getLuaRegisterBudget(caller).projectedPressure(call, f)
+                + ">" + LUA_INLINE_REGISTER_BUDGET + ")";
         }
         return "unknown";
     }
@@ -381,7 +440,280 @@ public class ImInliner {
 //		WLogger.info("	rating: " + getRating(f));
         return inlinableFunctions.contains(f)
                 && getRating(f) < threshold
-                && !isRecursive(f);
+                && !isRecursive(f)
+                && (!translator.isLuaTarget()
+                    || getLuaRegisterBudget(caller).fits(call, f));
+    }
+
+    private boolean isLuaDivModHelper(ImFunction function) {
+        return function == translator.luaIntDivFunc
+            || function == translator.luaModIntFunc
+            || function == translator.luaModRealFunc;
+    }
+
+    private static int backendGeneratedLuaLocals(ImFunction function) {
+        int[] result = {0};
+        function.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImVarargLoop loop) {
+                result[0] += 2; // Lua translation introduces __args and __i for each retained loop.
+                super.visit(loop);
+            }
+        });
+        return result[0];
+    }
+
+    private LuaRegisterBudget getLuaRegisterBudget(ImFunction function) {
+        return luaRegisterBudgets.computeIfAbsent(function, LuaRegisterBudget::new);
+    }
+
+    private LuaPressure estimateLuaRegisterPressure(ImFunction function) {
+        LuaPressure cached = luaRegisterPressure.get(function);
+        if (cached != null) {
+            return cached;
+        }
+        Map<ImStmt, io.vavr.collection.Set<ImVar>> liveness = new LocalMerger().calculateLiveness(function);
+        LuaPressure pressure = estimateLuaRegisterPressure(function, liveness);
+        luaRegisterPressure.put(function, pressure);
+        return pressure;
+    }
+
+    private LuaPressure estimateLuaRegisterPressure(ImFunction function,
+        Map<ImStmt, io.vavr.collection.Set<ImVar>> liveness) {
+        LuaPressure maximum = pressureOf(function.getParameters());
+        for (Map.Entry<ImStmt, io.vavr.collection.Set<ImVar>> entry : liveness.entrySet()) {
+            java.util.Set<ImVar> active = Collections.newSetFromMap(new IdentityHashMap<>());
+            active.addAll(entry.getValue().toJavaSet());
+            collectReadLocals(entry.getKey(), active);
+            maximum.keepMaximums(pressureOf(active));
+        }
+        return maximum;
+    }
+
+    private static void collectReadLocals(ImStmt statement, java.util.Set<ImVar> result) {
+        if (statement instanceof ImVarargLoop) {
+            // The loop body has separate liveness entries. Counting all of its reads at the
+            // header would make sequential temporaries appear simultaneously live.
+            return;
+        }
+        statement.accept(new ImStmt.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                if (!access.getVar().isGlobal()) {
+                    result.add(access.getVar());
+                }
+            }
+        });
+    }
+
+    private static int statementExpressionResultSlots(ImStmt statement) {
+        int[] result = {0};
+        statement.accept(new ImStmt.DefaultVisitor() {
+            @Override
+            public void visit(ImStatementExpr expression) {
+                super.visit(expression);
+                ImType type = expression.getExpr().attrTyp();
+                if (!(type instanceof ImVoid)) {
+                    result[0] += ImHelper.flattenedJassArity(type);
+                }
+            }
+        });
+        return result[0];
+    }
+
+    private static int argumentStagingSlots(ImFunctionCall call) {
+        int result = 0;
+        Element current = call;
+        while (current != null) {
+            if (current != call && current instanceof ImStmt) {
+                break;
+            }
+            Element parent = current.getParent();
+            if (parent instanceof ImExprs expressions) {
+                int currentIndex = -1;
+                for (int i = 0; i < expressions.size(); i++) {
+                    if (expressions.get(i) == current) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                for (int i = 0; i < currentIndex; i++) {
+                    ImExpr earlier = expressions.get(i);
+                    if (!(earlier.attrPurity() instanceof Pure)) {
+                        result += ImHelper.flattenedJassArity(earlier.attrTyp());
+                    }
+                }
+                current = expressions.getParent();
+            } else {
+                current = parent;
+            }
+        }
+        return result;
+    }
+
+    private LuaPressure pressureOf(Iterable<ImVar> variables) {
+        LuaPressure result = new LuaPressure();
+        for (ImVar variable : variables) {
+            boolean localPlayerDependent = localPlayerContextAnalyzer != null
+                && localPlayerContextAnalyzer.isLocalPlayerDependent(variable);
+            result.add(variable.getType() + "|local=" + localPlayerDependent,
+                ImHelper.flattenedJassArity(variable.getType()));
+        }
+        return result;
+    }
+
+    private static final class LuaPressure {
+        private final Map<String, Integer> slotsByTypeAndLocality = new LinkedHashMap<>();
+
+        private LuaPressure copy() {
+            LuaPressure result = new LuaPressure();
+            result.slotsByTypeAndLocality.putAll(slotsByTypeAndLocality);
+            return result;
+        }
+
+        private void add(String key, int slots) {
+            slotsByTypeAndLocality.merge(key, slots, Integer::sum);
+        }
+
+        private void addConcurrent(LuaPressure other) {
+            for (Map.Entry<String, Integer> entry : other.slotsByTypeAndLocality.entrySet()) {
+                add(entry.getKey(), entry.getValue());
+            }
+        }
+
+        private void keepMaximums(LuaPressure other) {
+            for (Map.Entry<String, Integer> entry : other.slotsByTypeAndLocality.entrySet()) {
+                slotsByTypeAndLocality.merge(entry.getKey(), entry.getValue(), Math::max);
+            }
+        }
+
+        private int total() {
+            int result = 0;
+            for (int slots : slotsByTypeAndLocality.values()) {
+                result += slots;
+            }
+            return result;
+        }
+    }
+
+    private final class LuaRegisterBudget {
+        private final ImFunction function;
+        private Map<ImStmt, io.vavr.collection.Set<ImVar>> liveness;
+        private LuaPressure peakPressure;
+        private int backendLocals;
+        private int declarationsWithoutAllocation;
+
+        private LuaRegisterBudget(ImFunction function) {
+            this.function = function;
+            liveness = new LocalMerger().calculateLiveness(function);
+            LuaPressure cachedPressure = luaRegisterPressure.get(function);
+            if (cachedPressure == null) {
+                cachedPressure = estimateLuaRegisterPressure(function, liveness);
+                luaRegisterPressure.put(function, cachedPressure);
+            }
+            peakPressure = cachedPressure.copy();
+            backendLocals = backendGeneratedLuaLocals(function);
+            declarationsWithoutAllocation = flattenedDeclarationCount(function.getParameters())
+                + flattenedDeclarationCount(function.getLocals())
+                + backendLocals;
+        }
+
+        private boolean fits(ImFunctionCall call, ImFunction callee) {
+            if (!translator.getRunArgs().isLocalOptimizations()) {
+                return declarationsWithoutAllocation + declarationsAddedByInline(callee)
+                    + argumentStagingSlots(call)
+                    <= LUA_INLINE_REGISTER_BUDGET;
+            }
+            return projectedPressure(call, callee) <= LUA_INLINE_REGISTER_BUDGET
+                - backendLocals - backendGeneratedLuaLocals(callee);
+        }
+
+        private int declarationsAddedByInline(ImFunction callee) {
+            return flattenedDeclarationCount(callee.getParameters())
+                + flattenedDeclarationCount(callee.getLocals()) + inlineControlLocals(callee)
+                + backendGeneratedLuaLocals(callee);
+        }
+
+        private int inlineControlLocals(ImFunction callee) {
+            return maxOneReturn(callee)
+                ? 0
+                : 1 + (callee.getReturnType() instanceof ImVoid
+                    ? 0
+                    : ImHelper.flattenedJassArity(callee.getReturnType()));
+        }
+
+        private int flattenedDeclarationCount(ImVars variables) {
+            int result = 0;
+            for (int i = 0; i < variables.size(); i++) {
+                result += ImHelper.flattenedJassArity(variables.get(i).getType());
+            }
+            return result;
+        }
+
+        private void recordInline(ImFunctionCall call, ImFunction callee) {
+            peakPressure.keepMaximums(pressureDuringInline(call, callee));
+            backendLocals += backendGeneratedLuaLocals(callee);
+            declarationsWithoutAllocation += declarationsAddedByInline(callee);
+            declarationsWithoutAllocation += argumentStagingSlots(call);
+            // Callers are processed after their callees. Publish the expanded pressure so a
+            // later caller budgets the body it will actually copy, not the pre-inline callee.
+            luaRegisterPressure.put(function, peakPressure.copy());
+        }
+
+        private void refresh() {
+            liveness = new LocalMerger().calculateLiveness(function);
+            peakPressure = estimateLuaRegisterPressure(function, liveness);
+            backendLocals = backendGeneratedLuaLocals(function);
+            luaRegisterPressure.put(function, peakPressure.copy());
+        }
+
+        private int projectedPressure(ImFunctionCall call, ImFunction callee) {
+            LuaPressure projected = peakPressure.copy();
+            projected.keepMaximums(pressureDuringInline(call, callee));
+            return projected.total();
+        }
+
+        private LuaPressure pressureDuringInline(ImFunctionCall call, ImFunction callee) {
+            LuaPressure concurrent = pressureAt(call);
+            concurrent.addConcurrent(estimateLuaRegisterPressure(callee));
+            int earlyReturnLocals = inlineControlLocals(callee);
+            if (earlyReturnLocals > 0) {
+                // These synthetic values cannot be classified by the source locality analysis.
+                concurrent.add("inline-control", earlyReturnLocals);
+            }
+            int stagedArguments = argumentStagingSlots(call);
+            if (stagedArguments > 0) {
+                concurrent.add("argument-staging", stagedArguments);
+            }
+            return concurrent;
+        }
+
+        private LuaPressure pressureAt(Element element) {
+            Element current = element;
+            while (current != null) {
+                if (current instanceof ImStmt statement) {
+                    io.vavr.collection.Set<ImVar> live = liveness.get(statement);
+                    if (live != null) {
+                        java.util.Set<ImVar> active = Collections.newSetFromMap(new IdentityHashMap<>());
+                        active.addAll(live.toJavaSet());
+                        collectReadLocals(statement, active);
+                        LuaPressure pressure = pressureOf(active);
+                        int stagedResults = statementExpressionResultSlots(statement);
+                        if (stagedResults > 0) {
+                            // Flattening stages each already-inlined sibling result until the
+                            // surrounding expression consumes it. The pre-inline liveness map
+                            // cannot contain those future backend temporaries yet.
+                            pressure.add("statement-expression-results", stagedResults);
+                        }
+                        return pressure;
+                    }
+                }
+                current = current.getParent();
+            }
+            // Unknown synthetic shape: remain conservative rather than risking a whole-function spill.
+            return peakPressure.copy();
+        }
     }
 
     private boolean isRecursive(ImFunction f) {
