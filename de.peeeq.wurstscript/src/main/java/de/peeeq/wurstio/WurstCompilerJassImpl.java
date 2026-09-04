@@ -905,13 +905,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imTranslator.assertProperties();
         timeTaker.endPhase();
 
-        // Expose calls which cannot dispatch anywhere else to the ordinary function inliner.
-        // The Lua emitter already applies this exact direct-call rule when optimization is off.
-        beginPhase(4, "lower monomorphic Lua method calls");
-        LuaMethodCallLowering.transform(imProg);
-        imTranslator.assertProperties();
-        timeTaker.endPhase();
-
         ImTranslator imTranslator2 = getImTranslator();
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
 
@@ -924,6 +917,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // inliner
         stage = 5;
         if (runArgs.isInline()) {
+            // Expose hot loop calls which cannot dispatch anywhere else to the ordinary inliner.
+            // Calls outside loops keep their established method/slot representation.
+            beginPhase(5, "lower monomorphic Lua method calls");
+            LuaMethodCallLowering.transform(imProg);
+            imTranslator.assertProperties();
+            timeTaker.endPhase();
+
             beginPhase(5, "inlining");
             optimizer.doInlining();
             imTranslator2.assertProperties();

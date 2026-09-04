@@ -6,11 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lowers method calls with exactly one possible implementation to ordinary function calls on Lua.
+ * Lowers loop-local method calls with exactly one possible implementation to ordinary function
+ * calls on Lua.
  *
  * <p>The Lua emitter has always used the same direct-call fast path. Performing the lowering before
- * optimization exposes these calls to the ordinary inliner without guessing about receiver types or
- * generated method names. Calls which can participate in virtual dispatch remain untouched.
+ * optimization exposes hot calls to the ordinary inliner without guessing about receiver types or
+ * generated method names. Calls outside loops, and calls which can participate in virtual dispatch,
+ * remain untouched to avoid broad code-shape churn for a speculative gain.
  */
 public final class LuaMethodCallLowering {
 
@@ -23,7 +25,7 @@ public final class LuaMethodCallLowering {
             @Override
             public void visit(ImMethodCall call) {
                 super.visit(call);
-                if (canLowerDirectly(call.getMethod())) {
+                if (isInsideLoop(call) && canLowerDirectly(call.getMethod())) {
                     calls.add(call);
                 }
             }
@@ -33,6 +35,17 @@ public final class LuaMethodCallLowering {
             lower(call);
         }
         return calls.size();
+    }
+
+    private static boolean isInsideLoop(ImMethodCall call) {
+        Element owner = call.getParent();
+        while (owner != null && !(owner instanceof ImFunction)) {
+            if (owner instanceof ImLoop || owner instanceof ImVarargLoop) {
+                return true;
+            }
+            owner = owner.getParent();
+        }
+        return false;
     }
 
     public static boolean canLowerDirectly(ImMethod method) {

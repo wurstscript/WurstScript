@@ -2070,8 +2070,15 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "function makeAccumulator() returns Accumulator",
             "    receiverEvaluations++",
             "    return new Accumulator(2)",
+            "function evaluate() returns int",
+            "    var result = 0",
+            "    var i = 0",
+            "    while i < 1",
+            "        result = makeAccumulator().add(5)",
+            "        i++",
+            "    return result",
             "init",
-            "    if makeAccumulator().add(5) == 7 and receiverEvaluations == 1",
+            "    if evaluate() == 7 and receiverEvaluations == 1",
             "        testSuccess()"
         );
     }
@@ -2087,7 +2094,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    function install()",
             "        consume(function callback)",
             "@noinline function hotPath(Registrar registrar)",
-            "    registrar.install()",
+            "    var i = 0",
+            "    while i < 1",
+            "        registrar.install()",
+            "        i++",
             "init",
             "    hotPath(new Registrar())"
         );
@@ -2107,7 +2117,10 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    function isLocal() returns bool",
             "        return GetLocalPlayer() != null",
             "@noinline function hotPath(Probe probe)",
-            "    consume(probe.isLocal())",
+            "    var i = 0",
+            "    while i < 1",
+            "        consume(probe.isLocal())",
+            "        i++",
             "init",
             "    hotPath(new Probe())"
         );
