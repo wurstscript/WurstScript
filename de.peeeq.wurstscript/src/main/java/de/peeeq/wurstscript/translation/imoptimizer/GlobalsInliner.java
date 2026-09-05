@@ -252,6 +252,7 @@ public class GlobalsInliner implements OptimizerPass {
         IdentityHashMap<ImFunction, BitSet> readsByFunction = new IdentityHashMap<>();
         IdentityHashMap<ImStmt, BitSet> readsByStatement = new IdentityHashMap<>();
         IdentityHashMap<ImStmt, BitSet> writesByStatement = new IdentityHashMap<>();
+        IdentityHashMap<ImFunction, BitSet> writesByInitializer = new IdentityHashMap<>();
         BitSet unsafe = new BitSet(candidates.size());
 
         for (int i = 0; i < candidates.size(); i++) {
@@ -274,6 +275,7 @@ public class GlobalsInliner implements OptimizerPass {
                     : topLevelStatement((de.peeeq.wurstscript.jassIm.Element) write, function);
                 if (statement != null) {
                     writesByStatement.computeIfAbsent(statement, ignored -> new BitSet()).set(i);
+                    writesByInitializer.computeIfAbsent(function, ignored -> new BitSet()).set(i);
                 }
             }
         }
@@ -321,18 +323,18 @@ public class GlobalsInliner implements OptimizerPass {
         ImFunction config = trans.getConfFunc();
         if (config != null) {
             scanStartupStatements(config.getBody(), pending, unsafe, readsByStatement, writesByStatement,
-                readsByFunction);
+                readsByFunction, null);
         }
         if (!initializationOrder.isEmpty()) {
             scanStartupStatements(initializationOrder.get(0).getBody(), pending, unsafe, readsByStatement,
-                writesByStatement, readsByFunction);
+                writesByStatement, readsByFunction, null);
             scanMainPrefix(trans, initializationOrder, pending, unsafe, readsByStatement, writesByStatement,
                 readsByFunction);
         }
         for (int i = 1; i < initializationOrder.size(); i++) {
             ImFunction initializer = initializationOrder.get(i);
             scanStartupStatements(initializer.getBody(), pending, unsafe, readsByStatement, writesByStatement,
-                readsByFunction);
+                readsByFunction, writesByInitializer.get(initializer));
         }
         unsafe.or(pending);
 
@@ -358,14 +360,15 @@ public class GlobalsInliner implements OptimizerPass {
                 return;
             }
             scanStartupStatements(Collections.singleton(statement), pending, unsafe, readsByStatement,
-                writesByStatement, readsByFunction);
+                writesByStatement, readsByFunction, null);
         }
     }
 
     private static void scanStartupStatements(Collection<ImStmt> statements, BitSet pending, BitSet unsafe,
                                                Map<ImStmt, BitSet> readsByStatement,
                                                Map<ImStmt, BitSet> writesByStatement,
-                                               Map<ImFunction, BitSet> readsByFunction) {
+                                               Map<ImFunction, BitSet> readsByFunction,
+                                               @Nullable BitSet writesInAbortableInitializer) {
         for (ImStmt statement : statements) {
             BitSet reads = readsByStatement.containsKey(statement)
                 ? (BitSet) readsByStatement.get(statement).clone() : new BitSet();
@@ -377,11 +380,20 @@ public class GlobalsInliner implements OptimizerPass {
             }
             reads.and(pending);
             unsafe.or(reads);
+            if (writesInAbortableInitializer != null && !isDefinitelyNonAbortingInitializerStatement(statement)) {
+                BitSet skippedWrites = (BitSet) pending.clone();
+                skippedWrites.and(writesInAbortableInitializer);
+                unsafe.or(skippedWrites);
+            }
             BitSet writes = writesByStatement.get(statement);
             if (writes != null) {
                 pending.andNot(writes);
             }
         }
+    }
+
+    private static boolean isDefinitelyNonAbortingInitializerStatement(ImStmt statement) {
+        return statement instanceof ImSet set && set.getLeft() instanceof ImVarAccess && isLiteral(set.getRight());
     }
 
     private static Set<ImFunction> directlyUsedFunctions(ImStmt statement) {

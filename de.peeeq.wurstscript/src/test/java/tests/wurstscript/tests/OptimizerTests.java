@@ -112,6 +112,30 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void abortableInitializerBeforeConstantPreservesLaterWrite() throws IOException {
+        test().compilationUnits(
+            compilationUnit("AbortBeforeConstant",
+                "package AbortBeforeConstant",
+                "native abortInitialization()",
+                "init",
+                "    abortInitialization()",
+                "public constant int LATER = 7"),
+            compilationUnit("ReadAfterAbort",
+                "package ReadAfterAbort",
+                "import AbortBeforeConstant",
+                "constant int SAFE = 11",
+                "native consume(int value)",
+                "init",
+                "    consume(LATER + SAFE)")
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_abortableInitializerBeforeConstantPreservesLaterWrite_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("AbortBeforeConstant_LATER"));
+        assertFalse(compiled.contains("ReadAfterAbort_SAFE"));
+    }
+
+    @Test
     public void initlaterAnalysisIsCompilationScoped() throws IOException {
         compileInitlaterConstantRepro("first", "First");
         compileInitlaterConstantRepro("second", "Second");
