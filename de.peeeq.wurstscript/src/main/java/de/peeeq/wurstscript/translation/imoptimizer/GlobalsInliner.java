@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -57,7 +58,7 @@ public class GlobalsInliner implements OptimizerPass {
                 ImVarWrite obs = null;
                 for (ImVarWrite write : v.attrWrites()) {
                     ImFunction func = write.getNearestFunc();
-                    if (isInInitGlobals(func)) {
+                    if (isInInitGlobals(func) || isLiteralConstantGlobal(v)) {
                         right = write.getRight();
                         obs = write;
                         break;
@@ -157,6 +158,18 @@ public class GlobalsInliner implements OptimizerPass {
 
     private static boolean isInInitGlobals(ImFunction func) {
         return func != null && func.getName().equals("initGlobals");
+    }
+
+    /**
+     * Package globals are initialized by package init functions, rather than initGlobals.
+     * A source-level constant is immutable, so a literal initializer remains safe to
+     * substitute regardless of which initialization function owns the assignment.
+     * Configurable constants stay runtime globals until configuration resolution owns them.
+     */
+    private static boolean isLiteralConstantGlobal(ImVar var) {
+        return var.getTrace() instanceof GlobalVarDef
+            && ((GlobalVarDef) var.getTrace()).attrIsConstant()
+            && !((GlobalVarDef) var.getTrace()).hasAnnotation("@configurable");
     }
 
 }

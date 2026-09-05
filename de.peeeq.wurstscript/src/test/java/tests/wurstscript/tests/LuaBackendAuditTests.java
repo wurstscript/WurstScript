@@ -58,6 +58,47 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return compileLuaWithRunArgs(testName, runArgs, false, lines);
     }
 
+    @Test
+    public void packageConstantsInlineAndRemoveDeadGuards() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "packageConstantsInlineAndRemoveDeadGuards",
+            "package Test",
+            "public constant int VALUE = 7",
+            "public constant bool DISABLED = false",
+            "public constant bool ENABLED = true",
+            "public constant bool COMPILETIME_DISABLED = compiletime(false)",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "bool active",
+            "function dead()",
+            "    consume(VALUE)",
+            "function compiletimeDead()",
+            "    consume(VALUE)",
+            "function guarded()",
+            "    if DISABLED and active",
+            "        dead()",
+            "    if COMPILETIME_DISABLED and active",
+            "        compiletimeDead()",
+            "    if ENABLED and active",
+            "        consume(VALUE)",
+            "    consume(CONFIGURABLE)",
+            "init",
+            "    guarded()"
+        );
+
+        assertFalse("constant globals must not survive as Lua global reads:\n" + compiled,
+            compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED")
+                || compiled.contains("Test_COMPILETIME_DISABLED"));
+        assertFalse("a false constant guard must remove its unreachable callee:\n" + compiled,
+            compiled.contains("function dead(") || compiled.contains("function compiletimeDead("));
+        assertTrue("a true constant guard must retain its dynamic condition:\n" + compiled,
+            compiled.contains("if Test_active then"));
+        assertTrue("constant arithmetic uses must be emitted as literals:\n" + compiled,
+            compiled.contains("consume(7)"));
+        assertTrue("configurable constants must remain globals until configuration resolution:\n" + compiled,
+            compiled.contains("Test_CONFIGURABLE"));
+    }
+
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
             "-runcompiletimefunctions", "-lib", StdLib.getLib());
