@@ -65,6 +65,24 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(compiled.contains("Test_CONFIGURABLE"));
     }
 
+    @Test
+    public void laterPackageConstantIsNotInlinedIntoEarlierInitializers() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "int observed = readLater()",
+            "constant int LATER = 7",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_laterPackageConstantIsNotInlinedIntoEarlierInitializers_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
 
 
     @Test

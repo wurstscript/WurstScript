@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -53,12 +54,13 @@ public class GlobalsInliner implements OptimizerPass {
                 continue;
             }
 
-            if (v.attrWrites().size() == 1) {
+            boolean literalConstant = isLiteralConstantGlobal(v.getTrace(), prog);
+            if (v.attrWrites().size() == 1 || literalConstant) {
                 ImExpr right = null;
                 ImVarWrite obs = null;
                 for (ImVarWrite write : v.attrWrites()) {
                     ImFunction func = write.getNearestFunc();
-                    if (isInInitGlobals(func) || isLiteralConstantGlobal(v)) {
+                    if (isInInitGlobals(func) || (literalConstant && isLiteral(write.getRight()))) {
                         right = write.getRight();
                         obs = write;
                         break;
@@ -74,7 +76,7 @@ public class GlobalsInliner implements OptimizerPass {
                         v3.replaceBy(replacement.copy());
                     }
                 }
-                if (replacement != null || v.attrReads().size() == 0) {
+                if ((replacement != null || v.attrReads().size() == 0) && v.attrWrites().size() == 1) {
                     obsoleteVars.add(v);
                 }
             } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImTupleType)) {
@@ -150,6 +152,10 @@ public class GlobalsInliner implements OptimizerPass {
         return replacement;
     }
 
+    private static boolean isLiteral(ImExpr expr) {
+        return expr instanceof ImIntVal || expr instanceof ImRealVal || expr instanceof ImStringVal || expr instanceof ImBoolVal;
+    }
+
     @Override
     public String getName() {
         return "Globals Inlined";
@@ -162,14 +168,40 @@ public class GlobalsInliner implements OptimizerPass {
 
     /**
      * Package globals are initialized by package init functions, rather than initGlobals.
-     * A source-level constant is immutable, so a literal initializer remains safe to
-     * substitute regardless of which initialization function owns the assignment.
+     * A source-level constant is immutable, but an earlier initializer in the same
+     * package may still observe its default value before the constant is assigned.
      * Configurable constants stay runtime globals until configuration resolution owns them.
      */
-    private static boolean isLiteralConstantGlobal(ImVar var) {
-        return var.getTrace() instanceof GlobalVarDef
-            && ((GlobalVarDef) var.getTrace()).attrIsConstant()
-            && !((GlobalVarDef) var.getTrace()).hasAnnotation("@configurable");
+    private static boolean isLiteralConstantGlobal(de.peeeq.wurstscript.ast.Element trace, ImProg prog) {
+        if (!(trace instanceof GlobalVarDef)) {
+            return false;
+        }
+        GlobalVarDef global = (GlobalVarDef) trace;
+        if (!global.attrIsConstant() || global.hasAnnotation("@configurable")) {
+            return false;
+        }
+        WPackage packageOfGlobal = packageOf(global);
+        if (packageOfGlobal == null) {
+            return true;
+        }
+        for (ImVar other : prog.getGlobals()) {
+            if (other.getTrace() instanceof GlobalVarDef
+                && packageOf((GlobalVarDef) other.getTrace()) == packageOfGlobal
+                && other.getTrace().attrSource().getLeftPos() < global.attrSource().getLeftPos()
+                && !other.attrWrites().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private static WPackage packageOf(GlobalVarDef global) {
+        de.peeeq.wurstscript.ast.Element element = global;
+        while (element != null && !(element instanceof WPackage)) {
+            element = element.getParent();
+        }
+        return (WPackage) element;
     }
 
 }
