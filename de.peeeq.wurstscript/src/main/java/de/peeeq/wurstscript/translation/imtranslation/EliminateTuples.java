@@ -580,17 +580,14 @@ public class EliminateTuples {
     /**
      * Select tuple storage before expanding it. Expanding first turns one array/member read into
      * reads of every scalar backing variable, which then have to be preserved through discard
-     * calls because those reads can fail. A source-level field read only needs the selected
-     * backing component.
+     * calls because those reads can fail. A source-level field read or write only needs the
+     * selected backing component.
      */
     private static @org.eclipse.jdt.annotation.Nullable ImExpr selectTupleStorageComponent(
             ImTupleSelection selection, ImTranslator translator, ImFunction f) {
         List<Integer> componentPath = new ArrayList<>();
         ImExpr storage = selection;
         while (storage instanceof ImTupleSelection current) {
-            if (current.isUsedAsLValue()) {
-                return null;
-            }
             componentPath.add(current.getTupleIndex());
             storage = current.getTupleExpr();
         }
