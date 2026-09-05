@@ -33,6 +33,38 @@ import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
+    @Test
+    public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
+        test().lines(
+            "package Test",
+            "public constant int VALUE = 7",
+            "public constant bool DISABLED = false",
+            "public constant bool ENABLED = true",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "bool active",
+            "function dead()",
+            "    consume(VALUE)",
+            "function guarded()",
+            "    if DISABLED and active",
+            "        dead()",
+            "    if ENABLED and active",
+            "        consume(VALUE)",
+            "    consume(CONFIGURABLE)",
+            "init",
+            "    guarded()"
+        );
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_packageConstantsInlineAndRemoveDeadGuardsInJass_inlopt.j"),
+            Charsets.UTF_8);
+        assertFalse(compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED"));
+        assertFalse(compiled.contains("function Test_dead takes"));
+        assertTrue(compiled.contains("if Test_active then"));
+        assertTrue(compiled.contains("call consume(7)"));
+        assertTrue(compiled.contains("Test_CONFIGURABLE"));
+    }
+
 
     @Test
     public void test_number_shortening() {
