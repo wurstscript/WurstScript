@@ -4,6 +4,8 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
@@ -186,6 +188,9 @@ public class GlobalsInliner implements OptimizerPass {
         if (packageOfGlobal == null) {
             return true;
         }
+        if (isInitializedLater(packageOfGlobal)) {
+            return false;
+        }
         for (WEntity entity : packageOfGlobal.getElements()) {
             if (entity instanceof InitBlock
                 && entity.attrSource().getLeftPos() < global.attrSource().getLeftPos()) {
@@ -210,6 +215,19 @@ public class GlobalsInliner implements OptimizerPass {
             element = element.getParent();
         }
         return (WPackage) element;
+    }
+
+    private static boolean isInitializedLater(WPackage target) {
+        for (CompilationUnit unit : target.getModel()) {
+            for (WPackage candidate : unit.getPackages()) {
+                for (WImport imported : candidate.getImports()) {
+                    if (imported.getIsInitLater() && imported.attrImportedPackage() == target) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
 }
