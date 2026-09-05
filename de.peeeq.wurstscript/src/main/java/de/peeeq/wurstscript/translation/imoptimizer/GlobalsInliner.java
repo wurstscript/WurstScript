@@ -16,11 +16,16 @@ import de.peeeq.wurstscript.validation.NamePreservation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 public class GlobalsInliner implements OptimizerPass {
+    private final Set<WPackage> initLaterPackages = Collections.newSetFromMap(new IdentityHashMap<>());
+    private boolean initLaterPackagesCollected;
+
     public int optimize(ImTranslator trans) {
         int obsoleteCount = 0;
         ImProg prog = trans.getImProg();
@@ -176,7 +181,7 @@ public class GlobalsInliner implements OptimizerPass {
      * package may still observe its default value before the constant is assigned.
      * Configurable constants stay runtime globals until configuration resolution owns them.
      */
-    private static boolean isLiteralConstantGlobal(de.peeeq.wurstscript.ast.Element trace, ImProg prog) {
+    private boolean isLiteralConstantGlobal(de.peeeq.wurstscript.ast.Element trace, ImProg prog) {
         if (!(trace instanceof GlobalVarDef)) {
             return false;
         }
@@ -217,17 +222,24 @@ public class GlobalsInliner implements OptimizerPass {
         return (WPackage) element;
     }
 
-    private static boolean isInitializedLater(WPackage target) {
+    private boolean isInitializedLater(WPackage target) {
+        if (!initLaterPackagesCollected) {
+            collectInitLaterPackages(target);
+            initLaterPackagesCollected = true;
+        }
+        return initLaterPackages.contains(target);
+    }
+
+    private void collectInitLaterPackages(WPackage target) {
         for (CompilationUnit unit : target.getModel()) {
             for (WPackage candidate : unit.getPackages()) {
                 for (WImport imported : candidate.getImports()) {
-                    if (imported.getIsInitLater() && imported.attrImportedPackage() == target) {
-                        return true;
+                    if (imported.getIsInitLater() && imported.attrImportedPackage() instanceof WPackage importedPackage) {
+                        initLaterPackages.add(importedPackage);
                     }
                 }
             }
         }
-        return false;
     }
 
 }
