@@ -66,6 +66,7 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
 
+
     @Test
     public void test_number_shortening() {
         test().lines(
