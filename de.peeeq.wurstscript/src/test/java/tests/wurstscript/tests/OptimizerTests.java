@@ -33,6 +33,137 @@ import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
+    @Test
+    public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
+        test().withStdLib().runCompiletimeFunctions(true).lines(
+            "package Test",
+            "public constant bool COMPILETIME_DISABLED = compiletime(false)",
+            "public constant int VALUE = 7",
+            "public constant bool DISABLED = false",
+            "public constant bool ENABLED = true",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "bool active",
+            "function dead()",
+            "    consume(VALUE)",
+            "function compiletimeDead()",
+            "    consume(VALUE)",
+            "function guarded()",
+            "    if COMPILETIME_DISABLED and active",
+            "        compiletimeDead()",
+            "    if DISABLED and active",
+            "        dead()",
+            "    if ENABLED and active",
+            "        consume(VALUE)",
+            "    consume(CONFIGURABLE)",
+            "init",
+            "    guarded()"
+        );
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_packageConstantsInlineAndRemoveDeadGuardsInJass_inlopt.j"),
+            Charsets.UTF_8);
+        assertFalse(compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED")
+            || compiled.contains("Test_COMPILETIME_DISABLED"));
+        assertFalse(compiled.contains("function Test_dead takes") || compiled.contains("function Test_compiletimeDead takes"));
+        assertTrue(compiled.contains("if Test_active then"));
+        assertTrue(compiled.contains("call consume(7)"));
+        assertTrue(compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    @Test
+    public void laterPackageConstantIsNotInlinedIntoEarlierInitializers() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "int observed = readLater()",
+            "init",
+            "    consume(readLater())",
+            "constant int LATER = 7",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_laterPackageConstantIsNotInlinedIntoEarlierInitializers_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void superclassTranslationOrderPreservesLaterConstant() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "class Child extends Parent",
+            "constant int LATER = 7",
+            "class Parent",
+            "    static int observed = readLater()",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(Parent.observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_superclassTranslationOrderPreservesLaterConstant_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void abortableInitializerBeforeConstantPreservesLaterWrite() throws IOException {
+        test().compilationUnits(
+            compilationUnit("AbortBeforeConstant",
+                "package AbortBeforeConstant",
+                "native abortInitialization()",
+                "init",
+                "    abortInitialization()",
+                "public constant int LATER = 7"),
+            compilationUnit("ReadAfterAbort",
+                "package ReadAfterAbort",
+                "import AbortBeforeConstant",
+                "constant int SAFE = 11",
+                "native consume(int value)",
+                "init",
+                "    consume(LATER + SAFE)")
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_abortableInitializerBeforeConstantPreservesLaterWrite_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("AbortBeforeConstant_LATER"));
+        assertFalse(compiled.contains("ReadAfterAbort_SAFE"));
+    }
+
+    @Test
+    public void initlaterAnalysisIsCompilationScoped() throws IOException {
+        compileInitlaterConstantRepro("first", "First");
+        compileInitlaterConstantRepro("second", "Second");
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_initlaterAnalysis_second_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("SecondValue_VALUE"));
+    }
+
+    private void compileInitlaterConstantRepro(String testName, String prefix) {
+        testNamed("initlaterAnalysis_" + testName).compilationUnits(
+            compilationUnit(prefix + "Value",
+                "package " + prefix + "Value",
+                "public constant int VALUE = 7",
+                "public function readValue() returns int",
+                "    return VALUE"),
+            compilationUnit(prefix + "Reader",
+                "package " + prefix + "Reader",
+                "import initlater " + prefix + "Value",
+                "native consume(int value)",
+                "int observed = readValue()",
+                "init",
+                "    consume(observed)")
+        );
+    }
+
+
 
     @Test
     public void test_number_shortening() {
