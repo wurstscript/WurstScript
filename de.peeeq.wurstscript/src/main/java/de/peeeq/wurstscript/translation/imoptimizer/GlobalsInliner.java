@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -246,13 +247,10 @@ public class GlobalsInliner implements OptimizerPass {
             return new LiteralConstantAnalysis(identitySet(), replacementWrites);
         }
 
-        Set<ImFunction> functions = identitySet();
-        functions.addAll(ImHelper.calculateFunctionsOfProg(prog));
-        functions.addAll(initializationOrder);
-        IdentityHashMap<ImFunction, BitSet> readsByFunction = new IdentityHashMap<>();
-        IdentityHashMap<ImStmt, BitSet> readsByStatement = new IdentityHashMap<>();
-        IdentityHashMap<ImStmt, BitSet> writesByStatement = new IdentityHashMap<>();
-        IdentityHashMap<ImFunction, BitSet> writesByInitializer = new IdentityHashMap<>();
+        IdentityHashMap<ImFunction, Set<Integer>> readsByFunction = new IdentityHashMap<>();
+        IdentityHashMap<ImStmt, Set<Integer>> readsByStatement = new IdentityHashMap<>();
+        IdentityHashMap<ImStmt, Set<Integer>> writesByStatement = new IdentityHashMap<>();
+        IdentityHashMap<ImFunction, Set<Integer>> writesByInitializer = new IdentityHashMap<>();
         BitSet unsafe = new BitSet(candidates.size());
 
         for (int i = 0; i < candidates.size(); i++) {
@@ -263,10 +261,10 @@ public class GlobalsInliner implements OptimizerPass {
                     unsafe.set(i);
                     continue;
                 }
-                readsByFunction.computeIfAbsent(function, ignored -> new BitSet()).set(i);
+                readsByFunction.computeIfAbsent(function, ignored -> new HashSet<>()).add(i);
                 ImStmt statement = topLevelStatement((de.peeeq.wurstscript.jassIm.Element) read, function);
                 if (statement != null) {
-                    readsByStatement.computeIfAbsent(statement, ignored -> new BitSet()).set(i);
+                    readsByStatement.computeIfAbsent(statement, ignored -> new HashSet<>()).add(i);
                 }
             }
             for (ImVarWrite write : candidate.attrWrites()) {
@@ -274,67 +272,30 @@ public class GlobalsInliner implements OptimizerPass {
                 ImStmt statement = function == null ? null
                     : topLevelStatement((de.peeeq.wurstscript.jassIm.Element) write, function);
                 if (statement != null) {
-                    writesByStatement.computeIfAbsent(statement, ignored -> new BitSet()).set(i);
-                    writesByInitializer.computeIfAbsent(function, ignored -> new BitSet()).set(i);
-                }
-            }
-        }
-
-        IdentityHashMap<ImFunction, Set<ImFunction>> callers = new IdentityHashMap<>();
-        ArrayDeque<ImFunction> undiscovered = new ArrayDeque<>(functions);
-        while (!undiscovered.isEmpty()) {
-            ImFunction caller = undiscovered.removeFirst();
-            readsByFunction.computeIfAbsent(caller, ignored -> new BitSet());
-            for (ImFunction callee : caller.calcUsedFunctions()) {
-                if (callee == null) {
-                    continue;
-                }
-                callers.computeIfAbsent(callee, ignored -> identitySet()).add(caller);
-                if (functions.add(callee)) {
-                    undiscovered.addLast(callee);
-                }
-            }
-        }
-
-        ArrayDeque<ImFunction> changedFunctions = new ArrayDeque<>();
-        Set<ImFunction> queued = identitySet();
-        for (Map.Entry<ImFunction, BitSet> entry : readsByFunction.entrySet()) {
-            if (!entry.getValue().isEmpty()) {
-                changedFunctions.addLast(entry.getKey());
-                queued.add(entry.getKey());
-            }
-        }
-        while (!changedFunctions.isEmpty()) {
-            ImFunction callee = changedFunctions.removeFirst();
-            queued.remove(callee);
-            BitSet calleeReads = readsByFunction.get(callee);
-            for (ImFunction caller : callers.getOrDefault(callee, Collections.emptySet())) {
-                BitSet callerReads = readsByFunction.computeIfAbsent(caller, ignored -> new BitSet());
-                int before = callerReads.cardinality();
-                callerReads.or(calleeReads);
-                if (callerReads.cardinality() != before && queued.add(caller)) {
-                    changedFunctions.addLast(caller);
+                    writesByStatement.computeIfAbsent(statement, ignored -> new HashSet<>()).add(i);
+                    writesByInitializer.computeIfAbsent(function, ignored -> new HashSet<>()).add(i);
                 }
             }
         }
 
         BitSet pending = new BitSet(candidates.size());
         pending.set(0, candidates.size());
+        Set<ImFunction> reachableFromStartup = identitySet();
         ImFunction config = trans.getConfFunc();
         if (config != null) {
             scanStartupStatements(config.getBody(), pending, unsafe, readsByStatement, writesByStatement,
-                readsByFunction, null);
+                readsByFunction, reachableFromStartup, null);
         }
         if (!initializationOrder.isEmpty()) {
             scanStartupStatements(initializationOrder.get(0).getBody(), pending, unsafe, readsByStatement,
-                writesByStatement, readsByFunction, null);
+                writesByStatement, readsByFunction, reachableFromStartup, null);
             scanMainPrefix(trans, initializationOrder, pending, unsafe, readsByStatement, writesByStatement,
-                readsByFunction);
+                readsByFunction, reachableFromStartup);
         }
         for (int i = 1; i < initializationOrder.size(); i++) {
             ImFunction initializer = initializationOrder.get(i);
             scanStartupStatements(initializer.getBody(), pending, unsafe, readsByStatement, writesByStatement,
-                readsByFunction, writesByInitializer.get(initializer));
+                readsByFunction, reachableFromStartup, writesByInitializer.get(initializer));
         }
         unsafe.or(pending);
 
@@ -349,9 +310,10 @@ public class GlobalsInliner implements OptimizerPass {
 
     private static void scanMainPrefix(ImTranslator trans, List<ImFunction> initializationOrder,
                                        BitSet pending, BitSet unsafe,
-                                       Map<ImStmt, BitSet> readsByStatement,
-                                       Map<ImStmt, BitSet> writesByStatement,
-                                       Map<ImFunction, BitSet> readsByFunction) {
+                                       Map<ImStmt, Set<Integer>> readsByStatement,
+                                       Map<ImStmt, Set<Integer>> writesByStatement,
+                                       Map<ImFunction, Set<Integer>> readsByFunction,
+                                       Set<ImFunction> reachableFromStartup) {
         Set<ImFunction> packageInitializers = identitySet();
         packageInitializers.addAll(initializationOrder.subList(1, initializationOrder.size()));
         for (ImStmt statement : trans.getMainFunc().getBody()) {
@@ -360,34 +322,54 @@ public class GlobalsInliner implements OptimizerPass {
                 return;
             }
             scanStartupStatements(Collections.singleton(statement), pending, unsafe, readsByStatement,
-                writesByStatement, readsByFunction, null);
+                writesByStatement, readsByFunction, reachableFromStartup, null);
         }
     }
 
     private static void scanStartupStatements(Collection<ImStmt> statements, BitSet pending, BitSet unsafe,
-                                               Map<ImStmt, BitSet> readsByStatement,
-                                               Map<ImStmt, BitSet> writesByStatement,
-                                               Map<ImFunction, BitSet> readsByFunction,
-                                               @Nullable BitSet writesInAbortableInitializer) {
+                                               Map<ImStmt, Set<Integer>> readsByStatement,
+                                               Map<ImStmt, Set<Integer>> writesByStatement,
+                                               Map<ImFunction, Set<Integer>> readsByFunction,
+                                               Set<ImFunction> reachableFromStartup,
+                                               @Nullable Set<Integer> writesInAbortableInitializer) {
         for (ImStmt statement : statements) {
-            BitSet reads = readsByStatement.containsKey(statement)
-                ? (BitSet) readsByStatement.get(statement).clone() : new BitSet();
-            for (ImFunction used : directlyUsedFunctions(statement)) {
-                BitSet functionReads = readsByFunction.get(used);
-                if (functionReads != null) {
-                    reads.or(functionReads);
-                }
+            BitSet reads = new BitSet();
+            for (int candidate : readsByStatement.getOrDefault(statement, Collections.emptySet())) {
+                reads.set(candidate);
             }
+            addNewlyReachableReads(statement, reachableFromStartup, readsByFunction, reads);
             reads.and(pending);
             unsafe.or(reads);
             if (writesInAbortableInitializer != null && !isDefinitelyNonAbortingInitializerStatement(statement)) {
-                BitSet skippedWrites = (BitSet) pending.clone();
-                skippedWrites.and(writesInAbortableInitializer);
-                unsafe.or(skippedWrites);
+                for (int candidate : writesInAbortableInitializer) {
+                    if (pending.get(candidate)) {
+                        unsafe.set(candidate);
+                    }
+                }
             }
-            BitSet writes = writesByStatement.get(statement);
-            if (writes != null) {
-                pending.andNot(writes);
+            for (int candidate : writesByStatement.getOrDefault(statement, Collections.emptySet())) {
+                pending.clear(candidate);
+            }
+        }
+    }
+
+    private static void addNewlyReachableReads(ImStmt statement, Set<ImFunction> reachableFromStartup,
+                                                Map<ImFunction, Set<Integer>> readsByFunction, BitSet reads) {
+        ArrayDeque<ImFunction> undiscovered = new ArrayDeque<>();
+        for (ImFunction function : directlyUsedFunctions(statement)) {
+            if (function != null && reachableFromStartup.add(function)) {
+                undiscovered.addLast(function);
+            }
+        }
+        while (!undiscovered.isEmpty()) {
+            ImFunction function = undiscovered.removeFirst();
+            for (int candidate : readsByFunction.getOrDefault(function, Collections.emptySet())) {
+                reads.set(candidate);
+            }
+            for (ImFunction callee : function.calcUsedFunctions()) {
+                if (callee != null && reachableFromStartup.add(callee)) {
+                    undiscovered.addLast(callee);
+                }
             }
         }
     }
