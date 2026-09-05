@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -183,6 +185,12 @@ public class GlobalsInliner implements OptimizerPass {
         WPackage packageOfGlobal = packageOf(global);
         if (packageOfGlobal == null) {
             return true;
+        }
+        for (WEntity entity : packageOfGlobal.getElements()) {
+            if (entity instanceof InitBlock
+                && entity.attrSource().getLeftPos() < global.attrSource().getLeftPos()) {
+                return false;
+            }
         }
         for (ImVar other : prog.getGlobals()) {
             if (other.getTrace() instanceof GlobalVarDef

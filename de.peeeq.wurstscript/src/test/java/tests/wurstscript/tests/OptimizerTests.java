@@ -71,6 +71,8 @@ public class OptimizerTests extends WurstScriptTest {
             "package Test",
             "native consume(int value)",
             "int observed = readLater()",
+            "init",
+            "    consume(readLater())",
             "constant int LATER = 7",
             "function readLater() returns int",
             "    return LATER",
