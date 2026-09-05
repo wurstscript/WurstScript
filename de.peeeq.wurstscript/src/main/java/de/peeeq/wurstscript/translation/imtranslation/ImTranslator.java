@@ -165,6 +165,9 @@ public class ImTranslator implements SpecialisationLookup {
 
     public final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
 
+    /** Initializer functions in the exact order emitted by {@link #finishInitFunctions()}. */
+    private final List<ImFunction> initializationOrder = new ArrayList<>();
+
     /**
      * When targeting Lua, package init functions that should be called directly via xpcall
      * rather than through the JASS TriggerEvaluate thread-isolation pattern.
@@ -676,6 +679,8 @@ public class ImTranslator implements SpecialisationLookup {
 
 
     private void finishInitFunctions() {
+        initializationOrder.clear();
+        initializationOrder.add(globalInitFunc);
         // init globals, at beginning of main func:
         getMainFunc().getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
 
@@ -744,6 +749,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (initFunc.getBody().size() == 0) {
             return;
         }
+        initializationOrder.add(initFunc);
         if (isLuaTarget()) {
             // In Lua mode, xpcall replaces TriggerEvaluate for error isolation without WC3 handle overhead.
             // Record the init function so the Lua translator can wrap it with xpcall.
@@ -1531,7 +1537,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImFunction getMainFunc() { return mainFunc; }
     public ImFunction getConfFunc() { return configFunc; }
 
-
+    public List<ImFunction> getInitializationOrder() {
+        return Collections.unmodifiableList(initializationOrder);
+    }
 
     /**
      * returns a list of classes and functions implementing funcDef

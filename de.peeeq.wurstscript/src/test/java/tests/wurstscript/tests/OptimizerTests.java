@@ -35,8 +35,9 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
-        test().lines(
+        test().withStdLib().runCompiletimeFunctions(true).lines(
             "package Test",
+            "public constant bool COMPILETIME_DISABLED = compiletime(false)",
             "public constant int VALUE = 7",
             "public constant bool DISABLED = false",
             "public constant bool ENABLED = true",
@@ -45,7 +46,11 @@ public class OptimizerTests extends WurstScriptTest {
             "bool active",
             "function dead()",
             "    consume(VALUE)",
+            "function compiletimeDead()",
+            "    consume(VALUE)",
             "function guarded()",
+            "    if COMPILETIME_DISABLED and active",
+            "        compiletimeDead()",
             "    if DISABLED and active",
             "        dead()",
             "    if ENABLED and active",
@@ -58,8 +63,9 @@ public class OptimizerTests extends WurstScriptTest {
         String compiled = Files.toString(
             new File("test-output/OptimizerTests_packageConstantsInlineAndRemoveDeadGuardsInJass_inlopt.j"),
             Charsets.UTF_8);
-        assertFalse(compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED"));
-        assertFalse(compiled.contains("function Test_dead takes"));
+        assertFalse(compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED")
+            || compiled.contains("Test_COMPILETIME_DISABLED"));
+        assertFalse(compiled.contains("function Test_dead takes") || compiled.contains("function Test_compiletimeDead takes"));
         assertTrue(compiled.contains("if Test_active then"));
         assertTrue(compiled.contains("call consume(7)"));
         assertTrue(compiled.contains("Test_CONFIGURABLE"));
@@ -83,6 +89,54 @@ public class OptimizerTests extends WurstScriptTest {
             new File("test-output/OptimizerTests_laterPackageConstantIsNotInlinedIntoEarlierInitializers_inlopt.j"),
             Charsets.UTF_8);
         assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void superclassTranslationOrderPreservesLaterConstant() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "class Child extends Parent",
+            "constant int LATER = 7",
+            "class Parent",
+            "    static int observed = readLater()",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(Parent.observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_superclassTranslationOrderPreservesLaterConstant_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void initlaterAnalysisIsCompilationScoped() throws IOException {
+        compileInitlaterConstantRepro("first", "First");
+        compileInitlaterConstantRepro("second", "Second");
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_initlaterAnalysis_second_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("SecondValue_VALUE"));
+    }
+
+    private void compileInitlaterConstantRepro(String testName, String prefix) {
+        testNamed("initlaterAnalysis_" + testName).compilationUnits(
+            compilationUnit(prefix + "Value",
+                "package " + prefix + "Value",
+                "public constant int VALUE = 7",
+                "public function readValue() returns int",
+                "    return VALUE"),
+            compilationUnit(prefix + "Reader",
+                "package " + prefix + "Reader",
+                "import initlater " + prefix + "Value",
+                "native consume(int value)",
+                "int observed = readValue()",
+                "init",
+                "    consume(observed)")
+        );
     }
 
 

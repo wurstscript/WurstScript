@@ -63,6 +63,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String compiled = compileOptimizedLuaWithStdLib(
             "packageConstantsInlineAndRemoveDeadGuards",
             "package Test",
+            "public constant bool COMPILETIME_DISABLED = compiletime(false)",
             "public constant int VALUE = 7",
             "public constant bool DISABLED = false",
             "public constant bool ENABLED = true",
@@ -71,7 +72,11 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "bool active",
             "function dead()",
             "    consume(VALUE)",
+            "function compiletimeDead()",
+            "    consume(VALUE)",
             "function guarded()",
+            "    if COMPILETIME_DISABLED and active",
+            "        compiletimeDead()",
             "    if DISABLED and active",
             "        dead()",
             "    if ENABLED and active",
@@ -83,9 +88,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
 
         assertFalse("constant uses must be emitted as literals:\n" + compiled,
             compiled.contains("consume(Test_VALUE)") || compiled.contains("Test_DISABLED and")
-                || compiled.contains("Test_ENABLED and"));
+                || compiled.contains("Test_ENABLED and") || compiled.contains("Test_COMPILETIME_DISABLED and"));
         assertFalse("a false constant guard must remove its unreachable callee:\n" + compiled,
-            compiled.contains("function dead("));
+            compiled.contains("function dead(") || compiled.contains("function compiletimeDead("));
         assertTrue("a true constant guard must retain its dynamic condition:\n" + compiled,
             compiled.contains("if Test_active then"));
         assertTrue("constant arithmetic uses must be emitted as literals:\n" + compiled,
