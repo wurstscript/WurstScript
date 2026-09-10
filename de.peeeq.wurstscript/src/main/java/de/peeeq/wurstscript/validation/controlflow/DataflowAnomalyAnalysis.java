@@ -71,11 +71,26 @@ class VarStates {
     }
 
     public VarStates addRead(LocalVarDef v, Element r) {
+        return withRead(v, r, null);
+    }
+
+    /**
+     * Records a read that cannot observe writes made inside {@code excluded}.
+     *
+     * <p>A for-range start expression is evaluated once before the loop is entered, but the CFG
+     * back edge revisits the loop statement, so a plain read would also mark writes made in the
+     * loop body - suppressing a genuine never-read warning for them.
+     */
+    public VarStates addReadOutside(LocalVarDef v, Element r, Element excluded) {
+        return withRead(v, r, excluded);
+    }
+
+    private VarStates withRead(LocalVarDef v, Element r, @Nullable Element excluded) {
         VState s = getVarState(v);
         if (s == null) {
             s = VState.initialDefined;
         }
-        s = s.addRead(r);
+        s = s.addRead(r, excluded);
         Builder<LocalVarDef, VState> builder = ImmutableMap.builder();
         for (Entry<LocalVarDef, VState> e : states.entrySet()) {
             if (e.getKey() != v) {
@@ -207,12 +222,28 @@ class VState {
     }
 
     public VState addRead(Element r) {
+        return addRead(r, null);
+    }
+
+    public VState addRead(Element r, @Nullable Element excluded) {
         ImmutableSetMultimap.Builder<WStatement, Element> builder = ImmutableSetMultimap.builder();
         builder.putAll(writesAndReads);
         for (WStatement s : this.activeWrites) {
-            builder.put(s, r);
+            if (excluded == null || !isInside(s, excluded)) {
+                builder.put(s, r);
+            }
         }
         return new VState(mightBeUninitialized, mightBeDestroyed, builder.build(), activeWrites, allWrites);
+    }
+
+    /** Whether {@code node} lies within the subtree rooted at {@code ancestor}. */
+    private static boolean isInside(Element node, Element ancestor) {
+        for (Element e = node; e != null; e = e.getParent()) {
+            if (e == ancestor) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public VState merge(VState other) {
@@ -290,11 +321,18 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
 
         if (s instanceof CompoundStatement) {
+            // A loop that declares its own variable evaluates its whole header exactly once before
+            // the loop is entered - StmtTranslation assigns the start expression and hoists "to",
+            // "step" and "in" into temporaries ahead of the ImLoop. A while condition, by contrast,
+            // is re-evaluated per iteration, so only this family gets the once-only treatment.
+            boolean headerEvaluatedOnce = s instanceof LoopStatementWithVarDef;
             // for a compound statement check only the expressions in the statement
             for (int i = 0; i < s.size(); i++) {
                 if (s.get(i) instanceof Expr) {
                     Expr expr = (Expr) s.get(i);
-                    incoming = handleExprInCompound(incoming, expr);
+                    incoming = headerEvaluatedOnce
+                        ? handleLoopHeaderExpr(incoming, expr, s)
+                        : handleExprInCompound(incoming, expr);
                 }
             }
             if (s instanceof SwitchStmt) {
@@ -313,7 +351,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 // expression of its own, which the instanceof guard covers.
                 LocalVarDef loopVar = ((LoopStatementWithVarDef) s).getLoopVar();
                 if (loopVar.getInitialExpr() instanceof Expr) {
-                    incoming = handleExprInCompound(incoming, (Expr) loopVar.getInitialExpr());
+                    incoming = handleLoopHeaderExpr(incoming, (Expr) loopVar.getInitialExpr(), s);
                 }
             }
         } else {
@@ -386,6 +424,25 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             }
         }
         return false;
+    }
+
+    /**
+     * Handles a loop header expression - the start value, "to", "step" or "in" - each of which
+     * runs exactly once before the loop is entered.
+     *
+     * <p>The CFG has a back edge to the loop statement, so the fixpoint evaluates this again on
+     * later iterations. Reads are therefore recorded only against writes outside the loop: a write
+     * in the loop body happens after the header has already been evaluated and cannot be observed
+     * by it, so counting it as read would hide a genuine dead assignment.
+     */
+    private VarStates handleLoopHeaderExpr(VarStates incoming, Expr headerExpr, WStatement loop) {
+        checkIfVarsInitialized(headerExpr, incoming);
+        for (NameDef v : headerExpr.attrReadVariables()) {
+            if (isLocalVarDef(v)) {
+                incoming = incoming.addReadOutside((LocalVarDef) v, headerExpr, loop);
+            }
+        }
+        return incoming;
     }
 
     private VarStates handleExprInCompound(VarStates incoming, Expr expr) {
