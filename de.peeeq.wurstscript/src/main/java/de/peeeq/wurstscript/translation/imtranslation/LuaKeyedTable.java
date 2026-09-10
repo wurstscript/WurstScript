@@ -2,7 +2,10 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.jassIm.ImAnyType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -74,6 +77,19 @@ public final class LuaKeyedTable {
     private static boolean isKeyedPair(ImFunction f) {
         return f.getParameters().size() == 2
             && TypesHelper.isIntType(f.getParameters().get(0).getType())
-            && TypesHelper.isIntType(f.getParameters().get(1).getType());
+            && isKeyType(f.getParameters().get(1).getType());
+    }
+
+    /**
+     * Types a key may have.
+     *
+     * <p>A {@code T:} type parameter is the point of this: new generics are erased on Lua rather
+     * than squeezed through {@code castTo int} the way the old {@code <T>} containers are, so the
+     * value arriving here is the element itself and becomes the table key directly - which is what
+     * makes native Lua hashing possible at all. {@code int} stays accepted for keys that are
+     * already integers, and an erased type parameter can also present as ImAnyType by this point.
+     */
+    private static boolean isKeyType(ImType t) {
+        return TypesHelper.isIntType(t) || t instanceof ImTypeVarRef || t instanceof ImAnyType;
     }
 }

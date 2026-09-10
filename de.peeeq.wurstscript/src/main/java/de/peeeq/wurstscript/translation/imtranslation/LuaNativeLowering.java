@@ -532,14 +532,27 @@ public final class LuaNativeLowering {
     private static ImFunction createNativeStub(String name, ImFunction original) {
         ImVars params = JassIm.ImVars();
         for (ImVar p : original.getParameters()) {
-            params.add(JassIm.ImVar(p.attrTrace(), p.getType().copy(), p.getName(), false));
+            params.add(JassIm.ImVar(p.attrTrace(), erasedForStub(p.getType()), p.getName(), false));
         }
         return JassIm.ImFunction(
             original.attrTrace(), name,
             JassIm.ImTypeVars(), params,
-            original.getReturnType().copy(),
+            erasedForStub(original.getReturnType()),
             JassIm.ImVars(), JassIm.ImStmts(),
             Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+    }
+
+    /**
+     * A type safe to put in a stub's signature.
+     *
+     * <p>Stubs are built with no type variables of their own, so copying an ImTypeVarRef would
+     * leave the stub referring to a variable owned by the function it replaced - a free variable,
+     * and malformed IM for every pass that walks types afterwards. A native stub is never generic:
+     * its body is hand-written Lua that does not consult the type, so erasing is the whole fix
+     * rather than rebinding a variable nothing will read.
+     */
+    private static ImType erasedForStub(ImType t) {
+        return t instanceof ImTypeVarRef ? JassIm.ImAnyType() : t.copy();
     }
 
     /**

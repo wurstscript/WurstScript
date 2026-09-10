@@ -8,6 +8,10 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
@@ -1866,6 +1870,102 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");
         assertDoesNotContainRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
+    }
+
+    /**
+     * Native stubs carry no type variables of their own, so a stub signature must never refer to
+     * one. Copying a T: parameter type verbatim leaves the stub pointing at a variable owned by
+     * the function it replaced - malformed IM for every later pass that walks types.
+     *
+     * <p>Asserted as a rule rather than through a symptom: the free reference does not break
+     * emission today, so a behavioural test would pass with or without the fix.
+     */
+    @Test
+    public void nativeStubsCarryNoFreeTypeVariables() {
+        WurstGui gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null,
+            new RunArgs().with("-lua"));
+        List<CU> inputs = new ArrayList<>();
+        inputs.add(new CU("nativeStubsCarryNoFreeTypeVariables.wurst", String.join(System.lineSeparator(),
+            "package KeyedTable",
+            "@annotation public function compilerintrinsic()",
+            "@compilerintrinsic public function keyedTableAdd<T:>(int tbl, T key)",
+            "    skip",
+            "@compilerintrinsic public function keyedTableContains<T:>(int tbl, T key) returns boolean",
+            "    return false",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    keyedTableAdd(1, 7)",
+            "    let hit = keyedTableContains(1, 7)",
+            "endpackage")));
+
+        WurstModel model = parseFiles(Collections.emptyList(), inputs, false, compiler);
+        assertNotNull("parse returned null model, errors = " + gui.getErrorList(), model);
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        compiler.transformProgToLua();
+
+        for (ImFunction f : compiler.getImProg().getFunctions()) {
+            if (!f.isNative()) {
+                continue;
+            }
+            for (ImVar p : f.getParameters()) {
+                assertFalse(f.getName() + " parameter " + p.getName()
+                        + " refers to a type variable the stub does not declare",
+                    isFreeTypeVar(p.getType(), f));
+            }
+            assertFalse(f.getName() + " return type refers to a type variable the stub does not declare",
+                isFreeTypeVar(f.getReturnType(), f));
+        }
+    }
+
+    private static boolean isFreeTypeVar(ImType t, ImFunction owner) {
+        return t instanceof ImTypeVarRef ref
+            && !owner.getTypeVariables().contains(ref.getTypeVariable());
+    }
+
+    /**
+     * A generic key is the whole point: new generics are erased on Lua rather than cast to int
+     * like the old <T> containers, so the element itself becomes the table key and Lua hashes it
+     * natively. Bodies are trivial because these are Lua-only primitives - callers guard on isLua.
+     */
+    @Test
+    public void keyedTableGenericKeyReachesLuaUncast() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(
+            "package KeyedTable",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyedTableAdd<T:>(int tbl, T key)",
+            "    skip",
+            "@compilerintrinsic public function keyedTableContains<T:>(int tbl, T key) returns boolean",
+            "    return false",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedTableAdd(t, u)",
+            "    if keyedTableContains(t, u)",
+            "        print(\"present\")",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableGenericKeyReachesLuaUncast.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("a generic key must still lower to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("add is a single store", getFunctionBody(compiled, "__wurst_keyedTableAdd").contains("] = true"));
+
+        // The unit must be handed over as itself. An index round-trip would show up here.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the element must not be converted to a class index: " + init,
+            init.contains("__wurst_classFromIndex"));
     }
 
     /**
