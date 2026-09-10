@@ -812,11 +812,6 @@ public class LuaTranslator {
                 luaModel.add(lf);
                 return;
             }
-            // KeyedTable is membership keyed directly by the element on Lua; see LuaKeyedTable.
-            if (LuaKeyedTable.rewrite(f, lf, this)) {
-                luaModel.add(lf);
-                return;
-            }
 
 
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {

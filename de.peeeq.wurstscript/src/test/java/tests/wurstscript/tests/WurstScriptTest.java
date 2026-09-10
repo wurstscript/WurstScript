@@ -117,6 +117,7 @@ public class WurstScriptTest {
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
         private boolean optimize;
+        private boolean inline;
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
@@ -158,6 +159,12 @@ public class WurstScriptTest {
 
         public TestConfig executeTests(boolean b) {
             this.executeTests = b;
+            return this;
+        }
+
+        /** Enables the IM inliner (-inline), which is a separate option from -opt. */
+        TestConfig inline() {
+            this.inline = true;
             return this;
         }
 
@@ -280,6 +287,9 @@ public class WurstScriptTest {
             }
             if (optimize) {
                 runArgs = runArgs.with("-opt");
+            }
+            if (inline) {
+                runArgs = runArgs.with("-inline");
             }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);

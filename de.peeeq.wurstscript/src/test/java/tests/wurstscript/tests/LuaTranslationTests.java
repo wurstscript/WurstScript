@@ -1876,13 +1876,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
             "package KeyedTable",
             "import Table",
-            "public function keyedTableCreate() returns int",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
             "    return (new Table()) castTo int",
-            "public function keyedTableAdd(int tbl, int key)",
+            "@compilerintrinsic public function keyedTableAdd(int tbl, int key)",
             "    (tbl castTo Table).saveBoolean(key, true)",
-            "public function keyedTableContains(int tbl, int key) returns boolean",
+            "@compilerintrinsic public function keyedTableContains(int tbl, int key) returns boolean",
             "    return (tbl castTo Table).loadBoolean(key)",
-            "public function keyedTableRemove(int tbl, int key)",
+            "@compilerintrinsic public function keyedTableRemove(int tbl, int key)",
             "    (tbl castTo Table).removeBoolean(key)",
             "endpackage"));
         lines.addAll(java.util.Arrays.asList(usage));
@@ -1904,9 +1904,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(
             new File("test-output/lua/LuaTranslationTests_keyedTableLowersToASingleLuaIndex.lua"), Charsets.UTF_8);
 
-        String add = getFunctionBody(compiled, "keyedTableAdd");
-        String contains = getFunctionBody(compiled, "keyedTableContains");
-        String create = getFunctionBody(compiled, "keyedTableCreate");
+        String add = getFunctionBody(compiled, "__wurst_keyedTableAdd");
+        String contains = getFunctionBody(compiled, "__wurst_keyedTableContains");
+        String create = getFunctionBody(compiled, "__wurst_keyedTableCreate");
 
         assertTrue("add should be a single table store, was: " + add, add.contains("] = true"));
         assertTrue("contains should be a single index, was: " + contains, contains.contains("] ~= nil"));
@@ -1940,6 +1940,76 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        testFail(\"7 was removed but reported present\")",
             "    testSuccess()",
             "endpackage"));
+    }
+
+    /**
+     * The lowering happens in IM before the inliner, so inlining cannot leave one call site on the
+     * hashtable body while another gets the Lua table - which would mix an integer class id with a
+     * table index for the same value and fail at runtime.
+     */
+    @Test
+    public void keyedTableMembershipSurvivesInlining() throws IOException {
+        test().testLua(true).executeProg(true).inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if not keyedTableContains(t, 7)",
+            "        testFail(\"7 was added but reported absent under -inline\")",
+            "    keyedTableRemove(t, 7)",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"7 was removed but reported present under -inline\")",
+            "    testSuccess()",
+            "endpackage"));
+
+        // Whether a given site actually gets inlined depends on the inliner's local-register
+        // budget, so assert the rule rather than the symptom: every call was replaced in IM, so
+        // the Table-backed originals are unreachable and collected. If any site had kept the old
+        // body, that function would still be here.
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableMembershipSurvivesInlining.lua"),
+            Charsets.UTF_8);
+        assertFalse("no call site may keep the Table-backed keyedTableAdd",
+            compiled.contains("function keyedTableAdd("));
+        assertFalse("no call site may keep the Table-backed keyedTableContains",
+            compiled.contains("function keyedTableContains("));
+        assertTrue("membership must go through the lowered stub",
+            compiled.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
+     * The lowering is opt-in by declaration. A user package that merely shares these names keeps
+     * its own body, so nothing silently changes meaning under it.
+     */
+    @Test
+    public void keyedTableWithoutTheAnnotationIsLeftAlone() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedTable",
+            "import Table",
+            "public function keyedTableCreate() returns int",
+            "    return (new Table()) castTo int",
+            "public function keyedTableAdd(int tbl, int key)",
+            "    (tbl castTo Table).saveBoolean(key, true)",
+            "public function keyedTableContains(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).loadBoolean(key)",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    print(keyedTableContains(t, 7).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableWithoutTheAnnotationIsLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        assertFalse("an unannotated package must not be lowered to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("it should keep its own Table-backed body",
+            getFunctionBody(compiled, "keyedTableAdd").contains("Table_Table_saveBoolean"));
     }
 
     /**

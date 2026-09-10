@@ -271,6 +271,28 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("__wurst_enumDestructable_override = prev"));
         });
 
+        // KeyedTable: membership keyed directly by the element, one index per operation.
+        // Lowered to these stubs by LuaKeyedTable/LuaNativeLowering before the inliner runs, so
+        // every call site agrees on the representation. No iteration is offered: pairs() order
+        // differs between clients and desyncs a lockstep game.
+        addNative("__wurst_keyedTableCreate", f ->
+            f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative("__wurst_keyedTableAdd", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t[k] = true"));
+        });
+        addNative("__wurst_keyedTableContains", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] ~= nil"));
+        });
+        addNative("__wurst_keyedTableRemove", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t[k] = nil"));
+        });
+
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
             f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));
 

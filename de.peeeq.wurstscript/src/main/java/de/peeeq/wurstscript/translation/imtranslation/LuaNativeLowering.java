@@ -146,6 +146,25 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
+                // KeyedTable membership becomes a table keyed directly by the element. Done here,
+                // before optimization, rather than at emission: the inliner runs in between, and a
+                // call inlined before an emission-time rewrite would keep the hashtable body while
+                // a surviving one got the Lua table - mixing an integer class id with a table index
+                // for the same value. Replacing the call makes every site agree.
+                String keyedStub = LuaKeyedTable.nativeStubFor(f);
+                if (keyedStub != null) {
+                    ImFunction replacement = specialNativeStubs.computeIfAbsent(keyedStub,
+                        name -> createNativeStub(name, f));
+                    if (!deferredAdditions.contains(replacement)) {
+                        deferredAdditions.add(replacement);
+                    }
+                    call.replaceBy(JassIm.ImFunctionCall(
+                        call.attrTrace(), replacement,
+                        JassIm.ImTypeArguments(),
+                        call.getArguments().copy(),
+                        false, CallType.NORMAL));
+                    return;
+                }
                 if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && isCompatGetHandleIdFunction(f)) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",
