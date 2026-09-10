@@ -305,6 +305,16 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                         incoming = handleExprInCompound(incoming, switchCaseExpr);
                     }
                 }
+            } else if (s instanceof LoopStatementWithVarDef) {
+                // Same reason: for "for i = a downto 0" the start expression belongs to the loop
+                // variable's LocalVarDef, not to the loop statement, so the loop above never sees
+                // it and a local read only appearing there looked like a dead assignment.
+                // StmtForFrom binds its loop variable from the "in" expression and has no initial
+                // expression of its own, which the instanceof guard covers.
+                LocalVarDef loopVar = ((LoopStatementWithVarDef) s).getLoopVar();
+                if (loopVar.getInitialExpr() instanceof Expr) {
+                    incoming = handleExprInCompound(incoming, (Expr) loopVar.getInitialExpr());
+                }
             }
         } else {
             checkIfVarsInitialized(s, incoming);

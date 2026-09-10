@@ -966,6 +966,32 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    /** A local read by the loop variable's start expression is read, whichever way the loop counts. */
+    @Test
+    public void forRangeStartReadsLocal() {
+        for (String direction : new String[]{"downto 0", "to 20"}) {
+            CompilationResult result = test()
+                .setStopOnFirstError(false)
+                .executeProg(false)
+                .lines(
+                    "package test",
+                    "native testSuccess()",
+                    "init",
+                    "    let a = 10",
+                    "    for i = a " + direction,
+                    "        skip",
+                    "endpackage"
+                );
+
+            Assert.assertTrue(
+                result.getGui().getWarningList().stream()
+                    .noneMatch(w -> w.getMessage().contains("assignment to local variable a is never read")),
+                "Unexpected never-read warning for 'a' with 'for i = a " + direction + "': "
+                    + result.getGui().getWarningList()
+            );
+        }
+    }
+
     @Test
     public void forRangeLoopVarMutationWarns() {
         testAssertWarningsLines(false, "unexpected iteration side effects",
