@@ -1868,6 +1868,172 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertDoesNotContainRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
     }
 
+    /**
+     * KeyedTable source shared by the tests below: the Jass path built on the library's hashtable
+     * wrapper, which the Lua backend replaces with a table keyed directly by the element.
+     */
+    private static String[] keyedTableSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedTable",
+            "import Table",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedTableAdd(int tbl, int key)",
+            "    (tbl castTo Table).saveBoolean(key, true)",
+            "@compilerintrinsic public function keyedTableContains(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).loadBoolean(key)",
+            "@compilerintrinsic public function keyedTableRemove(int tbl, int key)",
+            "    (tbl castTo Table).removeBoolean(key)",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    /** On Lua each keyed table is its own table and membership is a single index. */
+    @Test
+    public void keyedTableLowersToASingleLuaIndex() throws IOException {
+        test().testLua(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    print(keyedTableContains(t, 7).toString())",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableLowersToASingleLuaIndex.lua"), Charsets.UTF_8);
+
+        String add = getFunctionBody(compiled, "__wurst_keyedTableAdd");
+        String contains = getFunctionBody(compiled, "__wurst_keyedTableContains");
+        String create = getFunctionBody(compiled, "__wurst_keyedTableCreate");
+
+        assertTrue("add should be a single table store, was: " + add, add.contains("] = true"));
+        assertTrue("contains should be a single index, was: " + contains, contains.contains("] ~= nil"));
+        assertTrue("create should allocate a bare table, was: " + create, create.contains("return {}"));
+
+        // The whole point: no hashtable machinery on this path.
+        assertFalse("add must not go through the hashtable natives: " + add, add.contains("SaveBoolean"));
+        assertFalse("contains must not go through the hashtable natives: " + contains, contains.contains("LoadBoolean"));
+    }
+
+    /**
+     * Membership must mean the same thing on both backends: the Jass path runs the hashtable
+     * body, the Lua path runs a bare table, and the observable behaviour has to agree.
+     */
+    @Test
+    public void keyedTableMembershipAgreesOnBothBackends() {
+        test().testLua(true).executeProg(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"empty table reported 7 as present\")",
+            "    keyedTableAdd(t, 7)",
+            "    if not keyedTableContains(t, 7)",
+            "        testFail(\"7 was added but reported absent\")",
+            "    if keyedTableContains(t, 8)",
+            "        testFail(\"8 was never added but reported present\")",
+            "    keyedTableRemove(t, 7)",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"7 was removed but reported present\")",
+            "    testSuccess()",
+            "endpackage"));
+    }
+
+    /**
+     * The lowering happens in IM before the inliner, so inlining cannot leave one call site on the
+     * hashtable body while another gets the Lua table - which would mix an integer class id with a
+     * table index for the same value and fail at runtime.
+     */
+    @Test
+    public void keyedTableMembershipSurvivesInlining() throws IOException {
+        test().testLua(true).executeProg(true).inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if not keyedTableContains(t, 7)",
+            "        testFail(\"7 was added but reported absent under -inline\")",
+            "    keyedTableRemove(t, 7)",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"7 was removed but reported present under -inline\")",
+            "    testSuccess()",
+            "endpackage"));
+
+        // Whether a given site actually gets inlined depends on the inliner's local-register
+        // budget, so assert the rule rather than the symptom: every call was replaced in IM, so
+        // the Table-backed originals are unreachable and collected. If any site had kept the old
+        // body, that function would still be here.
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableMembershipSurvivesInlining.lua"),
+            Charsets.UTF_8);
+        assertFalse("no call site may keep the Table-backed keyedTableAdd",
+            compiled.contains("function keyedTableAdd("));
+        assertFalse("no call site may keep the Table-backed keyedTableContains",
+            compiled.contains("function keyedTableContains("));
+        assertTrue("membership must go through the lowered stub",
+            compiled.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
+     * The lowering is opt-in by declaration. A user package that merely shares these names keeps
+     * its own body, so nothing silently changes meaning under it.
+     */
+    @Test
+    public void keyedTableWithoutTheAnnotationIsLeftAlone() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedTable",
+            "import Table",
+            "public function keyedTableCreate() returns int",
+            "    return (new Table()) castTo int",
+            "public function keyedTableAdd(int tbl, int key)",
+            "    (tbl castTo Table).saveBoolean(key, true)",
+            "public function keyedTableContains(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).loadBoolean(key)",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    print(keyedTableContains(t, 7).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableWithoutTheAnnotationIsLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        assertFalse("an unannotated package must not be lowered to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("it should keep its own Table-backed body",
+            getFunctionBody(compiled, "keyedTableAdd").contains("Table_Table_saveBoolean"));
+    }
+
+    /**
+     * pairs() iteration order differs between clients and desyncs a lockstep game, so no emitted
+     * Lua may contain it. Cheap to assert and worth keeping regardless of this feature.
+     */
+    @Test
+    public void keyedTableEmitsNoTableIteration() throws IOException {
+        test().testLua(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 3)",
+            "    keyedTableRemove(t, 3)",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableEmitsNoTableIteration.lua"), Charsets.UTF_8);
+
+        assertFalse("emitted Lua must never iterate a table with pairs()", compiled.contains("pairs("));
+        assertFalse("emitted Lua must never iterate a table with next()", compiled.contains(" next("));
+    }
+
     private CU[] genericOverrideReproUnits() {
         return new CU[]{
             compilationUnit("fsmLib.wurst",
