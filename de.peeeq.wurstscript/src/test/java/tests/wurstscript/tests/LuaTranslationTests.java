@@ -1869,6 +1869,46 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
+     * A generic key is the whole point: new generics are erased on Lua rather than cast to int
+     * like the old <T> containers, so the element itself becomes the table key and Lua hashes it
+     * natively. Bodies are trivial because these are Lua-only primitives - callers guard on isLua.
+     */
+    @Test
+    public void keyedTableGenericKeyReachesLuaUncast() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedTable",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyedTableAdd<T:>(int tbl, T key)",
+            "    skip",
+            "@compilerintrinsic public function keyedTableContains<T:>(int tbl, T key) returns boolean",
+            "    return false",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedTableAdd(t, u)",
+            "    if keyedTableContains(t, u)",
+            "        print(\"present\")",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableGenericKeyReachesLuaUncast.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("a generic key must still lower to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("add is a single store", getFunctionBody(compiled, "__wurst_keyedTableAdd").contains("] = true"));
+
+        // The unit must be handed over as itself. An index round-trip would show up here.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the element must not be converted to a class index: " + init,
+            init.contains("__wurst_classFromIndex"));
+    }
+
+    /**
      * KeyedTable source shared by the tests below: the Jass path built on the library's hashtable
      * wrapper, which the Lua backend replaces with a table keyed directly by the element.
      */
