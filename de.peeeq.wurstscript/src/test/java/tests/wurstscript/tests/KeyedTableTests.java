@@ -22,8 +22,6 @@ public class KeyedTableTests extends WurstScriptTest {
             "    return v",
             "@compilerintrinsic public function keyOfHandle(handle h) returns int",
             "    return GetHandleId(h)",
-            "@compilerintrinsic public function keyOfString(string s) returns int",
-            "    return StringHash(s)",
             "endpackage"));
         lines.addAll(java.util.Arrays.asList(usage));
         return lines.toArray(new String[0]);
@@ -73,15 +71,59 @@ public class KeyedTableTests extends WurstScriptTest {
             "endpackage"));
     }
 
+    /**
+     * StringHash is not identity - this repo's MultibyteDiagnostics records that it collapses
+     * whole classes of strings and has changed between patches - so Jass membership would
+     * disagree with Lua, which keys on the string itself.
+     */
     @Test
-    public void stringKeyIsItsHash() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().withStdLib().lines(withKeyedTable(
+    public void stringElementIsRejected() {
+        testAssertErrorsLinesWithStdLib(false, "cannot use string as its element type", withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",
-            "    wurstKeyOf(\"abc\").assertEquals(StringHash(\"abc\"))",
-            "    testSuccess()",
+            "    let k = wurstKeyOf(\"abc\")",
+            "    if k > 0",
+            "        skip",
             "endpackage"));
+    }
+
+    /** Tuple elimination expands the argument, so there is no single value to key on. */
+    @Test
+    public void tupleElementIsRejected() {
+        testAssertErrorsLinesWithStdLib(false, "cannot use a tuple as its element type", withKeyedTable(
+            "package Test",
+            "import KeyedTable",
+            "tuple pair(int a, int b)",
+            "init",
+            "    let k = wurstKeyOf(pair(1, 2))",
+            "    if k > 0",
+            "        skip",
+            "endpackage"));
+    }
+
+    /** A same-named helper in another package must not be picked up. */
+    @Test
+    public void helperFromAnotherPackageIsNotUsed() {
+        testAssertErrorsLinesWithStdLib(false, "must also declare keyOfInt",
+            "package KeyedTable",
+            "@compilerintrinsic public function wurstKeyOf<T:>(T value) returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyOfHandle(handle h) returns int",
+            "    return GetHandleId(h)",
+            "endpackage",
+            "package Impostor",
+            "@compilerintrinsic public function keyOfInt(int v) returns int",
+            "    return v + 1",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "import Impostor",
+            "init",
+            "    let k = wurstKeyOf(7)",
+            "    if k > 0",
+            "        skip",
+            "endpackage");
     }
 
     /** real has no stable integer key, and saying so beats keying on a truncation. */

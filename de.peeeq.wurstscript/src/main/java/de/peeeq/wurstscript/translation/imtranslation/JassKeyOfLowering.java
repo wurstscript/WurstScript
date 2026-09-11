@@ -2,12 +2,10 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Gives {@code wurstKeyOf} a body on Jass, so a keyed set works on both backends.
@@ -34,34 +32,18 @@ public final class JassKeyOfLowering {
     /** Projections it can be rewritten to, each an ordinary function in the same package. */
     private static final String KEY_OF_INT = "keyOfInt";
     private static final String KEY_OF_HANDLE = "keyOfHandle";
-    private static final String KEY_OF_STRING = "keyOfString";
 
     private JassKeyOfLowering() {
     }
 
     public static void transform(ImProg prog) {
-        Map<String, ImFunction> projections = new LinkedHashMap<>();
-        for (ImFunction f : prog.getFunctions()) {
-            String name = annotatedName(f);
-            if (KEY_OF_INT.equals(name) || KEY_OF_HANDLE.equals(name) || KEY_OF_STRING.equals(name)) {
-                projections.put(name, f);
-            }
-        }
-
         for (ImFunction f : prog.getFunctions()) {
             if (!KEY_OF.equals(annotatedName(f)) || f.getParameters().size() != 1) {
                 continue;
             }
             ImVar value = f.getParameters().get(0);
-            ImFunction projection = projections.get(projectionFor(value.getType(), f));
-            if (projection == null) {
-                // The library is expected to declare all three next to the intrinsic; without them
-                // there is nothing to call, and silently leaving the original body would ship a
-                // keyed set that does not key on anything.
-                throw new CompileError(f.attrTrace().attrErrorPos(),
-                    "The KeyedTable package must declare keyOfInt, keyOfHandle and keyOfString "
-                        + "alongside " + KEY_OF + ".");
-            }
+            ImFunction projection =
+                findProjection(prog, packageOf(f), projectionFor(value.getType(), f), f);
             f.getBody().clear();
             f.getLocals().clear();
             f.getBody().add(JassIm.ImReturn(f.attrTrace(), JassIm.ImFunctionCall(
@@ -71,13 +53,47 @@ public final class JassKeyOfLowering {
         }
     }
 
+    /**
+     * The projection of that name declared beside the intrinsic itself.
+     *
+     * <p>Scoped to the declaring package rather than matched by name across the program: the name
+     * is not identity, and a same-named annotated function in another package would otherwise win
+     * or lose by traversal order and silently key every set on something else. The signature is
+     * checked for the same reason - a helper of the wrong shape produces malformed IM rather than
+     * an error anyone can read.
+     */
+    private static ImFunction findProjection(ImProg prog, WPackage owner, String name, ImFunction f) {
+        if (owner != null) {
+            for (ImFunction candidate : prog.getFunctions()) {
+                if (!name.equals(annotatedName(candidate)) || packageOf(candidate) != owner) {
+                    continue;
+                }
+                if (candidate.getParameters().size() != 1
+                    || !TypesHelper.isIntType(candidate.getReturnType())) {
+                    throw new CompileError(candidate.attrTrace().attrErrorPos(),
+                        name + " must take exactly one parameter and return int.");
+                }
+                return candidate;
+            }
+        }
+        throw new CompileError(f.attrTrace().attrErrorPos(),
+            "The package declaring " + KEY_OF + " must also declare " + name + ".");
+    }
+
+    /** The package a compiler-intrinsic declaration belongs to, or null if it has no trace. */
+    private static WPackage packageOf(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd && fd.attrNearestPackage() instanceof WPackage p
+            ? p
+            : null;
+    }
+
     /** Which projection a concrete element type needs. */
     private static String projectionFor(ImType t, ImFunction f) {
         if (TypesHelper.isRealType(t) || TypesHelper.isBoolType(t)) {
             throw new CompileError(f.attrTrace().attrErrorPos(),
                 "A keyed set cannot use " + typeNameOf(t) + " as its element type on Jass: it has "
-                    + "no stable integer key. Use int, string, a handle or a class, or restrict "
-                    + "the set to Lua.");
+                    + "no stable integer key. Use int, a handle or a class, or restrict the set "
+                    + "to Lua.");
         }
         if (isCodeType(t)) {
             throw new CompileError(f.attrTrace().attrErrorPos(),
@@ -85,7 +101,21 @@ public final class JassKeyOfLowering {
                     + "stable identity to key on.");
         }
         if (TypesHelper.isStringType(t)) {
-            return KEY_OF_STRING;
+            // StringHash is not identity. This repository's own MultibyteDiagnostics records that
+            // it collapses whole classes of strings to one marker hash and that its behaviour has
+            // changed between game versions - so membership would be wrong for ordinary inputs,
+            // and wrong differently per patch, while Lua keyed on the string itself would be
+            // right. A set that disagrees with itself across backends is worse than one that says
+            // no.
+            throw new CompileError(f.attrTrace().attrErrorPos(),
+                "A keyed set cannot use string as its element type on Jass: StringHash is lossy "
+                    + "and patch-dependent, so membership would not match the Lua backend. "
+                    + "Restrict the set to Lua, or key on an int derived from the string.");
+        }
+        if (t instanceof ImTupleType) {
+            throw new CompileError(f.attrTrace().attrErrorPos(),
+                "A keyed set cannot use a tuple as its element type: tuple elimination expands the "
+                    + "argument, so there is no single value to key on.");
         }
         // Class instances are integers by this point, and so is int itself.
         if (TypesHelper.isIntType(t) || t instanceof ImClassType) {
