@@ -140,6 +140,13 @@ public final class LuaNativeLowering {
             }
         }
 
+        // Remove the destroy calls outright rather than leaving an empty function for the inliner
+        // to clean up: inlining only runs under -inline, and even then the Lua register budget can
+        // refuse a caller, so a call to a function that means nothing would survive into a normal
+        // build. Arguments move into a statement expression so anything they do still happens -
+        // the same shape UselessFunctionCallsRemover uses to drop a call it does not need.
+        removeDestroyCalls(prog);
+
         Map<String, ImFunction> stubs = new LinkedHashMap<>();
         List<ImFunction> additions = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
@@ -163,6 +170,29 @@ public final class LuaNativeLowering {
             }
         });
         prog.getFunctions().addAll(additions);
+    }
+
+    private static void removeDestroyCalls(Element e) {
+        if (e instanceof ImStmts stmts) {
+            ListIterator<ImStmt> it = stmts.listIterator();
+            while (it.hasNext()) {
+                ImStmt s = it.next();
+                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
+                    ImStmts argStmts = JassIm.ImStmts();
+                    for (ImExpr arg : new ArrayList<>(call.getArguments())) {
+                        arg.setParent(null);
+                        argStmts.add(arg);
+                    }
+                    s = ImHelper.statementExprVoid(argStmts);
+                    it.set(s);
+                }
+                removeDestroyCalls(s);
+            }
+        } else {
+            for (int i = 0; i < e.size(); i++) {
+                removeDestroyCalls(e.get(i));
+            }
+        }
     }
 
     public static void transform(ImProg prog, ImTranslator translator) {

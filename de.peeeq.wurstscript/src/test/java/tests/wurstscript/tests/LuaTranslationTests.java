@@ -2072,8 +2072,10 @@ public class LuaTranslationTests extends WurstScriptTest {
     @Test
     public void keyedTableDestroyCostsNothingOnLua() throws IOException {
         // With stack traces, because that is what a release build emits, and instrumenting an
-        // emptied function is exactly how the cost comes back.
-        test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
+        // emptied function is exactly how the cost comes back. Without inlining, because the call
+        // must not survive a build that never runs the inliner - or one where the Lua register
+        // budget refuses the caller.
+        test().testLua(true).stacktraces().withStdLib().lines(keyedTableSource(
             "package Test",
             "import KeyedTable",
             "init",
