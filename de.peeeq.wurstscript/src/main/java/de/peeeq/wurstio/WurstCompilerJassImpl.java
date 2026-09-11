@@ -892,6 +892,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
             timeTaker.endPhase();
         }
+        // Before stack traces: that pass appends a parameter to every affected function, and on
+        // Lua every non-native function is affected, so the exact signatures the keyed-table
+        // operations are recognised by would stop matching - silently leaving their Jass bodies on
+        // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
+        beginPhase(4, "lower keyed tables");
+        LuaNativeLowering.lowerKeyedTables(imProg);
+        timeTaker.endPhase();
+
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg);

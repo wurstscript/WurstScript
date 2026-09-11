@@ -2020,6 +2020,48 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     /**
+     * Stack traces must not cost the keyed table its native representation.
+     *
+     * <p>Stack-trace injection appends a parameter to every affected function, and on Lua that is
+     * every non-native function, so the exact signatures the keyed-table operations are recognised
+     * by stop matching once it has run. Nothing reported that when it happened: the Jass bodies
+     * simply survived onto Lua, where `wurstKeyOf` is never lowered and answers with its
+     * placeholder, so every element shared one key and a set claimed to contain everything.
+     *
+     * <p>A release build emits stack traces by default, so this was the common case.
+     */
+    @Test
+    public void keyedTableStaysNativeWithStackTraces() throws IOException {
+        test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if keyedTableContains(t, 7) and not keyedTableContains(t, 9)",
+            "        print(\"distinct\")",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableStaysNativeWithStackTraces.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("membership must still lower to the keyed-table stubs under -stacktraces",
+            compiled.contains("__wurst_keyedTableContains") && compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("contains must still be a single index",
+            getFunctionBody(compiled, "__wurst_keyedTableContains").contains("] ~= nil"));
+
+        // The Jass body is the failure mode. On a keyed set it keys through wurstKeyOf, which is
+        // never lowered on Lua, so every element would collapse onto the same key. Scoped to the
+        // caller: Table itself is compiled in and legitimately uses the hashtable natives.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the caller must not reach the hashtable natives: " + init,
+            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+        assertTrue("the caller must call the stubs directly: " + init,
+            init.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
      * A keyed table has to be disposable: the Jass body frees a Table instance, which comes from a
      * finite pool, so a set that is cleared or discarded would otherwise burn one permanently.
      *
