@@ -409,6 +409,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
         timeTaker.endPhase();
 
+        // Generic elimination has made each specialisation's element type concrete and classes are
+        // integers by now, so the integer key a Jass keyed set needs follows from the type. Before
+        // inlining, so every call site agrees on one body.
+        beginPhase(2, "lower keyed-set key projection");
+        JassKeyOfLowering.transform(imProg2);
+        timeTaker.endPhase();
+
         if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
             beginPhase(4, "add stack traces");
             new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
