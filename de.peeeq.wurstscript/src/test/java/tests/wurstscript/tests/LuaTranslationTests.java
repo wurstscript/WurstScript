@@ -2073,6 +2073,35 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
     }
 
+    /**
+     * The rule has to hold for an intrinsic which asks for a stack trace itself.
+     *
+     * <p>Such a function is seeded into the affected set before any filtering, so excluding only
+     * what the traversal adds would leave it instrumented - and the signature check would then
+     * fail the build rather than let the lowering quietly not happen. Either way `-lua
+     * -stacktraces` would be broken for this input.
+     */
+    @Test
+    public void aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstTraced(int a) returns string",
+            "    return getStackTraceString() + a.toString()",
+            "init",
+            "    print(wurstTraced(1))",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        String signature = compiled.substring(compiled.indexOf("function wurstTraced"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
     @Test
     public void keyedTableStaysNativeWithStackTraces() throws IOException {
         test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(

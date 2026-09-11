@@ -124,8 +124,7 @@ public class StackTraceInjector2 {
                 .filter((ImFunction f) ->
                     !f.hasFlag(FunctionFlagEnum.IS_NATIVE)
                         && !f.hasFlag(FunctionFlagEnum.IS_BJ)
-                        && !f.hasFlag(FunctionFlagEnum.IS_EXTERN)
-                        && !isCompilerOwned(f))
+                        && !f.hasFlag(FunctionFlagEnum.IS_EXTERN))
                 .collect(Collectors.toCollection(() -> affectedFuncs));
             affectedFuncs.removeAll(configOnlyFuncs);
 
@@ -133,9 +132,14 @@ public class StackTraceInjector2 {
             for (ImFunction stackTraceUse : stackTraceGets.keys()) {
                 callRelationTr.get(stackTraceUse).forEach(affectedFuncs::add);
             }
-            affectedFuncs.removeIf(StackTraceInjector2::isCompilerOwned);
         }
 
+
+        // After both branches, and after the seeding from stackTraceGets above: a declaration
+        // the compiler owns is never instrumented, however it came to be in the set. Filtering
+        // only what each branch adds would miss one seeded there by its own use of a stack trace,
+        // and would then trip the check below rather than doing nothing.
+        affectedFuncs.removeIf(StackTraceInjector2::isCompilerOwned);
 
         passStacktraceParams(calls, affectedFuncs);
         addStackTracePush(calls, affectedFuncs);
