@@ -125,6 +125,16 @@ public final class LuaNativeLowering {
             }
         }
 
+        // Freeing a keyed table means nothing on Lua: the table is garbage once the caller drops
+        // it. Emptying the function leaves an ordinary one the inliner can remove, where a native
+        // stub would be an analysis barrier and leave a call doing nothing on every clear.
+        for (ImFunction f : prog.getFunctions()) {
+            if (LuaKeyedTable.isDestroy(f)) {
+                f.getBody().clear();
+                f.getLocals().clear();
+            }
+        }
+
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
 

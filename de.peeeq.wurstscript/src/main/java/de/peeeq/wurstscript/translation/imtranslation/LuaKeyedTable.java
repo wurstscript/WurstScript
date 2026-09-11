@@ -43,7 +43,6 @@ public final class LuaKeyedTable {
     public static final String NATIVE_ADD = "__wurst_keyedTableAdd";
     public static final String NATIVE_CONTAINS = "__wurst_keyedTableContains";
     public static final String NATIVE_REMOVE = "__wurst_keyedTableRemove";
-    public static final String NATIVE_DESTROY = "__wurst_keyedTableDestroy";
 
     private LuaKeyedTable() {
     }
@@ -67,13 +66,26 @@ public final class LuaKeyedTable {
                 ? NATIVE_REMOVE : null;
             case CONTAINS -> isKeyedPair(f) && TypesHelper.isBoolType(f.getReturnType())
                 ? NATIVE_CONTAINS : null;
-            // Jass frees the Table the keyed table is built on; Lua leaves it to the collector.
-            case DESTROY -> params == 1
-                && TypesHelper.isIntType(f.getParameters().get(0).getType())
-                && f.getReturnType() instanceof ImVoid
-                ? NATIVE_DESTROY : null;
             default -> null;
         };
+    }
+
+    /**
+     * Whether {@code f} frees a keyed table.
+     *
+     * <p>Unlike the four operations above this gets no stub: Jass frees the Table the keyed table
+     * is built on, Lua leaves it to the collector, so there is nothing for a Lua body to do.
+     * Emptying the function rather than replacing calls to it with an IS_NATIVE stub is what lets
+     * the inliner remove the call - a native is an analysis barrier, so a stub would leave a call
+     * that does nothing on every clear and every destroy.
+     */
+    public static boolean isDestroy(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd
+            && DESTROY.equals(fd.getName())
+            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
+            && f.getParameters().size() == 1
+            && TypesHelper.isIntType(f.getParameters().get(0).getType())
+            && f.getReturnType() instanceof ImVoid;
     }
 
     /**

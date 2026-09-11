@@ -292,11 +292,6 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("t[k] = nil"));
         });
-        // Nothing to do: the table is garbage once the caller drops it. The Jass body this
-        // replaces frees a Table instance, which comes from a finite pool - without a destroy
-        // operation every cleared or discarded keyed set would burn one there permanently.
-        addNative("__wurst_keyedTableDestroy", f ->
-            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr())));
 
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
             f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));

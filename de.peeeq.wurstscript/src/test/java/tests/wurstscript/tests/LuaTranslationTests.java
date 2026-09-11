@@ -2021,13 +2021,15 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     /**
      * A keyed table has to be disposable: the Jass body frees a Table instance, which comes from a
-     * finite pool, so a set that is cleared or discarded would otherwise burn one permanently. Lua
-     * has a collector and nothing to free, so the stub is empty - but the call must still lower,
-     * or the Jass body would run against a bare Lua table.
+     * finite pool, so a set that is cleared or discarded would otherwise burn one permanently.
+     *
+     * <p>Lua has a collector and nothing to free, so the operation must cost nothing there. It is
+     * emptied rather than replaced by a native stub, because a native is an analysis barrier the
+     * inliner will not cross - which would leave a call doing no work on every clear and destroy.
      */
     @Test
-    public void keyedTableDestroyLowersToAnEmptyLuaStub() throws IOException {
-        test().testLua(true).withStdLib().lines(keyedTableSource(
+    public void keyedTableDestroyCostsNothingOnLua() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(keyedTableSource(
             "package Test",
             "import KeyedTable",
             "init",
@@ -2037,18 +2039,19 @@ public class LuaTranslationTests extends WurstScriptTest {
             "endpackage"));
 
         String compiled = Files.toString(
-            new File("test-output/lua/LuaTranslationTests_keyedTableDestroyLowersToAnEmptyLuaStub.lua"),
+            new File("test-output/lua/LuaTranslationTests_keyedTableDestroyCostsNothingOnLua.lua"),
             Charsets.UTF_8);
 
-        assertTrue("destroy must lower to the keyed-table stub",
+        assertFalse("destroy must not become a native stub, which the inliner cannot remove",
             compiled.contains("__wurst_keyedTableDestroy"));
 
-        String destroy = getFunctionBody(compiled, "__wurst_keyedTableDestroy");
-        assertTrue("destroy must do nothing on Lua, was: " + destroy, destroy.trim().isEmpty());
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("no call should remain to free a keyed table on Lua: " + init,
+            init.contains("keyedTableDestroy"));
 
         // The Jass body must not survive: it would destroy a Table that does not exist here.
-        assertFalse("destroy must not reach the Table machinery: " + destroy,
-            destroy.contains("Table") || destroy.contains("Flush"));
+        assertFalse("the Table machinery must not reach Lua: " + init,
+            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
     }
 
     /**
