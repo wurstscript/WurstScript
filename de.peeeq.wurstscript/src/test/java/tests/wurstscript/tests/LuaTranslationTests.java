@@ -2071,7 +2071,9 @@ public class LuaTranslationTests extends WurstScriptTest {
      */
     @Test
     public void keyedTableDestroyCostsNothingOnLua() throws IOException {
-        test().testLua(true).inline().withStdLib().lines(keyedTableSource(
+        // With stack traces, because that is what a release build emits, and instrumenting an
+        // emptied function is exactly how the cost comes back.
+        test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
             "package Test",
             "import KeyedTable",
             "init",
@@ -2090,6 +2092,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         String init = getFunctionBody(compiled, "init_Test");
         assertFalse("no call should remain to free a keyed table on Lua: " + init,
             init.contains("keyedTableDestroy"));
+        // Nor the stack-trace bookkeeping that instrumenting it would have inlined in its place.
+        assertFalse("freeing a keyed table must leave no trace bookkeeping behind: " + init,
+            init.contains("keyedTableDestroy in"));
 
         // The Jass body must not survive: it would destroy a Table that does not exist here.
         assertFalse("the Table machinery must not reach Lua: " + init,

@@ -117,7 +117,12 @@ public class StackTraceInjector2 {
                 .filter((ImFunction f) ->
                     !f.hasFlag(FunctionFlagEnum.IS_NATIVE)
                         && !f.hasFlag(FunctionFlagEnum.IS_BJ)
-                        && !f.hasFlag(FunctionFlagEnum.IS_EXTERN))
+                        && !f.hasFlag(FunctionFlagEnum.IS_EXTERN)
+                        // Freeing a keyed table means nothing on Lua, so LuaNativeLowering has
+                        // already emptied this one. Instrumenting it would put the cost back:
+                        // a trace parameter at every call site and a push and pop around a body
+                        // that does nothing, which is also what stops the inliner removing it.
+                        && !LuaKeyedTable.isDestroy(f))
                 .collect(Collectors.toCollection(() -> affectedFuncs));
             affectedFuncs.removeAll(configOnlyFuncs);
 
