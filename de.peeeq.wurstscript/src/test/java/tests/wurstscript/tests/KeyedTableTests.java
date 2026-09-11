@@ -76,6 +76,45 @@ public class KeyedTableTests extends WurstScriptTest {
     }
 
     /**
+     * A null element keys to 0, the id the game gives a null handle and the value of a null class
+     * instance. No live handle may share it, which is why interpreter ids start at 1.
+     */
+    @Test
+    public void nullElementKeysToZeroAndDoesNotCollide() {
+        test().executeProg(true).withStdLib().lines(withKeyedTable(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    unit noUnit = null",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    wurstKeyOf(noUnit).assertEquals(0)",
+            "    (wurstKeyOf(u) != wurstKeyOf(noUnit)).assertTrue()",
+            "    testSuccess()",
+            "endpackage"));
+    }
+
+    /** The rewrite returns an integer projection, so the intrinsic itself must return int. */
+    @Test
+    public void intrinsicWithWrongReturnTypeIsRejected() {
+        testAssertErrorsLinesWithStdLib(false, "wurstKeyOf must take exactly one parameter and return int",
+            "package KeyedTable",
+            "@compilerintrinsic public function wurstKeyOf<T:>(T value) returns real",
+            "    return 0.",
+            "@compilerintrinsic public function keyOfInt(int v) returns int",
+            "    return v",
+            "@compilerintrinsic public function keyOfHandle(handle h) returns int",
+            "    return GetHandleId(h)",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let k = wurstKeyOf(7)",
+            "    if k > 0.",
+            "        skip",
+            "endpackage");
+    }
+
+    /**
      * StringHash is not identity - this repo's MultibyteDiagnostics records that it collapses
      * whole classes of strings and has changed between patches - so Jass membership would
      * disagree with Lua, which keys on the string itself.

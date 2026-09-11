@@ -38,8 +38,14 @@ public final class JassKeyOfLowering {
 
     public static void transform(ImProg prog) {
         for (ImFunction f : prog.getFunctions()) {
-            if (!isKeyOf(f)) {
+            if (!isNamedKeyOf(f)) {
                 continue;
+            }
+            if (!isKeyOf(f)) {
+                // The rewrite below returns an integer projection, so a declaration of another
+                // shape would leave the return type disagreeing with the body it now has.
+                throw new CompileError(f.attrTrace().attrErrorPos(),
+                    KEY_OF + " must take exactly one parameter and return int.");
             }
             ImVar value = f.getParameters().get(0);
             ImFunction projection =
@@ -71,8 +77,13 @@ public final class JassKeyOfLowering {
     }
 
     private static boolean isKeyOf(ImFunction f) {
-        return f.getParameters().size() == 1
-            && f.attrTrace() instanceof FuncDef fd
+        return isNamedKeyOf(f)
+            && f.getParameters().size() == 1
+            && TypesHelper.isIntType(f.getReturnType());
+    }
+
+    private static boolean isNamedKeyOf(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd
             && KEY_OF.equals(fd.getName())
             && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION);
     }
