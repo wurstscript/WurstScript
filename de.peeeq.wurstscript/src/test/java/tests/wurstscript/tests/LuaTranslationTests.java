@@ -2030,6 +2030,49 @@ public class LuaTranslationTests extends WurstScriptTest {
      *
      * <p>A release build emits stack traces by default, so this was the common case.
      */
+    /**
+     * Stack traces must leave a compiler-owned declaration alone, whatever it is.
+     *
+     * <p>Instrumenting one appends a trace parameter, and every lowering identifies such a
+     * declaration by its exact signature - so an instrumented one stops being recognised and its
+     * lowering silently does not happen. On Lua that is not a corner: every non-native function is
+     * affected there, and a release build emits stack traces by default. It cost a correctness bug
+     * once, when a keyed set kept its Jass body on Lua and every element ended up sharing one key.
+     *
+     * <p>This uses an intrinsic no lowering touches, so what is being checked is the general rule
+     * rather than the keyed-table lowering that motivated it.
+     */
+    @Test
+    public void stackTracesLeaveCompilerOwnedDeclarationsAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstUntouched(int a, int b) returns int",
+            "    return a + b",
+            "init",
+            "    print(wurstUntouched(2, 3).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_stackTracesLeaveCompilerOwnedDeclarationsAlone.lua"),
+            Charsets.UTF_8);
+
+        // Present, so the assertions below are about its shape rather than its absence.
+        assertTrue("the intrinsic should still be emitted", compiled.contains("wurstUntouched"));
+
+        String signature = compiled.substring(compiled.indexOf("function wurstUntouched"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+
+        String body = getFunctionBody(compiled, "wurstUntouched");
+        assertFalse("nor stack bookkeeping in its body: " + body,
+            body.contains("wurst_stack_depth") || body.contains("wurst_stack["));
+
+        // The surrounding program is still instrumented, so the test would pass vacuously if
+        // stack traces were simply off.
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
     @Test
     public void keyedTableStaysNativeWithStackTraces() throws IOException {
         test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
