@@ -1984,6 +1984,8 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    return (tbl castTo Table).loadBoolean(key)",
             "@compilerintrinsic public function keyedTableRemove(int tbl, int key)",
             "    (tbl castTo Table).removeBoolean(key)",
+            "@compilerintrinsic public function keyedTableDestroy(int tbl)",
+            "    destroy (tbl castTo Table)",
             "endpackage"));
         lines.addAll(java.util.Arrays.asList(usage));
         return lines.toArray(new String[0]);
@@ -2015,6 +2017,162 @@ public class LuaTranslationTests extends WurstScriptTest {
         // The whole point: no hashtable machinery on this path.
         assertFalse("add must not go through the hashtable natives: " + add, add.contains("SaveBoolean"));
         assertFalse("contains must not go through the hashtable natives: " + contains, contains.contains("LoadBoolean"));
+    }
+
+    /**
+     * Stack traces must not cost the keyed table its native representation.
+     *
+     * <p>Stack-trace injection appends a parameter to every affected function, and on Lua that is
+     * every non-native function, so the exact signatures the keyed-table operations are recognised
+     * by stop matching once it has run. Nothing reported that when it happened: the Jass bodies
+     * simply survived onto Lua, where `wurstKeyOf` is never lowered and answers with its
+     * placeholder, so every element shared one key and a set claimed to contain everything.
+     *
+     * <p>A release build emits stack traces by default, so this was the common case.
+     */
+    /**
+     * Stack traces must leave a compiler-owned declaration alone, whatever it is.
+     *
+     * <p>Instrumenting one appends a trace parameter, and every lowering identifies such a
+     * declaration by its exact signature - so an instrumented one stops being recognised and its
+     * lowering silently does not happen. On Lua that is not a corner: every non-native function is
+     * affected there, and a release build emits stack traces by default. It cost a correctness bug
+     * once, when a keyed set kept its Jass body on Lua and every element ended up sharing one key.
+     *
+     * <p>This uses an intrinsic no lowering touches, so what is being checked is the general rule
+     * rather than the keyed-table lowering that motivated it.
+     */
+    @Test
+    public void stackTracesLeaveCompilerOwnedDeclarationsAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstUntouched(int a, int b) returns int",
+            "    return a + b",
+            "init",
+            "    print(wurstUntouched(2, 3).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_stackTracesLeaveCompilerOwnedDeclarationsAlone.lua"),
+            Charsets.UTF_8);
+
+        // Present, so the assertions below are about its shape rather than its absence.
+        assertTrue("the intrinsic should still be emitted", compiled.contains("wurstUntouched"));
+
+        String signature = compiled.substring(compiled.indexOf("function wurstUntouched"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+
+        String body = getFunctionBody(compiled, "wurstUntouched");
+        assertFalse("nor stack bookkeeping in its body: " + body,
+            body.contains("wurst_stack_depth") || body.contains("wurst_stack["));
+
+        // The surrounding program is still instrumented, so the test would pass vacuously if
+        // stack traces were simply off.
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
+    /**
+     * The rule has to hold for an intrinsic which asks for a stack trace itself.
+     *
+     * <p>Such a function is seeded into the affected set before any filtering, so excluding only
+     * what the traversal adds would leave it instrumented - and the signature check would then
+     * fail the build rather than let the lowering quietly not happen. Either way `-lua
+     * -stacktraces` would be broken for this input.
+     */
+    @Test
+    public void aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstTraced(int a) returns string",
+            "    return getStackTraceString() + a.toString()",
+            "init",
+            "    print(wurstTraced(1))",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        String signature = compiled.substring(compiled.indexOf("function wurstTraced"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
+    @Test
+    public void keyedTableStaysNativeWithStackTraces() throws IOException {
+        test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if keyedTableContains(t, 7) and not keyedTableContains(t, 9)",
+            "        print(\"distinct\")",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableStaysNativeWithStackTraces.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("membership must still lower to the keyed-table stubs under -stacktraces",
+            compiled.contains("__wurst_keyedTableContains") && compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("contains must still be a single index",
+            getFunctionBody(compiled, "__wurst_keyedTableContains").contains("] ~= nil"));
+
+        // The Jass body is the failure mode. On a keyed set it keys through wurstKeyOf, which is
+        // never lowered on Lua, so every element would collapse onto the same key. Scoped to the
+        // caller: Table itself is compiled in and legitimately uses the hashtable natives.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the caller must not reach the hashtable natives: " + init,
+            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+        assertTrue("the caller must call the stubs directly: " + init,
+            init.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
+     * A keyed table has to be disposable: the Jass body frees a Table instance, which comes from a
+     * finite pool, so a set that is cleared or discarded would otherwise burn one permanently.
+     *
+     * <p>Lua has a collector and nothing to free, so the operation must cost nothing there. It is
+     * emptied rather than replaced by a native stub, because a native is an analysis barrier the
+     * inliner will not cross - which would leave a call doing no work on every clear and destroy.
+     */
+    @Test
+    public void keyedTableDestroyCostsNothingOnLua() throws IOException {
+        // With stack traces, because that is what a release build emits, and instrumenting an
+        // emptied function is exactly how the cost comes back. Without inlining, because the call
+        // must not survive a build that never runs the inliner - or one where the Lua register
+        // budget refuses the caller.
+        test().testLua(true).stacktraces().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    keyedTableDestroy(t)",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableDestroyCostsNothingOnLua.lua"),
+            Charsets.UTF_8);
+
+        assertFalse("destroy must not become a native stub, which the inliner cannot remove",
+            compiled.contains("__wurst_keyedTableDestroy"));
+
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("no call should remain to free a keyed table on Lua: " + init,
+            init.contains("keyedTableDestroy"));
+        // Nor the stack-trace bookkeeping that instrumenting it would have inlined in its place.
+        assertFalse("freeing a keyed table must leave no trace bookkeeping behind: " + init,
+            init.contains("keyedTableDestroy in"));
+
+        // The Jass body must not survive: it would destroy a Table that does not exist here.
+        assertFalse("the Table machinery must not reach Lua: " + init,
+            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
     }
 
     /**

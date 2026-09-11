@@ -110,6 +110,91 @@ public final class LuaNativeLowering {
      * creating wrappers for every BJ function in the IM (common.j declares hundreds of
      * functions, most of which are unreachable in any given program).
      */
+    /**
+     * Replaces the KeyedTable operations with their Lua stubs, and empties the destroy operation.
+     *
+     * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
+     * pass appends a parameter to every affected function, and on Lua every non-native function is
+     * affected, so the exact signatures these operations are recognised by stop matching. Nothing
+     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} is never
+     * lowered and answers with its placeholder, so every element shared one key and a set claimed
+     * to hold everything. Stack traces are on by default in a release build, so that was the
+     * common case rather than an exotic one.
+     *
+     * <p>Membership becomes a table keyed directly by the element. Done before optimization rather
+     * than at emission because the inliner runs in between: a call inlined before an emission-time
+     * rewrite would keep the hashtable body while a surviving one got the Lua table, mixing an
+     * integer class id with a table index for the same value. Replacing the call makes every site
+     * agree.
+     *
+     * <p>Idempotent: once the calls point at stubs, nothing matches on a second run.
+     */
+    public static void lowerKeyedTables(ImProg prog) {
+        // Freeing a keyed table means nothing on Lua: the table is garbage once the caller drops
+        // it. Emptying the function leaves an ordinary one the inliner can remove, where a native
+        // stub would be an analysis barrier and leave a call doing nothing on every clear.
+        for (ImFunction f : prog.getFunctions()) {
+            if (LuaKeyedTable.isDestroy(f)) {
+                f.getBody().clear();
+                f.getLocals().clear();
+            }
+        }
+
+        // Remove the destroy calls outright rather than leaving an empty function for the inliner
+        // to clean up: inlining only runs under -inline, and even then the Lua register budget can
+        // refuse a caller, so a call to a function that means nothing would survive into a normal
+        // build. Arguments move into a statement expression so anything they do still happens -
+        // the same shape UselessFunctionCallsRemover uses to drop a call it does not need.
+        removeDestroyCalls(prog);
+
+        Map<String, ImFunction> stubs = new LinkedHashMap<>();
+        List<ImFunction> additions = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                ImFunction f = call.getFunc();
+                String stubName = LuaKeyedTable.nativeStubFor(f);
+                if (stubName == null) {
+                    return;
+                }
+                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> createNativeStub(name, f));
+                if (!additions.contains(replacement)) {
+                    additions.add(replacement);
+                }
+                call.replaceBy(JassIm.ImFunctionCall(
+                    call.attrTrace(), replacement,
+                    JassIm.ImTypeArguments(),
+                    call.getArguments().copy(),
+                    false, CallType.NORMAL));
+            }
+        });
+        prog.getFunctions().addAll(additions);
+    }
+
+    private static void removeDestroyCalls(Element e) {
+        if (e instanceof ImStmts stmts) {
+            ListIterator<ImStmt> it = stmts.listIterator();
+            while (it.hasNext()) {
+                ImStmt s = it.next();
+                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
+                    ImStmts argStmts = JassIm.ImStmts();
+                    for (ImExpr arg : new ArrayList<>(call.getArguments())) {
+                        arg.setParent(null);
+                        argStmts.add(arg);
+                    }
+                    s = ImHelper.statementExprVoid(argStmts);
+                    it.set(s);
+                }
+                removeDestroyCalls(s);
+            }
+        } else {
+            for (int i = 0; i < e.size(); i++) {
+                removeDestroyCalls(e.get(i));
+            }
+        }
+    }
+
     public static void transform(ImProg prog, ImTranslator translator) {
         // Replace all reads of MagicFunctions_isLua with true.
         // This must happen before any optimizer passes so that dead-code elimination
@@ -124,6 +209,9 @@ public final class LuaNativeLowering {
                 break;
             }
         }
+
+        // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
+        lowerKeyedTables(prog);
 
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
@@ -146,25 +234,6 @@ public final class LuaNativeLowering {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 ImFunction f = call.getFunc();
-                // KeyedTable membership becomes a table keyed directly by the element. Done here,
-                // before optimization, rather than at emission: the inliner runs in between, and a
-                // call inlined before an emission-time rewrite would keep the hashtable body while
-                // a surviving one got the Lua table - mixing an integer class id with a table index
-                // for the same value. Replacing the call makes every site agree.
-                String keyedStub = LuaKeyedTable.nativeStubFor(f);
-                if (keyedStub != null) {
-                    ImFunction replacement = specialNativeStubs.computeIfAbsent(keyedStub,
-                        name -> createNativeStub(name, f));
-                    if (!deferredAdditions.contains(replacement)) {
-                        deferredAdditions.add(replacement);
-                    }
-                    call.replaceBy(JassIm.ImFunctionCall(
-                        call.attrTrace(), replacement,
-                        JassIm.ImTypeArguments(),
-                        call.getArguments().copy(),
-                        false, CallType.NORMAL));
-                    return;
-                }
                 if (ENABLE_SELECTIVE_GET_HANDLE_ID_SHIMMING && isCompatGetHandleIdFunction(f)) {
                     if (shouldRewriteGetHandleId(call)) {
                         ImFunction replacement = specialNativeStubs.computeIfAbsent("__wurst_GetHandleId",

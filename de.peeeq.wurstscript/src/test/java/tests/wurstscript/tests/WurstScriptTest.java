@@ -118,6 +118,7 @@ public class WurstScriptTest {
         private boolean runCompiletimeFunctions;
         private boolean optimize;
         private boolean inline;
+        private boolean stacktraces;
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
@@ -180,6 +181,18 @@ public class WurstScriptTest {
 
         TestConfig expectWarning(String expectedWarning) {
             this.expectedWarning = expectedWarning;
+            return this;
+        }
+
+        /**
+         * Emit stack traces, as a release build does by default.
+         *
+         * <p>Worth testing on the Lua path: stack-trace injection appends a parameter to every
+         * affected function there, so a lowering which recognises a function by its exact
+         * signature stops matching once it has run.
+         */
+        public TestConfig stacktraces() {
+            this.stacktraces = true;
             return this;
         }
 
@@ -342,7 +355,7 @@ public class WurstScriptTest {
 
             if (testLua) {
                 // test lua translation
-                runArgs = runArgs.with("-lua");
+                runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
             }
