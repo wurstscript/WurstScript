@@ -38,7 +38,7 @@ public final class JassKeyOfLowering {
 
     public static void transform(ImProg prog) {
         for (ImFunction f : prog.getFunctions()) {
-            if (!KEY_OF.equals(annotatedName(f)) || f.getParameters().size() != 1) {
+            if (!isKeyOf(f)) {
                 continue;
             }
             ImVar value = f.getParameters().get(0);
@@ -54,13 +54,38 @@ public final class JassKeyOfLowering {
     }
 
     /**
+     * Whether {@code f} is the key projection intrinsic still carrying its placeholder body.
+     *
+     * <p>The interpreter asks: it runs on the IM before transformProgToJass, so compiletime
+     * evaluation and {@code -runTests} would otherwise execute that placeholder and give every
+     * element the same key. ILInterpreter supplies the meaning this pass compiles the call to.
+     *
+     * <p>Still generic is what makes it unlowered: generic elimination gives each specialisation a
+     * concrete parameter type, and only then can this pass pick a projection. A monomorphised copy
+     * therefore runs its real body, so the post-transform interpreter run still exercises it.
+     */
+    public static boolean isUnloweredKeyOf(ImFunction f) {
+        // The interpreter asks this on every call it makes, so the list checks come before the
+        // trace and annotation lookups. Having type variables rules out almost everything.
+        return !f.getTypeVariables().isEmpty() && isKeyOf(f);
+    }
+
+    private static boolean isKeyOf(ImFunction f) {
+        return f.getParameters().size() == 1
+            && f.attrTrace() instanceof FuncDef fd
+            && KEY_OF.equals(fd.getName())
+            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION);
+    }
+
+    /**
      * The projection of that name declared beside the intrinsic itself.
      *
      * <p>Scoped to the declaring package rather than matched by name across the program: the name
      * is not identity, and a same-named annotated function in another package would otherwise win
-     * or lose by traversal order and silently key every set on something else. The signature is
-     * checked for the same reason - a helper of the wrong shape produces malformed IM rather than
-     * an error anyone can read.
+     * or lose by traversal order and silently key every set on something else. The whole signature
+     * is checked for the same reason - the call emitted below assumes the parameter type, so a
+     * helper of the wrong shape produces malformed IM and a pjass failure rather than an error
+     * anyone can read.
      */
     private static ImFunction findProjection(ImProg prog, WPackage owner, String name, ImFunction f) {
         if (owner != null) {
@@ -69,9 +94,11 @@ public final class JassKeyOfLowering {
                     continue;
                 }
                 if (candidate.getParameters().size() != 1
-                    || !TypesHelper.isIntType(candidate.getReturnType())) {
+                    || !TypesHelper.isIntType(candidate.getReturnType())
+                    || !takesExpectedParam(name, candidate.getParameters().get(0).getType())) {
                     throw new CompileError(candidate.attrTrace().attrErrorPos(),
-                        name + " must take exactly one parameter and return int.");
+                        name + " must take exactly one " + expectedParam(name)
+                            + " parameter and return int.");
                 }
                 return candidate;
             }
@@ -95,7 +122,7 @@ public final class JassKeyOfLowering {
                     + "no stable integer key. Use int, a handle or a class, or restrict the set "
                     + "to Lua.");
         }
-        if (isCodeType(t)) {
+        if (isSimpleType(t, "code")) {
             throw new CompileError(f.attrTrace().attrErrorPos(),
                 "A keyed set cannot use code as its element type: function references have no "
                     + "stable identity to key on.");
@@ -125,8 +152,17 @@ public final class JassKeyOfLowering {
         return KEY_OF_HANDLE;
     }
 
-    private static boolean isCodeType(ImType t) {
-        return t instanceof ImSimpleType st && "code".equals(st.getTypename());
+    /** The parameter type a projection must take, since the emitted call assumes it. */
+    private static boolean takesExpectedParam(String name, ImType t) {
+        return KEY_OF_INT.equals(name) ? TypesHelper.isIntType(t) : isSimpleType(t, "handle");
+    }
+
+    private static String expectedParam(String name) {
+        return KEY_OF_INT.equals(name) ? "int" : "handle";
+    }
+
+    private static boolean isSimpleType(ImType t, String name) {
+        return t instanceof ImSimpleType st && name.equals(st.getTypename());
     }
 
     private static String typeNameOf(ImType t) {

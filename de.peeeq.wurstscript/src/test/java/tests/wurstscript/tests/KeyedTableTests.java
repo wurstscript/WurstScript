@@ -9,6 +9,10 @@ import org.testng.annotations.Test;
  * so a keyed structure needs an integer, and a {@code T:} parameter cannot be projected to one in
  * source. JassKeyOfLowering fills that in after generic elimination, when each specialisation's
  * element type is concrete.
+ *
+ * <p>The positive tests deliberately run the interpreter both before and after that pass: before
+ * it the intrinsic is still generic and ILInterpreter supplies the projection, after it the
+ * lowered body runs. Both must agree, or compiletime state would disagree with the final Jass.
  */
 public class KeyedTableTests extends WurstScriptTest {
 
@@ -30,7 +34,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** An int is its own key. */
     @Test
     public void intKeyIsIdentity() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",
@@ -43,7 +47,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** A handle is keyed by its id, which is what makes unit membership work on Jass. */
     @Test
     public void handleKeyIsItsHandleId() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "init",
@@ -58,7 +62,7 @@ public class KeyedTableTests extends WurstScriptTest {
     /** A class instance is already an integer by the time the projection is chosen. */
     @Test
     public void classInstanceKeyIsStable() {
-        test().executeProg(true).executeProgOnlyAfterTransforms().withStdLib().lines(withKeyedTable(
+        test().executeProg(true).withStdLib().lines(withKeyedTable(
             "package Test",
             "import KeyedTable",
             "class Marker",
@@ -119,6 +123,27 @@ public class KeyedTableTests extends WurstScriptTest {
             "package Test",
             "import KeyedTable",
             "import Impostor",
+            "init",
+            "    let k = wurstKeyOf(7)",
+            "    if k > 0",
+            "        skip",
+            "endpackage");
+    }
+
+    /** The emitted call assumes the projection's parameter type, so a wrong one is a contract error. */
+    @Test
+    public void projectionWithWrongParameterTypeIsRejected() {
+        testAssertErrorsLinesWithStdLib(false, "keyOfInt must take exactly one int parameter",
+            "package KeyedTable",
+            "@compilerintrinsic public function wurstKeyOf<T:>(T value) returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyOfInt(string v) returns int",
+            "    return 1",
+            "@compilerintrinsic public function keyOfHandle(handle h) returns int",
+            "    return GetHandleId(h)",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
             "init",
             "    let k = wurstKeyOf(7)",
             "    if k > 0",

@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.translation.imtranslation.JassKeyOfLowering;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -213,6 +214,15 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             // --- natives / compiletimenative ---
             if (isCompiletimeNative(f) || f.isNative()) {
                 return runBuiltinFunction(globalState, f, args);
+            }
+
+            // --- key projection intrinsic ---
+            // Its source body is a placeholder: a `T:` parameter cannot be projected to an integer
+            // in Wurst, which is why JassKeyOfLowering supplies one after generic elimination. That
+            // pass runs inside transformProgToJass, so running the body here would give compiletime
+            // evaluation and -runTests a constant key for every element.
+            if (JassKeyOfLowering.isUnloweredKeyOf(f)) {
+                return new LocalState(keyOfValue(globalState, args[0]));
             }
 
             // --- local state & bind parameters ---
@@ -469,6 +479,34 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     private static final int MAX_CACHE_PER_FUNC = 2048;
 
     private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
+
+    /**
+     * The integer key of a runtime value, matching what JassKeyOfLowering compiles the intrinsic
+     * to: an int and a class instance are their own key, and a handle is keyed by its id.
+     */
+    private static ILconst keyOfValue(ProgramState globalState, ILconst value) {
+        if (value instanceof ILconstInt) {
+            return value;
+        }
+        if (value instanceof ILconstObject obj) {
+            return ILconstInt.create(obj.getObjectId());
+        }
+        if (value instanceof ILconstNull) {
+            // A null class instance is integer 0 on Jass, and so is GetHandleId of a null handle.
+            return ILconstInt.create(0);
+        }
+        if (value instanceof IlConstHandle) {
+            for (NativesProvider natives : globalState.getNativeProviders()) {
+                try {
+                    return natives.invoke("GetHandleId", new ILconst[]{value});
+                } catch (NoSuchNativeException e) {
+                    // Not this provider's native - the next one may have it.
+                }
+            }
+        }
+        throw new InterpreterException(globalState, "Cannot compute a keyed-set key for "
+            + value.print() + ": only int, class instances and handles have a stable integer key.");
+    }
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
         // Delegate to the array overload to avoid double-allocations.
