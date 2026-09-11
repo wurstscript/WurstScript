@@ -36,12 +36,14 @@ public final class LuaKeyedTable {
     private static final String ADD = "keyedTableAdd";
     private static final String CONTAINS = "keyedTableContains";
     private static final String REMOVE = "keyedTableRemove";
+    private static final String DESTROY = "keyedTableDestroy";
 
     /** Stub names whose Lua bodies live in {@code LuaNatives}. */
     public static final String NATIVE_CREATE = "__wurst_keyedTableCreate";
     public static final String NATIVE_ADD = "__wurst_keyedTableAdd";
     public static final String NATIVE_CONTAINS = "__wurst_keyedTableContains";
     public static final String NATIVE_REMOVE = "__wurst_keyedTableRemove";
+    public static final String NATIVE_DESTROY = "__wurst_keyedTableDestroy";
 
     private LuaKeyedTable() {
     }
@@ -65,6 +67,11 @@ public final class LuaKeyedTable {
                 ? NATIVE_REMOVE : null;
             case CONTAINS -> isKeyedPair(f) && TypesHelper.isBoolType(f.getReturnType())
                 ? NATIVE_CONTAINS : null;
+            // Jass frees the Table the keyed table is built on; Lua leaves it to the collector.
+            case DESTROY -> params == 1
+                && TypesHelper.isIntType(f.getParameters().get(0).getType())
+                && f.getReturnType() instanceof ImVoid
+                ? NATIVE_DESTROY : null;
             default -> null;
         };
     }
