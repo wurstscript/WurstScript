@@ -185,6 +185,56 @@ public class MapRequestPatchTargetTests {
     }
 
     @Test
+    public void editorLaunchArgIsOnlyAddedForReforged3() throws Exception {
+        File gameExe = new File("Warcraft III.exe");
+        String mapPath = "WurstTestMap.w3x";
+
+        List<String> reforged2 = buildLaunchCommand(
+            gameExe,
+            mapPath,
+            new GameVersion("2.0"),
+            projectWithPatch("Reforged-v2.0.4.23745")
+        );
+        List<String> reforged3 = buildLaunchCommand(
+            gameExe,
+            mapPath,
+            new GameVersion("3.0"),
+            projectWithPatch("Reforged-v3.0.0.24268-w3-3a9d8f2")
+        );
+
+        assertFalse(reforged2.contains("-editor"), reforged2.toString());
+        assertTrue(reforged3.contains("-editor"), reforged3.toString());
+        assertEquals(reforged3.get(reforged3.indexOf("-launch") + 1), "-editor");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> buildLaunchCommand(
+        File gameExe,
+        String mapPath,
+        GameVersion detectedVersion,
+        Path projectRoot
+    ) throws Exception {
+        Method method = RunMap.class.getDeclaredMethod(
+            "buildLaunchCommand",
+            File.class,
+            String.class,
+            Optional.class,
+            Optional.class,
+            WurstBuildConfig.class
+        );
+        method.setAccessible(true);
+        WurstBuildConfig buildConfig = WurstBuildConfig.fromWorkspaceRoot(WFile.create(projectRoot.toFile()));
+        return (List<String>) method.invoke(
+            null,
+            gameExe,
+            mapPath,
+            Optional.of(detectedVersion),
+            Optional.empty(),
+            buildConfig
+        );
+    }
+
+    @Test
     public void patchComplianceRequiresKnownMatchingClientWhenPinned() throws Exception {
         // No pinned patch: nothing to validate against, so any auto-detected client is acceptable.
         assertTrue(isPatchCompliant(Optional.empty(), Optional.of(new GameVersion("1.31"))));

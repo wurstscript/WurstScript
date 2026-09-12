@@ -206,11 +206,24 @@ public class RunMap extends MapRequest {
     }
 
     private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion) {
+        return buildLaunchCommand(
+            gameExe,
+            mapPath,
+            detectedGameVersion,
+            langServer.getConfigProvider().getWc3RunArgs(),
+            buildConfig
+        );
+    }
+
+    private static List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
+                                                    Optional<String> wc3RunArgs, WurstBuildConfig buildConfig) {
         List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
-        Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
         if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
             if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
                 cmd.add("-launch");
+            }
+            if (buildConfig.shouldUseEditorLaunchArg(detectedGameVersion)) {
+                cmd.add("-editor");
             }
             if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {
                 cmd.add("-window");
