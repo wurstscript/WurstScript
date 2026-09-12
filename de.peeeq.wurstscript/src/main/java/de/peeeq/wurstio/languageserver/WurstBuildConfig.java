@@ -108,6 +108,13 @@ public final class WurstBuildConfig {
         return sharedConfig.shouldUseReforgedLaunchArgs(versionString(detectedVersion));
     }
 
+    public boolean shouldUseEditorLaunchArg(Optional<GameVersion> detectedVersion) {
+        Optional<GameVersion> effectiveVersion = detectedVersion == null ? Optional.empty() : detectedVersion;
+        return effectiveVersion.or(this::configuredGameVersion)
+            .map(version -> version.compareTo(new GameVersion("3.0")) >= 0)
+            .orElse(false);
+    }
+
     public boolean shouldUseClassicWindowArg(Optional<GameVersion> detectedVersion) {
         return sharedConfig.shouldUseClassicWindowArg(versionString(detectedVersion));
     }

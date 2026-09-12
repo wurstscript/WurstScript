@@ -113,6 +113,27 @@ public class WurstBuildConfigTests {
         assertPatchTarget("v1.32", WurstBuildConfig.Wc3Patch.REFORGED, "1.32");
         assertPatchTarget("Reforged-v1.36.1.20719-w3-51d40ee", WurstBuildConfig.Wc3Patch.REFORGED, "1.36");
         assertPatchTarget("Reforged-v2.0.4.23745", WurstBuildConfig.Wc3Patch.REFORGED, "2.0");
+        assertPatchTarget("Reforged-v3.0.0.24268-w3-3a9d8f2", WurstBuildConfig.Wc3Patch.REFORGED, "3.0");
+    }
+
+    @Test
+    public void editorLaunchArgStartsWithReforged3() throws Exception {
+        Path reforged2Project = Files.createTempDirectory("wurst-build-config-reforged-2-launch");
+        Files.writeString(reforged2Project.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: Reforged-v2.0.4.23745
+            """);
+        WurstBuildConfig reforged2 = WurstBuildConfig.fromWorkspaceRoot(WFile.create(reforged2Project.toFile()));
+
+        Path reforged3Project = Files.createTempDirectory("wurst-build-config-reforged-3-launch");
+        Files.writeString(reforged3Project.resolve("wurst.build"), """
+            projectName: Test
+            wc3Patch: Reforged-v3.0.0.24268-w3-3a9d8f2
+            """);
+        WurstBuildConfig reforged3 = WurstBuildConfig.fromWorkspaceRoot(WFile.create(reforged3Project.toFile()));
+
+        assertFalse(reforged2.shouldUseEditorLaunchArg(Optional.empty()));
+        assertTrue(reforged3.shouldUseEditorLaunchArg(Optional.empty()));
     }
 
     @Test
