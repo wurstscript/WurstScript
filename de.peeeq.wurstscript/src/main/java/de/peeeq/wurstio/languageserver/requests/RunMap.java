@@ -199,30 +199,34 @@ public class RunMap extends MapRequest {
         // now start the map
         File gameExe = launchData.getGameExe()
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
-        List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion);
+        List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
         gui.sendProgress("running " + cmd);
         Runtime.getRuntime().exec(cmd.toArray(new String[0]));
     }
 
-    private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion) {
+    private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
+                                            boolean versionHeuristic) {
         return buildLaunchCommand(
             gameExe,
             mapPath,
             detectedGameVersion,
+            versionHeuristic,
             langServer.getConfigProvider().getWc3RunArgs(),
             buildConfig
         );
     }
 
     private static List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
-                                                    Optional<String> wc3RunArgs, WurstBuildConfig buildConfig) {
+                                                    boolean versionHeuristic, Optional<String> wc3RunArgs,
+                                                    WurstBuildConfig buildConfig) {
         List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
         if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
             if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
                 cmd.add("-launch");
             }
-            if (buildConfig.shouldUseEditorLaunchArg(detectedGameVersion)) {
+            Optional<GameVersion> exactGameVersion = versionHeuristic ? Optional.empty() : detectedGameVersion;
+            if (buildConfig.shouldUseEditorLaunchArg(exactGameVersion)) {
                 cmd.add("-editor");
             }
             if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {

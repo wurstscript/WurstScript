@@ -207,6 +207,19 @@ public class MapRequestPatchTargetTests {
         assertEquals(reforged3.get(reforged3.indexOf("-launch") + 1), "-editor");
     }
 
+    @Test
+    public void editorLaunchArgUsesPinnedReforged3ForHeuristicClientVersion() throws Exception {
+        List<String> command = buildLaunchCommand(
+            new File("Warcraft III.exe"),
+            "WurstTestMap.w3x",
+            GameVersion.VERSION_1_32,
+            true,
+            projectWithPatch("Reforged-v3.0.0.24268-w3-3a9d8f2")
+        );
+
+        assertTrue(command.contains("-editor"), command.toString());
+    }
+
     @SuppressWarnings("unchecked")
     private static List<String> buildLaunchCommand(
         File gameExe,
@@ -214,11 +227,23 @@ public class MapRequestPatchTargetTests {
         GameVersion detectedVersion,
         Path projectRoot
     ) throws Exception {
+        return buildLaunchCommand(gameExe, mapPath, detectedVersion, false, projectRoot);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> buildLaunchCommand(
+        File gameExe,
+        String mapPath,
+        GameVersion detectedVersion,
+        boolean versionHeuristic,
+        Path projectRoot
+    ) throws Exception {
         Method method = RunMap.class.getDeclaredMethod(
             "buildLaunchCommand",
             File.class,
             String.class,
             Optional.class,
+            boolean.class,
             Optional.class,
             WurstBuildConfig.class
         );
@@ -229,6 +254,7 @@ public class MapRequestPatchTargetTests {
             gameExe,
             mapPath,
             Optional.of(detectedVersion),
+            versionHeuristic,
             Optional.empty(),
             buildConfig
         );
