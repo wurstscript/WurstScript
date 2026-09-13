@@ -156,7 +156,7 @@ dependencies {
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
     implementation 'com.github.inwc3:JMPQ3:v2.0.1'
-    implementation 'com.github.inwc3:wc3libs:5ad2e5be4c480bb14112222521e6bc5571d00076'
+    implementation 'com.github.inwc3:wc3libs:52924b921f'
     implementation 'com.github.wurstscript:wurst-project-config:348fcd4ef5'
     implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.20'
