@@ -51,6 +51,8 @@ public final class LocalPlayerContextAnalyzer {
         "GetCameraEyePositionY",
         "GetCameraEyePositionZ",
         "GetCameraEyePositionLoc",
+        "GetCameraFieldControlledByInput",
+        "BlzCameraGetCameraType",
 
         // Localized data may vary with the client's language.
         "GetLocalizedString",
@@ -64,7 +66,24 @@ public final class LocalPlayerContextAnalyzer {
         "BlzGetLocalClientHeight",
         "BlzIsLocalClientActive",
         "BlzGetMouseFocusUnit",
-        "BlzGetLocale"
+        "BlzGetLocale",
+
+        // Current cinematic and renderer state belongs to the local client.
+        "BlzGetModelCinematicGameShotCount",
+        "BlzGetModelCinematicGameCurrentShot",
+        "BlzGetModelCinematicGameRemainingTime",
+        "BlzGetMinShadowCastingPointLightCount",
+
+        // Polling input and converting viewport coordinates are client-local.
+        "BlzIsMetaKeyPressed",
+        "BlzIsKeyPressed",
+        "BlzIsMouseButtonPressed",
+        "BlzGetMouseScreenPosX",
+        "BlzGetMouseScreenPosY",
+        "BlzPixelToFrameX",
+        "BlzPixelToFrameY",
+        "BlzFrameToPixelX",
+        "BlzFrameToPixelY"
     );
 
     private final Set<ImVar> localPlayerDependentVars =

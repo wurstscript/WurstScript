@@ -22,12 +22,13 @@ public class ImCompressor {
         this.prog = translator.getImProg();
         ng = new NameGenerator();
         for (ImVar global : prog.getGlobals()) {
-            if (NamePreservation.isPreserved(global)) {
+            if (global.getIsBJ() || NamePreservation.isPreserved(global)) {
                 preservedNames.add(global.getName());
             }
         }
         for (ImFunction function : ImHelper.calculateFunctionsOfProg(prog)) {
-            if (NamePreservation.isPreserved(function)) {
+            if (function.isNative() || function.isBj() || function.isExtern()
+                || NamePreservation.isPreserved(function)) {
                 preservedNames.add(function.getName());
             }
         }
