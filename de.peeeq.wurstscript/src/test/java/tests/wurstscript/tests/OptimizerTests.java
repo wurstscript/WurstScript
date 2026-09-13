@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -659,6 +660,57 @@ public class OptimizerTests extends WurstScriptTest {
             "Expected the preserved function name to remain available.\n" + output);
         assertFalse(output.contains("function w_1"),
             "Expected compression to reserve the preserved name.\n" + output);
+    }
+
+    @Test
+    public void nativeNamesAreReservedBeforeCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native w()",
+            "    function ordinary()",
+            "        w()",
+            "    init",
+            "        ordinary()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_nativeNamesAreReservedBeforeCompression_opt.j"),
+            Charsets.UTF_8);
+        assertFalse(output.contains("function w takes"),
+            "Compression must not reuse a native API name.\n" + output);
+    }
+
+    @Test
+    public void reforged3ReadOnlyNativesAreClassified() {
+        java.util.Set<String> readOnlyNatives = java.util.Set.of(
+            "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
+            "BlzGetModelCinematicGameShotCount", "BlzGetModelCinematicGameCurrentShot",
+            "BlzGetModelCinematicGameRemainingTime", "BlzGetMinShadowCastingPointLightCount",
+            "GetCameraFieldControlledByInput", "BlzCameraGetCameraType", "BlzCameraSetupGetCameraType",
+            "BlzIsTerrainPathableEx", "BlzGetDoodadX", "BlzGetDoodadY", "BlzGetDoodadZ",
+            "BlzGetDoodadScaleX", "BlzGetDoodadScaleY", "BlzGetDoodadScaleZ",
+            "BlzGetDoodadIsUsingModelAxes", "BlzGetDoodadYaw", "BlzGetDoodadPitch", "BlzGetDoodadRoll",
+            "BlzGetDoodadVariation", "BlzGetDoodadId", "BlzGetNumDoodads",
+            "BlzGetUnitAbilityCooldownPercent", "BlzIsMetaKeyPressed", "BlzIsKeyPressed",
+            "BlzIsMouseButtonPressed", "BlzGetMouseScreenPosX", "BlzGetMouseScreenPosY",
+            "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
+        );
+        for (String name : readOnlyNatives) {
+            assertTrue(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+                name + " must be recognized as a side-effect-free Reforged 3 native");
+        }
+
+        for (String name : java.util.Set.of(
+            "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot")) {
+            assertTrue(UselessFunctionCallsRemover.isFunctionPure(name),
+                name + " must be recognized as a pure conversion native");
+        }
+
+        for (String name : java.util.Set.of(
+            "ChooseRandomItemExWithFilter", "BlzPreloadModelCinematicGame", "BlzCreateDestructablePitchRoll")) {
+            assertFalse(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+                name + " changes state or consumes randomness and must remain effectful");
+        }
     }
 
     @Test
@@ -2903,7 +2955,22 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetLocalClientHeight",
             "BlzIsLocalClientActive",
             "BlzGetMouseFocusUnit",
-            "BlzGetLocale"
+            "BlzGetLocale",
+            "BlzGetModelCinematicGameShotCount",
+            "BlzGetModelCinematicGameCurrentShot",
+            "BlzGetModelCinematicGameRemainingTime",
+            "BlzGetMinShadowCastingPointLightCount",
+            "GetCameraFieldControlledByInput",
+            "BlzCameraGetCameraType",
+            "BlzIsMetaKeyPressed",
+            "BlzIsKeyPressed",
+            "BlzIsMouseButtonPressed",
+            "BlzGetMouseScreenPosX",
+            "BlzGetMouseScreenPosY",
+            "BlzPixelToFrameX",
+            "BlzPixelToFrameY",
+            "BlzFrameToPixelX",
+            "BlzFrameToPixelY"
         ));
         java.util.Set<String> intentionallyExcludedSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
             "BlzGetTriggerPlayerMouseX",
