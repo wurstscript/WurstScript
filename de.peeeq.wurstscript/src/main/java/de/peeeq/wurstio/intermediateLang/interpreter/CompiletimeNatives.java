@@ -159,23 +159,20 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     private void modifyObject(ObjMod.Obj od, ILconstString modification, ObjMod.ValType variableType, int level, int datapointer, DataType value) {
         String modificationId = modification.getVal();
-        ObjMod.Obj.Mod foundMod = null;
+        // Replace every existing value of this field. Fields read from the object file of a type without levels
+        // (units, items, destructables, buffs) are plain mods and occupy the only slot there is.
+        List<ObjMod.Obj.Mod> replaced = new ArrayList<>();
         for (ObjMod.Obj.Mod m : od.getMods()) {
-            if (m instanceof ObjMod.Obj.ExtendedMod) {
-                ObjMod.Obj.ExtendedMod extMod = (ObjMod.Obj.ExtendedMod) m;
-                if (extMod.getId().getVal().equals(modificationId) && extMod.getLevel() == level && extMod.getDataPt() == datapointer) {
-                    // How to set data???
-                    foundMod = extMod;
-                    break;
-                }
+            if (!m.getId().getVal().equals(modificationId)) {
+                continue;
             }
-
+            if (m instanceof ObjMod.Obj.ExtendedMod extMod
+                && (extMod.getLevel() != level || extMod.getDataPt() != datapointer)) {
+                continue;
+            }
+            replaced.add(m);
         }
-
-        // create new modification:
-        if (foundMod != null) {
-            od.remove(foundMod);
-        }
+        replaced.forEach(od::remove);
         od.addMod(new ObjMod.Obj.ExtendedMod(MetaFieldId.valueOf(modificationId), variableType, value, level, datapointer));
 
     }

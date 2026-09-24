@@ -3,6 +3,7 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.objectreader.ObjectExportService;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -11,7 +12,6 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.ObjMod;
-import net.moonlightflower.wc3libs.bin.Wc3BinInputStream;
 import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.objMod.*;
 import net.moonlightflower.wc3libs.dataTypes.app.War3Int;
@@ -42,6 +42,13 @@ public class ProgramStateIO extends ProgramState {
     private final Map<String, ObjMod.Obj> objDefinitions = Maps.newLinkedHashMap();
     private @Nullable WTS trigStrings = null;
     private final Optional<File> mapFile;
+    /**
+     * Map to read the base object data from, when the map being compiled already holds object data written
+     * back by a previous run (the cached map). Without it, objects that are no longer created and fields that
+     * are no longer set would survive from that run.
+     */
+    private @Nullable File objectDataSource;
+    private @Nullable Map<String, byte[]> baseObjectFiles;
 
     /**
      * Tracks which object files have been modified during compiletime
@@ -168,6 +175,28 @@ public class ProgramStateIO extends ProgramState {
         return res;
     }
 
+    public void setObjectDataSource(@Nullable File sourceMap) {
+        this.objectDataSource = sourceMap;
+        this.baseObjectFiles = null;
+    }
+
+    private byte[] readBaseObjectFile(String name) throws Exception {
+        if (objectDataSource != null && baseObjectFiles == null) {
+            try {
+                baseObjectFiles = ObjectExportService.readObjectFiles(objectDataSource);
+            } catch (Exception e) {
+                WLogger.warning("Could not read object data from " + objectDataSource
+                    + ", using the object data of the compiled map instead: " + e.getMessage());
+                objectDataSource = null;
+            }
+        }
+        Map<String, byte[]> base = baseObjectFiles;
+        if (base != null) {
+            return base.get(name);
+        }
+        return mpqEditor.hasFile(name) ? mpqEditor.extractFile(name) : null;
+    }
+
     ObjMod<? extends ObjMod.Obj> getDataStore(String fileExtension) {
         return getDataStore(ObjectFileType.fromExt(fileExtension));
     }
@@ -190,92 +219,15 @@ public class ProgramStateIO extends ProgramState {
             String fileName = "war3map." + filetype.getExt();
             String skinFileName = "war3mapSkin." + filetype.getExt();
             try {
-                if (mpqEditor.hasFile(fileName)) {
-                    byte[] w3_ = mpqEditor.extractFile(fileName);
-                    Wc3BinInputStream in = new Wc3BinInputStream(new ByteArrayInputStream(w3_));
-                    switch (filetype) {
-                        case UNITS:
-                            W3U w3u = new W3U(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3U skin = new W3U(inS);
-                                w3u.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3u;
-                            break;
-                        case ITEMS:
-                            W3T w3t = new W3T(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3T skin = new W3T(inS);
-                                w3t.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3t;
-                            break;
-                        case DESTRUCTABLES:
-                            W3B w3b = new W3B(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3B skin = new W3B(inS);
-                                w3b.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3b;
-                            break;
-                        case DOODADS:
-                            W3D w3d = new W3D(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3D skin = new W3D(inS);
-                                w3d.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3d;
-                            break;
-                        case ABILITIES:
-                            W3A w3a = new W3A(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3A skin = new W3A(inS);
-                                w3a.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3a;
-                            break;
-                        case BUFFS:
-                            W3H w3h = new W3H(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3H skin = new W3H(inS);
-                                w3h.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3h;
-                            break;
-                        case UPGRADES:
-                            W3Q w3q = new W3Q(in);
-                            if (mpqEditor.hasFile(skinFileName)) {
-                                byte[] w3s_ = mpqEditor.extractFile(skinFileName);
-                                Wc3BinInputStream inS = new Wc3BinInputStream(new ByteArrayInputStream(w3s_));
-                                W3Q skin = new W3Q(inS);
-                                w3q.merge(skin);
-                                mpqEditor.deleteFile(skinFileName);
-                            }
-                            dataStore = w3q;
-                            break;
+                byte[] main = readBaseObjectFile(fileName);
+                if (main != null) {
+                    byte[] skin = readBaseObjectFile(skinFileName);
+                    dataStore = ObjectExportService.readObjectFile(filetype, main, skin);
+                    // the skin data is merged into the main file, which is what gets written back
+                    if (mpqEditor.hasFile(skinFileName)) {
+                        mpqEditor.deleteFile(skinFileName);
                     }
-
-                    in.close();
                     replaceTrigStrings(dataStore);
-
                 } else {
                     dataStore = filetypeToObjmod(filetype);
                     dataStore.setFormat(ObjMod.EncodingFormat.OBJ_0x2);
@@ -446,7 +398,9 @@ public class ProgramStateIO extends ProgramState {
             filesProcessed++;
             ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
 
-            if (dataStore.getObjsList().isEmpty()) {
+            // An empty store still has to replace an existing file, which may hold objects that are no longer created.
+            if (dataStore.getObjsList().isEmpty()
+                && (mpqEditor == null || !mpqEditor.hasFile("war3map." + fileType.getExt()))) {
                 WLogger.info("Object file " + fileType.getExt() + " is empty, skipping");
                 continue;
             }

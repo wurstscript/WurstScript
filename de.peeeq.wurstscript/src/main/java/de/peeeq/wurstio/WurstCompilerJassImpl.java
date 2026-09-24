@@ -58,6 +58,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private Optional<File> mapFile = Optional.empty();
+    private @Nullable File objectDataSource;
+    private boolean importFiles = true;
     private @Nullable File projectFolder;
     private final ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
@@ -83,6 +85,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.parser = new WurstParser(errorHandler, gui);
         this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
         this.mapFileMpq = mapFileMpq;
+    }
+
+    /**
+     * Sets the map whose object data compiletime functions start from, when the compiled map is not
+     * a fresh copy of it (see {@link de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO#setObjectDataSource}).
+     */
+    public void setObjectDataSource(@Nullable File objectDataSource) {
+        this.objectDataSource = objectDataSource;
+    }
+
+    /** Whether injecting objects also adds the project's imports; off when the caller imports them itself. */
+    public void setImportFiles(boolean importFiles) {
+        this.importFiles = importFiles;
     }
 
     @Override
@@ -115,6 +130,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                 CompiletimeFunctions, projectConfigData, isProd, cache)) {
                 ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.getGlobalState().setObjectDataSource(objectDataSource);
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
             }
@@ -127,7 +143,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
 
-        if (runArgs.isInjectObjects()) {
+        if (runArgs.isInjectObjects() && importFiles) {
             Preconditions.checkNotNull(mapFileMpq);
             Preconditions.checkNotNull(projectFolder);
             // add the imports
