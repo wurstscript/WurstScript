@@ -45,6 +45,15 @@ public class Pjass {
             return message;
         }
 
+        /** The full output on failure; on success only its last line, the total. */
+        public String getLogMessage() {
+            if (!ok) {
+                return message;
+            }
+            String trimmed = message.strip();
+            return trimmed.substring(trimmed.lastIndexOf('\n') + 1);
+        }
+
         private static final Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
 
         public List<CompileError> getErrors() {
@@ -133,7 +142,6 @@ public class Pjass {
             try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
                 while ((line = input.readLine()) != null) {
-                    WLogger.info(line);
                     output.append(line).append("\n");
                 }
             }

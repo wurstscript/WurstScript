@@ -157,6 +157,12 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, projectFolder, gui, mpqEditor, runArgs);
             compiler.setMapFile(mapCopy);
+            // injectMapData imports the project files into the map afterwards
+            compiler.setImportFiles(false);
+            if (map.isPresent() && mapCopy.isPresent() && mapCopy.get().equals(getCachedMapFile())) {
+                // The cached map holds the object data written back by the previous run, so start from the source map's.
+                compiler.setObjectDataSource(map.get());
+            }
             purgeUnimportedFiles(model);
 
             gui.sendProgress("Check program");
@@ -225,7 +231,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                     Pjass.Result pJassResult = Pjass.runPjass(outFile,
                         new File(buildDir, "common.j").getAbsolutePath(),
                         new File(buildDir, "blizzard.j").getAbsolutePath());
-                    WLogger.info(pJassResult.getMessage());
+                    WLogger.info(pJassResult.getLogMessage());
                     if (!pJassResult.isOk()) {
                         for (CompileError err : pJassResult.getErrors()) {
                             gui.sendError(err);

@@ -53,12 +53,9 @@ public class RunMap extends MapRequest {
 
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
-        WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
-            + ",\n map = " + map
-            + ",\n compileArgs = " + compileArgs
-            + ",\n workspaceRoot = " + workspaceRoot
-            + ",\n runArgs = " + compileArgs
-        );
+        WLogger.info("Execute RunMap: map=" + map.map(File::getName).orElse("none")
+            + ", wc3Path=" + wc3Path.orElse("default")
+            + ", args=" + compileArgs);
 
         if (modelManager.hasErrors()) {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + modelManager.getFirstErrorDescription());
