@@ -293,6 +293,22 @@ public class CompiletimeNativesTest {
         assertTrue(result.getObjsList().isEmpty(), "Stale objects left in cache: " + result.getObjs().keySet());
     }
 
+    @Test
+    public void unreadableObjectFileIsKeptUnchanged() throws Exception {
+        W3U editorObjects = new W3U();
+        editorObjects.addObj(ObjId.valueOf("hpea"), null)
+            .addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("Editor peasant")));
+        byte[] full = writeObjMod(editorObjects);
+        // Cut off mid-object, so reading it runs out of input.
+        byte[] truncated = java.util.Arrays.copyOf(full, full.length - 6);
+        File map = newArchive(tempDir(), "map.w3x", truncated);
+
+        runCompiletime(map, null, natives -> {});
+
+        org.testng.Assert.assertEquals(readFromArchive(map, "war3map.w3u"), truncated,
+            "An object file that could not be read must not be replaced by an empty one");
+    }
+
     private static void overrideFootman(CompiletimeNatives natives, String name) {
         int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
         var footman = natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));

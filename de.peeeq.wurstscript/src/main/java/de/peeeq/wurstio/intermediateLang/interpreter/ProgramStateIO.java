@@ -37,6 +37,8 @@ public class ProgramStateIO extends ProgramState {
     private @Nullable final MpqEditor mpqEditor;
     private final Map<ObjectFileType, ObjMod<? extends ObjMod.Obj>> dataStoreMap = Maps.newLinkedHashMap();
     private final Map<ObjectFileType, String> dataStoreHashes = Maps.newLinkedHashMap();
+    /** Object files present in the map that could not be read; their stores started empty. */
+    private final Set<ObjectFileType> unreadableObjectFiles = EnumSet.noneOf(ObjectFileType.class);
     private final Map<String, Set<String>> createdObjectDefinitionIds = Maps.newLinkedHashMap();
     private int id = 0;
     private final Map<String, ObjMod.Obj> objDefinitions = Maps.newLinkedHashMap();
@@ -236,6 +238,7 @@ public class ProgramStateIO extends ProgramState {
                 // TODO maybe tell the user, that something has gone wrong
                 WLogger.info("Could not extract file: " + fileName);
                 WLogger.info(e);
+                unreadableObjectFiles.add(filetype);
                 dataStore = filetypeToObjmod(filetype);
                 dataStore.setFormat(ObjMod.EncodingFormat.OBJ_0x2);
             }
@@ -398,6 +401,15 @@ public class ProgramStateIO extends ProgramState {
             filesProcessed++;
             ObjMod<? extends ObjMod.Obj> dataStore = getDataStore(fileType);
 
+            if (unreadableObjectFiles.contains(fileType)) {
+                // Writing the store would replace the map's objects of this type with only the generated ones.
+                if (!dataStore.getObjsList().isEmpty()) {
+                    compilationError("Could not read war3map." + fileType.getExt()
+                        + " from the map, so the objects created at compiletime cannot be added to it.");
+                }
+                WLogger.warning("Object file " + fileType.getExt() + " could not be read, keeping it unchanged");
+                continue;
+            }
             // An empty store still has to replace an existing file, which may hold objects that are no longer created.
             if (dataStore.getObjsList().isEmpty()
                 && (mpqEditor == null || !mpqEditor.hasFile("war3map." + fileType.getExt()))) {
