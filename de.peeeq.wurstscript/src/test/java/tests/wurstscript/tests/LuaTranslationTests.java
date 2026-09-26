@@ -151,12 +151,13 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    /** A virtual call reads its slot from the receiver's descriptor at the call site. */
     private String singleDispatchSlot(String compiled, String callerBody) {
-        String helper = singleMatch(callerBody, "(dispatch_[A-Za-z0-9_]+)\\(", 1);
-        String helperBody = getFunctionBody(compiled, helper);
-        return singleMatch(helperBody,
-            "__wurst_objectClass\\[[^\\]]+\\]\\.([A-Za-z0-9_]+)", 1);
+        return singleMatch(callerBody, DISPATCH_CALL_SITE, 1);
     }
+
+    private static final String DISPATCH_CALL_SITE =
+        "__wurst_objectClass(?:_local\\d*)?\\[(?:[^\\[\\]]|\\[[^\\]]*\\])+\\]\\.([A-Za-z0-9_]+)\\(";
 
     private List<String> nonBaseSubclassBindings(String output, String baseName, String slotName) {
         Matcher matcher = Pattern.compile("([A-Za-z0-9_]+)\\." + Pattern.quote(slotName) + "\\s*=\\s*[A-Za-z0-9_]+").matcher(output);
@@ -611,7 +612,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             }
         }
         assertEquals("Expected three distinct Base overload dispatch slots.", 3, baseSlots.size());
-        assertTrue(compiled.contains("dispatch_Base_doThing1(this, a, 0)"));
+        assertContainsRegex(compiled, "__wurst_objectClass\\[this\\]\\.Base_doThing1\\(this, a, 0\\)");
         assertTrue(compiled.contains("Base_Base_doThing2(this1, a1, b, false)"));
         assertTrue(compiled.contains("Child.Base_doThing1 = Child_Child_doThing"));
         assertTrue(compiled.contains("Child.Base_doThing2 = Base_Base_doThing2"));
@@ -645,7 +646,7 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertEquals("Expected exactly one overridden setup overload family from module-provided methods.", 1, overriddenSlots.size());
         assertEquals("Expected three distinct setup slots on Base.", 3, baseSlots.size());
-        assertTrue(compiled.contains("dispatch_Base_M_setup1(") || compiled.contains("dispatch_Base_setup1("));
+        assertTrue(compiled.contains("].Base_M_setup1(") || compiled.contains("].Base_setup1("));
         assertContainsRegex(compiled, "Child\\.Base(?:_M)?_setup" + Pattern.quote(overriddenSlots.get(0)) + "\\s*=\\s*Child_Child_setup");
     }
 
@@ -686,14 +687,16 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    Greeter firstResult = firstObject.call(second)",
             "    Greeter secondResult = secondObject.call(first)"
         );
-        Matcher callMatcher = Pattern.compile("return (dispatch_[A-Za-z0-9_]+)\\(greeter\\d*").matcher(compiled);
-        List<String> helpers = new ArrayList<>();
-        while (callMatcher.find() && !helpers.contains(callMatcher.group(1))) {
-            helpers.add(callMatcher.group(1));
+        Matcher callMatcher = Pattern.compile(
+            "return __wurst_objectClass\\[greeter\\d*\\]\\.([A-Za-z0-9_]+)\\(greeter\\d*").matcher(compiled);
+        List<String> slots = new ArrayList<>();
+        while (callMatcher.find()) {
+            if (!slots.contains(callMatcher.group(1))) {
+                slots.add(callMatcher.group(1));
+            }
         }
-        assertEquals("Both optimized module callers must use one interface dispatch helper.", 1, helpers.size());
-        String slot = singleMatch(getFunctionBody(compiled, helpers.get(0)),
-            "__wurst_objectClass\\[[^\\]]+\\]\\.([A-Za-z0-9_]+)", 1);
+        assertEquals("Both optimized module callers must dispatch through one interface slot.", 1, slots.size());
+        String slot = slots.get(0);
         assertContainsRegex(compiled, "First\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*First_[^\\n]*greet");
         assertContainsRegex(compiled, "Second\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*Second_[^\\n]*greet");
     }
@@ -1650,11 +1653,11 @@ public class LuaTranslationTests extends WurstScriptTest {
             "test-output/lua/LuaTranslationTests_genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths.lua"),
             Charsets.UTF_8);
         assertContainsRegex(compiled,
-            "function dispatch_Predicate_test\\([^\\)]*\\)[\\s\\S]*__wurst_objectClass\\[[^\\]]+\\]\\.__wurst_dispatch_test");
+            "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.__wurst_dispatch_test\\(");
         assertContainsRegex(compiled, "Predicate_matches_test\\.__wurst_dispatch_test\\s*=");
         assertContainsRegex(compiled, "Impl\\.__wurst_dispatch_test\\s*=");
         assertDoesNotContainRegex(compiled,
-            "__wurst_objectClass\\[[^\\]]+\\]\\.Predicate_test");
+            "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.Predicate_test");
     }
 
     @Test
@@ -2639,7 +2642,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         lines.add("native takesInt(int i)");
         lines.add("@noinline function caller(int value)");
         for (int i = 0; i < 70; i++) {
-            lines.add("    takesInt((value + " + i + ") mod 3)");
+            lines.add("    takesInt((value + " + i + ") div 3)");
         }
         lines.add("init");
         lines.add("    caller(7)");
@@ -2656,7 +2659,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("inlining without allocation must not cross into whole-function spill mode:\n" + body,
             body.contains("__wurst_locals"));
         assertTrue("the exact declaration budget must retain residual helper calls near the limit:\n" + body,
-            body.contains("__wurst_modInt("));
+            body.contains("__wurst_intDiv("));
     }
 
     @Test

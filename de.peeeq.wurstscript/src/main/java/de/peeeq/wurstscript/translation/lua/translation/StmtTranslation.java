@@ -47,7 +47,21 @@ public class StmtTranslation {
     }
 
     public static void translate(ImLoop s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaWhile(LuaAst.LuaExprBoolVal(true), tr.translateStatements(s.getBody())));
+        LuaNumericFor counted = LuaNumericFor.match(s);
+        if (counted == null) {
+            res.add(LuaAst.LuaWhile(LuaAst.LuaExprBoolVal(true), tr.translateStatements(s.getBody())));
+            return;
+        }
+        LuaVariable counter = tr.luaVar.getFor(counted.counter);
+        LuaExpr from = takeCounterInitialisation(res, counter);
+        LuaExprOpt step = counted.step == 1
+            ? LuaAst.LuaNoExpr()
+            : LuaAst.LuaExprIntVal("" + counted.step);
+        LuaStatements body = LuaAst.LuaStatements();
+        for (ImStmt stmt : counted.innerStatements()) {
+            stmt.translateStmtToLua(body, tr);
+        }
+        res.add(LuaAst.LuaFor(counter, from, counted.bound.translateToLua(tr), step, body));
     }
 
     public static void translate(ImIf s, List<LuaStatement> res, LuaTranslator tr) {
@@ -79,6 +93,47 @@ public class StmtTranslation {
         res.add(LuaAst.LuaAssignment(left, right));
     }
 
+
+    /**
+     * The counter's initial assignment was translated just before the loop, possibly followed by
+     * the cached bound; it becomes the start value of the numeric for. Moving it past the bound's
+     * assignment is only done when neither statement reads what the other writes. Otherwise the
+     * loop starts from the counter variable itself.
+     */
+    private static LuaExpr takeCounterInitialisation(List<LuaStatement> res, LuaVariable counter) {
+        for (int index = res.size() - 1, skipped = 0; index >= 0 && skipped <= 1; index--, skipped++) {
+            if (!(res.get(index) instanceof LuaAssignment assignment)
+                || !(assignment.getLeft() instanceof LuaExprVarAccess target)) {
+                break;
+            }
+            if (target.getVar() == counter) {
+                LuaExpr from = assignment.getRight();
+                for (int between = index + 1; between < res.size(); between++) {
+                    LuaAssignment later = (LuaAssignment) res.get(between);
+                    LuaVariable written = ((LuaExprVarAccess) later.getLeft()).getVar();
+                    if (reads(from, written) || reads(later.getRight(), counter)) {
+                        return LuaAst.LuaExprVarAccess(counter);
+                    }
+                }
+                res.remove(index);
+                from.setParent(null);
+                return from;
+            }
+        }
+        return LuaAst.LuaExprVarAccess(counter);
+    }
+
+    private static boolean reads(de.peeeq.wurstscript.luaAst.Element e, LuaVariable v) {
+        if (e instanceof LuaExprVarAccess access && access.getVar() == v) {
+            return true;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reads(e.get(i), v)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
         List<ImVar> loopVars = loop.getLoopVars().stream()

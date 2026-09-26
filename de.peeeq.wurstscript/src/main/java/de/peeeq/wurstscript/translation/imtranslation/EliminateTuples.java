@@ -272,7 +272,7 @@ public class EliminateTuples {
             }
             return;
         }
-        if (isSafelyDiscardable(value)) {
+        if (isSafelyDiscardable(value, tr)) {
             return;
         }
         if (SideEffectAnalyzer.quickcheckHasSideeffects(value)) {
@@ -282,6 +282,19 @@ public class EliminateTuples {
             value.setParent(null);
             stmts.add(discardEvaluation.call(value));
         }
+    }
+
+    /**
+     * Like {@link #isSafelyDiscardable(ImExpr)}, and also a call to a Lua operator intrinsic
+     * which cannot fail; its unused result would only be a dead local in the emitted script.
+     */
+    private static boolean isSafelyDiscardable(ImExpr value, ImTranslator tr) {
+        if (isSafelyDiscardable(value)) {
+            return true;
+        }
+        return value instanceof ImFunctionCall call
+            && tr.isTrapFreeLuaIntrinsicCall(call)
+            && call.getArguments().stream().allMatch(EliminateTuples::isSafelyDiscardable);
     }
 
     private static boolean isSafelyDiscardable(ImExpr value) {

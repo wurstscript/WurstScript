@@ -213,6 +213,7 @@ public final class LuaNativeLowering {
         // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
         lowerKeyedTables(prog);
 
+        removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
 
@@ -311,6 +312,87 @@ public final class LuaNativeLowering {
      * calls only later in EliminateLocalTypes would let the optimizer remove
      * its definition first and leave dangling Lua calls behind.
      */
+    /**
+     * An erased generic value is normalised with {@code __wurst_ensureInt} and friends when it
+     * reaches a concrete primitive context, because erased storage can hold nil for a primitive.
+     * Lua specialisation runs before this pass and gives such a value a concrete type where the
+     * instantiation is known; a value the IM already types as that primitive comes from typed
+     * storage with a typed default and can never be nil, so the normalisation is the identity.
+     */
+    private static void removeRedundantTypeAssurance(ImProg prog, ImTranslator translator) {
+        List<ImFunctionCall> redundant = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getArguments().size() != 1) {
+                    return;
+                }
+                ImFunction target = call.getFunc();
+                ImType argumentType = declaredType(call.getArguments().get(0));
+                if (argumentType == null) {
+                    return;
+                }
+                boolean identity = (target == translator.ensureIntFunc && TypesHelper.isIntType(argumentType))
+                    || (target == translator.ensureRealFunc && TypesHelper.isRealType(argumentType))
+                    || (target == translator.ensureStrFunc && TypesHelper.isStringType(argumentType));
+                if (identity) {
+                    redundant.add(call);
+                }
+            }
+        });
+        for (ImFunctionCall call : redundant) {
+            ImExpr value = call.getArguments().get(0);
+            value.setParent(null);
+            call.replaceBy(value);
+        }
+    }
+
+    /**
+     * The type a value is stored or returned as, from its declaration rather than from
+     * {@code attrTyp()}: the latter substitutes type arguments, so an erased {@code Box<int>.get()}
+     * reports {@code integer} while its storage still holds erased values. Only a specialised copy
+     * rewrites the declaration itself. Null when the value's origin is not a declaration.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable ImType declaredType(ImExpr value) {
+        if (value instanceof ImFunctionCall call) {
+            return call.getFunc().getReturnType();
+        }
+        if (value instanceof ImMethodCall call) {
+            ImFunction implementation = call.getMethod().getImplementation();
+            return implementation == null ? null : implementation.getReturnType();
+        }
+        if (value instanceof ImVarAccess access) {
+            return access.getVar().getType();
+        }
+        if (value instanceof ImVarArrayAccess access) {
+            return entryType(access.getVar().getType(), access.getIndexes().size());
+        }
+        if (value instanceof ImMemberAccess access) {
+            return entryType(access.getVar().getType(), access.getIndexes().size());
+        }
+        if (value instanceof ImStatementExpr statementExpr) {
+            return declaredType(statementExpr.getExpr());
+        }
+        if (value instanceof ImIntVal || value instanceof ImRealVal || value instanceof ImStringVal) {
+            return value.attrTyp();
+        }
+        return null;
+    }
+
+    private static @org.eclipse.jdt.annotation.Nullable ImType entryType(ImType type, int indexCount) {
+        for (int i = 0; i < indexCount; i++) {
+            if (type instanceof ImArrayType array) {
+                type = array.getEntryType();
+            } else if (type instanceof ImArrayTypeMulti array) {
+                type = array.getEntryType();
+            } else {
+                return null;
+            }
+        }
+        return type;
+    }
+
     private static void lowerStringConcatenation(ImProg prog, ImTranslator translator) {
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -371,7 +453,17 @@ public final class LuaNativeLowering {
                     }
                     target = funcs.intDiv();
                 } else if (call.getOp() == WurstOperator.MOD_INT) {
-                    target = funcs.modInt();
+                    // For a positive constant divisor the ModuloInteger correction is exactly Lua's
+                    // floored %, one VM opcode instead of a C call and a branch. A constant dividend
+                    // keeps the helper so the optimizer can still fold the whole expression.
+                    ImExpr dividend = call.getArguments().get(0);
+                    ImExpr divisor = call.getArguments().get(1);
+                    if (divisor instanceof ImIntVal && ((ImIntVal) divisor).getValI() > 0
+                        && !(dividend instanceof ImIntVal)) {
+                        target = funcs.rawFloorModInt();
+                    } else {
+                        target = funcs.modInt();
+                    }
                 } else if (call.getOp() == WurstOperator.MOD_REAL) {
                     target = funcs.modReal();
                 } else if (call.getOp() == WurstOperator.JASS_MOD_INT) {
@@ -449,6 +541,7 @@ public final class LuaNativeLowering {
         private final List<ImFunction> created = new ArrayList<>();
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
+        private ImFunction rawFloorModInt;
         private ImFunction rawFmodReal;
         private ImFunction intDiv;
         private ImFunction modInt;
@@ -509,6 +602,16 @@ public final class LuaNativeLowering {
                 created.add(rawFmodInt);
             }
             return rawFmodInt;
+        }
+
+        /** Lua's floored {@code %}; only correct for a positive divisor, which the caller guarantees. */
+        ImFunction rawFloorModInt() {
+            if (rawFloorModInt == null) {
+                rawFloorModInt = rawNative("__wurst_rawFloorModInt", TypesHelper.imInt());
+                translator.luaRawFloorModIntFunc = rawFloorModInt;
+                created.add(rawFloorModInt);
+            }
+            return rawFloorModInt;
         }
 
         private ImFunction rawFmodReal() {

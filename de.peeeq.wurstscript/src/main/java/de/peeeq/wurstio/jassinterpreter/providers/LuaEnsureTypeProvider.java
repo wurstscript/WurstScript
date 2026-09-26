@@ -54,6 +54,10 @@ public class LuaEnsureTypeProvider extends Provider {
         return ILconstInt.create(WurstOperator.jassModuloInteger(a.getVal(), b.getVal()));
     }
 
+    public ILconstInt __wurst_rawFloorModInt(ILconstInt a, ILconstInt b) {
+        return ILconstInt.create(Math.floorMod(a.getVal(), b.getVal()));
+    }
+
     public ILconstReal __wurst_rawFmodReal(ILconstReal a, ILconstReal b) {
         return ILconstReal.create(a.getVal() % b.getVal());
     }

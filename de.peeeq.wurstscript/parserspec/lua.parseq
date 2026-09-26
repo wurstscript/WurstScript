@@ -20,6 +20,7 @@ LuaStatement =
       LuaDefinition
     | LuaAssignment(LuaExpr left, LuaExpr right)
     | LuaWhile(LuaExpr cond, LuaStatements body)
+    | LuaFor(ref LuaVariable loopVar, LuaExpr from, LuaExpr to, LuaExprOpt step, LuaStatements body)
     | LuaIf(LuaExpr cond, LuaStatements thenStmts, LuaStatements elseStmts)
     | LuaBreak()
     | LuaReturn(LuaExprOpt retVal)

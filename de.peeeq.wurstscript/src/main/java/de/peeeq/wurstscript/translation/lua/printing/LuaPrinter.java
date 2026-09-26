@@ -103,11 +103,22 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprFunctionCallE e, StringBuilder sb, int indent) {
+        // A function abstraction needs the parentheses; a name, field, index or call is already a
+        // valid prefix expression, and a statement must not start with '(' (Lua would attach it to
+        // the previous line).
+        printPostfixReceiver(e.getFuncExpr(), sb, indent);
         sb.append("(");
-        e.getFuncExpr().print(sb, indent);
-        sb.append(")(");
         e.getArguments().print(sb, indent);
         sb.append(")");
+    }
+
+    /** True when {@code e} prints as a Lua prefix expression without added parentheses. */
+    public static boolean isPrefixExpression(LuaExpr e) {
+        return e instanceof LuaExprVarAccess
+            || e instanceof LuaExprFuncRef
+            || e instanceof LuaExprFieldAccess
+            || e instanceof LuaExprArrayAccess
+            || e instanceof LuaCallExpr;
     }
 
     public static void print(LuaExprIntVal e, StringBuilder sb, int indent) {
@@ -135,11 +146,7 @@ public class LuaPrinter {
     }
 
     private static void printPostfixReceiver(LuaExpr receiver, StringBuilder sb, int indent) {
-        if (receiver instanceof LuaExprVarAccess
-            || receiver instanceof LuaExprFuncRef
-            || receiver instanceof LuaExprFieldAccess
-            || receiver instanceof LuaExprArrayAccess
-            || receiver instanceof LuaCallExpr) {
+        if (isPrefixExpression(receiver)) {
             receiver.print(sb, indent);
         } else {
             sb.append("(");
@@ -361,6 +368,23 @@ public class LuaPrinter {
             sb.append(" = ");
             v.getInitialValue().print(sb, indent);
         }
+    }
+
+    public static void print(LuaFor s, StringBuilder sb, int indent) {
+        sb.append("for ");
+        sb.append(s.getLoopVar().getName());
+        sb.append(" = ");
+        s.getFrom().print(sb, indent);
+        sb.append(", ");
+        s.getTo().print(sb, indent);
+        if (s.getStep() instanceof LuaExpr) {
+            sb.append(", ");
+            s.getStep().print(sb, indent);
+        }
+        sb.append(" do\n");
+        s.getBody().print(sb, indent + 1);
+        printIndent(sb, indent);
+        sb.append("end");
     }
 
     public static void print(LuaWhile s, StringBuilder sb, int indent) {

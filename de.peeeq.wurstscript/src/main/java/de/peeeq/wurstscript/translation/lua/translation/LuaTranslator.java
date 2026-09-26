@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
 import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
+import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
@@ -243,13 +244,6 @@ public class LuaTranslator {
     final LuaFunction classToIndex = LuaAst.LuaFunction("__wurst_classToIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
     final LuaFunction classFromIndex = LuaAst.LuaFunction("__wurst_classFromIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
 
-    GetAForB<ImClass, LuaFunction> luaClassCleanup = new GetAForB<ImClass, LuaFunction>() {
-        @Override
-        public LuaFunction initFor(ImClass c) {
-            return LuaAst.LuaFunction(uniqueName(c.getName() + "_dealloc"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-        }
-    };
-
     GetAForB<ImMethod, LuaFunction> luaDispatchFunc = new GetAForB<ImMethod, LuaFunction>() {
         @Override
         public LuaFunction initFor(ImMethod method) {
@@ -276,6 +270,23 @@ public class LuaTranslator {
             return result;
         }
     };
+
+    /**
+     * A virtual call whose receiver is a plain variable: look the implementation up in the
+     * receiver's descriptor right here instead of calling a stub which forwards varargs. The slot
+     * is resolved later, together with the stubs, through the same pending-dispatch list.
+     */
+    LuaExpr inlineDispatchCall(ImMethod method, LuaExpr receiver, LuaExprlist args) {
+        LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
+            LuaAst.LuaExprVarAccess(objectClass),
+            LuaAst.LuaExprlist(receiver.copy()));
+        LuaExprFieldAccess target = LuaAst.LuaExprFieldAccess(
+            descriptor, isDestroyDispatchMethod(method)
+                ? "__wurst_destroy"
+                : dispatchSlotName(imTr.dispatchSegmentOf(method)));
+        pendingDispatches.add(new PendingDispatch(method, target));
+        return LuaAst.LuaExprFunctionCallE(target, args);
+    }
 
     GetAForB<ImClass, LuaMethod> luaClassInitMethod = new GetAForB<ImClass, LuaMethod>() {
         @Override
@@ -388,6 +399,7 @@ public class LuaTranslator {
 
         createBootstrapFunction();
         cleanStatements();
+        demoteForLoopsOverLocalLimit();
         localizeHotStorageTables();
         enforceLuaLocalLimits();
 
@@ -706,6 +718,7 @@ public class LuaTranslator {
 
     private void createObjectManagement() {
         luaModel.add(objectClass);
+        localizableStorageTables.add(objectClass);
         luaModel.add(objectFree);
         luaModel.add(objectMax);
         luaModel.add(objectFreeCount);
@@ -721,9 +734,6 @@ public class LuaTranslator {
             LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
                 LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
             LuaAst.LuaStatements()));
-        objectDealloc.getBody().add(LuaAst.LuaExprFunctionCallE(
-            LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(descriptor), "__wurst_dealloc"),
-            LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
         objectDealloc.getBody().add(LuaAst.LuaAssignment(
             LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
                 LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
@@ -783,7 +793,9 @@ public class LuaTranslator {
                 it.remove();
             } else if (s instanceof LuaExpr) {
                 LuaExpr e = (LuaExpr) s;
-                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || e instanceof LuaExprFunctionCallE) {
+                boolean parenthesisedCall = e instanceof LuaExprFunctionCallE
+                    && !LuaPrinter.isPrefixExpression(((LuaExprFunctionCallE) e).getFuncExpr());
+                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || parenthesisedCall) {
                     e.setParent(null);
                     LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);
                     it.set(exprTemp);
@@ -797,7 +809,7 @@ public class LuaTranslator {
             // do not translate blizzard functions
             return;
         }
-        if (f.isNative() && ExprTranslation.isRawNumericIntrinsic(f, this)) {
+        if (f.isNative() && ExprTranslation.isBackendIntrinsic(f, this)) {
             return;
         }
         LuaFunction lf = luaFunc.getFor(f);
@@ -963,6 +975,65 @@ public class LuaTranslator {
         });
     }
 
+    /** Registers a numeric for loop occupies while it runs: three hidden control values and the variable. */
+    private static final int LUA_FOR_LOOP_REGISTERS = 4;
+
+    private static int forLoopRegisters(de.peeeq.wurstscript.luaAst.Element e) {
+        if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
+            return 0;
+        }
+        int[] count = {e instanceof LuaFor ? LUA_FOR_LOOP_REGISTERS : 0};
+        e.forEachElement(child -> count[0] += forLoopRegisters(child));
+        return count[0];
+    }
+
+    /**
+     * A numeric for loop needs registers which the counted locals do not show. Where they would push
+     * a function over the Lua limit, the loop goes back to the while form it was recognised from, so
+     * the locals-table fallback never has to spill a for-loop variable (which it cannot rewrite).
+     */
+    private void demoteForLoopsOverLocalLimit() {
+        luaModel.accept(new LuaModel.DefaultVisitor() {
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                demoteForLoopsOverLocalLimit(f.getParams(), f.getBody());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                demoteForLoopsOverLocalLimit(m.getParams(), m.getBody());
+            }
+        });
+    }
+
+    private void demoteForLoopsOverLocalLimit(LuaParams params, LuaStatements body) {
+        int registers = forLoopRegisters(body);
+        if (registers == 0) {
+            return;
+        }
+        int localCount = params.size() + collectFunctionScopeLocals(body).size() + registers;
+        if (localCount < LUA_LOCALS_LIMIT) {
+            return;
+        }
+        List<LuaFor> loops = new ArrayList<>();
+        collectForLoops(body, loops);
+        for (LuaFor loop : loops) {
+            LuaNumericFor.demote(loop);
+        }
+    }
+
+    private static void collectForLoops(de.peeeq.wurstscript.luaAst.Element e, List<LuaFor> out) {
+        if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
+            return;
+        }
+        if (e instanceof LuaFor) {
+            out.add((LuaFor) e);
+        }
+        e.forEachElement(child -> collectForLoops(child, out));
+    }
+
     /**
      * Cache compiler-owned array and field-storage tables in function locals when they are indexed
      * from a loop. This removes a global lookup from every dynamic iteration without changing cold
@@ -992,7 +1063,7 @@ public class LuaTranslator {
             return;
         }
 
-        int existingLocals = params.size() + collectFunctionScopeLocals(body).size();
+        int existingLocals = params.size() + collectFunctionScopeLocals(body).size() + forLoopRegisters(body);
         int aliasCount = Math.min(LUA_STORAGE_ALIAS_LIMIT,
             LUA_STORAGE_ALIAS_LOCAL_BUDGET - existingLocals);
         if (aliasCount <= 0) {
@@ -1025,7 +1096,7 @@ public class LuaTranslator {
             || element instanceof LuaFunction || element instanceof LuaMethod) {
             return;
         }
-        boolean childInsideLoop = insideLoop || element instanceof LuaWhile;
+        boolean childInsideLoop = insideLoop || element instanceof LuaWhile || element instanceof LuaFor;
         if (childInsideLoop && element instanceof LuaExprArrayAccess) {
             LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
             if (left instanceof LuaExprVarAccess) {
@@ -1066,7 +1137,7 @@ public class LuaTranslator {
 
     private void spillLocalsIntoTableIfNeeded(String functionName, LuaParams params, LuaStatements body) {
         List<LuaVariable> scopeLocals = collectFunctionScopeLocals(body);
-        int localCount = params.size() + scopeLocals.size();
+        int localCount = params.size() + scopeLocals.size() + forLoopRegisters(body);
         if (DEBUG_LUA_LOCALS) {
             WLogger.info("[LUA_LOCALS] function=" + functionName + " params=" + params.size()
                 + " locals=" + scopeLocals.size() + " total=" + localCount);
@@ -1170,6 +1241,8 @@ public class LuaTranslator {
             } else if (stmt instanceof LuaWhile) {
                 LuaWhile luaWhile = (LuaWhile) stmt;
                 rewriteLocalDeclarationsToTableAssignments(luaWhile.getBody(), localSet, localSlots, tableVar);
+            } else if (stmt instanceof LuaFor) {
+                rewriteLocalDeclarationsToTableAssignments(((LuaFor) stmt).getBody(), localSet, localSlots, tableVar);
             }
         }
     }
@@ -1209,14 +1282,6 @@ public class LuaTranslator {
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
         luaModel.add(initMethod);
-
-        LuaFunction cleanup = luaClassCleanup.getFor(c);
-        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
-        cleanup.getParams().add(object);
-        luaModel.add(cleanup);
-        deferMainInit(LuaAst.LuaAssignment(
-            LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(classVar), "__wurst_dealloc"),
-            LuaAst.LuaExprFuncRef(cleanup)));
 
         // translate functions
         for (ImFunction f : c.getFunctions()) {
