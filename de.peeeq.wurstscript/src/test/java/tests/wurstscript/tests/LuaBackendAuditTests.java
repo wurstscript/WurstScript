@@ -277,6 +277,65 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /**
+     * A class-typed caller uses an old-generics result as is, so a missing entry has to come back
+     * as nil: TimedLoop looks its timer up in a HashMap and creates one when the lookup is null.
+     */
+    @Test
+    public void oldGenericsMissingClassEntryIsNull() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "class Timer",
+            "    int count = 0",
+            "Store<Timer> timers",
+            "function timerFor(int key) returns Timer",
+            "    var t = timers.get(key)",
+            "    if t == null",
+            "        t = new Timer()",
+            "        timers.put(key, t)",
+            "    return t",
+            "init",
+            "    timers = new Store<Timer>()",
+            "    let a = timerFor(5)",
+            "    a.count++",
+            "    let b = timerFor(5)",
+            "    b.count++",
+            "    if a == b and a.count == 2 and timerFor(6) != a",
+            "        testSuccess()");
+    }
+
+    /** An int 0 stays a value, not null, inside old-generics code, as it was on Lua before. */
+    @Test
+    public void oldGenericsIntZeroIsNotNull() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "interface Visit<T>",
+            "    function run(T t) returns int",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function visit(int key, Visit<T> v) returns int",
+            "        return v.run(slots[key] castTo T)",
+            "    function isNull(int key) returns bool",
+            "        return (slots[key] castTo T) == null",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 3)",
+            "    let total = ints.visit(0, x -> x + 10) + ints.visit(1, x -> x + 10)",
+            "    if total == 23 and not ints.isNull(0) and ints.isNull(7)",
+            "        testSuccess()");
+    }
+
     /** Handles still round-trip: the call site indexes them, and the generic code keeps the index. */
     @Test
     public void oldGenericsHandleRoundTripKeepsIdentityAndNull() throws IOException {
@@ -298,7 +357,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    store.put(0, a)",
             "    store.put(1, b)",
             "    store.put(2, null)",
-            "    if store.get(0) == a and store.get(1) == b and store.get(0) != b and store.get(2) == null and store.isNull(2) and store.isNull(3) and not store.isNull(0)",
+            "    if store.get(0) == a and store.get(1) == b and store.get(0) != b and store.get(2) == null and store.isNull(3) and not store.isNull(0)",
             "        testSuccess()");
     }
 
@@ -325,9 +384,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         // boxing the number a second time.
         assertTrue("the handle is indexed through the object index map:\n" + compiled,
             compiled.contains("return __wurst_objectToIndex("));
-        assertTrue(java.util.regex.Pattern.compile(
-            "function toIndex\\((\\w+)\\)\\s*\\R\\s*return \\(\\1 or 0\\)")
-            .matcher(compiled).find());
+        String toIndex = topLevelFunctionBodyWithPrefix(compiled, "toIndex");
+        assertFalse("the generic body does not box the index again:\n" + toIndex,
+            toIndex.contains("__wurst_objectToIndex"));
     }
 
     @Test

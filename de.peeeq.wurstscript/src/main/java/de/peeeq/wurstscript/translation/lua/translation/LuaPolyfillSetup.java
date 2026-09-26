@@ -94,6 +94,23 @@ class LuaPolyfillSetup {
         }
     }
 
+    /**
+     * The old-generics int casts, for operands the translation does not inline (see
+     * ExprTranslation.translate(ImCast)): nil -> 0, 0 -> sentinel, n -> n, and back.
+     */
+    static void createOldGenericsCastFunctions(LuaTranslator tr) {
+        tr.luaModel.add(tr.oldGenericsZero);
+        tr.oldGenericsToInt.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        tr.oldGenericsToInt.getBody().add(LuaAst.LuaLiteral("if x == 0 then return __wurst_oldGenericsZero end"));
+        tr.oldGenericsToInt.getBody().add(LuaAst.LuaLiteral("return x or 0"));
+        tr.luaModel.add(tr.oldGenericsToInt);
+        tr.oldGenericsFromInt.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
+        tr.oldGenericsFromInt.getBody().add(LuaAst.LuaLiteral("if i == __wurst_oldGenericsZero then return 0 end"));
+        tr.oldGenericsFromInt.getBody().add(LuaAst.LuaLiteral("if i == 0 then return nil end"));
+        tr.oldGenericsFromInt.getBody().add(LuaAst.LuaLiteral("return i"));
+        tr.luaModel.add(tr.oldGenericsFromInt);
+    }
+
     static void createStringIndexFunctions(LuaTranslator tr) {
         LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
         tr.luaModel.add(map);
