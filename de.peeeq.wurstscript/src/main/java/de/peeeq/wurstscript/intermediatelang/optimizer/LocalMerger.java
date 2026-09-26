@@ -55,6 +55,16 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         optimizeFunc(func);
     }
 
+    /**
+     * Entry point for callers which optimise one function outside {@link #optimize}: the translator
+     * identifies the Lua operator intrinsics whose unused calls may be dropped. Without one, every
+     * call is kept as a side effect.
+     */
+    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
+        translator = trans;
+        optimizeFunc(func, analyzer);
+    }
+
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
 
     private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, Set<ImVar> liveAtEntry,
@@ -329,7 +339,8 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
 
     private boolean hasSideEffects(Element e) {
         if (e instanceof ImMethodCall) return true;
-        if (e instanceof ImFunctionCall call && !translator.isTrapFreeLuaIntrinsicCall(call)) return true;
+        if (e instanceof ImFunctionCall call
+            && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }
