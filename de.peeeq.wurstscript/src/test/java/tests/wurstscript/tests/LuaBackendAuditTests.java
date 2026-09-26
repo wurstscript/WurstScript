@@ -78,6 +78,158 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("∞") || compiled.contains("NaN"));
     }
 
+    /**
+     * An operator which delegates to an accessor (op_index -> get), inlined into a loop, leaves the
+     * accessor's method call inside that loop; it is lowered and inlined as well, down to the read.
+     */
+    @Test
+    public void delegatingOperatorInlinesThroughItsAccessor() {
+        String compiled = compileOptimizedLua("delegatingOperatorInlinesThroughItsAccessor",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function oob(int index)",
+            "    consume(index)",
+            "class L<T:>",
+            "    private static T array store",
+            "    private int start = 0",
+            "    private int size = 0",
+            "    function add(T elem)",
+            "        store[start + size] = elem",
+            "        size++",
+            "    function get(int index) returns T",
+            "        if index < 0 or index >= size",
+            "            oob(index)",
+            "        return store[start + index]",
+            "    function op_index(int index) returns T",
+            "        return get(index)",
+            "@noinline function sumIndex(L<int> l) returns int",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    return s",
+            "init",
+            "    let l = new L<int>()",
+            "    for i = 0 to 9",
+            "        l.add(i)",
+            "    consume(sumIndex(l))");
+        String sumIndex = topLevelFunctionBodyWithPrefix(compiled, "sumIndex");
+        assertFalse("the delegated accessor is inlined into the loop:\n" + sumIndex,
+            sumIndex.contains("get") || sumIndex.contains("op_index"));
+    }
+
+    /** A longer delegation chain is followed to its end: every level is exposed in turn. */
+    @Test
+    public void delegationChainIsInlinedToItsEnd() {
+        String compiled = compileOptimizedLua("delegationChainIsInlinedToItsEnd",
+            "package Test",
+            "native consume(int value)",
+            "class L",
+            "    private static int array store",
+            "    function get(int index) returns int",
+            "        return store[index]",
+            "    function c(int index) returns int",
+            "        return get(index)",
+            "    function b(int index) returns int",
+            "        return c(index)",
+            "    function a(int index) returns int",
+            "        return b(index)",
+            "    function op_index(int index) returns int",
+            "        return a(index)",
+            "@noinline function sumIndex(L l) returns int",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    return s",
+            "init",
+            "    consume(sumIndex(new L()))");
+        String sumIndex = topLevelFunctionBodyWithPrefix(compiled, "sumIndex");
+        for (String level : new String[] {"op_index", "L_a", "L_b", "L_c", "get"}) {
+            assertFalse("no level of the chain is left as a call:\n" + sumIndex,
+                sumIndex.contains(level));
+        }
+    }
+
+    /**
+     * Two chains exposed in the same round can overlap: inlining {@code sum} into {@code run}'s loop
+     * copies the call {@code sum}'s own loop makes to {@code leaf}. That copy is reconsidered too.
+     */
+    @Test
+    public void overlappingExposedChainsAreBothInlined() {
+        String compiled = compileOptimizedLua("overlappingExposedChainsAreBothInlined",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function run(L l) returns int",
+            "    var s = 0",
+            "    for k = 0 to 3",
+            "        s += l.total(k)",
+            "    return s",
+            "class L",
+            "    private static int array store",
+            "    function leaf(int index) returns int",
+            "        return store[index]",
+            "    function op_index(int index) returns int",
+            "        return leaf(index)",
+            "    function sum(int n) returns int",
+            "        var s = 0",
+            "        for i = 0 to n",
+            "            s += op_index(i)",
+            "        return s",
+            "    function total(int n) returns int",
+            "        return sum(n)",
+            "init",
+            "    consume(run(new L()))");
+        String run = topLevelFunctionBodyWithPrefix(compiled, "run");
+        assertFalse("the copied inner call is inlined as well:\n" + run, run.contains("leaf"));
+    }
+
+    /** Methods which call each other are a cycle: the loop still compiles and computes correctly. */
+    @Test
+    public void mutuallyRecursiveMethodsInALoopStayCalls() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class C",
+            "    function even(int n) returns bool",
+            "        if n == 0",
+            "            return true",
+            "        return odd(n - 1)",
+            "    function odd(int n) returns bool",
+            "        if n == 0",
+            "            return false",
+            "        return even(n - 1)",
+            "init",
+            "    let c = new C()",
+            "    var evens = 0",
+            "    for i = 0 to 9",
+            "        if c.even(i)",
+            "            evens++",
+            "    if evens == 5",
+            "        testSuccess()");
+    }
+
+    /** A subclass which overrides the accessor still receives the operator's calls. */
+    @Test
+    public void delegatingOperatorKeepsAnOverridingAccessor() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class L",
+            "    function get(int index) returns int",
+            "        return index",
+            "    function op_index(int index) returns int",
+            "        return get(index)",
+            "class Doubling extends L",
+            "    override function get(int index) returns int",
+            "        return index * 2",
+            "init",
+            "    L l = new Doubling()",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    if s == 90",
+            "        testSuccess()");
+    }
+
     @Test
     public void packageConstantsInlineAndRemoveDeadGuards() {
         String compiled = compileOptimizedLuaWithStdLib(

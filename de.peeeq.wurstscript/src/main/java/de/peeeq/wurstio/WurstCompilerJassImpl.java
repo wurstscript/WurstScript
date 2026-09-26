@@ -959,6 +959,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             optimizer.doInlining();
             imTranslator2.assertProperties();
 
+            // Inlining a delegating method into a loop (op_index -> get) leaves the call it
+            // delegates to inside that loop. Lower and inline those calls too, down the chain.
+            optimizer.inlineExposedLoopCalls();
+            imTranslator2.assertProperties();
+
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
             timeTaker.endPhase();
         }
