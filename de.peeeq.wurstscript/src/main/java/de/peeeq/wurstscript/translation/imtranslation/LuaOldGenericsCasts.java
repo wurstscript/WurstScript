@@ -1,10 +1,14 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Gives every old-generics int cast a local variable operand, right before Lua translation.
@@ -15,6 +19,11 @@ import java.util.List;
  * operand - a call such as {@code loadInt(...)}, an array read - is stored in a fresh local first.
  * This runs after the last optimization, so nothing folds the temporary back into the cast, and
  * the translation never needs a runtime helper call.
+ *
+ * <p>Each temporary lives from its assignment to the cast right after it, so the functions that
+ * got some are passed through the local merger once more: the temporaries share a slot with each
+ * other and with dead locals of their type, and a function with many casts does not grow towards
+ * Lua's limit of 200 locals. Merging only renames variables, so the operands stay variables.
  */
 public final class LuaOldGenericsCasts {
 
@@ -47,11 +56,14 @@ public final class LuaOldGenericsCasts {
         if (casts.isEmpty()) {
             return;
         }
+        Set<ImFunction> touched = new LinkedHashSet<>();
         for (ImCast cast : casts) {
             ImFunction function = cast.getNearestFunc();
+            touched.add(function);
             ImExpr operand = cast.getExpr();
             de.peeeq.wurstscript.ast.Element trace = operand.attrTrace();
-            ImVar temp = JassIm.ImVar(trace, operand.attrTyp().copy(), "oldGenericsValue", false);
+            ImVar temp = JassIm.ImVar(trace, EliminateLocalTypes.localTypeFor(operand.attrTyp()),
+                "oldGenericsValue", false);
             function.getLocals().add(temp);
             ImCast replacement = JassIm.ImCast(JassIm.ImVarAccess(temp), cast.getToType());
             operand.setParent(null);
@@ -60,5 +72,9 @@ public final class LuaOldGenericsCasts {
                 replacement));
         }
         prog.flatten(translator);
+        LocalPlayerContextAnalyzer analyzer = new LocalPlayerContextAnalyzer(prog);
+        for (ImFunction function : touched) {
+            new LocalMerger().optimizeFunc(function, analyzer, translator);
+        }
     }
 }

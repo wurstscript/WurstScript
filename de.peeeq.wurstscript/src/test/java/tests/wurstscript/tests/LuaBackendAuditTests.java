@@ -280,6 +280,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
     }
 
+    /** Many hoisted cast operands share their temporaries, so a big function stays under Lua's local limit. */
+    @Test
+    public void oldGenericsCastTemporariesAreMerged() {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package Test",
+            "native consume(int value)",
+            "int array slots",
+            "@inline function load<T>(int key) returns T",
+            "    return slots[key] castTo T",
+            "@noinline function readMany() returns int",
+            "    var s = 0"));
+        for (int i = 0; i < 250; i++) {
+            lines.add("    s += load<int>(" + i + ")");
+        }
+        lines.add("    return s");
+        lines.add("init");
+        lines.add("    consume(readMany())");
+        String compiled = compileOptimizedLua("oldGenericsCastTemporariesAreMerged", lines.toArray(new String[0]));
+        String readMany = topLevelFunctionBodyWithPrefix(compiled, "readMany");
+        assertFalse("the temporaries do not push the function into the locals table:\n" + readMany,
+            readMany.contains("__wurst_locals"));
+        assertFalse("every cast is still inlined:\n" + readMany, readMany.contains("__wurst_oldGenericsFromInt"));
+    }
+
     /**
      * A class-typed caller uses an old-generics result as is, so a missing entry has to come back
      * as nil: TimedLoop looks its timer up in a HashMap and creates one when the lookup is null.

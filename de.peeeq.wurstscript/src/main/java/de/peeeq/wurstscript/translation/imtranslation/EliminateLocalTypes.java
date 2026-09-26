@@ -39,6 +39,11 @@ public class EliminateLocalTypes {
         }
     }
 
+    /** The type a local of type {@code t} has after this pass, so a later local can merge with it. */
+    public static ImType localTypeFor(ImType t) {
+        return t instanceof ImSimpleType simple ? canonicalizeSimpleLocalType(simple) : t.copy();
+    }
+
     private static ImType canonicalizeSimpleLocalType(ImSimpleType t) {
         if (TypesHelper.isIntType(t)) {
             return localIntType;
