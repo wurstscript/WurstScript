@@ -311,19 +311,13 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * Rewrites string PLUS before the optimizer's first garbage-collection
-     * pass. The concat helper is an ordinary IM function, so introducing its
-     * calls only later in EliminateLocalTypes would let the optimizer remove
-     * its definition first and leave dangling Lua calls behind.
-     */
-    /**
      * An erased generic value is normalised with {@code __wurst_ensureInt} and friends when it
      * reaches a concrete primitive context, because erased storage can hold nil for a primitive.
-     * Lua specialisation runs before this pass and gives such a value a concrete type where the
-     * instantiation is known; a value the IM already types as that primitive comes from typed
-     * storage with a typed default and can never be nil, so the normalisation is the identity.
+     * When the value provably comes from typed storage or a typed default (see
+     * {@link LuaTypedValues}) the normalisation is the identity and the call is dropped.
      */
     private static void removeRedundantTypeAssurance(ImProg prog, ImTranslator translator) {
+        LuaTypedValues typedValues = new LuaTypedValues(prog);
         List<ImFunctionCall> redundant = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -333,14 +327,17 @@ public final class LuaNativeLowering {
                     return;
                 }
                 ImFunction target = call.getFunc();
-                ImType argumentType = declaredType(call.getArguments().get(0));
-                if (argumentType == null) {
+                ImType type;
+                if (target == translator.ensureIntFunc) {
+                    type = TypesHelper.imInt();
+                } else if (target == translator.ensureRealFunc) {
+                    type = TypesHelper.imReal();
+                } else if (target == translator.ensureStrFunc) {
+                    type = TypesHelper.imString();
+                } else {
                     return;
                 }
-                boolean identity = (target == translator.ensureIntFunc && TypesHelper.isIntType(argumentType))
-                    || (target == translator.ensureRealFunc && TypesHelper.isRealType(argumentType))
-                    || (target == translator.ensureStrFunc && TypesHelper.isStringType(argumentType));
-                if (identity) {
+                if (typedValues.isTyped(call.getArguments().get(0), type)) {
                     redundant.add(call);
                 }
             }
@@ -353,50 +350,11 @@ public final class LuaNativeLowering {
     }
 
     /**
-     * The type a value is stored or returned as, from its declaration rather than from
-     * {@code attrTyp()}: the latter substitutes type arguments, so an erased {@code Box<int>.get()}
-     * reports {@code integer} while its storage still holds erased values. Only a specialised copy
-     * rewrites the declaration itself. Null when the value's origin is not a declaration.
+     * Rewrites string PLUS before the optimizer's first garbage-collection
+     * pass. The concat helper is an ordinary IM function, so introducing its
+     * calls only later in EliminateLocalTypes would let the optimizer remove
+     * its definition first and leave dangling Lua calls behind.
      */
-    private static @org.eclipse.jdt.annotation.Nullable ImType declaredType(ImExpr value) {
-        if (value instanceof ImFunctionCall call) {
-            return call.getFunc().getReturnType();
-        }
-        if (value instanceof ImMethodCall call) {
-            ImFunction implementation = call.getMethod().getImplementation();
-            return implementation == null ? null : implementation.getReturnType();
-        }
-        if (value instanceof ImVarAccess access) {
-            return access.getVar().getType();
-        }
-        if (value instanceof ImVarArrayAccess access) {
-            return entryType(access.getVar().getType(), access.getIndexes().size());
-        }
-        if (value instanceof ImMemberAccess access) {
-            return entryType(access.getVar().getType(), access.getIndexes().size());
-        }
-        if (value instanceof ImStatementExpr statementExpr) {
-            return declaredType(statementExpr.getExpr());
-        }
-        if (value instanceof ImIntVal || value instanceof ImRealVal || value instanceof ImStringVal) {
-            return value.attrTyp();
-        }
-        return null;
-    }
-
-    private static @org.eclipse.jdt.annotation.Nullable ImType entryType(ImType type, int indexCount) {
-        for (int i = 0; i < indexCount; i++) {
-            if (type instanceof ImArrayType array) {
-                type = array.getEntryType();
-            } else if (type instanceof ImArrayTypeMulti array) {
-                type = array.getEntryType();
-            } else {
-                return null;
-            }
-        }
-        return type;
-    }
-
     private static void lowerStringConcatenation(ImProg prog, ImTranslator translator) {
         prog.accept(new Element.DefaultVisitor() {
             @Override

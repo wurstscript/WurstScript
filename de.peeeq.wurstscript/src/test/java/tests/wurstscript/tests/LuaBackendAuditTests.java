@@ -4427,6 +4427,31 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             readBox.contains("__wurst_rawTo") || readBox.contains("__wurst_ensureInt"));
     }
 
+    /**
+     * A specialised copy is declared with the concrete type, but a value it stores can still come
+     * from erased storage, whose untouched slots read as nil; Jass reads them as the default.
+     */
+    @Test
+    public void specialisedCopyFedFromErasedStorageKeepsTheDefault() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Cell<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Box<T:>",
+            "    private static T array scratch",
+            "    function take(Cell<T> cell) returns T",
+            "        T value = cell.get()",
+            "        scratch[0] = value",
+            "        return value",
+            "init",
+            "    let box = new Box<int>()",
+            "    if box.take(new Cell<int>()) + 1 == 1",
+            "        testSuccess()");
+    }
+
     /** instanceof is a boolean on Lua as well: comparing its stored result with false must work. */
     @Test
     public void instanceofYieldsAProperBoolean() throws IOException {
