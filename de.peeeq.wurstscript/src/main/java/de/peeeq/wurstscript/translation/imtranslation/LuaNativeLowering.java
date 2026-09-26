@@ -134,7 +134,7 @@ public final class LuaNativeLowering {
         // it. Emptying the function leaves an ordinary one the inliner can remove, where a native
         // stub would be an analysis barrier and leave a call doing nothing on every clear.
         for (ImFunction f : prog.getFunctions()) {
-            if (LuaKeyedTable.isDestroy(f)) {
+            if (LuaKeyedTable.isDestroy(f) || LuaKeyedMap.isDestroy(f)) {
                 f.getBody().clear();
                 f.getLocals().clear();
             }
@@ -155,6 +155,9 @@ public final class LuaNativeLowering {
                 super.visit(call);
                 ImFunction f = call.getFunc();
                 String stubName = LuaKeyedTable.nativeStubFor(f);
+                if (stubName == null) {
+                    stubName = LuaKeyedMap.nativeStubFor(f);
+                }
                 if (stubName == null) {
                     return;
                 }
@@ -177,7 +180,8 @@ public final class LuaNativeLowering {
             ListIterator<ImStmt> it = stmts.listIterator();
             while (it.hasNext()) {
                 ImStmt s = it.next();
-                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
+                if (s instanceof ImFunctionCall call
+                    && (LuaKeyedTable.isDestroy(call.getFunc()) || LuaKeyedMap.isDestroy(call.getFunc()))) {
                     ImStmts argStmts = JassIm.ImStmts();
                     for (ImExpr arg : new ArrayList<>(call.getArguments())) {
                         arg.setParent(null);
