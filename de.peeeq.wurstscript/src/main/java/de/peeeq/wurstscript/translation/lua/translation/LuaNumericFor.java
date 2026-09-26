@@ -68,15 +68,18 @@ final class LuaNumericFor {
         if (counter.isGlobal() || !EliminateLocalTypes.isIntegerOrLocalInteger(counter.getType())) {
             return null;
         }
+        // A negative or zero source step never terminates in the while form (the counter moves
+        // away from the bound); a numeric for would run zero times instead, so only a positive
+        // literal step is recognised: it counts up past an upper bound or down past a lower one.
+        if (stepVal.getValI() <= 0) {
+            return null;
+        }
         int step;
         if (test.getOp() == WurstOperator.GREATER && add.getOp() == WurstOperator.PLUS) {
             step = stepVal.getValI();
         } else if (test.getOp() == WurstOperator.LESS && add.getOp() == WurstOperator.MINUS) {
             step = -stepVal.getValI();
         } else {
-            return null;
-        }
-        if (step == 0) {
             return null;
         }
         ImExpr bound = test.getArguments().get(1);

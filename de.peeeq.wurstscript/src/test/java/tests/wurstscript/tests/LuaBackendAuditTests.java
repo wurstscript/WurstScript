@@ -4446,4 +4446,49 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if isDerived == true and otherIsDerived == false and noneIsDerived == false",
             "        testSuccess()");
     }
+
+    /** Both range endpoints are evaluated in source order, start first, even with the fold into the for header. */
+    @Test
+    public void countedLoopEndpointsAreEvaluatedInSourceOrder() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int calls = 0",
+            "function next() returns int",
+            "    calls++",
+            "    return calls",
+            "init",
+            "    var sum = 0",
+            "    for i = next() to next()",
+            "        sum += i",
+            "    if sum == 3 and calls == 2",
+            "        testSuccess()");
+    }
+
+    /** A step which moves the counter away from its bound never terminates in Wurst, so it keeps the while form. */
+    @Test
+    public void signInvertedStepKeepsTheWhileForm() {
+        String compiled = compileOptimizedLua("signInvertedStepKeepsTheWhileForm",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function up(int n)",
+            "    for i = 0 to n step -1",
+            "        consume(i)",
+            "        if i < -3",
+            "            break",
+            "@noinline function down(int n)",
+            "    for i = n downto 0 step -1",
+            "        consume(i)",
+            "        if i > 3",
+            "            break",
+            "init",
+            "    up(2)",
+            "    down(2)");
+        String up = topLevelFunctionBodyWithPrefix(compiled, "up");
+        assertTrue(up, up.contains("while true do"));
+        assertFalse(up, up.contains("for i"));
+        String down = topLevelFunctionBodyWithPrefix(compiled, "down");
+        assertTrue(down, down.contains("while true do"));
+        assertFalse(down, down.contains("for i"));
+    }
 }

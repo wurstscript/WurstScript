@@ -96,9 +96,10 @@ public class StmtTranslation {
 
     /**
      * The counter's initial assignment was translated just before the loop, possibly followed by
-     * the cached bound; it becomes the start value of the numeric for. Moving it past the bound's
-     * assignment is only done when neither statement reads what the other writes. Otherwise the
-     * loop starts from the counter variable itself.
+     * the cached bound; it becomes the start value of the numeric for. It is only moved past the
+     * bound's assignment when it is a literal, which no evaluation order can observe: a start
+     * expression with a call or a variable read would otherwise run after the bound instead of
+     * before it. Otherwise the loop starts from the counter variable itself.
      */
     private static LuaExpr takeCounterInitialisation(List<LuaStatement> res, LuaVariable counter) {
         for (int index = res.size() - 1, skipped = 0; index >= 0 && skipped <= 1; index--, skipped++) {
@@ -108,12 +109,8 @@ public class StmtTranslation {
             }
             if (target.getVar() == counter) {
                 LuaExpr from = assignment.getRight();
-                for (int between = index + 1; between < res.size(); between++) {
-                    LuaAssignment later = (LuaAssignment) res.get(between);
-                    LuaVariable written = ((LuaExprVarAccess) later.getLeft()).getVar();
-                    if (reads(from, written) || reads(later.getRight(), counter)) {
-                        return LuaAst.LuaExprVarAccess(counter);
-                    }
+                if (skipped > 0 && !(from instanceof LuaExprIntVal)) {
+                    return LuaAst.LuaExprVarAccess(counter);
                 }
                 res.remove(index);
                 from.setParent(null);
@@ -121,18 +118,6 @@ public class StmtTranslation {
             }
         }
         return LuaAst.LuaExprVarAccess(counter);
-    }
-
-    private static boolean reads(de.peeeq.wurstscript.luaAst.Element e, LuaVariable v) {
-        if (e instanceof LuaExprVarAccess access && access.getVar() == v) {
-            return true;
-        }
-        for (int i = 0; i < e.size(); i++) {
-            if (reads(e.get(i), v)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
