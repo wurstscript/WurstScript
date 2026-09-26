@@ -78,6 +78,36 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("∞") || compiled.contains("NaN"));
     }
 
+    /**
+     * The conversions on an erased read are Lua builtins called directly, and an instance id is
+     * converted to and from its int inline: no wrapper function sits around either.
+     */
+    @Test
+    public void conversionHelpersArePrintedInline() {
+        String compiled = compileOptimizedLua("conversionHelpersArePrintedInline",
+            "package Test",
+            "native consume(int value)",
+            "class C",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "@noinline function readBox(Box<int> box) returns int",
+            "    return box.get() + 1",
+            "@noinline function ids(C c) returns int",
+            "    return (c castTo int) + ((c castTo int) castTo C castTo int)",
+            "init",
+            "    consume(readBox(new Box<int>))",
+            "    consume(ids(new C()))");
+        String readBox = topLevelFunctionBodyWithPrefix(compiled, "readBox");
+        assertTrue("the erased read is still normalised:" + readBox,
+            readBox.contains("tonumber(") && readBox.contains("math.tointeger("));
+        assertFalse("through the builtins, not wrappers:" + readBox,
+            readBox.contains("__wurst_rawToNumberInt") || readBox.contains("__wurst_rawToInteger"));
+        String ids = topLevelFunctionBodyWithPrefix(compiled, "ids");
+        assertFalse("instance ids convert inline:" + ids, ids.contains("__wurst_classToIndex"));
+    }
+
     @Test
     public void packageConstantsInlineAndRemoveDeadGuards() {
         String compiled = compileOptimizedLuaWithStdLib(
@@ -210,7 +240,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertFalse("class allocation must not attach an instance metatable",
             compiled.contains("setmetatable(new_inst"));
         assertTrue("class-to-int casts must use the integer object id directly",
-            compiled.contains("__wurst_classToIndex(first)"));
+            compiled.contains("(first or 0)"));
         assertFalse("class casts must not allocate boxed-number identity wrappers",
             compiled.contains("firstId = __wurst_objectToIndex(first)"));
         assertFalse("deallocation must preserve field values just like Jass storage",
@@ -4385,7 +4415,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String radius = topLevelFunctionBodyWithPrefix(compiled, "radius");
         assertFalse("a class-to-class cast needs no helper:\n" + radius, radius.contains("__wurst_classFromIndex"));
         assertTrue("a class-to-int cast still normalises nil:\n" + compiled,
-            topLevelFunctionBodyWithPrefix(compiled, "id").contains("__wurst_classToIndex"));
+            topLevelFunctionBodyWithPrefix(compiled, "id").contains(" or 0)"));
     }
 
     @Test
@@ -4441,10 +4471,12 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    consume(readBox(new Box<int>))");
         String sumStore = topLevelFunctionBodyWithPrefix(compiled, "sumStore");
         assertFalse("a specialised typed read is used as is:\n" + sumStore,
-            sumStore.contains("__wurst_rawTo") || sumStore.contains("__wurst_ensureInt"));
+            sumStore.contains("__wurst_rawTo") || sumStore.contains("__wurst_ensureInt")
+                || sumStore.contains("tonumber(") || sumStore.contains("math.tointeger("));
         String readBox = topLevelFunctionBodyWithPrefix(compiled, "readBox");
         assertTrue("an erased read is still normalised:\n" + readBox,
-            readBox.contains("__wurst_rawTo") || readBox.contains("__wurst_ensureInt"));
+            readBox.contains("__wurst_rawTo") || readBox.contains("__wurst_ensureInt")
+                || readBox.contains("tonumber("));
     }
 
     /**

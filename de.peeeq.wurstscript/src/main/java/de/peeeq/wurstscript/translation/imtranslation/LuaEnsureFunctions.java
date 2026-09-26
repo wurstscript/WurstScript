@@ -40,10 +40,13 @@ final class LuaEnsureFunctions {
     }
 
     /** local n = rawToNumberInt(x); local result = 0; if n ~= nil then local i = rawToInteger(n); if i ~= nil then result = i end end; return result */
-    static ImFunction buildEnsureInt(List<ImFunction> out) {
+    static ImFunction buildEnsureInt(List<ImFunction> out, ImTranslator translator) {
         ImType intType = TypesHelper.imInt();
         ImFunction rawToNumber = rawNative("__wurst_rawToNumberInt", intType, 1);
         ImFunction rawToInteger = rawNative("__wurst_rawToInteger", intType, 1);
+        // Printed as direct tonumber / math.tointeger calls; see ExprTranslation.
+        translator.luaRawToNumberIntFunc = rawToNumber;
+        translator.luaRawToIntegerFunc = rawToInteger;
         out.add(rawToNumber);
         out.add(rawToInteger);
 
@@ -86,9 +89,10 @@ final class LuaEnsureFunctions {
     }
 
     /** local n = rawToNumberReal(x); local result = 0.0; if n ~= nil then result = n end; return result */
-    static ImFunction buildEnsureReal(List<ImFunction> out) {
+    static ImFunction buildEnsureReal(List<ImFunction> out, ImTranslator translator) {
         ImType realType = TypesHelper.imReal();
         ImFunction rawToNumber = rawNative("__wurst_rawToNumberReal", realType, 1);
+        translator.luaRawToNumberRealFunc = rawToNumber;
         out.add(rawToNumber);
 
         ImVar x = JassIm.ImVar(TRACE, realType.copy(), "x", false);
@@ -110,9 +114,10 @@ final class LuaEnsureFunctions {
     }
 
     /** local result = ""; if x ~= nil then result = rawToString(x) end; return result */
-    static ImFunction buildEnsureStr(List<ImFunction> out) {
+    static ImFunction buildEnsureStr(List<ImFunction> out, ImTranslator translator) {
         ImType stringType = TypesHelper.imString();
         ImFunction rawToString = rawNative("__wurst_rawToString", stringType, 1);
+        translator.luaRawToStringFunc = rawToString;
         out.add(rawToString);
 
         ImVar x = JassIm.ImVar(TRACE, stringType.copy(), "x", false);
