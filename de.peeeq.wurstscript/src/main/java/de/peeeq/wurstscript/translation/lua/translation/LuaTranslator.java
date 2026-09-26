@@ -794,7 +794,7 @@ public class LuaTranslator {
             } else if (s instanceof LuaExpr) {
                 LuaExpr e = (LuaExpr) s;
                 boolean parenthesisedCall = e instanceof LuaExprFunctionCallE
-                    && !LuaPrinter.isPrefixExpression(((LuaExprFunctionCallE) e).getFuncExpr());
+                    && !LuaPrinter.startsWithName(((LuaExprFunctionCallE) e).getFuncExpr());
                 if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || parenthesisedCall) {
                     e.setParent(null);
                     LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);

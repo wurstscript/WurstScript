@@ -109,7 +109,10 @@ public class StmtTranslation {
             }
             if (target.getVar() == counter) {
                 LuaExpr from = assignment.getRight();
-                if (skipped > 0 && !(from instanceof LuaExprIntVal)) {
+                if (skipped > 0 && (!(from instanceof LuaExprIntVal)
+                    || reads(((LuaAssignment) res.get(index + 1)).getRight(), counter))) {
+                    // The skipped bound assignment reads the counter (for i = 0 to i + n), so the
+                    // literal has to be stored before it after all.
                     return LuaAst.LuaExprVarAccess(counter);
                 }
                 res.remove(index);
@@ -118,6 +121,18 @@ public class StmtTranslation {
             }
         }
         return LuaAst.LuaExprVarAccess(counter);
+    }
+
+    private static boolean reads(de.peeeq.wurstscript.luaAst.Element e, LuaVariable var) {
+        if (e instanceof LuaExprVarAccess access && access.getVar() == var) {
+            return true;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reads(e.get(i), var)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {

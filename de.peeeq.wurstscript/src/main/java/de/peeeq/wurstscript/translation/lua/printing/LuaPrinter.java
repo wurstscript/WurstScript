@@ -121,6 +121,31 @@ public class LuaPrinter {
             || e instanceof LuaCallExpr;
     }
 
+    /**
+     * True when {@code e} prints starting with a name, so it can open a statement: Lua joins a
+     * statement which starts with '(' onto the previous line as a call. Walks the receiver chain,
+     * because a field access on a parenthesised receiver still starts with '('.
+     */
+    public static boolean startsWithName(LuaExpr e) {
+        if (e instanceof LuaExprVarAccess || e instanceof LuaExprFuncRef
+            || e instanceof LuaExprFunctionCall || e instanceof LuaExprFunctionCallByName) {
+            return true;
+        }
+        if (e instanceof LuaExprFieldAccess access) {
+            return startsWithName(access.getReceiver());
+        }
+        if (e instanceof LuaExprArrayAccess access) {
+            return startsWithName(access.getLeft());
+        }
+        if (e instanceof LuaExprMethodCall call) {
+            return startsWithName(call.getReceiver());
+        }
+        if (e instanceof LuaExprFunctionCallE call) {
+            return startsWithName(call.getFuncExpr());
+        }
+        return false;
+    }
+
     public static void print(LuaExprIntVal e, StringBuilder sb, int indent) {
         sb.append(e.getValI());
     }
