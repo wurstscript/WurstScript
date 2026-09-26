@@ -117,6 +117,63 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             sumIndex.contains("get") || sumIndex.contains("op_index"));
     }
 
+    /** A longer delegation chain is followed to its end: every level is exposed in turn. */
+    @Test
+    public void delegationChainIsInlinedToItsEnd() {
+        String compiled = compileOptimizedLua("delegationChainIsInlinedToItsEnd",
+            "package Test",
+            "native consume(int value)",
+            "class L",
+            "    private static int array store",
+            "    function get(int index) returns int",
+            "        return store[index]",
+            "    function c(int index) returns int",
+            "        return get(index)",
+            "    function b(int index) returns int",
+            "        return c(index)",
+            "    function a(int index) returns int",
+            "        return b(index)",
+            "    function op_index(int index) returns int",
+            "        return a(index)",
+            "@noinline function sumIndex(L l) returns int",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    return s",
+            "init",
+            "    consume(sumIndex(new L()))");
+        String sumIndex = topLevelFunctionBodyWithPrefix(compiled, "sumIndex");
+        for (String level : new String[] {"op_index", "L_a", "L_b", "L_c", "get"}) {
+            assertFalse("no level of the chain is left as a call:\n" + sumIndex,
+                sumIndex.contains(level));
+        }
+    }
+
+    /** Methods which call each other are a cycle: the loop still compiles and computes correctly. */
+    @Test
+    public void mutuallyRecursiveMethodsInALoopStayCalls() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class C",
+            "    function even(int n) returns bool",
+            "        if n == 0",
+            "            return true",
+            "        return odd(n - 1)",
+            "    function odd(int n) returns bool",
+            "        if n == 0",
+            "            return false",
+            "        return even(n - 1)",
+            "init",
+            "    let c = new C()",
+            "    var evens = 0",
+            "    for i = 0 to 9",
+            "        if c.even(i)",
+            "            evens++",
+            "    if evens == 5",
+            "        testSuccess()");
+    }
+
     /** A subclass which overrides the accessor still receives the operator's calls. */
     @Test
     public void delegatingOperatorKeepsAnOverridingAccessor() throws IOException {

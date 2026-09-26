@@ -23,13 +23,17 @@ public final class LuaMethodCallLowering {
         return lowerLoopCalls(prog).size();
     }
 
+    /** A method call and the direct function call that replaced it. */
+    public record Lowered(ImMethodCall from, ImFunctionCall to) {
+    }
+
     /**
-     * Lowers every monomorphic method call which is inside a loop and returns the function calls
-     * that replaced them. Running it again after inlining finds the calls which inlining moved into
-     * a loop: a delegating method such as {@code op_index -> get} inlined into a loop leaves the
-     * inner method call behind in that loop.
+     * Lowers every monomorphic method call which is inside a loop and reports each replacement.
+     * Running it again after inlining finds the calls which inlining moved into a loop: a delegating
+     * method such as {@code op_index -> get} inlined into a loop leaves the inner method call behind
+     * in that loop.
      */
-    public static List<ImFunctionCall> lowerLoopCalls(ImProg prog) {
+    public static List<Lowered> lowerLoopCalls(ImProg prog) {
         List<ImMethodCall> calls = new ArrayList<>();
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
@@ -41,9 +45,9 @@ public final class LuaMethodCallLowering {
             }
         });
 
-        List<ImFunctionCall> lowered = new ArrayList<>();
+        List<Lowered> lowered = new ArrayList<>();
         for (ImMethodCall call : calls) {
-            lowered.add(lower(call));
+            lowered.add(new Lowered(call, lower(call)));
         }
         return lowered;
     }

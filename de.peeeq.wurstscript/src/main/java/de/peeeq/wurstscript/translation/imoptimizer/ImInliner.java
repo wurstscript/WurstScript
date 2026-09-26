@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
@@ -66,12 +67,13 @@ public class ImInliner {
 
     /**
      * Inlines exactly the given calls, under the same rules as {@link #doInlining}, and returns how
-     * many were inlined. For calls a lowering exposed after the main round: a delegating method
-     * such as {@code op_index -> get}, once inlined into a loop, leaves the method call it delegates
-     * to inside that loop, where it can be lowered and inlined in turn. Restricting this round to
+     * many were inlined; {@code onInlined} receives each inlined call and the expression that
+     * replaced it. For calls a lowering exposed after the main round: a delegating method such as
+     * {@code op_index -> get}, once inlined into a loop, leaves the method call it delegates to
+     * inside that loop, where it can be lowered and inlined in turn. Restricting this round to
      * those calls keeps it from re-inlining every function whose rating changed in the first round.
      */
-    public int inlineCalls(Collection<ImFunctionCall> calls) {
+    public int inlineCalls(Collection<ImFunctionCall> calls, BiConsumer<ImFunctionCall, Element> onInlined) {
         localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         collectInlinableFunctions();
         rateInlinableFunctions();
@@ -98,6 +100,7 @@ public class ImInliner {
             }
             inlineCall(caller, parent, index, call);
             funcSizes.put(caller, estimateSize(caller));
+            onInlined.accept(call, parent.get(index));
             inlined++;
         }
         return inlined;

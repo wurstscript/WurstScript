@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.validation.NamePreservation;
@@ -67,15 +68,56 @@ public class ImOptimizer {
         removeGarbage();
     }
 
-    /** Inlines exactly the given calls; see {@link ImInliner#inlineCalls}. */
-    public int inlineCalls(Collection<ImFunctionCall> calls) {
-        ImInliner inliner = new ImInliner(trans);
-        int inlined = inliner.inlineCalls(calls);
-        trans.assertProperties();
-        if (inlined > 0) {
+    /**
+     * Lowers and inlines the monomorphic method calls that inlining moves into a loop, until no
+     * more are exposed. Inlining {@code op_index} into a loop leaves its call to {@code get} there,
+     * inlining {@code get} may expose the next delegation, and so on down the chain.
+     *
+     * <p>Each exposed call remembers the chain of functions whose inlining exposed it, and a call
+     * whose callee is already in its own chain is left as a direct call: that is a cycle, and
+     * inlining it would unroll the recursion forever. Every round extends a chain of distinct
+     * functions by one, so the loop ends without an arbitrary depth limit.
+     */
+    public int inlineExposedLoopCalls() {
+        ImProg prog = trans.getImProg();
+        Map<ImMethodCall, List<ImFunction>> exposedBy = new IdentityHashMap<>();
+        int total = 0;
+        while (true) {
+            Map<ImFunctionCall, List<ImFunction>> chainOf = new IdentityHashMap<>();
+            List<ImFunctionCall> candidates = new ArrayList<>();
+            for (LuaMethodCallLowering.Lowered lowered : LuaMethodCallLowering.lowerLoopCalls(prog)) {
+                List<ImFunction> chain = exposedBy.getOrDefault(lowered.from(), Collections.emptyList());
+                if (chain.contains(lowered.to().getFunc())) {
+                    continue;
+                }
+                chainOf.put(lowered.to(), chain);
+                candidates.add(lowered.to());
+            }
+            exposedBy.clear();
+            if (candidates.isEmpty()) {
+                break;
+            }
+            int inlined = new ImInliner(trans).inlineCalls(candidates, (call, replacement) -> {
+                List<ImFunction> chain = new ArrayList<>(chainOf.get(call));
+                chain.add(call.getFunc());
+                replacement.accept(new Element.DefaultVisitor() {
+                    @Override
+                    public void visit(ImMethodCall methodCall) {
+                        super.visit(methodCall);
+                        exposedBy.put(methodCall, chain);
+                    }
+                });
+            });
+            trans.assertProperties();
+            if (inlined == 0) {
+                break;
+            }
+            total += inlined;
+        }
+        if (total > 0) {
             removeGarbage();
         }
-        return inlined;
+        return total;
     }
 
     public int inlineLuaDivModHelpersWithinLocalBudget() {
