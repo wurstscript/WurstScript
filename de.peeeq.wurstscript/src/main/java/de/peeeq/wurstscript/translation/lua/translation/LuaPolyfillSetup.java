@@ -94,6 +94,36 @@ class LuaPolyfillSetup {
         }
     }
 
+    /** The sentinel an old-generics int value 0 is stored as (see ExprTranslation.translate(ImCast)). */
+    static LuaVariable createOldGenericsZero(LuaTranslator tr) {
+        LuaVariable zero = LuaAst.LuaVariable("__wurst_oldGenericsZero", LuaAst.LuaLiteral("math.mininteger"));
+        tr.luaModel.add(zero);
+        return zero;
+    }
+
+    record OldGenericsHelpers(LuaFunction toInt, LuaFunction fromInt) {
+    }
+
+    /**
+     * The old-generics int casts as functions: nil -> 0, 0 -> sentinel, n -> n, and back. Only a
+     * fallback: LuaOldGenericsCasts gives every such cast a variable operand, which is inlined.
+     */
+    static OldGenericsHelpers createOldGenericsCastFunctions(LuaTranslator tr) {
+        String zero = tr.oldGenericsZero().getName();
+        LuaFunction toInt = LuaAst.LuaFunction("__wurst_oldGenericsToInt",
+            LuaAst.LuaParams(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
+        toInt.getBody().add(LuaAst.LuaLiteral("if x == 0 then return " + zero + " end"));
+        toInt.getBody().add(LuaAst.LuaLiteral("return x or 0"));
+        tr.luaModel.add(toInt);
+        LuaFunction fromInt = LuaAst.LuaFunction("__wurst_oldGenericsFromInt",
+            LuaAst.LuaParams(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
+        fromInt.getBody().add(LuaAst.LuaLiteral("if i == " + zero + " then return 0 end"));
+        fromInt.getBody().add(LuaAst.LuaLiteral("if i == 0 then return nil end"));
+        fromInt.getBody().add(LuaAst.LuaLiteral("return i"));
+        tr.luaModel.add(fromInt);
+        return new OldGenericsHelpers(toInt, fromInt);
+    }
+
     static void createStringIndexFunctions(LuaTranslator tr) {
         LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
         tr.luaModel.add(map);

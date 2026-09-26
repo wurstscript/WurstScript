@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -442,6 +443,39 @@ public class ExprTranslation {
         return translateEquals(leftExpr, rightExpr, t, tr);
     }
 
+    /** {@code nil -> 0, 0 -> sentinel, n -> n}; see {@link #translate(ImCast, LuaTranslator)}. */
+    private static LuaExpr oldGenericsToInt(LuaExpr x, LuaTranslator tr) {
+        if (!(x instanceof LuaExprVarAccess)) {
+            // LuaOldGenericsCasts gives every such cast a variable operand; this is a fallback.
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().toInt(), LuaAst.LuaExprlist(x));
+        }
+        // (x == 0 and sentinel or (x or 0))
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(x, LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")));
+    }
+
+    /** {@code 0 -> nil, sentinel -> 0, n -> n}; the inverse of {@link #oldGenericsToInt}. */
+    private static LuaExpr oldGenericsFromInt(LuaExpr i, LuaTranslator tr) {
+        if (!(i instanceof LuaExprVarAccess)) {
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().fromInt(), LuaAst.LuaExprlist(i));
+        }
+        // (i == sentinel and 0 or (i ~= 0 and i or nil))
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(i, LuaAst.LuaOpEquals(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(
+                    LuaAst.LuaExprBinary(i.copy(), LuaAst.LuaOpUnequals(), LuaAst.LuaExprIntVal("0")),
+                    LuaAst.LuaOpAnd(), i.copy()),
+                LuaAst.LuaOpOr(), LuaAst.LuaExprNull()));
+    }
+
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
         if (t instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) t;
@@ -548,14 +582,33 @@ public class ExprTranslation {
                 + " where it is used.");
     }
 
+    /**
+     * Casts between {@code int} and an old-generics type parameter ({@code ImAnyType}). Such a value
+     * is already an int or nil when it enters generic code, because the call site converts it
+     * (handles to their object index, strings, reals and booleans through their TypeCasting
+     * functions; class instances are ids). The general object index helpers are for erased
+     * new-generics values, which are raw; applied to an int they box it into a wrapper table and an
+     * index entry that are never freed, so every distinct key or value a HashMap, HashList or
+     * HashSet ever saw stayed in memory.
+     *
+     * <p>What the boxing also did has to be kept. Null is nil in generic code and 0 as an int, and a
+     * class-typed caller uses the result as is, so 0 must come back as nil. An int value 0 is not
+     * null in generic code, so it must not become 0: it maps to one reserved sentinel, the smallest
+     * Lua integer, which truncates to 0 if it ever reaches a 32-bit native. Every other int passes
+     * through unchanged.
+     */
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
+        ImType fromType = imCast.getExpr().attrTyp();
         if (TypesHelper.isIntType(imCast.getToType())) {
-            if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
+            if (TypesHelper.isStringType(fromType)) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
             }
-            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+            if (fromType instanceof ImClassType) {
                 return classToIndex(translated);
+            }
+            if (fromType instanceof ImAnyType) {
+                return oldGenericsToInt(translated, tr);
             }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType) {
@@ -565,6 +618,12 @@ public class ExprTranslation {
             }
             return classFromIndex(translated, tr);
         } else if (imCast.getToType() instanceof ImAnyType) {
+            if (fromType instanceof ImAnyType) {
+                return translated;
+            }
+            if (EliminateLocalTypes.isIntegerOrLocalInteger(fromType) || fromType instanceof ImClassType) {
+                return oldGenericsFromInt(translated, tr);
+            }
             return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
         } else {
             return translated;

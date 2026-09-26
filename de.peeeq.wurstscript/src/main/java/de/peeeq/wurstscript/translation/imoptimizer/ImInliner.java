@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
@@ -62,6 +63,47 @@ public class ImInliner {
         collectInlinableFunctions();
         rateInlinableFunctions();
         inlineFunctions();
+    }
+
+    /**
+     * Inlines exactly the given calls, under the same rules as {@link #doInlining}, and returns how
+     * many were inlined; {@code onInlined} receives each inlined call and the expression that
+     * replaced it. For calls a lowering exposed after the main round: a delegating method such as
+     * {@code op_index -> get}, once inlined into a loop, leaves the method call it delegates to
+     * inside that loop, where it can be lowered and inlined in turn. Restricting this round to
+     * those calls keeps it from re-inlining every function whose rating changed in the first round.
+     */
+    public int inlineCalls(Collection<ImFunctionCall> calls, BiConsumer<ImFunctionCall, Element> onInlined) {
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        collectInlinableFunctions();
+        rateInlinableFunctions();
+        int inlined = 0;
+        for (ImFunctionCall call : calls) {
+            Element parent = call.getParent();
+            ImFunction caller = call.getNearestFunc();
+            ImFunction called = call.getFunc();
+            if (parent == null || caller == null || caller == called || !shouldInline(caller, call, called)) {
+                continue;
+            }
+            int index = -1;
+            for (int i = 0; i < parent.size(); i++) {
+                if (parent.get(i) == call) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index < 0) {
+                continue;
+            }
+            if (translator.isLuaTarget()) {
+                getLuaRegisterBudget(caller).recordInline(call, called);
+            }
+            inlineCall(caller, parent, index, call);
+            funcSizes.put(caller, estimateSize(caller));
+            onInlined.accept(call, parent.get(index));
+            inlined++;
+        }
+        return inlined;
     }
 
     /**

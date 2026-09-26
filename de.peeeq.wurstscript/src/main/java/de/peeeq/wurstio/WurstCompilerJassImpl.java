@@ -959,6 +959,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             optimizer.doInlining();
             imTranslator2.assertProperties();
 
+            // Inlining a delegating method into a loop (op_index -> get) leaves the call it
+            // delegates to inside that loop. Lower and inline those calls too, down the chain.
+            optimizer.inlineExposedLoopCalls();
+            imTranslator2.assertProperties();
+
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
             timeTaker.endPhase();
         }
@@ -1023,6 +1028,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         beginPhase(13, "prepare lua dispatch");
         LuaDispatchPreparation.prepare(imProg, imTranslator);
+        timeTaker.endPhase();
+
+        // After the last optimization, so nothing folds the temporaries back into the casts.
+        beginPhase(13, "old-generics cast operands");
+        LuaOldGenericsCasts.transform(imProg, imTranslator);
         timeTaker.endPhase();
 
         beginPhase(14, "translate to lua");

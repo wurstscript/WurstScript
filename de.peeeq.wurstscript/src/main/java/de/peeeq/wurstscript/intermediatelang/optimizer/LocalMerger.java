@@ -60,7 +60,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
      * identifies the Lua operator intrinsics whose unused calls may be dropped. Without one, every
      * call is kept as a side effect.
      */
-    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
+    public void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
         translator = trans;
         optimizeFunc(func, analyzer);
     }
