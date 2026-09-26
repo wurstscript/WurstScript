@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -390,8 +391,24 @@ public class ExprTranslation {
     private static LuaExpr translateEquals(ImExpr left, ImExpr right, LuaTranslator tr) {
         LuaExpr leftExpr = left.translateToLua(tr);
         LuaExpr rightExpr = right.translateToLua(tr);
+        // An old-generics value is an int, and 0 is its null, as on Jass: a null handle arrives
+        // from the call site as index 0 and a missing hashtable entry loads as 0, while a null
+        // literal or a default is nil. Comparing with null has to accept both.
+        if (right instanceof ImNull && !(left instanceof ImNull) && left.attrTyp() instanceof ImAnyType) {
+            return isOldGenericsNull(leftExpr);
+        }
+        if (left instanceof ImNull && !(right instanceof ImNull) && right.attrTyp() instanceof ImAnyType) {
+            return isOldGenericsNull(rightExpr);
+        }
         ImType t = left.attrTyp();
         return translateEquals(leftExpr, rightExpr, t, tr);
+    }
+
+    /** {@code (x or 0) == 0}: evaluates x once; an old-generics value is never false. */
+    private static LuaExpr isOldGenericsNull(LuaExpr value) {
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(value, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0"));
     }
 
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
@@ -500,14 +517,28 @@ public class ExprTranslation {
                 + " where it is used.");
     }
 
+    /**
+     * Casts between {@code int} and an old-generics type parameter ({@code ImAnyType}) are the
+     * identity, as on Jass: every such value is already an int when it enters generic code, because
+     * the call site converts it (handles to their object index, strings, reals and booleans through
+     * their TypeCasting functions, class instances are ids). The general object index helpers are
+     * for erased new-generics values, which are raw; applied to an int they box it into a wrapper
+     * table and index entry that are never freed, so every distinct key or value a HashMap, HashList
+     * or HashSet ever saw stayed in memory. Only null needs a translation: nil in generic code, 0 as
+     * an int.
+     */
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
+        ImType fromType = imCast.getExpr().attrTyp();
         if (TypesHelper.isIntType(imCast.getToType())) {
-            if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
+            if (TypesHelper.isStringType(fromType)) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
             }
-            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+            if (fromType instanceof ImClassType) {
                 return LuaAst.LuaExprFunctionCall(tr.classToIndex, LuaAst.LuaExprlist(translated));
+            }
+            if (fromType instanceof ImAnyType) {
+                return LuaAst.LuaExprBinary(translated, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
             }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType) {
@@ -517,6 +548,11 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImAnyType) {
+            if (EliminateLocalTypes.isIntegerOrLocalInteger(fromType) || fromType instanceof ImClassType
+                || fromType instanceof ImAnyType) {
+                // Old-generics values are ints; see above.
+                return translated;
+            }
             return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
         } else {
             return translated;
