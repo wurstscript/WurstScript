@@ -149,6 +149,39 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         }
     }
 
+    /**
+     * Two chains exposed in the same round can overlap: inlining {@code sum} into {@code run}'s loop
+     * copies the call {@code sum}'s own loop makes to {@code leaf}. That copy is reconsidered too.
+     */
+    @Test
+    public void overlappingExposedChainsAreBothInlined() {
+        String compiled = compileOptimizedLua("overlappingExposedChainsAreBothInlined",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function run(L l) returns int",
+            "    var s = 0",
+            "    for k = 0 to 3",
+            "        s += l.total(k)",
+            "    return s",
+            "class L",
+            "    private static int array store",
+            "    function leaf(int index) returns int",
+            "        return store[index]",
+            "    function op_index(int index) returns int",
+            "        return leaf(index)",
+            "    function sum(int n) returns int",
+            "        var s = 0",
+            "        for i = 0 to n",
+            "            s += op_index(i)",
+            "        return s",
+            "    function total(int n) returns int",
+            "        return sum(n)",
+            "init",
+            "    consume(run(new L()))");
+        String run = topLevelFunctionBodyWithPrefix(compiled, "run");
+        assertFalse("the copied inner call is inlined as well:\n" + run, run.contains("leaf"));
+    }
+
     /** Methods which call each other are a cycle: the loop still compiles and computes correctly. */
     @Test
     public void mutuallyRecursiveMethodsInALoopStayCalls() throws IOException {

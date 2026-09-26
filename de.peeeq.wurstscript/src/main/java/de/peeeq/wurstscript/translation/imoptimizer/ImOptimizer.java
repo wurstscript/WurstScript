@@ -77,10 +77,17 @@ public class ImOptimizer {
      * whose callee is already in its own chain is left as a direct call: that is a cycle, and
      * inlining it would unroll the recursion forever. Every round extends a chain of distinct
      * functions by one, so the loop ends without an arbitrary depth limit.
+     *
+     * <p>A copy made by inlining is reconsidered as well, direct calls included: when two chains
+     * overlap in one round, inlining the outer callee copies a call its body makes which is itself
+     * a candidate, already lowered, and only the original would otherwise be inlined. Candidates
+     * are kept in program order, so the result does not depend on hash order.
      */
     public int inlineExposedLoopCalls() {
         ImProg prog = trans.getImProg();
         Map<ImMethodCall, List<ImFunction>> exposedBy = new IdentityHashMap<>();
+        List<ImFunctionCall> copiedCalls = new ArrayList<>();
+        Map<ImFunctionCall, List<ImFunction>> copiedChains = new IdentityHashMap<>();
         int total = 0;
         while (true) {
             Map<ImFunctionCall, List<ImFunction>> chainOf = new IdentityHashMap<>();
@@ -93,7 +100,18 @@ public class ImOptimizer {
                 chainOf.put(lowered.to(), chain);
                 candidates.add(lowered.to());
             }
+            for (ImFunctionCall copied : copiedCalls) {
+                List<ImFunction> chain = copiedChains.get(copied);
+                if (copied.getParent() == null || copied.getNearestFunc() == null
+                    || chain.contains(copied.getFunc()) || chainOf.containsKey(copied)) {
+                    continue;
+                }
+                chainOf.put(copied, chain);
+                candidates.add(copied);
+            }
             exposedBy.clear();
+            copiedCalls.clear();
+            copiedChains.clear();
             if (candidates.isEmpty()) {
                 break;
             }
@@ -105,6 +123,15 @@ public class ImOptimizer {
                     public void visit(ImMethodCall methodCall) {
                         super.visit(methodCall);
                         exposedBy.put(methodCall, chain);
+                    }
+
+                    @Override
+                    public void visit(ImFunctionCall functionCall) {
+                        super.visit(functionCall);
+                        if (!copiedChains.containsKey(functionCall)) {
+                            copiedCalls.add(functionCall);
+                        }
+                        copiedChains.put(functionCall, chain);
                     }
                 });
             });
