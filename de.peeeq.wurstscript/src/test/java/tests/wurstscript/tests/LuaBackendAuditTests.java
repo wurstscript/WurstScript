@@ -369,17 +369,184 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("Base_reference_storage[object] = nil"));
     }
 
+    /**
+     * Old-generics values are ints, so casting one to int and back is the identity, as on Jass.
+     * The object index map would box every distinct number into a wrapper that is never freed,
+     * which is how every key a HashMap, HashList or HashSet ever saw stayed in memory.
+     */
     @Test
-    public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
+    public void oldGenericsIntCastsDoNotBoxNumbers() {
+        String compiled = compileOptimizedLua("oldGenericsIntCastsDoNotBoxNumbers",
+            "package Test",
+            "native consume(int value)",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "@noinline function roundTrip(Store<int> store) returns int",
+            "    var sum = 0",
+            "    for i = 0 to 9",
+            "        store.put(i, i * 7)",
+            "        sum += store.get(i)",
+            "    return sum",
+            "init",
+            "    consume(roundTrip(new Store<int>()))");
+        String roundTrip = topLevelFunctionBodyWithPrefix(compiled, "roundTrip");
+        assertFalse("an int round trip needs no object index:\n" + roundTrip,
+            roundTrip.contains("__wurst_objectToIndex") || roundTrip.contains("__wurst_objectFromIndex"));
+        // Every cast gets a variable operand before translation, so each one is inlined.
+        assertFalse("no runtime cast helper is emitted:\n" + compiled,
+            compiled.contains("__wurst_oldGenericsToInt") || compiled.contains("__wurst_oldGenericsFromInt"));
+    }
+
+    /** The round trip keeps every value, 0 and negative numbers included, and null stays null. */
+    @Test
+    public void oldGenericsIntRoundTripKeepsValuesAndNull() throws IOException {
         test().testLua(true).executeProg().lines(
-            "type timer extends handle",
             "package Test",
             "native testSuccess()",
-            "native CreateTimer() returns timer",
-            "function timerToIndex(timer value) returns int",
-            "    return 0",
-            "function timerFromIndex(int value) returns timer",
-            "    return null",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "    function isNull(int key) returns bool",
+            "        return get(key) == null",
+            "class C",
+            "    int v",
+            "    construct(int v)",
+            "        this.v = v",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, -5)",
+            "    ints.put(2, 123456)",
+            "    let objs = new Store<C>()",
+            "    let c = new C(42)",
+            "    objs.put(10, c)",
+            "    objs.put(11, null)",
+            "    if ints.get(0) == 0 and ints.get(1) == -5 and ints.get(2) == 123456 and objs.get(10) == c and objs.get(10).v == 42 and objs.get(11) == null and objs.isNull(11) and objs.isNull(12) and not objs.isNull(10)",
+            "        testSuccess()");
+    }
+
+    /** Many hoisted cast operands share their temporaries, so a big function stays under Lua's local limit. */
+    @Test
+    public void oldGenericsCastTemporariesAreMerged() {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package Test",
+            "native consume(int value)",
+            "int array slots",
+            "@inline function load<T>(int key) returns T",
+            "    return slots[key] castTo T",
+            "@noinline function readMany() returns int",
+            "    var s = 0"));
+        for (int i = 0; i < 250; i++) {
+            lines.add("    s += load<int>(" + i + ")");
+        }
+        lines.add("    return s");
+        lines.add("init");
+        lines.add("    consume(readMany())");
+        String compiled = compileOptimizedLua("oldGenericsCastTemporariesAreMerged", lines.toArray(new String[0]));
+        String readMany = topLevelFunctionBodyWithPrefix(compiled, "readMany");
+        assertFalse("the temporaries do not push the function into the locals table:\n" + readMany,
+            readMany.contains("__wurst_locals"));
+        assertFalse("every cast is still inlined:\n" + readMany, readMany.contains("__wurst_oldGenericsFromInt"));
+    }
+
+    /**
+     * A class-typed caller uses an old-generics result as is, so a missing entry has to come back
+     * as nil: TimedLoop looks its timer up in a HashMap and creates one when the lookup is null.
+     */
+    @Test
+    public void oldGenericsMissingClassEntryIsNull() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "class Timer",
+            "    int count = 0",
+            "Store<Timer> timers",
+            "function timerFor(int key) returns Timer",
+            "    var t = timers.get(key)",
+            "    if t == null",
+            "        t = new Timer()",
+            "        timers.put(key, t)",
+            "    return t",
+            "init",
+            "    timers = new Store<Timer>()",
+            "    let a = timerFor(5)",
+            "    a.count++",
+            "    let b = timerFor(5)",
+            "    b.count++",
+            "    if a == b and a.count == 2 and timerFor(6) != a",
+            "        testSuccess()");
+    }
+
+    /** An int 0 stays a value, not null, inside old-generics code, as it was on Lua before. */
+    @Test
+    public void oldGenericsIntZeroIsNotNull() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array slots",
+            "interface Visit<T>",
+            "    function run(T t) returns int",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function visit(int key, Visit<T> v) returns int",
+            "        return v.run(slots[key] castTo T)",
+            "    function isNull(int key) returns bool",
+            "        return (slots[key] castTo T) == null",
+            "init",
+            "    let ints = new Store<int>()",
+            "    ints.put(0, 0)",
+            "    ints.put(1, 3)",
+            "    let total = ints.visit(0, x -> x + 10) + ints.visit(1, x -> x + 10)",
+            "    if total == 23 and not ints.isNull(0) and ints.isNull(7)",
+            "        testSuccess()");
+    }
+
+    /** Handles still round-trip: the call site indexes them, and the generic code keeps the index. */
+    @Test
+    public void oldGenericsHandleRoundTripKeepsIdentityAndNull() throws IOException {
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import TypeCasting",
+            "int array slots",
+            "class Store<T>",
+            "    function put(int key, T value)",
+            "        slots[key] = value castTo int",
+            "    function get(int key) returns T",
+            "        return slots[key] castTo T",
+            "    function isNull(int key) returns bool",
+            "        return get(key) == null",
+            "init",
+            "    let a = CreateTimer()",
+            "    let b = CreateTimer()",
+            "    let store = new Store<timer>()",
+            "    store.put(0, a)",
+            "    store.put(1, b)",
+            "    store.put(2, null)",
+            "    if store.get(0) == a and store.get(1) == b and store.get(0) != b and store.get(2) == null and store.isNull(3) and not store.isNull(0)",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void legacyGenericHandleCastsUseObjectIndexMap() throws IOException {
+        // The stdlib's TypeCasting functions, which the Lua backend maps to the object index; a
+        // hand-written timerToIndex is taken literally on both targets.
+        test().testLua(true).withStdLib().executeProg().lines(
+            "package Test",
+            "import TypeCasting",
             "function toIndex<T>(T value) returns int",
             "    return value castTo int",
             "init",
@@ -391,12 +558,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String compiled = compiledLua("legacyGenericHandleCastsUseObjectIndexMap");
-        assertTrue(java.util.regex.Pattern.compile(
-            "function toIndex\\((\\w+)\\)\\s*\\R\\s*return __wurst_objectToIndex\\(\\1\\)")
-            .matcher(compiled).find());
-        assertFalse(java.util.regex.Pattern.compile(
-            "function toIndex\\((\\w+)\\)\\s*\\R\\s*return __wurst_classToIndex\\(\\1\\)")
-            .matcher(compiled).find());
+        // The call site converts the handle through the object index map; inside the generic
+        // function the value is that index already, so the cast passes it through instead of
+        // boxing the number a second time.
+        assertTrue("the handle is indexed through the object index map:\n" + compiled,
+            compiled.contains("return __wurst_objectToIndex("));
+        String toIndex = topLevelFunctionBodyWithPrefix(compiled, "toIndex");
+        assertFalse("the generic body does not box the index again:\n" + toIndex,
+            toIndex.contains("__wurst_objectToIndex"));
     }
 
     @Test
