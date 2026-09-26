@@ -1025,6 +1025,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         LuaDispatchPreparation.prepare(imProg, imTranslator);
         timeTaker.endPhase();
 
+        // After the last optimization, so nothing folds the temporaries back into the casts.
+        beginPhase(13, "old-generics cast operands");
+        LuaOldGenericsCasts.transform(imProg, imTranslator);
+        timeTaker.endPhase();
+
         beginPhase(14, "translate to lua");
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();

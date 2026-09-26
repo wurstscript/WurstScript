@@ -398,13 +398,14 @@ public class ExprTranslation {
     /** {@code nil -> 0, 0 -> sentinel, n -> n}; see {@link #translate(ImCast, LuaTranslator)}. */
     private static LuaExpr oldGenericsToInt(LuaExpr x, LuaTranslator tr) {
         if (!(x instanceof LuaExprVarAccess)) {
-            return LuaAst.LuaExprFunctionCall(tr.oldGenericsToInt, LuaAst.LuaExprlist(x));
+            // LuaOldGenericsCasts gives every such cast a variable operand; this is a fallback.
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().toInt(), LuaAst.LuaExprlist(x));
         }
         // (x == 0 and sentinel or (x or 0))
         return LuaAst.LuaExprBinary(
             LuaAst.LuaExprBinary(
                 LuaAst.LuaExprBinary(x, LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
-                LuaAst.LuaOpAnd(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero)),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
             LuaAst.LuaOpOr(),
             LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")));
     }
@@ -412,12 +413,12 @@ public class ExprTranslation {
     /** {@code 0 -> nil, sentinel -> 0, n -> n}; the inverse of {@link #oldGenericsToInt}. */
     private static LuaExpr oldGenericsFromInt(LuaExpr i, LuaTranslator tr) {
         if (!(i instanceof LuaExprVarAccess)) {
-            return LuaAst.LuaExprFunctionCall(tr.oldGenericsFromInt, LuaAst.LuaExprlist(i));
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().fromInt(), LuaAst.LuaExprlist(i));
         }
         // (i == sentinel and 0 or (i ~= 0 and i or nil))
         return LuaAst.LuaExprBinary(
             LuaAst.LuaExprBinary(
-                LuaAst.LuaExprBinary(i, LuaAst.LuaOpEquals(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero)),
+                LuaAst.LuaExprBinary(i, LuaAst.LuaOpEquals(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
                 LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("0")),
             LuaAst.LuaOpOr(),
             LuaAst.LuaExprBinary(

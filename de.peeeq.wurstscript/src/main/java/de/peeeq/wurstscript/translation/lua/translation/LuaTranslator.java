@@ -298,9 +298,18 @@ public class LuaTranslator {
 
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     /** The int an old-generics int value 0 is stored as; see ExprTranslation.translate(ImCast). */
-    final LuaVariable oldGenericsZero = LuaAst.LuaVariable("__wurst_oldGenericsZero", LuaAst.LuaLiteral("math.mininteger"));
-    final LuaFunction oldGenericsToInt = LuaAst.LuaFunction("__wurst_oldGenericsToInt", LuaAst.LuaParams(), LuaAst.LuaStatements());
-    final LuaFunction oldGenericsFromInt = LuaAst.LuaFunction("__wurst_oldGenericsFromInt", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    private final Lazy<LuaVariable> oldGenericsZero = Lazy.create(() -> LuaPolyfillSetup.createOldGenericsZero(this));
+    private final Lazy<LuaPolyfillSetup.OldGenericsHelpers> oldGenericsHelpers =
+        Lazy.create(() -> LuaPolyfillSetup.createOldGenericsCastFunctions(this));
+
+    /** Emitted on first use, so a map without old-generics casts carries none of it. */
+    LuaVariable oldGenericsZero() {
+        return oldGenericsZero.get();
+    }
+
+    LuaPolyfillSetup.OldGenericsHelpers oldGenericsHelpers() {
+        return oldGenericsHelpers.get();
+    }
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction stringToIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
@@ -772,7 +781,6 @@ public class LuaTranslator {
 
     private void createObjectIndexFunctions() {
         LuaPolyfillSetup.createObjectIndexFunctions(this);
-        LuaPolyfillSetup.createOldGenericsCastFunctions(this);
     }
 
     private void createStringIndexFunctions() {

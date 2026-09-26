@@ -244,6 +244,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         String roundTrip = topLevelFunctionBodyWithPrefix(compiled, "roundTrip");
         assertFalse("an int round trip needs no object index:\n" + roundTrip,
             roundTrip.contains("__wurst_objectToIndex") || roundTrip.contains("__wurst_objectFromIndex"));
+        // Every cast gets a variable operand before translation, so each one is inlined.
+        assertFalse("no runtime cast helper is emitted:\n" + compiled,
+            compiled.contains("__wurst_oldGenericsToInt") || compiled.contains("__wurst_oldGenericsFromInt"));
     }
 
     /** The round trip keeps every value, 0 and negative numbers included, and null stays null. */
