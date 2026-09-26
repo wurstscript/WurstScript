@@ -163,8 +163,10 @@ final class LuaNumericFor {
     private static void collectAccesses(Element e, ImVar v, ImLoop loop, boolean insideLoop, List<Access> out) {
         boolean inside = insideLoop || e == loop;
         if (e instanceof ImSet set && set.getLeft() instanceof ImVarAccess target && target.getVar() == v) {
-            out.add(new Access(set, true, inside));
+            // The right-hand side is evaluated before the store, so a read there (i = i + 1)
+            // sees the loop's final value and has to be found before the write.
             collectAccesses(set.getRight(), v, loop, inside, out);
+            out.add(new Access(set, true, inside));
             return;
         }
         if (e instanceof ImVarargLoopVar loopVar && loopVar.getVar() == v) {

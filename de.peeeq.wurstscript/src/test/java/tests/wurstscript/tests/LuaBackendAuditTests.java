@@ -4491,4 +4491,27 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue(down, down.contains("while true do"));
         assertFalse(down, down.contains("for i"));
     }
+
+    /** An assignment after the loop which reads the counter keeps the loop's final value visible. */
+    @Test
+    public void counterReadInsideAPostLoopAssignmentKeepsTheWhileForm() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array values",
+            "function run(int n) returns int",
+            "    var i = 0",
+            "    while i <= n",
+            "        values[i] = i",
+            "        i++",
+            "    i = i + 100",
+            "    return i",
+            "init",
+            "    if run(4) == 105 and values[4] == 4",
+            "        testSuccess()");
+        String compiled = compiledLua("counterReadInsideAPostLoopAssignmentKeepsTheWhileForm");
+        String run = topLevelFunctionBodyWithPrefix(compiled, "run");
+        assertTrue("a counter read after the loop keeps the while form:\n" + run, run.contains("while true do"));
+        assertFalse(run, run.contains("for i"));
+    }
 }
