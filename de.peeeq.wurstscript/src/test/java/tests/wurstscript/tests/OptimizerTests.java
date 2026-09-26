@@ -3155,4 +3155,42 @@ public class OptimizerTests extends WurstScriptTest {
         return count;
     }
 
+    /**
+     * The compiletime state splitter optimises a function on its own, outside ImOptimizer, so the
+     * local merger it runs has no translator to ask about Lua intrinsics. A dead assignment whose
+     * right-hand side is a call must then be kept as a statement, not dereference a missing
+     * translator.
+     */
+    @Test
+    public void splitterKeepsADeadCallResultWithoutATranslatorContext() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction sink = nativeIntFunction(model, "sink");
+        ImVar unused = JassIm.ImVar(model, TypesHelper.imInt(), "unused", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(), false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction state = JassIm.ImFunction(model, "state", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(unused),
+            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(unused), call)), Collections.emptyList());
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(state);
+
+        FunctionSplitter.splitFunc(translator, state);
+
+        // The splitter moves the body into helper functions, so look through the whole program.
+        boolean[] callSurvives = {false};
+        for (ImFunction f : prog.getFunctions()) {
+            f.accept(new ImFunction.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall c) {
+                    super.visit(c);
+                    if (c.getFunc() == sink) {
+                        callSurvives[0] = true;
+                    }
+                }
+            });
+        }
+        assertTrue(callSurvives[0], "the call's side effect must survive the dead assignment");
+    }
 }

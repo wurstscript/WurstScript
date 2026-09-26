@@ -15,9 +15,10 @@ class LuaPolyfillSetup {
     static void createInstanceOfFunction(LuaTranslator tr) {
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
+        // Reading a nil key is a nil result, not an error, so one lookup covers the nil object too.
+        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("local descriptor = __wurst_objectClass[x]"));
         tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral(
-            "return x ~= nil and __wurst_objectClass[x] ~= nil and __wurst_objectClass[x]."
-                + WURST_SUPERTYPES + "[A]"));
+            "return descriptor ~= nil and descriptor." + WURST_SUPERTYPES + "[A] == true"));
         tr.luaModel.add(tr.instanceOfFunction);
     }
 

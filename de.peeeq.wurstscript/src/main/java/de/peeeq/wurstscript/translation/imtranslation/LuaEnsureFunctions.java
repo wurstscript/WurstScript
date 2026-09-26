@@ -137,9 +137,11 @@ final class LuaEnsureFunctions {
      * else result = y end
      * return result
      */
-    static ImFunction buildStringConcat(List<ImFunction> out) {
+    static ImFunction buildStringConcat(List<ImFunction> out, ImTranslator translator) {
         ImType stringType = TypesHelper.imString();
         ImFunction rawConcat = rawNative("__wurst_rawConcat", stringType, 2);
+        // The Lua backend prints a call to this exact node as the .. operator; see ExprTranslation.
+        translator.luaRawConcatFunc = rawConcat;
         out.add(rawConcat);
 
         ImVar x = JassIm.ImVar(TRACE, stringType.copy(), "x", false);

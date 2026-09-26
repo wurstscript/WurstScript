@@ -1879,12 +1879,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    destroy value"
         );
         String compiled = compiledLua("ordinaryDestroyNamedMethodDoesNotUseLifecycleDispatchSlot");
-        int dispatchStart = compiled.indexOf("function dispatch_Destroyer_destroyValue");
-        int dispatchEnd = compiled.indexOf("\nend", dispatchStart);
-        assertTrue(dispatchStart >= 0 && dispatchEnd > dispatchStart);
-        String dispatchBody = compiled.substring(dispatchStart, dispatchEnd);
-        assertTrue(dispatchBody.contains(".Destroyer_destroyValue"));
-        assertFalse(dispatchBody.contains(".__wurst_destroy"));
+        String init = topLevelFunctionBodyWithPrefix(compiled, "init_Test");
+        assertTrue("the method call must dispatch through its own slot:\n" + init,
+            java.util.regex.Pattern.compile("__wurst_objectClass\\[[^\\]]+\\]\\.Destroyer_destroyValue\\(")
+                .matcher(init).find());
+        assertTrue("destroy must dispatch through the lifecycle slot:\n" + init,
+            java.util.regex.Pattern.compile("__wurst_objectClass\\[[^\\]]+\\]\\.__wurst_destroy\\(")
+                .matcher(init).find());
     }
 
     private List<String> genericTupleDispatchCase(Random random,
@@ -2259,7 +2260,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             body.contains(offsetAlias.group(1) + "["));
         String dynamicBody = topLevelFunctionBodyWithPrefix(compiled, "dynamicCall");
         assertTrue("a genuinely virtual method call must retain dispatch:\n" + dynamicBody,
-            dynamicBody.contains("dispatch_"));
+            dynamicBody.contains("__wurst_objectClass["));
     }
 
     @Test
@@ -3688,7 +3689,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
         assertTrue("optimized div must contain Lua floor division:\n" + compiled,
             compiled.contains(" // 8"));
-        assertTrue("optimized mod must contain math.fmod:\n" + compiled,
+        assertTrue("mod by a positive constant is the % operator:\n" + compiled,
+            compiled.contains(" % 8"));
+        assertFalse("mod by a positive constant needs no fmod:\n" + compiled,
             compiled.contains("math.fmod("));
         assertFalse("optimized loop must not call raw numeric helpers:\n" + compiled,
             compiled.contains("__wurst_raw"));
@@ -3816,13 +3819,13 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         );
 
         String[] helperNames = {
-            "__wurst_stringConcat", "__wurst_intDiv", "__wurst_modInt", "__wurst_modReal",
-            "__wurst_rawConcat"
+            "__wurst_stringConcat", "__wurst_intDiv", "__wurst_modInt", "__wurst_modReal"
         };
         for (String helperName : helperNames) {
             assertHelperDefinedWhenCalled(compiled, helperName);
         }
-        assertTrue("repro must exercise string concat lowering", compiled.contains("__wurst_rawConcat"));
+        assertTrue("repro must exercise string concat lowering", compiled.contains(" .. "));
+        assertFalse("the raw concat primitive is an operator, not a call", compiled.contains("__wurst_rawConcat"));
         assertTrue("repro must exercise integer div lowering", compiled.contains(" // "));
         assertTrue("repro must exercise integer and real mod lowering", compiled.contains("math.fmod("));
         assertFalse("raw numeric primitive calls must not survive Lua emission", compiled.contains("__wurst_rawF"));
@@ -4102,5 +4105,438 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    if p.get() == 7",
             "        testSuccess()"
         );
+    }
+
+    // ------------------------------------------------------------------------------------------
+    // Emitted shapes: counted loops, virtual calls, operator intrinsics, casts, deallocation.
+    // ------------------------------------------------------------------------------------------
+
+    @Test
+    public void countedLoopsEmitNumericFor() {
+        String compiled = compileOptimizedLua("countedLoopsEmitNumericFor",
+            "package Test",
+            "native consume(int value)",
+            "int array values",
+            "@noinline function up(int n)",
+            "    for i = 0 to n - 1",
+            "        consume(values[i])",
+            "@noinline function down(int n)",
+            "    for i = n downto 1",
+            "        consume(i)",
+            "@noinline function stepped(int n)",
+            "    for i = 0 to n step 5",
+            "        consume(i)",
+            "        if values[i] > 3",
+            "            break",
+            "@noinline function readAfter(int n) returns int",
+            "    var i = 0",
+            "    while i <= n",
+            "        consume(i)",
+            "        i++",
+            "    return i",
+            "init",
+            "    up(3)",
+            "    down(3)",
+            "    stepped(20)",
+            "    consume(readAfter(4))");
+        String up = topLevelFunctionBodyWithPrefix(compiled, "up");
+        assertTrue("an ascending range is a numeric for:\n" + up, up.contains("for i = 0, "));
+        assertFalse("no counted while loop is left:\n" + up, up.contains("while true do"));
+        String down = topLevelFunctionBodyWithPrefix(compiled, "down");
+        assertTrue("a descending range counts down with a negative step:\n" + down,
+            java.util.regex.Pattern.compile("for i\\d* = \\w+, 1, -1 do").matcher(down).find());
+        String stepped = topLevelFunctionBodyWithPrefix(compiled, "stepped");
+        assertTrue("a stepped range keeps its step and its break:\n" + stepped,
+            java.util.regex.Pattern.compile("for i\\d* = 0, \\w+, 5 do").matcher(stepped).find()
+                && stepped.contains("break"));
+        String readAfter = topLevelFunctionBodyWithPrefix(compiled, "readAfter");
+        assertTrue("a counter read after the loop keeps the while form:\n" + readAfter,
+            readAfter.contains("while true do"));
+        assertFalse(readAfter, readAfter.contains("for i"));
+    }
+
+    @Test
+    public void countedLoopsKeepWhileSemantics() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function sumUp(int n) returns int",
+            "    var s = 0",
+            "    for i = 0 to n",
+            "        s += i",
+            "    return s",
+            "function sumDown(int n) returns int",
+            "    var s = 0",
+            "    for i = n downto 1",
+            "        s += i",
+            "    return s",
+            "function stepped() returns int",
+            "    var s = 0",
+            "    for i = 0 to 20 step 5",
+            "        if i == 15",
+            "            break",
+            "        s += i",
+            "    return s",
+            "function nested() returns int",
+            "    var s = 0",
+            "    for i = 0 to 2",
+            "        for j = 0 to 2",
+            "            s += i * 3 + j",
+            "    for i = 0 to 1",
+            "        s += 100",
+            "    return s",
+            "function readAfter() returns int",
+            "    var i = 0",
+            "    while i <= 4",
+            "        i++",
+            "    return i",
+            "function empty() returns int",
+            "    var s = 0",
+            "    for i = 5 to 1",
+            "        s++",
+            "    return s",
+            "init",
+            "    if sumUp(4) == 10 and sumDown(4) == 10 and stepped() == 15 and nested() == 236",
+            "        if readAfter() == 5 and empty() == 0",
+            "            testSuccess()");
+    }
+
+    @Test
+    public void countedLoopsFallBackToWhileAtTheLocalLimit() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native consume(int value)");
+        lines.add("@noinline function crowded(int limit)");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 194; i++) {
+            lines.add("    let v" + i + " = " + i);
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    for i = 0 to limit");
+        lines.add("        sum += i");
+        lines.add("    consume(sum)");
+        lines.add("init");
+        lines.add("    crowded(1)");
+
+        String compiled = compileLuaWithRunArgs("countedLoopsFallBackToWhileAtTheLocalLimit",
+            new RunArgs().with("-lua"), lines.toArray(new String[0]));
+        String body = topLevelFunctionBodyWithPrefix(compiled, "crowded");
+        assertFalse("the loop registers must not force the locals-table fallback:\n" + body,
+            body.contains("__wurst_locals"));
+        assertFalse("a numeric for would exceed the local limit here:\n" + body, body.contains("for i"));
+        assertTrue("the loop falls back to its while form:\n" + body, body.contains("while true do"));
+    }
+
+    @Test
+    public void virtualCallsReadTheSlotAtTheCallSite() {
+        String compiled = compileOptimizedLua("virtualCallsReadTheSlotAtTheCallSite",
+            "package Test",
+            "native consume(real value)",
+            "interface Shape",
+            "    function area() returns real",
+            "class Circle implements Shape",
+            "    real r = 1.",
+            "    function area() returns real",
+            "        return 3. * r * r",
+            "class Square implements Shape",
+            "    real s = 2.",
+            "    function area() returns real",
+            "        return s * s",
+            "Shape array shapes",
+            "@noinline function total(int n) returns real",
+            "    var sum = 0.",
+            "    for i = 0 to n - 1",
+            "        sum += shapes[i].area()",
+            "    return sum",
+            "init",
+            "    shapes[0] = new Circle()",
+            "    shapes[1] = new Square()",
+            "    consume(total(2))");
+        String total = topLevelFunctionBodyWithPrefix(compiled, "total");
+        java.util.regex.Matcher alias = java.util.regex.Pattern
+            .compile("local (\\w+) = __wurst_objectClass\\R").matcher(total);
+        assertTrue("the descriptor table is aliased for the loop:\n" + total, alias.find());
+        assertTrue("the slot is read from the receiver's descriptor at the call site:\n" + total,
+            java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(alias.group(1))
+                + "\\[\\w+\\[i\\]\\]\\.\\w*area\\w*\\(").matcher(total).find());
+        assertFalse("no dispatch stub is needed for a table-read receiver:\n" + compiled,
+            compiled.contains("dispatch_"));
+    }
+
+    @Test
+    public void virtualCallsDispatchThroughEveryReceiverShape() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "interface Shape",
+            "    function area() returns int",
+            "class Circle implements Shape",
+            "    int r = 2",
+            "    function area() returns int",
+            "        return 3 * r * r",
+            "class Square implements Shape",
+            "    int s = 3",
+            "    function area() returns int",
+            "        return s * s",
+            "Shape array shapes",
+            "function make(int i) returns Shape",
+            "    return i mod 2 == 0 ? new Circle() : new Square()",
+            "init",
+            "    shapes[0] = new Circle()",
+            "    shapes[1] = new Square()",
+            "    var sum = 0",
+            "    for i = 0 to 1",
+            "        sum += shapes[i].area()",
+            "    Shape picked = shapes[1]",
+            "    sum += picked.area()",
+            "    sum += make(0).area()",
+            "    destroy picked",
+            "    if sum == 12 + 9 + 9 + 12",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void modByPositiveConstantIsTheLuaOperator() {
+        String compiled = compileOptimizedLua("modByPositiveConstantIsTheLuaOperator",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function fixed(int x) returns int",
+            "    return x mod 8",
+            "@noinline function varying(int x, int y) returns int",
+            "    return x mod y",
+            "init",
+            "    consume(fixed(5))",
+            "    consume(varying(5, 3))");
+        String fixed = topLevelFunctionBodyWithPrefix(compiled, "fixed");
+        assertTrue("a positive constant divisor is the % operator:\n" + fixed, fixed.contains("% 8"));
+        assertFalse(fixed, fixed.contains("fmod"));
+        assertTrue("a runtime divisor keeps the ModuloInteger correction:\n" + compiled,
+            compiled.contains("math.fmod("));
+    }
+
+    @Test
+    public void modByPositiveConstantMatchesModuloInteger() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "function m2(int x) returns int",
+            "    return x mod 2",
+            "function m3(int x) returns int",
+            "    return x mod 3",
+            "init",
+            "    if m2(-7) == 1 and m2(7) == 1 and m2(-8) == 0 and m3(-1) == 2 and m3(-3) == 0 and m3(4) == 1",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void stringConcatenationIsTheLuaOperator() {
+        String compiled = compileOptimizedLua("stringConcatenationIsTheLuaOperator",
+            "package Test",
+            "native consume(string value)",
+            "function join(string a, string b) returns string",
+            "    return a + b",
+            "init",
+            "    consume(join(\"a\", \"b\"))",
+            "    join(\"c\", \"d\")");
+        assertTrue("concatenation prints as the .. operator:\n" + compiled, compiled.contains(" .. "));
+        assertFalse("the raw concat primitive is not a call:\n" + compiled, compiled.contains("__wurst_rawConcat"));
+        assertFalse("an unused concatenation is dropped rather than kept in a dead local:\n" + compiled,
+            compiled.contains("wurstExpr"));
+    }
+
+    @Test
+    public void classToClassCastIsFree() {
+        String compiled = compileOptimizedLua("classToClassCastIsFree",
+            "package Test",
+            "native consume(int value)",
+            "interface Shape",
+            "    function area() returns int",
+            "class Circle implements Shape",
+            "    int r = 2",
+            "    function area() returns int",
+            "        return r",
+            "@noinline function radius(Shape s) returns int",
+            "    return (s castTo Circle).r",
+            "@noinline function id(Circle c) returns int",
+            "    return c castTo int",
+            "init",
+            "    consume(radius(new Circle()))",
+            "    consume(id(new Circle()))");
+        String radius = topLevelFunctionBodyWithPrefix(compiled, "radius");
+        assertFalse("a class-to-class cast needs no helper:\n" + radius, radius.contains("__wurst_classFromIndex"));
+        assertTrue("a class-to-int cast still normalises nil:\n" + compiled,
+            topLevelFunctionBodyWithPrefix(compiled, "id").contains("__wurst_classToIndex"));
+    }
+
+    @Test
+    public void destroyDoesNotCallAnEmptyCleanupHook() {
+        String compiled = compileOptimizedLua("destroyDoesNotCallAnEmptyCleanupHook",
+            "package Test",
+            "class Box",
+            "    int v = 1",
+            "init",
+            "    let b = new Box()",
+            "    destroy b");
+        assertFalse("no per-class cleanup slot is registered:\n" + compiled, compiled.contains("__wurst_dealloc ="));
+        assertFalse("no empty per-class cleanup function is emitted:\n" + compiled, compiled.contains("Box_dealloc"));
+        assertTrue(compiled, compiled.contains("function __wurst_deallocObject("));
+    }
+
+    /**
+     * A generic class with static storage is specialised per instantiation on Lua, so a value read
+     * from its typed store already is the primitive it is declared as and needs no normalisation.
+     * An erased instantiation keeps it, because erased storage can hold nil for a primitive.
+     */
+    @Test
+    public void specialisedGenericReadsNeedNoTypeAssurance() {
+        String compiled = compileOptimizedLua("specialisedGenericReadsNeedNoTypeAssurance",
+            "package Test",
+            "native consume(int value)",
+            "class Store<T:>",
+            "    private static T array store",
+            "    private static int next = 0",
+            "    private int base",
+            "    construct()",
+            "        base = next",
+            "        next += 8",
+            "    function put(int index, T value)",
+            "        store[base + index] = value",
+            "    function get(int index) returns T",
+            "        return store[base + index]",
+            "class Box<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "@noinline function sumStore(Store<int> store, int n) returns int",
+            "    var sum = 0",
+            "    for i = 0 to n - 1",
+            "        sum += store.get(i)",
+            "    return sum",
+            "@noinline function readBox(Box<int> box) returns int",
+            "    return box.get() + 1",
+            "init",
+            "    let store = new Store<int>()",
+            "    store.put(0, 4)",
+            "    consume(sumStore(store, 1))",
+            "    consume(readBox(new Box<int>))");
+        String sumStore = topLevelFunctionBodyWithPrefix(compiled, "sumStore");
+        assertFalse("a specialised typed read is used as is:\n" + sumStore,
+            sumStore.contains("__wurst_rawTo") || sumStore.contains("__wurst_ensureInt"));
+        String readBox = topLevelFunctionBodyWithPrefix(compiled, "readBox");
+        assertTrue("an erased read is still normalised:\n" + readBox,
+            readBox.contains("__wurst_rawTo") || readBox.contains("__wurst_ensureInt"));
+    }
+
+    /**
+     * A specialised copy is declared with the concrete type, but a value it stores can still come
+     * from erased storage, whose untouched slots read as nil; Jass reads them as the default.
+     */
+    @Test
+    public void specialisedCopyFedFromErasedStorageKeepsTheDefault() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Cell<T:>",
+            "    T value",
+            "    function get() returns T",
+            "        return value",
+            "class Box<T:>",
+            "    private static T array scratch",
+            "    function take(Cell<T> cell) returns T",
+            "        T value = cell.get()",
+            "        scratch[0] = value",
+            "        return value",
+            "init",
+            "    let box = new Box<int>()",
+            "    if box.take(new Cell<int>()) + 1 == 1",
+            "        testSuccess()");
+    }
+
+    /** instanceof is a boolean on Lua as well: comparing its stored result with false must work. */
+    @Test
+    public void instanceofYieldsAProperBoolean() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base",
+            "class Derived extends Base",
+            "class Other extends Base",
+            "init",
+            "    Base d = new Derived()",
+            "    Base o = new Other()",
+            "    bool isDerived = d instanceof Derived",
+            "    bool otherIsDerived = o instanceof Derived",
+            "    Base none = null",
+            "    bool noneIsDerived = none instanceof Derived",
+            "    if isDerived == true and otherIsDerived == false and noneIsDerived == false",
+            "        testSuccess()");
+    }
+
+    /** Both range endpoints are evaluated in source order, start first, even with the fold into the for header. */
+    @Test
+    public void countedLoopEndpointsAreEvaluatedInSourceOrder() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int calls = 0",
+            "function next() returns int",
+            "    calls++",
+            "    return calls",
+            "init",
+            "    var sum = 0",
+            "    for i = next() to next()",
+            "        sum += i",
+            "    if sum == 3 and calls == 2",
+            "        testSuccess()");
+    }
+
+    /** A step which moves the counter away from its bound never terminates in Wurst, so it keeps the while form. */
+    @Test
+    public void signInvertedStepKeepsTheWhileForm() {
+        String compiled = compileOptimizedLua("signInvertedStepKeepsTheWhileForm",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function up(int n)",
+            "    for i = 0 to n step -1",
+            "        consume(i)",
+            "        if i < -3",
+            "            break",
+            "@noinline function down(int n)",
+            "    for i = n downto 0 step -1",
+            "        consume(i)",
+            "        if i > 3",
+            "            break",
+            "init",
+            "    up(2)",
+            "    down(2)");
+        String up = topLevelFunctionBodyWithPrefix(compiled, "up");
+        assertTrue(up, up.contains("while true do"));
+        assertFalse(up, up.contains("for i"));
+        String down = topLevelFunctionBodyWithPrefix(compiled, "down");
+        assertTrue(down, down.contains("while true do"));
+        assertFalse(down, down.contains("for i"));
+    }
+
+    /** An assignment after the loop which reads the counter keeps the loop's final value visible. */
+    @Test
+    public void counterReadInsideAPostLoopAssignmentKeepsTheWhileForm() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int array values",
+            "function run(int n) returns int",
+            "    var i = 0",
+            "    while i <= n",
+            "        values[i] = i",
+            "        i++",
+            "    i = i + 100",
+            "    return i",
+            "init",
+            "    if run(4) == 105 and values[4] == 4",
+            "        testSuccess()");
+        String compiled = compiledLua("counterReadInsideAPostLoopAssignmentKeepsTheWhileForm");
+        String run = topLevelFunctionBodyWithPrefix(compiled, "run");
+        assertTrue("a counter read after the loop keeps the while form:\n" + run, run.contains("while true do"));
+        assertFalse(run, run.contains("for i"));
     }
 }

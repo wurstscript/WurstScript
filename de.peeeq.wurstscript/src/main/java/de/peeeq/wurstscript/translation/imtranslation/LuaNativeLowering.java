@@ -134,7 +134,7 @@ public final class LuaNativeLowering {
         // it. Emptying the function leaves an ordinary one the inliner can remove, where a native
         // stub would be an analysis barrier and leave a call doing nothing on every clear.
         for (ImFunction f : prog.getFunctions()) {
-            if (LuaKeyedTable.isDestroy(f)) {
+            if (LuaKeyedTable.isDestroy(f) || LuaKeyedMap.isDestroy(f)) {
                 f.getBody().clear();
                 f.getLocals().clear();
             }
@@ -155,6 +155,9 @@ public final class LuaNativeLowering {
                 super.visit(call);
                 ImFunction f = call.getFunc();
                 String stubName = LuaKeyedTable.nativeStubFor(f);
+                if (stubName == null) {
+                    stubName = LuaKeyedMap.nativeStubFor(f);
+                }
                 if (stubName == null) {
                     return;
                 }
@@ -177,7 +180,8 @@ public final class LuaNativeLowering {
             ListIterator<ImStmt> it = stmts.listIterator();
             while (it.hasNext()) {
                 ImStmt s = it.next();
-                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
+                if (s instanceof ImFunctionCall call
+                    && (LuaKeyedTable.isDestroy(call.getFunc()) || LuaKeyedMap.isDestroy(call.getFunc()))) {
                     ImStmts argStmts = JassIm.ImStmts();
                     for (ImExpr arg : new ArrayList<>(call.getArguments())) {
                         arg.setParent(null);
@@ -213,6 +217,7 @@ public final class LuaNativeLowering {
         // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
         lowerKeyedTables(prog);
 
+        removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
 
@@ -306,6 +311,45 @@ public final class LuaNativeLowering {
     }
 
     /**
+     * An erased generic value is normalised with {@code __wurst_ensureInt} and friends when it
+     * reaches a concrete primitive context, because erased storage can hold nil for a primitive.
+     * When the value provably comes from typed storage or a typed default (see
+     * {@link LuaTypedValues}) the normalisation is the identity and the call is dropped.
+     */
+    private static void removeRedundantTypeAssurance(ImProg prog, ImTranslator translator) {
+        LuaTypedValues typedValues = new LuaTypedValues(prog);
+        List<ImFunctionCall> redundant = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getArguments().size() != 1) {
+                    return;
+                }
+                ImFunction target = call.getFunc();
+                ImType type;
+                if (target == translator.ensureIntFunc) {
+                    type = TypesHelper.imInt();
+                } else if (target == translator.ensureRealFunc) {
+                    type = TypesHelper.imReal();
+                } else if (target == translator.ensureStrFunc) {
+                    type = TypesHelper.imString();
+                } else {
+                    return;
+                }
+                if (typedValues.isTyped(call.getArguments().get(0), type)) {
+                    redundant.add(call);
+                }
+            }
+        });
+        for (ImFunctionCall call : redundant) {
+            ImExpr value = call.getArguments().get(0);
+            value.setParent(null);
+            call.replaceBy(value);
+        }
+    }
+
+    /**
      * Rewrites string PLUS before the optimizer's first garbage-collection
      * pass. The concat helper is an ordinary IM function, so introducing its
      * calls only later in EliminateLocalTypes would let the optimizer remove
@@ -371,7 +415,17 @@ public final class LuaNativeLowering {
                     }
                     target = funcs.intDiv();
                 } else if (call.getOp() == WurstOperator.MOD_INT) {
-                    target = funcs.modInt();
+                    // For a positive constant divisor the ModuloInteger correction is exactly Lua's
+                    // floored %, one VM opcode instead of a C call and a branch. A constant dividend
+                    // keeps the helper so the optimizer can still fold the whole expression.
+                    ImExpr dividend = call.getArguments().get(0);
+                    ImExpr divisor = call.getArguments().get(1);
+                    if (divisor instanceof ImIntVal && ((ImIntVal) divisor).getValI() > 0
+                        && !(dividend instanceof ImIntVal)) {
+                        target = funcs.rawFloorModInt();
+                    } else {
+                        target = funcs.modInt();
+                    }
                 } else if (call.getOp() == WurstOperator.MOD_REAL) {
                     target = funcs.modReal();
                 } else if (call.getOp() == WurstOperator.JASS_MOD_INT) {
@@ -449,6 +503,7 @@ public final class LuaNativeLowering {
         private final List<ImFunction> created = new ArrayList<>();
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
+        private ImFunction rawFloorModInt;
         private ImFunction rawFmodReal;
         private ImFunction intDiv;
         private ImFunction modInt;
@@ -509,6 +564,16 @@ public final class LuaNativeLowering {
                 created.add(rawFmodInt);
             }
             return rawFmodInt;
+        }
+
+        /** Lua's floored {@code %}; only correct for a positive divisor, which the caller guarantees. */
+        ImFunction rawFloorModInt() {
+            if (rawFloorModInt == null) {
+                rawFloorModInt = rawNative("__wurst_rawFloorModInt", TypesHelper.imInt());
+                translator.luaRawFloorModIntFunc = rawFloorModInt;
+                created.add(rawFloorModInt);
+            }
+            return rawFloorModInt;
         }
 
         private ImFunction rawFmodReal() {

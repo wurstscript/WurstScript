@@ -245,6 +245,14 @@ public class ImOptimizer {
         if (expr == null) {
             return Collections.emptyList();
         }
+        if (expr instanceof ImFunctionCall call && trans.isTrapFreeLuaIntrinsicCall(call)) {
+            // Prints as a pure operator; only its operands can still matter.
+            List<ImExpr> operandEffects = new ArrayList<>();
+            for (ImExpr argument : call.getArguments()) {
+                operandEffects.addAll(collectSideEffects(argument, analyzer));
+            }
+            return operandEffects;
+        }
         if (mayTrapAtRuntime(expr)) {
             return Collections.singletonList(expr);
         }

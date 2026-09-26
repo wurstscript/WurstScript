@@ -15,10 +15,12 @@ import java.util.*;
 public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     private int totalLocalsMerged = 0;
     private LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
+    private ImTranslator translator;
 
     @Override
     public int optimize(ImTranslator trans, LocalPlayerContextAnalyzer analyzer) {
         ImProg prog = trans.getImProg();
+        translator = trans;
         localPlayerContextAnalyzer = analyzer;
         totalLocalsMerged = 0;
         optimizeFunctions(prog.getFunctions());
@@ -51,6 +53,16 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer) {
         localPlayerContextAnalyzer = analyzer;
         optimizeFunc(func);
+    }
+
+    /**
+     * Entry point for callers which optimise one function outside {@link #optimize}: the translator
+     * identifies the Lua operator intrinsics whose unused calls may be dropped. Without one, every
+     * call is kept as a side effect.
+     */
+    void optimizeFunc(ImFunction func, LocalPlayerContextAnalyzer analyzer, ImTranslator trans) {
+        translator = trans;
+        optimizeFunc(func, analyzer);
     }
 
     private boolean canMerge(ImType a, ImType b) { return a.equalsType(b); }
@@ -300,7 +312,7 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
         }
     }
 
-    private static void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {
+    private void collectLhsSideEffects(ImLExpr lhs, List<ImExpr> out) {
         if (lhs instanceof ImVarArrayAccess a) {
             ImExprs indexes = a.getIndexes();
             for (int i = 0; i < indexes.size(); i++) {
@@ -325,8 +337,10 @@ public class LocalMerger implements LocalPlayerAwareOptimizerPass {
     }
 
 
-    private static boolean hasSideEffects(Element e) {
-        if (e instanceof ImFunctionCall || e instanceof ImMethodCall) return true;
+    private boolean hasSideEffects(Element e) {
+        if (e instanceof ImMethodCall) return true;
+        if (e instanceof ImFunctionCall call
+            && (translator == null || !translator.isTrapFreeLuaIntrinsicCall(call))) return true;
         for (int i = 0; i < e.size(); i++) if (hasSideEffects(e.get(i))) return true;
         return false;
     }

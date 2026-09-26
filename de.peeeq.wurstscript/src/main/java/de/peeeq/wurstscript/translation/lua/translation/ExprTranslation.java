@@ -107,7 +107,7 @@ public class ExprTranslation {
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
-        if (isRawNumericIntrinsic(e.getFunc(), tr)) {
+        if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
                     imFuncName + " expects exactly two arguments");
@@ -116,6 +116,12 @@ public class ExprTranslation {
             LuaExpr right = e.getArguments().get(1).translateToLua(tr);
             if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
                 return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
+            }
+            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpMod(), right);
+            }
+            if (e.getFunc() == tr.imTr.luaRawConcatFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpConcatString(), right);
             }
             return LuaAst.LuaExprFunctionCallByName("math.fmod", LuaAst.LuaExprlist(left, right));
         }
@@ -134,10 +140,16 @@ public class ExprTranslation {
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
     }
 
-    static boolean isRawNumericIntrinsic(ImFunction function, LuaTranslator tr) {
+    /**
+     * Compiler-synthesised natives which the backend prints as an operator instead of a call.
+     * Recognised by node identity: an ordinary function of the same name keeps its definition.
+     */
+    static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
         return function == tr.imTr.luaRawFloorDivIntFunc
             || function == tr.imTr.luaRawFmodIntFunc
-            || function == tr.imTr.luaRawFmodRealFunc;
+            || function == tr.imTr.luaRawFmodRealFunc
+            || function == tr.imTr.luaRawFloorModIntFunc
+            || function == tr.imTr.luaRawConcatFunc;
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
@@ -196,9 +208,39 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(method.getImplementation()), args);
         }
-        LuaExprlist args = LuaAst.LuaExprlist(e.getReceiver().translateToLua(tr));
+        LuaExpr receiver = e.getReceiver().translateToLua(tr);
+        LuaExprlist args = LuaAst.LuaExprlist(receiver);
         args.addAll(tr.translateExprList(e.getArguments()).removeAll());
-        return LuaAst.LuaExprFunctionCall(tr.luaDispatchFunc.getFor(e.getMethod()), args);
+        if (isRepeatableRead(receiver)) {
+            // Evaluating the receiver twice has no side effect and costs less than a stub call
+            // which forwards varargs, so the descriptor lookup can sit at the call site.
+            return tr.inlineDispatchCall(method, receiver, args);
+        }
+        return LuaAst.LuaExprFunctionCall(tr.luaDispatchFunc.getFor(method), args);
+    }
+
+    /** A variable, a literal, or a table read / arithmetic built from those: safe and cheap to evaluate twice. */
+    private static boolean isRepeatableRead(LuaExpr e) {
+        if (e instanceof LuaExprVarAccess || e instanceof LuaExprIntVal) {
+            return true;
+        }
+        if (e instanceof LuaExprArrayAccess access) {
+            if (!(access.getLeft() instanceof LuaExprVarAccess)) {
+                return false;
+            }
+            for (LuaExpr index : access.getIndexes()) {
+                if (!isRepeatableRead(index)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (e instanceof LuaExprBinary binary) {
+            LuaOpBinary op = binary.getOp();
+            return (op instanceof LuaOpPlus || op instanceof LuaOpMinus || op instanceof LuaOpMult)
+                && isRepeatableRead(binary.getLeftExpr()) && isRepeatableRead(binary.getRight());
+        }
+        return false;
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
@@ -469,6 +511,10 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType) {
+            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+                // Both sides are integer ids (or nil); nothing to normalise.
+                return translated;
+            }
             return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImAnyType) {
             return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));

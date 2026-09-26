@@ -198,6 +198,29 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFloorDivIntFunc = null;
     @Nullable public ImFunction luaRawFmodIntFunc = null;
     @Nullable public ImFunction luaRawFmodRealFunc = null;
+    @Nullable public ImFunction luaRawFloorModIntFunc = null;
+    @Nullable public ImFunction luaRawConcatFunc = null;
+
+    /**
+     * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
+     * concatenation, or a division or remainder whose divisor is a non-zero literal. Such a call
+     * is as pure as the operator it prints as, so an unused one may be dropped.
+     */
+    public boolean isTrapFreeLuaIntrinsicCall(ImFunctionCall call) {
+        ImFunction target = call.getFunc();
+        if (call.getArguments().size() != 2) {
+            return false;
+        }
+        if (target == luaRawConcatFunc) {
+            return true;
+        }
+        ImExpr divisor = call.getArguments().get(1);
+        boolean nonZeroDivisor = (divisor instanceof ImIntVal intVal && intVal.getValI() != 0)
+            || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
+        return nonZeroDivisor
+            && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
+                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
+    }
     @Nullable public ImFunction luaIntDivFunc = null;
     @Nullable public ImFunction luaModIntFunc = null;
     @Nullable public ImFunction luaModRealFunc = null;
@@ -320,7 +343,7 @@ public class ImTranslator implements SpecialisationLookup {
                 ensureBoolFunc = LuaEnsureFunctions.buildEnsureBool(luaHelperFunctions);
                 ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions);
                 ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions);
-                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions);
+                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions, this);
                 luaHelperFunctions.forEach(this::addFunction);
             }
 

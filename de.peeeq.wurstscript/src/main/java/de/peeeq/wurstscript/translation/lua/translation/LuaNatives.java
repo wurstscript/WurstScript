@@ -293,6 +293,55 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("t[k] = nil"));
         });
 
+        // KeyedMap: one native table per map, keyed by the element itself. Typed reads answer the
+        // Wurst default for a missing key so the caller needs no nil normalisation. Lowered by
+        // LuaKeyedMap/LuaNativeLowering before the inliner runs, like KeyedTable. No iteration.
+        addNative("__wurst_keyedMapCreate", f ->
+            f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative("__wurst_keyedMapPut", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("v", LuaAst.LuaNoExpr()));
+            // Writing under a nil key is an error in Lua, where reading one is only nil: a null
+            // element stores nothing and reads as absent.
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = v end"));
+        });
+        addNative("__wurst_keyedMapGet", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k]"));
+        });
+        addNative("__wurst_keyedMapGetInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or 0"));
+        });
+        addNative("__wurst_keyedMapGetReal", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or 0."));
+        });
+        addNative("__wurst_keyedMapGetBool", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] == true"));
+        });
+        addNative("__wurst_keyedMapGetStr", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or \"\""));
+        });
+        addNative("__wurst_keyedMapHas", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] ~= nil"));
+        });
+        addNative("__wurst_keyedMapRemove", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
+        });
+
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
             f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));
 
