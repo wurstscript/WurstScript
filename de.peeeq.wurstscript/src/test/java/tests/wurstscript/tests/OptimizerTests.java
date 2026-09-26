@@ -3178,16 +3178,19 @@ public class OptimizerTests extends WurstScriptTest {
 
         FunctionSplitter.splitFunc(translator, state);
 
+        // The splitter moves the body into helper functions, so look through the whole program.
         boolean[] callSurvives = {false};
-        state.accept(new ImFunction.DefaultVisitor() {
-            @Override
-            public void visit(ImFunctionCall c) {
-                super.visit(c);
-                if (c.getFunc() == sink) {
-                    callSurvives[0] = true;
+        for (ImFunction f : prog.getFunctions()) {
+            f.accept(new ImFunction.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall c) {
+                    super.visit(c);
+                    if (c.getFunc() == sink) {
+                        callSurvives[0] = true;
+                    }
                 }
-            }
-        });
+            });
+        }
         assertTrue(callSurvives[0], "the call's side effect must survive the dead assignment");
     }
 }
