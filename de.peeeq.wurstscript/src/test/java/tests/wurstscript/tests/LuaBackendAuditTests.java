@@ -58,6 +58,26 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return compileLuaWithRunArgs(testName, runArgs, false, lines);
     }
 
+    /**
+     * A real operation which overflows the 32-bit float the folder computes in has no literal, so
+     * it is left for the game instead of crashing the build on the infinity sign. The stdlib's
+     * REAL_MAX is such a value once the optimised Lua build inlines it, and REAL_MAX / 2. is how a
+     * map hit it.
+     */
+    @Test
+    public void realFoldOverflowIsLeftUnfolded() {
+        String compiled = compileOptimizedLua("realFoldOverflowIsLeftUnfolded",
+            "package Test",
+            "native consume(real value)",
+            "public constant REAL_MAX = 340282366920938000000000000000000000000.",
+            "init",
+            "    consume(REAL_MAX / 2.)",
+            "    consume(2 * REAL_MAX)",
+            "    consume(300000000000000000000000000000000000000. * 10.)");
+        assertFalse("no non-finite literal is printed:\n" + compiled,
+            compiled.contains("∞") || compiled.contains("NaN"));
+    }
+
     @Test
     public void packageConstantsInlineAndRemoveDeadGuards() {
         String compiled = compileOptimizedLuaWithStdLib(
