@@ -85,9 +85,9 @@ public class ExprTranslation {
             ImType argumentType = e.getArguments().get(0).attrTyp();
             ImType resultType = e.attrTyp();
             if (argumentType instanceof ImClassType && TypesHelper.isIntType(resultType)) {
-                return LuaAst.LuaExprFunctionCall(tr.classToIndex, LuaAst.LuaExprlist(arg));
+                return classToIndex(arg);
             } else if (TypesHelper.isIntType(argumentType) && resultType instanceof ImClassType) {
-                return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(arg));
+                return classFromIndex(arg, tr);
             } else if (tcFunc.equals("objectToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("objectFromIndex")) {
@@ -108,6 +108,18 @@ public class ExprTranslation {
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
+        String unaryIntrinsic = unaryIntrinsicName(e.getFunc(), tr);
+        if (unaryIntrinsic != null && e.getArguments().size() == 1) {
+            LuaExprlist argument = LuaAst.LuaExprlist(e.getArguments().get(0).translateToLua(tr));
+            int dot = unaryIntrinsic.indexOf('.');
+            if (dot < 0) {
+                return LuaAst.LuaExprFunctionCallByName(unaryIntrinsic, argument);
+            }
+            // A library function: a field of the library table, which is a plain identifier.
+            return LuaAst.LuaExprFunctionCallE(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(tr.luaLibrary(unaryIntrinsic.substring(0, dot))),
+                unaryIntrinsic.substring(dot + 1)), argument);
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -146,11 +158,47 @@ public class ExprTranslation {
      * Recognised by node identity: an ordinary function of the same name keeps its definition.
      */
     static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
-        return function == tr.imTr.luaRawFloorDivIntFunc
+        return unaryIntrinsicName(function, tr) != null
+            || function == tr.imTr.luaRawFloorDivIntFunc
             || function == tr.imTr.luaRawFmodIntFunc
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
             || function == tr.imTr.luaRawConcatFunc;
+    }
+
+    /**
+     * The Lua builtin a one-argument conversion native is printed as, or null. The ensure helpers
+     * call these on every erased-generic read; a wrapper function around each would cost a Lua
+     * call on top of the builtin.
+     */
+    static @org.eclipse.jdt.annotation.Nullable String unaryIntrinsicName(ImFunction function, LuaTranslator tr) {
+        if (function == tr.imTr.luaRawToNumberIntFunc || function == tr.imTr.luaRawToNumberRealFunc) {
+            return "tonumber";
+        }
+        if (function == tr.imTr.luaRawToIntegerFunc) {
+            return "math.tointeger";
+        }
+        if (function == tr.imTr.luaRawToStringFunc) {
+            return "tostring";
+        }
+        return null;
+    }
+
+    /** {@code classToIndex}: nil is 0, an instance id stays itself; evaluates x once. */
+    static LuaExpr classToIndex(LuaExpr x) {
+        return LuaAst.LuaExprBinary(x, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
+    }
+
+    /** {@code classFromIndex}: 0 is nil. Inline for a variable, else the helper evaluates it once. */
+    static LuaExpr classFromIndex(LuaExpr i, LuaTranslator tr) {
+        if (!(i instanceof LuaExprVarAccess)) {
+            return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(i));
+        }
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(i, LuaAst.LuaOpUnequals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaOpAnd(), i.copy()),
+            LuaAst.LuaOpOr(), LuaAst.LuaExprNull());
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
@@ -557,7 +605,7 @@ public class ExprTranslation {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
             }
             if (fromType instanceof ImClassType) {
-                return LuaAst.LuaExprFunctionCall(tr.classToIndex, LuaAst.LuaExprlist(translated));
+                return classToIndex(translated);
             }
             if (fromType instanceof ImAnyType) {
                 return oldGenericsToInt(translated, tr);
@@ -568,7 +616,7 @@ public class ExprTranslation {
                 // Both sides are integer ids (or nil); nothing to normalise.
                 return translated;
             }
-            return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(translated));
+            return classFromIndex(translated, tr);
         } else if (imCast.getToType() instanceof ImAnyType) {
             if (fromType instanceof ImAnyType) {
                 return translated;

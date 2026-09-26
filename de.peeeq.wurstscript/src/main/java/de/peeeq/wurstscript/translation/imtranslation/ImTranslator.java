@@ -200,6 +200,11 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
+    /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
+    @Nullable public ImFunction luaRawToNumberIntFunc = null;
+    @Nullable public ImFunction luaRawToNumberRealFunc = null;
+    @Nullable public ImFunction luaRawToIntegerFunc = null;
+    @Nullable public ImFunction luaRawToStringFunc = null;
 
     /**
      * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
@@ -339,10 +344,10 @@ public class ImTranslator implements SpecialisationLookup {
             if(isLuaTarget()) {
                 // Portable IM bodies (not IS_NATIVE stubs) - see LuaEnsureFunctions for why.
                 List<ImFunction> luaHelperFunctions = new ArrayList<>();
-                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions);
+                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions, this);
                 ensureBoolFunc = LuaEnsureFunctions.buildEnsureBool(luaHelperFunctions);
-                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions);
-                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions);
+                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions, this);
+                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions, this);
                 stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions, this);
                 luaHelperFunctions.forEach(this::addFunction);
             }

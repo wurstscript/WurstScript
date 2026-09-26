@@ -242,6 +242,12 @@ public class LuaTranslator {
     final LuaVariable objectFreeCount = LuaAst.LuaVariable("__wurst_objectFreeCount", LuaAst.LuaExprIntVal("0"));
     final LuaFunction objectDealloc = LuaAst.LuaFunction("__wurst_deallocObject", LuaAst.LuaParams(), LuaAst.LuaStatements());
     final LuaFunction classToIndex = LuaAst.LuaFunction("__wurst_classToIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    private final Map<String, LuaVariable> luaLibraries = new HashMap<>();
+
+    /** A reference to a Lua standard library table such as {@code math}; never declared. */
+    LuaVariable luaLibrary(String name) {
+        return luaLibraries.computeIfAbsent(name, n -> LuaAst.LuaVariable(n, LuaAst.LuaNoExpr()));
+    }
     final LuaFunction classFromIndex = LuaAst.LuaFunction("__wurst_classFromIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     GetAForB<ImMethod, LuaFunction> luaDispatchFunc = new GetAForB<ImMethod, LuaFunction>() {

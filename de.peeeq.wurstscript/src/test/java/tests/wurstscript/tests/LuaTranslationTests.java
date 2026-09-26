@@ -1371,8 +1371,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testEnum", "zeroInt = zeroEnum", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum2 = zeroInt", true);
         // Integer-ID classes use their scalar id directly, with only null/zero normalization.
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_classToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_classFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testClass", "~= 0) and", true);
         assertFunctionBodyContains(compiled, "testClass", "cInt = cObj", false);
         assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
@@ -1470,8 +1470,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_objectIndexFunctionsDoNotCollideWithUserFunctions.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("function objectToIndex("));
         assertTrue(compiled.contains("function objectFromIndex("));
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_classToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_classFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testClass", "~= 0) and", true);
     }
 
     @Test
@@ -1516,8 +1516,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_oldGenericsCastingDoesNotUseGetHandleId.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_classToIndex", true);
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_classFromIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testCast", "~= 0) and", true);
     }
 
     @Test
