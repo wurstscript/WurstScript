@@ -67,6 +67,17 @@ public class ImOptimizer {
         removeGarbage();
     }
 
+    /** Inlines exactly the given calls; see {@link ImInliner#inlineCalls}. */
+    public int inlineCalls(Collection<ImFunctionCall> calls) {
+        ImInliner inliner = new ImInliner(trans);
+        int inlined = inliner.inlineCalls(calls);
+        trans.assertProperties();
+        if (inlined > 0) {
+            removeGarbage();
+        }
+        return inlined;
+    }
+
     public int inlineLuaDivModHelpersWithinLocalBudget() {
         return new ImInliner(trans).inlineLuaDivModHelpersWithinLocalBudget();
     }

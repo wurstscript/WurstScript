@@ -78,6 +78,68 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("∞") || compiled.contains("NaN"));
     }
 
+    /**
+     * An operator which delegates to an accessor (op_index -> get), inlined into a loop, leaves the
+     * accessor's method call inside that loop; it is lowered and inlined as well, down to the read.
+     */
+    @Test
+    public void delegatingOperatorInlinesThroughItsAccessor() {
+        String compiled = compileOptimizedLua("delegatingOperatorInlinesThroughItsAccessor",
+            "package Test",
+            "native consume(int value)",
+            "@noinline function oob(int index)",
+            "    consume(index)",
+            "class L<T:>",
+            "    private static T array store",
+            "    private int start = 0",
+            "    private int size = 0",
+            "    function add(T elem)",
+            "        store[start + size] = elem",
+            "        size++",
+            "    function get(int index) returns T",
+            "        if index < 0 or index >= size",
+            "            oob(index)",
+            "        return store[start + index]",
+            "    function op_index(int index) returns T",
+            "        return get(index)",
+            "@noinline function sumIndex(L<int> l) returns int",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    return s",
+            "init",
+            "    let l = new L<int>()",
+            "    for i = 0 to 9",
+            "        l.add(i)",
+            "    consume(sumIndex(l))");
+        String sumIndex = topLevelFunctionBodyWithPrefix(compiled, "sumIndex");
+        assertFalse("the delegated accessor is inlined into the loop:\n" + sumIndex,
+            sumIndex.contains("get") || sumIndex.contains("op_index"));
+    }
+
+    /** A subclass which overrides the accessor still receives the operator's calls. */
+    @Test
+    public void delegatingOperatorKeepsAnOverridingAccessor() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class L",
+            "    function get(int index) returns int",
+            "        return index",
+            "    function op_index(int index) returns int",
+            "        return get(index)",
+            "class Doubling extends L",
+            "    override function get(int index) returns int",
+            "        return index * 2",
+            "init",
+            "    L l = new Doubling()",
+            "    var s = 0",
+            "    for i = 0 to 9",
+            "        s += l[i]",
+            "    if s == 90",
+            "        testSuccess()");
+    }
+
     @Test
     public void packageConstantsInlineAndRemoveDeadGuards() {
         String compiled = compileOptimizedLuaWithStdLib(

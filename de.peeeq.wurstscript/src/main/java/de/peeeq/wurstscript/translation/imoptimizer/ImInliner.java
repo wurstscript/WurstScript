@@ -65,6 +65,45 @@ public class ImInliner {
     }
 
     /**
+     * Inlines exactly the given calls, under the same rules as {@link #doInlining}, and returns how
+     * many were inlined. For calls a lowering exposed after the main round: a delegating method
+     * such as {@code op_index -> get}, once inlined into a loop, leaves the method call it delegates
+     * to inside that loop, where it can be lowered and inlined in turn. Restricting this round to
+     * those calls keeps it from re-inlining every function whose rating changed in the first round.
+     */
+    public int inlineCalls(Collection<ImFunctionCall> calls) {
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        collectInlinableFunctions();
+        rateInlinableFunctions();
+        int inlined = 0;
+        for (ImFunctionCall call : calls) {
+            Element parent = call.getParent();
+            ImFunction caller = call.getNearestFunc();
+            ImFunction called = call.getFunc();
+            if (parent == null || caller == null || caller == called || !shouldInline(caller, call, called)) {
+                continue;
+            }
+            int index = -1;
+            for (int i = 0; i < parent.size(); i++) {
+                if (parent.get(i) == call) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index < 0) {
+                continue;
+            }
+            if (translator.isLuaTarget()) {
+                getLuaRegisterBudget(caller).recordInline(call, called);
+            }
+            inlineCall(caller, parent, index, call);
+            funcSizes.put(caller, estimateSize(caller));
+            inlined++;
+        }
+        return inlined;
+    }
+
+    /**
      * Retry the tiny compiler-owned arithmetic wrappers after local allocation has reduced the
      * caller. The late check rebuilds the locality analysis and uses the same allocation classes as
      * the local merger, so it cannot push Lua over the hard local-variable limit.

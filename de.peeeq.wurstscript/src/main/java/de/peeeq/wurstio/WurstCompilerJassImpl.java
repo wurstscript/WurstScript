@@ -760,6 +760,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     // a cache for compilation units, only used for unit tests to avoid parsing standard library too many times
     private static final Map<File, WeakReference<CompilationUnit>> fileCompilationUnitCache = new HashMap<>();
+    /** How many levels of delegation the post-inlining lowering follows into a loop. */
+    private static final int MAX_EXPOSED_CALL_INLINE_ROUNDS = 3;
 
     private CompilationUnit parseFile(File file) {
         if (errorHandler.isUnitTestMode()) {
@@ -957,6 +959,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
             beginPhase(5, "inlining");
             optimizer.doInlining();
+            imTranslator2.assertProperties();
+
+            // Inlining a delegating method into a loop (op_index -> get) leaves the call it
+            // delegates to inside that loop. Lower and inline those calls too, a few levels deep.
+            for (int round = 0; round < MAX_EXPOSED_CALL_INLINE_ROUNDS; round++) {
+                List<ImFunctionCall> exposed = LuaMethodCallLowering.lowerLoopCalls(imProg);
+                if (exposed.isEmpty() || optimizer.inlineCalls(exposed) == 0) {
+                    break;
+                }
+            }
             imTranslator2.assertProperties();
 
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");

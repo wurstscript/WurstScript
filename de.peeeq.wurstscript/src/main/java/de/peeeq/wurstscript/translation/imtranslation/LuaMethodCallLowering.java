@@ -20,6 +20,16 @@ public final class LuaMethodCallLowering {
     }
 
     public static int transform(ImProg prog) {
+        return lowerLoopCalls(prog).size();
+    }
+
+    /**
+     * Lowers every monomorphic method call which is inside a loop and returns the function calls
+     * that replaced them. Running it again after inlining finds the calls which inlining moved into
+     * a loop: a delegating method such as {@code op_index -> get} inlined into a loop leaves the
+     * inner method call behind in that loop.
+     */
+    public static List<ImFunctionCall> lowerLoopCalls(ImProg prog) {
         List<ImMethodCall> calls = new ArrayList<>();
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
@@ -31,10 +41,11 @@ public final class LuaMethodCallLowering {
             }
         });
 
+        List<ImFunctionCall> lowered = new ArrayList<>();
         for (ImMethodCall call : calls) {
-            lower(call);
+            lowered.add(lower(call));
         }
-        return calls.size();
+        return lowered;
     }
 
     private static boolean isInsideLoop(ImMethodCall call) {
@@ -55,13 +66,15 @@ public final class LuaMethodCallLowering {
             && method.getSubMethods().isEmpty();
     }
 
-    private static void lower(ImMethodCall call) {
+    private static ImFunctionCall lower(ImMethodCall call) {
         ImExpr receiver = call.getReceiver();
         receiver.setParent(null);
         ImExprs arguments = JassIm.ImExprs(receiver);
         arguments.addAll(call.getArguments().removeAll());
-        call.replaceBy(JassIm.ImFunctionCall(call.getTrace(), call.getMethod().getImplementation(),
+        ImFunctionCall direct = JassIm.ImFunctionCall(call.getTrace(), call.getMethod().getImplementation(),
             JassIm.ImTypeArguments(call.getTypeArguments().removeAll()), arguments,
-            call.getTuplesEliminated(), CallType.NORMAL));
+            call.getTuplesEliminated(), CallType.NORMAL);
+        call.replaceBy(direct);
+        return direct;
     }
 }
