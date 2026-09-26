@@ -4426,4 +4426,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("an erased read is still normalised:\n" + readBox,
             readBox.contains("__wurst_rawTo") || readBox.contains("__wurst_ensureInt"));
     }
+
+    /** instanceof is a boolean on Lua as well: comparing its stored result with false must work. */
+    @Test
+    public void instanceofYieldsAProperBoolean() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "class Base",
+            "class Derived extends Base",
+            "class Other extends Base",
+            "init",
+            "    Base d = new Derived()",
+            "    Base o = new Other()",
+            "    bool isDerived = d instanceof Derived",
+            "    bool otherIsDerived = o instanceof Derived",
+            "    Base none = null",
+            "    bool noneIsDerived = none instanceof Derived",
+            "    if isDerived == true and otherIsDerived == false and noneIsDerived == false",
+            "        testSuccess()");
+    }
 }
