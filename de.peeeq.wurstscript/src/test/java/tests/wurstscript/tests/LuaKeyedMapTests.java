@@ -24,7 +24,8 @@ import static org.testng.AssertJUnit.fail;
 public class LuaKeyedMapTests extends WurstScriptTest {
 
     private String getFunctionBody(String output, String functionName) {
-        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\(.*\\).*\\n" + "((?:\\n|.)*?)end");
+        // Up to the closing 'end' at column 0; nested blocks are indented.
+        Pattern pattern = Pattern.compile("function\\s*" + functionName + "\\s*\\([^\\n]*\\n(.*?)\\nend", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(output);
         if (!matcher.find()) {
             fail("Function " + functionName + " was not found.");
@@ -190,5 +191,96 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertFalse("the unit must be handed over as itself: " + init,
             init.contains("__wurst_objectToIndex") || init.contains("__wurst_classFromIndex")
                 || init.contains("__wurst_classToIndex"));
+    }
+
+    /**
+     * The shape the library ships for UnitIndexer: a concrete unit key with a Table + GetHandleId
+     * body. That body is correct on any compiler, so nothing degrades silently; a compiler with
+     * the lowering keys the native table by the unit itself.
+     */
+    private static String[] unitKeyedMapSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, unit key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int tbl, unit key) returns int",
+            "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapHas(int tbl, unit key) returns boolean",
+            "    return (tbl castTo Table).hasInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapRemove(int tbl, unit key)",
+            "    (tbl castTo Table).removeInt(GetHandleId(key))",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    @Test
+    public void unitKeyedMapKeysTheUnitItselfOnLua() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(unitKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let m = keyedMapCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedMapPut(m, u, 5)",
+            "    if keyedMapHas(m, u) and keyedMapGetInt(m, u) == 5",
+            "        print(\"present\")",
+            "    keyedMapRemove(m, u)",
+            "endpackage"));
+
+        String compiled = compiled("unitKeyedMapKeysTheUnitItselfOnLua");
+        String init = getFunctionBody(compiled, "init_Test");
+        assertTrue("the operations lower to the keyed-map stubs: " + init,
+            init.contains("__wurst_keyedMapPut") && init.contains("__wurst_keyedMapGetInt")
+                && init.contains("__wurst_keyedMapHas") && init.contains("__wurst_keyedMapRemove"));
+        assertFalse("the unit must not go through a handle id or an index map: " + init,
+            init.contains("GetHandleId") || init.contains("__wurst_objectToIndex") || init.contains("SaveInteger"));
+    }
+
+    /**
+     * Runtime parity for a handle key, on the interpreter through the Table body and on Lua
+     * through the stubs. Timers, because the Lua test runtime creates those; the lowering is the
+     * same for every handle type. A null key stores nothing and reads as absent on both.
+     */
+    @Test
+    public void handleKeyedMapAgreesOnBothBackends() {
+        test().testLua(true).executeProg(true).withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, timer key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int tbl, timer key) returns int",
+            "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapHas(int tbl, timer key) returns boolean",
+            "    return (tbl castTo Table).hasInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapRemove(int tbl, timer key)",
+            "    (tbl castTo Table).removeInt(GetHandleId(key))",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let m = keyedMapCreate()",
+            "    let a = CreateTimer()",
+            "    let b = CreateTimer()",
+            "    if keyedMapHas(m, a) or keyedMapGetInt(m, a) != 0",
+            "        testFail(\"empty map reported a\")",
+            "    keyedMapPut(m, a, 1)",
+            "    keyedMapPut(m, b, 2)",
+            "    if keyedMapGetInt(m, a) != 1 or keyedMapGetInt(m, b) != 2 or not keyedMapHas(m, b)",
+            "        testFail(\"handles did not get distinct entries\")",
+            "    keyedMapRemove(m, a)",
+            "    if keyedMapHas(m, a) or keyedMapGetInt(m, a) != 0 or keyedMapGetInt(m, b) != 2",
+            "        testFail(\"remove did not clear only its handle\")",
+            "    timer none = null",
+            "    keyedMapRemove(m, none)",
+            "    if keyedMapHas(m, none) or keyedMapGetInt(m, none) != 0",
+            "        testFail(\"a null key must read as absent\")",
+            "    testSuccess()",
+            "endpackage");
     }
 }

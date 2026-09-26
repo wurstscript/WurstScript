@@ -100,9 +100,16 @@ public final class LuaKeyedMap {
             && isKeyType(f.getParameters().get(1).getType());
     }
 
-    /** Same key types as the keyed table: an int, or an erased type parameter which is the element itself. */
+    /**
+     * Key types: an int, an erased type parameter which is the element itself, or a concrete
+     * handle type. The last lets a library declare the operations with a {@code unit} key and a
+     * Jass body of {@code Table} plus {@code GetHandleId}, which is correct in source on every
+     * compiler, so a build which does not lower the operations degrades to the hashtable path
+     * instead of keying every element the same.
+     */
     private static boolean isKeyType(ImType t) {
-        return TypesHelper.isIntType(t) || t instanceof ImTypeVarRef || t instanceof ImAnyType;
+        return TypesHelper.isIntType(t) || t instanceof ImTypeVarRef || t instanceof ImAnyType
+            || LuaNativeLowering.isHandleType(t);
     }
 
     /** Anything storable: a primitive, an erased type parameter, a class instance or a handle. */

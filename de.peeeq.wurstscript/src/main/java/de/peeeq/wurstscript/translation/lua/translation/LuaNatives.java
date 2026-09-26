@@ -302,7 +302,9 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("v", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("t[k] = v"));
+            // Writing under a nil key is an error in Lua, where reading one is only nil: a null
+            // element stores nothing and reads as absent.
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = v end"));
         });
         addNative("__wurst_keyedMapGet", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
@@ -337,7 +339,7 @@ public class LuaNatives {
         addNative("__wurst_keyedMapRemove", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("t[k] = nil"));
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
         });
 
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
