@@ -59,6 +59,9 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        if (TypeClassConstraints.hasHandleBound(typeParamDef) && other instanceof WurstTypeHandle) {
+            return mapping;
+        }
         return baseType.matchAgainstSupertypeIntern(other, location, mapping, NONE);
     }
 

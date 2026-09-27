@@ -3015,15 +3015,25 @@ public class WurstValidator {
      */
     private void checkBoundsSatisfied(Element location, TypeParamDef tp, WurstType typ) {
         List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(tp);
-        if (bounds.isEmpty() || typ instanceof WurstTypeUnknown) {
+        boolean handleBound = TypeClassConstraints.hasHandleBound(tp);
+        if (bounds.isEmpty() && !handleBound || typ instanceof WurstTypeUnknown) {
             return;
         }
         WurstType normalized = typ.normalize();
+        if (handleBound && normalized instanceof WurstTypeNull) {
+            location.addError("Cannot infer a handle type argument from null. Specify a concrete handle type.");
+            return;
+        }
         TypeParamDef abstractArg = asTypeParam(normalized);
         if (abstractArg != null) {
             // The argument is another type parameter, so no instance exists yet. It can only supply
             // the bound if it declares it itself; otherwise the call is unsatisfiable no matter what
             // the outer generic is later instantiated with.
+            if (handleBound && !TypeClassConstraints.hasHandleBound(abstractArg)) {
+                location.addError("Type parameter " + abstractArg.getName() + " does not satisfy the bound "
+                        + tp.getName() + ": handle.\nAdd the bound to " + abstractArg.getName()
+                        + ", as in <" + abstractArg.getName() + ": handle>.");
+            }
             for (InterfaceDef bound : bounds) {
                 if (!TypeClassConstraints.boundInterfaces(abstractArg).contains(bound)) {
                     location.addError("Type parameter " + abstractArg.getName() + " does not satisfy the bound "
@@ -3032,6 +3042,10 @@ public class WurstValidator {
                 }
             }
             return;
+        }
+        if (handleBound && !normalized.isSubtypeOf(WurstTypeHandle.instance(), location)) {
+            location.addError("Type " + normalized + " does not satisfy the bound " + tp.getName()
+                    + ": handle. Only handle types can be used here.");
         }
         for (InterfaceDef bound : bounds) {
             if (TypeClassInstances.find(bound, normalized) == null) {

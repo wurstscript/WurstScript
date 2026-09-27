@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -132,7 +133,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     }
 
     @Test
-    public void keyedMapDestroyCostsNothingOnLua() throws IOException {
+    public void keyedMapDestroyClearsLuaStore() throws IOException {
         test().testLua(true).stacktraces().withStdLib().lines(keyedMapSource(
             "package Test",
             "import KeyedMap",
@@ -142,10 +143,14 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapDestroy(m)",
             "endpackage"));
 
-        String compiled = compiled("keyedMapDestroyCostsNothingOnLua");
-        assertFalse("destroy must not become a native stub", compiled.contains("__wurst_keyedMapDestroy"));
+        String compiled = compiled("keyedMapDestroyClearsLuaStore");
+        assertTrue("destroy must clear the native Lua table", compiled.contains("__wurst_keyedMapDestroy"));
         String init = getFunctionBody(compiled, "init_Test");
-        assertFalse("no call should remain to free a keyed map on Lua: " + init, init.contains("keyedMapDestroy"));
+        assertTrue("the map destruction call should reach its clear stub: " + init,
+            init.contains("__wurst_keyedMapDestroy"));
+        String destroy = getFunctionBody(compiled, "__wurst_keyedMapDestroy");
+        assertTrue("the clear stub must empty the existing table in place: " + destroy,
+            destroy.contains("for k in pairs(t) do t[k] = nil end"));
         assertFalse("the Table machinery must not reach Lua: " + init,
             init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
     }
@@ -191,6 +196,303 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertFalse("the unit must be handed over as itself: " + init,
             init.contains("__wurst_objectToIndex") || init.contains("__wurst_classFromIndex")
                 || init.contains("__wurst_classToIndex"));
+    }
+
+    private static String[] handleKeyedMapSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int tbl, handle key) returns int",
+            "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+            "public class KeyedMap<K: handle>",
+            "    function put(K key, int value)",
+            "        keyedMapPut(0, key, value)",
+            "    function get(K key) returns int",
+            "        return keyedMapGetInt(0, key)",
+            "public function forwardPut<K: handle>(KeyedMap<K> map, K key, int value)",
+            "    map.put(key, value)",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    @Test
+    public void handleBoundWrapperSpecializesToOneLuaTableAccess() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(handleKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let map = new KeyedMap<unit>()",
+            "    let timerMap = new KeyedMap<timer>()",
+            "    let playerMap = new KeyedMap<player>()",
+            "    let itemMap = new KeyedMap<item>()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    forwardPut(map, u, 5)",
+            "    let value = map.get(u)",
+            "endpackage"));
+
+        String lua = compiled("handleBoundWrapperSpecializesToOneLuaTableAccess");
+        String init = getFunctionBody(lua, "init_Test");
+        String put = getFunctionBody(lua, "KeyedMap_KeyedMap_put");
+        String get = getFunctionBody(lua, "KeyedMap_KeyedMap_get");
+        assertTrue("specialized wrapper calls the unchanged put intrinsic: " + put,
+            put.contains("__wurst_keyedMapPut"));
+        assertTrue("specialized wrapper calls the unchanged get intrinsic: " + get,
+            get.contains("__wurst_keyedMapGetInt"));
+        assertFalse("the native unit is used as the key without handle-id conversion: " + init + put + get,
+            (init + put + get).contains("GetHandleId") || (init + put + get).contains("__wurst_objectToIndex")
+                || (init + put + get).contains("__wurst_classToIndex"));
+        assertTrue("put is one direct Lua table store",
+            getFunctionBody(lua, "__wurst_keyedMapPut").contains("t[k] = v"));
+        assertTrue("get is one direct Lua table read",
+            getFunctionBody(lua, "__wurst_keyedMapGetInt").contains("return t[k] or 0"));
+    }
+
+    @Test
+    public void handleBoundWrapperKeepsJassHashtableFallback() throws IOException {
+        ErrorHandler.outputTestSource = true;
+        try {
+            test().withStdLib().lines(handleKeyedMapSource(
+                "package Test",
+                "import KeyedMap",
+                "init",
+                "    let map = new KeyedMap<unit>()",
+                "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+                "    map.put(u, 5)",
+                "    let value = map.get(u)",
+                "endpackage"));
+
+            String jass = Files.toString(new File("test-output/LuaKeyedMapTests_handleBoundWrapperKeepsJassHashtableFallback_no_opts.j"), Charsets.UTF_8);
+            assertTrue("the Jass fallback still uses handle ids", jass.contains("GetHandleId"));
+            assertTrue("the Jass fallback still uses hashtable storage", jass.contains("SaveInteger")
+                && jass.contains("LoadInteger"));
+        } finally {
+            ErrorHandler.outputTestSource = false;
+        }
+    }
+
+    @Test
+    public void handleBoundRejectsIntegerKeys() {
+        testAssertErrorsLines(true, "Only handle types can be used here",
+            "package KeyedMap",
+            "public class KeyedMap<K: handle>",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "class Data",
+            "init",
+            "    let map = new KeyedMap<int>()",
+            "    let classMap = new KeyedMap<Data>()",
+            "endpackage");
+    }
+
+    @Test
+    public void handleBoundDoesNotInferNullAsATypeArgument() {
+        test().expectError("Cannot infer a handle type argument from null").withStdLib().lines(
+            "package Test",
+            "function identity<T: handle>(T value) returns T",
+            "    return value",
+            "init",
+            "    identity(null)",
+            "endpackage");
+    }
+
+    @Test
+    public void handleBoundAllowsNullForExplicitHandleType() {
+        test().withStdLib().lines(
+            "package Test",
+            "function identity<T: handle>(T value) returns T",
+            "    return value",
+            "init",
+            "    let value = identity<timer>(null)",
+            "endpackage");
+    }
+
+    @Test
+    public void handleBoundGenericValuesKeepTheirNativeLuaRepresentation() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
+            "    skip",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
+            "    if key == null",
+            "        return",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "public class KeyedMap<K: handle, V:>",
+            "    private int map",
+            "    construct()",
+            "        map = keyedMapCreate()",
+            "    function put(K key, V value)",
+            "        keyedMapPutNative<K, V>(map, key, value)",
+            "    function get(K key) returns V",
+            "        return keyedMapGetNative<K, V>(map, key)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "class Data",
+            "    int field",
+            "init",
+            "    let intMap = new KeyedMap<unit, int>()",
+            "    let classMap = new KeyedMap<unit, Data>()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedMapPut(0, u, 7)",
+            "    intMap.put(u, 5)",
+            "    let number = intMap.get(u)",
+            "    classMap.put(u, new Data())",
+            "    let data = classMap.get(u)",
+            "    data.field = number",
+            "endpackage");
+
+        String lua = compiled("handleBoundGenericValuesKeepTheirNativeLuaRepresentation");
+        String init = getFunctionBody(lua, "init_Test");
+        String put = getFunctionBody(lua, "KeyedMap_KeyedMap_put");
+        String get = getFunctionBody(lua, "KeyedMap_KeyedMap_get");
+        assertTrue("specialized generic wrapper calls the generic put intrinsic: " + put,
+            put.contains("__wurst_keyedMapPut"));
+        assertTrue("specialized generic wrapper calls the generic get intrinsic: " + get,
+            get.contains("__wurst_keyedMapGet"));
+        String wrapperCalls = init + put + get;
+        assertFalse("generic values and handle keys need no index conversions: " + wrapperCalls,
+            wrapperCalls.contains("GetHandleId") || wrapperCalls.contains("__wurst_objectToIndex")
+                || wrapperCalls.contains("__wurst_classToIndex") || wrapperCalls.contains("__wurst_classFromIndex"));
+        String putStub = getFunctionBody(lua, "__wurst_keyedMapPut");
+        String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
+        assertTrue("generic put has exactly one direct table store: " + putStub,
+            putStub.contains("t[k] = v") && putStub.indexOf("t[k]") == putStub.lastIndexOf("t[k]"));
+        assertTrue("generic get has exactly one direct table read: " + getStub,
+            getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+    }
+
+    @Test
+    public void nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedMap",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "public function readNative<K: handle, V:>(int tbl, K key) returns V",
+            "    return keyedMapGetNative<K, V>(tbl, key)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let map = keyedMapCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedMapPutNative<unit, int>(map, u, 42)",
+            "    let value = readNative<unit, int>(map, u)",
+            "endpackage");
+
+        String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub");
+        String init = getFunctionBody(lua, "init_Test");
+        assertTrue("the generic wrapper result is normalized to Wurst's int default: " + init,
+            init.contains("__wurst_ensureInt(readNative(map, u))"));
+        assertTrue("the generic getter still reaches the raw table stub", lua.contains("return t[k]"));
+        assertFalse("integer get must not leave the failing source fallback body",
+            lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));
+        String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
+        assertTrue("generic get is one direct table read: " + getStub,
+            getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+    }
+
+    @Test
+    public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
+        ErrorHandler.outputTestSource = true;
+        try {
+            test().withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
+                "    if key == null",
+                "        return",
+                "    skip",
+                "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
+                "    if key == null",
+                "        return",
+                "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+                "@compilerintrinsic public function keyedMapGetInt(int tbl, handle key) returns int",
+                "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+                "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+                "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+                "    return null",
+                "public class KeyedMap<K: handle, V:>",
+                "    private int map",
+                "    construct()",
+                "        map = keyedMapCreate()",
+                "    function put(K key, V value)",
+                "        keyedMapPutNative<K, V>(map, key, value)",
+                "    function get(K key) returns V",
+                "        return keyedMapGetNative<K, V>(map, key)",
+                "endpackage",
+                "package Test",
+                "import KeyedMap",
+                "class Data",
+                "init",
+                "    let intMap = new KeyedMap<unit, int>()",
+                "    let classMap = new KeyedMap<unit, Data>()",
+                "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+                "    intMap.put(u, 5)",
+                "    let number = intMap.get(u)",
+                "    classMap.put(u, new Data())",
+                "    let data = classMap.get(u)",
+                "    let keep = data",
+                "endpackage");
+
+            String jass = Files.toString(new File("test-output/LuaKeyedMapTests_handleBoundGenericValuesKeepJassHashtableFallback_no_opts.j"), Charsets.UTF_8);
+            assertTrue("generic values still lower to the hashtable int representation", jass.contains("SaveInteger")
+                && jass.contains("LoadInteger"));
+            assertTrue("handle keys still use GetHandleId", jass.contains("GetHandleId"));
+            assertTrue("class values route through the unchanged int fallback",
+                jass.contains("function keyedMapPutNative_unit__Data_u")
+                    && jass.contains("call keyedMapPut(tbl, key, value)"));
+            assertTrue("class reads route through the unchanged int getter",
+                jass.contains("function keyedMapGetNative_unit__Data_u")
+                    && jass.contains("return keyedMapGetInt(tbl, key)"));
+        } finally {
+            ErrorHandler.outputTestSource = false;
+        }
+    }
+
+    @Test
+    public void jassRejectsValuesWithoutIntegerRepresentation() {
+        test().expectError("keyedMapPutNative requires an int map, a handle key, and an int-represented value")
+            .withStdLib().lines(
+                "package KeyedMap",
+                "import Table",
+                "@compilerintrinsic public function keyedMapCreate() returns int",
+                "    return (new Table()) castTo int",
+                "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
+                "    skip",
+                "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
+                "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+                "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+                "    return null",
+                "@compilerintrinsic public function keyedMapGetInt(int tbl, handle key) returns int",
+                "    return (tbl castTo Table).loadInt(GetHandleId(key))",
+                "endpackage",
+                "package Test",
+                "import KeyedMap",
+                "init",
+                "    let map = keyedMapCreate()",
+                "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+                "    keyedMapPutNative<unit, real>(map, u, 1.)",
+                "endpackage");
     }
 
     /**
@@ -280,6 +582,34 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapRemove(m, none)",
             "    if keyedMapHas(m, none) or keyedMapGetInt(m, none) != 0",
             "        testFail(\"a null key must read as absent\")",
+            "    testSuccess()",
+            "endpackage");
+    }
+
+    @Test
+    public void keyedMapDestroyClearsLuaStoreWhileAliasRemains() {
+        test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, timer key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapHas(int tbl, timer key) returns boolean",
+            "    return (tbl castTo Table).hasInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapDestroy(int tbl)",
+            "    destroy (tbl castTo Table)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let map = keyedMapCreate()",
+            "    let alias = map",
+            "    let key = CreateTimer()",
+            "    keyedMapPut(map, key, 42)",
+            "    keyedMapDestroy(map)",
+            "    if keyedMapHas(alias, key)",
+            "        testFail(\"destroy must clear entries through retained aliases\")",
             "    testSuccess()",
             "endpackage");
     }

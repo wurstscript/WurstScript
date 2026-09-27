@@ -130,21 +130,19 @@ public final class LuaNativeLowering {
      * <p>Idempotent: once the calls point at stubs, nothing matches on a second run.
      */
     public static void lowerKeyedTables(ImProg prog) {
-        // Freeing a keyed table means nothing on Lua: the table is garbage once the caller drops
-        // it. Emptying the function leaves an ordinary one the inliner can remove, where a native
-        // stub would be an analysis barrier and leave a call doing nothing on every clear.
+        // A keyed-table destroy currently has no observable Lua storage to clear. Keep it as an
+        // ordinary empty function which the inliner can remove.
         for (ImFunction f : prog.getFunctions()) {
-            if (LuaKeyedTable.isDestroy(f) || LuaKeyedMap.isDestroy(f)) {
+            if (LuaKeyedTable.isDestroy(f)) {
                 f.getBody().clear();
                 f.getLocals().clear();
             }
         }
 
-        // Remove the destroy calls outright rather than leaving an empty function for the inliner
-        // to clean up: inlining only runs under -inline, and even then the Lua register budget can
-        // refuse a caller, so a call to a function that means nothing would survive into a normal
-        // build. Arguments move into a statement expression so anything they do still happens -
-        // the same shape UselessFunctionCallsRemover uses to drop a call it does not need.
+        // Remove keyed-table destroy calls outright rather than leaving an empty function for the
+        // inliner to clean up: inlining only runs under -inline, and even then the Lua register
+        // budget can refuse a caller. Arguments move into a statement expression so anything they
+        // do still happens, as in UselessFunctionCallsRemover.
         removeDestroyCalls(prog);
 
         Map<String, ImFunction> stubs = new LinkedHashMap<>();
@@ -180,8 +178,7 @@ public final class LuaNativeLowering {
             ListIterator<ImStmt> it = stmts.listIterator();
             while (it.hasNext()) {
                 ImStmt s = it.next();
-                if (s instanceof ImFunctionCall call
-                    && (LuaKeyedTable.isDestroy(call.getFunc()) || LuaKeyedMap.isDestroy(call.getFunc()))) {
+                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
                     ImStmts argStmts = JassIm.ImStmts();
                     for (ImExpr arg : new ArrayList<>(call.getArguments())) {
                         arg.setParent(null);

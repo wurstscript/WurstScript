@@ -425,6 +425,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
         timeTaker.endPhase();
 
+        beginPhase(2, "lower generic keyed-map values");
+        JassKeyedMapLowering.transform(imProg2);
+        timeTaker.endPhase();
+
         // Generic elimination has made each specialisation's element type concrete and classes are
         // integers by now, so the integer key a Jass keyed set needs follows from the type. Before
         // inlining, so every call site agrees on one body.

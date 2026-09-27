@@ -51,6 +51,9 @@ public class WurstTypeTypeParam extends WurstType {
                 return mapping;
             }
         }
+        if (TypeClassConstraints.hasHandleBound(def) && other instanceof WurstTypeHandle) {
+            return mapping;
+        }
         return null;
     }
 
@@ -134,7 +137,7 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     protected boolean isNullable() {
-        return !hasTypeConstraints();
+        return !hasTypeConstraints() || TypeClassConstraints.hasHandleBound(def);
     }
 
 }

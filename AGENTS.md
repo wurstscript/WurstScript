@@ -327,6 +327,12 @@ Recent regressions showed that virtual-slot binding can silently degrade to base
 
 ## 9. Compiler-Assisted Field Iteration and Generic Construction
 
+New generic bounds, the native `handle` bound, and the representation rules for compiler-owned
+KeyedMap intrinsics are documented in
+[`de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`](de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md)
+under “Type class bounds,” “New generics and native representations,” and “KeyedMap intrinsic
+representation.” Update that reference when changing these compiler semantics.
+
 The compiler surface used by serialization libraries is intentionally general-purpose and contains no knowledge
 of save formats, `ChunkedString`, hashes, or `Serializable`.
 
@@ -380,3 +386,44 @@ evaluation count, inherited/module fields, readonly versus mutable behavior, ove
 execution and diagnostics, ordinary same-name functions, generic functions and class methods, transitive method
 reachability, and generic interface dispatch. Assert generated output contains direct construction/accesses and no
 source intrinsic names or runtime reflection machinery.
+
+---
+
+## 10. New-Generic Handle-Keyed Maps
+
+The new generic bound `<K: handle>` can restrict keys to Warcraft handle types while retaining the
+specialized native handle type. A Lua keyed-map backend can therefore use a unit, timer, or other
+handle itself as the table key; do not convert it with `GetHandleId` or route it through an object
+index map.
+
+Keep the existing fixed `keyedMapPut(int, handle, int)` signature intact. A generic overload with the
+same name becomes ambiguous with ordinary legacy calls after specialization. Use a distinct
+compiler-intrinsic name such as `keyedMapPutNative<K: handle, V:>` for the typed operation (and
+`keyedMapGetNative<K: handle, V:>` for its typed read). Lua maps these aliases to a native table:
+`t[k] = v` for put and a single `t[k]` read with a type-appropriate primitive default. The
+specialized wrapper should add no conversion around those calls.
+
+Jass source cannot cast a new generic `V:` to `int`. For Jass, wait until after generic elimination
+and class elimination, then rewrite the specialized typed aliases to the existing fixed integer
+intrinsics. At that phase both `int` and class references have Jass integer representation. Reject
+other specialized value types with a diagnostic rather than adding generic boxing or a permissive
+cast. The original fixed intrinsic declarations and their `Table`/`GetHandleId` bodies remain the
+Jass compatibility path.
+
+Handle-bounded generic keys are nullable, so `K: handle` values may be compared with `null` and a
+null key must be guarded before a Lua table write. Do not infer a handle-bounded type argument from
+a bare `null`; null is a nullable value of a concrete handle specialization, not a native handle type
+to specialize as. An explicit type argument such as `f<unit>(null)` remains valid. Generic reference values must be non-null under
+the current map contract (the type bound does not enforce this): Jass specializes generic null to
+the type default, which cannot be distinguished from storing that default after specialization.
+Use `remove` for absence; do not add a post-specialization null check for generic values.
+
+`keyedMapDestroy` must release the Jass `Table` and clear the backing Lua table in place. Lua class
+destruction is a no-op, so the map object and table may remain reachable through aliases after
+`destroy`; dropping the clear call would retain all map entries. Keep a Lua runtime test that
+destroys a map while retaining an alias and verifies the alias sees an empty store.
+
+`LuaKeyedMapTests` is the focused compiler suite. It should assert that integer and class-reference
+value specializations reach one direct Lua table read/write with the handle itself as key, that
+integer and class-reference Jass specializations forward to the unchanged fixed hashtable
+intrinsics, that non-handle key types are rejected, and that destroy clears retained Lua aliases.
