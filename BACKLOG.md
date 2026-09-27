@@ -38,8 +38,10 @@ itself, and one gap in what the suite can see.
     identity, which for a class is reference identity. An instance whose `equals` is structural -
     `Hashable<vec2>` comparing components - would therefore have Jass treat two equal-valued keys as
     one key and Lua treat them as two, silently, from one program. So the native path is sound only
-    for `int`, `string`, `boolean`, and non-null reference keys whose
-    equality is identity. `real` is excluded from the first version: NaN is not a valid Lua table key,
+    for `int`, `boolean`, and non-null reference keys whose equality is identity. Strings are also
+    excluded from the first version: Lua lowering represents a null string as `""`, while Jass keeps
+    null distinct from the empty string, so raw lookup cannot preserve both meanings after lowering.
+    `real` is excluded from the first version: NaN is not a valid Lua table key,
     while the current probing implementation can store it. Add real keys only with an explicit
     encoding/rejection rule and matching cross-backend behavior. Null handle/class keys must be
     rejected or specially encoded because Lua cannot index `nil`. For values, define `put(key, null)`
@@ -68,10 +70,13 @@ itself, and one gap in what the suite can see.
     no-ops, make `has(null)` false, and return the missing-key default from `get(null)` on both
     targets. Emit these checks only for nullable reference specializations: a generic null check can
     become `key == 0` or `key == false` after specialization and would incorrectly reject valid
-    primitive keys. Cover `0` and `false` keys on both targets. For values, `put(key, null)` removes
-    the entry; preserve reference specialization long enough to implement that when null flows through
-    a nullable local, and cover it on both targets. Primitive value specializations do not accept
-    null. A present-null entry is outside the API contract.
+    primitive keys. Cover `0` and `false` keys on both targets. String key specializations are
+    rejected in the first version because Lua cannot distinguish null from empty string after lowering.
+    For values, `put(key, null)` removes the entry; preserve reference specialization long enough to
+    implement that when null flows through a nullable local, and cover it on both targets. Primitive
+    value specializations do not accept null. String value specializations are also excluded until null
+    and empty string can be represented distinctly on both targets. A present-null entry is outside the
+    API contract.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
@@ -98,12 +103,12 @@ itself, and one gap in what the suite can see.
       value.
 
     Left to settle. A raw `store[key]` read is correct for nil-defaulted references, but not for
-    primitive values: a missing generic `int`, `real`, `boolean`, or `string` must still read as
-    `0`, `0.0`, `false`, or `""` on Lua. Aggregate values need their Wurst default too: a tuple such
-    as `pos` must produce its field defaults (for example, `pos(0, 0)`) rather than `nil`. Use typed
-    getter specialization (for example, `t[k] or 0` for integers and `t[k] or ""` for strings) or an
-    equivalent typed backing-table default so each path keeps one table access without boxing. Add
-    cross-backend tests for tuple equality and field access on a missing key.
+    primitive values: a missing generic `int`, `real`, or `boolean` must still read as `0`, `0.0`, or
+    `false` on Lua. Aggregate values need their Wurst default too: a tuple such as `pos` must produce
+    its field defaults (for example, `pos(0, 0)`) rather than `nil`. Use typed getter specialization
+    (for example, `t[k] or 0` for integers) or an equivalent typed backing-table default so each path
+    keeps one table access without boxing. Keep missing nullable reference reads as `nil` on Lua to
+    match Jass null. Add cross-backend tests for tuple equality and field access on a missing key.
     The write is the other open question: as an `ExprFunctionCall` it must lower to an `ImExpr`, while
     what it wants to be is an `ImSet` to an array access. Either wrap it in an `ImStatementExpr` with
     a discarded value, or expand it at AST level after validation the way `wurstMapFields` assigns
