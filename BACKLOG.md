@@ -90,14 +90,15 @@ itself, and one gap in what the suite can see.
       feasible: the intrinsic can lower differently per target rather than needing dead-branch
       elimination to have happened first. An `if isLua` guard alone does not help, because folding
       runs after translation and both branches are lowered.
-    - Each map instance needs a distinct backing store and explicit teardown. WurstStdlib2 currently
-      declares `keyedMapCreate` and `keyedMapDestroy`, but WurstScript does not yet contain their
-      compiler-owned declarations and lowerings. Create a fresh `Table` for Jass and a fresh `{}` for
-      Lua; destroy/flush the Jass `Table` and clear the Lua table in place when the map is destroyed.
-      Lua class destruction is a no-op, so a map kept through an alias can remain reachable with all
-      its entries unless teardown clears it. Do not share a class table or static array between
-      instances. Add a lifecycle regression that repeatedly creates, uses, and destroys maps while
-      retaining an alias, then confirms the retained store is empty on both targets.
+    - Each map instance needs a distinct backing store and explicit teardown. Compiler PR #1318
+      establishes this for the narrower handle-keyed map: create a fresh `Table` for Jass and a fresh
+      `{}` for Lua, destroy/flush the Jass `Table`, and clear the Lua table in place when the map is
+      destroyed. Lua class destruction is a no-op, so a map kept through an alias can remain
+      reachable with all its entries unless teardown clears it. The general `RawHashMap` still needs
+      its broader key/value specializations to use the same lifecycle. Do not share a class table or
+      static array between instances. Add a lifecycle regression that repeatedly creates, uses, and
+      destroys maps while retaining an alias, then confirms the retained store is empty on both
+      targets.
     - Backend selection alone does not expose concrete `K` and `V` while translating a generic map
       method. Keyed operations must become roots for the existing targeted Lua specialization, or be
       lowered after equivalent concrete-type propagation. Otherwise calls such as
