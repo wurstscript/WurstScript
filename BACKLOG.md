@@ -50,10 +50,11 @@ itself, and one gap in what the suite can see.
     compiler must preserve the reference specialization long enough to lower a null check to the Jass
     representation and call `remove`, or use a presence encoding. A source-only check before
     specialization is insufficient, and storing a present-null entry is outside the API contract.
-    Reference keys must remain alive while an entry is stored: remove the key before destroying it.
-    Jass can recycle a destroyed class object's integer identity for a later allocation, while Lua
-    keeps the two object references distinct. Add a regression that removes an entry, destroys its
-    class key, forces ID reuse, and confirms the replacement key starts absent on both targets.
+    Reference keys and values must remain alive while an entry is stored: remove or replace them
+    before destroying them. Jass can recycle a destroyed class object's integer identity for a later
+    allocation, while Lua keeps the two object references distinct. Add regressions for both roles:
+    remove a key or replace a value, destroy the old object, force ID reuse, and confirm the map does
+    not expose the replacement object through a stale entry on either target.
     A second bound states which non-null keys are eligible:
 
         public interface RawKeyed<T:>          // no requirements; a promise that key equality matches Lua raw keys
