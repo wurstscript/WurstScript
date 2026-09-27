@@ -107,6 +107,12 @@ public class ProjectConfigBuilder {
             // else result.script stays as mapScript (no wurst.build name configured)
         }
 
+        // The source W3I above is deliberately reloaded each build so downgrading a cached map
+        // cannot discard fields. Reapply configured map data even when the config hash is cached.
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            prepareW3I(projectConfig, w3I);
+        }
+
         result.w3i = new File(buildDir, "war3map.w3i");
         applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua());
         w3I.write(result.w3i);
@@ -207,8 +213,6 @@ public class ProjectConfigBuilder {
     private static void applyBuildMapData(WurstProjectConfigData projectConfig, File mapScript, File buildDir,
                                           W3InstallationData w3data, W3I w3I, MapRequest.CompilationResult result,
                                           String configHash, String outputScriptName) throws IOException {
-        // Apply w3i config values
-        prepareW3I(projectConfig, w3I);
         result.script = new File(buildDir, outputScriptName);
 
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
