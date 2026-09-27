@@ -41,9 +41,12 @@ itself, and one gap in what the suite can see.
     equality is identity. `real` is excluded from the first version: NaN is not a valid Lua table key,
     while the current probing implementation can store it. Add real keys only with an explicit
     encoding/rejection rule and matching cross-backend behavior. Null handle/class keys also need to
-    be rejected or specially encoded because Lua cannot index `nil`. Null values need a defined
-    contract too: assigning `nil` removes a Lua entry, so either make `put(key, null)` remove the
-    entry on both targets or reject null values; do not count a present-null entry as supported.
+    be rejected or specially encoded because Lua cannot index `nil`. Generic null values are excluded
+    from the first API contract. Jass specialization rewrites generic null to the value type's default
+    (`0`, `0.0`, or `false`), so a post-specialization check cannot distinguish null from explicitly
+    storing that default. Use `remove` for absence. If null values are admitted later, the compiler must
+    reject them before generic specialization or encode their presence separately; do not promise that
+    a generic `put(key, null)` means removal on both targets.
     A second bound states which non-null keys are eligible:
 
         public interface RawKeyed<T:>          // no requirements; a promise that key equality matches Lua raw keys
@@ -70,10 +73,12 @@ itself, and one gap in what the suite can see.
       feasible: the intrinsic can lower differently per target rather than needing dead-branch
       elimination to have happened first. An `if isLua` guard alone does not help, because folding
       runs after translation and both branches are lowered.
-    - Each map instance needs a distinct backing store. The existing `keyedMapCreate` intrinsic is a
-      model: it creates a fresh `Table` for Jass and lowers to a fresh `{}` for Lua. Do not share a
-      class table or a static array between instances; the store is per map, and its lifetime follows
-      that map.
+    - Each map instance needs a distinct backing store. WurstStdlib2 currently declares
+      `keyedMapCreate`, but WurstScript does not yet contain its compiler-owned declaration and
+      lowering. Add and test that intrinsic as implementation work: it must create a fresh `Table`
+      for Jass and lower to a fresh `{}` for Lua. Do not treat the stdlib declaration as proof that
+      compiler support exists, and do not share a class table or static array between instances;
+      the store is per map, and its lifetime follows that map.
     - A Wurst array access already lowers to a plain `t[i]` on Lua
       (`lua.translation.ExprTranslation.translateArrayAccessRaw` builds `LuaExprArrayAccess`). Nothing
       in the backend needs changing; the only obstacle is that the language requires an `int` index,
@@ -92,16 +97,13 @@ itself, and one gap in what the suite can see.
 
     **Two things this now has to answer, from discussion.**
 
-    *Which target is `FastHashMap` for.* The owner's read is that it is really a Lua container. That
-    is right about speed and not about usefulness. On Jass a native `Table` does the hashing outside
-    the script, so probing arrays with a hash computed in Wurst will not beat `HashMap` - the name
-    only earns itself on Lua. But `HashMap` cannot take a `vec2`, a tuple or anything else not
-    castable, and two keys which cast to one int collide there, which is the niche `FastHashMap`
-    exists for and which is target independent. So: keep it working on both, take the native table on
-    Lua, and stop presenting the Jass path as the fast one. If that holds, the native table becomes
-    the primary implementation rather than an optimisation, and the capacity limits and probing become
-    the Jass fallback - which also settles the selection question above, since the two variants stop
-    being peers.
+    *How this relates to `FastHashMap`.* Keep ordinary `FastHashMap` probing on both targets: its
+    `Hashable.equals` behavior supports structural keys such as `vec2`, which Lua table identity
+    would not preserve. `RawHashMap` is the separate optional collection for `RawKeyed` keys only;
+    it uses Lua's native table and the existing `Hashable` probing path on Jass. Warcraft's native
+    `Table` already hashes outside the script, so the Jass fallback is for behavioral parity, not a
+    speed claim. This keeps structural keys on the existing probing path and confines raw identity
+    semantics to the collection whose bound promises them.
 
     *A `Hashing` package.* Wanted so instances and future containers stop hand-rolling a mix each.
     The modern choices - MurmurHash3's `fmix32`, xxHash, FxHash - are all xor, shift and wrapping
