@@ -327,6 +327,12 @@ Recent regressions showed that virtual-slot binding can silently degrade to base
 
 ## 9. Compiler-Assisted Field Iteration and Generic Construction
 
+New generic bounds, the native `handle` bound, and the representation rules for compiler-owned
+KeyedMap intrinsics are documented in
+[`de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md`](de.peeeq.wurstscript/src/main/resources/agent-docs/WURST_LANGUAGE.md)
+under “Type class bounds,” “New generics and native representations,” and “KeyedMap intrinsic
+representation.” Update that reference when changing these compiler semantics.
+
 The compiler surface used by serialization libraries is intentionally general-purpose and contains no knowledge
 of save formats, `ChunkedString`, hashes, or `Serializable`.
 

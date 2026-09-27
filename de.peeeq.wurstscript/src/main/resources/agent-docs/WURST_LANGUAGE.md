@@ -1,4 +1,4 @@
-<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-08-14 -->
+<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-09-27 -->
 # WurstScript language digest
 
 This is the compact, agent-oriented language reference shipped with the WurstScript compiler. It covers language semantics and compiler-facing syntax; standard-library APIs, dependency conventions, UI rules, and object-editor policies belong to the project or dependency documentation.
@@ -180,7 +180,19 @@ A bound names the interface without type arguments; `<K: Indexable>` means "ther
 
 Call a requirement on the type parameter, not on the value: `K.toIndex(key)`, never `key.toIndex()`. The value is an ordinary argument, so requirements which produce a value rather than consume one (`fromIndex`) need no special form.
 
-Unlike an interface used as a supertype, a bound works for `int`, `real`, `string`, tuples and handle types, and it costs nothing at runtime: after specialisation each requirement is a direct call to the instance function, on both Jass and Lua.
+Unlike an interface used as a supertype, an interface bound can be implemented for primitive, tuple, or handle types. This is still an ordinary type-class instance: every concrete type needs its own explicit `implements` block. There are no blanket instances for all handle subtypes or generic instances. After specialisation, each requirement is a direct call to the selected instance function on both Jass and Lua.
+
+The built-in `<T: handle>` bound is different: `handle` is a native supertype constraint, not an interface type class. It accepts native handle subtypes such as `unit`, `timer`, `player`, and `item`, without per-type instance declarations; it rejects integers and class references. A handle-bound type parameter can be passed to an intrinsic parameter declared as `handle`, and generic forwarding is valid only when the forwarded type parameter carries the handle bound too. The specialized parameter keeps its native handle representation.
+
+### New generics and native representations
+
+New-style generics specialize each concrete type argument into its native representation, with a separate specialization/type-id space. Do not apply the legacy `castTo int` pattern to a new generic value: that conversion belongs to the older erased generic model, where unrelated values share integer storage. For example, a specialized `V:` can represent an `int` or a class reference directly, without boxing. But a generic `V:` cannot be passed through an intrinsic whose declared parameter and return type are fixed `int`; type checking happens before specialization. A generic-value intrinsic must declare its value parameter and result as `V:` so each specialization reaches the backend with the matching native type. Keep fixed-int operations for APIs that really store and return only integers.
+
+### KeyedMap intrinsic representation
+
+The compiler-owned `keyedMapPut`/`keyedMapGet` intrinsics have a map handle stored as `int`, a key represented by the native handle (or supported primitive key), and a value represented by its specialized native type. Keep their intrinsic declarations and signatures aligned with the shapes recognized by `LuaKeyedMap`; changing the declaration shape can prevent intrinsic recognition. A wrapper such as `KeyedMap<K: handle, V:>` should forward `K` and `V` directly, without `GetHandleId`, integer casts, or class-to-index boxing on the Lua path.
+
+On Lua, the recognized operations lower to a native table keyed by the handle object itself: put is one `t[k] = v` store and get is one `t[k]` read (with the default appropriate to the value type). Do not introduce handle-id conversion or an index registry on this path. The source/Jass fallback still uses the hashtable-backed `Table` API and `GetHandleId`, because Jass has no Lua table identity keys. `LuaKeyedMapTests` covers intrinsic recognition, direct Lua table access, native handle identity, generic integer/class values, and Jass fallback; extend it when changing this lowering contract.
 
 Instances are unique and must be declared next to what they relate. An instance of `I` for type `X` may only live in the package declaring `I` or the package declaring `X`, and there may be only one. This makes `I` for `X` mean the same thing everywhere, independent of imports. Instances have no type parameters of their own in this version, so there is no way to write "every `List<T>` is `Indexable` when `T` is".
 
