@@ -347,7 +347,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     }
 
     @Test
-    public void nativeIntegerGetterSpecializationUsesRawLuaStub() throws IOException {
+    public void nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package KeyedMap",
             "import ErrorHandling",
@@ -358,6 +358,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
             "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
             "    return null",
+            "public function readNative<K: handle, V:>(int tbl, K key) returns V",
+            "    return keyedMapGetNative<K, V>(tbl, key)",
             "endpackage",
             "package Test",
             "import KeyedMap",
@@ -365,17 +367,18 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    let map = keyedMapCreate()",
             "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
             "    keyedMapPutNative<unit, int>(map, u, 42)",
-            "    let value = keyedMapGetNative<unit, int>(map, u)",
+            "    let value = readNative<unit, int>(map, u)",
             "endpackage");
 
-        String lua = compiled("nativeIntegerGetterSpecializationUsesRawLuaStub");
+        String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub");
         String init = getFunctionBody(lua, "init_Test");
-        assertTrue("specialized integer get reaches the raw table stub: " + init,
-            init.contains("__wurst_keyedMapGet"));
+        assertTrue("the generic wrapper result is normalized to Wurst's int default: " + init,
+            init.contains("__wurst_ensureInt(readNative(map, u))"));
+        assertTrue("the generic getter still reaches the raw table stub", lua.contains("return t[k]"));
         assertFalse("integer get must not leave the failing source fallback body",
             lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));
         String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
-        assertTrue("specialized integer get is one direct table read: " + getStub,
+        assertTrue("generic get is one direct table read: " + getStub,
             getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
     }
 

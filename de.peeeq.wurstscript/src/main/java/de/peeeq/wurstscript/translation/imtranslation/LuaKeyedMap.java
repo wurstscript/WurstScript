@@ -75,7 +75,7 @@ public final class LuaKeyedMap {
                 && result instanceof ImVoid
                 ? NATIVE_PUT : null;
             case GET -> isKeyedPair(f, 2) && isNilDefaultedType(result) ? NATIVE_GET : null;
-            case GET_NATIVE -> isKeyedPair(f, 2) && isValueType(result) ? NATIVE_GET : null;
+            case GET_NATIVE -> isKeyedPair(f, 2) ? nativeGetStub(result) : null;
             case GET_INT -> isKeyedPair(f, 2) && TypesHelper.isIntType(result) ? NATIVE_GET_INT : null;
             case GET_REAL -> isKeyedPair(f, 2) && TypesHelper.isRealType(result) ? NATIVE_GET_REAL : null;
             case GET_BOOL -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_GET_BOOL : null;
@@ -129,5 +129,12 @@ public final class LuaKeyedMap {
         return t instanceof ImSimpleType simple
             && !TypesHelper.isIntType(simple) && !TypesHelper.isRealType(simple)
             && !TypesHelper.isBoolType(simple) && !TypesHelper.isStringType(simple);
+    }
+
+    static String nativeGetStub(ImType result) {
+        if (TypesHelper.isIntType(result)) {
+            return NATIVE_GET_INT;
+        }
+        return isNilDefaultedType(result) ? NATIVE_GET : null;
     }
 }
