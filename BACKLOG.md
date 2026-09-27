@@ -18,8 +18,9 @@ Jass, and compiles on Lua (#1239). What is left is generality around it rather t
 itself, and one gap in what the suite can see.
 
 27. **A natively keyed store on Lua, selected by a type class.** Decided with the repo owner:
-    **the native path is taken only where the key's equality is identity**, and a type class says
-    which keys those are. Everything else keeps today's probing on both targets.
+    **the native path is taken only where Wurst key equality matches Lua's raw table-key equality**.
+    Primitive keys compare by value; class keys compare by reference identity. A type class says which
+    key types satisfy that contract. Everything else keeps today's probing on both targets.
 
     Why it is worth doing. `FastHashMap` does its own hashing and linear probing on both targets, but
     a Lua table already is a hash map: `t[key] = value` would let Lua hash, and would lift the fixed
@@ -45,19 +46,20 @@ itself, and one gap in what the suite can see.
     entry on both targets or reject null values; do not count a present-null entry as supported.
     A second bound states which non-null keys are eligible:
 
-        public interface RawKeyed<T:>          // no requirements; a promise that equality is identity
+        public interface RawKeyed<T:>          // no requirements; a promise that key equality matches Lua raw keys
 
-    How the two are then selected is unsettled, and the obvious spelling does not work: Wurst does not
-    overload a type on its bounds, so declaring `FastHashMap<K: Hashable>` beside
-    `FastHashMap<K: Hashable and RawKeyed>` makes every mention of the name ambiguous before any
-    instance is considered. Either the native variant is a separate type - `RawHashMap`, say, with the
-    bound as its entry condition - or one type carries both strategies and picks per operation, which
-    costs a branch and gives up the limits being lifted. Decide that before writing any of it.
+    Selection is explicit: expose a distinct `RawHashMap<K: Hashable and RawKeyed, V:>` for the
+    raw-key contract. Wurst does not overload a class based on its bounds, so do not declare two
+    `FastHashMap` variants with different constraints. `RawHashMap` uses Lua table keys on Lua and the
+    existing `Hashable` probing path on Jass; types without both bounds continue to use the existing
+    map types. There is no run-time type branch or same-name specialization. The Jass implementation
+    is a compatibility path, not a claim that Wurst-level probing beats Warcraft's native `Table`.
 
-    A further constraint on admitting reference-keyed classes: `null` is a value of any class type and
-    lowers to `nil`, and `t[nil]` is a runtime error in Lua while the probing implementation accepts
-    it wherever `Hashable` does. So identity alone is not sufficient for the native path - null keys
-    have to be rejected or special-cased.
+    For reference keys, make null behavior part of the API rather than relying on `RawKeyed` to
+    exclude null (the type bound cannot do that). `put(null, value)` and `remove(null)` should be
+    no-ops, `has(null)` should be false, and `get(null)` should return the missing-key default on both
+    targets. For values, define `put(key, null)` as removal so Lua's `nil` assignment and Jass
+    hashtable behavior agree; there is no present-null entry.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
