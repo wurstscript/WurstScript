@@ -36,7 +36,14 @@ itself, and one gap in what the suite can see.
     identity, which for a class is reference identity. An instance whose `equals` is structural -
     `Hashable<vec2>` comparing components - would therefore have Jass treat two equal-valued keys as
     one key and Lua treat them as two, silently, from one program. So the native path is sound only
-    for `int`, `real`, `string`, `boolean` and reference-keyed classes. A second bound states that:
+    for `int`, `string`, `boolean`, and non-null reference keys whose
+    equality is identity. `real` is excluded from the first version: NaN is not a valid Lua table key,
+    while the current probing implementation can store it. Add real keys only with an explicit
+    encoding/rejection rule and matching cross-backend behavior. Null handle/class keys also need to
+    be rejected or specially encoded because Lua cannot index `nil`. Null values need a defined
+    contract too: assigning `nil` removes a Lua entry, so either make `put(key, null)` remove the
+    entry on both targets or reject null values; do not count a present-null entry as supported.
+    A second bound states which non-null keys are eligible:
 
         public interface RawKeyed<T:>          // no requirements; a promise that equality is identity
 
@@ -61,6 +68,10 @@ itself, and one gap in what the suite can see.
       feasible: the intrinsic can lower differently per target rather than needing dead-branch
       elimination to have happened first. An `if isLua` guard alone does not help, because folding
       runs after translation and both branches are lowered.
+    - Each map instance needs a distinct backing store. The existing `keyedMapCreate` intrinsic is a
+      model: it creates a fresh `Table` for Jass and lowers to a fresh `{}` for Lua. Do not share a
+      class table or a static array between instances; the store is per map, and its lifetime follows
+      that map.
     - A Wurst array access already lowers to a plain `t[i]` on Lua
       (`lua.translation.ExprTranslation.translateArrayAccessRaw` builds `LuaExprArrayAccess`). Nothing
       in the backend needs changing; the only obstacle is that the language requires an `int` index,
@@ -103,9 +114,10 @@ itself, and one gap in what the suite can see.
     rather than separate work. Measure `bwXor32` before committing to any of this; its cost is the
     whole argument and it was read from the source rather than timed.
 
-    Blocks `WurstStdlib2#468`, deliberately: shipping `FastHashMap` first would commit
-    `FASTHASHMAP_CAPACITY`, `isFull()` and `Hashable.hash` to the public API when the Lua path makes
-    all three meaningless on that target.
+    This no longer blocks `WurstStdlib2#468`: `FastHashMap` now computes its own hash and the
+    `StringHash` defects do not affect it. Keep the raw-key design as a separate, optional collection
+    for workloads that benefit from native-key semantics and Lua table capacity; do not present its
+    Jass fallback as faster than the existing native `Table` implementation.
 
 28. **Two costs the Lua emission pays which look avoidable.** Found by reading the emitted script
     for `FastHashMapTests_fastHashMapRuntimeLua`, not by profiling. **Measure both before touching
@@ -124,19 +136,17 @@ itself, and one gap in what the suite can see.
     is needed: an untouched table key is `nil` where Jass reads `0` or `false`, and class and handle
     typed arrays already skip it because `nil` is the right default for them.
 
-    The fix is to move the default off the access site and onto the table, which is the ordinary Lua
-    idiom for exactly this:
+    The proposed default metatable was already installed by `LuaTranslator.newDefaultArray`, which
+    shares primitive default metatables across arrays. Adding another metatable at this site would do
+    nothing. The emitted read still calls the `__wurst_ensureBool`/`__wurst_ensureInt` helper because
+    `LuaNativeLowering.lowerPrimitiveArrayEnsure` retains that wrapper around rvalue reads.
 
-        __wurst_default_false = ({__index = function() return false end})
-        setmetatable(FastHashMap_used, __wurst_default_false)
-
-    A present key is then a raw table index with no call at all, and the function runs only on a miss
-    - which is the rare case, a read of a slot never written. One metatable per primitive array global
-    replaces a wrapper at every read site. Three shared metatables cover int, bool and real. `pairs`
-    is unaffected by `__index`, so nothing which iterates an array changes. What has to be checked:
-    where the `setmetatable` calls are emitted (globals init, before any read), that a `0` or `false`
-    actually stored still reads back rather than falling through, and whether anything relies on the
-    stacktrace argument `callWithStacktrace` adds to the current wrapper.
+    The open question is whether that read-site normalization can be removed for compiler-emitted
+    arrays. The metatable already supplies `0`/`false` for missing entries; however, the current
+    lowering also normalizes values that reach a primitive read from erased or otherwise untyped
+    storage. Trace those sources and the typed-value proof before changing the lowering. Do not add
+    another metatable proposal; measure the remaining helper calls and keep any external raw-Lua writes
+    outside the contract, as stated in the Lua backend guardrails.
 
     *A method with an override stops being a direct call.* Without one, a bounded generic's method
     lowers to a direct call - `Box_render_specialized(Box_new_Box(), 42)`. Add a subclass which
