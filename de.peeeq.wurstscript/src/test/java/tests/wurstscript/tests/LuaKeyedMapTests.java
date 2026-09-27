@@ -289,6 +289,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         test().testLua(true).inline().withStdLib().lines(
             "package KeyedMap",
             "import Table",
+            "import ErrorHandling",
             "@compilerintrinsic public function keyedMapCreate() returns int",
             "    return (new Table()) castTo int",
             "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
@@ -296,8 +297,9 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
             "    if key == null",
             "        return",
-            "    skip",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
             "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
             "    return null",
             "public class KeyedMap<K: handle, V:>",
             "    private int map",
@@ -345,12 +347,46 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     }
 
     @Test
+    public void nativeIntegerGetterSpecializationUsesRawLuaStub() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedMap",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let map = keyedMapCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedMapPutNative<unit, int>(map, u, 42)",
+            "    let value = keyedMapGetNative<unit, int>(map, u)",
+            "endpackage");
+
+        String lua = compiled("nativeIntegerGetterSpecializationUsesRawLuaStub");
+        String init = getFunctionBody(lua, "init_Test");
+        assertTrue("specialized integer get reaches the raw table stub: " + init,
+            init.contains("__wurst_keyedMapGet"));
+        assertFalse("integer get must not leave the failing source fallback body",
+            lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));
+        String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
+        assertTrue("specialized integer get is one direct table read: " + getStub,
+            getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+    }
+
+    @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;
         try {
             test().withStdLib().lines(
             "package KeyedMap",
             "import Table",
+            "import ErrorHandling",
             "@compilerintrinsic public function keyedMapCreate() returns int",
             "    return (new Table()) castTo int",
             "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int tbl, K key, V value)",
@@ -360,10 +396,11 @@ public class LuaKeyedMapTests extends WurstScriptTest {
                 "@compilerintrinsic public function keyedMapPut(int tbl, handle key, int value)",
                 "    if key == null",
                 "        return",
-                "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+                "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
                 "@compilerintrinsic public function keyedMapGetInt(int tbl, handle key) returns int",
                 "    return (tbl castTo Table).loadInt(GetHandleId(key))",
                 "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int tbl, K key) returns V",
+                "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
                 "    return null",
                 "public class KeyedMap<K: handle, V:>",
                 "    private int map",
