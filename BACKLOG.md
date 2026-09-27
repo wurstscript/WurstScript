@@ -92,9 +92,10 @@ itself, and one gap in what the suite can see.
       value.
 
     Left to settle. A raw `store[key]` read is correct for nil-defaulted references, but not for
-    primitive values: a missing generic `int`, `real`, or `boolean` must still read as `0`, `0.0`, or
-    `false` on Lua. Use a typed getter specialization (for example, `t[k] or 0` for integers) or an
-    equivalent typed backing-table default so each path keeps one table access without boxing.
+    primitive values: a missing generic `int`, `real`, `boolean`, or `string` must still read as
+    `0`, `0.0`, `false`, or `""` on Lua. Use a typed getter specialization (for example,
+    `t[k] or 0` for integers and `t[k] or ""` for strings) or an equivalent typed backing-table
+    default so each path keeps one table access without boxing.
     The write is the other open question: as an `ExprFunctionCall` it must lower to an `ImExpr`, while
     what it wants to be is an `ImSet` to an array access. Either wrap it in an `ImStatementExpr` with
     a discarded value, or expand it at AST level after validation the way `wurstMapFields` assigns
