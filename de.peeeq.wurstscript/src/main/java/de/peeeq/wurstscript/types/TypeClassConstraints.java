@@ -56,6 +56,21 @@ public final class TypeClassConstraints {
         return !boundExprs(tp).isEmpty();
     }
 
+    /** True when one of the bounds is the built-in JASS handle supertype. */
+    public static boolean hasHandleBound(TypeParamDef tp) {
+        return boundExprs(tp).stream().anyMatch(TypeClassConstraints::isHandleBound);
+    }
+
+    /**
+     * Handle is a native supertype bound, not a type class: it constrains representation without
+     * requiring an instance declaration for every native handle subtype.
+     */
+    public static boolean isHandleBound(TypeExpr boundExpr) {
+        return boundExpr instanceof TypeExprSimple simple
+                && simple.getTypeName().equals("handle")
+                && simple.getTypeArgs().isEmpty();
+    }
+
     /**
      * Resolves one bound expression to the interface it names, or null when the bound is not a
      * plain reference to a single-parameter interface.
@@ -73,13 +88,16 @@ public final class TypeClassConstraints {
      */
     public static @Nullable String invalidBoundReason(TypeExpr boundExpr) {
         if (!(boundExpr instanceof TypeExprSimple simple)) {
-            return "A bound must name an interface.";
+            return "A bound must name an interface or the native handle type.";
         }
         // A bound names the interface unapplied: writing the type argument would be redundant,
         // because it is always the type parameter being constrained.
         if (!simple.getTypeArgs().isEmpty()) {
             return "A bound must name the interface without type arguments, because the argument is"
                     + " always the type parameter being constrained.";
+        }
+        if (isHandleBound(boundExpr)) {
+            return null;
         }
         TypeDef def = boundExpr.lookupType(simple.getTypeName(), false);
         if (def == null) {

@@ -34,7 +34,9 @@ public final class LuaKeyedMap {
 
     private static final String CREATE = "keyedMapCreate";
     private static final String PUT = "keyedMapPut";
+    private static final String PUT_NATIVE = "keyedMapPutNative";
     private static final String GET = "keyedMapGet";
+    private static final String GET_NATIVE = "keyedMapGetNative";
     private static final String GET_INT = "keyedMapGetInt";
     private static final String GET_REAL = "keyedMapGetReal";
     private static final String GET_BOOL = "keyedMapGetBool";
@@ -69,10 +71,10 @@ public final class LuaKeyedMap {
         return switch (fd.getName()) {
             case CREATE -> f.getParameters().isEmpty() && TypesHelper.isIntType(result)
                 ? NATIVE_CREATE : null;
-            case PUT -> isKeyedPair(f, 3) && isValueType(f.getParameters().get(2).getType())
+            case PUT, PUT_NATIVE -> isKeyedPair(f, 3) && isValueType(f.getParameters().get(2).getType())
                 && result instanceof ImVoid
                 ? NATIVE_PUT : null;
-            case GET -> isKeyedPair(f, 2) && isNilDefaultedType(result) ? NATIVE_GET : null;
+            case GET, GET_NATIVE -> isKeyedPair(f, 2) && isNilDefaultedType(result) ? NATIVE_GET : null;
             case GET_INT -> isKeyedPair(f, 2) && TypesHelper.isIntType(result) ? NATIVE_GET_INT : null;
             case GET_REAL -> isKeyedPair(f, 2) && TypesHelper.isRealType(result) ? NATIVE_GET_REAL : null;
             case GET_BOOL -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_GET_BOOL : null;

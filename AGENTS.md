@@ -386,3 +386,37 @@ evaluation count, inherited/module fields, readonly versus mutable behavior, ove
 execution and diagnostics, ordinary same-name functions, generic functions and class methods, transitive method
 reachability, and generic interface dispatch. Assert generated output contains direct construction/accesses and no
 source intrinsic names or runtime reflection machinery.
+
+---
+
+## 10. New-Generic Handle-Keyed Maps
+
+The new generic bound `<K: handle>` can restrict keys to Warcraft handle types while retaining the
+specialized native handle type. A Lua keyed-map backend can therefore use a unit, timer, or other
+handle itself as the table key; do not convert it with `GetHandleId` or route it through an object
+index map.
+
+Keep the existing fixed `keyedMapPut(int, handle, int)` signature intact. A generic overload with the
+same name becomes ambiguous with ordinary legacy calls after specialization. Use a distinct
+compiler-intrinsic name such as `keyedMapPutNative<K: handle, V:>` for the typed operation (and
+`keyedMapGetNative<K: handle, V:>` for its typed read). Lua maps these aliases to the same native
+table stubs: `t[k] = v` and `t[k]`. The specialized wrapper should add no conversion around those
+calls.
+
+Jass source cannot cast a new generic `V:` to `int`. For Jass, wait until after generic elimination
+and class elimination, then rewrite the specialized typed aliases to the existing fixed integer
+intrinsics. At that phase both `int` and class references have Jass integer representation. Reject
+other specialized value types with a diagnostic rather than adding generic boxing or a permissive
+cast. The original fixed intrinsic declarations and their `Table`/`GetHandleId` bodies remain the
+Jass compatibility path.
+
+Handle-bounded generic keys are nullable, so `K: handle` values may be compared with `null` and a
+null key must be guarded before a Lua table write. Generic reference values must be non-null under
+the current map contract (the type bound does not enforce this): Jass specializes generic null to
+the type default, which cannot be distinguished from storing that default after specialization.
+Use `remove` for absence; do not add a post-specialization null check for generic values.
+
+`LuaKeyedMapTests` is the focused compiler suite. It should assert that integer and class-reference
+value specializations reach one direct Lua table read/write with the handle itself as key, that
+integer and class-reference Jass specializations forward to the unchanged fixed hashtable
+intrinsics, and that non-handle key types are rejected.
