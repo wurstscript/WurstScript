@@ -399,9 +399,9 @@ index map.
 Keep the existing fixed `keyedMapPut(int, handle, int)` signature intact. A generic overload with the
 same name becomes ambiguous with ordinary legacy calls after specialization. Use a distinct
 compiler-intrinsic name such as `keyedMapPutNative<K: handle, V:>` for the typed operation (and
-`keyedMapGetNative<K: handle, V:>` for its typed read). Lua maps these aliases to the same native
-table stubs: `t[k] = v` and `t[k]`. The specialized wrapper should add no conversion around those
-calls.
+`keyedMapGetNative<K: handle, V:>` for its typed read). Lua maps these aliases to a native table:
+`t[k] = v` for put and a single `t[k]` read with a type-appropriate primitive default. The
+specialized wrapper should add no conversion around those calls.
 
 Jass source cannot cast a new generic `V:` to `int`. For Jass, wait until after generic elimination
 and class elimination, then rewrite the specialized typed aliases to the existing fixed integer
@@ -416,7 +416,12 @@ the current map contract (the type bound does not enforce this): Jass specialize
 the type default, which cannot be distinguished from storing that default after specialization.
 Use `remove` for absence; do not add a post-specialization null check for generic values.
 
+`keyedMapDestroy` must release the Jass `Table` and clear the backing Lua table in place. Lua class
+destruction is a no-op, so the map object and table may remain reachable through aliases after
+`destroy`; dropping the clear call would retain all map entries. Keep a Lua runtime test that
+destroys a map while retaining an alias and verifies the alias sees an empty store.
+
 `LuaKeyedMapTests` is the focused compiler suite. It should assert that integer and class-reference
 value specializations reach one direct Lua table read/write with the handle itself as key, that
 integer and class-reference Jass specializations forward to the unchanged fixed hashtable
-intrinsics, and that non-handle key types are rejected.
+intrinsics, that non-handle key types are rejected, and that destroy clears retained Lua aliases.

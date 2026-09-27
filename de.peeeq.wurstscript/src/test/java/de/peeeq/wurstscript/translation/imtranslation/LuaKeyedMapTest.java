@@ -11,4 +11,11 @@ public class LuaKeyedMapTest {
     public void integerSpecializationUsesTypedDefaultStub() {
         assertEquals(LuaKeyedMap.nativeGetStub(JassIm.ImSimpleType("integer")), LuaKeyedMap.NATIVE_GET_INT);
     }
+
+    @Test
+    public void otherPrimitiveSpecializationsUseTypedDefaultStubs() {
+        assertEquals(LuaKeyedMap.nativeGetStub(JassIm.ImSimpleType("real")), LuaKeyedMap.NATIVE_GET_REAL);
+        assertEquals(LuaKeyedMap.nativeGetStub(JassIm.ImSimpleType("boolean")), LuaKeyedMap.NATIVE_GET_BOOL);
+        assertEquals(LuaKeyedMap.nativeGetStub(JassIm.ImSimpleType("string")), LuaKeyedMap.NATIVE_GET_STR);
+    }
 }

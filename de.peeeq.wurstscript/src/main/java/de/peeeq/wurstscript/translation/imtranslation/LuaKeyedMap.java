@@ -137,6 +137,15 @@ public final class LuaKeyedMap {
         if (TypesHelper.isIntType(result)) {
             return NATIVE_GET_INT;
         }
+        if (TypesHelper.isRealType(result)) {
+            return NATIVE_GET_REAL;
+        }
+        if (TypesHelper.isBoolType(result)) {
+            return NATIVE_GET_BOOL;
+        }
+        if (TypesHelper.isStringType(result)) {
+            return NATIVE_GET_STR;
+        }
         return isNilDefaultedType(result) ? NATIVE_GET : null;
     }
 }
