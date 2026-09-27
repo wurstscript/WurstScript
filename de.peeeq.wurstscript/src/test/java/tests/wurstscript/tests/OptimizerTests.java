@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
@@ -12,6 +13,9 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.ImInliner;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -29,6 +33,137 @@ import java.util.Map;
 import static org.testng.Assert.*;
 
 public class OptimizerTests extends WurstScriptTest {
+
+    @Test
+    public void packageConstantsInlineAndRemoveDeadGuardsInJass() throws IOException {
+        test().withStdLib().runCompiletimeFunctions(true).lines(
+            "package Test",
+            "public constant bool COMPILETIME_DISABLED = compiletime(false)",
+            "public constant int VALUE = 7",
+            "public constant bool DISABLED = false",
+            "public constant bool ENABLED = true",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "bool active",
+            "function dead()",
+            "    consume(VALUE)",
+            "function compiletimeDead()",
+            "    consume(VALUE)",
+            "function guarded()",
+            "    if COMPILETIME_DISABLED and active",
+            "        compiletimeDead()",
+            "    if DISABLED and active",
+            "        dead()",
+            "    if ENABLED and active",
+            "        consume(VALUE)",
+            "    consume(CONFIGURABLE)",
+            "init",
+            "    guarded()"
+        );
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_packageConstantsInlineAndRemoveDeadGuardsInJass_inlopt.j"),
+            Charsets.UTF_8);
+        assertFalse(compiled.contains("Test_VALUE") || compiled.contains("Test_DISABLED") || compiled.contains("Test_ENABLED")
+            || compiled.contains("Test_COMPILETIME_DISABLED"));
+        assertFalse(compiled.contains("function Test_dead takes") || compiled.contains("function Test_compiletimeDead takes"));
+        assertTrue(compiled.contains("if Test_active then"));
+        assertTrue(compiled.contains("call consume(7)"));
+        assertTrue(compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    @Test
+    public void laterPackageConstantIsNotInlinedIntoEarlierInitializers() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "int observed = readLater()",
+            "init",
+            "    consume(readLater())",
+            "constant int LATER = 7",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_laterPackageConstantIsNotInlinedIntoEarlierInitializers_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void superclassTranslationOrderPreservesLaterConstant() throws IOException {
+        test().lines(
+            "package Test",
+            "native consume(int value)",
+            "class Child extends Parent",
+            "constant int LATER = 7",
+            "class Parent",
+            "    static int observed = readLater()",
+            "function readLater() returns int",
+            "    return LATER",
+            "init",
+            "    consume(Parent.observed)"
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_superclassTranslationOrderPreservesLaterConstant_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("Test_LATER"));
+    }
+
+    @Test
+    public void abortableInitializerBeforeConstantPreservesLaterWrite() throws IOException {
+        test().compilationUnits(
+            compilationUnit("AbortBeforeConstant",
+                "package AbortBeforeConstant",
+                "native abortInitialization()",
+                "init",
+                "    abortInitialization()",
+                "public constant int LATER = 7"),
+            compilationUnit("ReadAfterAbort",
+                "package ReadAfterAbort",
+                "import AbortBeforeConstant",
+                "constant int SAFE = 11",
+                "native consume(int value)",
+                "init",
+                "    consume(LATER + SAFE)")
+        );
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_abortableInitializerBeforeConstantPreservesLaterWrite_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("AbortBeforeConstant_LATER"));
+        assertFalse(compiled.contains("ReadAfterAbort_SAFE"));
+    }
+
+    @Test
+    public void initlaterAnalysisIsCompilationScoped() throws IOException {
+        compileInitlaterConstantRepro("first", "First");
+        compileInitlaterConstantRepro("second", "Second");
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_initlaterAnalysis_second_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("SecondValue_VALUE"));
+    }
+
+    private void compileInitlaterConstantRepro(String testName, String prefix) {
+        testNamed("initlaterAnalysis_" + testName).compilationUnits(
+            compilationUnit(prefix + "Value",
+                "package " + prefix + "Value",
+                "public constant int VALUE = 7",
+                "public function readValue() returns int",
+                "    return VALUE"),
+            compilationUnit(prefix + "Reader",
+                "package " + prefix + "Reader",
+                "import initlater " + prefix + "Value",
+                "native consume(int value)",
+                "int observed = readValue()",
+                "init",
+                "    consume(observed)")
+        );
+    }
+
 
 
     @Test
@@ -442,6 +577,184 @@ public class OptimizerTests extends WurstScriptTest {
             "		if i == 465",
             "			testSuccess()",
             "endpackage");
+    }
+
+    @Test
+    public void preserveNameAnnotationExemptsFunctionFromCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "    function normallyCompressed()",
+            "        testSuccess()",
+            "    init",
+            "        externallyCalled()",
+            "        normallyCompressed()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationExemptsFunctionFromCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected @preserveName function to retain its source name.\n" + output);
+        assertFalse(output.contains("function normallyCompressed"),
+            "Expected an unannotated function to remain eligible for compression.\n" + output);
+    }
+
+    @Test
+    public void executeFuncPreservesResolvedFunctionNameDuringCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    @extern native ExecuteFunc(string name)",
+            "    native testSuccess()",
+            "    function callback()",
+            "        testSuccess()",
+            "    init",
+            "        ExecuteFunc(\"callback\")",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_executeFuncPreservesResolvedFunctionNameDuringCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function callback"),
+            "Expected ExecuteFunc target to retain its source name.\n" + output);
+        assertTrue(output.contains("ExecuteFunc(\"callback\")"),
+            "Expected ExecuteFunc to receive the preserved source name.\n" + output);
+    }
+
+    @Test
+    public void preserveNameAnnotationKeepsExternallyCalledFunctionReachable() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    @preserveName function externallyCalled()",
+            "        testSuccess()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preserveNameAnnotationKeepsExternallyCalledFunctionReachable_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function externallyCalled"),
+            "Expected an externally-called @preserveName function to survive garbage collection.\n" + output);
+    }
+
+    @Test
+    public void preservedNamesAreReservedBeforeCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native testSuccess()",
+            "    function ordinary()",
+            "        testSuccess()",
+            "    @preserveName function w()",
+            "        testSuccess()",
+            "    init",
+            "        ordinary()",
+            "        w()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_preservedNamesAreReservedBeforeCompression_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("function w"),
+            "Expected the preserved function name to remain available.\n" + output);
+        assertFalse(output.contains("function w_1"),
+            "Expected compression to reserve the preserved name.\n" + output);
+    }
+
+    @Test
+    public void nativeNamesAreReservedBeforeCompression() throws IOException {
+        test().optimize().lines(
+            "package test",
+            "    native w()",
+            "    function ordinary()",
+            "        w()",
+            "    init",
+            "        ordinary()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_nativeNamesAreReservedBeforeCompression_opt.j"),
+            Charsets.UTF_8);
+        assertFalse(output.contains("function w takes"),
+            "Compression must not reuse a native API name.\n" + output);
+    }
+
+    @Test
+    public void reforged3ReadOnlyNativesAreClassified() {
+        java.util.Set<String> readOnlyNatives = java.util.Set.of(
+            "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
+            "BlzGetModelCinematicGameShotCount", "BlzGetModelCinematicGameCurrentShot",
+            "BlzGetModelCinematicGameRemainingTime", "BlzGetMinShadowCastingPointLightCount",
+            "GetCameraFieldControlledByInput", "BlzCameraGetCameraType", "BlzCameraSetupGetCameraType",
+            "BlzIsTerrainPathableEx", "BlzGetDoodadX", "BlzGetDoodadY", "BlzGetDoodadZ",
+            "BlzGetDoodadScaleX", "BlzGetDoodadScaleY", "BlzGetDoodadScaleZ",
+            "BlzGetDoodadIsUsingModelAxes", "BlzGetDoodadYaw", "BlzGetDoodadPitch", "BlzGetDoodadRoll",
+            "BlzGetDoodadVariation", "BlzGetDoodadId", "BlzGetNumDoodads",
+            "BlzGetUnitAbilityCooldownPercent", "BlzIsMetaKeyPressed", "BlzIsKeyPressed",
+            "BlzIsMouseButtonPressed", "BlzGetMouseScreenPosX", "BlzGetMouseScreenPosY",
+            "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
+        );
+        for (String name : readOnlyNatives) {
+            assertTrue(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+                name + " must be recognized as a side-effect-free Reforged 3 native");
+        }
+
+        for (String name : java.util.Set.of(
+            "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot")) {
+            assertTrue(UselessFunctionCallsRemover.isFunctionPure(name),
+                name + " must be recognized as a pure conversion native");
+        }
+
+        for (String name : java.util.Set.of(
+            "ChooseRandomItemExWithFilter", "BlzPreloadModelCinematicGame", "BlzCreateDestructablePitchRoll")) {
+            assertFalse(UselessFunctionCallsRemover.isFunctionWithoutSideEffect(name),
+                name + " changes state or consumes randomness and must remain effectful");
+        }
+    }
+
+    @Test
+    public void trvePreservesGlobalDespiteLexicalShadow() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    int myVar = 0",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    function registerVariableEvent()",
+            "        string myVar = \"local\"",
+            "        TriggerRegisterVariableEvent(null, \"test_myVar\", null, 0.0)",
+            "    init",
+            "        registerVariableEvent()",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesGlobalDespiteLexicalShadow_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("integer test_myVar"),
+            "Expected TRVE to preserve the global despite a local shadow.\n" + output);
+    }
+
+    @Test
+    public void trvePreservesLoweredTupleComponent() throws IOException {
+        test().optimize().lines(
+            "type trigger extends handle",
+            "type event extends handle",
+            "type limitop extends handle",
+            "package test",
+            "    tuple pair(real x, real y)",
+            "    pair value = pair(0., 0.)",
+            "    @extern native TriggerRegisterVariableEvent(trigger whichTrigger, string varName, limitop opcode, real limitval) returns event",
+            "    init",
+            "        TriggerRegisterVariableEvent(null, \"test_value_x\", null, 0.0)",
+            "endpackage");
+
+        String output = Files.toString(
+            new File("./test-output/OptimizerTests_trvePreservesLoweredTupleComponent_opt.j"),
+            Charsets.UTF_8);
+        assertTrue(output.contains("real test_value_x"),
+            "Expected TRVE to preserve the lowered tuple component.\n" + output);
     }
 
     @Test
@@ -1415,6 +1728,379 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void localMergerKeepsImplicitEntryLocalSeparateFromParameter() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImVar sinkA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar sinkB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(),
+            JassIm.ImVars(sinkA, sinkB), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImVar parameter = JassIm.ImVar(model, TypesHelper.imInt(), "parameter", false);
+        ImVar implicit = JassIm.ImVar(model, TypesHelper.imInt(), "implicit", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(parameter), JassIm.ImVarAccess(implicit)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImSet laterDefinition = JassIm.ImSet(model, JassIm.ImVarAccess(implicit), JassIm.ImIntVal(1));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(),
+            JassIm.ImVars(parameter), JassIm.ImVoid(), JassIm.ImVars(implicit),
+            JassIm.ImStmts(call, laterDefinition), Collections.emptyList());
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        new LocalMerger().optimize(translator, new LocalPlayerContextAnalyzer(prog));
+
+        ImFunctionCall optimizedCall = (ImFunctionCall) caller.getBody().get(0);
+        ImVar first = ((ImVarAccess) optimizedCall.getArguments().get(0)).getVar();
+        ImVar second = ((ImVarAccess) optimizedCall.getArguments().get(1)).getVar();
+        assertNotSame(first, second,
+            "function-entry values must not be assigned the same allocation slot");
+    }
+
+    @Test
+    public void repeatedLocalOptimizationStartsANewIteration() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        translator.getImProg().getFunctions().add(main);
+        translator.getImProg().getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+        ImOptimizer optimizer = new ImOptimizer(new TimeTaker.Default(), translator);
+
+        optimizer.localOptimizations();
+        main.getLocals().add(JassIm.ImVar(model, TypesHelper.imInt(), "lateUnused", false));
+        optimizer.localOptimizations();
+
+        assertTrue(main.getLocals().isEmpty(),
+            "a second local-optimization invocation must execute its passes");
+    }
+
+    @Test
+    public void localOptimizationRunsTwoBoundedSweepsPerInvocation() {
+        class CountingTimeTaker extends TimeTaker.Default {
+            int measurements;
+
+            @Override
+            public <T> T measure(String name, java.util.function.Supplier<T> f) {
+                measurements++;
+                return f.get();
+            }
+        }
+
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImVar value = JassIm.ImVar(model, TypesHelper.imInt(), "value", false);
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(),
+            JassIm.ImVars(value), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImOperatorCall(de.peeeq.wurstscript.WurstOperator.PLUS,
+                JassIm.ImExprs(JassIm.ImIntVal(1), JassIm.ImIntVal(2)))), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction main = JassIm.ImFunction(model, "main", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(call), Collections.emptyList());
+        ImFunction config = JassIm.ImFunction(model, "config", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        translator.getImProg().getFunctions().add(sink);
+        translator.getImProg().getFunctions().add(main);
+        translator.getImProg().getFunctions().add(config);
+        translator.setMainFunc(main);
+        translator.setConfigFunc(config);
+        CountingTimeTaker timeTaker = new CountingTimeTaker();
+
+        new ImOptimizer(timeTaker, translator).localOptimizations();
+
+        assertEquals(timeTaker.measurements, 16,
+            "the optimizer should run two fixed sweeps rather than iterating to convergence");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryRespectsFunctionLocalBudget() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 177; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImVars callerLocals = JassIm.ImVars(result);
+        ImStmts callerBody = JassIm.ImStmts();
+        for (int i = 0; i < 6; i++) {
+            ImVar loopVar = JassIm.ImVar(model, TypesHelper.imInt(), "loop" + i, false);
+            callerLocals.add(loopVar);
+            callerBody.add(JassIm.ImVarargLoop(model, JassIm.ImStmts(),
+                JassIm.ImVarargLoopVars(JassIm.ImVarargLoopVar(loopVar))));
+        }
+        ImFunctionCall call = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), call));
+        ImVars sinkParameters = JassIm.ImVars();
+        ImExprs sinkArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            sinkArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), sinkArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), callerLocals, callerBody,
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        ImSet assignment = (ImSet) caller.getBody().get(6);
+        assertTrue(assignment.getRight() instanceof ImFunctionCall,
+            "the late retry must retain the helper when declarations exceed the safe budget");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryReusesSequentialSlots() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVars parameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            parameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), parameters,
+            JassIm.ImVoid(), JassIm.ImVars(result), JassIm.ImStmts(
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+                JassIm.ImSet(model, JassIm.ImVarAccess(result), JassIm.ImFunctionCall(model, helper,
+                    JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImIntVal(8), JassIm.ImIntVal(3)),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL))),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(caller);
+
+        assertEquals(new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget(), 2,
+            "sequential helper sites should share the same peak allocation slots");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryBudgetsOverlappingArgumentResults() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 187; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars fiveParameters = JassIm.ImVars();
+        ImExprs overlappingArguments = JassIm.ImExprs();
+        for (int i = 0; i < 5; i++) {
+            fiveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            overlappingArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i)), JassIm.ImIntVal(3)),
+                false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        ImFunction takesFive = JassIm.ImFunction(model, "takesFive", JassIm.ImTypeVars(), fiveParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "value" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, takesFive, JassIm.ImTypeArguments(), overlappingArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments,
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(takesFive);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        int changed = new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget();
+        assertTrue(changed < 5,
+            "overlapping argument results must stop helper inlining at the register budget");
+        int[] remaining = {0};
+        caller.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getFunc() == helper) {
+                    remaining[0]++;
+                }
+            }
+        });
+        assertTrue(remaining[0] > 0, "some overlapping helper calls must remain after the budget is reached");
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryBudgetsEarlierImpureArguments() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImVar impureParameter = JassIm.ImVar(model, TypesHelper.imInt(), "value", false);
+        ImFunction impure = JassIm.ImFunction(model, "impure", JassIm.ImTypeVars(),
+            JassIm.ImVars(impureParameter), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars callerParameters = JassIm.ImVars();
+        for (int i = 0; i < 178; i++) {
+            callerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "p" + i, false));
+        }
+        ImVars outerParameters = JassIm.ImVars();
+        ImExprs outerArguments = JassIm.ImExprs();
+        for (int i = 0; i < 11; i++) {
+            outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "arg" + i, false));
+            outerArguments.add(JassIm.ImFunctionCall(model, impure, JassIm.ImTypeArguments(),
+                JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(i))), false,
+                de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        }
+        outerParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "last", false));
+        outerArguments.add(JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImVarAccess(callerParameters.get(11)), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImFunction outer = JassIm.ImFunction(model, "outer", JassIm.ImTypeVars(), outerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars keepAliveParameters = JassIm.ImVars();
+        ImExprs keepAliveArguments = JassIm.ImExprs();
+        for (int i = 0; i < callerParameters.size(); i++) {
+            keepAliveParameters.add(JassIm.ImVar(model, TypesHelper.imInt(), "keep" + i, false));
+            keepAliveArguments.add(JassIm.ImVarAccess(callerParameters.get(i)));
+        }
+        ImFunction keepAlive = JassIm.ImFunction(model, "keepAlive", JassIm.ImTypeVars(),
+            keepAliveParameters, JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.emptyList());
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), callerParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(
+                JassIm.ImFunctionCall(model, outer, JassIm.ImTypeArguments(), outerArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL),
+                JassIm.ImFunctionCall(model, keepAlive, JassIm.ImTypeArguments(), keepAliveArguments, false,
+                    de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)),
+            Collections.emptyList());
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(impure);
+        prog.getFunctions().add(outer);
+        prog.getFunctions().add(keepAlive);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+    }
+
+    @Test
+    public void luaArithmeticHelperRetryPreservesLocalPlayerAllocationClasses() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false,
+            new RunArgs().with("-lua", "-localOptimizations"));
+        ImProg prog = translator.getImProg();
+
+        ImVar helperA = JassIm.ImVar(model, TypesHelper.imInt(), "a", false);
+        ImVar helperB = JassIm.ImVar(model, TypesHelper.imInt(), "b", false);
+        ImFunction helper = JassIm.ImFunction(model, "__wurst_modInt", JassIm.ImTypeVars(),
+            JassIm.ImVars(helperA, helperB), TypesHelper.imInt(), JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImReturn(model, JassIm.ImVarAccess(helperA))),
+            Collections.emptyList());
+        translator.luaModIntFunc = helper;
+        ImFunction localValue = JassIm.ImFunction(model, "GetLocationZ", JassIm.ImTypeVars(),
+            JassIm.ImVars(), TypesHelper.imReal(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+
+        ImVars sinkParameters = JassIm.ImVars();
+        for (int i = 0; i < 99; i++) {
+            sinkParameters.add(JassIm.ImVar(model, TypesHelper.imReal(), "value" + i, false));
+        }
+        ImFunction sink = JassIm.ImFunction(model, "sink", JassIm.ImTypeVars(), sinkParameters,
+            JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        ImVars callerLocals = JassIm.ImVars();
+        ImStmts callerBody = JassIm.ImStmts();
+        ImExprs localArguments = JassIm.ImExprs();
+        ImExprs synchronizedArguments = JassIm.ImExprs();
+        for (int i = 0; i < 99; i++) {
+            ImVar local = JassIm.ImVar(model, TypesHelper.imReal(), "local" + i, false);
+            ImVar synchronizedVar = JassIm.ImVar(model, TypesHelper.imReal(), "sync" + i, false);
+            callerLocals.add(local);
+            callerLocals.add(synchronizedVar);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(local),
+                JassIm.ImFunctionCall(model, localValue, JassIm.ImTypeArguments(), JassIm.ImExprs(),
+                    false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL)));
+            localArguments.add(JassIm.ImVarAccess(local));
+            synchronizedArguments.add(JassIm.ImVarAccess(synchronizedVar));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), localArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        for (int i = 0; i < 99; i++) {
+            ImVar synchronizedVar = callerLocals.get(i * 2 + 1);
+            callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(synchronizedVar), JassIm.ImRealVal("1.")));
+        }
+        callerBody.add(JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(), synchronizedArguments,
+            false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL));
+        ImVar result = JassIm.ImVar(model, TypesHelper.imInt(), "result", false);
+        callerLocals.add(result);
+        ImFunctionCall helperCall = JassIm.ImFunctionCall(model, helper, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(JassIm.ImIntVal(7), JassIm.ImIntVal(3)), false,
+            de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        callerBody.add(JassIm.ImSet(model, JassIm.ImVarAccess(result), helperCall));
+        ImFunction caller = JassIm.ImFunction(model, "caller", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), callerLocals, callerBody, Collections.emptyList());
+        prog.getFunctions().add(localValue);
+        prog.getFunctions().add(helper);
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(caller);
+
+        assertEquals(0, new ImInliner(translator).inlineLuaDivModHelpersWithinLocalBudget());
+        assertTrue(((ImSet) caller.getBody().get(caller.getBody().size() - 1)).getRight()
+                instanceof ImFunctionCall,
+            "local-player-dependent and synchronized allocation classes must both count toward the budget");
+    }
+
+    @Test
     public void testFunctionSplitter() {
         WurstModel model = Ast.WurstModel();
 
@@ -2158,6 +2844,44 @@ public class OptimizerTests extends WurstScriptTest {
             "transitive GetLocalPlayer wrappers must remain explicit calls");
     }
 
+    /**
+     * The local-player analysis marks a function's return fact whenever the function is reachable
+     * from a client-local control region, transitively over the call graph. That fact is right for
+     * the passes which move code across control boundaries and wrong as an inlining barrier:
+     * substituting a body at a call site runs it under exactly the control the call already had.
+     * A pure helper called once under a GetLocalPlayer branch must still inline everywhere, while a
+     * wrapper which itself calls GetLocalPlayer must stay an explicit call.
+     */
+    @Test
+    public void pureHelperReachableFromLocalPlayerBranchIsStillInlined() throws Exception {
+        test().lines(
+            "type player extends handle",
+            "package test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native Player(integer i) returns player",
+            "native consume(integer i)",
+            "native consumePlayer(player p)",
+            "integer offset = 0",
+            "@inline function slot(integer a, integer b) returns integer",
+            "    return a * 8 + b",
+            "@inline function currentPlayer() returns player",
+            "    return GetLocalPlayer()",
+            "init",
+            "    if GetLocalPlayer() == Player(0)",
+            "        consume(slot(offset, 1))",
+            "    consume(slot(offset, 2))",
+            "    consumePlayer(currentPlayer())"
+        );
+
+        String inlined = Files.toString(
+            new File("test-output/OptimizerTests_pureHelperReachableFromLocalPlayerBranchIsStillInlined_inl.j"),
+            Charsets.UTF_8);
+        assertFalse(inlined.contains("slot("),
+            "a pure helper must inline at every call site, including the one under the local-player branch");
+        assertTrue(inlined.contains("call consumePlayer(currentPlayer())"),
+            "a wrapper which calls GetLocalPlayer itself must remain an explicit call");
+    }
+
     @Test
     public void branchMergerMustNotHoistAcrossClientLocalConditions() throws Exception {
         test().lines(
@@ -2231,7 +2955,22 @@ public class OptimizerTests extends WurstScriptTest {
             "BlzGetLocalClientHeight",
             "BlzIsLocalClientActive",
             "BlzGetMouseFocusUnit",
-            "BlzGetLocale"
+            "BlzGetLocale",
+            "BlzGetModelCinematicGameShotCount",
+            "BlzGetModelCinematicGameCurrentShot",
+            "BlzGetModelCinematicGameRemainingTime",
+            "BlzGetMinShadowCastingPointLightCount",
+            "GetCameraFieldControlledByInput",
+            "BlzCameraGetCameraType",
+            "BlzIsMetaKeyPressed",
+            "BlzIsKeyPressed",
+            "BlzIsMouseButtonPressed",
+            "BlzGetMouseScreenPosX",
+            "BlzGetMouseScreenPosY",
+            "BlzPixelToFrameX",
+            "BlzPixelToFrameY",
+            "BlzFrameToPixelX",
+            "BlzFrameToPixelY"
         ));
         java.util.Set<String> intentionallyExcludedSources = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
             "BlzGetTriggerPlayerMouseX",
@@ -2375,6 +3114,37 @@ public class OptimizerTests extends WurstScriptTest {
             "GetLocalPlayer usage must propagate through the complete call chain");
     }
 
+    @Test(timeOut = 10_000)
+    public void deeplyNestedImDoesNotOverflowLocalPlayerAnalysis() {
+        Element trace = Ast.NoExpr();
+        ImStmts nested = JassIm.ImStmts();
+        for (int i = 0; i < 20_000; i++) {
+            nested = JassIm.ImStmts(JassIm.ImIf(trace, JassIm.ImBoolVal(true),
+                nested, JassIm.ImStmts()));
+        }
+        ImFunction main = JassIm.ImFunction(
+            trace,
+            "main",
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            JassIm.ImVoid(),
+            JassIm.ImVars(),
+            JassIm.ImStmts(JassIm.ImLoop(trace, nested)),
+            Collections.emptyList()
+        );
+        ImProg prog = JassIm.ImProg(
+            trace,
+            JassIm.ImVars(),
+            JassIm.ImFunctions(main),
+            JassIm.ImMethods(),
+            JassIm.ImClasses(),
+            JassIm.ImTypeClassFuncs(),
+            new java.util.HashMap<>()
+        );
+
+        new LocalPlayerContextAnalyzer(prog);
+    }
+
     private static int countOccurrences(String text, String needle) {
         int count = 0;
         int from = 0;
@@ -2385,4 +3155,42 @@ public class OptimizerTests extends WurstScriptTest {
         return count;
     }
 
+    /**
+     * The compiletime state splitter optimises a function on its own, outside ImOptimizer, so the
+     * local merger it runs has no translator to ask about Lua intrinsics. A dead assignment whose
+     * right-hand side is a call must then be kept as a statement, not dereference a missing
+     * translator.
+     */
+    @Test
+    public void splitterKeepsADeadCallResultWithoutATranslatorContext() {
+        WurstModel model = Ast.WurstModel();
+        ImTranslator translator = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = translator.getImProg();
+        ImFunction sink = nativeIntFunction(model, "sink");
+        ImVar unused = JassIm.ImVar(model, TypesHelper.imInt(), "unused", false);
+        ImFunctionCall call = JassIm.ImFunctionCall(model, sink, JassIm.ImTypeArguments(),
+            JassIm.ImExprs(), false, de.peeeq.wurstscript.translation.imtranslation.CallType.NORMAL);
+        ImFunction state = JassIm.ImFunction(model, "state", JassIm.ImTypeVars(), JassIm.ImVars(),
+            JassIm.ImVoid(), JassIm.ImVars(unused),
+            JassIm.ImStmts(JassIm.ImSet(model, JassIm.ImVarAccess(unused), call)), Collections.emptyList());
+        prog.getFunctions().add(sink);
+        prog.getFunctions().add(state);
+
+        FunctionSplitter.splitFunc(translator, state);
+
+        // The splitter moves the body into helper functions, so look through the whole program.
+        boolean[] callSurvives = {false};
+        for (ImFunction f : prog.getFunctions()) {
+            f.accept(new ImFunction.DefaultVisitor() {
+                @Override
+                public void visit(ImFunctionCall c) {
+                    super.visit(c);
+                    if (c.getFunc() == sink) {
+                        callSurvives[0] = true;
+                    }
+                }
+            });
+        }
+        assertTrue(callSurvives[0], "the call's side effect must survive the dead assignment");
+    }
 }

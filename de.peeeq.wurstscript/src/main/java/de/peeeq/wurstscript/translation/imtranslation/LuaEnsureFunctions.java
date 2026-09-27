@@ -40,10 +40,13 @@ final class LuaEnsureFunctions {
     }
 
     /** local n = rawToNumberInt(x); local result = 0; if n ~= nil then local i = rawToInteger(n); if i ~= nil then result = i end end; return result */
-    static ImFunction buildEnsureInt(List<ImFunction> out) {
+    static ImFunction buildEnsureInt(List<ImFunction> out, ImTranslator translator) {
         ImType intType = TypesHelper.imInt();
         ImFunction rawToNumber = rawNative("__wurst_rawToNumberInt", intType, 1);
         ImFunction rawToInteger = rawNative("__wurst_rawToInteger", intType, 1);
+        // Printed as direct tonumber / math.tointeger calls; see ExprTranslation.
+        translator.luaRawToNumberIntFunc = rawToNumber;
+        translator.luaRawToIntegerFunc = rawToInteger;
         out.add(rawToNumber);
         out.add(rawToInteger);
 
@@ -71,29 +74,25 @@ final class LuaEnsureFunctions {
         return f;
     }
 
-    /** local result = false; if x ~= nil then result = x end; return result */
+    /** return x == true; this preserves false and maps nil to false. */
     static ImFunction buildEnsureBool(List<ImFunction> out) {
         ImType boolType = TypesHelper.imBool();
         ImVar x = JassIm.ImVar(TRACE, boolType.copy(), "x", false);
-        ImVar result = JassIm.ImVar(TRACE, boolType.copy(), "result", false);
 
         ImStmts body = JassIm.ImStmts(
-            JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImBoolVal(false)),
-            JassIm.ImIf(TRACE, notNull(x),
-                JassIm.ImStmts(JassIm.ImSet(TRACE, JassIm.ImVarAccess(result), JassIm.ImVarAccess(x))),
-                JassIm.ImStmts()),
-            JassIm.ImReturn(TRACE, JassIm.ImVarAccess(result))
+            JassIm.ImReturn(TRACE, isTrue(x))
         );
         ImFunction f = JassIm.ImFunction(TRACE, "__wurst_ensureBool", JassIm.ImTypeVars(), JassIm.ImVars(x), boolType.copy(),
-            JassIm.ImVars(result), body, Collections.emptyList());
+            JassIm.ImVars(), body, Collections.emptyList());
         out.add(f);
         return f;
     }
 
     /** local n = rawToNumberReal(x); local result = 0.0; if n ~= nil then result = n end; return result */
-    static ImFunction buildEnsureReal(List<ImFunction> out) {
+    static ImFunction buildEnsureReal(List<ImFunction> out, ImTranslator translator) {
         ImType realType = TypesHelper.imReal();
         ImFunction rawToNumber = rawNative("__wurst_rawToNumberReal", realType, 1);
+        translator.luaRawToNumberRealFunc = rawToNumber;
         out.add(rawToNumber);
 
         ImVar x = JassIm.ImVar(TRACE, realType.copy(), "x", false);
@@ -115,9 +114,10 @@ final class LuaEnsureFunctions {
     }
 
     /** local result = ""; if x ~= nil then result = rawToString(x) end; return result */
-    static ImFunction buildEnsureStr(List<ImFunction> out) {
+    static ImFunction buildEnsureStr(List<ImFunction> out, ImTranslator translator) {
         ImType stringType = TypesHelper.imString();
         ImFunction rawToString = rawNative("__wurst_rawToString", stringType, 1);
+        translator.luaRawToStringFunc = rawToString;
         out.add(rawToString);
 
         ImVar x = JassIm.ImVar(TRACE, stringType.copy(), "x", false);
@@ -142,9 +142,11 @@ final class LuaEnsureFunctions {
      * else result = y end
      * return result
      */
-    static ImFunction buildStringConcat(List<ImFunction> out) {
+    static ImFunction buildStringConcat(List<ImFunction> out, ImTranslator translator) {
         ImType stringType = TypesHelper.imString();
         ImFunction rawConcat = rawNative("__wurst_rawConcat", stringType, 2);
+        // The Lua backend prints a call to this exact node as the .. operator; see ExprTranslation.
+        translator.luaRawConcatFunc = rawConcat;
         out.add(rawConcat);
 
         ImVar x = JassIm.ImVar(TRACE, stringType.copy(), "x", false);
@@ -194,6 +196,11 @@ final class LuaEnsureFunctions {
      */
     private static ImExpr notNull(ImVar v) {
         return JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImNull(JassIm.ImAnyType())));
+    }
+
+    private static ImExpr isTrue(ImVar v) {
+        return JassIm.ImOperatorCall(WurstOperator.EQ,
+            JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImBoolVal(true)));
     }
 
     private static ImFunctionCall call(ImFunction f, ImExpr... args) {

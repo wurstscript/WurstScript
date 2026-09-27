@@ -138,24 +138,6 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.ceil(x)"));
         });
 
-        addNative("__wurst_rawFloorDivInt", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return a // b"));
-        });
-
-        addNative("__wurst_rawFmodInt", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
-        });
-
-        addNative("__wurst_rawFmodReal", f -> {
-            f.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-            f.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("return math.fmod(a, b)"));
-        });
-
         addNative(Arrays.asList("__wurst_rawToNumberInt", "__wurst_rawToNumberReal"), f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
@@ -197,7 +179,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumPlayer_override"));
             f.getBody().add(LuaAst.LuaLiteral("ForForce(whichForce, function()"));
             f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
-            f.getBody().add(LuaAst.LuaLiteral("    players[count] = __wurst_GetEnumPlayer()"));
+            f.getBody().add(LuaAst.LuaLiteral("    players[count] = GetEnumPlayer()"));
             f.getBody().add(LuaAst.LuaLiteral("end)"));
             f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
             f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumPlayer_override = players[i]"));
@@ -224,7 +206,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumUnit_override"));
             f.getBody().add(LuaAst.LuaLiteral("ForGroup(whichGroup, function()"));
             f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
-            f.getBody().add(LuaAst.LuaLiteral("    units[count] = __wurst_GetEnumUnit()"));
+            f.getBody().add(LuaAst.LuaLiteral("    units[count] = GetEnumUnit()"));
             f.getBody().add(LuaAst.LuaLiteral("end)"));
             f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
             f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumUnit_override = units[i]"));
@@ -252,7 +234,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumItem_override"));
             f.getBody().add(LuaAst.LuaLiteral("EnumItemsInRect(r, filter, function()"));
             f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
-            f.getBody().add(LuaAst.LuaLiteral("    items[count] = __wurst_GetEnumItem()"));
+            f.getBody().add(LuaAst.LuaLiteral("    items[count] = GetEnumItem()"));
             f.getBody().add(LuaAst.LuaLiteral("end)"));
             f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
             f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumItem_override = items[i]"));
@@ -280,13 +262,90 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("local prev = __wurst_enumDestructable_override"));
             f.getBody().add(LuaAst.LuaLiteral("EnumDestructablesInRect(r, filter, function()"));
             f.getBody().add(LuaAst.LuaLiteral("    count = count + 1"));
-            f.getBody().add(LuaAst.LuaLiteral("    dests[count] = __wurst_GetEnumDestructable()"));
+            f.getBody().add(LuaAst.LuaLiteral("    dests[count] = GetEnumDestructable()"));
             f.getBody().add(LuaAst.LuaLiteral("end)"));
             f.getBody().add(LuaAst.LuaLiteral("for i = 1, count do"));
             f.getBody().add(LuaAst.LuaLiteral("    __wurst_enumDestructable_override = dests[i]"));
             f.getBody().add(LuaAst.LuaLiteral("    actionFunc()"));
             f.getBody().add(LuaAst.LuaLiteral("end"));
             f.getBody().add(LuaAst.LuaLiteral("__wurst_enumDestructable_override = prev"));
+        });
+
+        // KeyedTable: membership keyed directly by the element, one index per operation.
+        // Lowered to these stubs by LuaKeyedTable/LuaNativeLowering before the inliner runs, so
+        // every call site agrees on the representation. No iteration is offered: pairs() order
+        // differs between clients and desyncs a lockstep game.
+        addNative("__wurst_keyedTableCreate", f ->
+            f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative("__wurst_keyedTableAdd", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t[k] = true"));
+        });
+        addNative("__wurst_keyedTableContains", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] ~= nil"));
+        });
+        addNative("__wurst_keyedTableRemove", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t[k] = nil"));
+        });
+
+        // KeyedMap: one native table per map, keyed by the element itself. Typed reads answer the
+        // Wurst default for a missing key so the caller needs no nil normalisation. Lowered by
+        // LuaKeyedMap/LuaNativeLowering before the inliner runs, like KeyedTable. No iteration.
+        addNative("__wurst_keyedMapCreate", f ->
+            f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative("__wurst_keyedMapPut", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("v", LuaAst.LuaNoExpr()));
+            // Writing under a nil key is an error in Lua, where reading one is only nil: a null
+            // element stores nothing and reads as absent.
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = v end"));
+        });
+        addNative("__wurst_keyedMapGet", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k]"));
+        });
+        addNative("__wurst_keyedMapGetInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or 0"));
+        });
+        addNative("__wurst_keyedMapGetReal", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or 0."));
+        });
+        addNative("__wurst_keyedMapGetBool", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] == true"));
+        });
+        addNative("__wurst_keyedMapGetStr", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] or \"\""));
+        });
+        addNative("__wurst_keyedMapHas", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return t[k] ~= nil"));
+        });
+        addNative("__wurst_keyedMapRemove", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
+        });
+        addNative("__wurst_keyedMapDestroy", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            // The owner may still be reachable through an alias after destroy, so clear this table
+            // in place instead of relying on garbage collection.
+            f.getBody().add(LuaAst.LuaLiteral("for k in pairs(t) do t[k] = nil end"));
         });
 
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->

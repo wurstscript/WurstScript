@@ -19,16 +19,22 @@ import java.util.Map.Entry;
 //w(11)->{r(17), r(19)} & w(19)->{r(17), r(19)} & w(22)
 class VarStates {
     final ImmutableMap<LocalVarDef, VState> states;
+    final ImmutableSet<NameDef> destroyedParameters;
     final boolean thisDestroyed;
 
     public VarStates(ImmutableMap<LocalVarDef, VState> states, boolean thisDestroyed) {
+        this(states, ImmutableSet.of(), thisDestroyed);
+    }
+
+    public VarStates(ImmutableMap<LocalVarDef, VState> states, ImmutableSet<NameDef> destroyedParameters, boolean thisDestroyed) {
         this.states = states;
+        this.destroyedParameters = destroyedParameters;
         this.thisDestroyed = thisDestroyed;
     }
 
     VarStates merge(VarStates other) {
         ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, VState::merge);
-        return new VarStates(merged, thisDestroyed || other.thisDestroyed);
+        return new VarStates(merged, ImmutableSet.<NameDef>builder().addAll(destroyedParameters).addAll(other.destroyedParameters).build(), thisDestroyed || other.thisDestroyed);
     }
 
     @Override
@@ -37,12 +43,13 @@ class VarStates {
         if (o == null || getClass() != o.getClass()) return false;
         VarStates varStates = (VarStates) o;
         return thisDestroyed == varStates.thisDestroyed &&
-                Objects.equals(states, varStates.states);
+                Objects.equals(states, varStates.states) &&
+                Objects.equals(destroyedParameters, varStates.destroyedParameters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(states, thisDestroyed);
+        return Objects.hash(states, destroyedParameters, thisDestroyed);
     }
 
     public static VarStates initial(Set<LocalVarDef> r) {
@@ -55,7 +62,7 @@ class VarStates {
 
     public boolean destroyed(NameDef v) {
         VState s = states.get(v);
-        return s != null && s.mightBeDestroyed;
+        return (s != null && s.mightBeDestroyed) || destroyedParameters.contains(v);
     }
 
     public boolean uninitialized(NameDef v) {
@@ -64,11 +71,26 @@ class VarStates {
     }
 
     public VarStates addRead(LocalVarDef v, Element r) {
+        return withRead(v, r, null);
+    }
+
+    /**
+     * Records a read that cannot observe writes made inside {@code excluded}.
+     *
+     * <p>A for-range start expression is evaluated once before the loop is entered, but the CFG
+     * back edge revisits the loop statement, so a plain read would also mark writes made in the
+     * loop body - suppressing a genuine never-read warning for them.
+     */
+    public VarStates addReadOutside(LocalVarDef v, Element r, Element excluded) {
+        return withRead(v, r, excluded);
+    }
+
+    private VarStates withRead(LocalVarDef v, Element r, @Nullable Element excluded) {
         VState s = getVarState(v);
         if (s == null) {
             s = VState.initialDefined;
         }
-        s = s.addRead(r);
+        s = s.addRead(r, excluded);
         Builder<LocalVarDef, VState> builder = ImmutableMap.builder();
         for (Entry<LocalVarDef, VState> e : states.entrySet()) {
             if (e.getKey() != v) {
@@ -78,7 +100,7 @@ class VarStates {
         ImmutableMap<LocalVarDef, VState> rs = builder
                 .put(v, s)
                 .build();
-        return new VarStates(rs, thisDestroyed);
+        return new VarStates(rs, destroyedParameters, thisDestroyed);
     }
 
     public ImmutableSet<WStatement> getUnreadWrites(NameDef var) {
@@ -107,7 +129,7 @@ class VarStates {
         }
         vState = vState.addWrite(s);
         res.put(var, vState);
-        return new VarStates(res.build(), thisDestroyed);
+        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
     }
 
     public VarStates addDestroy(LocalVarDef var) {
@@ -118,7 +140,26 @@ class VarStates {
             }
         }
         res.put(var, VState.destroyed);
-        return new VarStates(res.build(), thisDestroyed);
+        return new VarStates(res.build(), destroyedParameters, thisDestroyed);
+    }
+
+    public VarStates addDestroyParameter(NameDef var) {
+        ImmutableSet.Builder<NameDef> destroyed = ImmutableSet.builder();
+        destroyed.addAll(destroyedParameters).add(var);
+        return new VarStates(states, destroyed.build(), thisDestroyed);
+    }
+
+    public VarStates clearDestroyParameter(NameDef var) {
+        if (!destroyedParameters.contains(var)) {
+            return this;
+        }
+        ImmutableSet.Builder<NameDef> remaining = ImmutableSet.builder();
+        for (NameDef destroyed : destroyedParameters) {
+            if (destroyed != var) {
+                remaining.add(destroyed);
+            }
+        }
+        return new VarStates(states, remaining.build(), thisDestroyed);
     }
 
 
@@ -144,7 +185,7 @@ class VarStates {
     }
 
     public VarStates withThisDestroyed(boolean thisDestroyed) {
-        return new VarStates(states, thisDestroyed);
+        return new VarStates(states, destroyedParameters, thisDestroyed);
     }
 
 
@@ -181,12 +222,28 @@ class VState {
     }
 
     public VState addRead(Element r) {
+        return addRead(r, null);
+    }
+
+    public VState addRead(Element r, @Nullable Element excluded) {
         ImmutableSetMultimap.Builder<WStatement, Element> builder = ImmutableSetMultimap.builder();
         builder.putAll(writesAndReads);
         for (WStatement s : this.activeWrites) {
-            builder.put(s, r);
+            if (excluded == null || !isInside(s, excluded)) {
+                builder.put(s, r);
+            }
         }
         return new VState(mightBeUninitialized, mightBeDestroyed, builder.build(), activeWrites, allWrites);
+    }
+
+    /** Whether {@code node} lies within the subtree rooted at {@code ancestor}. */
+    private static boolean isInside(Element node, Element ancestor) {
+        for (Element e = node; e != null; e = e.getParent()) {
+            if (e == ancestor) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public VState merge(VState other) {
@@ -264,11 +321,18 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
 
         if (s instanceof CompoundStatement) {
+            // A loop that declares its own variable evaluates its whole header exactly once before
+            // the loop is entered - StmtTranslation assigns the start expression and hoists "to",
+            // "step" and "in" into temporaries ahead of the ImLoop. A while condition, by contrast,
+            // is re-evaluated per iteration, so only this family gets the once-only treatment.
+            boolean headerEvaluatedOnce = s instanceof LoopStatementWithVarDef;
             // for a compound statement check only the expressions in the statement
             for (int i = 0; i < s.size(); i++) {
                 if (s.get(i) instanceof Expr) {
                     Expr expr = (Expr) s.get(i);
-                    incoming = handleExprInCompound(incoming, expr);
+                    incoming = headerEvaluatedOnce
+                        ? handleLoopHeaderExpr(incoming, expr, s)
+                        : handleExprInCompound(incoming, expr);
                 }
             }
             if (s instanceof SwitchStmt) {
@@ -278,6 +342,16 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                     for (Expr switchCaseExpr : switchCase.getExpressions()) {
                         incoming = handleExprInCompound(incoming, switchCaseExpr);
                     }
+                }
+            } else if (s instanceof LoopStatementWithVarDef) {
+                // Same reason: for "for i = a downto 0" the start expression belongs to the loop
+                // variable's LocalVarDef, not to the loop statement, so the loop above never sees
+                // it and a local read only appearing there looked like a dead assignment.
+                // StmtForFrom binds its loop variable from the "in" expression and has no initial
+                // expression of its own, which the instanceof guard covers.
+                LocalVarDef loopVar = ((LoopStatementWithVarDef) s).getLoopVar();
+                if (loopVar.getInitialExpr() instanceof Expr) {
+                    incoming = handleLoopHeaderExpr(incoming, (Expr) loopVar.getInitialExpr(), s);
                 }
             }
         } else {
@@ -300,6 +374,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 if (isLocalVarDef(destroyedVar)) {
                     return incoming.addDestroy((LocalVarDef) destroyedVar);
                 }
+                if (destroyedVar instanceof WParameter || destroyedVar instanceof WShortParameter) {
+                    return incoming.addDestroyParameter(destroyedVar);
+                }
             } else if (destr.getDestroyedObj() instanceof ExprThis) {
                 return incoming.withThisDestroyed(true);
             }
@@ -317,6 +394,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);
+            }
+            if (n instanceof WParameter || n instanceof WShortParameter) {
+                return incoming.clearDestroyParameter(n);
             }
         }
         return incoming;
@@ -344,6 +424,25 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             }
         }
         return false;
+    }
+
+    /**
+     * Handles a loop header expression - the start value, "to", "step" or "in" - each of which
+     * runs exactly once before the loop is entered.
+     *
+     * <p>The CFG has a back edge to the loop statement, so the fixpoint evaluates this again on
+     * later iterations. Reads are therefore recorded only against writes outside the loop: a write
+     * in the loop body happens after the header has already been evaluated and cannot be observed
+     * by it, so counting it as read would hide a genuine dead assignment.
+     */
+    private VarStates handleLoopHeaderExpr(VarStates incoming, Expr headerExpr, WStatement loop) {
+        checkIfVarsInitialized(headerExpr, incoming);
+        for (NameDef v : headerExpr.attrReadVariables()) {
+            if (isLocalVarDef(v)) {
+                incoming = incoming.addReadOutside((LocalVarDef) v, headerExpr, loop);
+            }
+        }
+        return incoming;
     }
 
     private VarStates handleExprInCompound(VarStates incoming, Expr expr) {
@@ -509,7 +608,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 @Nullable ExprClosure exprClosure = errorPos.attrNearestExprClosure();
                 @Nullable ExprClosure exprClosure1 = var.attrNearestExprClosure();
                 if (exprClosure != null && exprClosure != exprClosure1) {
-                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var) + " has no effect outside the closure.");
+                    errorPos.addWarning("This assignment to the closure-captured variable " + Utils.printElement(var)
+                        + " does not propagate outside the closure because closures capture locals by value. "
+                        + "If you want to update the outer value, use reference(" + var.getName() + ") deliberately.");
                 } else {
                     errorPos.addWarning("The assignment to " + Utils.printElement(var) + " is never read.");
                 }

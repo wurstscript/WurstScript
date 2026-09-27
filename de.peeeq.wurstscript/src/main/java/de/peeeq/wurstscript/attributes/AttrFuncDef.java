@@ -197,9 +197,8 @@ public class AttrFuncDef {
         var raw = NameResolution.lookupMemberFuncs(node, recvT, node.getFuncName(), /*showErrors=*/false);
 
         java.util.ArrayList<FuncLink> visible = new java.util.ArrayList<>(raw.size());
-        java.util.ArrayList<FuncLink> hidden  = new java.util.ArrayList<>(raw.size());
         for (var f : raw) {
-            if (isVisible(f)) visible.add(f); else hidden.add(f);
+            if (isVisible(f)) visible.add(f);
         }
 
         if (!raw.isEmpty() && visible.isEmpty()) {

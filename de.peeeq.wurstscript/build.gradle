@@ -13,8 +13,8 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'jacoco'
+    id 'net.ltgt.errorprone' version '5.1.1'
     id 'maven-publish'
-    id 'com.github.kt3k.coveralls' version '2.12.2'
     id 'com.gradleup.shadow' version '9.2.2'
     id 'de.undercouch.download' version '5.6.0'
 }
@@ -42,7 +42,43 @@ tasks.withType(JavaExec).configureEach {
     jvmArgs('-XX:+UnlockExperimentalVMOptions', '-XX:+UseCompactObjectHeaders')
 }
 
-tasks.withType(JavaCompile).configureEach { options.release = 25 }
+/** -------- Compilation and static analysis --------
+ * Both javac lint and Error Prone are ADVISORY: they report at warning severity and
+ * never fail the build. Unit tests and coverage remain the primary quality gate; this
+ * is a supplementary signal, not a merge blocker.
+ * Skip Error Prone entirely with: ./gradlew <task> -PskipErrorProne
+ */
+def errorProneEnabled = !project.hasProperty('skipErrorProne')
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    // 'serial'/'this-escape' are noisy against this codebase's AST and visitor style.
+    // 'auxiliaryclass' fires ~86 times purely on the multi-class-per-file layout - structural, not a defect.
+    options.compilerArgs += ['-Xlint:all', '-Xlint:-serial', '-Xlint:-this-escape',
+                             '-Xlint:-processing', '-Xlint:-auxiliaryclass']
+    // javac silently caps reporting at 100 warnings. Without this, lint noise exhausts the
+    // budget and every Error Prone finding is dropped as overflow - the analysis looks clean
+    // while reporting nothing. Do not remove.
+    options.compilerArgs += ['-Xmaxwarns', '10000']
+
+    options.errorprone {
+        enabled = errorProneEnabled
+        // src-gen holds ~700 generated AST classes - analysing them is pure noise.
+        excludedPaths = '.*src-gen.*'
+        disableWarningsInGeneratedCode = true
+        // Advisory only: demote every check to a warning so the build never fails on it.
+        // Requires the -Xmaxwarns bump above to actually be visible.
+        allErrorsAsWarnings = true
+        // Upstream bug: NonCanonicalType NPEs in SuggestedFixes.qualifyType on anonymous
+        // subclasses of nested types, which this codebase's visitors use everywhere
+        // (e.g. `new LuaModel.DefaultVisitor() {}`). A plugin crash is a hard javac error,
+        // so allErrorsAsWarnings cannot absorb it. Purely stylistic check; safe to drop.
+        disable('NonCanonicalType')
+    }
+}
+
+// Keep the test compile loop fast - tests are the primary gate, not the audit target.
+tasks.named('compileTestJava') { options.errorprone.enabled = false }
 
 jacoco {
     toolVersion = "0.8.13"
@@ -53,7 +89,16 @@ tasks.named("jacocoTestReport", JacocoReport) {
 
     reports { xml.required.set(true) }
 
-    def excluded = ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**']
+    def excluded = [
+            '**/ast/**',
+            '**/jassAst/**',
+            '**/jassIm/**',
+            '**/luaAst/**',
+            '**/antlr/**',
+            'de/peeeq/wurstio/gui/**',
+            'de/peeeq/wurstio/AbortCompilationException.class',
+            'de/peeeq/wurstio/ModelChangedException.class'
+    ]
 
     classDirectories.setFrom(
             files(classDirectories.files.collect { dir ->
@@ -82,6 +127,8 @@ configurations {
 }
 
 dependencies {
+    errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+
     implementation 'org.jetbrains:annotations:23.0.0'
 
     // Antlr
@@ -90,8 +137,8 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.13.1"
 
     // abstractsyntaxgen (available to IDE via compileOnly; used at runtime via astgen)
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
-    astgen 'com.github.peterzeller:abstractsyntaxgen:623da1c60f'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
+    astgen 'com.github.peterzeller:abstractsyntaxgen:2b3d742e8a'
 
 
     // Tests
@@ -108,8 +155,8 @@ dependencies {
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'com.github.albfernandez:juniversalchardet:2.4.0'
     implementation 'org.xerial:sqlite-jdbc:3.46.1.3'
-    implementation 'com.github.inwc3:jmpq3:e28f6999c0'
-    implementation 'com.github.inwc3:wc3libs:ac41f780a5e2dfc35310be4ed3267f23ab3fea44'
+    implementation 'com.github.inwc3:JMPQ3:v2.0.1'
+    implementation 'com.github.inwc3:wc3libs:9a11e1f089'
     implementation 'com.github.wurstscript:wurst-project-config:348fcd4ef5'
     implementation 'org.slf4j:slf4j-api:2.0.17'
     implementation 'ch.qos.logback:logback-classic:1.5.20'
@@ -290,6 +337,12 @@ tasks.register('ensureStdLib', JavaExec) {
 test {
     dependsOn 'ensureStdLib'
     useTestNG()
+    // Keep CI output focused on failures; compiler/runtime tests intentionally exercise native
+    // print paths and can otherwise flood the log with expected diagnostic output.
+    testLogging {
+        showStandardStreams = false
+        events 'failed', 'skipped'
+    }
 
     // The suite is a few thousand independent compilations and was running one at a time, so it
     // took as long as the sum of them. Forks rather than threads: the harness keeps state in
@@ -471,11 +524,6 @@ tasks.register('create_zips') {
             args("../downloads/Wurstpack/", "../downloads/wurstpack.md5")
         }
     }
-}
-
-// TODO add a modern documentation generator replacement for the removed legacy hotdoc pipeline.
-tasks.named("coveralls") {
-    notCompatibleWithConfigurationCache("coveralls plugin task uses Project at execution time")
 }
 
 /** -------- Apply deployment settings -------- */

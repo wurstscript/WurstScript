@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -61,6 +61,7 @@ public class ImTranslator implements SpecialisationLookup {
     }
 
     private final Map<Element, Specialisation> specialisations = new IdentityHashMap<>();
+    private final Map<ImClass, Set<GenericTypes>> erasedGenericAllocations = new IdentityHashMap<>();
 
     /**
      * @param typeArguments the arguments the copy was made for, empty when a copy carries none of its
@@ -97,6 +98,31 @@ public class ImTranslator implements SpecialisationLookup {
     /** What {@code copy} was made from and for, or null when it is not a copy. */
     public @Nullable Specialisation specialisationOf(Element copy) {
         return specialisations.get(copy);
+    }
+
+    public void recordErasedGenericAllocation(ImClass clazz, List<ImTypeArgument> typeArguments) {
+        erasedGenericAllocations.computeIfAbsent(canonical(clazz), ignored -> new HashSet<>())
+            .add(new GenericTypes(typeArguments));
+    }
+
+    public boolean hasErasedAllocationWithoutStaticSpecialization(ImClass clazz, ImVar originalStatic) {
+        Set<GenericTypes> allocations = erasedGenericAllocations.get(canonical(clazz));
+        if (allocations == null || allocations.isEmpty()) {
+            return false;
+        }
+        Set<GenericTypes> specializedStatics = new HashSet<>();
+        for (Map.Entry<Element, Specialisation> entry : specialisations.entrySet()) {
+            Specialisation specialization = entry.getValue();
+            if (specialization.original() == originalStatic) {
+                specializedStatics.add(new GenericTypes(specialization.typeArguments()));
+            }
+        }
+        for (GenericTypes allocation : allocations) {
+            if (!specializedStatics.contains(allocation)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -139,6 +165,9 @@ public class ImTranslator implements SpecialisationLookup {
 
     public final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
 
+    /** Initializer functions in the exact order emitted by {@link #finishInitFunctions()}. */
+    private final List<ImFunction> initializationOrder = new ArrayList<>();
+
     /**
      * When targeting Lua, package init functions that should be called directly via xpcall
      * rather than through the JASS TriggerEvaluate thread-isolation pattern.
@@ -165,6 +194,41 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction ensureRealFunc = null;
     @Nullable public ImFunction ensureStrFunc = null;
     @Nullable public ImFunction stringConcatFunc = null;
+    // Exact synthetic nodes owned by LuaNativeLowering; backend intrinsic recognition must use identity.
+    @Nullable public ImFunction luaRawFloorDivIntFunc = null;
+    @Nullable public ImFunction luaRawFmodIntFunc = null;
+    @Nullable public ImFunction luaRawFmodRealFunc = null;
+    @Nullable public ImFunction luaRawFloorModIntFunc = null;
+    @Nullable public ImFunction luaRawConcatFunc = null;
+    /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
+    @Nullable public ImFunction luaRawToNumberIntFunc = null;
+    @Nullable public ImFunction luaRawToNumberRealFunc = null;
+    @Nullable public ImFunction luaRawToIntegerFunc = null;
+    @Nullable public ImFunction luaRawToStringFunc = null;
+
+    /**
+     * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
+     * concatenation, or a division or remainder whose divisor is a non-zero literal. Such a call
+     * is as pure as the operator it prints as, so an unused one may be dropped.
+     */
+    public boolean isTrapFreeLuaIntrinsicCall(ImFunctionCall call) {
+        ImFunction target = call.getFunc();
+        if (call.getArguments().size() != 2) {
+            return false;
+        }
+        if (target == luaRawConcatFunc) {
+            return true;
+        }
+        ImExpr divisor = call.getArguments().get(1);
+        boolean nonZeroDivisor = (divisor instanceof ImIntVal intVal && intVal.getValI() != 0)
+            || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
+        return nonZeroDivisor
+            && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
+                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
+    }
+    @Nullable public ImFunction luaIntDivFunc = null;
+    @Nullable public ImFunction luaModIntFunc = null;
+    @Nullable public ImFunction luaModRealFunc = null;
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
@@ -280,11 +344,11 @@ public class ImTranslator implements SpecialisationLookup {
             if(isLuaTarget()) {
                 // Portable IM bodies (not IS_NATIVE stubs) - see LuaEnsureFunctions for why.
                 List<ImFunction> luaHelperFunctions = new ArrayList<>();
-                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions);
+                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions, this);
                 ensureBoolFunc = LuaEnsureFunctions.buildEnsureBool(luaHelperFunctions);
-                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions);
-                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions);
-                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions);
+                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions, this);
+                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions, this);
+                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions, this);
                 luaHelperFunctions.forEach(this::addFunction);
             }
 
@@ -643,6 +707,8 @@ public class ImTranslator implements SpecialisationLookup {
 
 
     private void finishInitFunctions() {
+        initializationOrder.clear();
+        initializationOrder.add(globalInitFunc);
         // init globals, at beginning of main func:
         getMainFunc().getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
 
@@ -711,6 +777,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (initFunc.getBody().size() == 0) {
             return;
         }
+        initializationOrder.add(initFunc);
         if (isLuaTarget()) {
             // In Lua mode, xpcall replaces TriggerEvaluate for error isolation without WC3 handle overhead.
             // Record the init function so the Lua translator can wrap it with xpcall.
@@ -1041,6 +1108,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 if (m instanceof Annotation) {
                     Annotation annotation = (Annotation) m;
                     flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+                    if (NamePreservation.isPreserveAnnotation(annotation.getAnnotationType())) {
+                        flags.add(PRESERVE_NAME);
+                    }
                 }
             }
         }
@@ -1436,12 +1506,17 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         final ImFunction conf = getConfFunc();
         if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
-        // mark protected globals as read
-        // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
-        for (ImVar global : imProg.getGlobals()) {
-            if (TRVEHelper.protectedVariables.contains(global.getName())) {
-                readVariables.add(global);
+        // Preserved functions are externally visible entry points even when no Wurst code calls
+        // them. Keep their bodies and everything they call reachable for both backends.
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
+            if (NamePreservation.isPreserved(function)) {
+                calculateCallRelations(function, includeUsedVariables);
             }
+        }
+
+        // Mark externally visible globals as read so they survive garbage collection.
+        for (ImVar global : imProg.getGlobals()) {
+            if (NamePreservation.isPreserved(global)) readVariables.add(global);
         }
     }
 
@@ -1490,7 +1565,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImFunction getMainFunc() { return mainFunc; }
     public ImFunction getConfFunc() { return configFunc; }
 
-
+    public List<ImFunction> getInitializationOrder() {
+        return Collections.unmodifiableList(initializationOrder);
+    }
 
     /**
      * returns a list of classes and functions implementing funcDef
@@ -1925,6 +2002,33 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return result;
     }
 
+    /** Scalar leaves assigned for one source-level tuple variable, in source order. */
+    public List<ImVar> getTupleScalarVars(ImVar v) {
+        return getVarsForTuple(v).allValuesStream().toList();
+    }
+
+    VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {
+        if (!TypesHelper.typeContainsTuples(v.getType())
+            && TypesHelper.typeContainsTuples(concreteStorageType)) {
+            VarsForTupleResult result = varsForTupleVar.get(v);
+            if (result != null) {
+                return result;
+            }
+            result = createVarsForType(v.getName(), concreteStorageType, Function.identity(), v.getTrace());
+            varsForTupleVar.put(v, result);
+            if (v.getParent() instanceof ImVars owner) {
+                int position = owner.indexOf(v) + 1;
+                for (ImVar scalar : result.allValues()) {
+                    if (!owner.contains(scalar)) {
+                        owner.add(position++, scalar);
+                    }
+                }
+            }
+            return result;
+        }
+        return getVarsForTuple(v);
+    }
+
 
     /**
      * Creates variables for the given type, eliminating tuple types
@@ -2044,6 +2148,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             tempReturnVars.put(f, result);
         }
         return result;
+    }
+
+    void setTupleTempReturnVarsFor(ImFunction f, VarsForTupleResult vars) {
+        tempReturnVars.put(f, vars);
     }
 
     private final Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();

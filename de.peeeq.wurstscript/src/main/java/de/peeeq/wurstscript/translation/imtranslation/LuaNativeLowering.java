@@ -110,6 +110,92 @@ public final class LuaNativeLowering {
      * creating wrappers for every BJ function in the IM (common.j declares hundreds of
      * functions, most of which are unreachable in any given program).
      */
+    /**
+     * Replaces the KeyedTable operations with their Lua stubs, and empties the destroy operation.
+     *
+     * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
+     * pass appends a parameter to every affected function, and on Lua every non-native function is
+     * affected, so the exact signatures these operations are recognised by stop matching. Nothing
+     * reported that: the Jass bodies simply survived onto Lua, where {@code wurstKeyOf} is never
+     * lowered and answers with its placeholder, so every element shared one key and a set claimed
+     * to hold everything. Stack traces are on by default in a release build, so that was the
+     * common case rather than an exotic one.
+     *
+     * <p>Membership becomes a table keyed directly by the element. Done before optimization rather
+     * than at emission because the inliner runs in between: a call inlined before an emission-time
+     * rewrite would keep the hashtable body while a surviving one got the Lua table, mixing an
+     * integer class id with a table index for the same value. Replacing the call makes every site
+     * agree.
+     *
+     * <p>Idempotent: once the calls point at stubs, nothing matches on a second run.
+     */
+    public static void lowerKeyedTables(ImProg prog) {
+        // A keyed-table destroy currently has no observable Lua storage to clear. Keep it as an
+        // ordinary empty function which the inliner can remove.
+        for (ImFunction f : prog.getFunctions()) {
+            if (LuaKeyedTable.isDestroy(f)) {
+                f.getBody().clear();
+                f.getLocals().clear();
+            }
+        }
+
+        // Remove keyed-table destroy calls outright rather than leaving an empty function for the
+        // inliner to clean up: inlining only runs under -inline, and even then the Lua register
+        // budget can refuse a caller. Arguments move into a statement expression so anything they
+        // do still happens, as in UselessFunctionCallsRemover.
+        removeDestroyCalls(prog);
+
+        Map<String, ImFunction> stubs = new LinkedHashMap<>();
+        List<ImFunction> additions = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                ImFunction f = call.getFunc();
+                String stubName = LuaKeyedTable.nativeStubFor(f);
+                if (stubName == null) {
+                    stubName = LuaKeyedMap.nativeStubFor(f);
+                }
+                if (stubName == null) {
+                    return;
+                }
+                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> createNativeStub(name, f));
+                if (!additions.contains(replacement)) {
+                    additions.add(replacement);
+                }
+                call.replaceBy(JassIm.ImFunctionCall(
+                    call.attrTrace(), replacement,
+                    JassIm.ImTypeArguments(),
+                    call.getArguments().copy(),
+                    false, CallType.NORMAL));
+            }
+        });
+        prog.getFunctions().addAll(additions);
+    }
+
+    private static void removeDestroyCalls(Element e) {
+        if (e instanceof ImStmts stmts) {
+            ListIterator<ImStmt> it = stmts.listIterator();
+            while (it.hasNext()) {
+                ImStmt s = it.next();
+                if (s instanceof ImFunctionCall call && LuaKeyedTable.isDestroy(call.getFunc())) {
+                    ImStmts argStmts = JassIm.ImStmts();
+                    for (ImExpr arg : new ArrayList<>(call.getArguments())) {
+                        arg.setParent(null);
+                        argStmts.add(arg);
+                    }
+                    s = ImHelper.statementExprVoid(argStmts);
+                    it.set(s);
+                }
+                removeDestroyCalls(s);
+            }
+        } else {
+            for (int i = 0; i < e.size(); i++) {
+                removeDestroyCalls(e.get(i));
+            }
+        }
+    }
+
     public static void transform(ImProg prog, ImTranslator translator) {
         // Replace all reads of MagicFunctions_isLua with true.
         // This must happen before any optimizer passes so that dead-code elimination
@@ -125,9 +211,12 @@ public final class LuaNativeLowering {
             }
         }
 
+        // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
+        lowerKeyedTables(prog);
+
+        removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);
-        lowerDivMod(prog);
-        lowerPrimitiveArrayEnsure(prog, translator);
+        lowerDivMod(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -219,6 +308,45 @@ public final class LuaNativeLowering {
     }
 
     /**
+     * An erased generic value is normalised with {@code __wurst_ensureInt} and friends when it
+     * reaches a concrete primitive context, because erased storage can hold nil for a primitive.
+     * When the value provably comes from typed storage or a typed default (see
+     * {@link LuaTypedValues}) the normalisation is the identity and the call is dropped.
+     */
+    private static void removeRedundantTypeAssurance(ImProg prog, ImTranslator translator) {
+        LuaTypedValues typedValues = new LuaTypedValues(prog);
+        List<ImFunctionCall> redundant = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (call.getArguments().size() != 1) {
+                    return;
+                }
+                ImFunction target = call.getFunc();
+                ImType type;
+                if (target == translator.ensureIntFunc) {
+                    type = TypesHelper.imInt();
+                } else if (target == translator.ensureRealFunc) {
+                    type = TypesHelper.imReal();
+                } else if (target == translator.ensureStrFunc) {
+                    type = TypesHelper.imString();
+                } else {
+                    return;
+                }
+                if (typedValues.isTyped(call.getArguments().get(0), type)) {
+                    redundant.add(call);
+                }
+            }
+        });
+        for (ImFunctionCall call : redundant) {
+            ImExpr value = call.getArguments().get(0);
+            value.setParent(null);
+            call.replaceBy(value);
+        }
+    }
+
+    /**
      * Rewrites string PLUS before the optimizer's first garbage-collection
      * pass. The concat helper is an ordinary IM function, so introducing its
      * calls only later in EliminateLocalTypes would let the optimizer remove
@@ -268,8 +396,8 @@ public final class LuaNativeLowering {
      * handler's "was this an intentional abort" check. Leave that one
      * expression untouched so the existing recognition still fires.
      */
-    private static void lowerDivMod(ImProg prog) {
-        DivModFunctions funcs = new DivModFunctions();
+    private static void lowerDivMod(ImProg prog, ImTranslator translator) {
+        DivModFunctions funcs = new DivModFunctions(translator);
         prog.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImOperatorCall call) {
@@ -284,7 +412,17 @@ public final class LuaNativeLowering {
                     }
                     target = funcs.intDiv();
                 } else if (call.getOp() == WurstOperator.MOD_INT) {
-                    target = funcs.modInt();
+                    // For a positive constant divisor the ModuloInteger correction is exactly Lua's
+                    // floored %, one VM opcode instead of a C call and a branch. A constant dividend
+                    // keeps the helper so the optimizer can still fold the whole expression.
+                    ImExpr dividend = call.getArguments().get(0);
+                    ImExpr divisor = call.getArguments().get(1);
+                    if (divisor instanceof ImIntVal && ((ImIntVal) divisor).getValI() > 0
+                        && !(dividend instanceof ImIntVal)) {
+                        target = funcs.rawFloorModInt();
+                    } else {
+                        target = funcs.modInt();
+                    }
                 } else if (call.getOp() == WurstOperator.MOD_REAL) {
                     target = funcs.modReal();
                 } else if (call.getOp() == WurstOperator.JASS_MOD_INT) {
@@ -334,40 +472,6 @@ public final class LuaNativeLowering {
             && "I2S".equals(parentCall.getFunc().getName());
     }
 
-    /**
-     * Rewrites reads (never writes - see {@link LValues#isUsedAsLValue}) of
-     * primitive-typed ({@code int}/{@code bool}/{@code real}/{@code string})
-     * array slots into calls against the portable {@code ensureXxx} IM
-     * functions ({@link ImTranslator#ensureIntFunc} and friends), instead of
-     * that normalization being applied later as opaque, always-emitted Lua
-     * source at Lua-emission time. Same treatment as {@link #lowerDivMod}:
-     * this makes a hot read optimizable (inlinable, foldable) instead of a
-     * fixed per-read function-call cost, and lets the helper disappear
-     * entirely from programs whose arrays are never read this way.
-     *
-     * <p>The shared per-type array-default metatable (see {@code
-     * LuaTranslator#newDefaultArray}) already guarantees a typed, non-nil
-     * default on every miss, so this remains defensive hardening against
-     * values written from outside typed Wurst code, not a correctness
-     * requirement for pure Wurst-authored programs.
-     */
-    private static void lowerPrimitiveArrayEnsure(ImProg prog, ImTranslator translator) {
-        prog.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImVarArrayAccess access) {
-                super.visit(access);
-                if (LValues.isUsedAsLValue(access)) {
-                    return;
-                }
-                ImFunction ensureFunc = ensureFunctionFor(access.attrTyp(), translator);
-                if (ensureFunc == null) {
-                    return;
-                }
-                access.replaceBy(callWithStacktrace(access.attrTrace(), ensureFunc, JassIm.ImExprs(access.copy())));
-            }
-        });
-    }
-
     private static ImFunctionCall callWithStacktrace(de.peeeq.wurstscript.ast.Element trace, ImFunction f, ImExprs args) {
         int stacktraceIndex = stacktraceParamIndex(f);
         if (stacktraceIndex >= 0) {
@@ -386,32 +490,25 @@ public final class LuaNativeLowering {
         return -1;
     }
 
-    private static ImFunction ensureFunctionFor(ImType type, ImTranslator translator) {
-        if (TypesHelper.isIntType(type)) {
-            return translator.ensureIntFunc;
-        } else if (TypesHelper.isBoolType(type)) {
-            return translator.ensureBoolFunc;
-        } else if (TypesHelper.isRealType(type)) {
-            return translator.ensureRealFunc;
-        } else if (TypesHelper.isStringType(type)) {
-            return translator.ensureStrFunc;
-        }
-        return null;
-    }
-
     /**
      * Lazily builds (and memoizes) the div/mod helper functions and the tiny
      * raw-Lua-primitive natives they delegate to (Wurst's IM has no
      * floor-division/fmod operator of its own).
      */
     private static final class DivModFunctions {
+        private final ImTranslator translator;
         private final List<ImFunction> created = new ArrayList<>();
         private ImFunction rawFloorDivInt;
         private ImFunction rawFmodInt;
+        private ImFunction rawFloorModInt;
         private ImFunction rawFmodReal;
         private ImFunction intDiv;
         private ImFunction modInt;
         private ImFunction modReal;
+
+        private DivModFunctions(ImTranslator translator) {
+            this.translator = translator;
+        }
 
         List<ImFunction> createdFunctions() {
             return created;
@@ -420,6 +517,7 @@ public final class LuaNativeLowering {
         ImFunction intDiv() {
             if (intDiv == null) {
                 intDiv = buildIntDiv(rawFloorDivInt());
+                translator.luaIntDivFunc = intDiv;
                 created.add(intDiv);
             }
             return intDiv;
@@ -428,6 +526,7 @@ public final class LuaNativeLowering {
         ImFunction modInt() {
             if (modInt == null) {
                 modInt = buildMod("__wurst_modInt", TypesHelper.imInt(), JassIm.ImIntVal(0), rawFmodInt());
+                translator.luaModIntFunc = modInt;
                 created.add(modInt);
             }
             return modInt;
@@ -436,6 +535,7 @@ public final class LuaNativeLowering {
         ImFunction modReal() {
             if (modReal == null) {
                 modReal = buildMod("__wurst_modReal", TypesHelper.imReal(), JassIm.ImRealVal("0."), rawFmodReal());
+                translator.luaModRealFunc = modReal;
                 created.add(modReal);
             }
             return modReal;
@@ -448,6 +548,7 @@ public final class LuaNativeLowering {
         private ImFunction rawFloorDivInt() {
             if (rawFloorDivInt == null) {
                 rawFloorDivInt = rawNative("__wurst_rawFloorDivInt", TypesHelper.imInt());
+                translator.luaRawFloorDivIntFunc = rawFloorDivInt;
                 created.add(rawFloorDivInt);
             }
             return rawFloorDivInt;
@@ -456,20 +557,32 @@ public final class LuaNativeLowering {
         private ImFunction rawFmodInt() {
             if (rawFmodInt == null) {
                 rawFmodInt = rawNative("__wurst_rawFmodInt", TypesHelper.imInt());
+                translator.luaRawFmodIntFunc = rawFmodInt;
                 created.add(rawFmodInt);
             }
             return rawFmodInt;
         }
 
+        /** Lua's floored {@code %}; only correct for a positive divisor, which the caller guarantees. */
+        ImFunction rawFloorModInt() {
+            if (rawFloorModInt == null) {
+                rawFloorModInt = rawNative("__wurst_rawFloorModInt", TypesHelper.imInt());
+                translator.luaRawFloorModIntFunc = rawFloorModInt;
+                created.add(rawFloorModInt);
+            }
+            return rawFloorModInt;
+        }
+
         private ImFunction rawFmodReal() {
             if (rawFmodReal == null) {
                 rawFmodReal = rawNative("__wurst_rawFmodReal", TypesHelper.imReal());
+                translator.luaRawFmodRealFunc = rawFmodReal;
                 created.add(rawFmodReal);
             }
             return rawFmodReal;
         }
 
-        /** A native leaf with two params and a return, all of the same primitive type. Body supplied by LuaNatives. */
+        /** A native leaf with two params and a return, translated as a Lua backend intrinsic. */
         private static ImFunction rawNative(String name, ImType numType) {
             ImVar a = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "a", false);
             ImVar b = JassIm.ImVar(SYNTHETIC_TRACE, numType.copy(), "b", false);
@@ -550,14 +663,27 @@ public final class LuaNativeLowering {
     private static ImFunction createNativeStub(String name, ImFunction original) {
         ImVars params = JassIm.ImVars();
         for (ImVar p : original.getParameters()) {
-            params.add(JassIm.ImVar(p.attrTrace(), p.getType().copy(), p.getName(), false));
+            params.add(JassIm.ImVar(p.attrTrace(), erasedForStub(p.getType()), p.getName(), false));
         }
         return JassIm.ImFunction(
             original.attrTrace(), name,
             JassIm.ImTypeVars(), params,
-            original.getReturnType().copy(),
+            erasedForStub(original.getReturnType()),
             JassIm.ImVars(), JassIm.ImStmts(),
             Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+    }
+
+    /**
+     * A type safe to put in a stub's signature.
+     *
+     * <p>Stubs are built with no type variables of their own, so copying an ImTypeVarRef would
+     * leave the stub referring to a variable owned by the function it replaced - a free variable,
+     * and malformed IM for every pass that walks types afterwards. A native stub is never generic:
+     * its body is hand-written Lua that does not consult the type, so erasing is the whole fix
+     * rather than rebinding a variable nothing will read.
+     */
+    private static ImType erasedForStub(ImType t) {
+        return t instanceof ImTypeVarRef ? JassIm.ImAnyType() : t.copy();
     }
 
     /**

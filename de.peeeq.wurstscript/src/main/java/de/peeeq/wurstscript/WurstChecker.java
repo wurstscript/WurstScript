@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.attributes.names.DesugarArrayLength;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.validation.GlobalCaches;
-import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ public class WurstChecker {
         if (root.isEmpty()) {
             return;
         }
-        TRVEHelper.protectedVariables.clear();
         new DesugarArrayLength().run(root);
         gui.sendProgress("Checking Files");
 

@@ -74,6 +74,9 @@ ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	
 	
 ImStmts * ImStmt
+ImVarargLoopVars * ImVarargLoopVar
+
+ImVarargLoopVar(ref ImVar var)
 
 ImStmt = 
 	  ImIf(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
@@ -82,7 +85,7 @@ ImStmt =
 	| ImReturn(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
 	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImLExpr left, ImExpr right)
 	| ImExpr
-	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ref ImVar loopVar)
+	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ImVarargLoopVars loopVars)
 	
 	
 ImExprOpt =

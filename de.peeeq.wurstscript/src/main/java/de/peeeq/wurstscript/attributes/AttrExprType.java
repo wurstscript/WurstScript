@@ -74,7 +74,12 @@ public class AttrExprType {
             return WurstTypeUnknown.instance();
         }
         if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof VarDef) {
-            if (Utils.getParentVarDef(Optional.of(term)) == Optional.of((VarDef) varDef.getDef())) {
+            // Compare the enclosing VarDef to the one this access resolves to. Both sides used
+            // to be wrapped in fresh Optionals and compared with ==, which is never true, so
+            // this check silently did nothing. getParentVarDef returns null (not empty) when
+            // there is no enclosing VarDef, hence the explicit null guard.
+            Optional<VarDef> enclosingVarDef = Utils.getParentVarDef(Optional.of(term));
+            if (enclosingVarDef != null && enclosingVarDef.orElse(null) == varDef.getDef()) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }

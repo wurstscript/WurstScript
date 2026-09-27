@@ -2,6 +2,8 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.Element;
@@ -12,6 +14,8 @@ import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import net.moonlightflower.wc3libs.bin.ObjMod;
+import net.moonlightflower.wc3libs.bin.Wc3BinInputStream;
+import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.objMod.W3A;
 import net.moonlightflower.wc3libs.bin.app.objMod.W3U;
 import net.moonlightflower.wc3libs.dataTypes.DataType;
@@ -21,11 +25,17 @@ import net.moonlightflower.wc3libs.misc.MetaFieldId;
 import net.moonlightflower.wc3libs.misc.ObjId;
 import org.testng.annotations.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
@@ -203,6 +213,156 @@ public class CompiletimeNativesTest {
         ObjMod.Obj obj = w3u.getOrigObjs().get(0);
         assertTrue(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("unam")));
         assertTrue(obj.getMods().stream().anyMatch(m -> m.getId().getVal().equals("utip")));
+    }
+
+    @Test
+    public void modifyObjectReplacesPlainModsReadFromMapFile() throws Exception {
+        CompiletimeNatives natives = new CompiletimeNatives(null, null, false);
+        W3U w3u = new W3U();
+        W3U.Obj obj = w3u.addObj(ObjId.valueOf("hfoo"), null);
+        // Duplicates left behind by earlier runs, as they are read back from a war3map.w3u.
+        obj.addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("old 1")));
+        obj.addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("old 2")));
+        obj.addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("utip"), ObjMod.ValType.STRING, War3String.valueOf("tip")));
+
+        Method modifyObject = CompiletimeNatives.class.getDeclaredMethod(
+                "modifyObject",
+                ObjMod.Obj.class,
+                ILconstString.class,
+                ObjMod.ValType.class,
+                int.class,
+                int.class,
+                DataType.class);
+        modifyObject.setAccessible(true);
+        modifyObject.invoke(natives, obj, ILconstString.fromText("unam"), ObjMod.ValType.STRING, 1, 0, War3String.valueOf("new"));
+
+        List<ObjMod.Obj.Mod> names = obj.getModsOfField(MetaFieldId.valueOf("unam"));
+        assertEquals(names.size(), 1);
+        assertEquals(((War3String) names.get(0).getVal()).getVal(), "new");
+        assertEquals(obj.getModsOfField(MetaFieldId.valueOf("utip")).size(), 1, "Other fields must be kept");
+    }
+
+    @Test
+    public void meleeOverrideDoesNotGrowMapAcrossRuns() throws Exception {
+        File map = newArchive(tempDir(), "map.w3x", null);
+        long[] sizes = new long[4];
+        for (int run = 0; run < sizes.length; run++) {
+            runCompiletime(map, null, natives -> overrideFootman(natives, "Footman X"));
+            byte[] w3u = readFromArchive(map, "war3map.w3u");
+            sizes[run] = w3u.length;
+            ObjMod.Obj footman = readW3U(w3u).getObjs().get(ObjId.valueOf("hfoo"));
+            assertEquals(footman.getMods().size(), 2, "run " + run + " duplicated fields: " + footman.getMods());
+        }
+        for (long size : sizes) {
+            assertEquals(size, sizes[0], "war3map.w3u grew across runs");
+        }
+    }
+
+    @Test
+    public void removedMeleeOverrideIsDroppedFromCachedMap() throws Exception {
+        File dir = tempDir();
+        W3U editorObjects = new W3U();
+        editorObjects.addObj(ObjId.valueOf("hpea"), null)
+            .addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("Editor peasant")));
+        File source = newArchive(dir, "source.w3x", writeObjMod(editorObjects));
+        File cached = new File(dir, "cached.w3x");
+        java.nio.file.Files.copy(source.toPath(), cached.toPath());
+
+        runCompiletime(cached, source, natives -> overrideFootman(natives, "Footman X"));
+        assertTrue(readW3U(readFromArchive(cached, "war3map.w3u")).getObjs().containsKey(ObjId.valueOf("hfoo")));
+
+        runCompiletime(cached, source, natives -> {});
+        W3U result = readW3U(readFromArchive(cached, "war3map.w3u"));
+        assertFalse(result.getObjs().containsKey(ObjId.valueOf("hfoo")), "Override removed from code must not survive in the cache");
+        ObjMod.Obj peasant = result.getObjs().get(ObjId.valueOf("hpea"));
+        assertEquals(((War3String) peasant.get(MetaFieldId.valueOf("unam"))).getVal(), "Editor peasant",
+            "Object data from the source map must be kept");
+    }
+
+    @Test
+    public void removedMeleeOverrideIsDroppedWhenSourceMapHasNoObjectData() throws Exception {
+        File dir = tempDir();
+        File source = newArchive(dir, "source.w3x", null);
+        File cached = new File(dir, "cached.w3x");
+        java.nio.file.Files.copy(source.toPath(), cached.toPath());
+
+        runCompiletime(cached, source, natives -> overrideFootman(natives, "Footman X"));
+        runCompiletime(cached, source, natives -> {});
+
+        W3U result = readW3U(readFromArchive(cached, "war3map.w3u"));
+        assertTrue(result.getObjsList().isEmpty(), "Stale objects left in cache: " + result.getObjs().keySet());
+    }
+
+    @Test
+    public void unreadableObjectFileIsKeptUnchanged() throws Exception {
+        W3U editorObjects = new W3U();
+        editorObjects.addObj(ObjId.valueOf("hpea"), null)
+            .addMod(new ObjMod.Obj.Mod(MetaFieldId.valueOf("unam"), ObjMod.ValType.STRING, War3String.valueOf("Editor peasant")));
+        byte[] full = writeObjMod(editorObjects);
+        // Cut off mid-object, so reading it runs out of input.
+        byte[] truncated = java.util.Arrays.copyOf(full, full.length - 6);
+        File map = newArchive(tempDir(), "map.w3x", truncated);
+
+        runCompiletime(map, null, natives -> {});
+
+        org.testng.Assert.assertEquals(readFromArchive(map, "war3map.w3u"), truncated,
+            "An object file that could not be read must not be replaced by an empty one");
+    }
+
+    private static void overrideFootman(CompiletimeNatives natives, String name) {
+        int hfoo = ObjectHelper.objectIdStringToInt("hfoo");
+        var footman = natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(hfoo), new ILconstInt(hfoo));
+        natives.ObjectDefinition_setString(footman, ILconstString.fromText("unam"), ILconstString.fromText(name));
+        natives.ObjectDefinition_setString(footman, ILconstString.fromText("utip"), ILconstString.fromText("Tooltip"));
+    }
+
+    /** One compiletime run against {@code map}, the way a map request runs it against the cached map. */
+    private void runCompiletime(File map, File objectDataSource, Consumer<CompiletimeNatives> compiletime) throws Exception {
+        WurstGuiLogger gui = new WurstGuiLogger();
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map))) {
+            ProgramStateIO state = new ProgramStateIO(Optional.of(map), mpq, gui, emptyProg(), true);
+            state.setObjectDataSource(objectDataSource);
+            compiletime.accept(new CompiletimeNatives(state, null, false));
+            state.writeBack(true);
+        }
+        assertEquals(gui.getErrorCount(), 0, gui.getErrors());
+    }
+
+    private static File tempDir() throws IOException {
+        File dir = Files.createTempDirectory("wurst-object-cache").toFile();
+        dir.deleteOnExit();
+        return dir;
+    }
+
+    private static File newArchive(File dir, String name, byte[] w3u) throws Exception {
+        File archive = new File(dir, name);
+        MpqEditorFactory.createEmptyArchive(archive);
+        if (w3u != null) {
+            try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(archive))) {
+                mpq.insertFile("war3map.w3u", w3u);
+            }
+        }
+        return archive;
+    }
+
+    private static byte[] readFromArchive(File archive, String name) throws Exception {
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(archive), true)) {
+            return mpq.extractFile(name);
+        }
+    }
+
+    private static byte[] writeObjMod(ObjMod<?> objMod) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (Wc3BinOutputStream out = new Wc3BinOutputStream(baos)) {
+            objMod.write(out, ObjMod.EncodingFormat.OBJ_0x2);
+        }
+        return baos.toByteArray();
+    }
+
+    private static W3U readW3U(byte[] data) throws Exception {
+        try (Wc3BinInputStream in = new Wc3BinInputStream(new ByteArrayInputStream(data))) {
+            return new W3U(in);
+        }
     }
 
     @Test

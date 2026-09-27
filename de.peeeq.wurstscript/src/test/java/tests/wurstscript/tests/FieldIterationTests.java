@@ -221,10 +221,10 @@ public class FieldIterationTests extends WurstScriptTest {
             "lua/FieldIterationTests_serializesAndDeserializesFieldsWithoutRuntimeReflection.lua").toPath());
         assertFalse(lua.contains("forFields"));
         assertFalse(lua.contains("mapFields"));
-        assertTrue(lua.contains("Codec_Codec_write(codec, \"score\", this"));
-        assertTrue(lua.contains("Codec_Codec_write1(codec, \"name\", this"));
-        assertTrue(lua.contains("Data_score = Codec_Codec_read(codec1, \"score\""));
-        assertTrue(lua.contains("Data_name = Codec_Codec_read1(codec1, \"name\""));
+        assertTrue(lua.contains("Codec_Codec_write(codec, \"score\", Data_score_storage["));
+        assertTrue(lua.contains("Codec_Codec_write1(codec, \"name\", Data_name_storage["));
+        assertTrue(lua.contains(" = Codec_Codec_read(codec1, \"score\", Data_score_storage["));
+        assertTrue(lua.contains(" = Codec_Codec_read1(codec1, \"name\", Data_name_storage["));
     }
 
     @Test

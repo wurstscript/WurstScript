@@ -284,7 +284,10 @@ public class FuncLink extends DefLink {
 
     public FuncLink withConfigDef() {
         FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
+        if (def == this.def) {
+            return this;
+        }
+        return FuncLink.create(def, getDefinedIn()).withVisibility(getVisibility());
     }
 
     public FuncLink hidingPrivate() {

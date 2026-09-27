@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.RestrictedCompressedNames;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -50,6 +51,11 @@ public class ImToJassTranslator {
 
         translateFunctionTransitive(mainFunc);
         translateFunctionTransitive(confFunction);
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
+            if (NamePreservation.isPreserved(function)) {
+                translateFunctionTransitive(function);
+            }
+        }
 
         return prog;
     }
@@ -61,8 +67,8 @@ public class ImToJassTranslator {
         List<T> sorted = new ArrayList<>(list);
         sorted.sort(Comparator.comparing(JassImElementWithName::getName)
             .thenComparing(v -> v.getTrace().attrSource().getFile())
-            .thenComparing(v -> v.getTrace().attrSource().getLine())
-            .thenComparing(v -> v.getTrace().attrSource().getStartColumn()));
+            .thenComparingInt(v -> v.getTrace().attrSource().getLine())
+            .thenComparingInt(v -> v.getTrace().attrSource().getStartColumn()));
 
         Set<String> used = new HashSet<>(sorted.size() * 2);
         Map<String, Integer> nextSuffix = new HashMap<>();

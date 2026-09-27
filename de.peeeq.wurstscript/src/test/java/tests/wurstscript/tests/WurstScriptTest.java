@@ -40,6 +40,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -113,6 +116,9 @@ public class WurstScriptTest {
         private final List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
+        private boolean optimize;
+        private boolean inline;
+        private boolean stacktraces;
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
@@ -157,6 +163,17 @@ public class WurstScriptTest {
             return this;
         }
 
+        /** Enables the IM inliner (-inline), which is a separate option from -opt. */
+        TestConfig inline() {
+            this.inline = true;
+            return this;
+        }
+
+        TestConfig optimize() {
+            this.optimize = true;
+            return this;
+        }
+
         TestConfig executeProg(boolean b) {
             this.executeProg = b;
             return this;
@@ -164,6 +181,18 @@ public class WurstScriptTest {
 
         TestConfig expectWarning(String expectedWarning) {
             this.expectedWarning = expectedWarning;
+            return this;
+        }
+
+        /**
+         * Emit stack traces, as a release build does by default.
+         *
+         * <p>Worth testing on the Lua path: stack-trace injection appends a parameter to every
+         * affected function there, so a lowering which recognises a function by its exact
+         * signature stops matching once it has run.
+         */
+        public TestConfig stacktraces() {
+            this.stacktraces = true;
             return this;
         }
 
@@ -269,6 +298,12 @@ public class WurstScriptTest {
             if (runCompiletimeFunctions) {
                 runArgs = runArgs.with("-runcompiletimefunctions");
             }
+            if (optimize) {
+                runArgs = runArgs.with("-opt");
+            }
+            if (inline) {
+                runArgs = runArgs.with("-inline");
+            }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);
             }
@@ -320,7 +355,7 @@ public class WurstScriptTest {
 
             if (testLua) {
                 // test lua translation
-                runArgs = runArgs.with("-lua");
+                runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
             }
@@ -421,6 +456,24 @@ public class WurstScriptTest {
         String name = UtilsIO.getMethodName(WurstScriptTest.class.getName());
         name = this.getClass().getSimpleName() + "_" + name;
         return new TestConfig(name);
+    }
+
+    /**
+     * Like {@link #test()} but with an explicit name for the files written under
+     * {@link #TEST_OUTPUT_PATH}.
+     *
+     * <p>{@link #test()} names those files after the first frame outside WurstScriptTest, which is
+     * the *helper* whenever a test reaches it through one of its own methods. That is deliberate -
+     * DeterministicChecks relies on one test method producing several differently named outputs -
+     * but it means two test methods sharing a helper get the same name, and therefore the same
+     * file. Gradle runs test classes in parallel forks, so when those two methods live in
+     * different suites the JVMs race on one .j file and pjass parses a spliced result.
+     *
+     * <p>Pass an explicit name in that situation. {@code name} is prefixed with the test class,
+     * exactly as {@link #test()} does.
+     */
+    public TestConfig testNamed(String name) {
+        return new TestConfig(this.getClass().getSimpleName() + "_" + name);
     }
 
     void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
@@ -757,6 +810,10 @@ public class WurstScriptTest {
             candidates.add("lua53.exe");
             candidates.add("lua");
         } else {
+            // Prefer the distribution's versioned Lua 5.3 binary when present.
+            // The checked-in portable binary may depend on an older system
+            // readline ABI on newer Linux runner images.
+            candidates.add("lua5.3");
             if (bundledLuaUnix.exists()) {
                 // best effort in case execute bit was lost by checkout settings
                 // (e.g. core.filemode false on some environments)
@@ -817,6 +874,7 @@ public class WurstScriptTest {
             candidates.add("luac.exe");
             candidates.add("luac");
         } else {
+            candidates.add("luac5.3");
             if (bundledLuacUnix.exists()) {
                 bundledLuacUnix.setExecutable(true);
                 if (bundledLuacUnix.canExecute()) {
@@ -1108,11 +1166,47 @@ public class WurstScriptTest {
     }
 
 
+    /**
+     * Scripts already checked by pjass in this JVM, by content hash.
+     *
+     * <p>pjass parses every file it is given as one program, so independent test scripts cannot be
+     * batched into a single invocation - each one costs a process spawn plus a re-parse of
+     * common.j and blizzard.j (~15k lines). About a third of the scripts this suite emits are
+     * byte-identical to one already checked (the same source compiled under several optimisation
+     * levels, and near-identical fixtures within a test class), and pjass is a pure function of its
+     * input, so checking those again cannot tell us anything new. Spawning is the dominant cost on
+     * Windows, where CreateProcess is an order of magnitude dearer than fork/exec.
+     *
+     * <p>Only successes are recorded: a failure re-runs so the reported message names the file the
+     * caller actually passed.
+     */
+    private static final Set<String> pjassCheckedScripts = ConcurrentHashMap.newKeySet();
+
     private void runPjass(File outputFile) throws Error {
+        String digest = scriptDigest(outputFile);
+        if (digest != null && pjassCheckedScripts.contains(digest)) {
+            return;
+        }
         Result pJassResult = Pjass.runPjass(outputFile);
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
             throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
+        }
+        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+        // it means pjass never validated this script - caching it would make every later identical
+        // script skip validation too, after a failure that may well have been transient.
+        if (digest != null && pJassResult.isOk()) {
+            pjassCheckedScripts.add(digest);
+        }
+    }
+
+    /** Content hash of a generated script, or null if it cannot be read - in which case pjass runs. */
+    private static String scriptDigest(File file) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(java.nio.file.Files.readAllBytes(file.toPath())));
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return null;
         }
     }
 

@@ -8,6 +8,10 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
+import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
@@ -22,6 +26,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.testng.AssertJUnit.*;
 
@@ -128,6 +134,15 @@ public class LuaTranslationTests extends WurstScriptTest {
         return result;
     }
 
+    private int countMatches(String output, String regex) {
+        Matcher matcher = Pattern.compile(regex).matcher(output);
+        int result = 0;
+        while (matcher.find()) {
+            result++;
+        }
+        return result;
+    }
+
     private String singleMatch(String output, String regex, int group) {
         Matcher matcher = Pattern.compile(regex).matcher(output);
         assertTrue("Expected pattern to occur: " + regex, matcher.find());
@@ -135,6 +150,14 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFalse("Expected exactly one match for pattern: " + regex, matcher.find());
         return result;
     }
+
+    /** A virtual call reads its slot from the receiver's descriptor at the call site. */
+    private String singleDispatchSlot(String compiled, String callerBody) {
+        return singleMatch(callerBody, DISPATCH_CALL_SITE, 1);
+    }
+
+    private static final String DISPATCH_CALL_SITE =
+        "__wurst_objectClass(?:_local\\d*)?\\[(?:[^\\[\\]]|\\[[^\\]]*\\])+\\]\\.([A-Za-z0-9_]+)\\(";
 
     private List<String> nonBaseSubclassBindings(String output, String baseName, String slotName) {
         Matcher matcher = Pattern.compile("([A-Za-z0-9_]+)\\." + Pattern.quote(slotName) + "\\s*=\\s*[A-Za-z0-9_]+").matcher(output);
@@ -166,6 +189,11 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations", "-stacktraces");
+        return compileLuaWithCUs(testName, withStdLib, extraCUs, runArgs, lines);
+    }
+
+    private String compileLuaWithCUs(String testName, boolean withStdLib, List<CU> extraCUs,
+                                     RunArgs runArgs, String... lines) {
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         List<CU> inputs = new ArrayList<>();
@@ -267,6 +295,22 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertContainsRegex(compiled, "\"when calling contains");
         assertDoesNotContainRegex(compiled, "\"when calling contains[^\"]*\"\\s*[<>]=?");
         assertDoesNotContainRegex(compiled, "(?s)if not\\((\\w+)\\) then.*?stepsAlongY\\([^\\n]*,\\s*\\1\\s*,");
+    }
+
+    @Test
+    public void luaErrorWrappersAvoidUnavailableNativeTraceback() throws IOException {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_luaErrorWrappersPassNativeTracebackToStacktracedErrorHandler",
+            false,
+            "package ErrorHandling",
+            "function error(string msg)",
+            "    skip",
+            "function fail()",
+            "    error(\"boom\")",
+            "init",
+            "    fail()"
+        );
+        assertFalse(compiled.contains("debug.traceback"));
     }
 
     @Test
@@ -480,7 +524,7 @@ public class LuaTranslationTests extends WurstScriptTest {
     }
 
     @Test
-    public void stringArrayReadIsEnsured() throws IOException {
+    public void stringArrayReadIsRawAtNativeBoundary() throws IOException {
         test().testLua(true).withStdLib().lines(
             "package Test",
             "string array playerName",
@@ -488,8 +532,11 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    let i = 0",
             "    SetPlayerName(Player(i), playerName[i])"
         );
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsEnsured.lua"), Charsets.UTF_8);
-        assertContainsRegex(compiled, "SetPlayerName\\(Player\\([^\\)]*\\),\\s*__wurst_ensureStr\\(");
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_stringArrayReadIsRawAtNativeBoundary.lua"), Charsets.UTF_8);
+        assertTrue("native boundary must receive a raw typed array read",
+            compiled.contains(", Test_playerName["));
+        assertFalse("typed array reads must not use erased-generic normalization",
+            compiled.contains("__wurst_ensureStr(Test_playerName["));
     }
 
     @Test
@@ -565,7 +612,7 @@ public class LuaTranslationTests extends WurstScriptTest {
             }
         }
         assertEquals("Expected three distinct Base overload dispatch slots.", 3, baseSlots.size());
-        assertTrue(compiled.contains("this:Base_doThing1(a, 0)"));
+        assertContainsRegex(compiled, "__wurst_objectClass\\[this\\]\\.Base_doThing1\\(this, a, 0\\)");
         assertTrue(compiled.contains("Base_Base_doThing2(this1, a1, b, false)"));
         assertTrue(compiled.contains("Child.Base_doThing1 = Child_Child_doThing"));
         assertTrue(compiled.contains("Child.Base_doThing2 = Base_Base_doThing2"));
@@ -599,8 +646,153 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertEquals("Expected exactly one overridden setup overload family from module-provided methods.", 1, overriddenSlots.size());
         assertEquals("Expected three distinct setup slots on Base.", 3, baseSlots.size());
-        assertTrue(compiled.contains(":Base_M_setup1(") || compiled.contains(":Base_setup1("));
+        assertTrue(compiled.contains("].Base_M_setup1(") || compiled.contains("].Base_setup1("));
         assertContainsRegex(compiled, "Child\\.Base(?:_M)?_setup" + Pattern.quote(overriddenSlots.get(0)) + "\\s*=\\s*Child_Child_setup");
+    }
+
+    @Test
+    public void moduleProvidedInterfaceDispatchSurvivesLuaOptimizations() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_moduleProvidedInterfaceDispatchSurvivesLuaOptimizations",
+            false,
+            "package Test",
+            "interface Greeter",
+            "    function greet() returns thistype",
+            "module GreeterLifecycle",
+            "    abstract function greet() returns thistype",
+            "module FirstGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module NestedFirstGreeter",
+            "    use FirstGreeter",
+            "module SecondGreeter",
+            "    use GreeterLifecycle",
+            "    override function greet() returns thistype",
+            "        return this",
+            "module GreeterCaller",
+            "    function call(Greeter greeter) returns Greeter",
+            "        return greeter.greet()",
+            "class First implements Greeter",
+            "    use NestedFirstGreeter",
+            "    use GreeterCaller",
+            "class Second implements Greeter",
+            "    use SecondGreeter",
+            "    use GreeterCaller",
+            "init",
+            "    Greeter first = new First()",
+            "    Greeter second = new Second()",
+            "    First firstObject = new First()",
+            "    Second secondObject = new Second()",
+            "    Greeter firstResult = firstObject.call(second)",
+            "    Greeter secondResult = secondObject.call(first)"
+        );
+        Matcher callMatcher = Pattern.compile(
+            "return __wurst_objectClass\\[greeter\\d*\\]\\.([A-Za-z0-9_]+)\\(greeter\\d*").matcher(compiled);
+        List<String> slots = new ArrayList<>();
+        while (callMatcher.find()) {
+            if (!slots.contains(callMatcher.group(1))) {
+                slots.add(callMatcher.group(1));
+            }
+        }
+        assertEquals("Both optimized module callers must dispatch through one interface slot.", 1, slots.size());
+        String slot = slots.get(0);
+        assertContainsRegex(compiled, "First\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*First_[^\\n]*greet");
+        assertContainsRegex(compiled, "Second\\.[^\\n]*" + Pattern.quote(slot) + "\\s*=\\s*Second_[^\\n]*greet");
+    }
+
+    @Test
+    public void incompatibleSameNameInterfaceReturnsDoNotAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_incompatibleSameNameInterfaceReturnsDoNotAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both())",
+            "    readString(new Both())"
+        );
+
+        String intSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "readInt"));
+        assertContainsRegex(compiled, "Both\\." + Pattern.quote(intSlot) + "\\s*=");
+        assertDoesNotContainRegex(compiled,
+            "Both\\." + Pattern.quote(intSlot) + "\\s*=\\s*StringValue_StringValue_value");
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.IntValue_value\\s*=\\s*StringValue_StringValue_value");
+    }
+
+    @Test
+    public void genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_genericOwnersDoNotMakeIncompatibleInterfaceReturnsAliasInLua",
+            false,
+            "package Test",
+            "interface IntValue",
+            "    function value() returns int",
+            "interface StringValue",
+            "    function value() returns string",
+            "        return \"default\"",
+            "module IntValueImpl",
+            "    function value() returns int",
+            "        return 1",
+            "class Both<T> implements IntValue, StringValue",
+            "    use IntValueImpl",
+            "@noinline function readInt(IntValue value) returns int",
+            "    return value.value()",
+            "@noinline function readString(StringValue value) returns string",
+            "    return value.value()",
+            "init",
+            "    readInt(new Both<int>())",
+            "    readString(new Both<int>())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.StringValue_value\\s*=\\s*StringValue_StringValue_value");
+        assertDoesNotContainRegex(compiled, "Both\\.StringValue_value\\s*=\\s*Both_[^\\n]*IntValueImpl_value");
+    }
+
+    @Test
+    public void superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua() {
+        String compiled = compileLuaWithRunArgs(
+            "LuaTranslationTests_superclassReturnDoesNotReplaceCovariantInterfaceSlotInLua",
+            false,
+            "package Test",
+            "class Base",
+            "class Derived extends Base",
+            "interface DerivedValue",
+            "    function value() returns Derived",
+            "        return new Derived()",
+            "interface BaseValue",
+            "    function value() returns Base",
+            "module BaseValueImpl",
+            "    function value() returns Base",
+            "        return new Base()",
+            "class Both implements DerivedValue, BaseValue",
+            "    use BaseValueImpl",
+            "@noinline function readDerived(DerivedValue value) returns Derived",
+            "    return value.value()",
+            "@noinline function readBase(BaseValue value) returns Base",
+            "    return value.value()",
+            "init",
+            "    readDerived(new Both())",
+            "    readBase(new Both())"
+        );
+
+        assertContainsRegex(compiled, "Both\\.DerivedValue_DerivedValue_value\\s*=\\s*DerivedValue_DerivedValue_value");
+        assertContainsRegex(compiled, "Both\\.BaseValue_value\\s*=\\s*Both_Both_BaseValueImpl_value");
+        assertDoesNotContainRegex(compiled, "Both\\.DerivedValue_value\\s*=\\s*BaseValue_BaseValue_value");
     }
 
     @Test
@@ -762,7 +954,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("run", slotName);
         List<String> subclassBindings = nonBaseSubclassBindings(compiled, "LLItrClosure", slotName);
 
@@ -799,7 +991,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
-        String callbackSlot = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String callbackSlot = singleDispatchSlot(compiled, forEachBody);
         assertEquals("callback", callbackSlot);
         List<String> subclassBindings = nonBaseSubclassBindings(compiled, "ForElementCallback", callbackSlot);
 
@@ -808,7 +1000,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(callbackSlot) + "\\s*=");
 
         String otherBody = getFunctionBody(compiled, "OtherRegistry_OtherRegistry_applyTo");
-        String otherSlot = singleMatch(otherBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String otherSlot = singleDispatchSlot(compiled, otherBody);
         assertTrue(otherSlot.startsWith("callback"));
         List<String> otherSubclassBindings = nonBaseSubclassBindings(compiled, "OtherCallback", otherSlot);
 
@@ -846,7 +1038,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "LinkedList_LinkedList_forEach");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("LLItrClosure_run", slotName);
         assertContainsRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
         assertDoesNotContainRegex(compiled, "LLItrClosure_[A-Za-z0-9_]+\\.LLItrClosure_run\\d+\\s*=");
@@ -876,7 +1068,7 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
 
         String forEachBody = getFunctionBody(compiled, "Registry_Registry_forEachIn");
-        String slotName = singleMatch(forEachBody, ":([A-Za-z0-9_]+)\\(", 1);
+        String slotName = singleDispatchSlot(compiled, forEachBody);
         assertEquals("ForElementCallback_callback", slotName);
         assertContainsRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\." + Pattern.quote(slotName) + "\\s*=");
         assertDoesNotContainRegex(compiled, "ForElementCallback_[A-Za-z0-9_]+\\.ForElementCallback_callback\\d+\\s*=");
@@ -1178,9 +1370,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum = 0", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroInt = zeroEnum", true);
         assertFunctionBodyContains(compiled, "testEnum", "zeroEnum2 = zeroInt", true);
-        // classes are cast with objectToIndex and objectFromIndex in lua
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
+        // Integer-ID classes use their scalar id directly, with only null/zero normalization.
+        assertFunctionBodyContains(compiled, "testClass", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testClass", "~= 0) and", true);
         assertFunctionBodyContains(compiled, "testClass", "cInt = cObj", false);
         assertFunctionBodyContains(compiled, "testClass", "cObj2 = cInt", false);
     }
@@ -1278,8 +1470,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_objectIndexFunctionsDoNotCollideWithUserFunctions.lua"), Charsets.UTF_8);
         assertTrue(compiled.contains("function objectToIndex("));
         assertTrue(compiled.contains("function objectFromIndex("));
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testClass", "__wurst_objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testClass", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testClass", "~= 0) and", true);
     }
 
     @Test
@@ -1324,8 +1516,8 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_oldGenericsCastingDoesNotUseGetHandleId.lua"), Charsets.UTF_8);
         assertDoesNotContainRegex(compiled, "\\bGetHandleId\\(");
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectToIndex", true);
-        assertFunctionBodyContains(compiled, "testCast", "__wurst_objectFromIndex", true);
+        assertFunctionBodyContains(compiled, "testCast", "(cObj or 0)", true);
+        assertFunctionBodyContains(compiled, "testCast", "~= 0) and", true);
     }
 
     @Test
@@ -1367,8 +1559,8 @@ public class LuaTranslationTests extends WurstScriptTest {
             "        skip"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_newGenericsStringFieldAssignmentRoundTripsInLua.lua"), Charsets.UTF_8);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "c.C_x = \"42\"", true);
-        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(c.C_x)", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "C_x_storage[c] = \"42\"", true);
+        assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_ensureStr(C_x_storage[c])", true);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringToIndex", false);
         assertFunctionBodyContains(compiled, "testGenericStringField", "__wurst_stringFromIndex", false);
     }
@@ -1394,18 +1586,78 @@ public class LuaTranslationTests extends WurstScriptTest {
 
     @Test
     public void genericOverrideChainBindsRootSlotToMostSpecificImplInLua() throws IOException {
+        String outputFile = "test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua";
         test().testLua(true).compilationUnits(genericOverrideReproUnits());
-        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsRootSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
+        String compiled = Files.toString(new File(outputFile), Charsets.UTF_8);
 
-        Matcher slotMatcher = Pattern.compile("FSM_currentState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
-        assertTrue("Expected FSM to dispatch through a virtual *_update slot.", slotMatcher.find());
-        String dispatchedSlot = slotMatcher.group(1);
+        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        assertTrue("Expected FSM to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         String[] states = {"FindBuilder", "PlanNextAction", "FindSpot", "BuildAtTarget", "QuickBuild", "RescueStrikeTarget"};
         for (String state : states) {
             assertContainsRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*" + state + "_" + state + "_update");
             assertDoesNotContainRegex(compiled, state + "\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
         }
+
+        GlobalCaches.clearAll();
+        test().testLua(true).compilationUnits(genericOverrideReproUnits());
+        String compiledAgain = Files.toString(new File(outputFile), Charsets.UTF_8);
+        assertEquals("The root-slot fixture must emit deterministic Lua across compilations.", compiled, compiledAgain);
+    }
+
+    /**
+     * Generic interface dispatch must use the same normalized slot as the descriptor entries.
+     * Keeping both tuple and ordinary class instantiations in one program is important: tuple
+     * specialization is what exposes the unspecialized generic call path, while the class path
+     * proves that the specialization does not merely work by accident for one representation.
+     */
+    @Test
+    public void genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "tuple pair(int a, int b)",
+            "tuple pair2(string a, int b)",
+            "interface Predicate<T:>",
+            "    function test(T t) returns boolean",
+            "class Box<T:>",
+            "    T value",
+            "    construct(T value)",
+            "        this.value = value",
+            "    function matches(Predicate<T> p) returns boolean",
+            "        let result = p.test(value)",
+            "        destroy p",
+            "        return result",
+            "class Foo",
+            "class Impl implements Predicate<Foo>",
+            "    function test(Foo value) returns boolean",
+            "        return value != null",
+            "init",
+            "    int successes = 0",
+            "    let first = new Box<pair>(pair(1, 2))",
+            "    if first.matches(x -> x.a == 1)",
+            "        successes++",
+            "    let second = new Box<pair2>(pair2(\"two\", 3))",
+            "    if second.matches(x -> x.a == \"two\")",
+            "        successes++",
+            "    let ordinary = new Box<Foo>(new Foo())",
+            "    if ordinary.matches(x -> x != null)",
+            "        successes++",
+            "    let ordinaryImpl = new Box<Foo>(new Foo())",
+            "    if ordinaryImpl.matches(new Impl())",
+            "        successes++",
+            "    if successes == 4",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File(
+            "test-output/lua/LuaTranslationTests_genericInterfaceDispatchUsesRegisteredSlotForTupleAndUnspecializedPaths.lua"),
+            Charsets.UTF_8);
+        assertContainsRegex(compiled,
+            "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.__wurst_dispatch_test\\(");
+        assertContainsRegex(compiled, "Predicate_matches_test\\.__wurst_dispatch_test\\s*=");
+        assertContainsRegex(compiled, "Impl\\.__wurst_dispatch_test\\s*=");
+        assertDoesNotContainRegex(compiled,
+            "__wurst_objectClass(?:_local\\d*)?\\[[^\\]]+\\]\\.Predicate_test");
     }
 
     @Test
@@ -1616,12 +1868,431 @@ public class LuaTranslationTests extends WurstScriptTest {
         test().testLua(true).compilationUnits(genericOverrideGlobalStateReproUnits());
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_genericOverrideChainBindsGlobalStateSlotToMostSpecificImplInLua.lua"), Charsets.UTF_8);
 
-        Matcher slotMatcher = Pattern.compile("FSM_globalState:([A-Za-z0-9_]*_update)\\(").matcher(compiled);
-        assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", slotMatcher.find());
-        String dispatchedSlot = slotMatcher.group(1);
+        String dispatchedSlot = singleDispatchSlot(compiled, getFunctionBody(compiled, "FSM_FSM_update"));
+        assertTrue("Expected FSM global state to dispatch through a virtual *_update slot.", dispatchedSlot.endsWith("_update"));
 
         assertContainsRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*GlobalCheckState_GlobalCheckState_update");
         assertDoesNotContainRegex(compiled, "GlobalCheckState\\." + dispatchedSlot + "\\s*=\\s*NoOpState_NoOpState_update");
+    }
+
+    /**
+     * Native stubs carry no type variables of their own, so a stub signature must never refer to
+     * one. Copying a T: parameter type verbatim leaves the stub pointing at a variable owned by
+     * the function it replaced - malformed IM for every later pass that walks types.
+     *
+     * <p>Asserted as a rule rather than through a symptom: the free reference does not break
+     * emission today, so a behavioural test would pass with or without the fix.
+     */
+    @Test
+    public void nativeStubsCarryNoFreeTypeVariables() {
+        WurstGui gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null,
+            new RunArgs().with("-lua"));
+        List<CU> inputs = new ArrayList<>();
+        inputs.add(new CU("nativeStubsCarryNoFreeTypeVariables.wurst", String.join(System.lineSeparator(),
+            "package KeyedTable",
+            "@annotation public function compilerintrinsic()",
+            "@compilerintrinsic public function keyedTableAdd<T:>(int tbl, T key)",
+            "    skip",
+            "@compilerintrinsic public function keyedTableContains<T:>(int tbl, T key) returns boolean",
+            "    return false",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    keyedTableAdd(1, 7)",
+            "    let hit = keyedTableContains(1, 7)",
+            "endpackage")));
+
+        WurstModel model = parseFiles(Collections.emptyList(), inputs, false, compiler);
+        assertNotNull("parse returned null model, errors = " + gui.getErrorList(), model);
+        compiler.checkProg(model);
+        assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
+        compiler.translateProgToIm(model);
+        compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
+        compiler.transformProgToLua();
+
+        for (ImFunction f : compiler.getImProg().getFunctions()) {
+            if (!f.isNative()) {
+                continue;
+            }
+            for (ImVar p : f.getParameters()) {
+                assertFalse(f.getName() + " parameter " + p.getName()
+                        + " refers to a type variable the stub does not declare",
+                    isFreeTypeVar(p.getType(), f));
+            }
+            assertFalse(f.getName() + " return type refers to a type variable the stub does not declare",
+                isFreeTypeVar(f.getReturnType(), f));
+        }
+    }
+
+    private static boolean isFreeTypeVar(ImType t, ImFunction owner) {
+        return t instanceof ImTypeVarRef ref
+            && !owner.getTypeVariables().contains(ref.getTypeVariable());
+    }
+
+    /**
+     * A generic key is the whole point: new generics are erased on Lua rather than cast to int
+     * like the old <T> containers, so the element itself becomes the table key and Lua hashes it
+     * natively. Bodies are trivial because these are Lua-only primitives - callers guard on isLua.
+     */
+    @Test
+    public void keyedTableGenericKeyReachesLuaUncast() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(
+            "package KeyedTable",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
+            "    return 0",
+            "@compilerintrinsic public function keyedTableAdd<T:>(int tbl, T key)",
+            "    skip",
+            "@compilerintrinsic public function keyedTableContains<T:>(int tbl, T key) returns boolean",
+            "    return false",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    keyedTableAdd(t, u)",
+            "    if keyedTableContains(t, u)",
+            "        print(\"present\")",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableGenericKeyReachesLuaUncast.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("a generic key must still lower to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("add is a single store", getFunctionBody(compiled, "__wurst_keyedTableAdd").contains("] = true"));
+
+        // The unit must be handed over as itself. An index round-trip would show up here.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the element must not be converted to a class index: " + init,
+            init.contains("__wurst_classFromIndex"));
+    }
+
+    /**
+     * KeyedTable source shared by the tests below: the Jass path built on the library's hashtable
+     * wrapper, which the Lua backend replaces with a table keyed directly by the element.
+     */
+    private static String[] keyedTableSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedTable",
+            "import Table",
+            "@compilerintrinsic public function keyedTableCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedTableAdd(int tbl, int key)",
+            "    (tbl castTo Table).saveBoolean(key, true)",
+            "@compilerintrinsic public function keyedTableContains(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).loadBoolean(key)",
+            "@compilerintrinsic public function keyedTableRemove(int tbl, int key)",
+            "    (tbl castTo Table).removeBoolean(key)",
+            "@compilerintrinsic public function keyedTableDestroy(int tbl)",
+            "    destroy (tbl castTo Table)",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    /** On Lua each keyed table is its own table and membership is a single index. */
+    @Test
+    public void keyedTableLowersToASingleLuaIndex() throws IOException {
+        test().testLua(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    print(keyedTableContains(t, 7).toString())",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableLowersToASingleLuaIndex.lua"), Charsets.UTF_8);
+
+        String add = getFunctionBody(compiled, "__wurst_keyedTableAdd");
+        String contains = getFunctionBody(compiled, "__wurst_keyedTableContains");
+        String create = getFunctionBody(compiled, "__wurst_keyedTableCreate");
+
+        assertTrue("add should be a single table store, was: " + add, add.contains("] = true"));
+        assertTrue("contains should be a single index, was: " + contains, contains.contains("] ~= nil"));
+        assertTrue("create should allocate a bare table, was: " + create, create.contains("return {}"));
+
+        // The whole point: no hashtable machinery on this path.
+        assertFalse("add must not go through the hashtable natives: " + add, add.contains("SaveBoolean"));
+        assertFalse("contains must not go through the hashtable natives: " + contains, contains.contains("LoadBoolean"));
+    }
+
+    /**
+     * Stack traces must not cost the keyed table its native representation.
+     *
+     * <p>Stack-trace injection appends a parameter to every affected function, and on Lua that is
+     * every non-native function, so the exact signatures the keyed-table operations are recognised
+     * by stop matching once it has run. Nothing reported that when it happened: the Jass bodies
+     * simply survived onto Lua, where `wurstKeyOf` is never lowered and answers with its
+     * placeholder, so every element shared one key and a set claimed to contain everything.
+     *
+     * <p>A release build emits stack traces by default, so this was the common case.
+     */
+    /**
+     * Stack traces must leave a compiler-owned declaration alone, whatever it is.
+     *
+     * <p>Instrumenting one appends a trace parameter, and every lowering identifies such a
+     * declaration by its exact signature - so an instrumented one stops being recognised and its
+     * lowering silently does not happen. On Lua that is not a corner: every non-native function is
+     * affected there, and a release build emits stack traces by default. It cost a correctness bug
+     * once, when a keyed set kept its Jass body on Lua and every element ended up sharing one key.
+     *
+     * <p>This uses an intrinsic no lowering touches, so what is being checked is the general rule
+     * rather than the keyed-table lowering that motivated it.
+     */
+    @Test
+    public void stackTracesLeaveCompilerOwnedDeclarationsAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstUntouched(int a, int b) returns int",
+            "    return a + b",
+            "init",
+            "    print(wurstUntouched(2, 3).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_stackTracesLeaveCompilerOwnedDeclarationsAlone.lua"),
+            Charsets.UTF_8);
+
+        // Present, so the assertions below are about its shape rather than its absence.
+        assertTrue("the intrinsic should still be emitted", compiled.contains("wurstUntouched"));
+
+        String signature = compiled.substring(compiled.indexOf("function wurstUntouched"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+
+        String body = getFunctionBody(compiled, "wurstUntouched");
+        assertFalse("nor stack bookkeeping in its body: " + body,
+            body.contains("wurst_stack_depth") || body.contains("wurst_stack["));
+
+        // The surrounding program is still instrumented, so the test would pass vacuously if
+        // stack traces were simply off.
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
+    /**
+     * The rule has to hold for an intrinsic which asks for a stack trace itself.
+     *
+     * <p>Such a function is seeded into the affected set before any filtering, so excluding only
+     * what the traversal adds would leave it instrumented - and the signature check would then
+     * fail the build rather than let the lowering quietly not happen. Either way `-lua
+     * -stacktraces` would be broken for this input.
+     */
+    @Test
+    public void aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone() throws IOException {
+        test().testLua(true).stacktraces().withStdLib().lines(
+            "package Test",
+            "@compilerintrinsic public function wurstTraced(int a) returns string",
+            "    return getStackTraceString() + a.toString()",
+            "init",
+            "    print(wurstTraced(1))",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_aCompilerOwnedDeclarationUsingAStackTraceIsStillLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        String signature = compiled.substring(compiled.indexOf("function wurstTraced"));
+        signature = signature.substring(0, signature.indexOf(")") + 1);
+        assertFalse("a compiler-owned declaration must not gain a trace parameter: " + signature,
+            signature.contains("stackPos"));
+        assertTrue("stack traces must actually be on", compiled.contains("wurst_stack_depth"));
+    }
+
+    @Test
+    public void keyedTableStaysNativeWithStackTraces() throws IOException {
+        test().testLua(true).stacktraces().inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if keyedTableContains(t, 7) and not keyedTableContains(t, 9)",
+            "        print(\"distinct\")",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableStaysNativeWithStackTraces.lua"),
+            Charsets.UTF_8);
+
+        assertTrue("membership must still lower to the keyed-table stubs under -stacktraces",
+            compiled.contains("__wurst_keyedTableContains") && compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("contains must still be a single index",
+            getFunctionBody(compiled, "__wurst_keyedTableContains").contains("] ~= nil"));
+
+        // The Jass body is the failure mode. On a keyed set it keys through wurstKeyOf, which is
+        // never lowered on Lua, so every element would collapse onto the same key. Scoped to the
+        // caller: Table itself is compiled in and legitimately uses the hashtable natives.
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("the caller must not reach the hashtable natives: " + init,
+            init.contains("SaveBoolean") || init.contains("LoadBoolean"));
+        assertTrue("the caller must call the stubs directly: " + init,
+            init.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
+     * A keyed table has to be disposable: the Jass body frees a Table instance, which comes from a
+     * finite pool, so a set that is cleared or discarded would otherwise burn one permanently.
+     *
+     * <p>Lua has a collector and nothing to free, so the operation must cost nothing there. It is
+     * emptied rather than replaced by a native stub, because a native is an analysis barrier the
+     * inliner will not cross - which would leave a call doing no work on every clear and destroy.
+     */
+    @Test
+    public void keyedTableDestroyCostsNothingOnLua() throws IOException {
+        // With stack traces, because that is what a release build emits, and instrumenting an
+        // emptied function is exactly how the cost comes back. Without inlining, because the call
+        // must not survive a build that never runs the inliner - or one where the Lua register
+        // budget refuses the caller.
+        test().testLua(true).stacktraces().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    keyedTableDestroy(t)",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableDestroyCostsNothingOnLua.lua"),
+            Charsets.UTF_8);
+
+        assertFalse("destroy must not become a native stub, which the inliner cannot remove",
+            compiled.contains("__wurst_keyedTableDestroy"));
+
+        String init = getFunctionBody(compiled, "init_Test");
+        assertFalse("no call should remain to free a keyed table on Lua: " + init,
+            init.contains("keyedTableDestroy"));
+        // Nor the stack-trace bookkeeping that instrumenting it would have inlined in its place.
+        assertFalse("freeing a keyed table must leave no trace bookkeeping behind: " + init,
+            init.contains("keyedTableDestroy in"));
+
+        // The Jass body must not survive: it would destroy a Table that does not exist here.
+        assertFalse("the Table machinery must not reach Lua: " + init,
+            init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
+    }
+
+    /**
+     * Membership must mean the same thing on both backends: the Jass path runs the hashtable
+     * body, the Lua path runs a bare table, and the observable behaviour has to agree.
+     */
+    @Test
+    public void keyedTableMembershipAgreesOnBothBackends() {
+        test().testLua(true).executeProg(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"empty table reported 7 as present\")",
+            "    keyedTableAdd(t, 7)",
+            "    if not keyedTableContains(t, 7)",
+            "        testFail(\"7 was added but reported absent\")",
+            "    if keyedTableContains(t, 8)",
+            "        testFail(\"8 was never added but reported present\")",
+            "    keyedTableRemove(t, 7)",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"7 was removed but reported present\")",
+            "    testSuccess()",
+            "endpackage"));
+    }
+
+    /**
+     * The lowering happens in IM before the inliner, so inlining cannot leave one call site on the
+     * hashtable body while another gets the Lua table - which would mix an integer class id with a
+     * table index for the same value and fail at runtime.
+     */
+    @Test
+    public void keyedTableMembershipSurvivesInlining() throws IOException {
+        test().testLua(true).executeProg(true).inline().withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    if not keyedTableContains(t, 7)",
+            "        testFail(\"7 was added but reported absent under -inline\")",
+            "    keyedTableRemove(t, 7)",
+            "    if keyedTableContains(t, 7)",
+            "        testFail(\"7 was removed but reported present under -inline\")",
+            "    testSuccess()",
+            "endpackage"));
+
+        // Whether a given site actually gets inlined depends on the inliner's local-register
+        // budget, so assert the rule rather than the symptom: every call was replaced in IM, so
+        // the Table-backed originals are unreachable and collected. If any site had kept the old
+        // body, that function would still be here.
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableMembershipSurvivesInlining.lua"),
+            Charsets.UTF_8);
+        assertFalse("no call site may keep the Table-backed keyedTableAdd",
+            compiled.contains("function keyedTableAdd("));
+        assertFalse("no call site may keep the Table-backed keyedTableContains",
+            compiled.contains("function keyedTableContains("));
+        assertTrue("membership must go through the lowered stub",
+            compiled.contains("__wurst_keyedTableContains"));
+    }
+
+    /**
+     * The lowering is opt-in by declaration. A user package that merely shares these names keeps
+     * its own body, so nothing silently changes meaning under it.
+     */
+    @Test
+    public void keyedTableWithoutTheAnnotationIsLeftAlone() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package KeyedTable",
+            "import Table",
+            "public function keyedTableCreate() returns int",
+            "    return (new Table()) castTo int",
+            "public function keyedTableAdd(int tbl, int key)",
+            "    (tbl castTo Table).saveBoolean(key, true)",
+            "public function keyedTableContains(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).loadBoolean(key)",
+            "endpackage",
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 7)",
+            "    print(keyedTableContains(t, 7).toString())",
+            "endpackage");
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableWithoutTheAnnotationIsLeftAlone.lua"),
+            Charsets.UTF_8);
+
+        assertFalse("an unannotated package must not be lowered to the keyed-table stubs",
+            compiled.contains("__wurst_keyedTableAdd"));
+        assertTrue("it should keep its own Table-backed body",
+            getFunctionBody(compiled, "keyedTableAdd").contains("Table_Table_saveBoolean"));
+    }
+
+    /**
+     * pairs() iteration order differs between clients and desyncs a lockstep game, so no emitted
+     * Lua may contain it. Cheap to assert and worth keeping regardless of this feature.
+     */
+    @Test
+    public void keyedTableEmitsNoTableIteration() throws IOException {
+        test().testLua(true).withStdLib().lines(keyedTableSource(
+            "package Test",
+            "import KeyedTable",
+            "init",
+            "    let t = keyedTableCreate()",
+            "    keyedTableAdd(t, 3)",
+            "    keyedTableRemove(t, 3)",
+            "endpackage"));
+
+        String compiled = Files.toString(
+            new File("test-output/lua/LuaTranslationTests_keyedTableEmitsNoTableIteration.lua"), Charsets.UTF_8);
+
+        assertFalse("emitted Lua must never iterate a table with pairs()", compiled.contains("pairs("));
+        assertFalse("emitted Lua must never iterate a table with next()", compiled.contains(" next("));
     }
 
     private CU[] genericOverrideReproUnits() {
@@ -1919,6 +2590,268 @@ public class LuaTranslationTests extends WurstScriptTest {
 
         assertFalse("caller should not spill locals into table in this shape", callerBody.contains("__wurst_locals"));
         assertTrue("caller should keep direct call in this shape", callerBody.contains("small(1)"));
+    }
+
+    @Test
+    public void luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        for (int i = 0; i < 16; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 16)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = helper(1)");
+        for (int i = 0; i < 180; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerKeepsCallWhenLiveValuesWouldExceedRegisterBudget",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("@inline is a strong preference, but must not force Lua register spilling:\n" + callerBody,
+            callerBody.contains("helper(1)"));
+        assertFalse("budgeted caller must stay out of the heap locals fallback:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInliningWithoutLocalAllocationUsesDeclarationBudget() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function caller(int value)");
+        for (int i = 0; i < 70; i++) {
+            lines.add("    takesInt((value + " + i + ") div 3)");
+        }
+        lines.add("init");
+        lines.add("    caller(7)");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationUsesDeclarationBudget",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("inlining without allocation must not cross into whole-function spill mode:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("the exact declaration budget must retain residual helper calls near the limit:\n" + body,
+            body.contains("__wurst_intDiv("));
+    }
+
+    @Test
+    public void luaInliningWithoutLocalAllocationCountsFlattenedTuples() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function tupleHelper(quad a, quad b, quad c, quad d) returns int");
+        lines.add("    return a.a + b.a + c.a + d.a");
+        String parameters = IntStream.range(0, 47)
+            .mapToObj(i -> "quad p" + i)
+            .collect(Collectors.joining(", "));
+        lines.add("@noinline function caller(" + parameters + ")");
+        lines.add("    takesInt(tupleHelper(p0, p1, p2, p3))");
+        lines.add("init");
+        lines.add("    let value = quad(1, 2, 3, 4)");
+        lines.add("    caller(" + IntStream.range(0, 47)
+            .mapToObj(i -> "value")
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInliningWithoutLocalAllocationCountsFlattenedTuples",
+            false, Collections.emptyList(), new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String body = compiled.substring(callerStart, callerEnd);
+        assertFalse("a caller below Lua's hard limit must stay register-backed:\n" + body,
+            body.contains("__wurst_locals"));
+        assertTrue("tuple components must count separately when deciding whether to inline:\n" + body,
+            body.contains("tupleHelper("));
+    }
+
+    @Test
+    public void luaInlinerReusesRegistersAcrossSequentialInlineSites() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function helper(int x) returns int");
+        lines.add("    let a = x + 1");
+        lines.add("    let b = a + 1");
+        lines.add("    let c = b + 1");
+        lines.add("    return c");
+        lines.add("@noinline function caller()");
+        lines.add("    var sum = 0");
+        for (int i = 0; i < 80; i++) {
+            lines.add("    sum += helper(" + i + ")");
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerReusesRegistersAcrossSequentialInlineSites",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerBodyStart = compiled.indexOf('\n', callerStart);
+        int callerEnd = compiled.indexOf("\nend", callerBodyStart);
+        assertTrue("caller function end not found", callerEnd > callerBodyStart);
+        String callerBody = compiled.substring(callerBodyStart + 1, callerEnd);
+        assertFalse("low-pressure sequential helper calls should still inline:\n" + callerBody,
+            callerBody.contains("helper("));
+        assertFalse("sequential inline temporaries should reuse registers:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaInlinerBudgetsTheExpandedNestedCallee() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@noinline function takesIntAndReturn(int x) returns int");
+        lines.add("    takesInt(x)");
+        lines.add("    return x");
+        lines.add("@inline function leaf(int x) returns int");
+        for (int i = 0; i < 20; i++) {
+            lines.add("    let h" + i + " = x + " + i);
+        }
+        lines.add("    return " + IntStream.range(0, 20)
+            .mapToObj(i -> "h" + i)
+            .collect(Collectors.joining(" + ")));
+        lines.add("@inline function middle(int x) returns int");
+        lines.add("    return leaf(x)");
+        lines.add("@noinline function caller()");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    let v" + i + " = takesIntAndReturn(" + i + ")");
+        }
+        lines.add("    var sum = middle(1)");
+        for (int i = 0; i < 175; i++) {
+            lines.add("    sum += v" + i);
+        }
+        lines.add("    takesInt(sum)");
+        lines.add("init");
+        lines.add("    caller()");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerBudgetsTheExpandedNestedCallee",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline"),
+            lines.toArray(new String[0]));
+        int callerStart = compiled.indexOf("function caller(");
+        assertTrue("caller function not found", callerStart >= 0);
+        int callerEnd = compiled.indexOf("\nend", callerStart);
+        assertTrue("caller function end not found", callerEnd > callerStart);
+        String callerBody = compiled.substring(callerStart, callerEnd);
+        assertTrue("caller must budget the already-expanded middle body:\n" + callerBody,
+            callerBody.contains("middle(1)"));
+        assertFalse("nested inline accounting must prevent a whole-function spill:\n" + callerBody,
+            callerBody.contains("__wurst_locals"));
+    }
+
+    @Test
+    public void luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerReusesNonOverlappingLocalPlayerDependentSlots",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            "type player extends handle",
+            "package Test",
+            "@extern native GetLocalPlayer() returns player",
+            "@extern native takesPlayer(player p)",
+            "@noinline function caller()",
+            "    let first = GetLocalPlayer()",
+            "    takesPlayer(first)",
+            "    let second = GetLocalPlayer()",
+            "    takesPlayer(second)",
+            "init",
+            "    caller()"
+        );
+        String callerBody = getFunctionBody(compiled, "caller");
+        assertEquals("same-locality values with disjoint live ranges should share one Lua register:\n" + callerBody,
+            1, countMatches(callerBody, "local\\s+(?:first|second)\\b"));
+    }
+
+    @Test
+    public void luaLocalMergerKeepsTupleVarargLoopBindingsDistinct() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("tuple quad(int a, int b, int c, int d)");
+        lines.add("@noinline function sumEdges(vararg quad values) returns int");
+        lines.add("    var result = 0");
+        lines.add("    for value in values");
+        lines.add("        result += value.a + value.d");
+        lines.add("    return result");
+        lines.add("init");
+        String arguments = IntStream.range(0, 33)
+            .mapToObj(i -> "quad(" + i + ", 0, 0, " + (100 + i) + ")")
+            .collect(Collectors.joining(", "));
+        lines.add("    sumEdges(" + arguments + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaLocalMergerKeepsTupleVarargLoopBindingsDistinct",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        String body = getFunctionBody(compiled, "sumEdges");
+        assertEquals("simultaneously assigned tuple components must use distinct Lua locals:\n" + body,
+            4, countMatches(body, "local\\s+value_[abcd]\\b"));
+    }
+
+    @Test
+    public void luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent() {
+        List<String> lines = new ArrayList<>();
+        lines.add("package Test");
+        lines.add("native takesInt(int i)");
+        lines.add("@inline function small(int x) returns int");
+        lines.add("    return x + 1");
+        lines.add("@noinline function process(vararg int values)");
+        lines.add("    for value in values");
+        for (int i = 0; i < 191; i++) {
+            lines.add("        let temp" + i + " = value + " + i);
+            lines.add("        takesInt(temp" + i + ")");
+        }
+        lines.add("        takesInt(small(value))");
+        lines.add("init");
+        lines.add("    process(" + IntStream.range(0, 33)
+            .mapToObj(Integer::toString)
+            .collect(Collectors.joining(", ")) + ")");
+
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaInlinerDoesNotTreatSequentialVarargLoopTempsAsConcurrent",
+            false, Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            lines.toArray(new String[0]));
+        assertFalse("sequential loop temporaries must not consume concurrent register budget:\n" + compiled,
+            compiled.contains("small("));
     }
 
     @Test
@@ -2247,10 +3180,107 @@ public class LuaTranslationTests extends WurstScriptTest {
             "    ForForce(f, () -> skip)"
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_luaFunctionRefWrapperForwardsVarargs.lua"), Charsets.UTF_8);
-        assertTrue(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled, "function\\s+__wurst_callback_[A-Za-z0-9_]+\\(\\.\\.\\.\\)");
+        assertFalse(compiled.contains("xpcall(function (...)"));
+        assertContainsRegex(compiled,
+            "xpcall\\([A-Za-z0-9_]+, __wurst_callback_error[A-Za-z0-9_]*, \\.\\.\\.\\)");
         assertTrue(compiled.contains(", ...)"));
         assertFalse(compiled.contains("local temp = ..."));
         assertFalse(compiled.contains("ForForce(f, function (...) \n\t\t\tlocal tempRes"));
+    }
+
+    @Test
+    public void forForceCollectorUsesNativeEnumAccessorInLua() throws IOException {
+        test().testLua(true).withStdLib().lines(
+            "package Test",
+            "init",
+            "    let f = CreateForce()",
+            "    ForForce(f, () -> skip)"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_forForceCollectorUsesNativeEnumAccessorInLua.lua"), Charsets.UTF_8);
+        assertTrue(compiled.contains("players[count] = GetEnumPlayer()"));
+        assertFalse(compiled.contains("players[count] = __wurst_GetEnumPlayer()"));
+        assertFalse(compiled.contains("function __wurst_GetEnumPlayer("));
+    }
+
+    @Test
+    public void luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefsReuseOneAdapterAndPreserveSingleReturn",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua", "-inline", "-localOptimizations"),
+            "type boolexpr extends handle",
+            "package Test",
+            "@extern native Condition(code callback) returns boolexpr",
+            "function predicate() returns boolean",
+            "    return true",
+            "init",
+            "    let first = Condition(function predicate)",
+            "    let second = Condition(function predicate)"
+        );
+
+        List<String> adapters = uniqueMatches(compiled,
+            "function\\s+(__wurst_callback_predicate[A-Za-z0-9_]*)\\(\\.\\.\\.\\)", 1);
+        assertEquals("one adapter must serve every reference to the same function:\n" + compiled,
+            1, adapters.size());
+        String adapter = adapters.get(0);
+        assertEquals("both Condition calls must reference the cached adapter", 2,
+            countMatches(compiled, "Condition\\(" + Pattern.quote(adapter) + "\\)"));
+        String adapterBody = getFunctionBody(compiled, adapter);
+        assertTrue(adapterBody.contains("_, result = xpcall(predicate,"));
+        assertTrue(adapterBody.contains("return result"));
+        assertFalse("callback sites must not allocate anonymous wrappers", compiled.contains("Condition(function ("));
+    }
+
+    @Test
+    public void luaFunctionRefAdapterTracksLateClassFunctionRename() {
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefAdapterTracksLateClassFunctionRename",
+            false,
+            Collections.emptyList(),
+            new RunArgs().with("-lua"),
+            "package Test",
+            "@extern native consume(code callback)",
+            "@extern native CallbackOwner_staticCallback()",
+            "class CallbackOwner",
+            "    function start()",
+            "        consume(function staticCallback)",
+            "    private static function staticCallback()",
+            "        consume(function staticCallback)",
+            "init",
+            "    CallbackOwner_staticCallback()",
+            "    new CallbackOwner().start()"
+        );
+
+        String callbackName = singleMatch(compiled,
+            "function\\s+(CallbackOwner_[A-Za-z0-9_]*staticCallback[A-Za-z0-9_]*)\\(\\)", 1);
+        assertTrue("adapter must track the class callback's final name:\n" + compiled,
+            compiled.contains("xpcall(" + callbackName + ","));
+        assertFalse(compiled.contains("xpcall(staticCallback,"));
+    }
+
+    @Test
+    public void luaFunctionRefStacktraceHandlerUsesWurstStackPosition() throws IOException {
+        CU errorHandling = new CU("ErrorHandling.wurst", String.join("\n",
+            "package ErrorHandling",
+            "public function error(string msg)",
+            "    skip"));
+        String compiled = compileLuaWithCUs(
+            "LuaTranslationTests_luaFunctionRefStacktraceHandlerUsesWurstStackPosition",
+            false,
+            Collections.singletonList(errorHandling),
+            "package Test",
+            "import ErrorHandling",
+            "native apply(code c)",
+            "init",
+            "    apply(() -> error(\"callback\"))"
+        );
+        assertFalse(compiled.contains("debug.traceback"));
+        assertContainsRegex(compiled,
+            "function\\s+error1\\([^\\)]*__wurst_stackPos");
+        assertContainsRegex(compiled,
+            "error1\\(tostring\\(err\\), \\\"in lua callback error handler\\\"\\)");
     }
 
     @Test
@@ -2362,6 +3392,12 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertContainsRegex(compiled, "\\bfunction\\s+__wurst_ForGroup\\s*\\(");
         assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumItemsInRect\\s*\\(");
         assertContainsRegex(compiled, "\\bfunction\\s+__wurst_EnumDestructablesInRect\\s*\\(");
+        assertTrue(compiled.contains("units[count] = GetEnumUnit()"));
+        assertTrue(compiled.contains("items[count] = GetEnumItem()"));
+        assertTrue(compiled.contains("dests[count] = GetEnumDestructable()"));
+        assertFalse(compiled.contains("units[count] = __wurst_GetEnumUnit()"));
+        assertFalse(compiled.contains("items[count] = __wurst_GetEnumItem()"));
+        assertFalse(compiled.contains("dests[count] = __wurst_GetEnumDestructable()"));
     }
 
     @Test
@@ -2461,9 +3497,9 @@ public class LuaTranslationTests extends WurstScriptTest {
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_subclassAllocationIncludesInheritedFieldsInLua.lua"), Charsets.UTF_8);
 
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorTop=");
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorTop_storage\\[new_inst\\] = 0");
         assertContainsRegex(compiled,
-            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)\\s*\\n\\s*local new_inst = \\(\\{[^\\n]*Window_anchorBottom=");
+            "function\\s+[A-Za-z0-9_]+:create\\d+\\s*\\(\\)[\\s\\S]*?Window_anchorBottom_storage\\[new_inst\\] = 0");
     }
 
     // ----- GetHandleId remapping -----

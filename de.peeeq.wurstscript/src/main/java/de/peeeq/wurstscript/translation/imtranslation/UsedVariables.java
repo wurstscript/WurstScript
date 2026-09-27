@@ -28,6 +28,8 @@ public class UsedVariables {
             result.add(((ImVarArrayAccess) e).getVar());
         } else if (e instanceof ImMemberAccess) {
             result.add(((ImMemberAccess) e).getVar());
+        } else if (e instanceof ImVarargLoop) {
+            ((ImVarargLoop) e).getLoopVars().forEach(v -> result.add(v.getVar()));
         }
 
         // Continue traversal
@@ -64,7 +66,9 @@ public class UsedVariables {
             if (expr instanceof ImVarAccess) {
                 // Write only, skip
             } else if (expr instanceof ImMemberAccess) {
-                ((ImMemberAccess) expr).getReceiver().accept(this);
+                ImMemberAccess memberAccess = (ImMemberAccess) expr;
+                memberAccess.getReceiver().accept(this);
+                memberAccess.getIndexes().accept(this);
             } else if (expr instanceof ImVarArrayAccess) {
                 ((ImVarArrayAccess) expr).getIndexes().accept(this);
             } else if (expr instanceof ImTupleSelection) {
@@ -83,6 +87,12 @@ public class UsedVariables {
         @Override
         public void visit(ImVarAccess e) {
             result.add(e.getVar());
+        }
+
+        @Override
+        public void visit(ImVarargLoop e) {
+            e.getLoopVars().forEach(v -> result.add(v.getVar()));
+            super.visit(e);
         }
 
         @Override

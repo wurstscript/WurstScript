@@ -10,6 +10,12 @@ public class EliminateLocalTypes {
     private static final ImType localBoolType = JassIm.ImSimpleType("localSimpleTypeBool");
     private static final ImType localStringType = JassIm.ImSimpleType("localSimpleTypeString");
 
+    /** True for an integer, before or after its local type has been erased to the merged form. */
+    public static boolean isIntegerOrLocalInteger(ImType t) {
+        return TypesHelper.isIntType(t)
+            || (t instanceof ImSimpleType simple && simple.equalsType(localIntType));
+    }
+
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
         // While local types are still there, perform transformation, such that the lua translator does not need to know variable types
         // null string -> "" (avoids type dependency in null translation)
@@ -31,6 +37,11 @@ public class EliminateLocalTypes {
                 local.setType(canonicalizeSimpleLocalType((ImSimpleType) t));
             }
         }
+    }
+
+    /** The type a local of type {@code t} has after this pass, so a later local can merge with it. */
+    public static ImType localTypeFor(ImType t) {
+        return t instanceof ImSimpleType simple ? canonicalizeSimpleLocalType(simple) : t.copy();
     }
 
     private static ImType canonicalizeSimpleLocalType(ImSimpleType t) {

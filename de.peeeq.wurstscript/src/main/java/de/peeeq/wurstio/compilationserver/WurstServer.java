@@ -18,11 +18,20 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class WurstServer {
-    private static final int portNumber = 27425;
+    private static final int DEFAULT_PORT = 27425;
 
+    private final int portNumber;
     private volatile boolean stopped;
     private Consumer<String> printer = System.out::println;
     private @Nullable ServerSocket serverSocket;
+
+    public WurstServer() {
+        this(DEFAULT_PORT);
+    }
+
+    WurstServer(int portNumber) {
+        this.portNumber = portNumber;
+    }
 
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(portNumber, 1, InetAddress.getLoopbackAddress())) {

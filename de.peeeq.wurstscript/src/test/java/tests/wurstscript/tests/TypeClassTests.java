@@ -132,9 +132,10 @@ public class TypeClassTests extends WurstScriptTest {
             "the closure should be allocated from its specialised class:\n" + compiled);
         String specialised = allocation.group(1);
 
-        Matcher call = Pattern.compile("\\w+:(\\w*produce\\w*)\\(").matcher(compiled);
-        assertTrue(call.find(), "expected a dispatched produce slot:\n" + compiled);
-        String slot = call.group(1);
+        Matcher dispatcher = Pattern.compile(
+            "return __wurst_objectClass\\[p\\]\\.(\\w*produce\\w*)\\(p\\)").matcher(compiled);
+        assertTrue(dispatcher.find(), "the closure call should dispatch through a produce slot:\n" + compiled);
+        String slot = dispatcher.group(1);
 
         assertTrue(Pattern.compile(Pattern.quote(specialised) + "\\." + Pattern.quote(slot)
                 + "\\s*=\\s*" + Pattern.quote(specialised) + "\\w*").matcher(compiled).find(),

@@ -14,6 +14,13 @@ import static org.testng.Assert.assertTrue;
 
 public class CompiletimeTests extends WurstScriptTest {
 
+    @Test
+    public void compiletimeAnnotationWarnsOnInstanceFields() {
+        test().expectWarning("has no effect on instance fields")
+            .lines("package Test",
+                   "class C",
+                   "    @compiletime int value");
+    }
 
     @Test
     public void testSimpleCompiletime() {
@@ -81,8 +88,11 @@ public class CompiletimeTests extends WurstScriptTest {
         try {
             test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true)
                 .lines("package Test",
+                    "@compiletime player array source",
+                    "@compiletime function fill()",
+                    "    source[0] = Player(0)",
                     "init",
-                    "    let _firstPlayer = players[0]");
+                    "    source[0] = Player(0)");
         } finally {
             logger.detachAppender(appender);
             appender.stop();
@@ -90,12 +100,12 @@ public class CompiletimeTests extends WurstScriptTest {
 
         List<String> playerWarnings = appender.list.stream()
             .map(ILoggingEvent::getFormattedMessage)
-            .filter(message -> message.contains("Player_players"))
+            .filter(message -> message.contains("Test_source"))
             .toList();
         assertEquals(playerWarnings.size(), 1, "expected one warning for the entire array");
         String warning = playerWarnings.get(0);
-        assertTrue(warning.contains("28 unsupported compiletime entries"), warning);
-        assertTrue(warning.contains("Player, line"), warning);
+        assertTrue(warning.contains("1 unsupported compiletime entries"), warning);
+        assertTrue(warning.contains("IlConstHandle"), warning);
         assertFalse(warning.contains("GlobalVarDef"), warning);
     }
 
@@ -103,7 +113,7 @@ public class CompiletimeTests extends WurstScriptTest {
     public void testCompiletimePackageScalarState() {
         test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package A",
-                   "public int source = 1",
+                   "@compiletime public int source = 1",
                    "@compiletime function fill()",
                    "    source = 42",
                    "endpackage",
@@ -123,8 +133,8 @@ public class CompiletimeTests extends WurstScriptTest {
                    "native testSuccess()",
                    "class A",
                    "    int value",
-                   "A source",
-                   "string cleared = \"value\"",
+                   "@compiletime A source",
+                   "@compiletime string cleared = \"value\"",
                    "@compiletime function fill()",
                    "    source = new A",
                    "    source.value = 42",
@@ -146,7 +156,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "import A",
                    "native testSuccess()",
                    "int observed = seed",
-                   "int migrated = 0",
+                   "@compiletime int migrated = 0",
                    "@compiletime function fill()",
                    "    let snapshot = observed",
                    "    migrated = snapshot + 41",
@@ -165,7 +175,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "    counter++",
                    "    return counter",
                    "int observed = bump()",
-                   "int migrated",
+                   "@compiletime int migrated",
                    "@compiletime function fill()",
                    "    let _snapshot = observed",
                    "    migrated = 42",
@@ -179,7 +189,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int source = 1",
+                   "@compiletime int source = 1",
                    "@compiletime function fill()",
                    "    source = 42",
                    "init",
@@ -194,7 +204,7 @@ public class CompiletimeTests extends WurstScriptTest {
             .lines("package Test",
                    "native testSuccess()",
                    "class Counter",
-                   "    static int value = 1",
+                   "    @compiletime static int value = 1",
                    "    static function setValue(int newValue)",
                    "        value = newValue",
                    "    static function getValue() returns int",
@@ -213,7 +223,7 @@ public class CompiletimeTests extends WurstScriptTest {
             .lines("package Test",
                    "native testSuccess()",
                    "class Counter<T:>",
-                   "    static T value",
+                   "    @compiletime static T value",
                    "    static function setValue(T newValue)",
                    "        value = newValue",
                    "    static function getValue() returns T",
@@ -230,7 +240,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int array source",
+                   "@compiletime int array source",
                    "@compiletime function fill()",
                    "    source[0] = 42",
                    "init",
@@ -243,7 +253,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int array source = [1]",
+                   "@compiletime int array source = [1]",
                    "@compiletime function fill()",
                    "    source[0] = 42",
                    "init",
@@ -256,7 +266,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int array source = [1]",
+                   "@compiletime int array source = [1]",
                    "@compiletime function fill()",
                    "    source[0] = 42",
                    "init",
@@ -270,7 +280,7 @@ public class CompiletimeTests extends WurstScriptTest {
             .lines("package Test",
                    "native testSuccess()",
                    "class Box<T:>",
-                   "    static T array store",
+                   "    @compiletime static T array store",
                    "    static function set(int index, T value)",
                    "        store[index] = value",
                    "    static function get(int index) returns T",
@@ -288,7 +298,7 @@ public class CompiletimeTests extends WurstScriptTest {
             .lines("package Test",
                    "native testSuccess()",
                    "class Box<T:>",
-                   "    static T array store",
+                   "    @compiletime static T array store",
                    "    static function set(int index, T value)",
                    "        store[index] = value",
                    "    static function get(int index) returns T",
@@ -307,7 +317,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "native testSuccess()",
                    "class A",
                    "    int value",
-                   "A array source",
+                   "@compiletime A array source",
                    "@compiletime function fill()",
                    "    source[0] = new A",
                    "    source[0].value = 42",
@@ -326,7 +336,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "@extern native InitHashtable() returns hashtable",
                    "@extern native LoadInteger(hashtable h, int p, int c) returns int",
                    "@extern native SaveInteger(hashtable h, int p, int c, int i)",
-                   "hashtable array source",
+                   "@compiletime hashtable array source",
                    "@compiletime function fill()",
                    "    source[0] = InitHashtable()",
                    "    SaveInteger(source[0], 2, 3, 42)",
@@ -340,7 +350,7 @@ public class CompiletimeTests extends WurstScriptTest {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "string array source = [\"value\"]",
+                   "@compiletime string array source = [\"value\"]",
                    "@compiletime function clear()",
                    "    source[0] = null",
                    "init",
@@ -354,7 +364,7 @@ public class CompiletimeTests extends WurstScriptTest {
             .lines("package Test",
                    "native testSuccess()",
                    "tuple pair(int left, int right)",
-                   "pair array source",
+                   "@compiletime pair array source",
                    "@compiletime function fill()",
                    "    source[0] = pair(42, 7)",
                    "init",
@@ -366,7 +376,7 @@ public class CompiletimeTests extends WurstScriptTest {
     public void testCompiletimeArrayStateAcrossPackages() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package A",
-                   "public int array source = [1]",
+                   "@compiletime public int array source = [1]",
                    "@compiletime function fillA()",
                    "    source[0] = 42",
                    "init",
@@ -384,7 +394,7 @@ public class CompiletimeTests extends WurstScriptTest {
     public void testCompiletimeArrayStateAcrossPackagesWithTwoInitializers() {
         test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package A",
-                   "public int array source = [1]",
+                   "@compiletime public int array source = [1]",
                    "@compiletime function fillA()",
                    "    source[0] = 42",
                    "init",
@@ -392,7 +402,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "endpackage",
                    "package B",
                    "import A",
-                   "int array other = [2]",
+                   "@compiletime int array other = [2]",
                    "@compiletime function fillB()",
                    "    other[0] = 9",
                    "native testSuccess()",
@@ -407,9 +417,9 @@ public class CompiletimeTests extends WurstScriptTest {
         test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
             .lines("package Test",
                    "native testSuccess()",
-                   "int array first = [1]",
+                   "@compiletime int array first = [1]",
                    "int observed = first[0]",
-                   "int array second = [2]",
+                   "@compiletime int array second = [2]",
                    "@compiletime function fill()",
                    "    first[0] = 42",
                    "    second[0] = 9",
@@ -429,7 +439,7 @@ public class CompiletimeTests extends WurstScriptTest {
                    "package B",
                    "import A",
                    "native testSuccess()",
-                   "int array source = [seed, 0]",
+                   "@compiletime int array source = [seed, 0]",
                    "@compiletime function fill()",
                    "    source[1] = 42",
                    "init",

@@ -147,7 +147,7 @@ public class CompilationProcess {
         } else {
             pJassResult = Pjass.runPjass(outputMapscript);
         }
-        WLogger.info(pJassResult.getMessage());
+        WLogger.info(pJassResult.getLogMessage());
         if (!pJassResult.isOk()) {
             for (CompileError err : pJassResult.getErrors()) {
                 gui.sendError(err);

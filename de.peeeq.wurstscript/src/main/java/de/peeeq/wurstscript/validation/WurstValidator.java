@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ConfigFunctionMatcher;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.OverloadingResolver;
 import de.peeeq.wurstscript.attributes.names.DefLink;
@@ -59,6 +60,10 @@ public class WurstValidator {
     private final HashSet<String> trveWrapperFuncs = new HashSet<>();
     private final HashMap<String, HashSet<FunctionCall>> wrapperCalls = new HashMap<>();
     private final Map<ClassDef, Map<GlobalVarDef, Integer>> classVarInitOrderCache = new HashMap<>();
+    private final Map<GlobalVarDef, Boolean> guaranteedClassFieldInitCache = new IdentityHashMap<>();
+    private final Map<GlobalVarDef, List<GlobalVarDef>> moduleFieldCopiesCache = new IdentityHashMap<>();
+    private NamePreservation.RuntimeNameIndex runtimeNameIndex;
+    private boolean moduleFieldCopiesIndexed;
 
     /**
      * When true, the build targets a legacy patch (pre-1.24) whose Blizzard-provided
@@ -82,6 +87,14 @@ public class WurstValidator {
             visitedFunctions = 0;
             heavyFunctions.clear();
             heavyBlocks.clear();
+            guaranteedClassFieldInitCache.clear();
+            moduleFieldCopiesCache.clear();
+            moduleFieldCopiesIndexed = false;
+            trveWrapperFuncs.clear();
+            wrapperCalls.clear();
+            NamePreservation.clearSyntheticMarkers(prog);
+            runtimeNameIndex = NamePreservation.indexGlobals(prog);
+            recomputeTrvePreservation();
 
             lightValidation(toCheck);
 
@@ -170,7 +183,7 @@ public class WurstValidator {
                 for (FunctionCall call : wrapperCalls.get(wrapper)) {
                     if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
                         ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
-                        TRVEHelper.protectedVariables.add(varName.getValS());
+                        preserveVariableName(varName.getValS());
                         WLogger.info("keep: " + varName.getValS());
                     } else {
                         call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
@@ -805,19 +818,9 @@ public class WurstValidator {
                         + "It is still possible to configure this var but it is not recommended.");
             }
 
-        } else if (e instanceof FuncDef) {
-            FuncDef funcDef = (FuncDef) e;
-            Collection<FuncLink> funcs = origPackage.getElements().lookupFuncsNoConfig(funcDef.getName(), false);
-            FuncDef configuredFunc = null;
-            for (NameLink nameLink : funcs) {
-                if (nameLink.getDef() instanceof FuncDef) {
-                    FuncDef f = (FuncDef) nameLink.getDef();
-                    if (equalSignatures(funcDef, f)) {
-                        configuredFunc = f;
-                        break;
-                    }
-                }
-            }
+        } else if (e instanceof FuncDef || e instanceof ExtensionFuncDef) {
+            FunctionDefinition funcDef = (FunctionDefinition) e;
+            FunctionDefinition configuredFunc = ConfigFunctionMatcher.findMatchingFunction(origPackage, funcDef);
             if (configuredFunc == null) {
                 funcDef.addError("Could not find a function " + funcDef.getName()
                         + " with the same signature in the configured package.");
@@ -831,22 +834,6 @@ public class WurstValidator {
         } else {
             e.addError("Configuring " + Utils.printElement(e) + " is not supported by Wurst.");
         }
-    }
-
-    private boolean equalSignatures(FuncDef f, FuncDef g) {
-        if (f.getParameters().size() != g.getParameters().size()) {
-            return false;
-        }
-        if (!f.attrReturnTyp().equalsType(g.attrReturnTyp(), f)) {
-            return false;
-        }
-        for (int i = 0; i < f.getParameters().size(); i++) {
-            if (!f.getParameters().get(i).attrTyp().equalsType(g.getParameters().get(i).attrTyp(), f)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void checkExprEmpty(ExprEmpty e) {
@@ -1772,7 +1759,413 @@ public class WurstValidator {
             && !f.getSource().getFile().endsWith("war3map.j")) {
             new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
         }
+        checkPotentiallyUninitializedClassFields(f);
         checkJassImplicitNullLocalsReadWithoutExplicitWrite(f);
+    }
+
+    /**
+     * Instance fields without an initializer are reset to the language default when an object is
+     * allocated, but that value is often accidental. Warn when a constructor reads such a field
+     * before its value is definitely established. Ordinary methods are intentionally out of scope:
+     * their callers may establish fields through APIs or other construction-time hooks that this
+     * cheap local check cannot see.
+     */
+    private void checkPotentiallyUninitializedClassFields(FunctionLike function) {
+        if (function instanceof OnDestroyDef || !(function instanceof ConstructorDef)) {
+            return;
+        }
+
+        Deque<Set<GlobalVarDef>> writtenFieldScopes = new ArrayDeque<>();
+        writtenFieldScopes.push(Collections.newSetFromMap(new IdentityHashMap<>()));
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        FunctionCall delegatedConstructorCall = function instanceof ConstructorDef
+            ? getFirstThisConstructorCall((ConstructorDef) function) : null;
+        function.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef field) || !field.attrIsDynamicClassMember()) {
+                    return;
+                }
+                if (isWriteTarget(access)) {
+                    return;
+                }
+                if (!(field.getInitialExpr() instanceof NoExpr)
+                    || (isCurrentInstanceAccess(access)
+                        && writtenFieldScopes.peek().contains(field))
+                    || ((!isCurrentInstanceAccess(access) || !(function instanceof ConstructorDef))
+                        && hasGuaranteedConstructorAssignment(field))
+                    || (isCurrentInstanceAccess(access)
+                        && function instanceof ConstructorDef
+                        && delegatedConstructorCall == null
+                        && !access.isSubtreeOf(((ConstructorDef) function).getSuperConstructorCall())
+                        && initializedBySuperConstructor((ConstructorDef) function, field))
+                    || (delegatedConstructorCall != null && !access.isSubtreeOf(delegatedConstructorCall)
+                        && hasGuaranteedConstructorAssignment(field))
+                    || !warned.add(field)) {
+                    return;
+                }
+                access.addWarning("Field '" + field.getName()
+                    + "' has no explicit initializer and is not definitely assigned by every constructor;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly in every construction path.");
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                Set<GlobalVarDef> closureScope = Collections.newSetFromMap(new IdentityHashMap<>());
+                closureScope.addAll(writtenFieldScopes.peek());
+                writtenFieldScopes.push(closureScope);
+                super.visit(closure);
+                writtenFieldScopes.pop();
+            }
+
+            @Override
+            public void visit(StmtSet assignment) {
+                super.visit(assignment);
+                if (!(assignment.getUpdatedExpr() instanceof NameRef access)
+                    || !isCurrentInstanceAccess(access)
+                    || !isWriteTarget(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
+                    writtenFieldScopes.peek().add(field);
+                }
+            }
+
+        });
+    }
+
+    private Set<GlobalVarDef> collectWrittenDynamicFields(Element root) {
+        Set<GlobalVarDef> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        root.accept(new Element.DefaultVisitor() {
+            private void collect(NameRef access) {
+                if (access.attrNearestExprClosure() != null
+                    || !isWriteTarget(access)
+                    || !isCurrentInstanceAccess(access)) {
+                    return;
+                }
+                NameDef nameDef = access.attrNameDef();
+                if (nameDef instanceof GlobalVarDef field && field.attrIsDynamicClassMember()
+                    && isWholeFieldAccess(access)) {
+                    result.add(field);
+                }
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so writes in its body do not
+                // initialize the object during construction.
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                collect(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                collect(access);
+            }
+        });
+        return result;
+    }
+
+    private boolean hasGuaranteedConstructorAssignment(GlobalVarDef field) {
+        Boolean cached = guaranteedClassFieldInitCache.get(field);
+        if (cached != null) {
+            return cached;
+        }
+        List<ConstructorDef> constructors = constructorsFor(field);
+        if (allConstructorsAssign(constructors, field)
+            || moduleFieldCopies(field).stream().anyMatch(copy ->
+                allConstructorsAssign(constructorsFor(copy), copy)
+                    || allConstructorsAssign(enclosingClassConstructors(copy), copy))
+            || allConstructorsAssign(enclosingClassConstructors(field), field)) {
+            guaranteedClassFieldInitCache.put(field, true);
+            return true;
+        }
+        guaranteedClassFieldInitCache.put(field, false);
+        return false;
+    }
+
+    private boolean allConstructorsAssign(List<ConstructorDef> constructors, GlobalVarDef field) {
+        if (constructors.isEmpty()) {
+            return false;
+        }
+        for (ConstructorDef constructor : constructors) {
+            if (!constructorAssignsField(constructor, field, Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isCurrentInstanceAccess(NameRef access) {
+        return access.attrImplicitParameter() instanceof ExprThis;
+    }
+
+    private boolean isInNestedClosure(NameRef access) {
+        return access.attrNearestExprClosure() != null;
+    }
+
+    private boolean isWholeFieldAccess(NameRef access) {
+        return !(access instanceof AstElementWithIndexes);
+    }
+
+    private boolean constructorAssignsField(ConstructorDef constructor, GlobalVarDef field,
+                                            Set<ConstructorDef> visiting) {
+        if (!visiting.add(constructor)) {
+            return false;
+        }
+        if (collectWrittenDynamicFields(constructor).contains(field)) {
+            return true;
+        }
+        FunctionCall thisCall = getFirstThisConstructorCall(constructor);
+        if (thisCall != null) {
+            ConstructorDef target = OverloadingResolver.resolveThisCall(constructorsFor(constructor), thisCall);
+            return target != null && target != constructor && constructorAssignsField(target, field, visiting);
+        }
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null && constructorAssignsField(superConstructor, field, visiting);
+    }
+
+    private List<ConstructorDef> constructorsFor(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ConstructorDef> constructorsFor(ConstructorDef constructor) {
+        Element current = constructor;
+        while (current != null) {
+            if (current instanceof ModuleInstanciation module) {
+                return module.getConstructors();
+            }
+            if (current instanceof ClassOrModule owner) {
+                return owner.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<ConstructorDef> enclosingClassConstructors(GlobalVarDef field) {
+        Element current = field;
+        while (current != null) {
+            if (current instanceof ClassDef classDef) {
+                return classDef.getConstructors();
+            }
+            current = current.getParent();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<GlobalVarDef> moduleFieldCopies(GlobalVarDef field) {
+        if (!moduleFieldCopiesIndexed) {
+            indexModuleFieldCopies();
+        }
+        return moduleFieldCopiesCache.getOrDefault(field, Collections.emptyList());
+    }
+
+    private void indexModuleFieldCopies() {
+        if (moduleFieldCopiesIndexed) {
+            return;
+        }
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ModuleInstanciation instantiation) {
+                ModuleDef origin = instantiation.attrModuleOrigin();
+                if (origin != null) {
+                    int count = Math.min(origin.getVars().size(), instantiation.getVars().size());
+                    for (int i = 0; i < count; i++) {
+                        GlobalVarDef originField = origin.getVars().get(i);
+                        moduleFieldCopiesCache.computeIfAbsent(originField, ignored -> new ArrayList<>())
+                            .add(instantiation.getVars().get(i));
+                    }
+                }
+                super.visit(instantiation);
+            }
+        });
+        moduleFieldCopiesIndexed = true;
+    }
+
+    private boolean initializedBySuperConstructor(ConstructorDef constructor, GlobalVarDef field) {
+        ConstructorDef superConstructor = constructor.attrSuperConstructor();
+        return superConstructor != null
+            && constructorAssignsField(superConstructor, field,
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean initializedBySuperclass(GlobalVarDef initializedField, GlobalVarDef referencedField) {
+        ClassDef child = initializedField.attrNearestClassDef();
+        ClassDef declaringClass = referencedField.attrNearestClassDef();
+        if (child == null || declaringClass == null || child == declaringClass) {
+            return false;
+        }
+        WurstTypeClass superType = child.attrTypC().extendedClass();
+        while (superType != null) {
+            if (superType.getClassDef() == declaringClass) {
+                return hasGuaranteedConstructorAssignment(referencedField);
+            }
+            superType = superType.extendedClass();
+        }
+        return false;
+    }
+
+    private void checkClassFieldInitializerReads(GlobalVarDef field) {
+        if (!field.attrIsDynamicClassMember() || !(field.getInitialExpr() instanceof Expr initializer)) {
+            return;
+        }
+        Set<GlobalVarDef> warned = Collections.newSetFromMap(new IdentityHashMap<>());
+        initializer.accept(new Element.DefaultVisitor() {
+            private void checkField(NameRef access) {
+                NameDef nameDef = access.attrNameDef();
+                if (!(nameDef instanceof GlobalVarDef referenced)
+                    || !referenced.attrIsDynamicClassMember()
+                    || !(referenced.getInitialExpr() instanceof NoExpr)
+                    || (!isCurrentInstanceAccess(access) && hasGuaranteedConstructorAssignment(referenced))
+                    || (isCurrentInstanceAccess(access)
+                        && initializedBySuperclass(field, referenced))
+                    || !warned.add(referenced)) {
+                    return;
+                }
+                access.addWarning("Field '" + referenced.getName()
+                    + "' is read from a field initializer without an explicit initializer;"
+                    + " this access may observe its default value."
+                    + " Initialize it explicitly before using it.");
+            }
+
+            @Override
+            public void visit(ExprClosure closure) {
+                // A closure runs later (and may never run), so its body is not field initialization.
+            }
+
+            @Override
+            public void visit(ExprVarAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprVarArrayAccess access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberVarQuestionDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot access) {
+                super.visit(access);
+                checkField(access);
+            }
+        });
     }
 
     /**
@@ -1861,11 +2254,15 @@ public class WurstValidator {
     }
 
     private boolean isWriteTarget(ExprVarAccess varAccess) {
-        if (!(varAccess.getParent() instanceof StmtSet)) {
+        return isWriteTarget((Element) varAccess);
+    }
+
+    private boolean isWriteTarget(Element access) {
+        if (!(access.getParent() instanceof StmtSet)) {
             return false;
         }
-        StmtSet set = (StmtSet) varAccess.getParent();
-        return set.getUpdatedExpr() == varAccess;
+        StmtSet set = (StmtSet) access.getParent();
+        return set.getUpdatedExpr() == access;
     }
 
     private @Nullable StmtSet nearestEnclosingStmtSet(Element e) {
@@ -2618,15 +3015,25 @@ public class WurstValidator {
      */
     private void checkBoundsSatisfied(Element location, TypeParamDef tp, WurstType typ) {
         List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(tp);
-        if (bounds.isEmpty() || typ instanceof WurstTypeUnknown) {
+        boolean handleBound = TypeClassConstraints.hasHandleBound(tp);
+        if (bounds.isEmpty() && !handleBound || typ instanceof WurstTypeUnknown) {
             return;
         }
         WurstType normalized = typ.normalize();
+        if (handleBound && normalized instanceof WurstTypeNull) {
+            location.addError("Cannot infer a handle type argument from null. Specify a concrete handle type.");
+            return;
+        }
         TypeParamDef abstractArg = asTypeParam(normalized);
         if (abstractArg != null) {
             // The argument is another type parameter, so no instance exists yet. It can only supply
             // the bound if it declares it itself; otherwise the call is unsatisfiable no matter what
             // the outer generic is later instantiated with.
+            if (handleBound && !TypeClassConstraints.hasHandleBound(abstractArg)) {
+                location.addError("Type parameter " + abstractArg.getName() + " does not satisfy the bound "
+                        + tp.getName() + ": handle.\nAdd the bound to " + abstractArg.getName()
+                        + ", as in <" + abstractArg.getName() + ": handle>.");
+            }
             for (InterfaceDef bound : bounds) {
                 if (!TypeClassConstraints.boundInterfaces(abstractArg).contains(bound)) {
                     location.addError("Type parameter " + abstractArg.getName() + " does not satisfy the bound "
@@ -2635,6 +3042,10 @@ public class WurstValidator {
                 }
             }
             return;
+        }
+        if (handleBound && !normalized.isSubtypeOf(WurstTypeHandle.instance(), location)) {
+            location.addError("Type " + normalized + " does not satisfy the bound " + tp.getName()
+                    + ": handle. Only handle types can be used here.");
         }
         for (InterfaceDef bound : bounds) {
             if (TypeClassInstances.find(bound, normalized) == null) {
@@ -3000,9 +3411,9 @@ public class WurstValidator {
                     } else {
                         check(VisibilityPublic.class, ModConstant.class, ModReadonly.class, Annotation.class);
                     }
-                    if (g.hasAnnotation("@compiletime")) {
+                    if (g.attrIsDynamicClassMember() && g.hasAnnotation("@compiletime")) {
                         g.getAnnotation("@compiletime")
-                            .addWarning("The annotation '@compiletime' has no effect on variables.");
+                            .addWarning("The annotation '@compiletime' has no effect on instance fields.");
                     }
                 }
 
@@ -3279,24 +3690,16 @@ public class WurstValidator {
             if (e.getArgs().size() > 1) {
                 if (e.getArgs().get(1) instanceof ExprStringVal) {
                     ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
-                    TRVEHelper.protectedVariables.add(varName.getValS());
+                    preserveVariableName(varName.getValS());
                     WLogger.info("keep: " + varName.getValS());
                     return;
                 } else if (e.getArgs().get(1) instanceof ExprVarAccess) {
                     // Check if this is a two line hook... thanks Bribe
-                    ExprVarAccess varAccess = (ExprVarAccess) e.getArgs().get(1);
-                    @Nullable FunctionImplementation nearestFunc = e.attrNearestFuncDef();
-                    WStatements fbody = nearestFunc.getBody();
-                    if (e.getParent() instanceof StmtReturn && fbody.size() <= 4 && fbody.get(fbody.size() - 2).structuralEquals(e.getParent())) {
-                        WParameters params = nearestFunc.getParameters();
-                        if (params.size() == 4 && ((TypeExprSimple) params.get(0).getTyp()).getTypeName().equals("trigger")
-                            && ((TypeExprSimple) params.get(1).getTyp()).getTypeName().equals("string")
-                            && ((TypeExprSimple) params.get(2).getTyp()).getTypeName().equals("limitop")
-                            && ((TypeExprSimple) params.get(3).getTyp()).getTypeName().equals("real")) {
-                            trveWrapperFuncs.add(nearestFunc.getName());
-                            WLogger.info("found wrapper: " + nearestFunc.getName());
-                            return;
-                        }
+                    String wrapper = trveWrapperName(e);
+                    if (wrapper != null) {
+                        trveWrapperFuncs.add(wrapper);
+                        WLogger.info("found wrapper: " + wrapper);
+                        return;
                     }
                 }
             } else {
@@ -3335,6 +3738,70 @@ public class WurstValidator {
                 e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
             }
         }
+    }
+
+    private void recomputeTrvePreservation() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (call.getFuncName().equals("TriggerRegisterVariableEvent") && call.getArgs().size() > 1) {
+                    if (call.getArgs().get(1) instanceof ExprStringVal varName) {
+                        preserveVariableName(varName.getValS());
+                    } else if (call.getArgs().get(1) instanceof ExprVarAccess) {
+                        String wrapper = trveWrapperName(call);
+                        if (wrapper != null) {
+                            trveWrapperFuncs.add(wrapper);
+                        }
+                    }
+                }
+            }
+
+        });
+
+        // Repeat the cheap call pass so calls which precede their wrapper declaration are covered.
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ExprFunctionCall call) {
+                super.visit(call);
+                if (trveWrapperFuncs.contains(call.getFuncName())
+                    && call.getArgs().size() > 1
+                    && call.getArgs().get(1) instanceof ExprStringVal varName) {
+                    preserveVariableName(varName.getValS());
+                }
+            }
+        });
+    }
+
+    private @Nullable String trveWrapperName(ExprFunctionCall e) {
+        @Nullable FunctionImplementation nearestFunc = e.attrNearestFuncDef();
+        if (nearestFunc == null) {
+            return null;
+        }
+        WStatements fbody = nearestFunc.getBody();
+        if (!(e.getParent() instanceof StmtReturn)
+            || fbody.size() < 2
+            || fbody.size() > 4
+            || !fbody.get(fbody.size() - 2).structuralEquals(e.getParent())) {
+            return null;
+        }
+        WParameters params = nearestFunc.getParameters();
+        if (params.size() != 4
+            || !(params.get(0).getTyp() instanceof TypeExprSimple triggerType)
+            || !(params.get(1).getTyp() instanceof TypeExprSimple stringType)
+            || !(params.get(2).getTyp() instanceof TypeExprSimple limitopType)
+            || !(params.get(3).getTyp() instanceof TypeExprSimple realType)
+            || !triggerType.getTypeName().equals("trigger")
+            || !stringType.getTypeName().equals("string")
+            || !limitopType.getTypeName().equals("limitop")
+            || !realType.getTypeName().equals("real")) {
+            return null;
+        }
+        return nearestFunc.getName();
+    }
+
+    private void preserveVariableName(String variableName) {
+        runtimeNameIndex.preserve(variableName);
     }
 
     private boolean isViableSwitchtype(Expr expr) {
@@ -3599,7 +4066,9 @@ public class WurstValidator {
         }
 
         if (v instanceof GlobalVarDef) {
-            checkClassMemberInitializerOrder((GlobalVarDef) v);
+            GlobalVarDef field = (GlobalVarDef) v;
+            checkClassMemberInitializerOrder(field);
+            checkClassFieldInitializerReads(field);
         }
 
     }

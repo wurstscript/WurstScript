@@ -43,7 +43,9 @@ public interface AssertProperty {
                     checkType(e, ((ImMethod) e).getMethodClass());
                     checkRooted(e, ((ImMethod) e).getImplementation());
                 } else if (e instanceof ImVarargLoop) {
-                    checkRooted(e, ((ImVarargLoop) e).getLoopVar());
+                    for (ImVarargLoopVar loopVar : ((ImVarargLoop) e).getLoopVars()) {
+                        checkRooted(e, loopVar.getVar());
+                    }
                 } else if (e instanceof ImTypeVarDispatch) {
                     checkRooted(e, ((ImTypeVarDispatch) e).getTypeClassFunc());
                     checkRooted(e, ((ImTypeVarDispatch) e).getTypeVariable());

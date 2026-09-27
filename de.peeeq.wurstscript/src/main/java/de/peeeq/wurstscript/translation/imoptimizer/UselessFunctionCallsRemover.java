@@ -253,13 +253,25 @@ public class UselessFunctionCallsRemover implements LocalPlayerAwareOptimizerPas
         "BlzGetItemRealField", "BlzGetItemStringField", "BlzGetUnitBooleanField", "BlzGetUnitIntegerField",
         "BlzGetUnitRealField", "BlzGetUnitStringField", "BlzGetUnitWeaponBooleanField", "BlzGetUnitWeaponIntegerField",
         "BlzGetUnitWeaponRealField", "BlzGetUnitWeaponStringField", "BlzGetUnitSkin", "BlzGetItemSkin",
-        "BlzGetPlayerTownHallCount"
+        "BlzGetPlayerTownHallCount",
+        "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
+        "BlzGetModelCinematicGameShotCount", "BlzGetModelCinematicGameCurrentShot",
+        "BlzGetModelCinematicGameRemainingTime", "BlzGetMinShadowCastingPointLightCount",
+        "GetCameraFieldControlledByInput", "BlzCameraGetCameraType", "BlzCameraSetupGetCameraType",
+        "BlzIsTerrainPathableEx", "BlzGetDoodadX", "BlzGetDoodadY", "BlzGetDoodadZ",
+        "BlzGetDoodadScaleX", "BlzGetDoodadScaleY", "BlzGetDoodadScaleZ",
+        "BlzGetDoodadIsUsingModelAxes", "BlzGetDoodadYaw", "BlzGetDoodadPitch", "BlzGetDoodadRoll",
+        "BlzGetDoodadVariation", "BlzGetDoodadId", "BlzGetNumDoodads",
+        "BlzGetUnitAbilityCooldownPercent", "BlzIsMetaKeyPressed", "BlzIsKeyPressed",
+        "BlzIsMouseButtonPressed", "BlzGetMouseScreenPosX", "BlzGetMouseScreenPosY",
+        "BlzPixelToFrameX", "BlzPixelToFrameY", "BlzFrameToPixelX", "BlzFrameToPixelY"
         );
 
     private static final Set<String> pureFunctions = HashSet.of(
         "AbilityId", "AbilityId2String", "Acos", "And", "Asin", "Atan",
         "Atan2", "ConvertAIDifficulty", "ConvertAllianceType", "ConvertAttackType", "ConvertBlendMode",
         "ConvertCameraField", "ConvertDamageType", "ConvertDialogEvent", "ConvertEffectType",
+        "ConvertFogStyle", "ConvertEquipmentType", "ConvertItemTag", "ConvertLoadoutSlot",
         "ConvertFGameState", "ConvertFogState", "ConvertGameDifficulty", "ConvertGameEvent",
         "ConvertGameSpeed", "ConvertGameType", "ConvertIGameState", "ConvertItemType", "ConvertLimitOp",
         "ConvertMapControl", "ConvertMapDensity", "ConvertMapFlag", "ConvertMapSetting",

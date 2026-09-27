@@ -32,6 +32,42 @@ public class InterfaceTests extends WurstScriptTest {
     }
 
     @Test
+    public void interfaceDispatchThroughNestedModuleWorksInBothBackends() {
+        test().testLua(true).luaOnly(false).executeProg().lines(
+                "package test",
+                "native testSuccess()",
+                "interface Greeter",
+                "    function greet() returns int",
+                "module FirstGreeter",
+                "    function greet() returns int",
+                "        return 1",
+                "module NestedFirstGreeter",
+                "    use FirstGreeter",
+                "module SecondGreeter",
+                "    function greet() returns int",
+                "        return 2",
+                "module GreeterCaller",
+                "    function call(Greeter greeter) returns int",
+                "        return greeter.greet()",
+                "class First implements Greeter",
+                "    use NestedFirstGreeter",
+                "    use GreeterCaller",
+                "class Second implements Greeter",
+                "    use SecondGreeter",
+                "    use GreeterCaller",
+                "init",
+                "    Greeter first = new First()",
+                "    Greeter second = new Second()",
+                "    First firstObject = new First()",
+                "    Second secondObject = new Second()",
+                "    if first.greet() == 1 and second.greet() == 2",
+                "        if firstObject.call(second) == 2 and secondObject.call(first) == 1",
+                "            testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void swap() {
         testAssertOkLines(true,
                 "package test",

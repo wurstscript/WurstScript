@@ -201,7 +201,16 @@ public class ClosureTranslator {
         OverrideUtils.addOverrideClosure(tr, superMethod, m, e);
 
 
-        ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
+        ImExpr translated;
+        boolean propagatesExpectedType = ExprTranslation.isCompositeExpectedTypeExpression(e.getImplementation());
+        if (propagatesExpectedType) {
+            translated = ExprTranslation.translateWithExpectedType(
+                e.getImplementation(), tr, impl, superMethod.attrReturnType());
+        } else {
+            translated = e.getImplementation().imTranslateExpr(tr, impl);
+            translated = ExprTranslation.wrapTranslation(e.getImplementation(), tr, translated,
+                e.getImplementation().attrTypRaw(), superMethod.attrReturnType());
+        }
 
 
         if (e.getImplementation().attrTyp().isVoid()) {
