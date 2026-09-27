@@ -41,13 +41,13 @@ itself, and one gap in what the suite can see.
     for `int`, `string`, `boolean`, and non-null reference keys whose
     equality is identity. `real` is excluded from the first version: NaN is not a valid Lua table key,
     while the current probing implementation can store it. Add real keys only with an explicit
-    encoding/rejection rule and matching cross-backend behavior. Null handle/class keys also need to
-    be rejected or specially encoded because Lua cannot index `nil`. Generic null values are excluded
-    from the first API contract. Jass specialization rewrites generic null to the value type's default
-    (`0`, `0.0`, or `false`), so a post-specialization check cannot distinguish null from explicitly
-    storing that default. Use `remove` for absence. If null values are admitted later, the compiler must
-    reject them before generic specialization or encode their presence separately; do not promise that
-    a generic `put(key, null)` means removal on both targets.
+    encoding/rejection rule and matching cross-backend behavior. Null handle/class keys must be
+    rejected or specially encoded because Lua cannot index `nil`. For values, define `put(key, null)`
+    as removal, matching Lua's `table[key] = nil`; primitive specializations do not accept null. This
+    must work when null arrives through a nullable local, not just for a literal at the call site. The
+    compiler must preserve the reference specialization long enough to lower a null check to the Jass
+    representation and call `remove`, or use a presence encoding. A source-only check before
+    specialization is insufficient, and storing a present-null entry is outside the API contract.
     Reference keys must remain alive while an entry is stored: remove the key before destroying it.
     Jass can recycle a destroyed class object's integer identity for a later allocation, while Lua
     keeps the two object references distinct. Add a regression that removes an entry, destroys its
@@ -178,7 +178,10 @@ itself, and one gap in what the suite can see.
     holds what that question needs, and `RemoveGarbage` already establishes reachability, so this is
     reading data which exists rather than computing anything new. It also composes with the erasure
     model in item 23: fewer virtual slots means fewer of the naming and binding problems items 15 and
-    26 came from.
+    26 came from. Preserve the current dispatch failure for nullable receivers: only devirtualize when
+    non-nullness is proven, or emit the equivalent null check before the direct call. Add a regression
+    where a null receiver calls a method whose implementation does not otherwise dereference `this`,
+    and check both Jass and Lua.
 
 22. **The library's own tests do not run on Lua.** They run on the interpreter now — all 460 of
     them, collected by importing every package in the checkout whose name ends in `Tests`. That
