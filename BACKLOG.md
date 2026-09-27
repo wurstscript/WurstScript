@@ -64,12 +64,14 @@ itself, and one gap in what the suite can see.
     is a compatibility path, not a claim that Wurst-level probing beats Warcraft's native `Table`.
 
     For reference keys, make null behavior part of the API rather than relying on `RawKeyed` to
-    exclude null (the type bound cannot do that). `put(null, value)` and `remove(null)` should be
-    no-ops, `has(null)` should be false, and `get(null)` should return the missing-key default on both
-    targets. Keep generic null values outside the API for now. A Jass specialization cannot
-    distinguish a generic null from an explicitly stored primitive default after specialization,
-    so it cannot promise removal semantics for `put(key, null)` without a pre-specialization check
-    or presence encoding.
+    exclude null (the type bound cannot do that). Apply `put(null, value)` and `remove(null)` as
+    no-ops, make `has(null)` false, and return the missing-key default from `get(null)` on both
+    targets. Emit these checks only for nullable reference specializations: a generic null check can
+    become `key == 0` or `key == false` after specialization and would incorrectly reject valid
+    primitive keys. Cover `0` and `false` keys on both targets. For values, `put(key, null)` removes
+    the entry; preserve reference specialization long enough to implement that when null flows through
+    a nullable local, and cover it on both targets. Primitive value specializations do not accept
+    null. A present-null entry is outside the API contract.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
