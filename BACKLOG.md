@@ -48,6 +48,10 @@ itself, and one gap in what the suite can see.
     storing that default. Use `remove` for absence. If null values are admitted later, the compiler must
     reject them before generic specialization or encode their presence separately; do not promise that
     a generic `put(key, null)` means removal on both targets.
+    Reference keys must remain alive while an entry is stored: remove the key before destroying it.
+    Jass can recycle a destroyed class object's integer identity for a later allocation, while Lua
+    keeps the two object references distinct. Add a regression that removes an entry, destroys its
+    class key, forces ID reuse, and confirms the replacement key starts absent on both targets.
     A second bound states which non-null keys are eligible:
 
         public interface RawKeyed<T:>          // no requirements; a promise that key equality matches Lua raw keys
