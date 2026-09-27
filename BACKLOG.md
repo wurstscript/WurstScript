@@ -75,8 +75,10 @@ itself, and one gap in what the suite can see.
     For values, `put(key, null)` removes the entry; preserve reference specialization long enough to
     implement that when null flows through a nullable local, and cover it on both targets. Primitive
     value specializations do not accept null. String value specializations are also excluded until null
-    and empty string can be represented distinctly on both targets. A present-null entry is outside the
-    API contract.
+    and empty string can be represented distinctly on both targets. Reject aggregate value
+    specializations in the first version, because tuple-null lowering expands null to field defaults
+    before the keyed write can treat it as removal. Add tuple values only with an explicit
+    null/default representation and cross-backend tests.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
@@ -102,13 +104,15 @@ itself, and one gap in what the suite can see.
       intrinsic that has no Jass meaning. `ImStatementExpr` is available for pairing statements with a
       value.
 
-    Left to settle. A raw `store[key]` read is correct for nil-defaulted references, but not for
+    Left to settle. Limit first-version values to scalar specializations: `int`, `real`, `boolean`,
+    and nullable class/handle references. Reject strings and aggregate values, including tuples with
+    string fields. A raw `store[key]` read is correct for nil-defaulted references, but not for
     primitive values: a missing generic `int`, `real`, or `boolean` must still read as `0`, `0.0`, or
-    `false` on Lua. Aggregate values need their Wurst default too: a tuple such as `pos` must produce
-    its field defaults (for example, `pos(0, 0)`) rather than `nil`. Use typed getter specialization
-    (for example, `t[k] or 0` for integers) or an equivalent typed backing-table default so each path
-    keeps one table access without boxing. Keep missing nullable reference reads as `nil` on Lua to
-    match Jass null. Add cross-backend tests for tuple equality and field access on a missing key.
+    `false` on Lua. Use typed getter specialization (for example, `t[k] or 0` for integers) or an
+    equivalent typed backing-table default so each path keeps one table access without boxing. Keep
+    missing nullable reference reads as `nil` on Lua to match Jass null. Add cross-backend tests for
+    missing primitive defaults and nullable reference reads. If aggregate values are admitted later,
+    test tuple equality and field access on a missing key.
     The write is the other open question: as an `ExprFunctionCall` it must lower to an `ImExpr`, while
     what it wants to be is an `ImSet` to an array access. Either wrap it in an `ImStatementExpr` with
     a discarded value, or expand it at AST level after validation the way `wurstMapFields` assigns
