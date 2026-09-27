@@ -30,6 +30,20 @@ public class ProjectConfigBuilderTests {
     }
 
     @Test
+    public void readsW3iFromSourceMapInsteadOfDowngradedCache() throws Exception {
+        Path sourceMap = Files.createTempDirectory("source-map");
+        Path sourceW3i = sourceMap.resolve("war3map.w3i");
+        W3I original = new W3I();
+        original.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
+        original.write(sourceW3i.toFile());
+
+        W3I loaded = ProjectConfigBuilder.readW3I(sourceMap.toFile());
+        ProjectConfigBuilder.applyW3IVersion(WurstBuildConfig.empty(), loaded, false);
+
+        assertEquals(loaded.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion());
+    }
+
+    @Test
     public void luaKeepsScriptLanguageFieldInOlderSourceW3i() throws Exception {
         W3I w3i = new W3I();
         w3i.setFileVersion(W3I.EncodingFormat.W3I_0x19.getVersion());

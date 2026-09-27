@@ -43,6 +43,13 @@ public class ProjectConfigBuilder {
                                                      File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data,
                                                      String outputScriptName) throws IOException {
+        return apply(projectConfig, targetMap, targetMap, mapScript, buildDir, runArgs, w3data, outputScriptName);
+    }
+
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File sourceMap,
+                                                     File mapScript, File buildDir,
+                                                     RunArgs runArgs, W3InstallationData w3data,
+                                                     String outputScriptName) throws IOException {
         if (projectConfig.projectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
@@ -70,8 +77,10 @@ public class ProjectConfigBuilder {
                 configNeedsApplying = true;
             }
 
-            // Extract w3i
-            w3I = new W3I(mpq.extractFile("war3map.w3i"));
+            // Start from the original map metadata. The cached map can already contain a
+            // downgraded W3I from an earlier target patch, which would permanently lose
+            // fields if a later build targets a newer patch or removes the pin.
+            w3I = readW3I(sourceMap);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -115,6 +124,15 @@ public class ProjectConfigBuilder {
         }
 
         return result;
+    }
+
+    static W3I readW3I(File map) throws Exception {
+        if (map.isDirectory()) {
+            return new W3I(java.nio.file.Files.readAllBytes(new File(map, "war3map.w3i").toPath()));
+        }
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map), true)) {
+            return new W3I(mpq.extractFile("war3map.w3i"));
+        }
     }
 
     /**
