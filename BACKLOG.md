@@ -25,12 +25,12 @@ itself, and one gap in what the suite can see.
     Why it is worth doing. `FastHashMap` does its own hashing and linear probing on both targets, but
     a Lua table already is a hash map: `t[key] = value` would let Lua hash, and would lift the fixed
     `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also get string
-    keys off `StringHash`, which this library documents as unusable for the purpose - case insensitive
-    (`String.wurst:81`, so `a` and `A` share a key), collapsing every partial multibyte slice to one
-    constant (`MultibyteDiagnostics`), and undocumented and changed between game versions. It *is*
-    emulated - `StringProvider` delegates to `Wc3StringHash` and `Wc3StringHashTest` checks parity with
-    the Lua shim - so a test does see the real behaviour; an earlier draft of this entry said otherwise
-    and was wrong. What makes it unusable is the behaviour itself, not the fidelity of the emulation.
+    keys off `StringHash`, whose case-insensitive semantics make `a` and `A` share a key
+    (`String.wurst:81`). `Wc3StringHash` is byte-oriented: its tests require partial multibyte slices
+    and continuation bytes to hash distinctly, and check parity with the Lua shim. Do not cite the
+    old text-decoding implementation's partial-byte collapse as a limitation of the current hash.
+    Native table keys also preserve exact string identity, which is the behavior this collection is
+    meant to expose.
     Other containers - a set, a memo cache, adjacency maps - then build on the one store.
 
     Why the type class is load bearing rather than incidental. A Lua table matches keys by raw
@@ -61,8 +61,10 @@ itself, and one gap in what the suite can see.
     For reference keys, make null behavior part of the API rather than relying on `RawKeyed` to
     exclude null (the type bound cannot do that). `put(null, value)` and `remove(null)` should be
     no-ops, `has(null)` should be false, and `get(null)` should return the missing-key default on both
-    targets. For values, define `put(key, null)` as removal so Lua's `nil` assignment and Jass
-    hashtable behavior agree; there is no present-null entry.
+    targets. Keep generic null values outside the API for now. A Jass specialization cannot
+    distinguish a generic null from an explicitly stored primitive default after specialization,
+    so it cannot promise removal semantics for `put(key, null)` without a pre-specialization check
+    or presence encoding.
 
     Groundwork already established, so the next attempt does not have to find it again:
 
@@ -419,10 +421,10 @@ itself, and one gap in what the suite can see.
 
 - Strings are bytes in the interpreter, as they are in the game and in Lua (#1238), which unblocked
   the pinned library bump (#1240). `StringCase` folds only ascii, since the bytes of a multibyte
-  character are not letters, and `StringHash` is computed over the bytes because the library's
-  version encodes text itself and cannot hash half a character. A compiletime expression returning
-  half a character is refused rather than carried across at a different length: the script is
-  written as UTF-8 and neither Jass nor the escaping can write a byte down numerically.
+  character are not letters. `Wc3StringHash` hashes bytes and supports partial multibyte slices;
+  `Wc3StringHashTest` covers this and parity with the Lua shim. A compiletime expression returning
+  half a character is still refused because the script is written as UTF-8 and neither Jass nor the
+  escaping can write a byte down numerically.
 
 - 19. Tried giving Jass the dangling-reference check Lua has, and reverted it. The two backends do
   not agree on which functions exist: `LuaTranslator` requires every reference to be rooted in the
