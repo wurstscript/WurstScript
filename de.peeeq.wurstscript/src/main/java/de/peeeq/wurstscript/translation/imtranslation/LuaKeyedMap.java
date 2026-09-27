@@ -54,6 +54,7 @@ public final class LuaKeyedMap {
     public static final String NATIVE_GET_STR = "__wurst_keyedMapGetStr";
     public static final String NATIVE_HAS = "__wurst_keyedMapHas";
     public static final String NATIVE_REMOVE = "__wurst_keyedMapRemove";
+    public static final String NATIVE_DESTROY = "__wurst_keyedMapDestroy";
 
     private LuaKeyedMap() {
     }
@@ -82,6 +83,7 @@ public final class LuaKeyedMap {
             case GET_STR -> isKeyedPair(f, 2) && TypesHelper.isStringType(result) ? NATIVE_GET_STR : null;
             case HAS -> isKeyedPair(f, 2) && TypesHelper.isBoolType(result) ? NATIVE_HAS : null;
             case REMOVE -> isKeyedPair(f, 2) && result instanceof ImVoid ? NATIVE_REMOVE : null;
+            case DESTROY -> isDestroy(f) ? NATIVE_DESTROY : null;
             default -> null;
         };
     }

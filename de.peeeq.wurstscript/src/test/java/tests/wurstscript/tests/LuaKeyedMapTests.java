@@ -559,4 +559,32 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage");
     }
+
+    @Test
+    public void keyedMapDestroyClearsLuaStoreWhileAliasRemains() {
+        test().testLua(true).luaOnly(true).executeProg().withStdLib().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, timer key, int value)",
+            "    (tbl castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapHas(int tbl, timer key) returns boolean",
+            "    return (tbl castTo Table).hasInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapDestroy(int tbl)",
+            "    destroy (tbl castTo Table)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let map = keyedMapCreate()",
+            "    let alias = map",
+            "    let key = CreateTimer()",
+            "    keyedMapPut(map, key, 42)",
+            "    keyedMapDestroy(map)",
+            "    if keyedMapHas(alias, key)",
+            "        testFail(\"destroy must clear entries through retained aliases\")",
+            "    testSuccess()",
+            "endpackage");
+    }
 }

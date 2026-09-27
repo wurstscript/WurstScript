@@ -341,6 +341,12 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("if k ~= nil then t[k] = nil end"));
         });
+        addNative("__wurst_keyedMapDestroy", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            // The owner may still be reachable through an alias after destroy, so clear this table
+            // in place instead of relying on garbage collection.
+            f.getBody().add(LuaAst.LuaLiteral("for k in pairs(t) do t[k] = nil end"));
+        });
 
         addNative(Arrays.asList("InitHashtable", "__wurst_InitHashtable"), f ->
             f.getBody().add(LuaAst.LuaLiteral("return { __wurst_ht_int = {}, __wurst_ht_bool = {}, __wurst_ht_real = {}, __wurst_ht_str = {}, __wurst_ht_handle = {} }")));
