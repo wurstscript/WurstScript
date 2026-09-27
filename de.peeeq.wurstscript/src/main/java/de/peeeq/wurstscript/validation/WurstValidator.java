@@ -3020,6 +3020,10 @@ public class WurstValidator {
             return;
         }
         WurstType normalized = typ.normalize();
+        if (handleBound && normalized instanceof WurstTypeNull) {
+            location.addError("Cannot infer a handle type argument from null. Specify a concrete handle type.");
+            return;
+        }
         TypeParamDef abstractArg = asTypeParam(normalized);
         if (abstractArg != null) {
             // The argument is another type parameter, so no instance exists yet. It can only supply

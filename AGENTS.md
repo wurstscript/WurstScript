@@ -411,7 +411,9 @@ cast. The original fixed intrinsic declarations and their `Table`/`GetHandleId` 
 Jass compatibility path.
 
 Handle-bounded generic keys are nullable, so `K: handle` values may be compared with `null` and a
-null key must be guarded before a Lua table write. Generic reference values must be non-null under
+null key must be guarded before a Lua table write. Do not infer a handle-bounded type argument from
+a bare `null`; null is a nullable value of a concrete handle specialization, not a native handle type
+to specialize as. An explicit type argument such as `f<unit>(null)` remains valid. Generic reference values must be non-null under
 the current map contract (the type bound does not enforce this): Jass specializes generic null to
 the type default, which cannot be distinguished from storing that default after specialization.
 Use `remove` for absence; do not add a post-specialization null check for generic values.

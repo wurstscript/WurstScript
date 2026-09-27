@@ -289,6 +289,28 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     }
 
     @Test
+    public void handleBoundDoesNotInferNullAsATypeArgument() {
+        test().expectError("Cannot infer a handle type argument from null").withStdLib().lines(
+            "package Test",
+            "function identity<T: handle>(T value) returns T",
+            "    return value",
+            "init",
+            "    identity(null)",
+            "endpackage");
+    }
+
+    @Test
+    public void handleBoundAllowsNullForExplicitHandleType() {
+        test().withStdLib().lines(
+            "package Test",
+            "function identity<T: handle>(T value) returns T",
+            "    return value",
+            "init",
+            "    let value = identity<timer>(null)",
+            "endpackage");
+    }
+
+    @Test
     public void handleBoundGenericValuesKeepTheirNativeLuaRepresentation() throws IOException {
         test().testLua(true).inline().withStdLib().lines(
             "package KeyedMap",
