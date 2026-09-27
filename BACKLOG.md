@@ -24,13 +24,14 @@ itself, and one gap in what the suite can see.
 
     Why it is worth doing. `FastHashMap` does its own hashing and linear probing on both targets, but
     a Lua table already is a hash map: `t[key] = value` would let Lua hash, and would lift the fixed
-    `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also get string
-    keys off `StringHash`, whose case-insensitive semantics make `a` and `A` share a key
-    (`String.wurst:81`). `Wc3StringHash` is byte-oriented: its tests require partial multibyte slices
-    and continuation bytes to hash distinctly, and check parity with the Lua shim. Do not cite the
-    old text-decoding implementation's partial-byte collapse as a limitation of the current hash.
-    Native table keys also preserve exact string identity, which is the behavior this collection is
-    meant to expose.
+    `FASTHASHMAP_CAPACITY`/`FASTHASHMAP_MAX_INSTANCES` limits there entirely. It would also bypass
+    `StringHash` as the initial bucket hash for strings. That hash is case-insensitive
+    (`String.wurst:81`), so differently cased strings can begin in the same probe cluster; the
+    existing `Hashable.equals` check still keeps them distinct. Lua's native table would perform its
+    own hashing and compare the original string keys directly. `Wc3StringHash` is byte-oriented: its
+    tests require partial multibyte slices and continuation bytes to hash distinctly, and check parity
+    with the Lua shim. Do not cite the old text-decoding implementation's partial-byte collapse as a
+    limitation of the current hash.
     Other containers - a set, a memo cache, adjacency maps - then build on the one store.
 
     Why the type class is load bearing rather than incidental. A Lua table matches keys by raw
