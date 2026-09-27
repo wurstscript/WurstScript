@@ -93,9 +93,11 @@ itself, and one gap in what the suite can see.
     - Each map instance needs a distinct backing store and explicit teardown. WurstStdlib2 currently
       declares `keyedMapCreate` and `keyedMapDestroy`, but WurstScript does not yet contain their
       compiler-owned declarations and lowerings. Create a fresh `Table` for Jass and a fresh `{}` for
-      Lua; destroy/flush the Jass `Table` when the map is destroyed, while Lua can rely on collection
-      of the unreachable table. Do not share a class table or static array between instances. Add a
-      lifecycle regression that repeatedly creates, uses, and destroys maps on both targets.
+      Lua; destroy/flush the Jass `Table` and clear the Lua table in place when the map is destroyed.
+      Lua class destruction is a no-op, so a map kept through an alias can remain reachable with all
+      its entries unless teardown clears it. Do not share a class table or static array between
+      instances. Add a lifecycle regression that repeatedly creates, uses, and destroys maps while
+      retaining an alias, then confirms the retained store is empty on both targets.
     - Backend selection alone does not expose concrete `K` and `V` while translating a generic map
       method. Keyed operations must become roots for the existing targeted Lua specialization, or be
       lowered after equivalent concrete-type propagation. Otherwise calls such as
