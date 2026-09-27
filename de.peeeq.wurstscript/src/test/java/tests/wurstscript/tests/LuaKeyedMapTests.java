@@ -133,7 +133,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     }
 
     @Test
-    public void keyedMapDestroyCostsNothingOnLua() throws IOException {
+    public void keyedMapDestroyClearsLuaStore() throws IOException {
         test().testLua(true).stacktraces().withStdLib().lines(keyedMapSource(
             "package Test",
             "import KeyedMap",
@@ -143,10 +143,14 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    keyedMapDestroy(m)",
             "endpackage"));
 
-        String compiled = compiled("keyedMapDestroyCostsNothingOnLua");
-        assertFalse("destroy must not become a native stub", compiled.contains("__wurst_keyedMapDestroy"));
+        String compiled = compiled("keyedMapDestroyClearsLuaStore");
+        assertTrue("destroy must clear the native Lua table", compiled.contains("__wurst_keyedMapDestroy"));
         String init = getFunctionBody(compiled, "init_Test");
-        assertFalse("no call should remain to free a keyed map on Lua: " + init, init.contains("keyedMapDestroy"));
+        assertTrue("the map destruction call should reach its clear stub: " + init,
+            init.contains("__wurst_keyedMapDestroy"));
+        String destroy = getFunctionBody(compiled, "__wurst_keyedMapDestroy");
+        assertTrue("the clear stub must empty the existing table in place: " + destroy,
+            destroy.contains("for k in pairs(t) do t[k] = nil end"));
         assertFalse("the Table machinery must not reach Lua: " + init,
             init.contains("FlushChildHashtable") || init.contains("Table_destroy"));
     }
