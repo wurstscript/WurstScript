@@ -1,6 +1,7 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.objectreader.ObjectExportService;
+import de.peeeq.wurstio.objectreader.ObjectFileType;
 import net.moonlightflower.wc3libs.bin.ObjMod;
 import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.objMod.W3A;
@@ -12,6 +13,8 @@ import net.moonlightflower.wc3libs.misc.ObjId;
 import org.testng.annotations.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -88,6 +91,30 @@ public class ObjectExportServiceTest {
         assertTrue(exported.contains("..setHitPointsMaximumBase(460)"), exported);
         assertFalse(exported.contains("createObjectDefinition(\"w3u\""), exported);
         assertFalse(exported.contains("..setInt(\"uhpm\", 460)"), exported);
+    }
+
+    @Test
+    public void readObjectFileRetainsItsFormatWhenWrittenAsDefined() throws Exception {
+        W3U source = new W3U();
+        W3U.Obj unit = source.addObj(ObjId.valueOf("e000"), ObjId.valueOf("efdr"));
+        addInt(unit, "uhpm", 460);
+
+        ByteArrayOutputStream sourceBytes = new ByteArrayOutputStream();
+        try (Wc3BinOutputStream out = new Wc3BinOutputStream(sourceBytes)) {
+            source.write(out, ObjMod.EncodingFormat.OBJ_0x3);
+        }
+
+        ObjMod<? extends ObjMod.Obj> read = ObjectExportService.readObjectFile(
+            ObjectFileType.UNITS,
+            sourceBytes.toByteArray(),
+            null
+        );
+        ByteArrayOutputStream writtenBytes = new ByteArrayOutputStream();
+        try (Wc3BinOutputStream out = new Wc3BinOutputStream(writtenBytes)) {
+            read.write(out, ObjMod.EncodingFormat.AS_DEFINED);
+        }
+
+        assertEquals(ByteBuffer.wrap(writtenBytes.toByteArray()).order(ByteOrder.LITTLE_ENDIAN).getInt(), 3);
     }
 
     private static void addLvlReal(W3A.Obj obj, String fieldId, int level, int dataPtr, double value) {
