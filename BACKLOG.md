@@ -90,12 +90,17 @@ itself, and one gap in what the suite can see.
       feasible: the intrinsic can lower differently per target rather than needing dead-branch
       elimination to have happened first. An `if isLua` guard alone does not help, because folding
       runs after translation and both branches are lowered.
-    - Each map instance needs a distinct backing store. WurstStdlib2 currently declares
-      `keyedMapCreate`, but WurstScript does not yet contain its compiler-owned declaration and
-      lowering. Add and test that intrinsic as implementation work: it must create a fresh `Table`
-      for Jass and lower to a fresh `{}` for Lua. Do not treat the stdlib declaration as proof that
-      compiler support exists, and do not share a class table or static array between instances;
-      the store is per map, and its lifetime follows that map.
+    - Each map instance needs a distinct backing store and explicit teardown. WurstStdlib2 currently
+      declares `keyedMapCreate` and `keyedMapDestroy`, but WurstScript does not yet contain their
+      compiler-owned declarations and lowerings. Create a fresh `Table` for Jass and a fresh `{}` for
+      Lua; destroy/flush the Jass `Table` when the map is destroyed, while Lua can rely on collection
+      of the unreachable table. Do not share a class table or static array between instances. Add a
+      lifecycle regression that repeatedly creates, uses, and destroys maps on both targets.
+    - Backend selection alone does not expose concrete `K` and `V` while translating a generic map
+      method. Keyed operations must become roots for the existing targeted Lua specialization, or be
+      lowered after equivalent concrete-type propagation. Otherwise calls such as
+      `RawHashMap<int, int>.get` can remain erased and cannot select the integer default or
+      specialization-specific null behavior. Test that concrete calls reach the native lowering.
     - A Wurst array access already lowers to a plain `t[i]` on Lua
       (`lua.translation.ExprTranslation.translateArrayAccessRaw` builds `LuaExprArrayAccess`). Nothing
       in the backend needs changing; the only obstacle is that the language requires an `int` index,
