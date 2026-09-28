@@ -19,6 +19,8 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.JassKeyOfLowering;
+import de.peeeq.wurstscript.translation.imtranslation.JassKeyedMapLowering;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -223,6 +225,21 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             // evaluation and -runTests a constant key for every element.
             if (JassKeyOfLowering.isUnloweredKeyOf(f)) {
                 return new LocalState(keyOfValue(globalState, args[0]));
+            }
+
+            // --- generic keyed-map value intrinsics ---
+            // Placeholders too: JassKeyedMapLowering gives them their bodies after generic elimination,
+            // and their source bodies only raise an error. Run them the way that pass compiles them,
+            // through the int fallback, with the value in its integer representation.
+            if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
+                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                runFunc(globalState, put, caller, args[0], args[1], keyedMapIntValue(globalState, args[2]));
+                return new LocalState();
+            }
+            if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
+                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
+                return new LocalState(keyedMapValueOfInt(globalState, stored, keyedMapValueType(globalState, f, caller)));
             }
 
             // --- local state & bind parameters ---
@@ -506,6 +523,53 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
         }
         throw new InterpreterException(globalState, "Cannot compute a keyed-set key for "
             + value.print() + ": only int, class instances and handles have a stable integer key.");
+    }
+
+    /** The integer a keyed-map value is stored as on Jass: an int is itself, a class instance its id. */
+    private static ILconst keyedMapIntValue(ProgramState globalState, ILconst value) {
+        if (value instanceof ILconstInt) {
+            return value;
+        }
+        if (value instanceof ILconstObject obj) {
+            return ILconstInt.create(obj.getObjectId());
+        }
+        if (value instanceof ILconstNull) {
+            return ILconstInt.create(0);
+        }
+        throw new InterpreterException(globalState, "keyedMapPutNative stores only int and class values, not "
+            + value.print() + ".");
+    }
+
+    /** The value type a keyedMapGetNative call returns, resolved through the calling frames. */
+    private static ImType keyedMapValueType(ProgramState globalState, ImFunction f, @Nullable Element caller) {
+        ImType declared = f.getReturnType();
+        if (declared instanceof ImTypeVarRef ref && caller instanceof ImFunctionCall call) {
+            int index = f.getTypeVariables().indexOf(ref.getTypeVariable());
+            if (index >= 0 && index < call.getTypeArguments().size()) {
+                return globalState.resolveType(call.getTypeArguments().get(index).getType());
+            }
+        }
+        return globalState.resolveType(declared);
+    }
+
+    /**
+     * Turns a stored integer back into the requested value type, as the Jass lowering reads it. A null
+     * class reference is the integer 0 here, as it is on Jass, and an id without a live object stays
+     * the integer the Jass build would read.
+     */
+    private static ILconst keyedMapValueOfInt(ProgramState globalState, ILconst stored, ImType valueType) {
+        if (TypesHelper.isIntType(valueType)) {
+            return stored;
+        }
+        if (valueType instanceof ImClassType classType && stored instanceof ILconstInt id) {
+            if (id.getVal() == 0) {
+                return valueType.defaultValue();
+            }
+            ILconstObject obj = globalState.getObjectByIndex(id.getVal(), classType);
+            return obj == null ? stored : obj;
+        }
+        throw new InterpreterException(globalState, "keyedMapGetNative reads only int and class values, not "
+            + valueType + ".");
     }
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {

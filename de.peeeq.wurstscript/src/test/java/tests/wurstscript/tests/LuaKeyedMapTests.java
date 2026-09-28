@@ -408,6 +408,84 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
     }
 
+    /**
+     * The interpreter meets the generic value intrinsics before JassKeyedMapLowering gives them their
+     * bodies, so their placeholder bodies must not run: compiletime code and -runTests would raise
+     * their error. It stores values the way the lowering compiles them, through the int fallback.
+     */
+    @Test
+    public void genericValuesRunInTheInterpreter() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package KeyedMap",
+            "import Table",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int map, handle key, int value)",
+            "    if key == null",
+            "        return",
+            "    (map castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int map, handle key) returns int",
+            "    return (map castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int map, K key, V value)",
+            "    if key == null",
+            "        return",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int map, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "@compilerintrinsic public function keyedMapHas(int map, handle key) returns boolean",
+            "    return (map castTo Table).hasInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapRemove(int map, handle key)",
+            "    if key == null",
+            "        return",
+            "    (map castTo Table).removeInt(GetHandleId(key))",
+            "public class FastKeyedMap<K: handle, V:>",
+            "    private int map",
+            "    construct()",
+            "        map = keyedMapCreate()",
+            "    function put(K key, V value)",
+            "        keyedMapPutNative<K, V>(map, key, value)",
+            "    function get(K key) returns V",
+            "        return keyedMapGetNative<K, V>(map, key)",
+            "    function has(K key) returns boolean",
+            "        return keyedMapHas(map, key)",
+            "    function remove(K key)",
+            "        keyedMapRemove(map, key)",
+            "endpackage",
+            "package Test",
+            "import KeyedMap",
+            "class Data",
+            "    int value",
+            "    construct(int value)",
+            "        this.value = value",
+            "init",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    let v = CreateUnit(Player(0), 'hfoo', 0., 0., 0.)",
+            "    let ints = new FastKeyedMap<unit, int>()",
+            "    ints.put(u, 42)",
+            "    ints.put(v, 7)",
+            "    ints.put(u, 43)",
+            "    if ints.get(u) != 43 or ints.get(v) != 7",
+            "        testFail(\"int values\")",
+            "    ints.remove(u)",
+            "    if ints.has(u) or ints.get(u) != 0 or not ints.has(v)",
+            "        testFail(\"int remove\")",
+            "    let datas = new FastKeyedMap<unit, Data>()",
+            "    let data = new Data(17)",
+            "    datas.put(u, data)",
+            "    if datas.get(u) != data or datas.get(u).value != 17",
+            "        testFail(\"class values\")",
+            "    if datas.get(v) != null",
+            "        testFail(\"absent class value\")",
+            "    let raw = keyedMapCreate()",
+            "    keyedMapPutNative<unit, int>(raw, v, 8)",
+            "    if keyedMapGetNative<unit, int>(raw, v) != 8",
+            "        testFail(\"direct call\")",
+            "    testSuccess()",
+            "endpackage");
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;

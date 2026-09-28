@@ -36,6 +36,26 @@ public final class JassKeyedMapLowering {
         }
     }
 
+    /**
+     * Whether f is the generic put intrinsic as the interpreter meets it: still generic, so this pass
+     * has not given it its body yet. The type-variable test comes first, because the interpreter asks
+     * on every call and it rules out almost everything.
+     */
+    public static boolean isUnloweredPutNative(ImFunction f) {
+        return !f.getTypeVariables().isEmpty() && PUT_NATIVE.equals(intrinsicName(f));
+    }
+
+    /** Whether f is the generic get intrinsic, not yet lowered. */
+    public static boolean isUnloweredGetNative(ImFunction f) {
+        return !f.getTypeVariables().isEmpty() && GET_NATIVE.equals(intrinsicName(f));
+    }
+
+    /** The int fallback that the lowered put or get calls, found the way this pass finds it. */
+    public static ImFunction fallbackOf(ImProg prog, ImFunction f) {
+        boolean put = PUT_NATIVE.equals(intrinsicName(f));
+        return findFallback(prog, packageOf(f), f, put ? PUT : GET_INT, put);
+    }
+
     private static void lowerPut(ImProg prog, ImFunction f) {
         if (f.getParameters().size() != 3 || !(f.getReturnType() instanceof ImVoid)
             || !TypesHelper.isIntType(f.getParameters().get(0).getType())
