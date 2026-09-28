@@ -69,12 +69,14 @@ public final class JassKeyedMapLowering {
     }
 
     /**
-     * Raises this pass's diagnostic unless valueType, the value type a call resolves to, has Jass's
-     * integer representation: an int or a class reference. The interpreter checks each call with it,
-     * so a specialization the Jass build rejects cannot pass there.
+     * Raises this pass's diagnostic unless a call's resolved types are the ones it lowers: a handle
+     * key, and a value with Jass's integer representation, an int or a class reference. The
+     * interpreter checks each call with it, so a specialization the Jass build rejects cannot pass
+     * there.
      */
-    public static void checkIntRepresented(ImFunction f, ImType valueType) {
-        if (TypesHelper.isIntType(valueType) || valueType instanceof ImClassType) {
+    public static void checkSpecialization(ImFunction f, ImType keyType, ImType valueType) {
+        if (LuaNativeLowering.isHandleType(keyType)
+            && (TypesHelper.isIntType(valueType) || valueType instanceof ImClassType)) {
             return;
         }
         throw invalidSpecialization(f, PUT_NATIVE.equals(intrinsicName(f))

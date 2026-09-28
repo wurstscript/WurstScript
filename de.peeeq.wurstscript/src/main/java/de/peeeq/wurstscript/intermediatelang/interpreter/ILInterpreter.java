@@ -234,7 +234,8 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
                 // Looked up first: it checks the intrinsic's shape before any argument is read.
                 ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
-                JassKeyedMapLowering.checkIntRepresented(f,
+                JassKeyedMapLowering.checkSpecialization(f,
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()),
                     keyedMapCallType(globalState, f, caller, f.getParameters().get(2).getType()));
                 runFunc(globalState, put, caller, args[0], args[1], keyedMapIntValue(globalState, args[2]));
                 return new LocalState();
@@ -242,7 +243,8 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
                 ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
                 ImType valueType = keyedMapCallType(globalState, f, caller, f.getReturnType());
-                JassKeyedMapLowering.checkIntRepresented(f, valueType);
+                JassKeyedMapLowering.checkSpecialization(f,
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()), valueType);
                 ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
                 return new LocalState(keyedMapValueOfInt(globalState, stored, valueType));
             }

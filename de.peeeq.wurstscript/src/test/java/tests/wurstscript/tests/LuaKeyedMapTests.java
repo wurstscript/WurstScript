@@ -522,6 +522,23 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             .contains("keyedMapPutNative requires an int map, a handle key, and an int-represented value"));
     }
 
+    /** An unbounded key type called with an int key is rejected before the fallback's handle parameter. */
+    @Test
+    public void intKeyedGenericGetIsReportedWhenInterpreted() {
+        Error failure = expectThrows(Error.class, () -> test().withStdLib().executeTests().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapGetInt(int map, handle key) returns int",
+            "    return (map castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapGetNative<K, V>(int map, K key) returns V",
+            "    return null",
+            "@Test function getByAnInt()",
+            "    let value = keyedMapGetNative<int, int>((new Table()) castTo int, 7)",
+            "endpackage"));
+        assertTrue(failure.getMessage(), failure.getMessage()
+            .contains("keyedMapGetNative requires an int map, a handle key, and an int-represented result"));
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;
