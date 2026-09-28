@@ -419,6 +419,11 @@ public class GlobalsInliner implements OptimizerPass {
         return current instanceof ImStmt ? (ImStmt) current : null;
     }
 
+    /**
+     * A {@code @configurable} constant counts too. Configuration is resolved at name resolution: a read of
+     * a configured constant already refers to the {@code @config} constant in the config package, which
+     * is a constant of its own, and the original is then read by nothing. So what is read here is final.
+     */
     private static boolean isSourceConstant(ImVar var) {
         if (!(var.getTrace() instanceof GlobalVarDef)) {
             return false;
@@ -430,7 +435,7 @@ public class GlobalsInliner implements OptimizerPass {
             return false;
         }
         GlobalVarDef global = (GlobalVarDef) var.getTrace();
-        return global.attrIsConstant() && !global.hasAnnotation("@configurable");
+        return global.attrIsConstant();
     }
 
     private static <T> Set<T> identitySet() {
