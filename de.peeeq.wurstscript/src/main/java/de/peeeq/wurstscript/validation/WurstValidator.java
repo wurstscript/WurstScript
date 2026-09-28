@@ -2559,6 +2559,12 @@ public class WurstValidator {
             FunctionSignature sig = FunctionSignature.fromNameLink(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
+            // An operator is not a StmtCall, so bind the function's own type parameters from the
+            // operands here: the receiver binds some during lookup, the right operand the rest.
+            FunctionSignature bound = sig.matchAgainstArgs(Collections.singletonList(expr.getRight().attrTyp()), expr);
+            if (bound != null) {
+                checkOwnOldGenericArguments(expr, bound);
+            }
         } else {
             checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getLeft()));
             checkNameRefDeprecated(expr, AttrFuncDef.implicitToStringForConcatOperand(expr, expr.getRight()));
@@ -3014,13 +3020,23 @@ public class WurstValidator {
         if (mapping == null) {
             return;
         }
-        FunctionDefinition callee = sig.getDef();
         for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
             checkBoundsSatisfied(call, t._1(), t._2().getBaseType());
-            // A generic function's own parameters are bound here, often by inference. Those of the
-            // receiver's class are not: they were checked where the receiver's type was chosen.
-            if (!isTypeParamNewGeneric(t._1()) && callee instanceof AstElementWithTypeParameters owner
-                    && owner.getTypeParameters().contains(t._1())) {
+        }
+        checkOwnOldGenericArguments(call, sig);
+    }
+
+    /**
+     * A generic function's own parameters are bound at the call, often by inference. Those of the
+     * receiver's class are not: they were checked where the receiver's type was chosen.
+     */
+    private void checkOwnOldGenericArguments(Element call, FunctionSignature sig) {
+        VariableBinding mapping = sig.getMapping();
+        if (mapping == null || !(sig.getDef() instanceof AstElementWithTypeParameters callee)) {
+            return;
+        }
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
+            if (!isTypeParamNewGeneric(t._1()) && callee.getTypeParameters().contains(t._1())) {
                 checkOldGenericArgument(call, t._1(), t._2().getBaseType());
             }
         }

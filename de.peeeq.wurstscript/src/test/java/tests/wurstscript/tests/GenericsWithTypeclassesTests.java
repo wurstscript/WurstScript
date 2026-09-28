@@ -1670,16 +1670,29 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void legacyOperatorRejectsHandleBoundTypeParam() {
+        testAssertErrorsLines(false,
+            "Old-style generic op_plus cannot be instantiated with the new-style type parameter S",
+            withLegacyBox(
+                "function T.op_plus<T>(int y) returns int",
+                "    return (this castTo int) + y",
+                "function wrap<S: handle>(S x) returns int",
+                "    return x + 1"));
+    }
+
+    @Test
     public void legacyGenericsAcceptLegacyTypeParamsAndConcreteTypes() {
         testAssertOkLines(true,
             withLegacyBox(
                 "class A",
+                "function T.op_plus<T>(int y) returns int",
+                "    return (this castTo int) + y",
                 "function wrapLegacy<S>(S x) returns int",
-                "    return new Box<S>(x).id() + toInt(x)",
+                "    return new Box<S>(x).id() + toInt(x) + (x + 1)",
                 "function wrapNew<S:>(S x) returns int",
-                "    return new Box<int>(7).id() + toInt(3)",
+                "    return new Box<int>(7).id() + toInt(3) + (new A + 1)",
                 "init",
-                "    if wrapLegacy(5) == 10 and wrapNew(new A) == 10",
+                "    if wrapLegacy(5) == 16 and wrapNew(new A) > 10",
                 "        testSuccess()"));
     }
 
