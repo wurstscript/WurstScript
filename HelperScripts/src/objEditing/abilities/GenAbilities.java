@@ -22,7 +22,7 @@ import java.util.Set;
 import utils.WEStrings;
 
 public class GenAbilities {
-    static WEStrings strings = new WEStrings().parseFile(new File("./WorldEditStrings.txt"));
+    static WEStrings strings = new WEStrings().parseFile(new File("./gamedata/WorldEditStrings.txt"));
     static StringBuilder sb = new StringBuilder();
 
     static void println(String s) {
@@ -49,7 +49,7 @@ public class GenAbilities {
             this.useLevels = useLevels;
         }
 
-        public void printFunc(Set<String> usedFuncs) {
+        public void printFunc(Set<String> usedFuncs, Set<String> inheritedFuncs) {
             println("");
             String funcName = camelize(displayName);
             int i = 0;
@@ -61,7 +61,11 @@ public class GenAbilities {
             }
             usedFuncs.add(funcName);
 
-            print("\tfunction set" + funcName + "(");
+            print("\t");
+            if (inheritedFuncs.contains(funcName)) {
+                print("override ");
+            }
+            print("function set" + funcName + "(");
             if (useLevels) {
                 print("int level, ");
             }
@@ -111,7 +115,7 @@ public class GenAbilities {
         // Load ability names and parent codes from abilitydata.slk
         Map<String, String> abilityNames = new HashMap<>();
         Map<String, String> abilityParent = new HashMap<>(); // alias -> code (base ability)
-        loadAbilityData(new File("./abilitydata.slk"), abilityNames, abilityParent);
+        loadAbilityData(new File("./gamedata/abilitydata.slk"), abilityNames, abilityParent);
         System.err.println("Loaded " + abilityNames.size() + " ability names from abilitydata.slk");
 
         List<FieldData> commonData = Lists.newArrayList();
@@ -119,7 +123,7 @@ public class GenAbilities {
 
         // Parse abilitymetadata.slk via wc3libs
         AbilityMetaSLK metaSlk = new AbilityMetaSLK();
-        metaSlk.read(new File("./abilitymetadata.slk"));
+        metaSlk.read(new File("./gamedata/abilitymetadata.slk"));
 
         for (MetaSLK.Obj metaObj : metaSlk.getObjs().values()) {
             // The SLK row ID is the object key, not a regular field
@@ -198,8 +202,9 @@ public class GenAbilities {
 
         Set<String> usedNames = Sets.newHashSet();
         for (FieldData fd : commonData) {
-            fd.printFunc(usedNames);
+            fd.printFunc(usedNames, Sets.newHashSet());
         }
+        Set<String> commonFunctionNames = Sets.newHashSet(usedNames);
 
 
         // Build a constant-name map for ALL abilities (used so stdlib classes reference AbilityIds.xxx)
@@ -237,7 +242,7 @@ public class GenAbilities {
             println("\tconstruct(int newAbilityId)");
             println("\t\tsuper(newAbilityId, '" + spell + "')");
             for (FieldData fd : specificData.get(spell)) {
-                fd.printFunc(usedNames);
+                fd.printFunc(usedNames, commonFunctionNames);
             }
 
             // Additions file (for stdlib) uses AbilityIds reference
@@ -254,7 +259,9 @@ public class GenAbilities {
                 String funcName = camelize(fd.displayName);
                 int i2 = 0;
                 while (!addUsedNames.add(funcName)) { i2++; funcName = camelize(fd.displayName) + i2; }
-                classesBlock.append("\n\tfunction set").append(funcName).append("(");
+                classesBlock.append("\n\t");
+                if (commonFunctionNames.contains(funcName)) classesBlock.append("override ");
+                classesBlock.append("function set").append(funcName).append("(");
                 if (fd.useLevels) classesBlock.append("int level, ");
                 classesBlock.append(fd.type()).append(" value)\n");
                 classesBlock.append("\t\tdef.setLvlData").append(fd.typePost())
