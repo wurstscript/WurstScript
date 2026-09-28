@@ -10,8 +10,9 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import java.util.LinkedHashMap;
 
 public class HandleProvider extends Provider {
-    /** Ids start at 1: the game reserves 0 for a null handle, so nothing may be given it. */
-    private int handleCounter = 1;
+    /** Ids start at 0x100000, as agent ids do in game (measured on the 3.0.0 client: 1048676 and up), so
+     *  they never meet 0, the id of a null handle, or the small ids of converted enum handles. */
+    private int handleCounter = 0x100000;
     private final LinkedHashMap<IlConstHandle, ILconstInt> handleMap = new LinkedHashMap<>();
 
     public HandleProvider(AbstractInterpreter interpreter) {
@@ -29,6 +30,12 @@ public class HandleProvider extends Provider {
         }
         if (!(handle instanceof IlConstHandle h)) {
             throw new InterpreterException("GetHandleId expects a handle, got " + handle.print() + ".");
+        }
+        // Measured on the 3.0.0 client: the id of a converted enum handle is the value it was made from,
+        // GetHandleId(UNIT_STATE_MANA) is 2.
+        Integer enumValue = ConversionProvider.enumValue(h);
+        if (enumValue != null) {
+            return ILconstInt.create(enumValue);
         }
         return handleMap.computeIfAbsent(h, (_key) -> ILconstInt.create(handleCounter++));
     }

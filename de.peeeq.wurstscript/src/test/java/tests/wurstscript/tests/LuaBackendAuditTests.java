@@ -2745,27 +2745,24 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "optimizedUnitSpatialIndexInnerLoopUsesRawLuaOperations",
             "package Test",
             "import SpatialIndexForUnits",
+            "import ArrayList",
             "@noinline function query(vec2 center)",
-            "    let result = unitsInRange(center, 512.)",
+            "    let result = new ArrayList<unit>",
+            "    unitsInRange(result, center, 512.)",
             "    destroy result",
             "init",
             "    query(vec2(0., 0.))"
         );
 
-        // Register-pressure-aware inlining may keep the range helper as the hot-loop owner instead
-        // of folding it into query. Inspect whichever function actually retains the loop.
-        String body = topLevelFunctionBodyWithPrefix(compiled, "query");
-        if (!body.contains("= UnitSpatialIndex_nextInCell")) {
-            assertTrue("query must call the retained range helper:\n" + body,
-                body.contains("addRangeMatches("));
-            body = topLevelFunctionBodyWithPrefix(compiled, "addRangeMatches");
-        }
+        // Inlining decides which function keeps the hot loop (query, or one of the index's range
+        // helpers). Inspect whichever function localizes the next-link array.
+        String body = topLevelFunctionContaining(compiled, "= SpatialPartition_nextInCell");
         java.util.regex.Matcher nextAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_nextInCell").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_nextInCell").matcher(body);
         java.util.regex.Matcher xAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_lastX").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_entryX").matcher(body);
         java.util.regex.Matcher yAlias = java.util.regex.Pattern
-            .compile("local (\\w+) = UnitSpatialIndex_lastY").matcher(body);
+            .compile("local (\\w+) = SpatialPartition_entryY").matcher(body);
         assertTrue("spatial-index hot loop must localize the next-link array:\n" + body, nextAlias.find());
         assertTrue("spatial-index hot loop must localize cached X:\n" + body, xAlias.find());
         assertTrue("spatial-index hot loop must localize cached Y:\n" + body, yAlias.find());
@@ -2776,11 +2773,11 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("spatial-index hot loop must index localized cached Y:\n" + body,
             body.contains(yAlias.group(1) + "["));
         assertFalse("spatial-index loop must not retain global next-link lookups:\n" + body,
-            body.contains("UnitSpatialIndex_nextInCell["));
+            body.contains("SpatialPartition_nextInCell["));
         assertFalse("spatial-index loop must not retain global cached-X lookups:\n" + body,
-            body.contains("UnitSpatialIndex_lastX["));
+            body.contains("SpatialPartition_entryX["));
         assertFalse("spatial-index loop must not retain global cached-Y lookups:\n" + body,
-            body.contains("UnitSpatialIndex_lastY["));
+            body.contains("SpatialPartition_entryY["));
         assertFalse("typed array reads must not retain assurance calls:\n" + body,
             body.contains("__wurst_ensure"));
         assertFalse("static-arity helpers must not allocate vararg packs:\n" + body,
@@ -3929,6 +3926,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         int start = compiled.indexOf("function " + functionNamePrefix);
         assertTrue("expected function starting with " + functionNamePrefix, start >= 0);
         int end = compiled.indexOf("\nfunction ", start + 1);
+        if (end < 0) {
+            end = compiled.length();
+        }
+        return compiled.substring(start, end);
+    }
+
+    private static String topLevelFunctionContaining(String compiled, String text) {
+        int at = compiled.indexOf(text);
+        assertTrue("expected a function containing " + text + ":\n" + compiled, at >= 0);
+        int start = compiled.lastIndexOf("\nfunction ", at) + 1;
+        int end = compiled.indexOf("\nfunction ", at);
         if (end < 0) {
             end = compiled.length();
         }

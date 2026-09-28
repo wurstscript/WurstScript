@@ -7,17 +7,26 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class UnitMock {
+    private static final AtomicLong CREATED = new AtomicLong();
+    /** Creation order. Measured on the 3.0.0 client: a group keeps its units in creation order, not in
+     *  the order they were added and not by handle id. */
+    public final long serial = CREATED.incrementAndGet();
     public IlConstHandle owner;
     public ILconstInt unitid;
     public ILconstReal x;
     public ILconstReal y;
     public ILconstReal face;
     public boolean removed;
+    /** Measured on the 3.0.0 client: death is a state. Life set at or below 0.405 kills the unit and
+     *  then reads 0; setting a dead unit's life afterwards changes the number, but it stays dead. */
+    public boolean dead;
     public boolean hidden;
-    /** Set by adding Locust. Warcraft keeps a unit out of range and rect enumeration, and unselectable,
-     *  after Locust is removed again, until the unit is hidden and shown without it. */
+    /** Set by adding Locust. Measured on the 3.0.0 client: Warcraft keeps the unit out of range and rect
+     *  enumeration, and unselectable, also after Locust is removed again, until the unit is hidden and
+     *  shown again, whether or not it still has Locust. */
     public boolean locust;
     public boolean paused;
     public boolean invulnerable;
