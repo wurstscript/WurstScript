@@ -59,13 +59,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A real operation which overflows the 32-bit float the folder computes in has no literal, so
-     * it is left for the game instead of crashing the build on the infinity sign. The stdlib's
-     * REAL_MAX is such a value once the optimised Lua build inlines it, and REAL_MAX / 2. is how a
-     * map hit it.
+     * A real operation which overflows the double the Lua folder computes in has no literal, so it
+     * is left for the game instead of printing the infinity, which Lua would read as an unset
+     * global. The stdlib's REAL_MAX overflowed back when the folder computed in 32-bit floats, and
+     * REAL_MAX / 2. is how a map hit it; as a double it is finite and folds.
      */
     @Test
     public void realFoldOverflowIsLeftUnfolded() {
+        String nearDoubleMax = "1" + "0".repeat(308) + ".";
         String compiled = compileOptimizedLua("realFoldOverflowIsLeftUnfolded",
             "package Test",
             "native consume(real value)",
@@ -73,9 +74,14 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    consume(REAL_MAX / 2.)",
             "    consume(2 * REAL_MAX)",
-            "    consume(300000000000000000000000000000000000000. * 10.)");
+            "    consume(300000000000000000000000000000000000000. * 10.)",
+            "    consume(" + nearDoubleMax + " * 10.)");
         assertFalse("no non-finite literal is printed:\n" + compiled,
-            compiled.contains("∞") || compiled.contains("NaN"));
+            compiled.contains("∞") || compiled.contains("NaN") || compiled.contains("Infinity"));
+        assertTrue("REAL_MAX / 2. folds as a double:\n" + compiled,
+            compiled.contains("consume(1.70141183460469E38)"));
+        assertTrue("the double overflow is left for the game:\n" + compiled,
+            compiled.contains("consume((" + nearDoubleMax + " * 10.))"));
     }
 
     /** Lua's == on reals is exact, unlike Jass's, so the Lua build still folds nearly equal literals. */
@@ -87,6 +93,30 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "init",
             "    consume(1.0 == 1.0005)");
         assertTrue("folded to false:\n" + compiled, compiled.contains("consume(false)"));
+    }
+
+    /**
+     * Lua reals are doubles, so the Lua build folds real operations in double and prints a literal
+     * which reads back as exactly that double. Each folded literal is compared at run time with the
+     * same operation left unfolded; folding in 32-bit floats would give 16777216.0 for 2^24 + 1.
+     */
+    @Test
+    public void realFoldingComputesLuaDoubles() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "@noinline function isSum(real folded, real a, real b) returns boolean",
+            "    return folded == a + b",
+            "init",
+            "    let twoTo24 = 16777216.",
+            "    if isSum(twoTo24 + 1., twoTo24, 1.) and isSum(twoTo24 + 0.5, twoTo24, 0.5)",
+            "        and isSum(0.1 + 0.2, 0.1, 0.2) and twoTo24 + 1. > twoTo24",
+            "        testSuccess()");
+        String compiled = compiledLua("realFoldingComputesLuaDoubles");
+        for (String literal : new String[] {"16777217.0", "16777216.5", "0.30000000000000004"}) {
+            assertTrue(literal + " is folded:\n" + compiled, compiled.contains("isSum(" + literal + ","));
+        }
+        assertFalse("the comparison is folded too:\n" + compiled, compiled.contains(" > 16777216."));
     }
 
     /**

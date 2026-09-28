@@ -9,30 +9,20 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
     private final boolean showRewrites = false;
     /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}) and Jass
-     *  does not read every real literal exactly ({@link #foldRealForJass}); Lua is exact in both. */
+     *  does not read every real literal exactly ({@link #foldRealForJass}); Lua is exact in both, and its
+     *  reals are doubles ({@link #foldRealForLua}). */
     private boolean jassTarget;
 
     private static boolean isNumberLiteral(ImExpr e) {
         return e instanceof ImIntVal || e instanceof ImRealVal;
-    }
-
-    private static float asFloat(ImExpr e) {
-        if (e instanceof ImRealVal) {
-            return Float.parseFloat(((ImRealVal) e).getValR());
-        } else {
-            return ((ImIntVal) e).getValI();
-        }
     }
 
     @Override
@@ -441,82 +431,92 @@ public class SimpleRewrites implements OptimizerPass {
         if (jassTarget) {
             return foldRealForJass(opc, left, right);
         }
-        float f1 = asFloat(left);
-        float f2 = asFloat(right);
-        boolean isConditional = false;
-        boolean isArithmetic = false;
-        boolean result = false;
-        float resultVal = 0f;
+        return foldRealForLua(opc, left, right);
+    }
 
+    /**
+     * Folds a real operation for Lua, whose reals are doubles: Lua reads a literal as the nearest
+     * double and computes in double, and measured on the 3.0.0 client the game's natives (R2I)
+     * also receive that double unrounded. So the fold computes in double too and prints a literal
+     * which reads back as exactly the result; computing in 32-bit floats instead would make a map
+     * compute something else wherever an expression happened to be folded.
+     */
+    private boolean foldRealForLua(ImOperatorCall opc, ImExpr left, ImExpr right) {
+        double a = asDouble(left);
+        double b = asDouble(right);
+        double result;
         switch (opc.getOp()) {
             case GREATER:
-                result = f1 > f2;
-                isConditional = true;
-                break;
+                opc.replaceBy(JassIm.ImBoolVal(a > b));
+                return true;
             case GREATER_EQ:
-                result = f1 >= f2;
-                isConditional = true;
-                break;
+                opc.replaceBy(JassIm.ImBoolVal(a >= b));
+                return true;
             case LESS:
-                result = f1 < f2;
-                isConditional = true;
-                break;
+                opc.replaceBy(JassIm.ImBoolVal(a < b));
+                return true;
             case LESS_EQ:
-                result = f1 <= f2;
-                isConditional = true;
-                break;
+                opc.replaceBy(JassIm.ImBoolVal(a <= b));
+                return true;
             case EQ:
-                result = f1 == f2;
-                isConditional = true;
-                break;
+                opc.replaceBy(JassIm.ImBoolVal(a == b));
+                return true;
             case NOTEQ:
-                result = f1 != f2;
-                isConditional = true;
-                break;
-
+                opc.replaceBy(JassIm.ImBoolVal(a != b));
+                return true;
             case PLUS:
-                resultVal = f1 + f2;
-                isArithmetic = true;
+                result = a + b;
                 break;
             case MINUS:
-                resultVal = f1 - f2;
-                isArithmetic = true;
+                result = a - b;
                 break;
             case MULT:
-                resultVal = f1 * f2;
-                isArithmetic = true;
+                result = a * b;
                 break;
-            case MOD_REAL:
-                if (f2 != 0f) {
-                    resultVal = WurstOperator.moduloReal(f1, f2);
-                    isArithmetic = true;
-                }
-                break;
-            case DIV_INT:
             case DIV_REAL:
-                if (f2 != 0f) {
-                    resultVal = f1 / f2;
-                    isArithmetic = true;
+                if (b == 0) {
+                    return false;
                 }
+                result = a / b;
                 break;
-
             default:
+                // MOD_REAL and DIV_INT are lowered to helper calls before this pass runs on Lua
                 return false;
         }
-
-        if (isConditional) {
-            opc.replaceBy(JassIm.ImBoolVal(result));
-            return true;
-        } else if (isArithmetic) {
-            String s = exactRealLiteral(resultVal);
-            if (s == null) {
-                return false;
-            }
-            opc.replaceBy(JassIm.ImRealVal(s));
-            return true;
-        } else {
+        String literal = luaRealLiteral(result);
+        if (literal == null) {
             return false;
         }
+        opc.replaceBy(JassIm.ImRealVal(literal));
+        return true;
+    }
+
+    private static double asDouble(ImExpr e) {
+        if (e instanceof ImRealVal r) {
+            return Double.parseDouble(r.getValR());
+        }
+        return ((ImIntVal) e).getValI();
+    }
+
+    /**
+     * The shortest literal which Lua reads back as exactly {@code value}, or null when there is none.
+     * A non-finite result (an overflow to infinity, or NaN) has no literal, so the operation is left
+     * for the game. The literal always has a point or an exponent, so Lua reads it as a float.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable String luaRealLiteral(double value) {
+        if (!Double.isFinite(value)) {
+            return null;
+        }
+        // the fewest digits which read back as the same double
+        String scientific = Double.toString(value);
+        if (scientific.indexOf('E') < 0) {
+            return scientific;
+        }
+        String plain = new BigDecimal(scientific).stripTrailingZeros().toPlainString();
+        if (plain.indexOf('.') < 0) {
+            plain += ".0";
+        }
+        return plain.length() <= scientific.length() ? plain : scientific;
     }
 
 
@@ -589,40 +589,6 @@ public class SimpleRewrites implements OptimizerPass {
                     isArithmetic = true;
                 }
                 break;
-            case MOD_REAL: {
-                float f1 = i1;
-                float f2 = i2;
-                if (f2 != 0f) {
-                    float resultF = WurstOperator.moduloReal(f1, f2);
-                    String s = exactRealLiteral(resultF);
-                    if (s == null) {
-                        wasViable = false;
-                        break;
-                    }
-                    opc.replaceBy(JassIm.ImRealVal(s));
-                    // keep wasViable as-is (true) so the caller counts this rewrite
-                } else {
-                    wasViable = false; // don’t fold div-by-zero
-                }
-                break;
-            }
-            case DIV_REAL: {
-                float f1 = i1;
-                float f2 = i2;
-                if (f2 != 0f) {
-                    float resultF = f1 / f2;
-                    String s = exactRealLiteral(resultF);
-                    if (s == null) {
-                        wasViable = false;
-                        break;
-                    }
-                    opc.replaceBy(JassIm.ImRealVal(s));
-                    // keep wasViable as-is (true) so the caller counts this rewrite
-                } else {
-                    wasViable = false; // don’t fold div-by-zero
-                }
-                break;
-            }
             case DIV_INT:
                 if (i2 != 0) {
                     resultVal = i1 / i2;
@@ -703,39 +669,6 @@ public class SimpleRewrites implements OptimizerPass {
             default:
                 throw new Error("operator " + op + " does not have an opposite.");
         }
-    }
-
-    /**
-     * The shortest literal of at most 9 decimal digits which reads back as exactly {@code value},
-     * or null when there is none. A non-finite result (an overflow to infinity, or NaN) has no
-     * literal at all: the formatter would print "∞" or "NaN", which neither Jass nor this
-     * pass can parse, so the operation is left for the game to evaluate.
-     */
-    private static @org.eclipse.jdt.annotation.Nullable String exactRealLiteral(float value) {
-        if (!Float.isFinite(value)) {
-            return null;
-        }
-        for (int digits : new int[] {4, 9}) {
-            String s = floatToStringWithDecimalDigits(value, digits);
-            if (Float.parseFloat(s) == value) {
-                return s;
-            }
-        }
-        return null;
-    }
-
-    private static String floatToStringWithDecimalDigits(float resultVal, int digits) {
-        DecimalFormat format = new DecimalFormat();
-        // use a fixed locale, so that it does not randomly replace a dot by
-        // comma on German PCs
-        // hope this works
-        format.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
-        format.setMinimumIntegerDigits(1);
-        format.setMaximumFractionDigits(digits);
-        format.setMinimumFractionDigits(1);
-        format.setGroupingUsed(false);
-        String s = format.format(resultVal);
-        return s;
     }
 
     private void optimizeIf(ImIf imIf) {
