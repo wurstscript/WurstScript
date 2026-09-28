@@ -835,6 +835,34 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** 0 castTo a class is the null reference, as the stdlib's unit.toUnitIndex() relies on. */
+    @Test
+    public void castZeroToClassIsNull() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "class C",
+            "@noinline function storedId() returns int",
+            "    return 0",
+            "function toC() returns C",
+            "    C instance = storedId() castTo C",
+            "    if instance == null",
+            "        instance = new C",
+            "    return instance",
+            "init",
+            "    C a = 0 castTo C",
+            "    if a != null",
+            "        testFail(\"0 castTo C is not null\")",
+            "    let b = toC()",
+            "    if b == null",
+            "        testFail(\"toC returned null\")",
+            "    if (b castTo int) castTo C != b",
+            "        testFail(\"cast round trip\")",
+            "    testSuccess()"
+        );
+    }
+
     /** Lua compares reals exactly with == too, so here the backends differ on purpose. */
     @Test
     public void luaRealEqualityIsExact() {
