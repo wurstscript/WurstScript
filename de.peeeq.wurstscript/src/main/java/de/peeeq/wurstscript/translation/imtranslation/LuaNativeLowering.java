@@ -453,8 +453,8 @@ public final class LuaNativeLowering {
      *
      * <p>On Lua {@code R2I} is an engine call. Measured on the 3.0.0 client, it truncates the double it
      * is given, without rounding it to a 32-bit real first, so an in-range result is the same either
-     * way. The helper stays one Lua function called in place of the engine: inlined into every caller,
-     * it would make small functions that truncate, such as {@code real.floor()}, too big to inline.
+     * way. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is printed
+     * as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
      */
     private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
         ImFunction[] shim = {null};
@@ -467,60 +467,33 @@ public final class LuaNativeLowering {
                     return;
                 }
                 if (shim[0] == null) {
-                    shim[0] = buildRealToInt(translator, f);
+                    shim[0] = buildRealToInt(translator);
                 }
                 call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
                     JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
             }
         });
-        // Added after the traversal, which would otherwise rewrite the helper's own call to the native.
         if (shim[0] != null) {
-            prog.getFunctions().add(translator.luaRawFloorToIntFunc);
+            prog.getFunctions().add(translator.luaRawR2IFunc);
             prog.getFunctions().add(shim[0]);
         }
     }
 
-    /**
-     * if x >= 0 and x < 2^31 then r = floorToInt(x)
-     * elseif x < 0 and x > -2^31 - 1 then r = -floorToInt(-x)
-     * else r = native(x)
-     * return r
-     */
-    private static ImFunction buildRealToInt(ImTranslator translator, ImFunction nativeR2I) {
+    /** return rawR2I(x): one intrinsic call, printed as Lua arithmetic by ExprTranslation#realToInt. */
+    private static ImFunction buildRealToInt(ImTranslator translator) {
         ImType realType = TypesHelper.imReal();
         ImType intType = TypesHelper.imInt();
         ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
-        ImFunction floorToInt = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawFloorToInt", JassIm.ImTypeVars(),
+        ImFunction rawR2I = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
             JassIm.ImVars(arg), intType.copy(), JassIm.ImVars(), JassIm.ImStmts(),
             Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
-        translator.luaRawFloorToIntFunc = floorToInt;
+        translator.luaRawR2IFunc = rawR2I;
 
         ImVar x = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
-        ImVar r = JassIm.ImVar(SYNTHETIC_TRACE, intType.copy(), "r", false);
-        ImExpr nonNegativeInRange = JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(
-            JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImRealVal("0."))),
-            JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImRealVal("2147483648.")))));
-        ImExpr negativeInRange = JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(
-            JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImRealVal("0."))),
-            JassIm.ImOperatorCall(WurstOperator.GREATER, JassIm.ImExprs(JassIm.ImVarAccess(x), JassIm.ImRealVal("-2147483649.")))));
-        ImExpr floorOfX = JassIm.ImFunctionCall(SYNTHETIC_TRACE, floorToInt, JassIm.ImTypeArguments(),
-            JassIm.ImExprs(JassIm.ImVarAccess(x)), false, CallType.NORMAL);
-        ImExpr minusFloorOfMinusX = JassIm.ImOperatorCall(WurstOperator.UNARY_MINUS, JassIm.ImExprs(
-            JassIm.ImFunctionCall(SYNTHETIC_TRACE, floorToInt, JassIm.ImTypeArguments(),
-                JassIm.ImExprs(JassIm.ImOperatorCall(WurstOperator.UNARY_MINUS, JassIm.ImExprs(JassIm.ImVarAccess(x)))),
-                false, CallType.NORMAL)));
-        ImExpr callNative = JassIm.ImFunctionCall(SYNTHETIC_TRACE, nativeR2I, JassIm.ImTypeArguments(),
-            JassIm.ImExprs(JassIm.ImVarAccess(x)), false, CallType.NORMAL);
-
-        ImStmts body = JassIm.ImStmts(
-            JassIm.ImIf(SYNTHETIC_TRACE, nonNegativeInRange,
-                JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), floorOfX)),
-                JassIm.ImStmts(JassIm.ImIf(SYNTHETIC_TRACE, negativeInRange,
-                    JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), minusFloorOfMinusX)),
-                    JassIm.ImStmts(JassIm.ImSet(SYNTHETIC_TRACE, JassIm.ImVarAccess(r), callNative))))),
-            JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImVarAccess(r)));
+        ImStmts body = JassIm.ImStmts(JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImFunctionCall(SYNTHETIC_TRACE, rawR2I,
+            JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(x)), false, CallType.NORMAL)));
         return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_R2I", JassIm.ImTypeVars(), JassIm.ImVars(x), intType.copy(),
-            JassIm.ImVars(r), body, Collections.singletonList(new FunctionFlagAnnotation("@noinline")));
+            JassIm.ImVars(), body, Collections.emptyList());
     }
 
     /**

@@ -340,7 +340,7 @@ public class LuaTranslationTests extends WurstScriptTest {
      */
     @Test
     public void realToIntTruncatesInLuaArithmetic() throws IOException {
-        test().testLua(true).withStdLib().lines(
+        test().testLua(true).withStdLib().inline().executeProg(true).lines(
             "package Test",
             "real array operands",
             "var failures = 0",
@@ -367,6 +367,10 @@ public class LuaTranslationTests extends WurstScriptTest {
         );
         String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_realToIntTruncatesInLuaArithmetic.lua"), Charsets.UTF_8);
         assertTrue("the in-range truncation is Lua arithmetic:\n" + compiled, compiled.contains("// 1) | 0)"));
+        // At most each function's own definition: no call site goes through a helper.
+        assertTrue("R2I is not called through a helper:\n" + compiled,
+            compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1
+                && compiled.split("__wurst_R2I\\(", -1).length - 1 <= 1);
     }
 
     @Test

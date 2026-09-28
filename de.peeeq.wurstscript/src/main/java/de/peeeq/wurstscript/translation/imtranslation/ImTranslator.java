@@ -200,8 +200,8 @@ public class ImTranslator implements SpecialisationLookup {
     @Nullable public ImFunction luaRawFmodRealFunc = null;
     @Nullable public ImFunction luaRawFloorModIntFunc = null;
     @Nullable public ImFunction luaRawConcatFunc = null;
-    /** The floor of a real as an integer, for a real the caller has checked is in range; printed as {@code x // 1 | 0}. */
-    @Nullable public ImFunction luaRawFloorToIntFunc = null;
+    /** {@code R2I} in Lua arithmetic, falling back to the native outside the 32-bit range; see ExprTranslation. */
+    @Nullable public ImFunction luaRawR2IFunc = null;
     /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
     @Nullable public ImFunction luaRawToNumberIntFunc = null;
     @Nullable public ImFunction luaRawToNumberRealFunc = null;
