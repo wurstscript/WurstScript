@@ -643,7 +643,7 @@ public class AbilityDefinitionItemShieldOfTheScarletCrusadeHeal extends AbilityD
 
 public class AbilityDefinitionDevour extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.devour)
+		super(newAbilityId, AbilityIds.devourAdev)
 
 	function setMaxCreepLevel(int level, int value)
 		def.setLvlDataInt("Dev1", level, 1, value)
@@ -5980,7 +5980,7 @@ public class AbilityDefinitionBladeMasterCriticalStrike extends AbilityDefinitio
 
 public class AbilityDefinitionUnsummon extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.unsummon)
+		super(newAbilityId, AbilityIds.unsummonAuns)
 
 	function setSalvageCostRatio(int level, real value)
 		def.setLvlDataUnreal("Sal1", level, 1, value)
@@ -7176,7 +7176,7 @@ public class AbilityDefinitionRelentlessCleaveTalent3 extends AbilityDefinition
 
 public class AbilityDefinitionHealingWard extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.healingWard)
+		super(newAbilityId, AbilityIds.healingWardAhwd)
 
 	function setWardUnitType(int level, string value)
 		def.setLvlDataString("hwdu", level, 0, value)
@@ -7962,7 +7962,7 @@ public class AbilityDefinitionBlightPlacement extends AbilityDefinition
 
 public class AbilityDefinitionBloodlust extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.bloodlust)
+		super(newAbilityId, AbilityIds.bloodlustAblo)
 
 	function setScalingFactor(int level, real value)
 		def.setLvlDataUnreal("Blo3", level, 3, value)
@@ -11451,7 +11451,7 @@ public class AbilityDefinitionAgilityMod extends AbilityDefinition
 
 public class AbilityDefinitionAnimateDead extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.animateDead)
+		super(newAbilityId, AbilityIds.animateDeadAian)
 
 	function setInheritUpgrades(int level, bool value)
 		def.setLvlDataBoolean("Uan3", level, 3, value)
@@ -13305,9 +13305,9 @@ public class AbilityDefinitionAgilityBonusPlus10 extends AbilityDefinition
 
 
 
-public class AbilityDefinitionCyclone1 extends AbilityDefinition
+public class AbilityDefinitionCyclone1Aicy extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.cyclone1)
+		super(newAbilityId, AbilityIds.cyclone1Aicy)
 
 	function setCanBeDispelled(int level, bool value)
 		def.setLvlDataBoolean("cyc1", level, 1, value)
@@ -14908,9 +14908,9 @@ public class AbilityDefinitionLeonidHealthRegenerationTalent extends AbilityDefi
 
 
 
-public class AbilityDefinitionEvasion extends AbilityDefinition
+public class AbilityDefinitionEvasionAiev extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.evasion)
+		super(newAbilityId, AbilityIds.evasionAiev)
 
 	function setChancetoEvade(int level, real value)
 		def.setLvlDataUnreal("Eev1", level, 1, value)
@@ -16507,9 +16507,9 @@ public class AbilityDefinitionItemHealLeastest extends AbilityDefinition
 
 
 
-public class AbilityDefinitionHealingWard1 extends AbilityDefinition
+public class AbilityDefinitionHealingWard1Aihw extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.healingWard1)
+		super(newAbilityId, AbilityIds.healingWard1Aihw)
 
 	function setWardUnitType(int level, string value)
 		def.setLvlDataString("hwdu", level, 0, value)
@@ -20085,9 +20085,9 @@ public class AbilityDefinitionEndlessFlaskRejuvenation extends AbilityDefinition
 
 
 
-public class AbilityDefinitionSlow1 extends AbilityDefinition
+public class AbilityDefinitionSlow1Aios extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.slow1)
+		super(newAbilityId, AbilityIds.slow1Aios)
 
 	function setMovementSpeedFactor(int level, real value)
 		def.setLvlDataUnreal("Slo1", level, 1, value)
@@ -23176,7 +23176,7 @@ public class AbilityDefinitionForkedLightningCreep extends AbilityDefinition
 
 public class AbilityDefinitionResurrection extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.resurrection)
+		super(newAbilityId, AbilityIds.resurrectionAirs)
 
 	function setNumberofCorpsesRaised(int level, int value)
 		def.setLvlDataInt("Hre1", level, 1, value)
@@ -24767,9 +24767,9 @@ public class AbilityDefinitionCurseAnyaBanshee extends AbilityDefinition
 
 
 
-public class AbilityDefinitionAttackSpeedIncreaseGreater extends AbilityDefinition
+public class AbilityDefinitionAttackSpeedIncreaseGreaterAisy extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.attackSpeedIncreaseGreater)
+		super(newAbilityId, AbilityIds.attackSpeedIncreaseGreaterAisy)
 
 	function setAttackSpeedIncrease(int level, real value)
 		def.setLvlDataUnreal("Isx1", level, 1, value)
@@ -27530,7 +27530,7 @@ public class AbilityDefinitionItemArmorCorruptAttack2 extends AbilityDefinition
 
 public class AbilityDefinitionEnsnare extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.ensnare)
+		super(newAbilityId, AbilityIds.ensnareAens)
 
 	function setStunDuration(int level, real value)
 		def.setLvlDataUnreal("Ens4", level, 4, value)
@@ -30495,7 +30495,7 @@ public class AbilityDefinitionItemEssenciumMainSummon extends AbilityDefinition
 
 public class AbilityDefinitionPhoenix extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.phoenix)
+		super(newAbilityId, AbilityIds.phoenixAphx)
 
 	function setLandingDelayTime(int level, real value)
 		def.setLvlDataUnreal("Eme4", level, 4, value)
@@ -34772,7 +34772,7 @@ public class AbilityDefinitionItemSpellResistance4 extends AbilityDefinition
 
 public class AbilityDefinitionInferno extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.inferno)
+		super(newAbilityId, AbilityIds.infernoAnin)
 
 	function setDamage(int level, real value)
 		def.setLvlDataUnreal("Uin1", level, 1, value)
@@ -35074,9 +35074,9 @@ public class AbilityDefinitionLandenTalentTier4c extends AbilityDefinition
 
 
 
-public class AbilityDefinitionHealCreepNormal extends AbilityDefinition
+public class AbilityDefinitionHealCreepNormalAnhe extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.healCreepNormal)
+		super(newAbilityId, AbilityIds.healCreepNormalAnhe)
 
 	function setHitPointsGained(int level, real value)
 		def.setLvlDataUnreal("Hea1", level, 1, value)
@@ -39352,7 +39352,7 @@ public class AbilityDefinitionValiantCharge extends AbilityDefinition
 
 public class AbilityDefinitionCyclone extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.cyclone)
+		super(newAbilityId, AbilityIds.cycloneAcyc)
 
 	function setCanBeDispelled(int level, bool value)
 		def.setLvlDataBoolean("cyc1", level, 1, value)
@@ -44240,9 +44240,9 @@ public class AbilityDefinitionGarekTalentTier1a extends AbilityDefinition
 
 
 
-public class AbilityDefinitionDarkSummoning extends AbilityDefinition
+public class AbilityDefinitionDarkSummoningAuds extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.darkSummoning)
+		super(newAbilityId, AbilityIds.darkSummoningAuds)
 
 	function setCastingDelayseconds(int level, real value)
 		def.setLvlDataUnreal("Uds2", level, 2, value)
@@ -44378,7 +44378,7 @@ public class AbilityDefinitionGarekTalentTier1c extends AbilityDefinition
 
 public class AbilityDefinitionWindWalk extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.windWalk)
+		super(newAbilityId, AbilityIds.windWalkAnwk)
 
 	function setBackstabDamage(int level, real value)
 		def.setLvlDataUnreal("Owk3", level, 3, value)
@@ -45311,7 +45311,7 @@ public class AbilityDefinitionStandDown extends AbilityDefinition
 
 public class AbilityDefinitionSellUnit extends AbilityDefinition
 	construct(int newAbilityId)
-		super(newAbilityId, AbilityIds.sellUnit)
+		super(newAbilityId, AbilityIds.sellUnitAsud)
 
 
 

@@ -13576,7 +13576,7 @@ public class AbilityDefinitionAgilityBonusPlus10 extends AbilityDefinition
 
 
 
-public class AbilityDefinitionCyclone1 extends AbilityDefinition
+public class AbilityDefinitionCyclone1Aicy extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'AIcy')
 
@@ -15179,7 +15179,7 @@ public class AbilityDefinitionLeonidHealthRegenerationTalent extends AbilityDefi
 
 
 
-public class AbilityDefinitionEvasion extends AbilityDefinition
+public class AbilityDefinitionEvasionAiev extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'AIev')
 
@@ -16778,7 +16778,7 @@ public class AbilityDefinitionItemHealLeastest extends AbilityDefinition
 
 
 
-public class AbilityDefinitionHealingWard1 extends AbilityDefinition
+public class AbilityDefinitionHealingWard1Aihw extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'AIhw')
 
@@ -20356,7 +20356,7 @@ public class AbilityDefinitionEndlessFlaskRejuvenation extends AbilityDefinition
 
 
 
-public class AbilityDefinitionSlow1 extends AbilityDefinition
+public class AbilityDefinitionSlow1Aios extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'AIos')
 
@@ -25038,7 +25038,7 @@ public class AbilityDefinitionCurseAnyaBanshee extends AbilityDefinition
 
 
 
-public class AbilityDefinitionAttackSpeedIncreaseGreater extends AbilityDefinition
+public class AbilityDefinitionAttackSpeedIncreaseGreaterAisy extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'Aisy')
 
@@ -35345,7 +35345,7 @@ public class AbilityDefinitionLandenTalentTier4c extends AbilityDefinition
 
 
 
-public class AbilityDefinitionHealCreepNormal extends AbilityDefinition
+public class AbilityDefinitionHealCreepNormalAnhe extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'Anhe')
 
@@ -44511,7 +44511,7 @@ public class AbilityDefinitionGarekTalentTier1a extends AbilityDefinition
 
 
 
-public class AbilityDefinitionDarkSummoning extends AbilityDefinition
+public class AbilityDefinitionDarkSummoningAuds extends AbilityDefinition
 	construct(int newAbilityId)
 		super(newAbilityId, 'AUds')
 

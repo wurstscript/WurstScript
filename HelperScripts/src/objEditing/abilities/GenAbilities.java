@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -202,7 +203,8 @@ public class GenAbilities {
         System.err.println("Common fields: " + commonData.size());
         System.err.println("Specific ability groups: " + specificData.keySet().size());
 
-        Set<String> basePresetFunctionNames = readBasePresetFunctionNames();
+        ExistingAbilityData existingAbilityData = readExistingAbilityData();
+        Set<String> basePresetFunctionNames = existingAbilityData.basePresetFunctionNames;
 
         // Propagate specific fields to child abilities via inheritance (alias -> code parent).
         // e.g. ACpa (Parasite Eredar) has code=ANpa, so inherits ANpa's specific fields.
@@ -245,18 +247,19 @@ public class GenAbilities {
 
         // Build a constant-name map for ALL abilities (used so stdlib classes reference AbilityIds.xxx)
         // We need this before generating any class output.
-        Map<String, String> spellToConstant = new HashMap<>(); // spell -> camelCase constant name
+        Map<String, String> spellToConstant = new HashMap<>(); // spell -> stable AbilityIds constant name
+        Map<String, String> spellToClassName = new HashMap<>(); // spell -> collision-safe stdlib class name
         {
-            Set<String> usedConstantNames = new java.util.TreeSet<>();
-            for (String spell : abilityNames.keySet()) {
+            Set<String> allSpells = new java.util.TreeSet<>(abilityNames.keySet());
+            allSpells.addAll(specificData.keySet());
+            for (String spell : allSpells) {
                 String spellName = abilityNames.get(spell);
-                String constantName = toCamelCase(spellName);
-                String base = constantName;
-                int ci = 0;
-                while (!usedConstantNames.add(constantName)) {
-                    constantName = base + (++ci);
-                }
+                if (spellName == null) spellName = spell;
+                String constantName = resolveConstantName(toCamelCase(spellName), spell, existingAbilityData.constantToId);
+                String className = resolveClassName("AbilityDefinition" + spellName, spell,
+                        existingAbilityData.classNameToId);
                 spellToConstant.put(spell, constantName);
+                spellToClassName.put(spell, className);
             }
         }
 
@@ -264,17 +267,20 @@ public class GenAbilities {
         // and to the additions file (for stdlib integration), both using AbilityIds.xxx
         StringBuilder idsBlock = new StringBuilder();
         StringBuilder classesBlock = new StringBuilder();
+        Set<String> addedIds = Sets.newHashSet();
 
         for (String spell : specificData.keySet()) {
             usedNames.clear();
             String spellName = abilityNames.getOrDefault(spell, spell);
             String constantName = spellToConstant.getOrDefault(spell, toCamelCase(spellName));
+            String className = spellToClassName.getOrDefault(spell, resolveClassName("AbilityDefinition" + spellName,
+                    spell, existingAbilityData.classNameToId));
 
             // Main HelperScripts output (standalone, uses raw id)
             println("");
             println("");
             println("");
-            println("public class AbilityDefinition" + spellName + " extends AbilityDefinition");
+            println("public class " + className + " extends AbilityDefinition");
             println("\tconstruct(int newAbilityId)");
             println("\t\tsuper(newAbilityId, '" + spell + "')");
             for (FieldData fd : specificData.get(spell)) {
@@ -282,9 +288,8 @@ public class GenAbilities {
             }
 
             // Additions file (for stdlib) uses AbilityIds reference
-            idsBlock.append("\tstatic constant ").append(constantName)
-                    .append("\t\t\t\t= '").append(spell).append("'\n");
-            classesBlock.append("\n\n\npublic class AbilityDefinition").append(spellName)
+            appendIdConstant(idsBlock, addedIds, existingAbilityData.originalConstantToId, constantName, spell);
+            classesBlock.append("\n\n\npublic class ").append(className)
                     .append(" extends AbilityDefinition\n");
             classesBlock.append("\tconstruct(int newAbilityId)\n");
             classesBlock.append("\t\tsuper(newAbilityId, AbilityIds.").append(constantName).append(")\n");
@@ -317,10 +322,10 @@ public class GenAbilities {
             if (specificData.containsKey(spell)) continue;
             String spellName = abilityNames.get(spell);
             String constantName = spellToConstant.getOrDefault(spell, toCamelCase(spellName));
+            String className = spellToClassName.getOrDefault(spell, "AbilityDefinition" + spellName);
 
-            idsBlock.append("\tstatic constant ").append(constantName)
-                    .append("\t\t\t\t= '").append(spell).append("'\n");
-            classesBlock.append("\n\n\npublic class AbilityDefinition").append(spellName)
+            appendIdConstant(idsBlock, addedIds, existingAbilityData.originalConstantToId, constantName, spell);
+            classesBlock.append("\n\n\npublic class ").append(className)
                     .append(" extends AbilityDefinition\n");
             classesBlock.append("\tconstruct(int newAbilityId)\n");
             classesBlock.append("\t\tsuper(newAbilityId, AbilityIds.").append(constantName).append(")\n");
@@ -329,7 +334,7 @@ public class GenAbilities {
             println("");
             println("");
             println("");
-            println("public class AbilityDefinition" + spellName + " extends AbilityDefinition");
+            println("public class " + className + " extends AbilityDefinition");
             println("\tconstruct(int newAbilityId)");
             println("\t\tsuper(newAbilityId, '" + spell + "')");
             commonOnly++;
@@ -346,13 +351,42 @@ public class GenAbilities {
         Files.write(sb, new File("./AbilityObjEditing.wurst"), Charsets.UTF_8);
     }
 
-    private static Set<String> readBasePresetFunctionNames() throws IOException {
+    private static class ExistingAbilityData {
+        Map<String, String> constantToId = new HashMap<>();
+        Map<String, String> originalConstantToId = new HashMap<>();
+        Map<String, String> classNameToId = new HashMap<>();
+        Set<String> basePresetFunctionNames = Sets.newHashSet();
+    }
+
+    private static ExistingAbilityData readExistingAbilityData() throws IOException {
+        File stdlibAbilityIds = new File("../../WurstStdlib2/wurst/_wurst/assets/AbilityIds.wurst");
         File stdlibAbilityEditing = new File("../../WurstStdlib2/wurst/objediting/AbilityObjEditing.wurst");
-        if (!stdlibAbilityEditing.isFile()) {
-            throw new IOException("Could not find WurstStdlib2's AbilityObjEditing.wurst needed to mark preset overrides: "
-                    + stdlibAbilityEditing.getPath());
+        if (!stdlibAbilityIds.isFile() || !stdlibAbilityEditing.isFile()) {
+            throw new IOException("Ability generation requires the sibling WurstStdlib2 files: "
+                    + stdlibAbilityIds.getPath() + " and " + stdlibAbilityEditing.getPath());
         }
+
+        ExistingAbilityData result = new ExistingAbilityData();
+        String idsSource = Files.toString(stdlibAbilityIds, Charsets.UTF_8);
+        Matcher idMatcher = Pattern.compile("(?m)^\\s*static constant\\s+(\\w+)\\s*=\\s*'([^']{4})'")
+                .matcher(idsSource);
+        while (idMatcher.find()) {
+            result.constantToId.put(idMatcher.group(1), idMatcher.group(2));
+        }
+        result.originalConstantToId.putAll(result.constantToId);
+
         String source = Files.toString(stdlibAbilityEditing, Charsets.UTF_8);
+        Matcher classMatcher = Pattern.compile("(?ms)^public class (\\w+) extends AbilityDefinition\\b(.*?)(?=^public class |\\z)")
+                .matcher(source);
+        Pattern classIdPattern = Pattern.compile("(?m)^\\t\\tsuper\\(newAbilityId,\\s*AbilityIds\\.(\\w+)\\)");
+        while (classMatcher.find()) {
+            Matcher classIdMatcher = classIdPattern.matcher(classMatcher.group(2));
+            if (classIdMatcher.find()) {
+                String rawId = result.constantToId.get(classIdMatcher.group(1));
+                if (rawId != null) result.classNameToId.put(classMatcher.group(1), rawId);
+            }
+        }
+
         String baseMarker = "public class AbilityDefinition";
         int baseStart = source.indexOf(baseMarker);
         int nextClass = source.indexOf("\npublic class ", baseStart + baseMarker.length());
@@ -360,11 +394,53 @@ public class GenAbilities {
             throw new IOException("Could not find the AbilityDefinition base class in " + stdlibAbilityEditing.getPath());
         }
         String baseClass = source.substring(baseStart, nextClass);
-        Matcher matcher = Pattern.compile("(?m)^\\s*(?:override\\s+)?function preset(\\w+)\\s*\\(")
+        Matcher presetMatcher = Pattern.compile("(?m)^\\s*(?:override\\s+)?function preset(\\w+)\\s*\\(")
                 .matcher(baseClass);
-        Set<String> result = Sets.newHashSet();
-        while (matcher.find()) result.add(matcher.group(1));
+        while (presetMatcher.find()) result.basePresetFunctionNames.add(presetMatcher.group(1));
         return result;
+    }
+
+    private static String resolveConstantName(String preferred, String rawId, Map<String, String> knownIds) {
+        String candidate = preferred;
+        String candidateId = knownIds.get(candidate);
+        if (candidateId != null && !candidateId.equals(rawId)) {
+            candidate = preferred + classIdSuffix(rawId);
+            candidateId = knownIds.get(candidate);
+        }
+        int suffix = 2;
+        while (candidateId != null && !candidateId.equals(rawId)) {
+            candidate = preferred + classIdSuffix(rawId) + suffix++;
+            candidateId = knownIds.get(candidate);
+        }
+        knownIds.putIfAbsent(candidate, rawId);
+        return candidate;
+    }
+
+    private static String resolveClassName(String preferred, String rawId, Map<String, String> knownClasses) {
+        String candidate = preferred;
+        String candidateId = knownClasses.get(candidate);
+        if (candidateId != null && !candidateId.equals(rawId)) {
+            candidate = preferred + classIdSuffix(rawId);
+            candidateId = knownClasses.get(candidate);
+        }
+        int suffix = 2;
+        while (candidateId != null && !candidateId.equals(rawId)) {
+            candidate = preferred + classIdSuffix(rawId) + suffix++;
+            candidateId = knownClasses.get(candidate);
+        }
+        knownClasses.putIfAbsent(candidate, rawId);
+        return candidate;
+    }
+
+    private static String classIdSuffix(String rawId) {
+        return rawId.substring(0, 1).toUpperCase(Locale.ROOT) + rawId.substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    private static void appendIdConstant(StringBuilder output, Set<String> addedIds,
+            Map<String, String> originalIds, String constantName, String rawId) {
+        if (rawId.equals(originalIds.get(constantName)) || !addedIds.add(constantName)) return;
+        output.append("\tstatic constant ").append(constantName)
+                .append("\t\t\t\t= '").append(rawId).append("'\n");
     }
 
     /**

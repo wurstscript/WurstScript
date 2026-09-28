@@ -173,7 +173,7 @@ function parseObjEditingFile(content: string): ClassDef[] {
 
     // ---- Function declaration (tab-indented, direct class member) ----
     // Skip preset* methods (they're just convenience wrappers, not direct setters)
-    const funcMatch = line.match(/^\tfunction ((\w+))\(/);
+    const funcMatch = line.match(/^\t(?:override\s+)?function ((\w+))\(/);
     if (funcMatch) {
       const fnName = funcMatch[1];
       if (fnName.startsWith("preset") || fnName.startsWith("get")) {

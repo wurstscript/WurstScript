@@ -9876,6 +9876,13 @@
         "Int",
         "int"
       ],
+      "mcdr:0": [
+        "setDurationNormal",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
       "mcrd:4": [
         "setExplosionRadius",
         true,
@@ -9905,6 +9912,13 @@
         false,
         "Int",
         "int"
+      ],
+      "mcdr:0": [
+        "setDurationNormal",
+        true,
+        false,
+        "Unreal",
+        "real"
       ],
       "mcrd:4": [
         "setExplosionRadius",
@@ -9936,6 +9950,13 @@
         "Int",
         "int"
       ],
+      "mcdr:0": [
+        "setDurationNormal",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
       "mcrd:4": [
         "setExplosionRadius",
         true,
@@ -9965,6 +9986,13 @@
         false,
         "Int",
         "int"
+      ],
+      "mcdr:0": [
+        "setDurationNormal",
+        true,
+        false,
+        "Unreal",
+        "real"
       ],
       "mcrd:4": [
         "setExplosionRadius",
