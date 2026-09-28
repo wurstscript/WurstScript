@@ -16,9 +16,9 @@ public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
     private final boolean showRewrites = false;
-    /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}) and Jass
-     *  does not read every real literal exactly ({@link #foldRealForJass}); Lua is exact in both, and its
-     *  reals are doubles ({@link #foldRealForLua}). */
+    /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}); Lua
+     *  compares exactly. Neither target's reals match a folder's arithmetic, so both fold a real
+     *  operation only where it is exact ({@link #foldRealExactly}). */
     private boolean jassTarget;
 
     private static boolean isNumberLiteral(ImExpr e) {
@@ -322,21 +322,29 @@ public class SimpleRewrites implements OptimizerPass {
             && opc.getArguments().stream().anyMatch(arg -> TypesHelper.isRealType(arg.attrTyp()));
     }
 
-    /** The literal with the most decimals, and the largest one, measured to read exactly in Jass. */
+    /** The literal with the most decimals, and the largest one, measured to read exactly in Jass. Lua
+     *  keeps the same limits: it reads such a literal exactly too, and the limits keep one rule for both. */
     private static final int MAX_EXACT_JASS_REAL_DECIMALS = 5;
     private static final BigDecimal MAX_EXACT_JASS_REAL = new BigDecimal("2147483520");
 
     /**
-     * Folds a real operation for Jass only where the game computes exactly the folded value.
-     * Measured on the 3.0.0 client, the Jass literal parser does not round to the nearest float:
-     * {@code 0.1} reads one float high and {@code 1.1} one float low, while short exact binary
-     * fractions such as {@code 0.5}, {@code 0.75}, {@code 123456.78125} and {@code 2147483520.0}
-     * read exactly. So both operands must be such literals, and an arithmetic result must be exact
-     * and printable as one; otherwise the map would compute a different float than the folded one.
-     * Two distinct such operands differ by at least 1/32, so the tolerance of Jass {@code ==} never
-     * decides a folded comparison.
+     * Folds a real operation only where the game computes exactly the folded value, on both targets.
+     * Measured on the 3.0.0 client:
+     * <ul>
+     * <li>The Jass literal parser does not round to the nearest float: {@code 0.1} reads one float
+     * high and {@code 1.1} one float low, while short exact binary fractions such as {@code 0.5},
+     * {@code 0.75}, {@code 123456.78125} and {@code 2147483520.0} read exactly.</li>
+     * <li>Lua reals have a 24-bit mantissa, not 53: a literal is read rounded to the nearest such
+     * value ({@code 16777217.} reads as 16777216), and each arithmetic result is truncated
+     * ({@code 0.7 + 0.1 + 0.1 + 0.1} computes to 1 - 2^-23, where both a double and a 32-bit float
+     * rounded to nearest give 1).</li>
+     * </ul>
+     * No arithmetic in the folder reproduces either, so both operands must be literals that read
+     * exactly, and an arithmetic result must be exact and printable as one; then every rounding the
+     * game might apply gives the folded value. Two distinct such operands differ by at least 1/32, so
+     * the tolerance of Jass {@code ==} never decides a folded comparison.
      */
-    private boolean foldRealForJass(ImOperatorCall opc, ImExpr left, ImExpr right) {
+    private boolean foldRealExactly(ImOperatorCall opc, ImExpr left, ImExpr right) {
         BigDecimal a = exactJassReal(left);
         BigDecimal b = exactJassReal(right);
         if (a == null || b == null) {
@@ -399,7 +407,7 @@ public class SimpleRewrites implements OptimizerPass {
         return true;
     }
 
-    /** The value of a number literal that Jass reads exactly, or null; see {@link #foldRealForJass}. */
+    /** The value of a number literal that the game reads exactly, or null; see {@link #foldRealExactly}. */
     private static @org.eclipse.jdt.annotation.Nullable BigDecimal exactJassReal(ImExpr e) {
         if (e instanceof ImIntVal i) {
             // up to 2^24 an int converts to a real exactly
@@ -428,97 +436,8 @@ public class SimpleRewrites implements OptimizerPass {
     }
 
     private boolean optimizeRealRealMixed(ImOperatorCall opc, boolean wasViable, ImExpr left, ImExpr right) {
-        if (jassTarget) {
-            return foldRealForJass(opc, left, right);
-        }
-        return foldRealForLua(opc, left, right);
+        return foldRealExactly(opc, left, right);
     }
-
-    /**
-     * Folds a real operation for Lua, whose reals are doubles: Lua reads a literal as the nearest
-     * double and computes in double, and measured on the 3.0.0 client the game's natives (R2I)
-     * also receive that double unrounded. So the fold computes in double too and prints a literal
-     * which reads back as exactly the result; computing in 32-bit floats instead would make a map
-     * compute something else wherever an expression happened to be folded.
-     */
-    private boolean foldRealForLua(ImOperatorCall opc, ImExpr left, ImExpr right) {
-        double a = asDouble(left);
-        double b = asDouble(right);
-        double result;
-        switch (opc.getOp()) {
-            case GREATER:
-                opc.replaceBy(JassIm.ImBoolVal(a > b));
-                return true;
-            case GREATER_EQ:
-                opc.replaceBy(JassIm.ImBoolVal(a >= b));
-                return true;
-            case LESS:
-                opc.replaceBy(JassIm.ImBoolVal(a < b));
-                return true;
-            case LESS_EQ:
-                opc.replaceBy(JassIm.ImBoolVal(a <= b));
-                return true;
-            case EQ:
-                opc.replaceBy(JassIm.ImBoolVal(a == b));
-                return true;
-            case NOTEQ:
-                opc.replaceBy(JassIm.ImBoolVal(a != b));
-                return true;
-            case PLUS:
-                result = a + b;
-                break;
-            case MINUS:
-                result = a - b;
-                break;
-            case MULT:
-                result = a * b;
-                break;
-            case DIV_REAL:
-                if (b == 0) {
-                    return false;
-                }
-                result = a / b;
-                break;
-            default:
-                // MOD_REAL and DIV_INT are lowered to helper calls before this pass runs on Lua
-                return false;
-        }
-        String literal = luaRealLiteral(result);
-        if (literal == null) {
-            return false;
-        }
-        opc.replaceBy(JassIm.ImRealVal(literal));
-        return true;
-    }
-
-    private static double asDouble(ImExpr e) {
-        if (e instanceof ImRealVal r) {
-            return Double.parseDouble(r.getValR());
-        }
-        return ((ImIntVal) e).getValI();
-    }
-
-    /**
-     * The shortest literal which Lua reads back as exactly {@code value}, or null when there is none.
-     * A non-finite result (an overflow to infinity, or NaN) has no literal, so the operation is left
-     * for the game. The literal always has a point or an exponent, so Lua reads it as a float.
-     */
-    private static @org.eclipse.jdt.annotation.Nullable String luaRealLiteral(double value) {
-        if (!Double.isFinite(value)) {
-            return null;
-        }
-        // the fewest digits which read back as the same double
-        String scientific = Double.toString(value);
-        if (scientific.indexOf('E') < 0) {
-            return scientific;
-        }
-        String plain = new BigDecimal(scientific).stripTrailingZeros().toPlainString();
-        if (plain.indexOf('.') < 0) {
-            plain += ".0";
-        }
-        return plain.length() <= scientific.length() ? plain : scientific;
-    }
-
 
     private boolean optimizeStringString(ImOperatorCall opc, ImStringVal left, ImStringVal right) {
         String f1 = left.getValS();

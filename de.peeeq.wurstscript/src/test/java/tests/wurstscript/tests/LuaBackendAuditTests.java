@@ -59,10 +59,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     /**
-     * A real operation which overflows the double the Lua folder computes in has no literal, so it
-     * is left for the game instead of printing the infinity, which Lua would read as an unset
-     * global. The stdlib's REAL_MAX overflowed back when the folder computed in 32-bit floats, and
-     * REAL_MAX / 2. is how a map hit it; as a double it is finite and folds.
+     * A real operation on literals that do not read exactly, such as the stdlib's REAL_MAX, is left
+     * for the game, and so is an overflow: no infinity is ever printed, which Lua would read as an
+     * unset global. REAL_MAX / 2. is how a map hit that.
      */
     @Test
     public void realFoldOverflowIsLeftUnfolded() {
@@ -78,45 +77,57 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "    consume(" + nearDoubleMax + " * 10.)");
         assertFalse("no non-finite literal is printed:\n" + compiled,
             compiled.contains("∞") || compiled.contains("NaN") || compiled.contains("Infinity"));
-        assertTrue("REAL_MAX / 2. folds as a double:\n" + compiled,
+        assertFalse("REAL_MAX / 2. is left for the game:\n" + compiled,
             compiled.contains("consume(1.70141183460469E38)"));
-        assertTrue("the double overflow is left for the game:\n" + compiled,
+        assertTrue("the overflow is left for the game:\n" + compiled,
             compiled.contains("consume((" + nearDoubleMax + " * 10.))"));
     }
 
-    /** Lua's == on reals is exact, unlike Jass's, so the Lua build still folds nearly equal literals. */
+    /**
+     * A comparison of literals folds only where both read exactly, as on Jass: 1.0005 does not, so
+     * the game compares what it reads. Exact literals fold, and Lua's == on them is exact.
+     */
     @Test
-    public void nearlyEqualRealLiteralsFoldExactlyOnLua() {
-        String compiled = compileOptimizedLua("nearlyEqualRealLiteralsFoldExactlyOnLua",
+    public void realComparisonsFoldOnlyForExactLiteralsOnLua() {
+        String compiled = compileOptimizedLua("realComparisonsFoldOnlyForExactLiteralsOnLua",
             "package Test",
             "native consume(boolean value)",
+            "native consume2(boolean value)",
             "init",
-            "    consume(1.0 == 1.0005)");
-        assertTrue("folded to false:\n" + compiled, compiled.contains("consume(false)"));
+            "    consume(1.0 == 1.0005)",
+            "    consume2(2.5 == 2.25)");
+        assertFalse("a literal that does not read exactly is compared by the game:\n" + compiled,
+            compiled.contains("consume(false)") || compiled.contains("consume(true)"));
+        assertTrue("exact literals fold:\n" + compiled, compiled.contains("consume2(false)"));
     }
 
     /**
-     * Lua reals are doubles, so the Lua build folds real operations in double and prints a literal
-     * which reads back as exactly that double. Each folded literal is compared at run time with the
-     * same operation left unfolded; folding in 32-bit floats would give 16777216.0 for 2^24 + 1.
+     * The game's Lua reals have a 24-bit mantissa and truncate each result, so the Lua build folds a
+     * real operation only where it is exact: then every rounding gives the folded value. 2.5 + 0.25
+     * and 1.5 * 4. fold; 2^24 + 1 needs a 25th bit, and 0.1 does not read exactly, so those are left
+     * for the game. The test runtime's Lua computes in double, which agrees on the exact folds.
      */
     @Test
-    public void realFoldingComputesLuaDoubles() throws IOException {
+    public void realFoldingIsExactOnLua() throws IOException {
         test().testLua(true).inline().localOptimizations().executeProg().lines(
             "package Test",
             "native testSuccess()",
             "@noinline function isSum(real folded, real a, real b) returns boolean",
             "    return folded == a + b",
+            "@noinline function isProduct(real folded, real a, real b) returns boolean",
+            "    return folded == a * b",
             "init",
             "    let twoTo24 = 16777216.",
-            "    if isSum(twoTo24 + 1., twoTo24, 1.) and isSum(twoTo24 + 0.5, twoTo24, 0.5)",
-            "        and isSum(0.1 + 0.2, 0.1, 0.2) and twoTo24 + 1. > twoTo24",
+            "    if isSum(2.5 + 0.25, 2.5, 0.25) and isProduct(1.5 * 4., 1.5, 4.)",
+            "        and isSum(twoTo24 + 1., twoTo24, 1.) and isSum(0.1 + 0.2, 0.1, 0.2) and 2.5 > 2.25",
             "        testSuccess()");
-        String compiled = compiledLua("realFoldingComputesLuaDoubles");
-        for (String literal : new String[] {"16777217.0", "16777216.5", "0.30000000000000004"}) {
-            assertTrue(literal + " is folded:\n" + compiled, compiled.contains("isSum(" + literal + ","));
+        String compiled = compiledLua("realFoldingIsExactOnLua");
+        assertTrue("exact sums fold:\n" + compiled, compiled.contains("isSum(2.75,"));
+        assertTrue("exact products fold:\n" + compiled, compiled.contains("isProduct(6.0,"));
+        for (String inexact : new String[] {"16777217", "0.30000000000000004", "0.3,"}) {
+            assertFalse(inexact + " is not folded:\n" + compiled, compiled.contains("isSum(" + inexact));
         }
-        assertFalse("the comparison is folded too:\n" + compiled, compiled.contains(" > 16777216."));
+        assertFalse("an exact comparison folds:\n" + compiled, compiled.contains("2.5 > 2.25"));
     }
 
     /**
