@@ -120,6 +120,13 @@ public class ExprTranslation {
                 LuaAst.LuaExprVarAccess(tr.luaLibrary(unaryIntrinsic.substring(0, dot))),
                 unaryIntrinsic.substring(dot + 1)), argument);
         }
+        if (e.getFunc() == tr.imTr.luaRawFloorToIntFunc && e.getArguments().size() == 1) {
+            // Floor division of a float gives an integral float; `| 0` turns it into an integer, which
+            // it can only do because the caller checked the value is in range.
+            LuaExpr floored = LuaAst.LuaExprBinary(e.getArguments().get(0).translateToLua(tr),
+                LuaAst.LuaOpFloorDiv(), LuaAst.LuaExprIntVal("1"));
+            return LuaAst.LuaExprBinary(floored, LuaAst.LuaOpBitOr(), LuaAst.LuaExprIntVal("0"));
+        }
         if (isBackendIntrinsic(e.getFunc(), tr)) {
             if (e.getArguments().size() != 2) {
                 throw new CompileError(e.attrTrace().attrSource(),
@@ -163,7 +170,8 @@ public class ExprTranslation {
             || function == tr.imTr.luaRawFmodIntFunc
             || function == tr.imTr.luaRawFmodRealFunc
             || function == tr.imTr.luaRawFloorModIntFunc
-            || function == tr.imTr.luaRawConcatFunc;
+            || function == tr.imTr.luaRawConcatFunc
+            || function == tr.imTr.luaRawFloorToIntFunc;
     }
 
     /**
