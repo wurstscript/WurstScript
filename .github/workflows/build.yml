@@ -114,6 +114,10 @@ jobs:
         shell: bash
         run: brew install lua
 
+      - name: Test game-data helpers
+        shell: bash
+        run: ./gradlew -p ../HelperScripts test --no-daemon --stacktrace --quiet
+
       - name: Run tests
         shell: bash
         run: |
