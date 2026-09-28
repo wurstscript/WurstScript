@@ -2442,6 +2442,59 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
     }
 
+    /** Jass == on reals allows 0.001 but != is exact, so for reals not (a == b) is not a != b, and a
+     *  while loop, which exits on not (condition), must keep the comparison it was written with. */
+    @Test
+    public void negatedRealEqualityIsNotUnequality() throws Exception {
+        test().executeProg(true).testLua(false).lines(
+            "package test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@noinline function r(real x) returns real",
+            "    return x",
+            "init",
+            "    let a = r(1.0)",
+            "    let b = r(1.0005)",
+            "    if not (a == b)",
+            "        testFail(\"not ==\")",
+            "    if not (a != b)",
+            "        testFail(\"not !=\")",
+            "    var n = 0",
+            "    while a == b and n < 3",
+            "        n++",
+            "    var m = 0",
+            "    while a != b and m < 3",
+            "        m++",
+            "    if n != 3 or m != 3",
+            "        testFail(\"loops\")",
+            "    testSuccess()"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_negatedRealEqualityIsNotUnequality_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("exitwhen ( not (a == b))") && out.contains("exitwhen ( not (a != b))"), out);
+    }
+
+    /** Real literals closer than 0.001 are equal in Jass but not in Lua, and where exactly the Jass
+     *  cutoff lies was not measured, so the Jass build leaves them for the game to compare. */
+    @Test
+    public void nearlyEqualRealLiteralsAreNotFoldedForJass() throws Exception {
+        test().executeProg(true).testLua(false).lines(
+            "package test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "init",
+            "    boolean near = 1.0 == 1.0005",
+            "    boolean far = 1.0 == 1.002",
+            "    boolean differ = 1.0 != 1.0005",
+            "    if near and not far and differ",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"folded\")"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_nearlyEqualRealLiteralsAreNotFoldedForJass_opt.j"), Charsets.UTF_8);
+        assertTrue(out.contains("1.0 == 1.0005"), out);
+        assertFalse(out.contains("1.002") || out.contains("!="), out);
+    }
+
     @Test
     public void effectfulBooleanOperandsMustNotBeDiscarded() throws Exception {
         test().lines(
