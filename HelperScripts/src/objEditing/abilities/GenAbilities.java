@@ -174,6 +174,10 @@ public class GenAbilities {
             if (displayName == null || displayName.startsWith("WESTRING_")) {
                 displayName = safeGet(metaObj, "field");
             }
+            // The generic metadata label for Tau2 is wrong; World Editor names this field "Prefer Friendlies".
+            if ("Tau2".equals(id)) {
+                displayName = "Prefer Friendlies";
+            }
             if (displayName == null || displayName.isEmpty()) {
                 displayName = id;
             }

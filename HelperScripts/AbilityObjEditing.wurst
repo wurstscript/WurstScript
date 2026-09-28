@@ -628,7 +628,7 @@ public class AbilityDefinitionChallengingCall extends AbilityDefinition
 	function setBonusesduration(int level, real value)
 		def.setLvlDataUnreal("TauA", level, 10, value)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
 
@@ -10219,7 +10219,7 @@ public class AbilityDefinitionTaunt extends AbilityDefinition
 	function setNumberofPulses(int level, int value)
 		def.setLvlDataInt("Tau4", level, 4, value)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
 
@@ -22402,7 +22402,7 @@ public class AbilityDefinitionTauntCreep extends AbilityDefinition
 	function setNumberofPulses(int level, int value)
 		def.setLvlDataInt("Tau4", level, 4, value)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
 

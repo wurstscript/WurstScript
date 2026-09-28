@@ -781,12 +781,12 @@ public class AbilityDefinitionChallengingCall extends AbilityDefinition
 		def.setLevelsDataUnreal("TauA", lvls, 10, lc)
 		addTooltipProperty("Bonuses duration", lc)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
-	function presetPreferHostiles1(IntLevelClosure lc)
+	function presetPreferFriendlies(IntLevelClosure lc)
 		def.setLevelsDataInt("Tau2", lvls, 2, lc)
-		addTooltipProperty("Prefer Hostiles", lc)
+		addTooltipProperty("Prefer Friendlies", lc)
 
 
 
@@ -18544,12 +18544,12 @@ public class AbilityDefinitionTaunt extends AbilityDefinition
 		def.setLevelsDataInt("Tau4", lvls, 4, lc)
 		addTooltipProperty("Number of Pulses", lc)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
-	function presetPreferHostiles1(IntLevelClosure lc)
+	function presetPreferFriendlies(IntLevelClosure lc)
 		def.setLevelsDataInt("Tau2", lvls, 2, lc)
-		addTooltipProperty("Prefer Hostiles", lc)
+		addTooltipProperty("Prefer Friendlies", lc)
 
 
 
@@ -41091,12 +41091,12 @@ public class AbilityDefinitionTauntCreep extends AbilityDefinition
 		def.setLevelsDataInt("Tau4", lvls, 4, lc)
 		addTooltipProperty("Number of Pulses", lc)
 
-	function setPreferHostiles1(int level, int value)
+	function setPreferFriendlies(int level, int value)
 		def.setLvlDataInt("Tau2", level, 2, value)
 
-	function presetPreferHostiles1(IntLevelClosure lc)
+	function presetPreferFriendlies(IntLevelClosure lc)
 		def.setLevelsDataInt("Tau2", lvls, 2, lc)
-		addTooltipProperty("Prefer Hostiles", lc)
+		addTooltipProperty("Prefer Friendlies", lc)
 
 
 
