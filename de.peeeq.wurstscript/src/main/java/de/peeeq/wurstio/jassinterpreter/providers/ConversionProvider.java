@@ -4,13 +4,16 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConversionProvider extends Provider {
     /**
      * Measured on the 3.0.0 client: ConvertX(n) gives the same handle for the same n, also for values
-     * without a common.j constant. So every conversion is one cached handle per type and value.
+     * without a common.j constant, and GetHandleId of it is n. So every conversion is one cached
+     * handle per type and value.
      */
     private static final Map<String, IlConstHandle> enumHandles = new ConcurrentHashMap<>();
 
@@ -22,6 +25,10 @@ public class ConversionProvider extends Provider {
         return enumHandles.computeIfAbsent(typeName + value, key -> new IlConstHandle(key, value));
     }
 
+    /** The value a conversion was made from, or null when the handle is not one of these. */
+    public static @Nullable Integer enumValue(IlConstHandle handle) {
+        return enumHandles.get(handle.print()) == handle ? (Integer) handle.getObj() : null;
+    }
 
     public IlConstHandle ConvertRace(ILconstInt i) {
         return enumHandle("race", i.getVal());

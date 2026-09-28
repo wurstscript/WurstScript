@@ -12,12 +12,24 @@ public class MathProvider extends Provider {
         super(interpreter);
     }
 
+    // Measured on the 3.0.0 client: outside their domain SquareRoot, Asin and Acos give 0, not NaN.
+
     public ILconstReal SquareRoot(ILconstReal r) {
-        return new ILconstReal(Math.sqrt(r.getVal()));
+        return new ILconstReal(r.getVal() < 0 ? 0 : Math.sqrt(r.getVal()));
     }
 
+    /** Measured on the 3.0.0 client: a negative base with a non-integer exponent takes the absolute value
+     *  (Pow(-8, 1/3) is 2), an integer exponent keeps the sign (Pow(-2, 3) is -8), and Pow(0, -1) is 0. */
     public ILconstReal Pow(ILconstReal x, ILconstReal power) {
-        return new ILconstReal(Math.pow(x.getVal(), power.getVal()));
+        double base = x.getVal();
+        double exponent = power.getVal();
+        if (base == 0 && exponent < 0) {
+            return new ILconstReal(0);
+        }
+        if (base < 0 && exponent != Math.rint(exponent)) {
+            base = -base;
+        }
+        return new ILconstReal(Math.pow(base, exponent));
     }
 
     public ILconstReal Sin(ILconstReal r) {
@@ -25,7 +37,7 @@ public class MathProvider extends Provider {
     }
 
     public ILconstReal Asin(ILconstReal r) {
-        return new ILconstReal(Math.asin(r.getVal()));
+        return new ILconstReal(Math.abs(r.getVal()) > 1 ? 0 : Math.asin(r.getVal()));
     }
 
     public ILconstReal Cos(ILconstReal r) {
@@ -33,7 +45,7 @@ public class MathProvider extends Provider {
     }
 
     public ILconstReal Acos(ILconstReal r) {
-        return new ILconstReal(Math.acos(r.getVal()));
+        return new ILconstReal(Math.abs(r.getVal()) > 1 ? 0 : Math.acos(r.getVal()));
     }
 
     public ILconstReal Tan(ILconstReal r) {

@@ -19,7 +19,8 @@ public class InterpreterTests extends WurstScriptTest {
             "init",
             "    if R2SW(1116.0, 2, 2) != \"1116.00\"",
             "        testFail(\"failed A \" + R2SW(1116.0, 2, 2))",
-            "    if R2SW(1116.123, 10, 1) != \"1116.1    \"",
+            // As in game (measured on the 3.0.0 client): the integer part is padded on the left to width - precision.
+            "    if R2SW(1116.123, 10, 1) != \"     1116.1\"",
             "        testFail(\"failed B \" + R2SW(1116.123, 10, 1))",
             "    testSuccess()"
         );
@@ -285,7 +286,8 @@ public class InterpreterTests extends WurstScriptTest {
     }
 
     /** Mirrors what the 3.0.0 client does: Locust keeps a unit unselectable after the ability is removed,
-     *  until the unit is hidden and shown again without it; hidden, dead and removed units are unselectable. */
+     *  until the unit is hidden and shown again, with or without it; hidden, dead and removed units are
+     *  unselectable. */
     @Test
     public void unitSelectableAndAliveNatives() {
         test().withStdLib().executeProg(true).testLua(false).lines(
@@ -313,8 +315,8 @@ public class InterpreterTests extends WurstScriptTest {
             "    UnitAddAbility(v, 'Aloc')",
             "    ShowUnit(v, false)",
             "    ShowUnit(v, true)",
-            "    if BlzIsUnitSelectable(v)",
-            "        testFail(\"shown while still locust\")",
+            "    if not BlzIsUnitSelectable(v)",
+            "        testFail(\"hidden and shown while still locust\")",
             "    SetWidgetLife(u, 0.41)",
             "    if not UnitAlive(u) or IsUnitType(u, UNIT_TYPE_DEAD)",
             "        testFail(\"life just above the death threshold\")",
@@ -356,6 +358,8 @@ public class InterpreterTests extends WurstScriptTest {
             "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
             "    if IsUnitType(u, UNIT_TYPE_DEAD)",
             "        testFail(\"new unit dead\")",
+            // Mana is clamped to the maximum, which a new unit in the mock does not have.
+            "    BlzSetUnitMaxMana(u, 50)",
             "    SetUnitState(u, UNIT_STATE_MANA, 42.0)",
             "    if GetUnitState(u, UNIT_STATE_MANA) != 42.0",
             "        testFail(\"mana\")",
@@ -385,6 +389,291 @@ public class InterpreterTests extends WurstScriptTest {
             "        testFail(\"bj_DEGTORAD\")",
             "    if ANIM_TYPE_BIRTH == null or FRAMEPOINT_CENTER == null or ABILITY_BF_HERO_ABILITY == null",
             "        testFail(\"constant null\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void stringNativesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "init",
+            "    measured(\"S2I whitespace\", I2S(S2I(\" \\t12\")), \"12\")",
+            "    measured(\"S2I sign after whitespace\", I2S(S2I(\"  -4x\")), \"-4\")",
+            "    measured(\"S2I above the limit\", I2S(S2I(\"2147483648\")), \"2147483647\")",
+            "    measured(\"S2I far above the limit\", I2S(S2I(\"99999999999\")), \"2147483647\")",
+            "    measured(\"S2I below the limit\", I2S(S2I(\"-2147483649\")), \"-2147483648\")",
+            "    measured(\"S2I no digits\", I2S(S2I(\"abc\")), \"0\")",
+            "    measured(\"S2I null\", I2S(S2I(null)), \"0\")",
+            "    measured(\"S2R leading point\", R2S(S2R(\".5\")), \"0.500\")",
+            "    measured(\"S2R signed leading point\", R2S(S2R(\"-.5\")), \"-0.500\")",
+            "    measured(\"S2R whitespace\", R2S(S2R(\" 2.5\")), \"0.000\")",
+            "    measured(\"S2R exponent\", R2S(S2R(\"1e3\")), \"1.000\")",
+            "    measured(\"S2R too large\", R2S(S2R(\"99999999999999999999999999999999999999999\")), \"0.000\")",
+            "    measured(\"R2S one\", R2S(1.), \"1.000\")",
+            "    measured(\"R2S third\", R2S(1. / 3.), \"0.333\")",
+            "    measured(\"R2S two thirds\", R2S(2. / 3.), \"0.667\")",
+            "    measured(\"R2S carry\", R2S(0.9996), \"1.000\")",
+            "    measured(\"R2S negative\", R2S(-1.5), \"-1.500\")",
+            "    measured(\"R2S negative to zero\", R2S(-0.0004), \"-0.000\")",
+            "    measured(\"R2S wraps\", R2S(3000000000.), \"-1294967296.000\")",
+            "    measured(\"R2S negative wraps\", R2S(-3000000000.), \"1294967296.000\")",
+            "    measured(\"R2S 1e10\", R2S(10000000000.), \"1410065408.000\")",
+            "    measured(\"R2SW padded\", R2SW(1.5, 8, 2), \"     1.50\")",
+            "    measured(\"R2SW negative padded\", R2SW(-1.5, 8, 3), \"-    1.500\")",
+            "    measured(\"R2SW precision 0\", R2SW(1.5, 2, 0), \" 2.0\")",
+            "    measured(\"R2SW half up\", R2SW(2.5, 1, 0), \"3.0\")",
+            "    measured(\"R2SW half up fraction\", R2SW(0.125, 5, 2), \"  0.13\")",
+            "    measured(\"R2SW negative to zero\", R2SW(-0.4, 1, 0), \"-0.0\")",
+            "    measured(\"R2SW integer\", R2SW(7., 4, 0), \"   7.0\")",
+            "    measured(\"R2SW carry\", R2SW(0.9996, 1, 3), \"1.000\")",
+            "    measured(\"R2I truncates\", I2S(R2I(1.9)) + \",\" + I2S(R2I(-1.9)), \"1,-1\")",
+            "    measured(\"R2I wraps\", I2S(R2I(10000000000.)) + \",\" + I2S(R2I(-10000000000.)), \"1410065408,-1410065408\")",
+            "    measured(\"SubString end before start\", SubString(\"abcdef\", 3, 1), \"def\")",
+            "    measured(\"SubString empty range\", SubString(\"abcdef\", 3, 3), \"\")",
+            "    measured(\"SubString at the end\", SubString(\"abcdef\", 6, 8), \"\")",
+            "    measured(\"SubString of empty\", SubString(\"\", 0, 0), null)",
+            "    measured(\"SubString empty of one\", SubString(\"a\", 0, 0), \"\")",
+            "    measured(\"SubString of null\", SubString(null, 0, 1), null)",
+            "    measured(\"StringLength null\", I2S(StringLength(null)), \"0\")",
+            "    measured(\"StringCase null\", StringCase(null, true), null)",
+            "    let hashes = I2S(StringHash(\"hello\")) + \",\" + I2S(StringHash(\"HELLO\")) + \",\" + I2S(StringHash(\"a/b\")) + \",\" + I2S(StringHash(\"a\\\\b\")) + \",\" + I2S(StringHash(\"Wurst\"))",
+            "    measured(\"StringHash\", hashes, \"-1801350911,-1801350911,-2092314359,-2092314359,-1436777953\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void mathNativesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "init",
+            "    measured(\"SquareRoot negative\", R2S(SquareRoot(-1.)), \"0.000\")",
+            "    measured(\"Asin outside\", R2S(Asin(2.)), \"0.000\")",
+            "    measured(\"Acos outside\", R2S(Acos(-2.)), \"0.000\")",
+            "    measured(\"Pow negative base, fractional exponent\", R2S(Pow(-8., 1. / 3.)) + \",\" + R2S(Pow(-2., 0.5)), \"2.000,1.414\")",
+            "    measured(\"Pow negative base, integer exponent\", R2S(Pow(-2., 3.)) + \",\" + R2S(Pow(-2., 2.)), \"-8.000,4.000\")",
+            "    measured(\"Pow zero base\", R2S(Pow(0., -1.)) + \",\" + R2S(Pow(0., 0.)), \"0.000,1.000\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void hashtableNativesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function bs(boolean b) returns string",
+            "    return b ? \"true\" : \"false\"",
+            "init",
+            "    let ht = InitHashtable()",
+            "    measured(\"LoadStr missing\", LoadStr(ht, 1, 1), null)",
+            "    SaveStr(ht, 1, 1, \"x\")",
+            "    SaveStr(ht, 1, 1, null)",
+            "    measured(\"null string saved over x\", bs(HaveSavedString(ht, 1, 1)), \"true\")",
+            "    measured(\"null string loads\", LoadStr(ht, 1, 1), null)",
+            "    RemoveSavedString(ht, 1, 1)",
+            "    measured(\"null string removed\", bs(HaveSavedString(ht, 1, 1)), \"false\")",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let itm = CreateItem('ratf', 0.0, 0.0)",
+            "    SaveUnitHandle(ht, 1, 2, u)",
+            "    measured(\"unit through unit, item, widget\", bs(LoadUnitHandle(ht, 1, 2) == u) + \",\" + bs(LoadItemHandle(ht, 1, 2) == null) + \",\" + bs(LoadWidgetHandle(ht, 1, 2) == u), \"true,true,true\")",
+            "    SaveItemHandle(ht, 1, 2, itm)",
+            "    measured(\"item over unit\", bs(LoadUnitHandle(ht, 1, 2) == null) + \",\" + bs(LoadItemHandle(ht, 1, 2) == itm), \"true,true\")",
+            "    SaveUnitHandle(ht, 1, 3, null)",
+            "    measured(\"null handle on an empty key\", bs(HaveSavedHandle(ht, 1, 3)), \"false\")",
+            "    SaveUnitHandle(ht, 1, 2, null)",
+            "    measured(\"null handle over an item\", bs(HaveSavedHandle(ht, 1, 2)) + \",\" + bs(LoadItemHandle(ht, 1, 2) == itm), \"true,true\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void conversionNativesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function bs(boolean b) returns string",
+            "    return b ? \"true\" : \"false\"",
+            "init",
+            "    measured(\"same value, same handle\", bs(ConvertUnitType(1) == UNIT_TYPE_DEAD) + \",\" + bs(ConvertUnitEvent(5) == ConvertUnitEvent(5)) + \",\" + bs(ConvertUnitType(999) != null), \"true,true,true\")",
+            "    let ids = I2S(GetHandleId(UNIT_TYPE_DEAD)) + \",\" + I2S(GetHandleId(UNIT_STATE_MANA)) + \",\" + I2S(GetHandleId(FRAMEPOINT_CENTER)) + \",\" + I2S(GetHandleId(PLAYER_STATE_RESOURCE_GOLD)) + \",\" + I2S(GetHandleId(UNIT_RF_HP)) + \",\" + I2S(GetHandleId(ConvertUnitType(999)))",
+            "    measured(\"GetHandleId of conversions\", ids, \"1,2,4,1,1969778787,999\")",
+            "    measured(\"GetHandleId of a unit\", bs(GetHandleId(CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)) >= 0x100000), \"true\")",
+            "    measured(\"GetHandleId null\", I2S(GetHandleId(null)), \"0\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void playerResourcesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    let p = Player(1)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD, -5)",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER, -3)",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD) != 0 or GetPlayerState(p, PLAYER_STATE_RESOURCE_LUMBER) != 0",
+            "        testFail(\"negative resources\")",
+            "    SetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD, 5000000)",
+            "    if GetPlayerState(p, PLAYER_STATE_RESOURCE_GOLD) != 5000000",
+            "        testFail(\"five million gold\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client, except where the mock has no object
+     *  data: a new unit has 100 life and no mana. */
+    @Test
+    public void unitLifeAndManaAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function bs(boolean b) returns string",
+            "    return b ? \"true\" : \"false\"",
+            "function states(unit u) returns string",
+            "    return R2S(GetUnitState(u, UNIT_STATE_LIFE)) + \"/\" + R2S(GetUnitState(u, UNIT_STATE_MAX_LIFE)) + \" \" + R2S(GetUnitState(u, UNIT_STATE_MANA)) + \"/\" + R2S(GetUnitState(u, UNIT_STATE_MAX_MANA))",
+            "function death(unit u) returns string",
+            "    return bs(UnitAlive(u)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_DEAD)) + \",\" + R2S(GetWidgetLife(u))",
+            "init",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    measured(\"new\", states(u), \"100.000/100.000 0.000/0.000\")",
+            "    SetUnitState(u, UNIT_STATE_LIFE, 1000.0)",
+            "    SetWidgetLife(u, 5000.0)",
+            "    SetUnitState(u, UNIT_STATE_MANA, 42.0)",
+            "    SetUnitState(u, UNIT_STATE_MAX_LIFE, 500.0)",
+            "    SetUnitState(u, UNIT_STATE_MAX_MANA, 50.0)",
+            "    measured(\"clamped, maximum states not settable\", states(u), \"100.000/100.000 0.000/0.000\")",
+            "    SetUnitState(u, UNIT_STATE_LIFE, 90.0)",
+            "    BlzSetUnitMaxHP(u, 80)",
+            "    measured(\"lower max hp\", states(u), \"80.000/80.000 0.000/0.000\")",
+            "    BlzSetUnitMaxHP(u, 200)",
+            "    measured(\"higher max hp\", states(u), \"80.000/200.000 0.000/0.000\")",
+            "    BlzSetUnitMaxMana(u, 50)",
+            "    SetUnitState(u, UNIT_STATE_MANA, 42.0)",
+            "    measured(\"mana\", states(u), \"80.000/200.000 42.000/50.000\")",
+            "    SetUnitState(u, UNIT_STATE_MANA, 100.0)",
+            "    measured(\"mana above max\", states(u), \"80.000/200.000 50.000/50.000\")",
+            "    SetUnitState(u, UNIT_STATE_MANA, -5.0)",
+            "    measured(\"negative mana\", states(u), \"80.000/200.000 0.000/50.000\")",
+            "    SetUnitState(u, UNIT_STATE_MANA, 20.0)",
+            "    BlzSetUnitMaxMana(u, 10)",
+            "    measured(\"lower max mana\", states(u), \"80.000/200.000 10.000/10.000\")",
+            "    measured(\"max getters\", I2S(BlzGetUnitMaxHP(u)) + \",\" + I2S(BlzGetUnitMaxMana(u)), \"200,10\")",
+            "    let d = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    SetWidgetLife(d, 0.41)",
+            "    measured(\"just above the threshold\", death(d), \"true,false,0.410\")",
+            "    SetWidgetLife(d, 0.3)",
+            "    measured(\"below the threshold\", death(d), \"false,true,0.000\")",
+            "    SetWidgetLife(d, 50.0)",
+            "    measured(\"life set after death\", death(d), \"false,true,50.000\")",
+            "    let z = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    SetUnitState(z, UNIT_STATE_LIFE, -5.0)",
+            "    measured(\"negative life\", death(z), \"false,true,0.000\")",
+            "    let k = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    KillUnit(k)",
+            "    SetWidgetLife(k, 100.0)",
+            "    measured(\"killed, then life set\", death(k), \"false,true,100.000\")",
+            "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
+            "    measured(\"hero type and null type\", bs(IsUnitType(h, UNIT_TYPE_HERO)) + \",\" + bs(IsUnitType(h, null)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_HERO)), \"true,true,false\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void abilityNativesAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function bs(boolean b) returns string",
+            "    return b ? \"true\" : \"false\"",
+            "init",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    measured(\"add twice\", bs(UnitAddAbility(u, 'AHhb')) + \",\" + bs(UnitAddAbility(u, 'AHhb')), \"true,false\")",
+            "    measured(\"set level\", I2S(SetUnitAbilityLevel(u, 'AHhb', 2)) + \",\" + I2S(GetUnitAbilityLevel(u, 'AHhb')), \"2,2\")",
+            "    measured(\"set level 0\", I2S(SetUnitAbilityLevel(u, 'AHhb', 0)) + \",\" + I2S(GetUnitAbilityLevel(u, 'AHhb')), \"1,1\")",
+            "    measured(\"dec at 1\", I2S(DecUnitAbilityLevel(u, 'AHhb')) + \",\" + I2S(GetUnitAbilityLevel(u, 'AHhb')), \"1,1\")",
+            "    measured(\"inc\", I2S(IncUnitAbilityLevel(u, 'AHhb')), \"2\")",
+            "    let missing = I2S(SetUnitAbilityLevel(u, 'AHtb', 2)) + \",\" + I2S(IncUnitAbilityLevel(u, 'AHtc')) + \",\" + I2S(DecUnitAbilityLevel(u, 'AHtc'))",
+            "    measured(\"missing ability\", missing + \",\" + I2S(GetUnitAbilityLevel(u, 'AHtb')) + \",\" + I2S(GetUnitAbilityLevel(u, 'AHtc')), \"0,0,0,0,0\")",
+            "    measured(\"remove twice\", bs(UnitRemoveAbility(u, 'AHhb')) + \",\" + bs(UnitRemoveAbility(u, 'AHhb')), \"true,false\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client, with the default experience table. */
+    @Test
+    public void heroLevelsAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function hero(unit h) returns string",
+            "    return I2S(GetHeroLevel(h)) + \",\" + I2S(GetHeroXP(h)) + \",\" + I2S(GetHeroSkillPoints(h))",
+            "init",
+            "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
+            "    measured(\"new\", hero(h), \"1,0,1\")",
+            "    SetHeroXP(h, 150, false)",
+            "    measured(\"150 XP\", hero(h), \"1,150,1\")",
+            "    SetHeroXP(h, 1000, false)",
+            "    measured(\"1000 XP\", hero(h), \"4,1000,4\")",
+            "    SetHeroXP(h, 300, false)",
+            "    measured(\"lower XP\", hero(h), \"4,1000,4\")",
+            "    SetHeroLevel(h, 6, false)",
+            "    measured(\"level 6\", hero(h), \"6,2000,6\")",
+            "    SetHeroLevel(h, 2, false)",
+            "    measured(\"lower level\", hero(h), \"6,2000,6\")",
+            "    measured(\"not a hero\", I2S(GetHeroLevel(CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0))), \"0\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Every expected value here was measured on the 3.0.0 client. */
+    @Test
+    public void groupOrderAsMeasured() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "function measured(string name, string actual, string expected)",
+            "    if actual != expected",
+            "        testFail(name + \" gave \" + actual)",
+            "function bs(boolean b) returns string",
+            "    return b ? \"true\" : \"false\"",
+            "init",
+            "    let a = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let b = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let c = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    let g = CreateGroup()",
+            "    GroupAddUnit(g, c)",
+            "    GroupAddUnit(g, a)",
+            "    GroupAddUnit(g, b)",
+            "    measured(\"creation order\", bs(BlzGroupUnitAt(g, 0) == a) + \",\" + bs(BlzGroupUnitAt(g, 1) == b) + \",\" + bs(BlzGroupUnitAt(g, 2) == c) + \",\" + bs(FirstOfGroup(g) == a), \"true,true,true,true\")",
+            "    GroupRemoveUnit(g, a)",
+            "    GroupAddUnit(g, a)",
+            "    measured(\"removed and added again\", bs(BlzGroupUnitAt(g, 0) == a), \"true\")",
+            "    measured(\"add twice, add null\", bs(GroupAddUnit(g, a)) + \",\" + bs(GroupAddUnit(g, null)) + \",\" + I2S(BlzGroupGetSize(g)), \"false,false,3\")",
+            "    KillUnit(b)",
+            "    measured(\"killed unit stays\", bs(IsUnitInGroup(b, g)), \"true\")",
             "    testSuccess()"
         );
     }

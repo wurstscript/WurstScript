@@ -28,9 +28,9 @@ public class UnitProvider extends Provider {
     private static final Map<String, Integer> ORDER_IDS = new LinkedHashMap<>();
     private static final int LOCUST_ABILITY_ID = 0x416c6f63; // 'Aloc'
     /**
-     * Warcraft counts a unit as dead once its life is 0.405 or less, not at zero: a unit left with 0.3
-     * life is dead. The stdlib's {@code widget.isAlive()} uses the same cutoff. Every life test in the
-     * interpreter goes through {@link #isAlive(UnitMock)}; never compare life against zero.
+     * Warcraft kills a unit once its life is set to 0.405 or less, not at zero: a unit left with 0.3
+     * life dies. The stdlib's {@code widget.isAlive()} uses the same cutoff. Every life change goes
+     * through {@link #setLife}, which applies it; never compare life against zero.
      */
     public static final float DEATH_LIFE_THRESHOLD = 0.405f;
     private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
@@ -117,6 +117,10 @@ public class UnitProvider extends Provider {
     public IlConstHandle CreateUnit(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
         UnitMock unitMock = new UnitMock(owner, unitid, x, y, face);
         unitMock.race = ConversionProvider.enumHandle("race", unitRace(unitid));
+        if (isHero(unitMock)) {
+            // Measured on the 3.0.0 client: a new hero is level 1 with no XP and one skill point.
+            unitMock.skillPoints = ILconstInt.create(1);
+        }
         units.add(unitMock);
         return new IlConstHandle(NameProvider.getRandomName("unit"), unitMock);
     }
@@ -139,7 +143,9 @@ public class UnitProvider extends Provider {
 
     public IlConstHandle CreateCorpse(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
         IlConstHandle unit = CreateUnit(owner, unitid, x, y, face);
-        unitOrNull(unit).states.put("unitstate0", ILconstReal.create(0));
+        UnitMock corpse = unitOrNull(unit);
+        corpse.dead = true;
+        corpse.states.put("unitstate0", ILconstReal.create(0));
         return unit;
     }
 
@@ -210,8 +216,9 @@ public class UnitProvider extends Provider {
     public void ShowUnit(IlConstHandle unit, ILconstBool show) {
         UnitMock unitMock = unitOrNull(unit);
         if (unitMock == null) return;
-        // Showing a hidden unit that no longer has Locust is what clears the Locust state in game.
-        if (show.getVal() && unitMock.hidden && !unitMock.abilityLevels.containsKey(LOCUST_ABILITY_ID)) {
+        // Showing a hidden unit clears the Locust state, also while it still has Locust (measured on the
+        // 3.0.0 client).
+        if (show.getVal() && unitMock.hidden) {
             unitMock.locust = false;
         }
         unitMock.hidden = !show.getVal();
@@ -342,11 +349,16 @@ public class UnitProvider extends Provider {
 
     public ILconstBool IsUnitType(IlConstHandle whichUnit, IlConstHandle whichUnitType) {
         UnitMock unitMock = unitOrNull(whichUnit);
-        if (unitMock == null || whichUnitType == null) return ILconstBool.FALSE;
-        if ("unittype1".equals(whichUnitType.print())) {
+        if (unitMock == null) return ILconstBool.FALSE;
+        // Measured on the 3.0.0 client: a null unit type is id 0, UNIT_TYPE_HERO.
+        String type = whichUnitType == null ? "unittype0" : whichUnitType.print();
+        if ("unittype0".equals(type) && isHero(unitMock)) {
+            return ILconstBool.TRUE;
+        }
+        if ("unittype1".equals(type)) {
             return ILconstBool.instance(!isAlive(unitMock));
         }
-        return ILconstBool.instance(unitMock.unitTypes.contains(whichUnitType.print()));
+        return ILconstBool.instance(unitMock.unitTypes.contains(type));
     }
 
     public ILconstBool IsUnit(IlConstHandle unit, IlConstHandle specifiedUnit) {
@@ -406,6 +418,10 @@ public class UnitProvider extends Provider {
         String rawcode = ObjectHelper.objectIdIntToString(unitId.getVal());
         return ILconstBool.instance(!rawcode.isEmpty() && Character.isUpperCase(rawcode.charAt(0)));
     }
+
+    private boolean isHero(UnitMock unitMock) {
+        return IsHeroUnitId(unitMock.unitid).getVal();
+    }
     public ILconstBool IsUnitIdType(ILconstInt unitId, IlConstHandle unitType) {
         return ILconstBool.TRUE;
     }
@@ -451,9 +467,22 @@ public class UnitProvider extends Provider {
         return ILconstBool.instance(unitMock != null && isAlive(unitMock));
     }
 
-    /** Alive means life above {@link #DEATH_LIFE_THRESHOLD}, the engine's death cutoff. */
     private static boolean isAlive(UnitMock unitMock) {
-        return unitMock.states.get("unitstate0").getVal() > DEATH_LIFE_THRESHOLD;
+        return !unitMock.dead;
+    }
+
+    /**
+     * Measured on the 3.0.0 client: life is clamped to 0 and the unit's maximum, and a living unit set
+     * at or below {@link #DEATH_LIFE_THRESHOLD} dies, after which its life reads 0. A dead unit's life
+     * changes the number only; it stays dead.
+     */
+    private static void setLife(UnitMock unitMock, float life) {
+        float value = Math.max(0, Math.min(life, unitMock.states.get("unitstate1").getVal()));
+        if (!unitMock.dead && value <= DEATH_LIFE_THRESHOLD) {
+            unitMock.dead = true;
+            value = 0;
+        }
+        unitMock.states.put("unitstate0", ILconstReal.create(value));
     }
 
     public ILconstBool BlzIsUnitInvulnerable(IlConstHandle unit) {
@@ -482,6 +511,7 @@ public class UnitProvider extends Provider {
     public void KillUnit(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
         if (unitMock != null) {
+            unitMock.dead = true;
             unitMock.states.put("unitstate0", ILconstReal.create(0));
         }
     }
@@ -494,11 +524,50 @@ public class UnitProvider extends Provider {
         return unitMock.states.getOrDefault(unitStateKey(unitstate), ILconstReal.create(0));
     }
 
+    /** Measured on the 3.0.0 client: life and mana are clamped to 0 and their maximum, and the maximum
+     *  states cannot be set this way (BlzSetUnitMaxHP and BlzSetUnitMaxMana do that). */
     public void SetUnitState(IlConstHandle unit, IlConstHandle unitstate, ILconstReal value) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) {
-            unitMock.states.put(unitStateKey(unitstate), value);
+        if (unitMock == null) {
+            return;
         }
+        String key = unitStateKey(unitstate);
+        switch (key) {
+            case "unitstate0" -> setLife(unitMock, value.getVal());
+            case "unitstate1", "unitstate3" -> { }
+            case "unitstate2" -> unitMock.states.put(key,
+                    ILconstReal.create(Math.max(0, Math.min(value.getVal(), unitMock.states.get("unitstate3").getVal()))));
+            default -> unitMock.states.put(key, value);
+        }
+    }
+
+    /** Measured on the 3.0.0 client: current life is clamped down to a lower maximum, and not raised
+     *  with a higher one. */
+    public void BlzSetUnitMaxHP(IlConstHandle unit, ILconstInt hp) {
+        UnitMock unitMock = unitOrNull(unit);
+        if (unitMock != null) {
+            unitMock.states.put("unitstate1", ILconstReal.create(hp.getVal()));
+            unitMock.states.put("unitstate0", ILconstReal.create(Math.min(unitMock.states.get("unitstate0").getVal(), hp.getVal())));
+        }
+    }
+
+    public ILconstInt BlzGetUnitMaxHP(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstInt.create(unitMock == null ? 0 : (int) unitMock.states.get("unitstate1").getVal());
+    }
+
+    /** Measured on the 3.0.0 client, like BlzSetUnitMaxHP: current mana is clamped down, never raised. */
+    public void BlzSetUnitMaxMana(IlConstHandle unit, ILconstInt mana) {
+        UnitMock unitMock = unitOrNull(unit);
+        if (unitMock != null) {
+            unitMock.states.put("unitstate3", ILconstReal.create(mana.getVal()));
+            unitMock.states.put("unitstate2", ILconstReal.create(Math.min(unitMock.states.get("unitstate2").getVal(), mana.getVal())));
+        }
+    }
+
+    public ILconstInt BlzGetUnitMaxMana(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstInt.create(unitMock == null ? 0 : (int) unitMock.states.get("unitstate3").getVal());
     }
 
     /** Measured on the 3.0.0 client: a null unit state reads and writes life. The engine takes a null
@@ -521,7 +590,7 @@ public class UnitProvider extends Provider {
     public void SetWidgetLife(IlConstHandle widget, ILconstReal newLife) {
         UnitMock unitMock = unitOrNull(widget);
         if (unitMock != null) {
-            unitMock.states.put("unitstate0", newLife);
+            setLife(unitMock, newLife.getVal());
             return;
         }
         DestructableMock destructableMock = destructableOrNull(widget);
@@ -538,7 +607,11 @@ public class UnitProvider extends Provider {
         if (unitMock == null) {
             return ILconstBool.FALSE;
         }
-        unitMock.abilityLevels.putIfAbsent(abilityId.getVal(), ILconstInt.create(1));
+        // Measured on the 3.0.0 client: adding an ability the unit has returns false. The mock has no
+        // object data, so unlike the game it accepts any rawcode.
+        if (unitMock.abilityLevels.putIfAbsent(abilityId.getVal(), ILconstInt.create(1)) != null) {
+            return ILconstBool.FALSE;
+        }
         if (abilityId.getVal() == LOCUST_ABILITY_ID) {
             unitMock.locust = true;
         }
@@ -561,13 +634,17 @@ public class UnitProvider extends Provider {
         return unitMock.abilityLevels.getOrDefault(abilityId.getVal(), ILconstInt.create(0));
     }
 
+    /** Measured on the 3.0.0 client: returns the new level, adds nothing to a unit without the ability
+     *  (returning 0), and never goes below 1. The game also clamps to the ability's level count, which the
+     *  mock, without object data, does not know. */
     public ILconstInt SetUnitAbilityLevel(IlConstHandle unit, ILconstInt abilityId, ILconstInt level) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock == null) {
+        if (unitMock == null || !unitMock.abilityLevels.containsKey(abilityId.getVal())) {
             return ILconstInt.create(0);
         }
-        unitMock.abilityLevels.put(abilityId.getVal(), level);
-        return level;
+        ILconstInt newLevel = ILconstInt.create(Math.max(1, level.getVal()));
+        unitMock.abilityLevels.put(abilityId.getVal(), newLevel);
+        return newLevel;
     }
 
     public ILconstBool UnitMakeAbilityPermanent(IlConstHandle unit, ILconstBool permanent, ILconstInt abilityId) {
@@ -584,8 +661,9 @@ public class UnitProvider extends Provider {
         return SetUnitAbilityLevel(unit, abilityId, ILconstInt.create(GetUnitAbilityLevel(unit, abilityId).getVal() + 1));
     }
 
+    /** Measured on the 3.0.0 client: stops at level 1, and returns 0 for a unit without the ability. */
     public ILconstInt DecUnitAbilityLevel(IlConstHandle unit, ILconstInt abilityId) {
-        return SetUnitAbilityLevel(unit, abilityId, ILconstInt.create(Math.max(0, GetUnitAbilityLevel(unit, abilityId).getVal() - 1)));
+        return SetUnitAbilityLevel(unit, abilityId, ILconstInt.create(GetUnitAbilityLevel(unit, abilityId).getVal() - 1));
     }
 
     public ILconstInt GetUnitLevel(IlConstHandle unit) {
@@ -593,11 +671,20 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstInt.create(0) : unitMock.level;
     }
 
-    public ILconstInt GetHeroLevel(IlConstHandle unit) { return GetUnitLevel(unit); }
+    /** Measured on the 3.0.0 client: 0 for a unit which is not a hero. */
+    public ILconstInt GetHeroLevel(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return unitMock == null || !isHero(unitMock) ? ILconstInt.create(0) : unitMock.level;
+    }
 
+    /** Measured on the 3.0.0 client: never lowers a hero, gives a skill point per level gained, and sets
+     *  the XP to what the new level needs. */
     public void SetHeroLevel(IlConstHandle unit, ILconstInt level, ILconstBool showEyeCandy) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) unitMock.level = level;
+        if (unitMock != null && isHero(unitMock) && level.getVal() > unitMock.level.getVal()) {
+            raiseHeroLevel(unitMock, level.getVal());
+            unitMock.heroXp = ILconstInt.create(Math.max(unitMock.heroXp.getVal(), heroXpForLevel(level.getVal())));
+        }
     }
 
     public ILconstInt GetHeroXP(IlConstHandle unit) {
@@ -605,14 +692,31 @@ public class UnitProvider extends Provider {
         return unitMock == null ? ILconstInt.create(0) : unitMock.heroXp;
     }
 
+    /** Measured on the 3.0.0 client: never lowers the XP, and levels by the default experience table
+     *  (150 XP is level 1, 1000 XP is level 4). */
     public void SetHeroXP(IlConstHandle unit, ILconstInt xp, ILconstBool showEyeCandy) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) {
-            int oldLevel = unitMock.level.getVal();
-            unitMock.heroXp = xp;
-            unitMock.level = ILconstInt.create(Math.max(1, xp.getVal() / 1000 + 1));
-            unitMock.skillPoints = ILconstInt.create(unitMock.skillPoints.getVal() + Math.max(0, unitMock.level.getVal() - oldLevel));
+        if (unitMock == null || !isHero(unitMock) || xp.getVal() <= unitMock.heroXp.getVal()) {
+            return;
         }
+        unitMock.heroXp = xp;
+        int level = unitMock.level.getVal();
+        while (heroXpForLevel(level + 1) <= xp.getVal()) {
+            level++;
+        }
+        if (level > unitMock.level.getVal()) {
+            raiseHeroLevel(unitMock, level);
+        }
+    }
+
+    /** The XP a hero needs for a level with the default gameplay constants: 200, 500, 900, 1400, 2000, ... */
+    private static int heroXpForLevel(int level) {
+        return level <= 1 ? 0 : 50 * level * (level + 1) - 100;
+    }
+
+    private static void raiseHeroLevel(UnitMock unitMock, int level) {
+        unitMock.skillPoints = ILconstInt.create(unitMock.skillPoints.getVal() + level - unitMock.level.getVal());
+        unitMock.level = ILconstInt.create(level);
     }
 
     public void AddHeroXP(IlConstHandle unit, ILconstInt xp, ILconstBool showEyeCandy) {
@@ -656,7 +760,9 @@ public class UnitProvider extends Provider {
     public ILconstBool ReviveHero(IlConstHandle unit, ILconstReal x, ILconstReal y, ILconstBool doEyeCandy) {
         UnitMock m = unitOrNull(unit);
         if (m == null) return ILconstBool.FALSE;
-        m.x = x; m.y = y; m.states.put("unitstate0", ILconstReal.create(100));
+        m.x = x; m.y = y;
+        m.dead = false;
+        m.states.put("unitstate0", m.states.get("unitstate1"));
         return ILconstBool.TRUE;
     }
 
@@ -960,8 +1066,8 @@ public class UnitProvider extends Provider {
         return ILconstBool.instance(m != null && m.inventory.contains(item));
     }
     private void applyDamage(UnitMock target, double amount) {
-        if (!target.invulnerable) {
-            target.states.put("unitstate0", ILconstReal.create((float) Math.max(0, target.states.get("unitstate0").getVal() - amount)));
+        if (!target.invulnerable && !target.dead) {
+            setLife(target, (float) (target.states.get("unitstate0").getVal() - amount));
         }
     }
     private ILconstBool dropItem(IlConstHandle unit, IlConstHandle item) {
