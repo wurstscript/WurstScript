@@ -8,6 +8,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -1611,6 +1612,88 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "    function usee()",
             "        B<T> x = null"
         );
+    }
+
+    private static final String[] LEGACY_BOX = {
+        "package test",
+        "native testSuccess()",
+        "class Box<T>",
+        "    T val",
+        "    construct(T v)",
+        "        val = v",
+        "    function id() returns int",
+        "        return val castTo int",
+        "function toInt<T>(T x) returns int",
+        "    return x castTo int",
+    };
+
+    private static String[] withLegacyBox(String... lines) {
+        String[] result = Arrays.copyOf(LEGACY_BOX, LEGACY_BOX.length + lines.length);
+        System.arraycopy(lines, 0, result, LEGACY_BOX.length, lines.length);
+        return result;
+    }
+
+    @Test
+    public void legacyClassRejectsHandleBoundTypeParam() {
+        testAssertErrorsLines(false,
+            "Old-style generic Box cannot be instantiated with the new-style type parameter S",
+            withLegacyBox(
+                "function wrap<S: handle>(S x) returns int",
+                "    return new Box<S>(x).id()"));
+    }
+
+    @Test
+    public void legacyFunctionRejectsInferredHandleBoundTypeParam() {
+        testAssertErrorsLines(false,
+            "Old-style generic toInt cannot be instantiated with the new-style type parameter S",
+            withLegacyBox(
+                "function wrap<S: handle>(S x) returns int",
+                "    return toInt(x)"));
+    }
+
+    @Test
+    public void legacyClassRejectsUnboundedTypeParam() {
+        testAssertErrorsLines(false, "S may be a handle, real or string",
+            withLegacyBox(
+                "function wrap<S:>(S x) returns int",
+                "    return new Box<S>(x).id()"));
+    }
+
+    @Test
+    public void legacyFunctionRejectsTypeClassBoundTypeParam() {
+        testAssertErrorsLines(false, "Make toInt new-style by declaring its type parameter as <T:>",
+            withLegacyBox(
+                "interface Show<X:>",
+                "    function show(X x) returns int",
+                "function wrap<S: Show>(S x) returns int",
+                "    return toInt<S>(x)"));
+    }
+
+    @Test
+    public void legacyOperatorRejectsHandleBoundTypeParam() {
+        testAssertErrorsLines(false,
+            "Old-style generic op_plus cannot be instantiated with the new-style type parameter S",
+            withLegacyBox(
+                "function T.op_plus<T>(int y) returns int",
+                "    return (this castTo int) + y",
+                "function wrap<S: handle>(S x) returns int",
+                "    return x + 1"));
+    }
+
+    @Test
+    public void legacyGenericsAcceptLegacyTypeParamsAndConcreteTypes() {
+        testAssertOkLines(true,
+            withLegacyBox(
+                "class A",
+                "function T.op_plus<T>(int y) returns int",
+                "    return (this castTo int) + y",
+                "function wrapLegacy<S>(S x) returns int",
+                "    return new Box<S>(x).id() + toInt(x) + (x + 1)",
+                "function wrapNew<S:>(S x) returns int",
+                "    return new Box<int>(7).id() + toInt(3) + (new A + 1)",
+                "init",
+                "    if wrapLegacy(5) == 16 and wrapNew(new A) > 10",
+                "        testSuccess()"));
     }
 
     @Test
