@@ -15,4 +15,17 @@ public class GenAbilitiesTest {
                         + "\t\tdef.setLevelsDataUnreal(\"Hea1\", lvls, 1, lc)\n"
                         + "\t\taddTooltipProperty(\"Hit Points Gained\", lc)\n");
     }
+
+    @Test
+    public void usesWorldEditorLabelForTau2() {
+        String displayName = GenAbilities.resolveDisplayName(
+                "Tau2", "WESTRING_ABILITYILF_PREFERHOSTILES", "Prefer Hostiles");
+        GenAbilities.FieldData field = new GenAbilities.FieldData("Tau2", displayName, "int", 2, true);
+
+        assertEquals(displayName, "Prefer Friendlies");
+        assertEquals(field.presetFunction("PreferFriendlies", false),
+                "\n\tfunction presetPreferFriendlies(IntLevelClosure lc)\n"
+                        + "\t\tdef.setLevelsDataInt(\"Tau2\", lvls, 2, lc)\n"
+                        + "\t\taddTooltipProperty(\"Prefer Friendlies\", lc)\n");
+    }
 }
