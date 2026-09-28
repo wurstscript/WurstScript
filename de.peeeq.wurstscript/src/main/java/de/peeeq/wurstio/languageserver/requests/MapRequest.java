@@ -197,10 +197,14 @@ public abstract class MapRequest extends UserRequest<Object> {
                     throw new RuntimeException("Could not compile project (error in LUA translation)");
                 }
 
-                StringBuilder sb = new StringBuilder();
-                luaCode.get().print(sb, 0);
-
-                String compiledMapScript = sb.toString();
+                String compiledMapScript;
+                if (compiler.getCompiledLuaScript() != null) {
+                    compiledMapScript = compiler.getCompiledLuaScript();
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    luaCode.get().print(sb, 0);
+                    compiledMapScript = sb.toString();
+                }
                 LuaTranslator.assertNoLeakedHashtableNativeCalls(compiledMapScript);
                 LuaTranslator.assertNoLeakedGetHandleIdCalls(compiledMapScript);
                 File buildDir = getBuildDir();

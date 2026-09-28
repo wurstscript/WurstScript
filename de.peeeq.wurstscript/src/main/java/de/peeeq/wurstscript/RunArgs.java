@@ -59,6 +59,8 @@ public class RunArgs {
     private final RunOption optionHotReload;
     private final RunOption optionTestTimeout;
     private final RunOption optionDevBuild;
+    private final RunOption optionIncremental;
+    private @Nullable String cachePath = null;
     private int functionSplitLimit = 10000;
 
     /**
@@ -153,6 +155,8 @@ public class RunArgs {
 
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
         optionDevBuild = addOption("dev", "Builds an output map in development/run mode, so compiletime isProductionBuild() is false.");
+        optionIncremental = addOption("incremental", "Enables incremental package-level modular Lua compilation and chunk caching.");
+        addOptionWithArg("cachePath", "Directory for caching build artifacts.", arg -> cachePath = arg);
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
@@ -425,6 +429,14 @@ public class RunArgs {
 
     public boolean isDevBuild() {
         return optionDevBuild.isSet;
+    }
+
+    public boolean isIncremental() {
+        return optionIncremental.isSet || optionDevBuild.isSet;
+    }
+
+    public @Nullable String getCachePath() {
+        return cachePath;
     }
 
     public String getWorkspaceroot() {

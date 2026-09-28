@@ -100,12 +100,17 @@ public class CompilationProcess {
             }
 
             gui.sendProgress("Printing Lua");
-            StringBuilder luaOutput = new StringBuilder();
-            timeTaker.measure("Print Lua", () -> luaCode.print(luaOutput, 0));
-            mapScript = luaOutput;
+            String compiledLua;
+            if (compiler.getCompiledLuaScript() != null) {
+                compiledLua = compiler.getCompiledLuaScript();
+            } else {
+                StringBuilder luaOutput = new StringBuilder();
+                timeTaker.measure("Print Lua", () -> luaCode.print(luaOutput, 0));
+                compiledLua = luaOutput.toString();
+            }
+            mapScript = compiledLua;
             LuaTranslator.assertNoLeakedHashtableNativeCalls(mapScript.toString());
             LuaTranslator.assertNoLeakedGetHandleIdCalls(mapScript.toString());
-            CharSequence compiledLua = mapScript;
             outputMapscript = timeTaker.measure("Write Lua",
                 () -> writeMapscript(compiledLua));
         } else {
