@@ -433,3 +433,7 @@ destroys a map while retaining an alias and verifies the alias sees an empty sto
 value specializations reach one direct Lua table read/write with the handle itself as key, that
 integer and class-reference Jass specializations forward to the unchanged fixed hashtable
 intrinsics, that non-handle key types are rejected, and that destroy clears retained Lua aliases.
+
+## 10. Warcraft III Game Data Generation
+
+For refreshing object-data knowledge and ability-editing sources from the installed game, use the in-house sibling `../casc-ts` reader and follow [`HelperScripts/GAMEDATA.md`](HelperScripts/GAMEDATA.md). Do not use CascView or online game-data mirrors. Keep the extraction snapshot in ignored `HelperScripts/gamedata/`; generated JSON resources and ability-editing Wurst sources are checked in or merged into WurstStdlib2 as described in that guide.
