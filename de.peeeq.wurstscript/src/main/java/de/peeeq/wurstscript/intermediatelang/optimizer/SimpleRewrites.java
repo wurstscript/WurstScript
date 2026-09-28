@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -17,6 +18,8 @@ public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
     private final boolean showRewrites = false;
+    /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}), Lua's is exact. */
+    private boolean jassTarget;
 
     private static boolean isNumberLiteral(ImExpr e) {
         return e instanceof ImIntVal || e instanceof ImRealVal;
@@ -34,6 +37,7 @@ public class SimpleRewrites implements OptimizerPass {
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
         this.sideEffectAnalysis = new SideEffectAnalyzer(prog);
+        this.jassTarget = !trans.isLuaTarget();
         totalRewrites = 0;
         optimizeElement(prog);
         // we need to flatten the program, because we introduced new
@@ -284,7 +288,12 @@ public class SimpleRewrites implements OptimizerPass {
                     case LESS_EQ:
                     case GREATER:
                     case GREATER_EQ:
-                        opc.replaceBy(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
+                        if (isJassRealEquality(inner)) {
+                            // not (a == b) is not a != b here, nor the other way round
+                            wasViable = false;
+                        } else {
+                            opc.replaceBy(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
+                        }
                         break;
                     case OR:
                     case AND:
@@ -314,6 +323,13 @@ public class SimpleRewrites implements OptimizerPass {
 
     }
 
+    /** An == or != between reals on the Jass target, where == has a tolerance and != has none. */
+    private boolean isJassRealEquality(ImOperatorCall opc) {
+        return jassTarget
+            && (opc.getOp() == WurstOperator.EQ || opc.getOp() == WurstOperator.NOTEQ)
+            && opc.getArguments().stream().anyMatch(arg -> TypesHelper.isRealType(arg.attrTyp()));
+    }
+
     private boolean optimizeRealRealMixed(ImOperatorCall opc, boolean wasViable, ImExpr left, ImExpr right) {
         float f1 = asFloat(left);
         float f2 = asFloat(right);
@@ -340,6 +356,10 @@ public class SimpleRewrites implements OptimizerPass {
                 isConditional = true;
                 break;
             case EQ:
+                if (jassTarget && f1 != f2 && WurstOperator.jassRealEquals(f1, f2)) {
+                    // Jass counts these as equal, but its exact cutoff was not measured: leave them for the game
+                    return false;
+                }
                 result = f1 == f2;
                 isConditional = true;
                 break;

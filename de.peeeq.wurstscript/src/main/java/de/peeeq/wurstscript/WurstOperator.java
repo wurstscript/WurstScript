@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaOpBinary;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 public enum WurstOperator {
@@ -166,7 +167,7 @@ public enum WurstOperator {
             case EQ: {
                 ILconst rightVal = right.get();
                 rejectUnresolvedDefault(left, rightVal);
-                return ILconstBool.instance(left.equals(rightVal));
+                return ILconstBool.instance(jassEquals(left, rightVal));
             }
             case GREATER:
                 return ((ILconstNum) left).greater((ILconstNum) right.get());
@@ -227,6 +228,41 @@ public enum WurstOperator {
             r += b;
         }
         return r;
+    }
+
+    /**
+     * Measured on the 3.0.0 client: Jass {@code ==} on two reals is true when they differ by at most
+     * this much ({@code 1.0 == 1.0009} is true, {@code 1.0 == 1.0011} is false), while {@code !=} and
+     * the orderings compare exactly. So for reals {@code a != b} is not {@code not (a == b)}. The cutoff
+     * lies between the measured 0.0009 and 0.0011; the exact boundary was not measured. Lua compares
+     * exactly with both operators.
+     */
+    public static final float JASS_REAL_EQUALITY_TOLERANCE = 0.001f;
+
+    /** Jass {@code ==} on two reals; see {@link #JASS_REAL_EQUALITY_TOLERANCE}. */
+    public static boolean jassRealEquals(float a, float b) {
+        return a == b || Math.abs(a - b) <= JASS_REAL_EQUALITY_TOLERANCE;
+    }
+
+    /** Jass {@code ==}: reals, also inside tuples, by {@link #jassRealEquals}, everything else by value. */
+    public static boolean jassEquals(ILconst left, ILconst right) {
+        if (left instanceof ILconstReal l && right instanceof ILconstReal r) {
+            return jassRealEquals(l.getVal(), r.getVal());
+        }
+        if (left instanceof ILconstTuple l && right instanceof ILconstTuple r) {
+            List<ILconst> leftValues = l.values();
+            List<ILconst> rightValues = r.values();
+            if (leftValues.size() != rightValues.size()) {
+                return false;
+            }
+            for (int i = 0; i < leftValues.size(); i++) {
+                if (!jassEquals(leftValues.get(i), rightValues.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return left.equals(right);
     }
 
     private static float getReal(ILconst c) {

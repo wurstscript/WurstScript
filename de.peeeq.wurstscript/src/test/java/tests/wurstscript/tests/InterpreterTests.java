@@ -469,4 +469,56 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** Measured on the 3.0.0 client: Jass == on reals is true when they differ by at most 0.001, while
+     *  != and the orderings compare exactly. So a != b is not not (a == b) for reals. */
+    @Test
+    public void jassRealEqualityAllowsAThousandth() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "tuple pos(real x, real y)",
+            "@noinline function eq(real a, real b) returns boolean",
+            "    return a == b",
+            "@noinline function ne(real a, real b) returns boolean",
+            "    return a != b",
+            "@noinline function eqPos(pos a, pos b) returns boolean",
+            "    return a == b",
+            "@noinline function nePos(pos a, pos b) returns boolean",
+            "    return a != b",
+            "@noinline function r(real x) returns real",
+            "    return x",
+            "init",
+            "    if not (eq(1.0, 1.0009) and eq(100.0, 100.0009) and eq(0.0, 0.0009) and eq(1.0, 1.0001))",
+            "        testFail(\"within 0.001 is equal\")",
+            "    if eq(1.0, 1.0011) or eq(1.0, 1.002) or eq(100.0, 100.002) or eq(0.0, 0.0011) or eq(1000.0, 1000.01)",
+            "        testFail(\"further apart is equal\")",
+            "    if not eq(0.1 + 0.2, 0.3)",
+            "        testFail(\"0.1 + 0.2 == 0.3\")",
+            "    if not (ne(1.0, 1.0001) and ne(1.0, 1.00001))",
+            "        testFail(\"!= is exact\")",
+            "    if not (r(1.0) < r(1.0001)) or r(1.0) <= r(0.9999) or r(1.0) >= r(1.0001)",
+            "        testFail(\"orderings are exact\")",
+            "    if not (eqPos(pos(1.0, 2.0), pos(1.0005, 2.0)) and nePos(pos(1.0, 2.0), pos(1.0005, 2.0)))",
+            "        testFail(\"tuples compare their reals the same way\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** Lua compares reals exactly with == too, so here the backends differ on purpose. */
+    @Test
+    public void luaRealEqualityIsExact() {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@noinline function eq(real a, real b) returns boolean",
+            "    return a == b",
+            "init",
+            "    if eq(1.0, 1.0009) or eq(1.0, 1.0001) or not eq(1.0, 1.0)",
+            "        testFail(\"Lua == is exact\")",
+            "    testSuccess()"
+        );
+    }
+
 }

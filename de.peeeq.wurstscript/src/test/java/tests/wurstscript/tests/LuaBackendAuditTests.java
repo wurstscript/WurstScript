@@ -78,6 +78,17 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("∞") || compiled.contains("NaN"));
     }
 
+    /** Lua's == on reals is exact, unlike Jass's, so the Lua build still folds nearly equal literals. */
+    @Test
+    public void nearlyEqualRealLiteralsFoldExactlyOnLua() {
+        String compiled = compileOptimizedLua("nearlyEqualRealLiteralsFoldExactlyOnLua",
+            "package Test",
+            "native consume(boolean value)",
+            "init",
+            "    consume(1.0 == 1.0005)");
+        assertTrue("folded to false:\n" + compiled, compiled.contains("consume(false)"));
+    }
+
     /**
      * The conversions on an erased read are Lua builtins called directly, and an instance id is
      * converted to and from its int inline: no wrapper function sits around either.
