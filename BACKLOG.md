@@ -18,20 +18,20 @@ are open.
   class's type variable (`void|T192,real` against `void|T636,real`). Worth doing only if this stops
   being dead weight.
 
-- **`CompilerFuzzTestsSC` writes one fixed output filename for every generated program.** All
-  programs go to `test-output/CompilerFuzzTestsSC_assertCompilesForBothBackends_*.j`, so concurrent
-  writers tear the file and pjass reports a truncated keyword. Seen once in a full run on 2026-09-03,
-  passes when the class runs alone. Give each generated program its own output name.
+- **Implement `RawHashMap<K, V>` from [NATIVE_KEYED_STORE_DESIGN.md](NATIVE_KEYED_STORE_DESIGN.md).**
+  The note records the cross-backend key/value contract, existing intrinsic reuse, specialization
+  requirements, and regression cases; the data structure itself is not implemented.
 
 ## Blocked on a decision
 
-- **Eliminating the remaining `castTo int`.** The motivating case is timer data attachment
-  (`ClosureTimers.wurst`) and the containers behind it: `Table`, `HashList`, `HashSet`, `HashMap`.
-  None can adopt type class bounds as things stand, because an instance is declared one type at a
-  time and these accept any type. It needs a way to give an instance for a whole family, every class
-  type or every handle type, which is a language design question: syntax, where such an instance may
-  be declared under the orphan rule, and whether a specific instance beats a family one. Do not start
-  this autonomously.
+- **Replacing `castTo int` in the old generic containers.** The motivating case is timer data
+  attachment (`ClosureTimers.wurst`) and the containers behind it: `Table`, `HashList`, `HashSet`,
+  `HashMap`. These old generics erase values into a shared integer ID space. Removing those casts
+  needs family-wide type class instances (for example, for every class or every handle type), which
+  raises language-design questions about syntax, the orphan rule, and precedence over specific
+  instances. New generics specialize values to their native types and do not need this representation
+  change; the handle-keyed `FastKeyedMap` work is separate. Do not start the old-container migration
+  autonomously.
 
 ## Notes
 
