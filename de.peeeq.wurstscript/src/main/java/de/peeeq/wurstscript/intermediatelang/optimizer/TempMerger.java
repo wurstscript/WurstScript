@@ -23,6 +23,8 @@ import java.util.Set;
 public class TempMerger implements OptimizerPass {
     private int totalMerged = 0;
     private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
+    /** The Lua R2I intrinsic, whose argument must stay a variable or a constant; see ExprTranslation. */
+    private @Nullable ImFunction luaRawR2I;
 
 
     @Override
@@ -37,6 +39,7 @@ public class TempMerger implements OptimizerPass {
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
         localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
+        luaRawR2I = trans.luaRawR2IFunc;
         totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
         prog.clearAttributes();
@@ -158,6 +161,13 @@ public class TempMerger implements OptimizerPass {
                 // for lazy operators (and, or) we only search the left expression for possible replacements
                 return getPossibleReplacement(opCall.getArguments().get(0), kn);
             }
+        } else if (elem instanceof ImFunctionCall call && luaRawR2I != null && call.getFunc() == luaRawR2I
+                && call.getArguments().size() == 1 && call.getArguments().get(0) instanceof ImVarAccess va) {
+            // The Lua printer reads this argument three times, so it takes only a variable or a constant in
+            // place; anything else would become a call. Keep the temporary unless its value is one of those.
+            Replacement r = va.isUsedAsLValue() ? null : kn.getReplacementIfPossible(va);
+            kn.invalidateGlobals();
+            return r != null && isSimplePureExpr(r.set.getRight()) ? r : null;
         }
         // process children
         for (int i = 0; i < elem.size(); i++) {

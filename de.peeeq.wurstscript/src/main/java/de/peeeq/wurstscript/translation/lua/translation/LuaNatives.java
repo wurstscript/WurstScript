@@ -143,6 +143,14 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
         });
 
+        // The body ExprTranslation#realToInt prints in place, for a call whose argument it cannot repeat.
+        addNative("__wurst_rawR2I", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if x >= 0.0 and x < 2147483648.0 then return x // 1 | 0 end"));
+            f.getBody().add(LuaAst.LuaLiteral("if x < 0.0 and x > -2147483649.0 then return -(-x // 1 | 0) end"));
+            f.getBody().add(LuaAst.LuaLiteral("return R2I(x)"));
+        });
+
         addNative("__wurst_rawToInteger", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return math.tointeger(x)"));

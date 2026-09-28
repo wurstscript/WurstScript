@@ -220,6 +220,7 @@ public final class LuaNativeLowering {
         removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);
         lowerDivMod(prog, translator);
+        lowerRealToInt(prog, translator);
 
         // Maps original BJ function → replacement (IS_NATIVE stub or nil-safety wrapper).
         // Populated lazily during the traversal.
@@ -442,6 +443,57 @@ public final class LuaNativeLowering {
         // being iterated by the accept() call above, same reasoning as
         // deferredAdditions in transform().
         prog.getFunctions().addAll(funcs.createdFunctions());
+    }
+
+    /**
+     * Rewrites calls to the native {@code R2I} to {@code __wurst_R2I}, which truncates in Lua arithmetic:
+     * {@code x // 1 | 0} for a non-negative real, and its negation for a negative one. That is exact
+     * wherever the result is a 32-bit integer, which is the range it covers. NaN, the infinities and
+     * everything outside that range call the native, so their results are the engine's.
+     *
+     * <p>On Lua {@code R2I} is an engine call. Measured on the 3.0.0 client, the engine and this
+     * arithmetic return the same for every value probed, the 32-bit edges and values outside the range
+     * included. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is
+     * printed as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
+     */
+    private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
+        ImFunction[] shim = {null};
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                ImFunction f = call.getFunc();
+                if (!f.isBj() || !"R2I".equals(f.getName()) || call.getArguments().size() != 1) {
+                    return;
+                }
+                if (shim[0] == null) {
+                    shim[0] = buildRealToInt(translator);
+                }
+                call.replaceBy(JassIm.ImFunctionCall(call.attrTrace(), shim[0], JassIm.ImTypeArguments(),
+                    JassIm.ImExprs(call.getArguments().removeAll()), false, CallType.NORMAL));
+            }
+        });
+        if (shim[0] != null) {
+            prog.getFunctions().add(translator.luaRawR2IFunc);
+            prog.getFunctions().add(shim[0]);
+        }
+    }
+
+    /** return rawR2I(x): one intrinsic call, printed as Lua arithmetic by ExprTranslation#realToInt. */
+    private static ImFunction buildRealToInt(ImTranslator translator) {
+        ImType realType = TypesHelper.imReal();
+        ImType intType = TypesHelper.imInt();
+        ImVar arg = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
+        ImFunction rawR2I = JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_rawR2I", JassIm.ImTypeVars(),
+            JassIm.ImVars(arg), intType.copy(), JassIm.ImVars(), JassIm.ImStmts(),
+            Collections.singletonList(FunctionFlagEnum.IS_NATIVE));
+        translator.luaRawR2IFunc = rawR2I;
+
+        ImVar x = JassIm.ImVar(SYNTHETIC_TRACE, realType.copy(), "x", false);
+        ImStmts body = JassIm.ImStmts(JassIm.ImReturn(SYNTHETIC_TRACE, JassIm.ImFunctionCall(SYNTHETIC_TRACE, rawR2I,
+            JassIm.ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(x)), false, CallType.NORMAL)));
+        return JassIm.ImFunction(SYNTHETIC_TRACE, "__wurst_R2I", JassIm.ImTypeVars(), JassIm.ImVars(x), intType.copy(),
+            JassIm.ImVars(), body, Collections.emptyList());
     }
 
     /**

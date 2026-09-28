@@ -333,6 +333,66 @@ public class LuaTranslationTests extends WurstScriptTest {
         assertTrue("expected continue lowering helper flag in lua output", compiled.contains("continueFlag_"));
     }
 
+    /**
+     * R2I truncates in Lua arithmetic inside the 32-bit range. The values straddle zero and the range's
+     * edges, and reach R2I as a parameter, so none of them is folded at compile time. The standard
+     * library is loaded so that R2I is the engine native, which is what the lowering replaces.
+     */
+    @Test
+    public void realToIntTruncatesInLuaArithmetic() throws IOException {
+        test().testLua(true).withStdLib().inline().executeProg(true).lines(
+            "package Test",
+            "real array operands",
+            "var failures = 0",
+            "function check(real x, int expected)",
+            "    if R2I(x) != expected",
+            "        failures++",
+            "init",
+            "    operands[0] = 0.7",
+            "    operands[1] = 0.1",
+            "    let justBelowOne = operands[0] + operands[1] + operands[1] + operands[1]",
+            "    check(justBelowOne, 0)",
+            "    check(-justBelowOne, 0)",
+            "    check(justBelowOne * 3., 2)",
+            "    check(2.5, 2)",
+            "    check(-2.5, -2)",
+            "    check(-0.5, 0)",
+            "    check(16777217., 16777217)",
+            "    check(2147483647.5, 2147483647)",
+            "    check(-2147483648.5, -2147483647 - 1)",
+            "    if failures == 0",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"R2I\")"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_realToIntTruncatesInLuaArithmetic.lua"), Charsets.UTF_8);
+        assertTrue("the in-range truncation is Lua arithmetic:\n" + compiled, compiled.contains("// 1) | 0)"));
+        // At most each function's own definition: no call site goes through a helper.
+        assertTrue("R2I is not called through a helper:\n" + compiled,
+            compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1
+                && compiled.split("__wurst_R2I\\(", -1).length - 1 <= 1);
+    }
+
+    /** An R2I of an expression is Lua arithmetic too, and computes the same under Lua. */
+    @Test
+    public void realToIntOfAnExpressionIsLuaArithmetic() throws IOException {
+        test().testLua(true).withStdLib().inline().executeProg(true).lines(
+            "package Test",
+            "real array operands",
+            "init",
+            "    operands[0] = 2.",
+            "    operands[1] = 0.5",
+            "    if R2I(operands[0] + operands[1]) == 2 and R2I(-operands[0] - operands[1]) == -2",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"R2I\")"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_realToIntOfAnExpressionIsLuaArithmetic.lua"), Charsets.UTF_8);
+        assertTrue("R2I of an expression is not called through a helper:\n" + compiled,
+            compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1
+                && compiled.split("__wurst_R2I\\(", -1).length - 1 <= 1);
+    }
+
     @Test
     public void noContinueDoesNotEmitContinueFlagInLua() throws IOException {
         test().testLua(true).lines(
