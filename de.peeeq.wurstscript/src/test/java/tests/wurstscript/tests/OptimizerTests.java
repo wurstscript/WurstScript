@@ -69,7 +69,30 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(compiled.contains("function Test_dead takes") || compiled.contains("function Test_compiletimeDead takes"));
         assertTrue(compiled.contains("if Test_active then"));
         assertTrue(compiled.contains("call consume(7)"));
-        assertTrue(compiled.contains("Test_CONFIGURABLE"));
+        assertTrue(compiled.contains("call consume(9)"));
+        assertFalse(compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    @Test
+    public void configuredConstantsInlineTheirConfiguredValueInJass() throws IOException {
+        test().withStdLib().lines(
+            "package Test",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "init",
+            "    consume(CONFIGURABLE)",
+            "endpackage",
+            "package Test_config",
+            "@config public constant int CONFIGURABLE = 4",
+            "endpackage"
+        );
+
+        String compiled = Files.toString(
+            new File("test-output/OptimizerTests_configuredConstantsInlineTheirConfiguredValueInJass_inlopt.j"),
+            Charsets.UTF_8);
+        assertTrue(compiled.contains("call consume(4)"));
+        assertFalse(compiled.contains("call consume(9)"));
+        assertFalse(compiled.contains("CONFIGURABLE"));
     }
 
     @Test

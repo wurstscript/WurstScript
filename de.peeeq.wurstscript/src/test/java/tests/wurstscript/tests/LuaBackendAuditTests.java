@@ -308,8 +308,28 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("if Test_active then"));
         assertTrue("constant arithmetic uses must be emitted as literals:\n" + compiled,
             compiled.contains("consume(7)"));
-        assertTrue("configurable constants must remain globals until configuration resolution:\n" + compiled,
-            compiled.contains("Test_CONFIGURABLE"));
+        assertTrue("an unconfigured configurable constant is emitted as its literal:\n" + compiled,
+            compiled.contains("consume(9)") && !compiled.contains("Test_CONFIGURABLE"));
+    }
+
+    /** A configured constant is emitted as the value its config package gives it. */
+    @Test
+    public void configuredConstantsInlineTheirConfiguredValue() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "configuredConstantsInlineTheirConfiguredValue",
+            "package Test",
+            "@configurable public constant int CONFIGURABLE = 9",
+            "native consume(int value)",
+            "init",
+            "    consume(CONFIGURABLE)",
+            "endpackage",
+            "package Test_config",
+            "@config public constant int CONFIGURABLE = 4",
+            "endpackage"
+        );
+        assertTrue("the configured value is emitted as a literal:\n" + compiled,
+            compiled.contains("consume(4)") && !compiled.contains("consume(9)")
+                && !compiled.contains("CONFIGURABLE"));
     }
 
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
