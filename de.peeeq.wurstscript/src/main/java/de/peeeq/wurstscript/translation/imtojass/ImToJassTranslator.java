@@ -220,7 +220,10 @@ public class ImToJassTranslator {
                 result = JassAst.JassArrayVar(type, name);
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
-                    JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
+                    JassExpr initialVal = v.getIsBJ() ? translateBjInitializer(v) : null;
+                    if (initialVal == null) {
+                        initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
+                    }
                     result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
@@ -232,6 +235,20 @@ public class ImToJassTranslator {
             jassVars.put(v, result);
         }
         return result;
+    }
+
+    /**
+     * The game initialises common.j and blizzard.j globals before the map script runs, so the script
+     * never assigns them. The initialiser is kept on the variable (the printer only writes it as a
+     * comment) so that running the translated program gives e.g. UNIT_TYPE_DEAD its ConvertUnitType(1)
+     * handle instead of null.
+     */
+    private @Nullable JassExpr translateBjInitializer(ImVar v) {
+        List<ImSet> inits = imProg.getGlobalInits().get(v);
+        if (inits == null || inits.isEmpty()) {
+            return null;
+        }
+        return inits.get(0).getRight().translate(this);
     }
 
     private String jassifyName(String name) {

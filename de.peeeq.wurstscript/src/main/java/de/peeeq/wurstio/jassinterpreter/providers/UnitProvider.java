@@ -501,6 +501,12 @@ public class UnitProvider extends Provider {
         }
     }
 
+    /** Measured on the 3.0.0 client: a null unit state reads and writes life. The engine takes a null
+     *  enum handle as id 0, which is UNIT_STATE_LIFE. */
+    private static String unitStateKey(IlConstHandle unitstate) {
+        return unitstate == null ? "unitstate0" : unitstate.print();
+    }
+
     public ILconstReal GetWidgetLife(IlConstHandle widget) {
         UnitMock unitMock = unitOrNull(widget);
         if (unitMock != null) {
@@ -989,9 +995,5 @@ public class UnitProvider extends Provider {
     private ItemMock itemOrNull(IlConstHandle item) {
         if (item == null || !(item.getObj() instanceof ItemMock)) return null;
         return (ItemMock) item.getObj();
-    }
-
-    private String unitStateKey(IlConstHandle unitstate) {
-        return unitstate == null ? "unitstate0" : unitstate.print();
     }
 }
