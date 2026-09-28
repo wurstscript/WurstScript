@@ -591,6 +591,10 @@ public class InterpreterTests extends WurstScriptTest {
             "    KillUnit(k)",
             "    SetWidgetLife(k, 100.0)",
             "    measured(\"killed, then life set\", death(k), \"false,true,100.000\")",
+            // The death rule holds for every life change, also a maximum lowered to 0.
+            "    let m = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    BlzSetUnitMaxHP(m, 0)",
+            "    measured(\"max hp 0\", death(m), \"false,true,0.000\")",
             "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
             "    measured(\"hero type and null type\", bs(IsUnitType(h, UNIT_TYPE_HERO)) + \",\" + bs(IsUnitType(h, null)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_HERO)), \"true,true,false\")",
             "    testSuccess()"
@@ -645,6 +649,9 @@ public class InterpreterTests extends WurstScriptTest {
             "    SetHeroLevel(h, 2, false)",
             "    measured(\"lower level\", hero(h), \"6,2000,6\")",
             "    measured(\"not a hero\", I2S(GetHeroLevel(CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0))), \"0\")",
+            "    let big = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
+            "    SetHeroXP(big, 2147483647, false)",
+            "    measured(\"largest XP\", I2S(GetHeroXP(big)), \"2147483647\")",
             "    testSuccess()"
         );
     }

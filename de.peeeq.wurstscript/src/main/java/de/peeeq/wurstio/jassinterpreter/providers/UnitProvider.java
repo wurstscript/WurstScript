@@ -547,7 +547,8 @@ public class UnitProvider extends Provider {
         UnitMock unitMock = unitOrNull(unit);
         if (unitMock != null) {
             unitMock.states.put("unitstate1", ILconstReal.create(hp.getVal()));
-            unitMock.states.put("unitstate0", ILconstReal.create(Math.min(unitMock.states.get("unitstate0").getVal(), hp.getVal())));
+            // Through setLife, so that a maximum at or below the death threshold kills the unit.
+            setLife(unitMock, unitMock.states.get("unitstate0").getVal());
         }
     }
 
@@ -683,7 +684,8 @@ public class UnitProvider extends Provider {
         UnitMock unitMock = unitOrNull(unit);
         if (unitMock != null && isHero(unitMock) && level.getVal() > unitMock.level.getVal()) {
             raiseHeroLevel(unitMock, level.getVal());
-            unitMock.heroXp = ILconstInt.create(Math.max(unitMock.heroXp.getVal(), heroXpForLevel(level.getVal())));
+            long xp = Math.max(unitMock.heroXp.getVal(), heroXpForLevel(level.getVal()));
+            unitMock.heroXp = ILconstInt.create((int) Math.min(xp, Integer.MAX_VALUE));
         }
     }
 
@@ -710,12 +712,14 @@ public class UnitProvider extends Provider {
     }
 
     /** The XP a hero needs for a level with the default gameplay constants: 200, 500, 900, 1400, 2000, ... */
-    private static int heroXpForLevel(int level) {
-        return level <= 1 ? 0 : 50 * level * (level + 1) - 100;
+    private static long heroXpForLevel(int level) {
+        // In long: from about level 6500 the threshold no longer fits an int.
+        return level <= 1 ? 0 : 50L * level * (level + 1) - 100;
     }
 
     private static void raiseHeroLevel(UnitMock unitMock, int level) {
-        unitMock.skillPoints = ILconstInt.create(unitMock.skillPoints.getVal() + level - unitMock.level.getVal());
+        long skillPoints = (long) unitMock.skillPoints.getVal() + level - unitMock.level.getVal();
+        unitMock.skillPoints = ILconstInt.create((int) Math.min(skillPoints, Integer.MAX_VALUE));
         unitMock.level = ILconstInt.create(level);
     }
 
