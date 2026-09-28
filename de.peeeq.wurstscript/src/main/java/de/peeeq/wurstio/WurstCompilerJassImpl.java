@@ -917,7 +917,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // operations are recognised by would stop matching - silently leaving their Jass bodies on
         // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
         beginPhase(4, "lower keyed tables");
-        LuaNativeLowering.lowerKeyedTables(imProg);
+        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
         timeTaker.endPhase();
 
         if (runArgs.isNoDebugMessages()) {

@@ -129,7 +129,7 @@ public final class LuaNativeLowering {
      *
      * <p>Idempotent: once the calls point at stubs, nothing matches on a second run.
      */
-    public static void lowerKeyedTables(ImProg prog) {
+    public static void lowerKeyedTables(ImProg prog, ImTranslator translator) {
         // A keyed-table destroy currently has no observable Lua storage to clear. Keep it as an
         // ordinary empty function which the inliner can remove.
         for (ImFunction f : prog.getFunctions()) {
@@ -145,7 +145,9 @@ public final class LuaNativeLowering {
         // do still happens, as in UselessFunctionCallsRemover.
         removeDestroyCalls(prog);
 
-        Map<String, ImFunction> stubs = new LinkedHashMap<>();
+        // Shared with any earlier run, so a second lowering reuses a stub instead of adding another of
+        // the same name, and later passes can match the stub by identity.
+        Map<String, ImFunction> stubs = translator.luaKeyedStubs;
         List<ImFunction> additions = new ArrayList<>();
         prog.accept(new Element.DefaultVisitor() {
             @Override
@@ -159,10 +161,11 @@ public final class LuaNativeLowering {
                 if (stubName == null) {
                     return;
                 }
-                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> createNativeStub(name, f));
-                if (!additions.contains(replacement)) {
-                    additions.add(replacement);
-                }
+                ImFunction replacement = stubs.computeIfAbsent(stubName, name -> {
+                    ImFunction created = createNativeStub(name, f);
+                    additions.add(created);
+                    return created;
+                });
                 call.replaceBy(JassIm.ImFunctionCall(
                     call.attrTrace(), replacement,
                     JassIm.ImTypeArguments(),
@@ -212,7 +215,7 @@ public final class LuaNativeLowering {
         }
 
         // Idempotent: transformProgToLua runs this earlier, before stack-trace injection.
-        lowerKeyedTables(prog);
+        lowerKeyedTables(prog, translator);
 
         removeRedundantTypeAssurance(prog, translator);
         lowerStringConcatenation(prog, translator);

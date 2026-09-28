@@ -24,10 +24,14 @@ import java.util.Map;
  * read cost 2.4 times the typed {@code keyedMapGetInt} because of that ensure.
  *
  * <p>Two shapes are folded: the ensure of the untyped read itself, and the ensure of a call to a
- * wrapper whose whole body returns that read. A wrapper gets a typed twin, one per wrapper and type,
- * which returns the typed read, and the ensured call is redirected to it. Only function calls are
- * followed, not dispatching method calls: {@link LuaMethodCallLowering} turns the hot ones into
- * function calls, and this runs again after it.
+ * wrapper that returns that read on every path, directly or through a local nothing else reads (the
+ * shape stack traces give a returning function). A wrapper gets a typed twin, one per wrapper and
+ * type, in which that read is the typed one; its other statements stay as they are. The ensured call
+ * is redirected to the twin. Only function calls are followed, not dispatching method calls:
+ * {@link LuaMethodCallLowering} turns the hot ones into function calls, and this runs again after it.
+ *
+ * <p>Stubs are matched by identity, through the registry {@link LuaNativeLowering#lowerKeyedTables}
+ * fills, never by their generated names.
  */
 public final class LuaTypedKeyedReads {
 
@@ -35,11 +39,10 @@ public final class LuaTypedKeyedReads {
     }
 
     public static void transform(ImProg prog, ImTranslator translator) {
-        ImFunction untypedGet = nativeNamed(prog, LuaKeyedMap.NATIVE_GET);
+        ImFunction untypedGet = translator.luaKeyedStubs.get(LuaKeyedMap.NATIVE_GET);
         if (untypedGet == null) {
             return;
         }
-        Map<String, ImFunction> typedStubs = new HashMap<>();
         Map<ImFunction, Map<String, ImFunction>> twins = new HashMap<>();
         List<ImFunction> additions = new ArrayList<>();
         List<Runnable> rewrites = new ArrayList<>();
@@ -49,7 +52,9 @@ public final class LuaTypedKeyedReads {
             public void visit(ImFunctionCall call) {
                 super.visit(call);
                 String stubName = typedStubForEnsure(call.getFunc(), translator);
-                if (stubName != null && call.getArguments().size() == 1) {
+                // The value is the first argument. Stack traces append a parameter to every
+                // non-native function, the ensure helpers included; the typed stub needs none.
+                if (stubName != null && !call.getArguments().isEmpty()) {
                     plan(call, call.getArguments().get(0), stubName);
                 }
             }
@@ -70,9 +75,9 @@ public final class LuaTypedKeyedReads {
                     return;
                 }
                 ImFunction target;
-                if (isUntypedGet(read.getFunc())) {
+                if (read.getFunc() == untypedGet) {
                     target = typedStub(stubName);
-                } else if (isWrapper(read.getFunc())) {
+                } else if (returnedRead(read.getFunc(), untypedGet) != null) {
                     target = twins.computeIfAbsent(read.getFunc(), f -> new HashMap<>())
                         .computeIfAbsent(stubName, name -> twin(read.getFunc(), typedStub(name)));
                 } else {
@@ -83,24 +88,26 @@ public final class LuaTypedKeyedReads {
             }
 
             private ImFunction typedStub(String name) {
-                return typedStubs.computeIfAbsent(name, n -> {
-                    ImFunction existing = nativeNamed(prog, n);
-                    if (existing != null) {
-                        return existing;
-                    }
+                return translator.luaKeyedStubs.computeIfAbsent(name, n -> {
                     ImFunction stub = stubLike(untypedGet, n, typedResult(n));
                     additions.add(stub);
                     return stub;
                 });
             }
 
-            /** A copy of the wrapper that returns the typed read instead of the untyped one. */
+            /** A copy of the wrapper whose returned read is the typed one. */
             private ImFunction twin(ImFunction wrapper, ImFunction typed) {
                 ImFunction copy = wrapper.copyWithRefs();
                 copy.setName(wrapper.getName() + "_" + typedSuffix(typed.getName()));
                 copy.setReturnType(typed.getReturnType().copy());
-                ImReturn ret = onlyReturn(copy);
-                ImFunctionCall inner = (ImFunctionCall) ret.getReturnValue();
+                ImFunctionCall inner = returnedRead(copy, untypedGet);
+                if (inner == null) {
+                    throw new IllegalStateException("copy of " + wrapper.getName() + " lost its returned read");
+                }
+                // A local that carries the read to the return takes the typed value's type too.
+                for (ImVar carrier : carriers(copy, inner)) {
+                    carrier.setType(typed.getReturnType().copy());
+                }
                 inner.replaceBy(JassIm.ImFunctionCall(inner.attrTrace(), typed, JassIm.ImTypeArguments(),
                     inner.getArguments().copy(), false, CallType.NORMAL));
                 additions.add(copy);
@@ -131,49 +138,94 @@ public final class LuaTypedKeyedReads {
     }
 
     /**
-     * A function whose whole body is {@code return <untypedGet>(...)}, apart from the bare {@code null}
-     * statements translation leaves around it.
+     * The one untyped read that f returns on every path, either directly or through a local which is
+     * assigned only that read and read only by the returns; null when f has any other shape.
      */
-    private static boolean isWrapper(ImFunction f) {
-        if (f.isNative() || !f.getLocals().isEmpty()) {
-            return false;
+    private static @Nullable ImFunctionCall returnedRead(ImFunction f, ImFunction untypedGet) {
+        if (f.isNative()) {
+            return null;
         }
-        ImReturn ret = onlyReturn(f);
-        return ret != null
-            && ret.getReturnValue() instanceof ImFunctionCall inner
-            && isUntypedGet(inner.getFunc());
-    }
+        List<ImReturn> returns = new ArrayList<>();
+        List<ImFunctionCall> reads = new ArrayList<>();
+        f.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImReturn r) {
+                super.visit(r);
+                returns.add(r);
+            }
 
-    /**
-     * Matched by name: keyed-map lowering can leave more than one stub of that name, one per pass that
-     * created it, and each prints as the same Lua native.
-     */
-    private static boolean isUntypedGet(ImFunction f) {
-        return f.isNative() && LuaKeyedMap.NATIVE_GET.equals(f.getName());
-    }
-
-    /** The function's one statement besides bare {@code null}s, when that is a return; otherwise null. */
-    private static @Nullable ImReturn onlyReturn(ImFunction f) {
-        ImReturn found = null;
-        for (ImStmt s : f.getBody()) {
-            if (s instanceof ImNull) {
+            @Override
+            public void visit(ImFunctionCall c) {
+                super.visit(c);
+                if (c.getFunc() == untypedGet) {
+                    reads.add(c);
+                }
+            }
+        });
+        if (returns.isEmpty() || reads.size() != 1) {
+            return null;
+        }
+        ImFunctionCall read = reads.get(0);
+        for (ImReturn r : returns) {
+            if (r.getReturnValue() == read) {
                 continue;
             }
-            if (found != null || !(s instanceof ImReturn ret)) {
-                return null;
+            if (r.getReturnValue() instanceof ImVarAccess va && carriesOnly(f, va.getVar(), read)) {
+                continue;
             }
-            found = ret;
+            return null;
         }
-        return found;
+        return read;
     }
 
-    private static @Nullable ImFunction nativeNamed(ImProg prog, String name) {
-        for (ImFunction f : prog.getFunctions()) {
-            if (f.isNative() && name.equals(f.getName())) {
-                return f;
+    /** The locals through which the read reaches a return. */
+    private static List<ImVar> carriers(ImFunction f, ImFunctionCall read) {
+        List<ImVar> result = new ArrayList<>();
+        f.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImReturn r) {
+                super.visit(r);
+                if (r.getReturnValue() instanceof ImVarAccess va && !result.contains(va.getVar())) {
+                    result.add(va.getVar());
+                }
             }
+        });
+        return result;
+    }
+
+    /** Whether v is a local of f assigned nothing but read, and read nowhere but by returns. */
+    private static boolean carriesOnly(ImFunction f, ImVar v, ImFunctionCall read) {
+        if (!f.getLocals().contains(v)) {
+            return false;
         }
-        return null;
+        boolean[] ok = {true};
+        int[] writes = {0};
+        f.getBody().accept(new ImStmts.DefaultVisitor() {
+            @Override
+            public void visit(ImSet s) {
+                super.visit(s);
+                if (s.getLeft() instanceof ImVarAccess left && left.getVar() == v) {
+                    writes[0]++;
+                    if (s.getRight() != read) {
+                        ok[0] = false;
+                    }
+                }
+            }
+
+            @Override
+            public void visit(ImVarAccess a) {
+                super.visit(a);
+                if (a.getVar() != v) {
+                    return;
+                }
+                boolean isAssignedTarget = a.getParent() instanceof ImSet s && s.getLeft() == a;
+                boolean isReturned = a.getParent() instanceof ImReturn;
+                if (!isAssignedTarget && !isReturned) {
+                    ok[0] = false;
+                }
+            }
+        });
+        return ok[0] && writes[0] == 1;
     }
 
     private static ImType typedResult(String stubName) {

@@ -641,6 +641,40 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             loop.contains("tonumber") || loop.contains("math.tointeger") || loop.contains("__wurst_keyedMapGet("));
     }
 
+    /**
+     * Stack traces put a push, a pop and possibly a temporary around a wrapper's return; the wrapper
+     * still returns its one untyped read, so its int read is still typed.
+     */
+    @Test
+    public void fastKeyedMapIntReadsAreTypedWithStackTraces() throws IOException {
+        test().testLua(true).stacktraces().inline().executeProg(true).withStdLib().lines(fastKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "timer array keys",
+            "int total = 0",
+            "function readAll(FastKeyedMap<timer, int> m)",
+            "    for i = 0 to 2",
+            "        total += m.get(keys[i])",
+            "init",
+            "    for i = 0 to 2",
+            "        keys[i] = CreateTimer()",
+            "    let ints = new FastKeyedMap<timer, int>()",
+            "    ints.put(keys[0], 40)",
+            "    ints.put(keys[1], 2)",
+            "    readAll(ints)",
+            "    if total != 42",
+            "        testFail(\"ints \" + I2S(total))",
+            "    testSuccess()",
+            "endpackage"));
+
+        String lua = compiled("fastKeyedMapIntReadsAreTypedWithStackTraces");
+        assertTrue("the typed read is emitted: " + lua.length(), lua.contains("__wurst_keyedMapGetInt("));
+        assertFalse("no int ensure is left anywhere a FastKeyedMap<timer, int> is read",
+            lua.contains("__wurst_ensureInt(FastKeyedMap") || lua.contains("__wurst_ensureInt(readAll"));
+        int stubs = lua.split("function __wurst_keyedMapGet\\(", -1).length - 1;
+        assertTrue("one untyped get stub, not one per lowering pass (" + stubs + ")", stubs <= 1);
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;
