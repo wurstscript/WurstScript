@@ -160,7 +160,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public void loadWurstFilesInDir(File dir) {
-        for (File f : dir.listFiles()) {
+        File[] fileList = dir.listFiles();
+        if (fileList == null) return;
+        Arrays.sort(fileList, Comparator.comparing(File::getName));
+        for (File f : fileList) {
             if (f.isDirectory()) {
                 loadWurstFilesInDir(f);
             } else if (Utils.isWurstFile(f)) {
@@ -265,6 +268,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
         File[] depProjects = dependencyFolder.listFiles();
         if (depProjects == null) return;
+        Arrays.sort(depProjects, Comparator.comparing(File::getName));
 
         // keep behavior (FileUtils.sameFile), but avoid O(n*m) scanning
         List<File> existing = new ArrayList<>(dependencies);
@@ -377,7 +381,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (!libDir.exists() || !libDir.isDirectory()) {
             throw new Error("Library folder " + libDir + " does not exist.");
         }
-        for (File f : libDir.listFiles()) {
+        File[] fileList = libDir.listFiles();
+        if (fileList == null) return;
+        Arrays.sort(fileList, Comparator.comparing(File::getName));
+        for (File f : fileList) {
             if (f.isDirectory()) {
                 // recursively scan directory
                 addLibDir(f);
@@ -693,8 +700,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
+    public WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");
+        compilationUnits.sort(Comparator.comparing(cu -> Objects.toString(cu.getCuInfo().getFile(), "")));
         WurstModel result = Ast.WurstModel();
         for (CompilationUnit compilationUnit : compilationUnits) {
             // remove from old parent

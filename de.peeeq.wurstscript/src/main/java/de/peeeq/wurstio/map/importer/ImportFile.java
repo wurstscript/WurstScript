@@ -410,6 +410,7 @@ public class ImportFile {
         if (listFiles == null) {
             return addTo;
         }
+        Arrays.sort(listFiles, Comparator.comparing(File::getName));
         for (File f : listFiles) {
             if (f.isDirectory()) {
                 getFilesOfDirectory(f, addTo);
