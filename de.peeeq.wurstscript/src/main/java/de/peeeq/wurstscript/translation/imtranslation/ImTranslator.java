@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -37,10 +37,114 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
 
-public class ImTranslator {
+public class ImTranslator implements SpecialisationLookup {
 
 
     public static final String $DEBUG_PRINT = "$debugPrint";
+
+    /**
+     * What each specialised node was copied from, and under which type arguments.
+     * <p>
+     * Specialising a generic entity makes a new node rather than recording a relation, so the copy has
+     * no way to say what it stands for. Passes then recover that by other means, and each of those
+     * means has been wrong: a pass which drops what nothing reads dropped every copied field, because
+     * an access made before specialisation still names the original's variable; a lookup which matched
+     * type variables by name took two parameters sharing a name for one, which dispatched a value
+     * through the wrong instance; and a name composed from a copy's mangled name reads the type
+     * argument as though it were a method name.
+     * <p>
+     * This is that relation, in one place: a copy, what it was copied from, and the type arguments the
+     * copy was made for. Identity, liveness and naming can all be answered from it rather than from a
+     * name, which is what those three passes were doing by hand.
+     */
+    public record Specialisation(Element original, List<ImTypeArgument> typeArguments) {
+    }
+
+    private final Map<Element, Specialisation> specialisations = new IdentityHashMap<>();
+    private final Map<ImClass, Set<GenericTypes>> erasedGenericAllocations = new IdentityHashMap<>();
+
+    /**
+     * @param typeArguments the arguments the copy was made for, empty when a copy carries none of its
+     *                      own - moving a function out of its class copies the class's type variables
+     *                      onto it without specialising anything
+     */
+    public void recordSpecialisation(Element copy, Element original, List<ImTypeArgument> typeArguments) {
+        specialisations.put(copy, new Specialisation(original, List.copyOf(typeArguments)));
+    }
+
+    public void recordSpecialisation(Element copy, Element original) {
+        recordSpecialisation(copy, original, List.of());
+    }
+
+    /**
+     * The generic class a static field belongs to.
+     * <p>
+     * A static field of a generic class becomes a global named after the class, and the interpreter
+     * used to recover the owner by taking the longest prefix of that name ending at an underscore
+     * which matches a class name. A class whose name contains an underscore, or a field whose name
+     * begins like a class, answers that wrongly and silently. Recorded here instead, where it is
+     * known.
+     */
+    private final Map<ImVar, ImClass> genericStaticOwners = new IdentityHashMap<>();
+
+    public void recordGenericStaticOwner(ImVar global, ImClass owner) {
+        genericStaticOwners.put(global, owner);
+    }
+
+    public @Nullable ImClass genericStaticOwnerOf(ImVar global) {
+        return genericStaticOwners.get(global);
+    }
+
+    /** What {@code copy} was made from and for, or null when it is not a copy. */
+    public @Nullable Specialisation specialisationOf(Element copy) {
+        return specialisations.get(copy);
+    }
+
+    public void recordErasedGenericAllocation(ImClass clazz, List<ImTypeArgument> typeArguments) {
+        erasedGenericAllocations.computeIfAbsent(canonical(clazz), ignored -> new HashSet<>())
+            .add(new GenericTypes(typeArguments));
+    }
+
+    public boolean hasErasedAllocationWithoutStaticSpecialization(ImClass clazz, ImVar originalStatic) {
+        Set<GenericTypes> allocations = erasedGenericAllocations.get(canonical(clazz));
+        if (allocations == null || allocations.isEmpty()) {
+            return false;
+        }
+        Set<GenericTypes> specializedStatics = new HashSet<>();
+        for (Map.Entry<Element, Specialisation> entry : specialisations.entrySet()) {
+            Specialisation specialization = entry.getValue();
+            if (specialization.original() == originalStatic) {
+                specializedStatics.add(new GenericTypes(specialization.typeArguments()));
+            }
+        }
+        for (GenericTypes allocation : allocations) {
+            if (!specializedStatics.contains(allocation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The node {@code copy} was ultimately copied from, or {@code copy} itself.
+     * <p>
+     * A copy of a copy is possible, so this follows to the root. The relation is acyclic by
+     * construction because a copy is always newer than what it was made from; the bound is there so a
+     * mistake elsewhere fails loudly rather than hanging.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Element> T canonical(T copy) {
+        Element current = copy;
+        for (int steps = 0; steps < 1000; steps++) {
+            Specialisation specialisation = specialisations.get(current);
+            if (specialisation == null) {
+                return (T) current;
+            }
+            current = specialisation.original();
+        }
+        throw new IllegalStateException("specialisation chain does not terminate at " + copy);
+    }
 
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
@@ -60,6 +164,9 @@ public class ImTranslator {
     private final ImProg imProg;
 
     public final Map<WPackage, ImFunction> initFuncMap = new Object2ObjectLinkedOpenHashMap<>();
+
+    /** Initializer functions in the exact order emitted by {@link #finishInitFunctions()}. */
+    private final List<ImFunction> initializationOrder = new ArrayList<>();
 
     /**
      * When targeting Lua, package init functions that should be called directly via xpcall
@@ -87,6 +194,41 @@ public class ImTranslator {
     @Nullable public ImFunction ensureRealFunc = null;
     @Nullable public ImFunction ensureStrFunc = null;
     @Nullable public ImFunction stringConcatFunc = null;
+    // Exact synthetic nodes owned by LuaNativeLowering; backend intrinsic recognition must use identity.
+    @Nullable public ImFunction luaRawFloorDivIntFunc = null;
+    @Nullable public ImFunction luaRawFmodIntFunc = null;
+    @Nullable public ImFunction luaRawFmodRealFunc = null;
+    @Nullable public ImFunction luaRawFloorModIntFunc = null;
+    @Nullable public ImFunction luaRawConcatFunc = null;
+    /** The one-argument conversions the ensure helpers use; printed as direct Lua calls. */
+    @Nullable public ImFunction luaRawToNumberIntFunc = null;
+    @Nullable public ImFunction luaRawToNumberRealFunc = null;
+    @Nullable public ImFunction luaRawToIntegerFunc = null;
+    @Nullable public ImFunction luaRawToStringFunc = null;
+
+    /**
+     * A call to one of the Lua backend's operator intrinsics which cannot fail at runtime: a
+     * concatenation, or a division or remainder whose divisor is a non-zero literal. Such a call
+     * is as pure as the operator it prints as, so an unused one may be dropped.
+     */
+    public boolean isTrapFreeLuaIntrinsicCall(ImFunctionCall call) {
+        ImFunction target = call.getFunc();
+        if (call.getArguments().size() != 2) {
+            return false;
+        }
+        if (target == luaRawConcatFunc) {
+            return true;
+        }
+        ImExpr divisor = call.getArguments().get(1);
+        boolean nonZeroDivisor = (divisor instanceof ImIntVal intVal && intVal.getValI() != 0)
+            || (divisor instanceof ImRealVal realVal && Double.parseDouble(realVal.getValR()) != 0.0);
+        return nonZeroDivisor
+            && (target == luaRawFloorDivIntFunc || target == luaRawFmodIntFunc
+                || target == luaRawFloorModIntFunc || target == luaRawFmodRealFunc);
+    }
+    @Nullable public ImFunction luaIntDivFunc = null;
+    @Nullable public ImFunction luaModIntFunc = null;
+    @Nullable public ImFunction luaModRealFunc = null;
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new Object2ObjectLinkedOpenHashMap<>();
 
@@ -200,16 +342,14 @@ public class ImTranslator {
                     false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             if(isLuaTarget()) {
-                ensureIntFunc = JassIm.ImFunction(emptyTrace, "intEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeInt.instance().imTranslateType(this), "x", false)), WurstTypeInt.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureBoolFunc = JassIm.ImFunction(emptyTrace, "boolEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeBool.instance().imTranslateType(this), "x", false)), WurstTypeBool.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureRealFunc = JassIm.ImFunction(emptyTrace, "realEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeReal.instance().imTranslateType(this), "x", false)), WurstTypeReal.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                ensureStrFunc = JassIm.ImFunction(emptyTrace, "stringEnsure", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                stringConcatFunc =JassIm.ImFunction(emptyTrace, "stringConcat", ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "x", false),JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "y", false)), WurstTypeString.instance().imTranslateType(this), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
-                addFunction(ensureIntFunc);
-                addFunction(ensureBoolFunc);
-                addFunction(ensureRealFunc);
-                addFunction(ensureStrFunc);
-                addFunction(stringConcatFunc);
+                // Portable IM bodies (not IS_NATIVE stubs) - see LuaEnsureFunctions for why.
+                List<ImFunction> luaHelperFunctions = new ArrayList<>();
+                ensureIntFunc = LuaEnsureFunctions.buildEnsureInt(luaHelperFunctions, this);
+                ensureBoolFunc = LuaEnsureFunctions.buildEnsureBool(luaHelperFunctions);
+                ensureRealFunc = LuaEnsureFunctions.buildEnsureReal(luaHelperFunctions, this);
+                ensureStrFunc = LuaEnsureFunctions.buildEnsureStr(luaHelperFunctions, this);
+                stringConcatFunc = LuaEnsureFunctions.buildStringConcat(luaHelperFunctions, this);
+                luaHelperFunctions.forEach(this::addFunction);
             }
 
             calculateCompiletimeOrder();
@@ -567,6 +707,8 @@ public class ImTranslator {
 
 
     private void finishInitFunctions() {
+        initializationOrder.clear();
+        initializationOrder.add(globalInitFunc);
         // init globals, at beginning of main func:
         getMainFunc().getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImTypeArguments(), ImExprs(), false, CallType.NORMAL));
 
@@ -635,6 +777,7 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         if (initFunc.getBody().size() == 0) {
             return;
         }
+        initializationOrder.add(initFunc);
         if (isLuaTarget()) {
             // In Lua mode, xpcall replaces TriggerEvaluate for error isolation without WC3 handle overhead.
             // Record the init function so the Lua translator can wrap it with xpcall.
@@ -965,6 +1108,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
                 if (m instanceof Annotation) {
                     Annotation annotation = (Annotation) m;
                     flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+                    if (NamePreservation.isPreserveAnnotation(annotation.getAnnotationType())) {
+                        flags.add(PRESERVE_NAME);
+                    }
                 }
             }
         }
@@ -1360,11 +1506,37 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         final ImFunction conf = getConfFunc();
         if (conf != null && conf != main) calculateCallRelations(conf, includeUsedVariables);
 
-        // mark protected globals as read
-        // TRVEHelper.protectedVariables is presumably a HashSet<String> (O(1) contains)
+        // Preserved functions are externally visible entry points even when no Wurst code calls
+        // them. Keep their bodies and everything they call reachable for both backends.
+        for (ImFunction function : ImHelper.calculateFunctionsOfProg(imProg)) {
+            if (NamePreservation.isPreserved(function)) {
+                calculateCallRelations(function, includeUsedVariables);
+            }
+        }
+
+        // Mark externally visible globals as read so they survive garbage collection.
         for (ImVar global : imProg.getGlobals()) {
-            if (TRVEHelper.protectedVariables.contains(global.getName())) {
-                readVariables.add(global);
+            if (NamePreservation.isPreserved(global)) readVariables.add(global);
+        }
+
+        // The game initialises common.j and blizzard.j globals itself, so their initialisers are in no
+        // function body, and the interpreters evaluate them when the global is first read. A read one
+        // keeps what its initialiser reads: bj_DEGTORAD keeps bj_PI.
+        ArrayDeque<ImVar> bjGlobals = new ArrayDeque<>(readVariables);
+        while (!bjGlobals.isEmpty()) {
+            ImVar global = bjGlobals.removeLast();
+            if (!global.getIsBJ()) {
+                continue;
+            }
+            for (ImSet init : imProg.getGlobalInits().getOrDefault(global, Collections.emptyList())) {
+                for (ImVar read : UsedVariables.calculateReadVars(init.getRight())) {
+                    if (includeUsedVariables) {
+                        usedVariables.add(read);
+                    }
+                    if (readVariables.add(read)) {
+                        bjGlobals.add(read);
+                    }
+                }
             }
         }
     }
@@ -1414,7 +1586,9 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
     public ImFunction getMainFunc() { return mainFunc; }
     public ImFunction getConfFunc() { return configFunc; }
 
-
+    public List<ImFunction> getInitializationOrder() {
+        return Collections.unmodifiableList(initializationOrder);
+    }
 
     /**
      * returns a list of classes and functions implementing funcDef
@@ -1555,6 +1729,21 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     Map<ConstructorDef, ImFunction> constrNewFuncs = Maps.newLinkedHashMap();
 
+    private ImFunction genericNewMarker;
+
+    public ImFunction getGenericNewMarker() {
+        if (genericNewMarker == null) {
+            ImTypeVar typeVar = JassIm.ImTypeVar("T");
+            genericNewMarker = ImFunction(emptyTrace, de.peeeq.wurstscript.CompilerIntrinsics.NEW_MARKER,
+                ImTypeVars(typeVar), ImVars(), JassIm.ImTypeVarRef(typeVar), ImVars(), ImStmts(), flags());
+        }
+        return genericNewMarker;
+    }
+
+    public boolean isGenericNewMarker(ImFunction function) {
+        return function == genericNewMarker;
+    }
+
     public ImFunction getConstructNewFunc(ConstructorDef constr) {
         ImFunction f = constrNewFuncs.get(constr);
         if (f == null) {
@@ -1681,6 +1870,67 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         return typeVariableReverse.get(tv);
     }
 
+    /**
+     * The signature node standing for one type class requirement.
+     * <p>
+     * Requirements are shared across every use of the bound, so each interface method maps to
+     * exactly one node. Dispatch sites reference it, and each type argument carries the concrete
+     * implementation bound to it, which is what lets generic elimination turn a dispatch into a
+     * direct call.
+     */
+    public ImTypeClassFunc getTypeClassFunc(FuncDef method) {
+        return typeClassFuncs.computeIfAbsent(method, m -> {
+            ImTypeClassFunc result = JassIm.ImTypeClassFunc(m, m.getName(), JassIm.ImTypeVars(),
+                    JassIm.ImVars(), m.attrReturnTyp().imTranslateType(this));
+            imProg.getTypeClassFunctions().add(result);
+            return result;
+        });
+    }
+
+    private final Map<FuncDef, ImTypeClassFunc> typeClassFuncs = new LinkedHashMap<>();
+
+    /**
+     * Every type class implementation in the program, held per requirement against the type it is
+     * for.
+     * <p>
+     * A type argument can carry its instances directly, but that binding lives on the argument
+     * position and is lost as soon as a type variable is substituted into a plain type, which is
+     * what happens when a generic class type travels through a return type or a receiver. Instance
+     * selection is static, so recording the type is enough to recover it.
+     * <p>
+     * Matched by structural type equality rather than by printed name: a class prints as its simple
+     * name, so two classes of the same name in different packages would otherwise collide and the
+     * second would silently dispatch through the first. The lists hold one entry per instance of a
+     * requirement, so scanning them is cheaper than the printing it replaces.
+     */
+    private final Map<ImTypeClassFunc, List<TypeClassImpl>> typeClassImpls = new LinkedHashMap<>();
+
+    private record TypeClassImpl(ImType instanceType, ImFunction impl) {
+    }
+
+    public void registerTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType, ImFunction impl) {
+        List<TypeClassImpl> impls = typeClassImpls.computeIfAbsent(requirement, r -> new ArrayList<>());
+        for (TypeClassImpl existing : impls) {
+            if (existing.instanceType().equalsType(instanceType)) {
+                return;
+            }
+        }
+        impls.add(new TypeClassImpl(instanceType, impl));
+    }
+
+    public @Nullable ImFunction lookupTypeClassImpl(ImTypeClassFunc requirement, ImType instanceType) {
+        List<TypeClassImpl> impls = typeClassImpls.get(requirement);
+        if (impls == null) {
+            return null;
+        }
+        for (TypeClassImpl candidate : impls) {
+            if (candidate.instanceType().equalsType(instanceType)) {
+                return candidate.impl();
+            }
+        }
+        return null;
+    }
+
     public ImTypeVar getTypeVar(TypeParamDef tp) {
         // If we're translating inside a captured class (Iterator), prefer its override
         for (Map<TypeParamDef, ImTypeVar> m : typeVarOverrideStack) {
@@ -1771,6 +2021,33 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             varsForTupleVar.put(v, result);
         }
         return result;
+    }
+
+    /** Scalar leaves assigned for one source-level tuple variable, in source order. */
+    public List<ImVar> getTupleScalarVars(ImVar v) {
+        return getVarsForTuple(v).allValuesStream().toList();
+    }
+
+    VarsForTupleResult getVarsForTuple(ImVar v, ImType concreteStorageType) {
+        if (!TypesHelper.typeContainsTuples(v.getType())
+            && TypesHelper.typeContainsTuples(concreteStorageType)) {
+            VarsForTupleResult result = varsForTupleVar.get(v);
+            if (result != null) {
+                return result;
+            }
+            result = createVarsForType(v.getName(), concreteStorageType, Function.identity(), v.getTrace());
+            varsForTupleVar.put(v, result);
+            if (v.getParent() instanceof ImVars owner) {
+                int position = owner.indexOf(v) + 1;
+                for (ImVar scalar : result.allValues()) {
+                    if (!owner.contains(scalar)) {
+                        owner.add(position++, scalar);
+                    }
+                }
+            }
+            return result;
+        }
+        return getVarsForTuple(v);
     }
 
 
@@ -1892,6 +2169,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
             tempReturnVars.put(f, result);
         }
         return result;
+    }
+
+    void setTupleTempReturnVarsFor(ImFunction f, VarsForTupleResult vars) {
+        tempReturnVars.put(f, vars);
     }
 
     private final Map<ImFunction, ImType> originalReturnValues = Maps.newLinkedHashMap();
@@ -2300,5 +2581,29 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
 
     public RunArgs getRunArgs() {
         return runArgs;
+    }
+
+    private final Map<ImMethod, String> dispatchSegments = new IdentityHashMap<>();
+
+    /**
+     * The part of a dispatch group's assigned name which identifies the method rather than a class.
+     * <p>
+     * Recorded by {@code LuaDispatchPreparation.normalizeMethodNames}, the only place which knows it: it
+     * names a whole group after one member's already class-prefixed name, sanitises that into a Lua
+     * identifier, and uniques it against every name taken. Reconstructing the segment afterwards means
+     * cutting the result at a boundary nobody recorded, which is where four dispatch bugs came from -
+     * most memorably a method declared {@code get_it} composing a slot called {@code it}.
+     */
+    public void recordDispatchSegment(ImMethod method, String segment) {
+        dispatchSegments.put(method, segment);
+    }
+
+    /** The recorded segment, or the method's whole name when nothing recorded one - never a cut. */
+    public String dispatchSegmentOf(ImMethod method) {
+        if (method == null) {
+            return "";
+        }
+        String segment = dispatchSegments.get(method);
+        return segment != null ? segment : method.getName();
     }
 }

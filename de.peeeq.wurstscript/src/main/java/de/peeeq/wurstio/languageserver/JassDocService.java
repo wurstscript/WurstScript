@@ -13,7 +13,12 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -24,21 +29,29 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class JassDocService {
+
+    // Optional JassDoc configuration (environment variable or system property):
+    // WURST_JASSDOC_DB_AUTO_UPDATE=false keeps an existing latest DB indefinitely.
+    // WURST_JASSDOC_DB_PROXY overrides HTTPS_PROXY/HTTP_PROXY for JassDoc requests.
 
     public enum SymbolKind {
         FUNCTION, VARIABLE
@@ -247,7 +260,7 @@ public final class JassDocService {
                 }
                 try (Connection conn = open(dbPath.get())) {
                     List<TableSchema> schemas = discoverSchemas(conn);
-                    boolean hasLegacySchema = hasLegacyJassdocSchema(conn);
+                    boolean hasLegacySchema = hasCompatibleLegacyJassdocSchema(conn);
                     if (schemas.isEmpty() && !hasLegacySchema) {
                         WLogger.warning("JassDoc DB found, but no compatible documentation tables were detected.");
                         initFailed = true;
@@ -355,7 +368,7 @@ public final class JassDocService {
     }
 
     private @Nullable String lookupFromLegacyJassdocTables(Connection conn, LookupKey key) throws SQLException {
-        if (!tableExists(conn, "parameters")) {
+        if (!hasCompatibleLegacyJassdocSchema(conn)) {
             return null;
         }
         Map<String, String> params = readKeyValueRows(conn, "parameters", "fnname", "param", "value", key.symbolName());
@@ -527,7 +540,7 @@ public final class JassDocService {
         }
 
         boolean needsDownload = !Files.exists(dbPath);
-        if (!needsDownload && "latest".equals(revision)) {
+        if (!needsDownload && "latest".equals(revision) && autoUpdateEnabled()) {
             needsDownload = isStaleLatest(dbPath);
         }
 
@@ -590,7 +603,7 @@ public final class JassDocService {
     private List<String> readNewestReleaseAssetUrlsFromList() {
         List<String> urls = new ArrayList<>();
         try {
-            HttpURLConnection con = (HttpURLConnection) new URL(RELEASES_API).openConnection();
+            HttpURLConnection con = openHttpConnection(new URL(RELEASES_API));
             con.setConnectTimeout(10_000);
             con.setReadTimeout(20_000);
             con.setRequestMethod("GET");
@@ -625,7 +638,7 @@ public final class JassDocService {
     private List<String> readReleaseAssetUrls(String apiUrl) {
         List<String> urls = new ArrayList<>();
         try {
-            HttpURLConnection con = (HttpURLConnection) new URL(apiUrl).openConnection();
+            HttpURLConnection con = openHttpConnection(new URL(apiUrl));
             con.setConnectTimeout(10_000);
             con.setReadTimeout(20_000);
             con.setRequestMethod("GET");
@@ -710,6 +723,14 @@ public final class JassDocService {
         return modified.toInstant().isBefore(cutoff);
     }
 
+    boolean autoUpdateEnabled() {
+        return Utils.getEnvOrConfig("WURST_JASSDOC_DB_AUTO_UPDATE")
+            .map(value -> !value.equalsIgnoreCase("false")
+                && !value.equalsIgnoreCase("no")
+                && !value.equals("0"))
+            .orElse(true);
+    }
+
     private Duration parseDurationOrDefault(String text) {
         try {
             return Duration.parse(text);
@@ -720,22 +741,191 @@ public final class JassDocService {
 
     private void download(String urlString, Path target) throws IOException {
         URL url = new URL(urlString);
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        HttpURLConnection con = openHttpConnection(url);
         con.setConnectTimeout(10_000);
         con.setReadTimeout(20_000);
         con.setInstanceFollowRedirects(true);
         con.setRequestMethod("GET");
+        con.setRequestProperty("User-Agent", "WurstScript-LSP");
         int code = con.getResponseCode();
         if (code < 200 || code >= 300) {
             throw new IOException("HTTP " + code + " for " + urlString);
         }
         Path tmp = Files.createTempFile(target.getParent(), "jassdoc-", ".tmp");
-        try (InputStream in = con.getInputStream()) {
-            Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            try (InputStream in = con.getInputStream()) {
+                Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+            }
+            installDownloadedDatabase(tmp, target);
         } finally {
             con.disconnect();
+            Files.deleteIfExists(tmp);
         }
-        Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    void installDownloadedDatabase(Path downloaded, Path target) throws IOException {
+        validateDownloadedDatabase(downloaded);
+
+        Path backup = target.resolveSibling(target.getFileName() + ".bak");
+        if (Files.exists(target)) {
+            Path backupTmp = Files.createTempFile(target.getParent(), "jassdoc-backup-", ".tmp");
+            try {
+                Files.copy(target, backupTmp, StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.COPY_ATTRIBUTES);
+                replaceAtomically(backupTmp, backup);
+            } finally {
+                Files.deleteIfExists(backupTmp);
+            }
+        }
+
+        try {
+            replaceAtomically(downloaded, target);
+        } catch (IOException installFailure) {
+            if (Files.exists(backup)) {
+                restoreBackup(backup, target, installFailure);
+            }
+            throw installFailure;
+        }
+    }
+
+    void restoreBackup(Path backup, Path target, IOException installFailure) {
+        Path restoreTmp = null;
+        try {
+            restoreTmp = Files.createTempFile(target.getParent(), "jassdoc-restore-", ".tmp");
+            Files.copy(backup, restoreTmp, StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.COPY_ATTRIBUTES);
+            replaceAtomically(restoreTmp, target);
+        } catch (IOException restoreFailure) {
+            installFailure.addSuppressed(restoreFailure);
+        } finally {
+            if (restoreTmp != null) {
+                try {
+                    Files.deleteIfExists(restoreTmp);
+                } catch (IOException cleanupFailure) {
+                    installFailure.addSuppressed(cleanupFailure);
+                }
+            }
+        }
+    }
+
+    private void validateDownloadedDatabase(Path downloaded) throws IOException {
+        try (Connection conn = open(downloaded)) {
+            if (!passesIntegrityCheck(conn)) {
+                throw new IOException("Downloaded JassDoc database failed SQLite integrity check");
+            }
+            if (discoverSchemas(conn).isEmpty() && !hasCompatibleLegacyJassdocSchema(conn)) {
+                throw new IOException("Downloaded file is not a compatible JassDoc database");
+            }
+        } catch (SQLException e) {
+            throw new IOException("Downloaded file is not a valid JassDoc database", e);
+        }
+    }
+
+    private boolean passesIntegrityCheck(Connection conn) throws SQLException {
+        try (Statement statement = conn.createStatement();
+             ResultSet result = statement.executeQuery("PRAGMA integrity_check")) {
+            return result.next()
+                && "ok".equalsIgnoreCase(result.getString(1))
+                && !result.next();
+        }
+    }
+
+    private void replaceAtomically(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private HttpURLConnection openHttpConnection(URL url) throws IOException {
+        Optional<String> proxySetting = selectProxySetting(url, Utils::getEnvOrConfig);
+        if (proxySetting.isEmpty()) {
+            return (HttpURLConnection) url.openConnection();
+        }
+
+        URI proxyUri = parseHttpProxyUri(proxySetting.get());
+        int port = proxyUri.getPort() >= 0 ? proxyUri.getPort() : 80;
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyUri.getHost(), port));
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection(proxy);
+        if (proxyUri.getUserInfo() != null) {
+            String credentials = Base64.getEncoder().encodeToString(
+                proxyUri.getUserInfo().getBytes(StandardCharsets.UTF_8));
+            connection.setRequestProperty("Proxy-Authorization", "Basic " + credentials);
+        }
+        return connection;
+    }
+
+    static Optional<String> selectProxySetting(URL url,
+                                                Function<String, Optional<String>> lookup) {
+        Optional<String> proxySetting = lookup.apply("WURST_JASSDOC_DB_PROXY");
+        if (proxySetting.isPresent()) {
+            return proxySetting;
+        }
+        Optional<String> noProxy = firstConfigured(lookup, "NO_PROXY", "no_proxy");
+        if (noProxy.isPresent() && shouldBypassProxy(url.getHost(), noProxy.get())) {
+            return Optional.empty();
+        }
+        if ("https".equalsIgnoreCase(url.getProtocol())) {
+            return firstConfigured(lookup, "HTTPS_PROXY", "https_proxy");
+        }
+        if ("http".equalsIgnoreCase(url.getProtocol())) {
+            return firstConfigured(lookup, "HTTP_PROXY", "http_proxy");
+        }
+        return Optional.empty();
+    }
+
+    static URI parseHttpProxyUri(String value) throws IOException {
+        URI proxyUri;
+        try {
+            proxyUri = URI.create(value.contains("://") ? value : "http://" + value);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid JassDoc proxy URL", e);
+        }
+        if (proxyUri.getHost() == null) {
+            throw new IOException("Invalid JassDoc proxy URL: missing host");
+        }
+        if (!"http".equalsIgnoreCase(proxyUri.getScheme())) {
+            throw new IOException("Unsupported JassDoc proxy scheme '" + proxyUri.getScheme()
+                + "'; use an http:// proxy URL");
+        }
+        return proxyUri;
+    }
+
+    static boolean shouldBypassProxy(String host, String noProxySetting) {
+        String normalizedHost = host.toLowerCase(Locale.ROOT);
+        for (String rawEntry : noProxySetting.split(",")) {
+            String entry = rawEntry.trim().toLowerCase(Locale.ROOT);
+            if (entry.equals("*")) {
+                return true;
+            }
+            int portSeparator = entry.lastIndexOf(':');
+            if (portSeparator > 0 && entry.indexOf(':') == portSeparator) {
+                entry = entry.substring(0, portSeparator);
+            }
+            if (entry.startsWith("*.")) {
+                entry = entry.substring(1);
+            }
+            if (entry.startsWith(".")) {
+                if (normalizedHost.endsWith(entry)
+                    || normalizedHost.equals(entry.substring(1))) {
+                    return true;
+                }
+            } else if (!entry.isEmpty() && (normalizedHost.equals(entry)
+                || normalizedHost.endsWith("." + entry))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Optional<String> firstConfigured(
+        Function<String, Optional<String>> lookup, String... names) {
+        return Stream.of(names)
+            .map(lookup)
+            .flatMap(Optional::stream)
+            .findFirst();
     }
 
     private Connection open(Path dbPath) throws SQLException {
@@ -778,8 +968,32 @@ public final class JassDocService {
         return result;
     }
 
-    private boolean hasLegacyJassdocSchema(Connection conn) throws SQLException {
-        return tableExists(conn, "parameters");
+    private boolean hasCompatibleLegacyJassdocSchema(Connection conn) throws SQLException {
+        return tableHasColumns(conn, "parameters", "fnname", "param", "value")
+            && (!tableExists(conn, "annotations")
+                || tableHasColumns(conn, "annotations", "fnname", "anname", "value"))
+            && (!tableExists(conn, "params_extra")
+                || tableHasColumns(conn, "params_extra", "fnname", "param", "anname", "value"));
+    }
+
+    private boolean tableHasColumns(Connection conn, String tableName, String... requiredColumns)
+            throws SQLException {
+        Set<String> columns = new HashSet<>();
+        DatabaseMetaData md = conn.getMetaData();
+        try (ResultSet result = md.getColumns(null, null, tableName, "%")) {
+            while (result.next()) {
+                String name = result.getString("COLUMN_NAME");
+                if (name != null) {
+                    columns.add(name.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        for (String required : requiredColumns) {
+            if (!columns.contains(required)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean tableExists(Connection conn, String tableName) throws SQLException {

@@ -2,6 +2,7 @@ package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
@@ -23,6 +24,8 @@ public class JassInterpreter implements AbstractInterpreter {
     private JassProg prog;
     private static final ReturnException staticReturnException = new ReturnException(null);
     private Map<String, ILconst> globalVarMap;
+    /** common.j and blizzard.j globals whose initialiser has not been evaluated yet. */
+    private final Map<String, JassInitializedVar> uninitializedBjGlobals = new HashMap<>();
     private boolean trace = false;
     private final Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
@@ -311,6 +314,12 @@ public class JassInterpreter implements AbstractInterpreter {
                     }
 
                     @Override
+                    public ILconst case_JassOpMod(JassOpMod jassOpMod) {
+                        return new ILconstInt(WurstOperator.jassModuloInteger(
+                            ((ILconstInt) getLeft()).getVal(), ((ILconstInt) getRight()).getVal()));
+                    }
+
+                    @Override
                     public ILconst case_JassOpLess(JassOpLess jassOpLess) {
                         return getLeftNum().less(getRightNum());
                     }
@@ -379,7 +388,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
             @Override
             public ILconst case_JassExprStringVal(JassExprStringVal e) {
-                return new ILconstString(e.getValS());
+                return ILconstString.fromText(e.getValS());
             }
 
             @Override
@@ -438,7 +447,12 @@ public class JassInterpreter implements AbstractInterpreter {
         if (value == null) {
             value = globalVarMap.get(name);
             if (value == null) {
-                throw new InterpreterException("Variable " + name + " not found.");
+                JassInitializedVar bjGlobal = uninitializedBjGlobals.remove(name);
+                if (bjGlobal == null) {
+                    throw new InterpreterException("Variable " + name + " not found.");
+                }
+                value = executeExpr(Collections.emptyMap(), bjGlobal.getVal());
+                globalVarMap.put(name, value);
             }
         }
         return value;
@@ -496,7 +510,13 @@ public class JassInterpreter implements AbstractInterpreter {
         for (JassVar var : prog.getGlobals()) {
             if (var instanceof JassInitializedVar) {
                 JassInitializedVar iVar = (JassInitializedVar) var;
-                globalVarMap.put(iVar.getName(), executeExpr(Collections.emptyMap(), iVar.getVal()));
+                if (iVar.getIsBj()) {
+                    // Evaluated on first read, as the IM interpreter does, so that an initialiser without
+                    // a native mock only matters to a program that reads the global.
+                    uninitializedBjGlobals.put(iVar.getName(), iVar);
+                } else {
+                    globalVarMap.put(iVar.getName(), executeExpr(Collections.emptyMap(), iVar.getVal()));
+                }
             }
         }
         executeFunction("main");

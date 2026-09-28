@@ -33,7 +33,6 @@ import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
-import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
@@ -41,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -58,6 +58,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private Optional<File> mapFile = Optional.empty();
+    private @Nullable File objectDataSource;
+    private boolean importFiles = true;
     private @Nullable File projectFolder;
     private final ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
@@ -83,6 +85,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.parser = new WurstParser(errorHandler, gui);
         this.checker = new WurstChecker(gui, errorHandler, runArgs.isLegacyJassTypeChecks());
         this.mapFileMpq = mapFileMpq;
+    }
+
+    /**
+     * Sets the map whose object data compiletime functions start from, when the compiled map is not
+     * a fresh copy of it (see {@link de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO#setObjectDataSource}).
+     */
+    public void setObjectDataSource(@Nullable File objectDataSource) {
+        this.objectDataSource = objectDataSource;
+    }
+
+    /** Whether injecting objects also adds the project's imports; off when the caller imports them itself. */
+    public void setImportFiles(boolean importFiles) {
+        this.importFiles = importFiles;
     }
 
     @Override
@@ -111,11 +126,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
-                CompiletimeFunctions, projectConfigData, isProd, cache);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.setOutputStream(new PrintStream(System.err));
-            ctr.run();
+            // Use try-with-resources to release open native resources (e.g., SQLite DB handles) after compiletime execution finishes.
+            try (CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+                CompiletimeFunctions, projectConfigData, isProd, cache)) {
+                ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.getGlobalState().setObjectDataSource(objectDataSource);
+                ctr.setOutputStream(new PrintStream(System.err));
+                ctr.run();
+            }
         }
 
         if (gui.getErrorCount() > 0) {
@@ -125,7 +143,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
 
-        if (runArgs.isInjectObjects()) {
+        if (runArgs.isInjectObjects() && importFiles) {
             Preconditions.checkNotNull(mapFileMpq);
             Preconditions.checkNotNull(projectFolder);
             // add the imports
@@ -334,7 +352,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Is your dependency present in _build/dependencies?"));
             return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
-            return addCompilationUnit.apply(file);
+            CompilationUnit lib = addCompilationUnit.apply(file);
+            lib.getCuInfo().setLibrary(true);
+            return lib;
         }
     }
 
@@ -405,6 +425,23 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
         timeTaker.endPhase();
 
+        beginPhase(2, "lower generic keyed-map values");
+        JassKeyedMapLowering.transform(imProg2);
+        timeTaker.endPhase();
+
+        // Generic elimination has made each specialisation's element type concrete and classes are
+        // integers by now, so the integer key a Jass keyed set needs follows from the type. Before
+        // inlining, so every call site agrees on one body.
+        beginPhase(2, "lower keyed-set key projection");
+        JassKeyOfLowering.transform(imProg2);
+        timeTaker.endPhase();
+
+        if (!runArgs.isNoDebugMessages() && runArgs.isIncludeStacktraces()) {
+            beginPhase(4, "add stack traces");
+            new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
+            timeTaker.endPhase();
+        }
+
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         imTranslator2.assertProperties();
@@ -415,14 +452,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg2);
             timeTaker.endPhase();
-        } else {
-            // debug: add stacktraces
-            if (runArgs.isIncludeStacktraces()) {
-                beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
-                timeTaker.endPhase();
-            }
         }
+
         imTranslator2.assertProperties();
 
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
@@ -630,6 +661,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     public @Nullable ImProg translateProgToIm(WurstModel root) {
         beginPhase(1, "to intermediate lang");
+        // Names of generated temporaries are counted from here, so that the same source compiles
+        // to the same script whatever was compiled before it in this process.
+        Flatten.resetTempVarCounters();
         // translate wurst to intermediate lang:
         imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
         imProg = getImTranslator().translateProg();
@@ -690,11 +724,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // extract mapscript:
         try {
             byte[] tempBytes = mapMpq.extractFile("war3map.j");
-            File tempFile = File.createTempFile("war3map", ".j", TempDir.get()); // TODO work directly with bytes without temp file
-            tempFile.deleteOnExit();
-            Files.write(tempBytes, tempFile);
 
-            if (isWurstGenerated(tempFile)) {
+            if (isWurstGenerated(tempBytes)) {
                 // the war3map.j file was generated by wurst
                 // this should not be the case, as we will get duplicate function errors in this case
                 throw new AbortCompilationException(
@@ -709,12 +740,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 throw new AbortCompilationException("Could not create Wurst folder at " + wurstFolder + ".");
             }
             File wurstwar3map = new File(wurstFolder, "war3map.j");
-            wurstwar3map.delete();
-            if (tempFile.renameTo(wurstwar3map)) {
-                return parseFile(wurstwar3map);
-            } else {
-                throw new Error("Could not move war3map.j from " + tempFile + " to " + wurstwar3map);
-            }
+            java.nio.file.Files.write(wurstwar3map.toPath(), tempBytes);
+            return parseFile(wurstwar3map);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -723,11 +750,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     }
 
-    private boolean isWurstGenerated(File tempFile) {
-        try (FileReader fr = new FileReader(tempFile); BufferedReader in = new BufferedReader(fr)) {
+    private boolean isWurstGenerated(byte[] contents) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(
+            new ByteArrayInputStream(contents), StandardCharsets.UTF_8))) {
             String firstLine = in.readLine();
             WLogger.info("firstLine = '" + firstLine + "'");
-            return firstLine.equals(JassPrinter.WURST_COMMENT);
+            return JassPrinter.WURST_COMMENT.equals(firstLine);
         } catch (IOException e) {
             WLogger.severe(e);
         }
@@ -873,6 +901,25 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         ImAttrType.setWurstClassType(null);
         int stage;
+        boolean specializeTupleValueTypes = containsTupleTypeArgument();
+        EliminateGenerics luaGenerics = new EliminateGenerics(getImTranslator(), getImProg());
+        if (containsGenericNewCall() || containsTypeClassDispatch() || specializeTupleValueTypes
+            || luaGenerics.hasGenericStatics()) {
+            beginPhase(2, "Specialize generics for Lua-only concrete operations");
+            luaGenerics.transformGenericNewOnly(specializeTupleValueTypes);
+            // Remove phantom erased initialization before optimization can preserve only its side
+            // effect. A specialized static owns its copied initializer unless the erased static is live.
+            RemoveGarbage.removePhantomGenericStaticInitializers(getImProg(), getImTranslator());
+            timeTaker.endPhase();
+        }
+        // Before stack traces: that pass appends a parameter to every affected function, and on
+        // Lua every non-native function is affected, so the exact signatures the keyed-table
+        // operations are recognised by would stop matching - silently leaving their Jass bodies on
+        // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
+        beginPhase(4, "lower keyed tables");
+        LuaNativeLowering.lowerKeyedTables(imProg);
+        timeTaker.endPhase();
+
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg);
@@ -885,20 +932,40 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 timeTaker.endPhase();
             }
         }
+        // Same position as on Jass: after stack traces, before lowering and inlining. Calls with a
+        // static argument count go to fixed-arity copies, so the emitted Lua packs no table and the
+        // copies can inline; originals stay for dispatch, function references and calls above the bound.
+        beginPhase(4, "eliminate varargs");
+        new VarargEliminator(imProg, true).run();
+        imTranslator.assertProperties();
+        timeTaker.endPhase();
+
         ImTranslator imTranslator2 = getImTranslator();
         ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
 
         // Lower Lua-specific native calls into IM-level wrappers before optimization,
         // so the optimizer can inline and eliminate the nil-safety checks and remapped stubs.
         beginPhase(4, "lua native lowering");
-        LuaNativeLowering.transform(imProg);
+        LuaNativeLowering.transform(imProg, imTranslator2);
         timeTaker.endPhase();
 
         // inliner
         stage = 5;
         if (runArgs.isInline()) {
+            // Expose hot loop calls which cannot dispatch anywhere else to the ordinary inliner.
+            // Calls outside loops keep their established method/slot representation.
+            beginPhase(5, "lower monomorphic Lua method calls");
+            LuaMethodCallLowering.transform(imProg);
+            imTranslator.assertProperties();
+            timeTaker.endPhase();
+
             beginPhase(5, "inlining");
             optimizer.doInlining();
+            imTranslator2.assertProperties();
+
+            // Inlining a delegating method into a loop (op_index -> get) leaves the call it
+            // delegates to inside that loop. Lower and inline those calls too, down the chain.
+            optimizer.inlineExposedLoopCalls();
             imTranslator2.assertProperties();
 
             printDebugImProg("./test-output/lua/im " + stage++ + "_afterinline.im");
@@ -910,6 +977,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         getImProg().flatten(imTranslator2);
         EliminateLocalTypes.eliminateLocalTypesProg(getImProg(), imTranslator2);
 
+        timeTaker.beginPhase("eliminate tuples");
+        getImProg().flatten(imTranslator2);
+        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
+        imTranslator2.assertProperties(AssertProperty.NOTUPLES);
+        timeTaker.endPhase();
+
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
@@ -917,6 +990,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isLocalOptimizations()) {
             beginPhase(10, "local optimizations");
             optimizer.localOptimizations();
+            timeTaker.endPhase();
+        }
+
+        if (runArgs.isInline() && runArgs.isLocalOptimizations()) {
+            beginPhase(10, "inline Lua arithmetic helpers within allocated local budget");
+            int arithmeticHelpersInlined = optimizer.inlineLuaDivModHelpersWithinLocalBudget();
+            if (arithmeticHelpersInlined > 0) {
+                optimizer.localOptimizations();
+            }
             timeTaker.endPhase();
         }
 
@@ -944,12 +1026,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             timeTaker.endPhase();
         }
         beginPhase(13, "lua remove garbage");
-        RemoveGarbage.removeGarbage(imProg);
+        RemoveGarbage.removeGarbage(imProg, imTranslator);
         imProg.flatten(imTranslator);
         timeTaker.endPhase();
 
         beginPhase(13, "prepare lua dispatch");
-        LuaDispatchPreparation.prepare(imProg);
+        LuaDispatchPreparation.prepare(imProg, imTranslator);
+        timeTaker.endPhase();
+
+        // After the last optimization, so nothing folds the temporaries back into the casts.
+        beginPhase(13, "old-generics cast operands");
+        LuaOldGenericsCasts.transform(imProg, imTranslator);
         timeTaker.endPhase();
 
         beginPhase(14, "translate to lua");
@@ -958,5 +1045,48 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImAttrType.setWurstClassType(TypesHelper.imInt());
         timeTaker.endPhase();
         return luaCode;
+    }
+
+    /** Whether the program constructs a value of a type parameter, which needs its concrete type. */
+    private boolean containsGenericNewCall() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                if (getImTranslator().isGenericNewMarker(call.getFunc())) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+        });
+        return found[0];
+    }
+
+    /** Whether the program dispatches on a type class bound anywhere. */
+    private boolean containsTypeClassDispatch() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    /** Tuple type arguments need monomorphisation before tuples can become scalar storage. */
+    private boolean containsTupleTypeArgument() {
+        boolean[] found = {false};
+        getImProg().accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeArgument argument) {
+                if (TypesHelper.typeContainsTuples(argument.getType())) {
+                    found[0] = true;
+                }
+                super.visit(argument);
+            }
+        });
+        return found[0];
     }
 }

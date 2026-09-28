@@ -10,17 +10,51 @@ import java.util.*;
 
 public class ImHelper {
 
+    /** A Jass function takes at most this many parameters. */
+    public static final int JASS_MAX_PARAMETERS = 31;
+
+    /**
+     * How many Jass parameters a value of this type occupies.
+     * <p>
+     * A tuple is passed as one parameter per component, so an IM signature which looks well inside the
+     * limit can emit a Jass one which is not. Any pass which builds a signature has to count this way
+     * rather than counting parameters.
+     */
+    public static int flattenedJassArity(ImType type) {
+        if (type instanceof ImTupleType tupleType) {
+            int result = 0;
+            List<ImType> types = tupleType.getTypes();
+            for (int i = 0; i < types.size(); i++) {
+                result += flattenedJassArity(types.get(i));
+            }
+            return result;
+        }
+        return 1;
+    }
+
     public static Set<ImFunction> calculateFunctionsOfProg(ImProg prog) {
-        Set<ImFunction> allFunctions = new HashSet<>(prog.getFunctions());
-        for(ImClass c : prog.getClasses()) {
-            allFunctions.addAll(c.getFunctions());
+        ImFunctions functions = prog.getFunctions();
+        ImClasses classes = prog.getClasses();
+        int functionCount = functions.size();
+        for (int i = 0; i < classes.size(); i++) {
+            functionCount += classes.get(i).getFunctions().size();
+        }
+        Set<ImFunction> allFunctions = HashSet.newHashSet(functionCount);
+        for (int i = 0; i < functions.size(); i++) {
+            allFunctions.add(functions.get(i));
+        }
+        for (int i = 0; i < classes.size(); i++) {
+            ImFunctions classFunctions = classes.get(i).getFunctions();
+            for (int j = 0; j < classFunctions.size(); j++) {
+                allFunctions.add(classFunctions.get(j));
+            }
         }
         return allFunctions;
     }
 
     static void translateParameters(WParameters params, ImVars result, ImTranslator t) {
-        for (WParameter p : params) {
-            result.add(t.getVarFor(p));
+        for (int i = 0; i < params.size(); i++) {
+            result.add(t.getVarFor(params.get(i)));
         }
     }
 
@@ -39,8 +73,8 @@ public class ImHelper {
     }
 
     public static void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
-        for (ImStmt s : stmts) {
-            replaceVar(s, oldVar, newVar);
+        for (int i = 0; i < stmts.size(); i++) {
+            replaceVar(stmts.get(i), oldVar, newVar);
         }
     }
 
@@ -145,8 +179,9 @@ public class ImHelper {
             @Override
             public ImExpr case_ImTupleType(ImTupleType tt) {
                 ImExprs res = JassIm.ImExprs();
-                for (ImType it : tt.getTypes()) {
-                    res.add(defaultValueForComplexType(it));
+                List<ImType> types = tt.getTypes();
+                for (int i = 0; i < types.size(); i++) {
+                    res.add(defaultValueForComplexType(types.get(i)));
                 }
                 return JassIm.ImTupleExpr(res);
             }

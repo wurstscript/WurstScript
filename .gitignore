@@ -60,3 +60,5 @@ de.peeeq.wurstscript/output.txt
 /HelperScripts/.gradle
 /.gradle-user-home
 /gradle-home-temp
+/.claude/
+/LOOP.md

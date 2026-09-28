@@ -6,19 +6,27 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.GenericTypes;
+import de.peeeq.wurstscript.translation.imtranslation.LuaDispatchPreparation;
 import de.peeeq.wurstscript.translation.imtranslation.LuaNativeLowering;
+import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
     private static final int LUA_LOCALS_LIMIT = 200;
+    private static final int LUA_STORAGE_ALIAS_LOCAL_BUDGET = 190;
+    private static final int LUA_STORAGE_ALIAS_LIMIT = 16;
     private static final List<String> HASHTABLE_HANDLE_SAVE_NAMES = Arrays.asList(
         "SavePlayerHandle", "SaveWidgetHandle", "SaveDestructableHandle", "SaveItemHandle", "SaveUnitHandle",
         "SaveAbilityHandle", "SaveTimerHandle", "SaveTriggerHandle", "SaveTriggerConditionHandle",
@@ -75,6 +83,58 @@ public class LuaTranslator {
     private final LuaStatements deferredMainInit = LuaAst.LuaStatements();
     private final Map<String, Integer> uniqueNameCounters = new HashMap<>();
     private final Set<String> usedNames = LuaReservedNames.all();
+    private final Set<LuaVariable> localizableStorageTables = Collections.newSetFromMap(new IdentityHashMap<>());
+    private LuaFunction bootstrapFunction;
+    private final Set<String> emittedDispatchSlots = new HashSet<>();
+    private final Map<ImClass, Set<String>> emittedDispatchSlotsByClass = new IdentityHashMap<>();
+    private final Map<ImClass, Map<String, Set<DispatchGroupIdentity>>> emittedDispatchSlotGroupsByClass = new IdentityHashMap<>();
+    private final Map<DispatchGroupIdentity, Set<ImClass>> concreteReceiverClassesByGroup = new HashMap<>();
+    private final Map<ImClass, Set<ImClass>> concreteReceiverClassesByNominalType = new IdentityHashMap<>();
+    private final Map<ImMethod, DispatchGroupIdentity> dispatchGroups = new IdentityHashMap<>();
+    private final Map<ImMethod, Set<ImClass>> concreteReceiverFamilyCache = new IdentityHashMap<>();
+    private final Map<DispatchGroupIdentity, String> canonicalDispatchSlots = new HashMap<>();
+    private boolean dispatchGroupsBuilt;
+    private boolean dispatchReceiverIndexBuilt;
+    private final List<PendingDispatch> pendingDispatches = new ArrayList<>();
+
+    private static final class PendingDispatch {
+        final ImMethod method;
+        final LuaExprFieldAccess target;
+
+        PendingDispatch(ImMethod method, LuaExprFieldAccess target) {
+            this.method = method;
+            this.target = target;
+        }
+    }
+
+    /**
+     * Identity of a dispatch group. The root is an IM method, not a generated Lua name: two
+     * unrelated groups are allowed to have equal names after generic elimination. Specializations
+     * moved onto one erased class retain their structural type arguments so distinct lowered
+     * signatures cannot overwrite one another's descriptor slot.
+     */
+    private static final class DispatchGroupIdentity {
+        final ImMethod root;
+        final GenericTypes specialization;
+        DispatchGroupIdentity(ImMethod root, GenericTypes specialization) {
+            this.root = root;
+            this.specialization = specialization;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof DispatchGroupIdentity that)) {
+                return false;
+            }
+            return root == that.root
+                && Objects.equals(specialization, that.specialization);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * System.identityHashCode(root) + Objects.hashCode(specialization);
+        }
+    }
 
     private ImProg getProg() {
         return prog;
@@ -82,12 +142,32 @@ public class LuaTranslator {
 
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
+    private final Map<ImFunction, LuaFunction> callbackAdapters = new IdentityHashMap<>();
+    private LuaFunction callbackErrorHandler;
+
+    // Array-default infrastructure (metatables/helper functions) shared across
+    // every array of a given entry type, instead of allocated per array
+    // instance - see newDefaultArray().
+    private final Map<String, LuaVariable> primitiveArrayMetatables = new HashMap<>();
+    private final List<LazyArrayDefault> lazyArrayDefaults = new ArrayList<>();
+
+    private static final class LazyArrayDefault {
+        final ImType entryType;
+        final LuaVariable metatableVar;
+
+        LazyArrayDefault(ImType entryType, LuaVariable metatableVar) {
+            this.entryType = entryType;
+            this.metatableVar = metatableVar;
+        }
+    }
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
-            if (!a.getIsBJ()) {
+            if (!a.getIsBJ() && !NamePreservation.isPreserved(a)) {
                 name = uniqueName(name);
+            } else {
+                usedNames.add(name);
             }
             return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
         }
@@ -98,9 +178,10 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative() && !isFixedEntryPoint(a)) {
+            if (!a.isExtern() && !a.isBj() && !a.isNative()
+                && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
                 name = uniqueName(name);
-            } else if (isFixedEntryPoint(a)) {
+            } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
                 usedNames.add(name);
             }
 
@@ -118,7 +199,9 @@ public class LuaTranslator {
         @Override
         public LuaMethod initFor(ImMethod a) {
             LuaExpr receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a.attrClass()));
-            return LuaAst.LuaMethod(receiver, a.getName(), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            // A method name is a table key, so it must be an identifier - but unlike a variable
+            // it must not be uniqued: every override has to keep landing in the same slot.
+            return LuaAst.LuaMethod(receiver, dispatchSlotName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -130,12 +213,86 @@ public class LuaTranslator {
         }
     };
 
-    GetAForB<ImClass, LuaVariable> luaClassMetaTableVar = new GetAForB<ImClass, LuaVariable>() {
+    /**
+     * Runtime class instances are positive integer ids. Field values live in one static Lua table
+     * per canonical IM field, indexed by that id; class descriptors remain static tables and are
+     * reached through {@link #objectClass}. Allocation therefore creates no per-instance table.
+     *
+     * <p>Destroy only removes the live-object descriptor before putting the id on the free stack.
+     * Field storage intentionally retains its value, matching the Jass backend's array-backed
+     * fields. A stale reference aliases a later object after that id is recycled; before reuse its
+     * descriptor is absent, so virtual dispatch fails and {@code instanceof} is false. Capturing
+     * closures use the same representation and, like Jass closures, retain their id until destroyed.
+     */
+    GetAForB<ImVar, LuaVariable> luaFieldStorage = new GetAForB<ImVar, LuaVariable>() {
         @Override
-        public LuaVariable initFor(ImClass a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName() + "_mt"), LuaAst.LuaNoExpr());
+        public LuaVariable initFor(ImVar field) {
+            LuaVariable storage = LuaAst.LuaVariable(uniqueName(field.getName() + "_storage"),
+                LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+            localizableStorageTables.add(storage);
+            return storage;
         }
     };
+
+    final LuaVariable objectClass = LuaAst.LuaVariable("__wurst_objectClass",
+        LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+    final LuaVariable objectFree = LuaAst.LuaVariable("__wurst_objectFree",
+        LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+    final LuaVariable objectMax = LuaAst.LuaVariable("__wurst_objectMax", LuaAst.LuaExprIntVal("0"));
+    final LuaVariable objectFreeCount = LuaAst.LuaVariable("__wurst_objectFreeCount", LuaAst.LuaExprIntVal("0"));
+    final LuaFunction objectDealloc = LuaAst.LuaFunction("__wurst_deallocObject", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    final LuaFunction classToIndex = LuaAst.LuaFunction("__wurst_classToIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
+    private final Map<String, LuaVariable> luaLibraries = new HashMap<>();
+
+    /** A reference to a Lua standard library table such as {@code math}; never declared. */
+    LuaVariable luaLibrary(String name) {
+        return luaLibraries.computeIfAbsent(name, n -> LuaAst.LuaVariable(n, LuaAst.LuaNoExpr()));
+    }
+    final LuaFunction classFromIndex = LuaAst.LuaFunction("__wurst_classFromIndex", LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    GetAForB<ImMethod, LuaFunction> luaDispatchFunc = new GetAForB<ImMethod, LuaFunction>() {
+        @Override
+        public LuaFunction initFor(ImMethod method) {
+            LuaVariable receiver = LuaAst.LuaVariable("receiver", LuaAst.LuaNoExpr());
+            LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+            LuaFunction result = LuaAst.LuaFunction(uniqueName("dispatch_" + method.getName()),
+                LuaAst.LuaParams(receiver, dots), LuaAst.LuaStatements());
+            LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
+                LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver)));
+            // The final slot is resolved after all class descriptors have been emitted. Generic
+            // lowering can leave an unspecialized call with a mangled method name while the
+            // implementing closure classes register the normalized alias (e.g. Predicate_test
+            // vs. test); the descriptor table is the authoritative source for that choice.
+            LuaExprFieldAccess target = LuaAst.LuaExprFieldAccess(
+                descriptor, isDestroyDispatchMethod(method)
+                    ? "__wurst_destroy"
+                    : dispatchSlotName(imTr.dispatchSegmentOf(method)));
+            LuaExprFunctionCallE call = LuaAst.LuaExprFunctionCallE(target,
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(receiver), LuaAst.LuaExprVarAccess(dots)));
+            pendingDispatches.add(new PendingDispatch(method, target));
+            result.getBody().add(LuaAst.LuaReturn(call));
+            luaModel.add(result);
+            return result;
+        }
+    };
+
+    /**
+     * A virtual call whose receiver is a plain variable: look the implementation up in the
+     * receiver's descriptor right here instead of calling a stub which forwards varargs. The slot
+     * is resolved later, together with the stubs, through the same pending-dispatch list.
+     */
+    LuaExpr inlineDispatchCall(ImMethod method, LuaExpr receiver, LuaExprlist args) {
+        LuaExpr descriptor = LuaAst.LuaExprArrayAccess(
+            LuaAst.LuaExprVarAccess(objectClass),
+            LuaAst.LuaExprlist(receiver.copy()));
+        LuaExprFieldAccess target = LuaAst.LuaExprFieldAccess(
+            descriptor, isDestroyDispatchMethod(method)
+                ? "__wurst_destroy"
+                : dispatchSlotName(imTr.dispatchSegmentOf(method)));
+        pendingDispatches.add(new PendingDispatch(method, target));
+        return LuaAst.LuaExprFunctionCallE(target, args);
+    }
 
     GetAForB<ImClass, LuaMethod> luaClassInitMethod = new GetAForB<ImClass, LuaMethod>() {
         @Override
@@ -145,25 +302,26 @@ public class LuaTranslator {
         }
     };
 
-    LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
-    LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    /** The int an old-generics int value 0 is stored as; see ExprTranslation.translate(ImCast). */
+    private final Lazy<LuaVariable> oldGenericsZero = Lazy.create(() -> LuaPolyfillSetup.createOldGenericsZero(this));
+    private final Lazy<LuaPolyfillSetup.OldGenericsHelpers> oldGenericsHelpers =
+        Lazy.create(() -> LuaPolyfillSetup.createOldGenericsCastFunctions(this));
+
+    /** Emitted on first use, so a map without old-generics casts carries none of it. */
+    LuaVariable oldGenericsZero() {
+        return oldGenericsZero.get();
+    }
+
+    LuaPolyfillSetup.OldGenericsHelpers oldGenericsHelpers() {
+        return oldGenericsHelpers.get();
+    }
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction stringToIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
     LuaFunction stringFromIndexFunction = LuaAst.LuaFunction(uniqueName("__wurst_stringFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
-    LuaFunction intDivFunction = LuaAst.LuaFunction(uniqueName("intDiv"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction modFunction = LuaAst.LuaFunction(uniqueName("wurstMod"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-
-    LuaFunction ensureIntFunction = LuaAst.LuaFunction(uniqueName("intEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureStrFunction = LuaAst.LuaFunction(uniqueName("stringEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureBoolFunction = LuaAst.LuaFunction(uniqueName("boolEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
-    LuaFunction ensureRealFunction = LuaAst.LuaFunction(uniqueName("realEnsure"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
         this.getProg().getFunctions().stream()
@@ -191,7 +349,8 @@ public class LuaTranslator {
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
-    protected String uniqueName(String name) {
+    protected String uniqueName(String rawName) {
+        String name = LuaIdentifiers.toIdentifier(rawName);
         Integer nextIndex = uniqueNameCounters.get(name);
         if (nextIndex == null) {
             uniqueNameCounters.put(name, 1);
@@ -211,21 +370,29 @@ public class LuaTranslator {
 
     public LuaCompilationUnit translate() {
         collectPredefinedNames();
+        assertNoDanglingFunctionReferences(prog);
 
         normalizeFieldNames();
 
 //        NormalizeNames.normalizeNames(prog);
 
-        createArrayInitFunction();
-        createDivModFunctions();
-        createStringConcatFunction();
+        createObjectManagement();
         createInstanceOfFunction();
         createObjectIndexFunctions();
         createStringIndexFunctions();
-        createEnsureTypeFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
+        }
+
+        Set<LuaVariable> emittedFieldStorage = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (ImClass c : prog.getClasses()) {
+            for (ImVar field : c.getFields()) {
+                LuaVariable storage = fieldStorage(field);
+                if (emittedFieldStorage.add(storage)) {
+                    luaModel.add(storage);
+                }
+            }
         }
 
         // first add class variables
@@ -246,11 +413,115 @@ public class LuaTranslator {
             initClassTables(c);
         }
 
+        resolveDispatchSlots();
+        assertResolvedDispatchSlots();
+
         createBootstrapFunction();
         cleanStatements();
+        demoteForLoopsOverLocalLimit();
+        localizeHotStorageTables();
         enforceLuaLocalLimits();
 
         return luaModel;
+    }
+
+    /**
+     * Function references need an xpcall boundary, but the boundary is a property of the referenced
+     * function rather than of each expression which names it. Emit one reusable adapter per target
+     * so evaluating a function reference performs no closure allocation.
+     */
+    LuaFunction callbackAdapterFor(ImFunction target) {
+        LuaFunction existing = callbackAdapters.get(target);
+        if (existing != null) {
+            return existing;
+        }
+
+        LuaFunction targetLua = luaFunc.getFor(target);
+        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+        LuaFunction adapter = LuaAst.LuaFunction(
+            uniqueName("__wurst_callback_" + targetLua.getName()),
+            LuaAst.LuaParams(dots), LuaAst.LuaStatements());
+        callbackAdapters.put(target, adapter);
+
+        LuaFunction errorHandler = callbackErrorHandler();
+        LuaExprFunctionCallByName xpcall = LuaAst.LuaExprFunctionCallByName("xpcall",
+            LuaAst.LuaExprlist(
+                LuaAst.LuaExprFuncRef(targetLua),
+                LuaAst.LuaExprFuncRef(errorHandler),
+                LuaAst.LuaExprVarAccess(dots.copy())));
+        if (target.getReturnType() instanceof ImVoid) {
+            adapter.getBody().add(xpcall);
+        } else {
+            // Keep exactly the first callback result. Returning select(2, xpcall(...)) directly
+            // could leak additional Lua return values into a surrounding argument list.
+            LuaVariable ignored = LuaAst.LuaVariable("_", LuaAst.LuaNoExpr());
+            LuaVariable result = LuaAst.LuaVariable("result", LuaAst.LuaNoExpr());
+            adapter.getBody().add(ignored);
+            adapter.getBody().add(result);
+            adapter.getBody().add(LuaAst.LuaAssignment(
+                LuaAst.LuaLiteral("_, result"), xpcall));
+            adapter.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(result)));
+        }
+        luaModel.add(adapter);
+        return adapter;
+    }
+
+    private LuaFunction callbackErrorHandler() {
+        if (callbackErrorHandler != null) {
+            return callbackErrorHandler;
+        }
+        LuaVariable err = LuaAst.LuaVariable("err", LuaAst.LuaNoExpr());
+        callbackErrorHandler = LuaAst.LuaFunction(uniqueName("__wurst_callback_error"),
+            LuaAst.LuaParams(err), LuaAst.LuaStatements());
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "if err == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL + "\" then return end"));
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "BJDebugMsg(\"lua callback error: \" .. tostring(err))"));
+        callbackErrorHandler.getBody().add(LuaAst.LuaLiteral(
+            "xpcall(function() " + ExprTranslation.callErrorFunc(this, "tostring(err)",
+                "in lua callback error handler")
+                + " end, function(err2) if err2 == \"" + ExprTranslation.WURST_ABORT_THREAD_SENTINEL
+                + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2))"
+                + " BJDebugMsg(\"while reporting: \" .. tostring(err)) end)"));
+        luaModel.add(callbackErrorHandler);
+        return callbackErrorHandler;
+    }
+
+    /**
+     * Rejects calls/references to functions that an earlier optimizer pass
+     * detached from the IM program. Without this invariant the Lua printer
+     * can emit a valid-looking call with no corresponding definition, which
+     * only fails once Warcraft executes that path.
+     */
+    static void assertNoDanglingFunctionReferences(ImProg prog) {
+        Set<ImFunction> rootedFunctions = Collections.newSetFromMap(new IdentityHashMap<>());
+        rootedFunctions.addAll(ImHelper.calculateFunctionsOfProg(prog));
+        prog.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
+            private void requireRooted(de.peeeq.wurstscript.jassIm.Element reference, ImFunction target) {
+                if (!rootedFunctions.contains(target)) {
+                    throw new Error("Lua IM contains a dangling reference to removed function '"
+                        + target.getName() + "' in " + reference);
+                }
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                requireRooted(call, call.getFunc());
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImFuncRef ref) {
+                requireRooted(ref, ref.getFunc());
+                super.visit(ref);
+            }
+
+            @Override
+            public void visit(ImMethod method) {
+                requireRooted(method, method.getImplementation());
+                super.visit(method);
+            }
+        });
     }
 
     void deferMainInit(LuaStatement statement) {
@@ -276,6 +547,7 @@ public class LuaTranslator {
         LuaVariable doneFlag = LuaAst.LuaVariable(uniqueName("__wurst_bootstrap_done"), LuaAst.LuaExprNull());
         luaModel.add(doneFlag);
         LuaFunction boot = LuaAst.LuaFunction(uniqueName("__wurst_init_bootstrap"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        bootstrapFunction = boot;
         boot.getBody().add(LuaAst.LuaLiteral("if " + doneFlag.getName() + " then return end"));
         boot.getBody().add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(doneFlag), LuaAst.LuaExprBoolVal(true)));
         List<LuaStatement> stmts = new ArrayList<>();
@@ -323,7 +595,8 @@ public class LuaTranslator {
 
     private void collectPredefinedNames() {
         for (ImFunction function : prog.getFunctions()) {
-            if (function.isBj() || function.isExtern() || function.isNative()) {
+            if (function.isBj() || function.isExtern() || function.isNative()
+                || NamePreservation.isPreserved(function)) {
                 // Don't rename Wurst-internal stubs (names starting with __wurst_)
                 // since their names are intentionally different from their trace's source name.
                 if (!function.getName().startsWith("__wurst_")) {
@@ -337,6 +610,8 @@ public class LuaTranslator {
             if (global.getIsBJ()) {
                 setNameFromTrace(global);
                 usedNames.add(global.getName());
+            } else if (NamePreservation.isPreserved(global)) {
+                usedNames.add(global.getName());
             }
         }
     }
@@ -349,20 +624,52 @@ public class LuaTranslator {
     }
 
     private void normalizeFieldNames() {
+        Map<ImVar, Set<String>> namesToAvoid = collectNamesEachFieldMustAvoid();
+        Map<ImVar, String> chosenNames = new IdentityHashMap<>();
         Set<ImClass> processed = new HashSet<>();
         for (ImClass c : prog.getClasses()) {
-            normalizeFieldNames(c, processed);
+            normalizeFieldNames(c, processed, namesToAvoid, chosenNames);
         }
     }
 
-    private void normalizeFieldNames(ImClass c, Set<ImClass> processed) {
+    /**
+     * The method names a field has to keep clear of, gathered per original field rather than per
+     * class.
+     * <p>
+     * A specialised class holds a copy of each field, and the accesses reaching either still name the
+     * original's variable — so the two must end up as one table key. They cannot be normalised
+     * independently: the classes need not hold the same methods once unused ones are dropped, and a
+     * specialisation has slots of its own that the original never had. Naming each side around only
+     * its own methods leaves them different; restoring the original's name afterwards puts back
+     * whatever collision the specialisation had escaped, and an instance field which shadows a method
+     * slot is found first by a virtual call, which then tries to call a field.
+     * <p>
+     * One name chosen against the methods of the original and of every specialisation is safe on all
+     * of them.
+     */
+    private Map<ImVar, Set<String>> collectNamesEachFieldMustAvoid() {
+        Map<ImVar, Set<String>> namesToAvoid = new IdentityHashMap<>();
+        for (ImClass c : prog.getClasses()) {
+            Set<String> reserved = new HashSet<>(LuaReservedNames.LUA_KEYWORDS);
+            collectMethodNames(c, reserved, new HashSet<>());
+            for (ImVar field : c.getFields()) {
+                namesToAvoid
+                    .computeIfAbsent(imTr.canonical(field), origin -> new HashSet<>())
+                    .addAll(reserved);
+            }
+        }
+        return namesToAvoid;
+    }
+
+    private void normalizeFieldNames(ImClass c, Set<ImClass> processed,
+                                     Map<ImVar, Set<String>> namesToAvoid, Map<ImVar, String> chosenNames) {
         if (!processed.add(c)) {
             return;
         }
         // Superclasses first: all fields of a hierarchy share one instance table,
         // so a subclass field must be renamed around already-final ancestor names.
         for (ImClassType sc : c.getSuperClasses()) {
-            normalizeFieldNames(sc.getClassDef(), processed);
+            normalizeFieldNames(sc.getClassDef(), processed, namesToAvoid, chosenNames);
         }
         // Field names become raw Lua table keys / field accesses, so they must not
         // collide with Lua keywords, method dispatch slots, or inherited fields.
@@ -370,15 +677,26 @@ public class LuaTranslator {
         collectMethodNames(c, reserved, new HashSet<>());
         collectSuperFieldNames(c, reserved, new HashSet<>());
         for (ImVar field : c.getFields()) {
-            if (reserved.contains(field.getName())) {
+            ImVar origin = imTr.canonical(field);
+            String settled = chosenNames.get(origin);
+            if (settled != null) {
+                // The original and its copies are one key, decided the first time any of them is met.
+                field.setName(settled);
+                reserved.add(settled);
+                continue;
+            }
+            Set<String> avoid = new HashSet<>(reserved);
+            avoid.addAll(namesToAvoid.getOrDefault(origin, Collections.emptySet()));
+            if (avoid.contains(field.getName())) {
                 String base = field.getName() + "_field";
                 String candidate = base;
                 int i = 1;
-                while (reserved.contains(candidate)) {
+                while (avoid.contains(candidate)) {
                     candidate = base + i++;
                 }
                 field.setName(candidate);
             }
+            chosenNames.put(origin, field.getName());
             reserved.add(field.getName());
         }
     }
@@ -402,23 +720,69 @@ public class LuaTranslator {
         }
         visited.add(c);
         for (ImMethod method : c.getMethods()) {
-            methodNames.add(method.getName());
+            methodNames.add(dispatchSlotName(method.getName()));
         }
         for (ImClassType sc : c.getSuperClasses()) {
             collectMethodNames(sc.getClassDef(), methodNames, visited);
         }
     }
 
-    private void createDivModFunctions() {
-        LuaPolyfillSetup.createDivModFunctions(this);
-    }
-
-    private void createStringConcatFunction() {
-        LuaPolyfillSetup.createStringConcatFunction(this);
-    }
-
     private void createInstanceOfFunction() {
         LuaPolyfillSetup.createInstanceOfFunction(this);
+    }
+
+    LuaVariable fieldStorage(ImVar field) {
+        return luaFieldStorage.getFor(imTr.canonical(field));
+    }
+
+    private void createObjectManagement() {
+        luaModel.add(objectClass);
+        localizableStorageTables.add(objectClass);
+        luaModel.add(objectFree);
+        luaModel.add(objectMax);
+        luaModel.add(objectFreeCount);
+
+        LuaVariable object = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        objectDealloc.getParams().add(object);
+        LuaVariable descriptor = LuaAst.LuaVariable("descriptor",
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))));
+        objectDealloc.getBody().add(descriptor);
+        objectDealloc.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(descriptor), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaExprFunctionCallByName("error",
+                LuaAst.LuaExprlist(LuaAst.LuaExprStringVal("Double free or invalid Wurst object.")))),
+            LuaAst.LuaStatements()));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(object))),
+            LuaAst.LuaExprNull()));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprVarAccess(objectFreeCount),
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+        objectDealloc.getBody().add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
+            LuaAst.LuaExprVarAccess(object)));
+        luaModel.add(objectDealloc);
+
+        LuaVariable toIndexObject = LuaAst.LuaVariable("object", LuaAst.LuaNoExpr());
+        classToIndex.getParams().add(toIndexObject);
+        classToIndex.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(toIndexObject), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprIntVal("0"))),
+            LuaAst.LuaStatements()));
+        classToIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(toIndexObject)));
+        luaModel.add(classToIndex);
+
+        LuaVariable fromIndexValue = LuaAst.LuaVariable("index", LuaAst.LuaNoExpr());
+        classFromIndex.getParams().add(fromIndexValue);
+        classFromIndex.getBody().add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(fromIndexValue), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
+            LuaAst.LuaStatements()));
+        classFromIndex.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(fromIndexValue)));
+        luaModel.add(classFromIndex);
     }
 
     private void createObjectIndexFunctions() {
@@ -427,14 +791,6 @@ public class LuaTranslator {
 
     private void createStringIndexFunctions() {
         LuaPolyfillSetup.createStringIndexFunctions(this);
-    }
-
-    private void createArrayInitFunction() {
-        LuaPolyfillSetup.createArrayInitFunction(this);
-    }
-
-    private void createEnsureTypeFunctions() {
-        LuaPolyfillSetup.createEnsureTypeFunctions(this);
     }
 
     private void cleanStatements() {
@@ -456,7 +812,9 @@ public class LuaTranslator {
                 it.remove();
             } else if (s instanceof LuaExpr) {
                 LuaExpr e = (LuaExpr) s;
-                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || e instanceof LuaExprFunctionCallE) {
+                boolean parenthesisedCall = e instanceof LuaExprFunctionCallE
+                    && !LuaPrinter.startsWithName(((LuaExprFunctionCallE) e).getFuncExpr());
+                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || parenthesisedCall) {
                     e.setParent(null);
                     LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);
                     it.set(exprTemp);
@@ -468,6 +826,9 @@ public class LuaTranslator {
     private void translateFunc(ImFunction f) {
         if (f.isBj()) {
             // do not translate blizzard functions
+            return;
+        }
+        if (f.isNative() && ExprTranslation.isBackendIntrinsic(f, this)) {
             return;
         }
         LuaFunction lf = luaFunc.getFor(f);
@@ -490,12 +851,10 @@ public class LuaTranslator {
             }
 
             // translate local variables
-            List<LuaVariable> functionLocals = new ArrayList<>();
             for (ImVar local : f.getLocals()) {
                 LuaVariable luaLocal = luaVar.getFor(local);
                 luaLocal.setInitialValue(defaultValue(local.getType()));
                 lf.getBody().add(luaLocal);
-                functionLocals.add(luaLocal);
             }
 
             // translate body:
@@ -558,6 +917,38 @@ public class LuaTranslator {
         ImVar firstParam = f.getParameters().get(0);
         LuaExpr arg = LuaAst.LuaExprVarAccess(luaVar.getFor(firstParam));
 
+        if (firstParam.getType() instanceof ImClassType && TypesHelper.isIntType(f.getReturnType())) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaIf(
+                LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprNull()),
+                LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprIntVal("0"))),
+                LuaAst.LuaStatements()));
+            lf.getBody().add(LuaAst.LuaReturn(arg));
+            return true;
+        }
+        if (TypesHelper.isIntType(firstParam.getType()) && f.getReturnType() instanceof ImClassType) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaIf(
+                LuaAst.LuaExprBinary(arg.copy(), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaStatements(LuaAst.LuaReturn(LuaAst.LuaExprNull())),
+                LuaAst.LuaStatements()));
+            lf.getBody().add(LuaAst.LuaReturn(arg));
+            return true;
+        }
+
+        if ("objectToIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(
+                LuaAst.LuaExprFunctionCall(toIndexFunction, LuaAst.LuaExprlist(arg))));
+            return true;
+        }
+        if ("objectFromIndex".equals(tcFunc)) {
+            lf.getBody().clear();
+            lf.getBody().add(LuaAst.LuaReturn(
+                LuaAst.LuaExprFunctionCall(fromIndexFunction, LuaAst.LuaExprlist(arg))));
+            return true;
+        }
+
         if ("stringToIndex".equals(tcFunc)) {
             lf.getBody().clear();
             lf.getBody().add(LuaAst.LuaReturn(LuaAst.LuaExprFunctionCall(stringToIndexFunction, LuaAst.LuaExprlist(arg))));
@@ -603,9 +994,169 @@ public class LuaTranslator {
         });
     }
 
+    /** Registers a numeric for loop occupies while it runs: three hidden control values and the variable. */
+    private static final int LUA_FOR_LOOP_REGISTERS = 4;
+
+    private static int forLoopRegisters(de.peeeq.wurstscript.luaAst.Element e) {
+        if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
+            return 0;
+        }
+        int[] count = {e instanceof LuaFor ? LUA_FOR_LOOP_REGISTERS : 0};
+        e.forEachElement(child -> count[0] += forLoopRegisters(child));
+        return count[0];
+    }
+
+    /**
+     * A numeric for loop needs registers which the counted locals do not show. Where they would push
+     * a function over the Lua limit, the loop goes back to the while form it was recognised from, so
+     * the locals-table fallback never has to spill a for-loop variable (which it cannot rewrite).
+     */
+    private void demoteForLoopsOverLocalLimit() {
+        luaModel.accept(new LuaModel.DefaultVisitor() {
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                demoteForLoopsOverLocalLimit(f.getParams(), f.getBody());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                demoteForLoopsOverLocalLimit(m.getParams(), m.getBody());
+            }
+        });
+    }
+
+    private void demoteForLoopsOverLocalLimit(LuaParams params, LuaStatements body) {
+        int registers = forLoopRegisters(body);
+        if (registers == 0) {
+            return;
+        }
+        int localCount = params.size() + collectFunctionScopeLocals(body).size() + registers;
+        if (localCount < LUA_LOCALS_LIMIT) {
+            return;
+        }
+        List<LuaFor> loops = new ArrayList<>();
+        collectForLoops(body, loops);
+        for (LuaFor loop : loops) {
+            LuaNumericFor.demote(loop);
+        }
+    }
+
+    private static void collectForLoops(de.peeeq.wurstscript.luaAst.Element e, List<LuaFor> out) {
+        if (e instanceof LuaExprFunctionAbstraction || e instanceof LuaFunction || e instanceof LuaMethod) {
+            return;
+        }
+        if (e instanceof LuaFor) {
+            out.add((LuaFor) e);
+        }
+        e.forEachElement(child -> collectForLoops(child, out));
+    }
+
+    /**
+     * Cache compiler-owned array and field-storage tables in function locals when they are indexed
+     * from a loop. This removes a global lookup from every dynamic iteration without changing cold
+     * paths or making assumptions about user-authored Lua tables. The cap and headroom avoid turning
+     * the optimization into register pressure or immediately triggering the locals-table fallback.
+     */
+    private void localizeHotStorageTables() {
+        luaModel.accept(new LuaModel.DefaultVisitor() {
+            @Override
+            public void visit(LuaFunction f) {
+                super.visit(f);
+                localizeHotStorageTables(f.getParams(), f.getBody());
+            }
+
+            @Override
+            public void visit(LuaMethod m) {
+                super.visit(m);
+                localizeHotStorageTables(m.getParams(), m.getBody());
+            }
+        });
+    }
+
+    private void localizeHotStorageTables(LuaParams params, LuaStatements body) {
+        Map<LuaVariable, Integer> loopAccessCounts = new IdentityHashMap<>();
+        collectLoopStorageAccesses(body, false, loopAccessCounts);
+        if (loopAccessCounts.isEmpty()) {
+            return;
+        }
+
+        int existingLocals = params.size() + collectFunctionScopeLocals(body).size() + forLoopRegisters(body);
+        int aliasCount = Math.min(LUA_STORAGE_ALIAS_LIMIT,
+            LUA_STORAGE_ALIAS_LOCAL_BUDGET - existingLocals);
+        if (aliasCount <= 0) {
+            return;
+        }
+
+        List<LuaVariable> selected = new ArrayList<>(loopAccessCounts.keySet());
+        selected.sort(Comparator.<LuaVariable>comparingInt(loopAccessCounts::get).reversed()
+            .thenComparing(LuaVariable::getName));
+        if (selected.size() > aliasCount) {
+            selected = new ArrayList<>(selected.subList(0, aliasCount));
+        }
+
+        Map<LuaVariable, LuaVariable> aliases = new IdentityHashMap<>();
+        for (LuaVariable storage : selected) {
+            aliases.put(storage, LuaAst.LuaVariable(uniqueName(storage.getName() + "_local"),
+                LuaAst.LuaExprVarAccess(storage)));
+        }
+        rewriteStorageAccesses(body, aliases);
+
+        int insertionIndex = bootstrapCallInsertionIndex(body);
+        for (LuaVariable storage : selected) {
+            body.add(insertionIndex++, aliases.get(storage));
+        }
+    }
+
+    private void collectLoopStorageAccesses(de.peeeq.wurstscript.luaAst.Element element, boolean insideLoop,
+                                            Map<LuaVariable, Integer> counts) {
+        if (element instanceof LuaExprFunctionAbstraction
+            || element instanceof LuaFunction || element instanceof LuaMethod) {
+            return;
+        }
+        boolean childInsideLoop = insideLoop || element instanceof LuaWhile || element instanceof LuaFor;
+        if (childInsideLoop && element instanceof LuaExprArrayAccess) {
+            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
+            if (left instanceof LuaExprVarAccess) {
+                LuaVariable storage = ((LuaExprVarAccess) left).getVar();
+                if (localizableStorageTables.contains(storage)) {
+                    counts.merge(storage, 1, Integer::sum);
+                }
+            }
+        }
+        element.forEachElement(child -> collectLoopStorageAccesses(child, childInsideLoop, counts));
+    }
+
+    private void rewriteStorageAccesses(de.peeeq.wurstscript.luaAst.Element element,
+                                        Map<LuaVariable, LuaVariable> aliases) {
+        if (element instanceof LuaExprFunctionAbstraction
+            || element instanceof LuaFunction || element instanceof LuaMethod) {
+            return;
+        }
+        if (element instanceof LuaExprArrayAccess) {
+            LuaExpr left = ((LuaExprArrayAccess) element).getLeft();
+            if (left instanceof LuaExprVarAccess) {
+                LuaVariable alias = aliases.get(((LuaExprVarAccess) left).getVar());
+                if (alias != null) {
+                    left.replaceBy(LuaAst.LuaExprVarAccess(alias));
+                }
+            }
+        }
+        element.forEachElement(child -> rewriteStorageAccesses(child, aliases));
+    }
+
+    private int bootstrapCallInsertionIndex(LuaStatements body) {
+        if (bootstrapFunction != null && !body.isEmpty() && body.get(0) instanceof LuaExprFunctionCall
+            && ((LuaExprFunctionCall) body.get(0)).getFunc() == bootstrapFunction) {
+            return 1;
+        }
+        return 0;
+    }
+
     private void spillLocalsIntoTableIfNeeded(String functionName, LuaParams params, LuaStatements body) {
         List<LuaVariable> scopeLocals = collectFunctionScopeLocals(body);
-        int localCount = params.size() + scopeLocals.size();
+        int localCount = params.size() + scopeLocals.size() + forLoopRegisters(body);
         if (DEBUG_LUA_LOCALS) {
             WLogger.info("[LUA_LOCALS] function=" + functionName + " params=" + params.size()
                 + " locals=" + scopeLocals.size() + " total=" + localCount);
@@ -709,6 +1260,8 @@ public class LuaTranslator {
             } else if (stmt instanceof LuaWhile) {
                 LuaWhile luaWhile = (LuaWhile) stmt;
                 rewriteLocalDeclarationsToTableAssignments(luaWhile.getBody(), localSet, localSlots, tableVar);
+            } else if (stmt instanceof LuaFor) {
+                rewriteLocalDeclarationsToTableAssignments(((LuaFor) stmt).getBody(), localSet, localSlots, tableVar);
             }
         }
     }
@@ -747,14 +1300,6 @@ public class LuaTranslator {
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
-        // one shared instance metatable per class — allocating a fresh
-        // {__index = classVar} table per instance would be pure garbage
-        LuaVariable metaTableVar = luaClassMetaTableVar.getFor(c);
-        metaTableVar.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
-        )));
-        luaModel.add(metaTableVar);
-
         luaModel.add(initMethod);
 
         // translate functions
@@ -769,42 +1314,61 @@ public class LuaTranslator {
     private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {
         // create init function:
         LuaStatements body = initMethod.getBody();
-        // local new_inst = { ... }
-        LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
-        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
-        for (ImVar field : collectFieldsForAllocation(c)) {
-            initialFieldValues.add(
-                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
-            );
-        }
-
-
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaNoExpr());
         body.add(newInst);
-        // setmetatable(new_inst, <shared class metatable>)
-        body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
-            LuaAst.LuaExprVarAccess(newInst),
-            LuaAst.LuaExprVarAccess(luaClassMetaTableVar.getFor(c))
-        )));
+        LuaStatements fresh = LuaAst.LuaStatements(
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectMax),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectMax), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))),
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst), LuaAst.LuaExprVarAccess(objectMax)));
+        LuaStatements recycled = LuaAst.LuaStatements(
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(newInst),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount)))),
+            LuaAst.LuaAssignment(
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectFree),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(objectFreeCount))),
+                LuaAst.LuaExprNull()),
+            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(objectFreeCount),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpMinus(), LuaAst.LuaExprIntVal("1"))));
+        body.add(LuaAst.LuaIf(
+            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(objectFreeCount), LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+            fresh, recycled));
+        body.add(LuaAst.LuaAssignment(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(objectClass),
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+            LuaAst.LuaExprVarAccess(classVar)));
+        for (ImVar field : collectFieldsForAllocation(c)) {
+            body.add(LuaAst.LuaAssignment(
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(fieldStorage(field)),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(newInst))),
+                defaultValue(field.getType())));
+        }
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
     }
 
     private List<ImVar> collectFieldsForAllocation(ImClass c) {
         List<ImVar> result = new ArrayList<>();
-        Set<ImClass> visited = new HashSet<>();
-        collectFieldsForAllocation(c, result, visited);
+        Set<ImClass> visitedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<ImVar> visitedFields = Collections.newSetFromMap(new IdentityHashMap<>());
+        collectFieldsForAllocation(c, result, visitedClasses, visitedFields);
         return result;
     }
 
-    private void collectFieldsForAllocation(ImClass c, List<ImVar> out, Set<ImClass> visited) {
-        if (!visited.add(c)) {
+    private void collectFieldsForAllocation(ImClass c, List<ImVar> out,
+                                            Set<ImClass> visitedClasses, Set<ImVar> visitedFields) {
+        if (!visitedClasses.add(c)) {
             return;
         }
         List<ImClassType> superClasses = new ArrayList<>(c.getSuperClasses());
         superClasses.sort(Comparator.comparing(sc -> classSortKey(sc.getClassDef())));
         for (ImClassType sc : superClasses) {
-            collectFieldsForAllocation(sc.getClassDef(), out, visited);
+            collectFieldsForAllocation(sc.getClassDef(), out, visitedClasses, visitedFields);
         }
-        out.addAll(c.getFields());
+        for (ImVar field : c.getFields()) {
+            if (visitedFields.add(imTr.canonical(field))) {
+                out.add(field);
+            }
+        }
     }
 
     private void initClassTables(ImClass c) {
@@ -822,10 +1386,13 @@ public class LuaTranslator {
         ));
 
         // set typeid metadata:
+        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+        // retains this canonical metadata dependency before emission.
+        ImClass typeIdClass = imTr.canonical(c);
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
             ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
+            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
         ));
 
 
@@ -870,7 +1437,7 @@ public class LuaTranslator {
             ImMethod chosen = chosenByGroup.get(groupMethods);
             Set<String> memberNames = new HashSet<>();
             for (ImMethod m : groupMethods) {
-                memberNames.add(m.getName());
+                memberNames.add(dispatchSlotName(m.getName()));
             }
             Set<String> slotNames = collectDispatchSlotNames(c, groupMethods);
             for (String slotName : slotNames) {
@@ -890,7 +1457,7 @@ public class LuaTranslator {
             ImMethod chosen = chosenByGroup.get(groupMethods);
             Set<String> memberNames = new HashSet<>();
             for (ImMethod m : groupMethods) {
-                memberNames.add(m.getName());
+                memberNames.add(dispatchSlotName(m.getName()));
             }
             for (String slotName : collectDispatchSlotNames(c, groupMethods)) {
                 if (memberNames.contains(slotName)) {
@@ -898,13 +1465,22 @@ public class LuaTranslator {
                 }
                 ImMethod current = slotToImpl.get(slotName);
                 if (current != null && directSlots.contains(slotName)
-                    && implArity(chosen) != implArity(current)) {
+                    && (implArity(chosen) != implArity(current)
+                        || !LuaDispatchPreparation.compatibleReturnTypes(chosen, current))) {
                     continue;
                 }
                 if (current == null || compareDispatchCandidates(c, chosen, current) < 0) {
                     slotToImpl.put(slotName, chosen);
                 }
             }
+        }
+
+        List<ImMethod> destroyMethods = allMethods.stream()
+            .filter(this::isDestroyDispatchMethod)
+            .toList();
+        ImMethod destroyImplementation = chooseBestImplementationForClass(c, destroyMethods);
+        if (destroyImplementation != null) {
+            slotToImpl.put("__wurst_destroy", destroyImplementation);
         }
 
         // Constructor helpers (create, create1, ...) live in the same class-table
@@ -921,12 +1497,418 @@ public class LuaTranslator {
             if (impl == null || impl.getImplementation() == null) {
                 continue;
             }
+            registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
             deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
                 LuaAst.LuaExprVarAccess(classVar),
                 e.getKey()),
                 LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
             ));
         }
+
+    }
+
+    private void registerDispatchSlot(ImClass receiver, String slot, DispatchGroupIdentity group) {
+        emittedDispatchSlots.add(slot);
+        emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>()).add(slot);
+        if (group != null) {
+            emittedDispatchSlotGroupsByClass
+                .computeIfAbsent(receiver, ignored -> new HashMap<>())
+                .computeIfAbsent(slot, ignored -> new HashSet<>())
+                .add(group);
+        }
+    }
+
+    /** Resolve dispatch helper targets against the slots actually registered by class descriptors. */
+    private void resolveDispatchSlots() {
+        buildDispatchReceiverIndex();
+        ensureDestroyFallbackSlots();
+        for (PendingDispatch pending : pendingDispatches) {
+            String current = pending.target.getFieldName();
+            Set<String> candidates = new TreeSet<>();
+            String methodName = dispatchSlotName(pending.method.getName());
+            String segment = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
+            Set<ImClass> receivers = concreteReceiversFor(pending.method);
+            if (isDestroyDispatchMethod(pending.method)
+                && emittedDispatchSlots.contains("__wurst_destroy")) {
+                setResolvedDispatchSlot(pending, "__wurst_destroy");
+                continue;
+            }
+            Set<String> commonSlots = receivers.isEmpty()
+                ? Collections.emptySet()
+                : commonConcreteReceiverSlots(pending.method);
+            // A concrete receiver family with no common emitted slot must be canonicalized. Never
+            // fall back to the program-wide slot union: an unrelated dispatch group can otherwise
+            // satisfy the name check and silently bind the wrong implementation. Opaque native
+            // callbacks are the only case where there is no compiler-known receiver descriptor.
+            Set<String> resolutionSlots = receivers.isEmpty() ? emittedDispatchSlots : commonSlots;
+            if (!receivers.isEmpty() && commonSlots.isEmpty()) {
+                ensureCanonicalDispatchSlot(pending);
+                continue;
+            }
+            if (resolutionSlots.contains(methodName)) {
+                setResolvedDispatchSlot(pending, methodName);
+                continue;
+            }
+            if (resolutionSlots.contains(segment)) {
+                setResolvedDispatchSlot(pending, segment);
+                continue;
+            }
+            if (resolutionSlots.contains(current)) {
+                setResolvedDispatchSlot(pending, current);
+                continue;
+            }
+            candidates.addAll(dispatchCandidateSlots(pending.method));
+            String resolved = candidates.stream()
+                .filter(resolutionSlots::contains)
+                .sorted(Comparator.comparingInt(String::length).thenComparing(String::compareTo))
+                .findFirst().orElse(null);
+            if (resolved != null) {
+                setResolvedDispatchSlot(pending, resolved);
+                continue;
+            }
+            if (!concreteReceiversFor(pending.method).isEmpty()) {
+                ensureCanonicalDispatchSlot(pending);
+            }
+        }
+    }
+
+    private void setResolvedDispatchSlot(PendingDispatch pending, String slot) {
+        Set<ImClass> receivers = concreteReceiversFor(pending.method);
+        if (!receivers.isEmpty() && receivers.stream().anyMatch(c ->
+            !emittedDispatchSlotsByClass.getOrDefault(c, Collections.emptySet()).contains(slot))) {
+            ensureCanonicalDispatchSlot(pending);
+        } else {
+            pending.target.setFieldName(slot);
+        }
+    }
+
+    /** Give a heterogeneous specialization family one private, consistently registered slot. */
+    private void ensureCanonicalDispatchSlot(PendingDispatch pending) {
+        DispatchGroupIdentity group = dispatchGroupOf(pending.method);
+        if (group == null) {
+            return;
+        }
+        String semantic = dispatchSlotName(imTr.dispatchSegmentOf(pending.method));
+        if (semantic.isEmpty()) {
+            semantic = "method";
+        }
+        String canonicalName = semantic;
+        String slot = canonicalDispatchSlots.computeIfAbsent(group,
+            ignored -> uniqueName("__wurst_dispatch_" + canonicalName));
+        Set<String> semanticNames = new HashSet<>();
+        if (!imTr.dispatchSegmentOf(pending.method).isEmpty()) {
+            semanticNames.add(imTr.dispatchSegmentOf(pending.method));
+        }
+        String sourceName = sourceSemanticName(pending.method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        Set<ImClass> receivers = concreteReceiversFor(pending.method);
+        List<ImClass> sortedReceivers = new ArrayList<>(receivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
+            List<ImMethod> candidates = new ArrayList<>();
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (sameDispatchFamily(pending.method, candidate)
+                    && sharesDispatchSemanticName(candidate, semanticNames)) {
+                    candidates.add(candidate);
+                }
+            }
+            ImMethod implementation = chooseBestImplementationForClass(receiver, candidates);
+            if (implementation == null) {
+                throw new RuntimeException("Wurst Lua backend assertion failed: no implementation for dispatch slot '"
+                    + slot + "' in descriptor for " + receiver.getName() + ".");
+            }
+            Set<String> registered = emittedDispatchSlotsByClass.computeIfAbsent(receiver, ignored -> new HashSet<>());
+            if (registered.add(slot)) {
+                registerDispatchSlot(receiver, slot, group);
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), slot),
+                    LuaAst.LuaExprFuncRef(luaFunc.getFor(implementation.getImplementation()))));
+            }
+        }
+        pending.target.setFieldName(slot);
+    }
+
+    private Set<String> dispatchCandidateSlots(ImMethod method) {
+        Set<String> candidates = new TreeSet<>();
+        candidates.add(dispatchSlotName(method.getName()));
+        candidates.add(dispatchSlotName(imTr.dispatchSegmentOf(method)));
+        for (String alias : method.getLuaMethodDispatchAliases()) {
+            if (alias != null && !alias.isEmpty()) {
+                candidates.add(dispatchSlotName(alias));
+            }
+        }
+        Set<ImClass> receivers = concreteReceiversFor(method);
+        Set<String> semanticNames = new HashSet<>();
+        String segment = imTr.dispatchSegmentOf(method);
+        if (!segment.isEmpty()) {
+            semanticNames.add(segment);
+        }
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        for (ImClass receiver : receivers) {
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (!sameDispatchFamily(method, candidate)
+                    || !sharesDispatchSemanticName(candidate, semanticNames)) {
+                    continue;
+                }
+                candidates.add(dispatchSlotName(candidate.getName()));
+                candidates.add(dispatchSlotName(imTr.dispatchSegmentOf(candidate)));
+                for (String alias : candidate.getLuaMethodDispatchAliases()) {
+                    if (alias != null && !alias.isEmpty()) {
+                        candidates.add(dispatchSlotName(alias));
+                    }
+                }
+            }
+        }
+        candidates.remove("");
+        return candidates;
+    }
+
+    private boolean sharesDispatchSemanticName(ImMethod method, Set<String> semanticNames) {
+        if (isDestroyDispatchMethod(method) && semanticNames.stream().anyMatch(name -> name.startsWith("destroy"))) {
+            return true;
+        }
+        return semanticNames.contains(imTr.dispatchSegmentOf(method))
+            || semanticNames.contains(sourceSemanticName(method));
+    }
+
+    private boolean isDestroyDispatchMethod(ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        return implementation != null && implementation.attrTrace() instanceof OnDestroyDef;
+    }
+
+    /** Verify every descriptor slot used by an emitted dispatch helper is registered by its receivers. */
+    private void assertResolvedDispatchSlots() {
+        for (PendingDispatch pending : pendingDispatches) {
+            String slot = pending.target.getFieldName();
+            Set<ImClass> receivers = concreteReceiversFor(pending.method);
+            if (receivers.isEmpty()) {
+                // Native/opaque callback interfaces can have no concrete IM receiver descriptor;
+                // their slot is supplied by the runtime rather than by this program.
+                continue;
+            }
+            for (ImClass receiver : receivers) {
+                Set<String> slots = emittedDispatchSlotsByClass.getOrDefault(receiver, Collections.emptySet());
+                if (!slots.contains(slot)) {
+                    throw new RuntimeException("Wurst Lua backend assertion failed: dispatch slot '"
+                        + slot + "' is missing from descriptor for " + receiver.getName() + ".");
+                }
+            }
+        }
+    }
+
+    /**
+     * Return only slots shared by every concrete descriptor which can receive this dispatch
+     * group. A global slot union is insufficient: an unrelated specialization may register the
+     * mangled method name while closure descriptors for the same helper register only its alias.
+     */
+    private Set<String> commonConcreteReceiverSlots(ImMethod method) {
+        Set<String> common = null;
+        Set<ImClass> receivers = concreteReceiversFor(method);
+        DispatchGroupIdentity group = dispatchGroupOf(method);
+        for (ImClass c : receivers) {
+            Map<String, Set<DispatchGroupIdentity>> slotGroups = emittedDispatchSlotGroupsByClass.get(c);
+            Set<String> slots = slotGroups == null ? Collections.emptySet() : slotGroups.entrySet().stream()
+                .filter(entry -> group != null && entry.getValue().contains(group))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+            if (slots == null || slots.isEmpty()) {
+                return Collections.emptySet();
+            }
+            if (common == null) {
+                common = new HashSet<>(slots);
+            } else {
+                common.retainAll(slots);
+            }
+        }
+        return common == null ? Collections.emptySet() : common;
+    }
+
+    private void buildDispatchReceiverIndex() {
+        if (dispatchReceiverIndexBuilt) {
+            return;
+        }
+        dispatchReceiverIndexBuilt = true;
+        buildDispatchGroupIndex();
+        for (ImClass receiver : prog.getClasses()) {
+            boolean hasConcreteMethod = false;
+            for (ImMethod candidate : collectMethodsInHierarchy(receiver)) {
+                if (candidate.getIsAbstract() || candidate.getImplementation() == null) {
+                    continue;
+                }
+                hasConcreteMethod = true;
+                DispatchGroupIdentity group = dispatchGroups.get(candidate);
+                if (group != null) {
+                    concreteReceiverClassesByGroup.computeIfAbsent(group, ignored -> new HashSet<>()).add(receiver);
+                }
+            }
+            if (hasConcreteMethod && !isInterfaceClass(receiver)) {
+                for (ImClass nominalType : collectClassesInHierarchy(receiver)) {
+                    concreteReceiverClassesByNominalType.computeIfAbsent(nominalType, ignored -> new HashSet<>()).add(receiver);
+                }
+            }
+        }
+    }
+
+    private DispatchGroupIdentity dispatchGroupOf(ImMethod method) {
+        buildDispatchGroupIndex();
+        return dispatchGroups.get(method);
+    }
+
+    private Set<ImClass> concreteReceiversFor(ImMethod method) {
+        Set<ImClass> cached = concreteReceiverFamilyCache.get(method);
+        if (cached != null) {
+            return cached;
+        }
+        Set<ImClass> receivers = new HashSet<>(concreteReceiverClassesByGroup.getOrDefault(
+            dispatchGroupOf(method), Collections.emptySet()));
+        ImClass owner = method.attrClass();
+        if (owner != null) {
+            receivers.addAll(concreteReceiverClassesByNominalType.getOrDefault(owner, Collections.emptySet()));
+        }
+        Set<String> semanticNames = new HashSet<>();
+        if (!imTr.dispatchSegmentOf(method).isEmpty()) {
+            semanticNames.add(imTr.dispatchSegmentOf(method));
+        }
+        String sourceName = sourceSemanticName(method);
+        if (!sourceName.isEmpty()) {
+            semanticNames.add(sourceName);
+        }
+        if (isDestroyDispatchMethod(method)) {
+            // A closure's specialized interface class can omit the generated destroy method from
+            // its IM hierarchy even though it is a valid receiver for the interface's lifecycle
+            // call.  Any concrete receiver of another method declared by that owner is also a
+            // concrete receiver of its destroy slot.
+            if (owner != null) {
+                for (ImMethod ownerMethod : owner.getMethods()) {
+                    receivers.addAll(concreteReceiverClassesByGroup.getOrDefault(
+                        dispatchGroupOf(ownerMethod), Collections.emptySet()));
+                }
+            }
+            receivers.removeIf(this::isInterfaceClass);
+            Set<ImClass> result = Collections.unmodifiableSet(receivers);
+            concreteReceiverFamilyCache.put(method, result);
+            return result;
+        }
+        receivers.removeIf(receiver -> collectMethodsInHierarchy(receiver).stream()
+            .noneMatch(candidate -> !candidate.getIsAbstract()
+                && candidate.getImplementation() != null
+                && sameDispatchFamily(method, candidate)
+                && sharesDispatchSemanticName(candidate, semanticNames)));
+        Set<ImClass> result = Collections.unmodifiableSet(receivers);
+        concreteReceiverFamilyCache.put(method, result);
+        return result;
+    }
+
+    /** Install the fallback only for descriptors that can actually receive a dynamic destroy call. */
+    private void ensureDestroyFallbackSlots() {
+        Set<ImClass> fallbackReceivers = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (PendingDispatch pending : pendingDispatches) {
+            if (!isDestroyDispatchMethod(pending.method)) {
+                continue;
+            }
+            fallbackReceivers.addAll(concreteReceiversFor(pending.method));
+        }
+        List<ImClass> sortedReceivers = new ArrayList<>(fallbackReceivers);
+        sortedReceivers.sort(Comparator.comparing(this::classSortKey));
+        for (ImClass receiver : sortedReceivers) {
+            if (isInterfaceClass(receiver)) {
+                continue;
+            }
+            Set<String> slots = emittedDispatchSlotsByClass.computeIfAbsent(receiver,
+                ignored -> new HashSet<>());
+            if (!slots.contains("__wurst_destroy")) {
+                registerDispatchSlot(receiver, "__wurst_destroy", null);
+                deferMainInit(LuaAst.LuaAssignment(
+                    LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(luaClassVar.getFor(receiver)), "__wurst_destroy"),
+                    LuaAst.LuaExprFuncRef(objectDealloc)));
+            }
+        }
+    }
+
+    private boolean sameDispatchFamily(ImMethod reference, ImMethod candidate) {
+        return dispatchGroupOf(reference) == dispatchGroupOf(candidate);
+    }
+
+    /** Reconstruct dispatch-group identity from the IM override graph without using names. */
+    private void buildDispatchGroupIndex() {
+        if (dispatchGroupsBuilt) {
+            return;
+        }
+        dispatchGroupsBuilt = true;
+        List<ImMethod> methods = new ArrayList<>();
+        for (ImClass c : prog.getClasses()) {
+            methods.addAll(c.getMethods());
+        }
+        Set<ImMethod> knownMethods = Collections.newSetFromMap(new IdentityHashMap<>());
+        knownMethods.addAll(methods);
+        Map<ImMethod, ImMethod> parent = new IdentityHashMap<>();
+        for (ImMethod method : methods) {
+            parent.put(method, method);
+        }
+        for (ImMethod method : methods) {
+            for (ImMethod subMethod : method.getSubMethods()) {
+                if (knownMethods.contains(subMethod)) {
+                    unionDispatchGroups(parent, method, subMethod);
+                }
+            }
+        }
+        Map<DispatchGroupIdentity, DispatchGroupIdentity> identities = new HashMap<>();
+        for (ImMethod method : methods) {
+            ImMethod root = findDispatchGroupRoot(parent, method);
+            DispatchGroupIdentity candidate = new DispatchGroupIdentity(root, dispatchSpecializationOf(method));
+            DispatchGroupIdentity identity = identities.computeIfAbsent(candidate, ignored -> candidate);
+            dispatchGroups.put(method, identity);
+        }
+    }
+
+    /**
+     * Specialised methods which were moved back onto their erased allocation class can coexist
+     * with another specialization of the same virtual root. Keep their structural arguments in
+     * the dispatch identity; specialised methods still living on a specialised class are already
+     * reached through that class and must continue sharing the root family with its overrides.
+     */
+    private GenericTypes dispatchSpecializationOf(ImMethod method) {
+        ImTranslator.Specialisation specialization = imTr.specialisationOf(method);
+        ImClass owner = method.attrClass();
+        if (specialization == null || owner == null || imTr.canonical(owner) != owner) {
+            return null;
+        }
+        return new GenericTypes(specialization.typeArguments());
+    }
+
+    private static ImMethod findDispatchGroupRoot(Map<ImMethod, ImMethod> parent, ImMethod method) {
+        ImMethod root = method;
+        ImMethod next;
+        while ((next = parent.get(root)) != root) {
+            root = next;
+        }
+        while ((next = parent.get(method)) != method) {
+            parent.put(method, root);
+            method = next;
+        }
+        return root;
+    }
+
+    private static void unionDispatchGroups(Map<ImMethod, ImMethod> parent, ImMethod left, ImMethod right) {
+        ImMethod leftRoot = findDispatchGroupRoot(parent, left);
+        ImMethod rightRoot = findDispatchGroupRoot(parent, right);
+        if (leftRoot != rightRoot) {
+            parent.put(rightRoot, leftRoot);
+        }
+    }
+
+    /**
+     * The Lua table key a dispatch slot is emitted under. Aliases and class-qualified names are
+     * built from IM names, which may contain characters Lua has no place for; the mapping has to
+     * be the same one call sites go through, so that a slot is still found under its new name.
+     */
+    private String dispatchSlotName(String rawName) {
+        return LuaIdentifiers.toIdentifier(rawName);
     }
 
     private Set<String> collectDispatchSlotNames(ImClass receiverClass, List<ImMethod> groupMethods) {
@@ -938,10 +1920,10 @@ public class LuaTranslator {
             }
             for (String alias : m.getLuaMethodDispatchAliases()) {
                 if (alias != null && !alias.isEmpty()) {
-                    slotNames.add(alias);
+                    slotNames.add(dispatchSlotName(alias));
                 }
             }
-            String semanticName = semanticNameFromMethodName(m.getName());
+            String semanticName = imTr.dispatchSegmentOf(m);
             if (!semanticName.isEmpty()) {
                 semanticNames.add(semanticName);
             }
@@ -951,25 +1933,113 @@ public class LuaTranslator {
             }
         }
         if (receiverClass != null && !semanticNames.isEmpty()) {
-            Set<String> classNames = new TreeSet<>();
-            collectClassNamesInHierarchy(receiverClass, classNames, new HashSet<>());
-            for (String className : classNames) {
+            // A semantic name which several of the class's methods share names none of them, so a
+            // slot composed from it would be claimed by whichever is bound first. For a specialised
+            // class every method's trailing segment is the type argument, which is exactly that
+            // case, and the resulting slot is never called. Left uncomposed rather than bound
+            // arbitrarily; LuaDispatchPreparation drops the matching alias for the same reason.
+            Set<String> ambiguous = ambiguousSemanticNames(receiverClass);
+            List<ImClass> classes = collectClassesInHierarchy(receiverClass);
+            for (ImClass targetClass : classes) {
+                String className = targetClass.getName();
                 for (String semanticName : semanticNames) {
-                    slotNames.add(className + "_" + semanticName);
+                    if (ambiguous.contains(semanticName)
+                        || (isInterfaceClass(targetClass)
+                            && !hasCompatibleSemanticMethod(targetClass, groupMethods, semanticName))) {
+                        continue;
+                    }
+                    slotNames.add(dispatchSlotName(className + "_" + semanticName));
                 }
             }
         }
         return slotNames;
     }
 
-    private void collectClassNamesInHierarchy(ImClass c, Set<String> out, Set<ImClass> visited) {
+    /**
+     * The semantic names which name no method in particular, cached per class.
+     * <p>
+     * A method and its overrides share a semantic name and must share a slot: that is dispatch, and
+     * they all declare the same name in the source. The siblings of one specialisation declare
+     * different names and still compose the same segment, because for a specialised method that
+     * segment is the type argument - and the slot composed from it is claimed by whichever is bound
+     * first, then never called.
+     * <p>
+     * The dispatch group key would be a sharper identity but cannot be used: it embeds the signature,
+     * and a generic override chain's signatures differ by the type variable of each class in it
+     * ({@code void|T192,real} against {@code void|T636,real}), so overrides would read as unrelated
+     * and their shared slot would be dropped. What that leaves uncovered is recorded in backlog
+     * item 15: overloads of one source method inside a specialised class share a declared name, so
+     * their composed name is not seen as ambiguous and one dead key survives there.
+     * <p>
+     * Cached because {@code createMethods} asks twice per dispatch group and each ask would otherwise
+     * rebuild and sort the whole inherited method list.
+     */
+    private final Map<ImClass, Set<String>> ambiguousSemanticNamesByClass = new LinkedHashMap<>();
+
+    private Set<String> ambiguousSemanticNames(ImClass c) {
+        return ambiguousSemanticNamesByClass.computeIfAbsent(c, owner -> {
+            Map<String, Set<String>> claimants = new TreeMap<>();
+            for (ImMethod m : collectMethodsInHierarchy(owner)) {
+                if (m == null) {
+                    continue;
+                }
+                String semanticName = imTr.dispatchSegmentOf(m);
+                if (semanticName.isEmpty()) {
+                    continue;
+                }
+                claimants.computeIfAbsent(semanticName, name -> new TreeSet<>())
+                    .add(LuaDispatchPreparation.declaredName(m));
+            }
+            Set<String> ambiguous = new TreeSet<>();
+            claimants.forEach((name, keys) -> {
+                if (keys.size() > 1) {
+                    ambiguous.add(name);
+                }
+            });
+            return ambiguous;
+        });
+    }
+
+    private List<ImClass> collectClassesInHierarchy(ImClass c) {
+        List<ImClass> result = new ArrayList<>();
+        collectClassesInHierarchy(c, result, new HashSet<>());
+        result.sort(Comparator.comparing(this::classSortKey));
+        return result;
+    }
+
+    private void collectClassesInHierarchy(ImClass c, List<ImClass> out, Set<ImClass> visited) {
         if (c == null || !visited.add(c)) {
             return;
         }
-        out.add(c.getName());
+        out.add(c);
         for (ImClassType sc : c.getSuperClasses()) {
-            collectClassNamesInHierarchy(sc.getClassDef(), out, visited);
+            collectClassesInHierarchy(sc.getClassDef(), out, visited);
         }
+    }
+
+    private boolean hasCompatibleSemanticMethod(ImClass targetClass, List<ImMethod> groupMethods, String semanticName) {
+        for (ImMethod candidate : collectMethodsInHierarchy(targetClass)) {
+            String candidateSemanticName = imTr.dispatchSegmentOf(candidate);
+            if (!semanticName.equals(candidateSemanticName)
+                && !semanticName.equals(sourceSemanticName(candidate))) {
+                continue;
+            }
+            for (ImMethod groupMethod : groupMethods) {
+                // The semantic alias is deliberately broader than the exact dispatch-group key:
+                // generic overrides may have different erased parameter types while still sharing
+                // the same runtime slot. Return compatibility is the part that must remain strict;
+                // otherwise an unrelated int value() and string value() can claim one another's
+                // class-qualified alias.
+                if (LuaDispatchPreparation.compatibleReturnTypes(groupMethod, candidate, imTr)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isInterfaceClass(ImClass c) {
+        return c != null && c.attrTrace() instanceof InterfaceDef;
     }
 
     private List<ImMethod> collectMethodsInHierarchy(ImClass c) {
@@ -1107,17 +2177,6 @@ public class LuaTranslator {
         return key == null || key.isEmpty() ? methodSortKey(method) : key;
     }
 
-    private String semanticNameFromMethodName(String methodName) {
-        if (methodName == null || methodName.isEmpty()) {
-            return "";
-        }
-        int lastUnderscore = methodName.lastIndexOf('_');
-        if (lastUnderscore >= 0 && lastUnderscore + 1 < methodName.length()) {
-            return methodName.substring(lastUnderscore + 1);
-        }
-        return methodName;
-    }
-
     private String sourceSemanticName(ImMethod method) {
         if (method == null) {
             return "";
@@ -1153,6 +2212,12 @@ public class LuaTranslator {
         }
         superClasses.add(LuaAst.LuaTableExprField(LuaAst.LuaExprVarAccess(luaClassVar.getFor(c)), LuaAst.LuaExprBoolVal(true)));
         visited.add(c);
+        ImClass nominalClass = imTr.canonical(c);
+        if (nominalClass != c) {
+            // A targeted Lua specialization is a representation detail, not a new nominal type.
+            // Keep erased-class runtime checks true without inheriting its fields a second time.
+            collectSuperClasses(superClasses, nominalClass, visited);
+        }
         for (ImClassType sc : c.getSuperClasses()) {
             collectSuperClasses(superClasses, sc.getClassDef(), visited);
         }
@@ -1165,6 +2230,9 @@ public class LuaTranslator {
             return;
         }
         LuaVariable lv = luaVar.getFor(v);
+        if (v.getType() instanceof ImArrayType || v.getType() instanceof ImArrayTypeMulti) {
+            localizableStorageTables.add(lv);
+        }
         lv.setInitialValue(LuaAst.LuaExprNull());
         luaModel.add(lv);
         deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(lv), defaultValue(v.getType())));
@@ -1208,14 +2276,7 @@ public class LuaTranslator {
                     arraySizes.remove(0);
                     baseType = JassIm.ImArrayTypeMulti(at.getEntryType(), arraySizes);
                 }
-                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
-                    LuaAst.LuaExprlist(
-                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
-                            LuaAst.LuaStatements(
-                                LuaAst.LuaReturn(defaultValue(baseType))
-                            )
-                        )
-                    ));
+                return newDefaultArray(baseType);
             }
 
             @Override
@@ -1235,14 +2296,7 @@ public class LuaTranslator {
             @Override
             public LuaExpr case_ImArrayType(ImArrayType imArrayType) {
                 ImType baseType = imArrayType.getEntryType();
-                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
-                    LuaAst.LuaExprlist(
-                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
-                            LuaAst.LuaStatements(
-                                LuaAst.LuaReturn(defaultValue(baseType))
-                            )
-                        )
-                    ));
+                return newDefaultArray(baseType);
             }
 
             @Override
@@ -1250,6 +2304,123 @@ public class LuaTranslator {
                 return LuaAst.LuaExprNull();
             }
         });
+    }
+
+    /**
+     * Builds a fresh array table whose reads of never-written slots yield the
+     * default value for {@code entryType}, matching Jass's fully-initialized
+     * arrays. The metatable/helper-function infrastructure that makes this
+     * work is shared across every array with the same entry type - only the
+     * per-array table itself (and, for table-typed defaults, each lazily
+     * materialized slot) is allocated per array instance. Mirrors the shared
+     * per-class instance metatable in translateClass().
+     */
+    private LuaExpr newDefaultArray(ImType entryType) {
+        if (isAlwaysNilDefault(entryType)) {
+            // An untouched Lua table key already reads as nil - no metatable needed.
+            return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
+        }
+        if (entryType instanceof ImSimpleType) {
+            return setmetatableCall(getOrCreatePrimitiveArrayMetatable((ImSimpleType) entryType));
+        }
+        // Table-typed default (tuple / nested array): each slot needs its own,
+        // separately mutable default value, materialized lazily on first read.
+        return setmetatableCall(getOrCreateLazyArrayMetatable(entryType));
+    }
+
+    private LuaExpr setmetatableCall(LuaVariable metatableVar) {
+        return LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()),
+            LuaAst.LuaExprVarAccess(metatableVar)
+        ));
+    }
+
+    /** True for entry types whose Wurst default value is nil / not yet allocated. */
+    private boolean isAlwaysNilDefault(ImType t) {
+        if (t instanceof ImClassType || t instanceof ImAnyType || t instanceof ImTypeVarRef || t instanceof ImVoid) {
+            return true;
+        }
+        if (t instanceof ImSimpleType) {
+            // WC3 handle types (unit, player, timer, ...) are ImSimpleType too,
+            // and default to nil just like user classes - only the four true
+            // primitives below have a non-nil default.
+            ImSimpleType st = (ImSimpleType) t;
+            return !TypesHelper.isIntType(st) && !TypesHelper.isBoolType(st)
+                && !TypesHelper.isRealType(st) && !TypesHelper.isStringType(st);
+        }
+        return false;
+    }
+
+    /**
+     * One shared metatable per primitive kind (int/real/bool/string), for the
+     * whole program. The default is immutable, so reads never need to store
+     * anything back into the array table.
+     */
+    private LuaVariable getOrCreatePrimitiveArrayMetatable(ImSimpleType st) {
+        String key = TypesHelper.isIntType(st) ? "integer"
+            : TypesHelper.isBoolType(st) ? "boolean"
+            : TypesHelper.isRealType(st) ? "real"
+            : TypesHelper.isStringType(st) ? "string"
+            : null;
+        if (key == null) {
+            // Defensive fallback; isAlwaysNilDefault() should have routed anything
+            // else away from this method.
+            return getOrCreateLazyArrayMetatable(st);
+        }
+        LuaVariable existing = primitiveArrayMetatables.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        LuaFunction indexFn = LuaAst.LuaFunction(uniqueName("__wurst_arrIndex_" + key),
+            LuaAst.LuaParams(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()), LuaAst.LuaVariable("k", LuaAst.LuaNoExpr())),
+            LuaAst.LuaStatements(LuaAst.LuaReturn(defaultValue(st))));
+        luaModel.add(indexFn);
+
+        LuaVariable mt = LuaAst.LuaVariable(uniqueName("__wurst_arrMt_" + key), LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
+        )));
+        luaModel.add(mt);
+        primitiveArrayMetatables.put(key, mt);
+        return mt;
+    }
+
+    /**
+     * One shared metatable (and default-value factory) per distinct entry
+     * type that needs a fresh, independently mutable default per slot
+     * (tuples, nested arrays). Memoized like {@link ExprTranslation#getTupleCopyFunc}.
+     */
+    private LuaVariable getOrCreateLazyArrayMetatable(ImType entryType) {
+        for (LazyArrayDefault info : lazyArrayDefaults) {
+            if (info.entryType.equalsType(entryType)) {
+                return info.metatableVar;
+            }
+        }
+        LuaVariable mt = LuaAst.LuaVariable(uniqueName("__wurst_arrMt"), LuaAst.LuaNoExpr());
+        // Register before building the (possibly recursive, e.g. nested arrays) body.
+        lazyArrayDefaults.add(new LazyArrayDefault(entryType, mt));
+
+        LuaFunction thunk = LuaAst.LuaFunction(uniqueName("__wurst_arrDefault"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        thunk.getBody().add(LuaAst.LuaReturn(defaultValue(entryType)));
+        luaModel.add(thunk);
+
+        LuaVariable tParam = LuaAst.LuaVariable("t", LuaAst.LuaNoExpr());
+        LuaVariable kParam = LuaAst.LuaVariable("k", LuaAst.LuaNoExpr());
+        LuaVariable vLocal = LuaAst.LuaVariable("v", LuaAst.LuaExprFunctionCall(thunk, LuaAst.LuaExprlist()));
+        LuaFunction indexFn = LuaAst.LuaFunction(uniqueName("__wurst_arrIndex"), LuaAst.LuaParams(tParam, kParam),
+            LuaAst.LuaStatements(
+                vLocal,
+                LuaAst.LuaAssignment(
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tParam), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(kParam))),
+                    LuaAst.LuaExprVarAccess(vLocal)),
+                LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(vLocal))
+            ));
+        luaModel.add(indexFn);
+
+        mt.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprFuncRef(indexFn))
+        )));
+        luaModel.add(mt);
+        return mt;
     }
 
     public LuaExprOpt translateOptional(ImExprOpt e) {
@@ -1288,4 +2459,3 @@ public class LuaTranslator {
         return null;
     }
 }
-

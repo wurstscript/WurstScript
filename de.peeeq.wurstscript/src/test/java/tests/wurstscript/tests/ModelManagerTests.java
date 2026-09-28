@@ -36,6 +36,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
 public class ModelManagerTests {
 
@@ -121,6 +122,66 @@ public class ModelManagerTests {
         assertEquals("", results.get(fileC));
 
 
+    }
+
+    @Test
+    public void incrementalRecheckRestoresFieldIterationIntrinsic() throws IOException {
+        File projectFolder = new File("./temp/testProject_field_iteration_incremental/");
+        File wurstFolder = new File(projectFolder, "wurst");
+        newCleanFolder(wurstFolder);
+
+        WFile fileBase = WFile.create(new File(wurstFolder, "Base.wurst"));
+        WFile fileData = WFile.create(new File(wurstFolder, "Data.wurst"));
+        WFile fileWurst = WFile.create(new File(wurstFolder, "Wurst.wurst"));
+        writeFile(fileBase, string(
+            "package Base",
+            "public class Base",
+            "    int oldValue = 1"
+        ));
+        writeFile(fileData, string(
+            "package Data",
+            "import Base",
+            "native consume(string name, int value)",
+            "class Data extends Base",
+            "    function save()",
+                "        forFields((name, value) -> consume(name, value))"
+        ));
+        writeFile(fileWurst, "package Wurst\n");
+
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
+        manager.buildProject();
+
+        ClassDef data = findClass(manager.getCompilationUnit(fileData), "Data");
+        FuncDef save = findFunction(data, "save");
+        int initialBodySize = save.getBody().size();
+
+        manager.reconcile(manager.syncCompilationUnitContent(fileBase, string(
+            "package Base",
+            "public class Base",
+            "    int oldValue = 1",
+            "    int newValue = 2"
+        )));
+
+        data = findClass(manager.getCompilationUnit(fileData), "Data");
+        save = findFunction(data, "save");
+        assertEquals(save.getBody().size(), initialBodySize + 1);
+    }
+
+    private ClassDef findClass(CompilationUnit cu, String name) {
+        return cu.getPackages().stream()
+            .flatMap(p -> p.getElements().stream())
+            .filter(e -> e instanceof ClassDef && name.equals(((ClassDef) e).getName()))
+            .map(e -> (ClassDef) e)
+            .findFirst()
+            .orElseThrow();
+    }
+
+    private FuncDef findFunction(ClassDef clazz, String name) {
+        return clazz.getMethods().stream()
+            .filter(f -> name.equals(f.getName()))
+            .map(f -> (FuncDef) f)
+            .findFirst()
+            .orElseThrow();
     }
 
     @Test
@@ -1110,6 +1171,18 @@ public class ModelManagerTests {
         manager.buildProject();
         assertEquals(errors.get(fileMain), "", "baseline build with depA should be clean");
         assertNotNull(manager.getCompilationUnit(depAFile), "depA CU should be loaded");
+        assertTrue(manager.getCompilationUnit(depAFile).getCuInfo().isLibrary(),
+            "dependency CU should initially be marked as a library");
+
+        writeFile(depAFile, string(
+            "package DummyDamage",
+            "public function foo()",
+            "public function changedDependency()"
+        ));
+        ModelManager.Changes changes = manager.syncDependencyCompilationUnits();
+        manager.reconcile(changes);
+        assertTrue(manager.getCompilationUnit(depAFile).getCuInfo().isLibrary(),
+            "reparsed dependency CU should remain marked as a library");
 
         // replace: depA is removed and depB provides the same package
         depAFile.getFile().delete();
@@ -1117,7 +1190,7 @@ public class ModelManagerTests {
             "package DummyDamage",
             "public function foo()"
         ));
-        ModelManager.Changes changes = manager.syncDependencyCompilationUnits();
+        changes = manager.syncDependencyCompilationUnits();
         manager.reconcile(changes);
         assertEquals(manager.getCompilationUnit(depAFile), null, "removed dependency CU must be dropped from model");
         assertNotNull(manager.getCompilationUnit(depBFile), "replacement dependency CU should be loaded");

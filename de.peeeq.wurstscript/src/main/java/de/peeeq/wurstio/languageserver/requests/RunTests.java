@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.RunArgs;
@@ -30,6 +29,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -162,17 +162,15 @@ public class RunTests extends UserRequest<Object> {
     public TestResult runTests(ImTranslator translator, ImProg imProg, Optional<FuncDef> funcToTest, Optional<CompilationUnit> cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
-            CompiletimeFunctions, WurstProjectConfigData.empty(), false, false);
-        ILInterpreter interpreter = cfr.getInterpreter();
-        ProgramState globalState = cfr.getGlobalState();
-        if (globalState == null) {
-            globalState = new ProgramState(gui, imProg, true);
-        }
-        if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
-            interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
-        }
+        // Use try-with-resources to ensure NativeProvider resources (e.g. SQLite database connections and file handles)
+        // created during test execution are automatically closed when the language server finishes processing the request.
+        try (CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
+            CompiletimeFunctions, WurstProjectConfigData.empty(), false, false)) {
+            // CompiletimeFunctionRunner always constructs both, and cfr.close() (the
+            // try-with-resources above) owns their lifecycle. Building local replacements
+            // here would be dead code that also escaped that cleanup, so use the runner's.
+            ILInterpreter interpreter = cfr.getInterpreter();
+            ProgramState globalState = cfr.getGlobalState();
 
         redirectInterpreterOutput(globalState);
 
@@ -355,6 +353,7 @@ public class RunTests extends UserRequest<Object> {
 
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
+        }
     }
 
 
@@ -371,13 +370,15 @@ public class RunTests extends UserRequest<Object> {
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 if (!compactOutput) {
-                    println(new String(b, off, len));
+                    print(new String(b, off, len, StandardCharsets.UTF_8));
                 }
             }
 
 
         };
-        globalState.setOutStream(new PrintStream(os));
+        // autoflush, so that the output of a test is delivered while that test is running
+        // instead of being left in the buffer of the PrintStream
+        globalState.setOutStream(new PrintStream(os, true, StandardCharsets.UTF_8));
     }
 
     private String qualifiedTestName(ImFunction f) {

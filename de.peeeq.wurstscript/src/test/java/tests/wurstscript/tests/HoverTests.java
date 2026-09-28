@@ -52,6 +52,50 @@ public class HoverTests extends WurstLanguageServerTest {
     }
 
     @Test
+    public void compilerIntrinsicCallUsesDeclarationSignatureAndDocumentation() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string name, int value)",
+                "    /** Iterates concrete fields using direct accesses. */",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
+                "    class State",
+                "        int value",
+                "        function save()",
+                "            wurstForF|ields((name, fieldValue) -> skip)",
+                "endpackage"
+        );
+
+        List<String> text = testHoverText(testData);
+        assertTrue(text.stream().anyMatch(s -> s.contains("Iterates concrete fields")), "hover text = " + text);
+        assertTrue(text.stream().anyMatch(s -> s.contains("function wurstForFields(DocumentedFieldCallback callback)")),
+            "hover text = " + text);
+    }
+
+    @Test
+    public void constructionIntrinsicCallUsesDeclarationSignatureAndDocumentation() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    /** Constructs a concrete class through its zero-argument constructor. */",
+                "    @compilerintrinsic function wurstNewInstance<T:>() returns T",
+                "        return null",
+                "    class State",
+                "    init",
+                "        State result = wurstNewInst|ance<State>()",
+                "endpackage"
+        );
+
+        List<String> text = testHoverText(testData);
+        assertTrue(text.stream().anyMatch(s -> s.contains("Constructs a concrete class")), "hover text = " + text);
+        assertTrue(text.stream().anyMatch(s -> s.contains("function wurstNewInstance() returns T")),
+            "hover text = " + text);
+    }
+
+    @Test
     public void hoverOnCommentShowsNothing() {
         CompletionTestData testData = input(
                 "package test",

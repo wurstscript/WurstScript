@@ -57,7 +57,9 @@ public class NameLinks {
 
     @NotNull
     private static Map<String, Map<FuncLink, OverrideCheckResult>> initOverrideMap(Multimap<String, DefLink> result) {
-        Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = new Hashtable<>();
+        // LinkedHashMap, not Hashtable: nothing here is concurrent, and reportOverrideErrors
+        // iterates this map, so insertion order beats hash order for reproducible diagnostics.
+        Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = new LinkedHashMap<>();
         for (DefLink link : result.values()) {
             if (link instanceof FuncLink) {
                 Map<FuncLink, OverrideCheckResult> map = overrideCheckResults.computeIfAbsent(link.getName(),
@@ -94,6 +96,16 @@ public class NameLinks {
 
             }
         }
+    }
+
+    /**
+     * A type class instance only defines the functions written in its body. The instance methods
+     * are not inherited by anything, so no super-scope merging is required here.
+     */
+    public static ImmutableMultimap<String, DefLink> calculate(InstanceDecl i) {
+        Multimap<String, DefLink> result = HashMultimap.create();
+        addDefinedNames(result, i, i.getMethods());
+        return ImmutableMultimap.copyOf(result);
     }
 
     public static ImmutableMultimap<String, DefLink> calculate(InterfaceDef i) {

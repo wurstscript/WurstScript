@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -199,6 +200,46 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         assertEquals(edit.getRange().getStart().getCharacter(), 4);
         assertEquals(edit.getRange().getEnd().getCharacter(), 7);
         assertEquals(edit.getNewText(), "let");
+    }
+
+    @Test
+    public void codeActionCanRemoveRedundantToStringFromConcatenation() throws IOException {
+        CompletionTestData data = input(
+            "package test",
+            "class Vec",
+            "    function toString() returns string",
+            "        return \"vec\"",
+            "init",
+            "    let v = new Vec",
+            "    let message = \"value: \" + v.toStr|ing()",
+            "endpackage"
+        );
+        TestContext ctx = createContext(data, data.buffer);
+
+        CodeActionParams params = new CodeActionParams();
+        params.setTextDocument(new TextDocumentIdentifier(ctx.uri));
+        params.setRange(new Range(new Position(data.line, data.column), new Position(data.line, data.column)));
+        Diagnostic d = new Diagnostic();
+        d.setRange(params.getRange());
+        d.setMessage("Explicit .toString() is redundant in this string concatenation.");
+        params.setContext(new CodeActionContext(Collections.singletonList(d)));
+
+        List<CodeAction> codeActions = new CodeActionRequest(params, ctx.bufferManager).execute(ctx.modelManager).stream()
+            .filter(Either::isRight)
+            .map(Either::getRight)
+            .collect(Collectors.toList());
+        CodeAction fix = codeActions.stream()
+            .filter(a -> "Remove redundant .toString()".equals(a.getTitle()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("expected toString removal quickfix, got: " +
+                codeActions.stream().map(CodeAction::getTitle).collect(Collectors.toList())));
+
+        TextEdit edit = allTextEdits(fix.getEdit()).get(0);
+        String sourceLine = data.buffer.split("\\r?\\n", -1)[data.line];
+        int suffixStart = sourceLine.indexOf(".toString()");
+        assertEquals(edit.getRange().getStart(), new Position(data.line, suffixStart));
+        assertEquals(edit.getRange().getEnd(), new Position(data.line, suffixStart + ".toString()".length()));
+        assertEquals(edit.getNewText(), "");
     }
 
     @Test
@@ -507,6 +548,37 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         int expectedStart = line.indexOf("Icons.iconPath");
         assertEquals(idHint.getPosition().getLine(), 5);
         assertEquals(idHint.getPosition().getCharacter(), expectedStart);
+    }
+
+    @Test
+    public void inlayHintsIgnoreCopiedModuleBodyFromAnotherFile() throws IOException {
+        CompletionTestData data = input(
+                "package test",
+                "import HintModule",
+                "class Mover",
+                "    use HintModule",
+                "",
+                "",
+                "endpackage"
+        );
+        String module = String.join("\n",
+                "package HintModule",
+                "public module HintModule",
+                "    function target(int amount)",
+                "        skip",
+                "    function callTarget()",
+                "        target(1)",
+                "endpackage",
+                "");
+        TestContext ctx = createContext(data, data.buffer, Map.of("HintModule.wurst", module));
+
+        InlayHintParams params = new InlayHintParams(
+                new TextDocumentIdentifier(ctx.uri),
+                new Range(new Position(0, 0), new Position(100, 0))
+        );
+        List<InlayHint> hints = new InlayHintsRequest(params, ctx.bufferManager).execute(ctx.modelManager);
+
+        assertTrue(hints.isEmpty(), "Hints from a copied module body must not appear in the using file: " + hints);
     }
 
     @Test
@@ -830,6 +902,11 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
     }
 
     private TestContext createContext(CompletionTestData data, String diskContent) throws IOException {
+        return createContext(data, diskContent, Collections.emptyMap());
+    }
+
+    private TestContext createContext(CompletionTestData data, String diskContent,
+                                      Map<String, String> additionalFiles) throws IOException {
         File projectFolder = new File("./temp/lspNative/" + System.nanoTime());
         File wurstFolder = new File(projectFolder, "wurst");
         Files.createDirectories(wurstFolder.toPath());
@@ -838,6 +915,9 @@ public class LspNativeFeaturesTests extends WurstLanguageServerTest {
         File wurstFile = new File(wurstFolder, "Wurst.wurst");
         Files.writeString(testFile.toPath(), diskContent);
         Files.writeString(wurstFile.toPath(), "package Wurst\n");
+        for (Map.Entry<String, String> additionalFile : additionalFiles.entrySet()) {
+            Files.writeString(new File(wurstFolder, additionalFile.getKey()).toPath(), additionalFile.getValue());
+        }
 
         BufferManager bufferManager = new BufferManager();
         ModelManagerImpl modelManager = new ModelManagerImpl(projectFolder.getAbsoluteFile(), bufferManager);

@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
+import de.peeeq.wurstscript.translation.imtranslation.SpecialisationLookup;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -20,7 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ProgramState extends State {
+public class ProgramState extends State implements AutoCloseable {
 
     public static final int GENERATED_BY_WURST = 42;
     private de.peeeq.wurstscript.jassIm.Element lastStatement;
@@ -39,9 +40,30 @@ public class ProgramState extends State {
 
     private final Map<ImVar, ImClass> genericStaticOwner = new HashMap<>();
 
+    private final Set<ImVar> modifiedScalars = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<String> modifiedGenericScalars = new HashSet<>();
+    private final Map<String, List<ImTypeArgument>> genericScalarTypeArguments = new HashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconstArray> genericStaticArrays = new Object2ObjectOpenHashMap<>();
+    private final Set<String> modifiedGenericArrays = new HashSet<>();
+    private final Map<String, Set<List<Integer>>> modifiedGenericArrayIndexes = new HashMap<>();
+    private final Map<String, List<ImTypeArgument>> genericArrayTypeArguments = new HashMap<>();
     private final IdentityHashMap<ImVar, Object2ObjectOpenHashMap<String, ILconst>> genericStaticVals = new IdentityHashMap<>();
     private final Object2ObjectOpenHashMap<String, ILconst> genericStaticScalarVals = new Object2ObjectOpenHashMap<>();
+    private int untrackedWriteDepth;
+
+    /**
+     * What each specialised node was copied from, when the caller knows. A program handed over without
+     * it is treated as having no specialisation in it, which is what a hand-built program means.
+     */
+    private SpecialisationLookup specialisations = SpecialisationLookup.NONE;
+
+    public void setSpecialisations(SpecialisationLookup specialisations) {
+        this.specialisations = specialisations;
+        // The owners were worked out in the constructor, before this arrived, and the recorded answer
+        // is better than the one read out of a name - so ask again now that it can be asked.
+        genericStaticOwner.clear();
+        identifyGenericStaticGlobals();
+    }
 
     private static boolean containsTypeVariable(ImType type) {
         return type.match(new ImType.Matcher<Boolean>() {
@@ -115,9 +137,17 @@ public class ProgramState extends State {
         }
 
         for (ImVar global : prog.getGlobals()) {
-            String n = global.getName();
+            // Recorded where the global was created, when the caller supplied the relation.
+            ImClass recorded = specialisations.genericStaticOwnerOf(global);
+            if (recorded != null) {
+                genericStaticOwner.put(global, recorded);
+                continue;
+            }
 
-            // longest prefix ending at an underscore that matches a class name
+            // Otherwise the name is all there is: the longest prefix ending at an underscore which
+            // names a generic class. Wrong for a class whose name contains an underscore, and wrong
+            // silently, which is why the recorded answer is preferred.
+            String n = global.getName();
             int pos = n.lastIndexOf('_');
             while (pos > 0) {
                 String className = n.substring(0, pos);
@@ -183,6 +213,20 @@ public class ProgramState extends State {
 
     public Iterable<NativesProvider> getNativeProviders() {
         return nativeProviders;
+    }
+
+    /**
+     * Closes all registered NativesProvider instances to release external native resources (such as SQLite connections).
+     */
+    @Override
+    public void close() {
+        for (NativesProvider provider : nativeProviders) {
+            try {
+                provider.close();
+            } catch (Exception e) {
+                WLogger.severe(e);
+            }
+        }
     }
 
     public @Nullable NativesProvider getCachedNativeProvider(String funcName) {
@@ -374,6 +418,23 @@ public class ProgramState extends State {
         return resolveTypeDeep(t, 32); // small budget to avoid cycles
     }
 
+    /**
+     * Replaces the stand-in default of a type parameter with the default of the type bound to it.
+     * <p>
+     * The default of a value is computed by a static attribute, which cannot see the frames that
+     * know what the parameter stands for, so it produces a stand-in. Reading a slot of a
+     * {@code T array} that was never written is how one reaches a program: the stand-in compares
+     * equal only to another stand-in, so a comparison against the real default is quietly false.
+     * The frames are known here, so resolve it where the value is produced.
+     */
+    public ILconst resolveDefault(ILconst value) {
+        if (!(value instanceof ILconstUnsafeDefault unsafeDefault)) {
+            return value;
+        }
+        ImType resolved = resolveType(JassIm.ImTypeVarRef(unsafeDefault.getTypeVariable()));
+        return resolved instanceof ImTypeVarRef ? value : resolved.defaultValue();
+    }
+
     private ImType resolveTypeDeep(ImType t, int budget) {
         if (budget <= 0 || t == null) return t;
 
@@ -399,7 +460,7 @@ public class ProgramState extends State {
                 boolean changed = false;
                 for (ImTypeArgument ta : ct.getTypeArguments()) {
                     ImType rt = resolveTypeDeep(ta.getType(), budget - 1);
-                    newArgs.add(JassIm.ImTypeArgument(rt, ta.getTypeClassBinding()));
+                    newArgs.add(JassIm.ImTypeArgument(rt, typeClassBindingFor(ta)));
                     changed |= (rt != ta.getType());
                 }
                 return changed ? JassIm.ImClassType(ct.getClassDef(), newArgs) : ct;
@@ -440,59 +501,6 @@ public class ProgramState extends State {
     }
 
 
-    // Helper method to substitute type variables
-    private ImType substituteTypeVars(ImType type, Map<ImTypeVar, ImType> substitutions) {
-        return type.match(new ImType.Matcher<ImType>() {
-            @Override
-            public ImType case_ImTypeVarRef(ImTypeVarRef typeVarRef) {
-                ImType concrete = substitutions.get(typeVarRef.getTypeVariable());
-                return concrete != null ? concrete : typeVarRef;
-            }
-
-            @Override
-            public ImType case_ImClassType(ImClassType classType) {
-                // Recursively substitute in type arguments
-                ImTypeArguments newArgs = JassIm.ImTypeArguments();
-                for (ImTypeArgument arg : classType.getTypeArguments()) {
-                    ImType substituted = substituteTypeVars(arg.getType(), substitutions);
-                    newArgs.add(JassIm.ImTypeArgument(substituted, arg.getTypeClassBinding()));
-                }
-                return JassIm.ImClassType(classType.getClassDef(), newArgs);
-            }
-
-            // For other types, return as-is
-            @Override
-            public ImType case_ImSimpleType(ImSimpleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImVoid(ImVoid t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImAnyType(ImAnyType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                return t;
-            }
-        });
-    }
-
     public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
         WLogger.trace(() -> "pushStackframe compiletime expr " + f);
         stackFrames.push(new ILStackFrame(f, trace));
@@ -501,6 +509,55 @@ public class ProgramState extends State {
             stmt = f;
         }
         lastStatements.push(stmt);
+    }
+
+    /**
+     * Type arguments of the frames currently on the stack. A type class dispatch on a parameter
+     * which the current frame received abstractly is answered from the frame which supplied it.
+     */
+    private final Deque<Map<ImTypeVar, ImTypeArgument>> typeArgumentFrames = new ArrayDeque<>();
+
+    public void pushTypeArguments(Map<ImTypeVar, ImTypeArgument> typeArguments) {
+        typeArgumentFrames.push(typeArguments);
+    }
+
+    public void popTypeArguments() {
+        if (!typeArgumentFrames.isEmpty()) {
+            typeArgumentFrames.pop();
+        }
+    }
+
+    public @Nullable ImTypeArgument getCurrentTypeArgument(ImTypeVar typeVar) {
+        for (Map<ImTypeVar, ImTypeArgument> frame : typeArgumentFrames) {
+            for (Map.Entry<ImTypeVar, ImTypeArgument> e : frame.entrySet()) {
+                // A class and its constructor hold separate nodes for the same source type parameter,
+                // so identity alone does not find the binding. This used to fall back to comparing
+                // names, which takes two parameters that merely share one for the same parameter - the
+                // same mistake EliminateGenerics made, where it dispatched a value through the wrong
+                // instance. Both now ask what the node was copied from.
+                boolean sameVar = e.getKey() == typeVar
+                    || specialisations.canonical(e.getKey()) == specialisations.canonical(typeVar);
+                if (sameVar && !e.getValue().getTypeClassBinding().isEmpty()) {
+                    return e.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The type class binding for a type argument being resolved.
+     * <p>
+     * A class body refers to its own type variables, so the argument written there carries no
+     * binding. The frame which created the object was called with one, so take it from there;
+     * otherwise a bound on a generic class would have nothing to dispatch through.
+     */
+    private Map<ImTypeClassFunc, io.vavr.control.Either<ImMethod, ImFunction>> typeClassBindingFor(ImTypeArgument arg) {
+        if (!arg.getTypeClassBinding().isEmpty() || !(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg.getTypeClassBinding();
+        }
+        ImTypeArgument fromFrame = getCurrentTypeArgument(ref.getTypeVariable());
+        return fromFrame != null ? fromFrame.getTypeClassBinding() : arg.getTypeClassBinding();
     }
 
     public void popStackframe() {
@@ -664,9 +721,27 @@ public class ProgramState extends State {
 
     @Override
     public void setVal(ImVar v, ILconst val) {
+        boolean trackWrite = untrackedWriteDepth == 0;
+        if (trackWrite) {
+            modifiedScalars.add(v);
+        }
         String key = genericStaticKey(v);
         if (key != null) {
             WLogger.trace(() -> "[GENSTATIC] set " + key + " = " + val);
+            genericStaticScalarVals.put(key, val);
+            if (trackWrite) {
+                modifiedGenericScalars.add(key);
+                genericScalarTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+            }
+            return;
+        }
+        super.setVal(v, val);
+    }
+
+    public void setValUntracked(ImVar v, ILconst val) {
+        String key = genericStaticKey(v);
+        if (key != null) {
+            WLogger.trace(() -> "[GENSTATIC] initialize " + key + " = " + val);
             genericStaticScalarVals.put(key, val);
             return;
         }
@@ -686,7 +761,7 @@ public class ProgramState extends State {
             // lazy init from global inits (e.g. foo = 1)
             List<ImSet> inits = prog.getGlobalInits().get(v);
             if (inits != null && !inits.isEmpty()) {
-                ILconst initVal = inits.get(inits.size() - 1).getRight().evaluate(this, EMPTY_LOCAL_STATE);
+                ILconst initVal = evaluateUntracked(inits.get(inits.size() - 1).getRight(), EMPTY_LOCAL_STATE);
                 genericStaticScalarVals.put(key, initVal);
                 WLogger.trace(() -> "[GENSTATIC] get " + key + " -> (init) " + initVal);
                 return initVal;
@@ -698,6 +773,21 @@ public class ProgramState extends State {
         }
 
         return super.getVal(v);
+    }
+
+    /**
+     * Evaluates a lazy global initializer without recording its side effects for state migration.
+     * Runtime repeats initializer execution, so replaying those writes would duplicate them.
+     * Compiletime-only side effects hidden inside an initializer are intentionally unsupported;
+     * persistent mutations must be performed by an explicit compiletime function instead.
+     */
+    public ILconst evaluateUntracked(ImExpr expr, LocalState localState) {
+        untrackedWriteDepth++;
+        try {
+            return expr.evaluate(this, localState);
+        } finally {
+            untrackedWriteDepth--;
+        }
     }
 
 
@@ -722,7 +812,7 @@ public class ProgramState extends State {
             if (inits != null && !inits.isEmpty()) {
                 final LocalState ls = EMPTY_LOCAL_STATE;
                 for (int i = 0; i < inits.size(); i++) {
-                    ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                    ILconst val = evaluateUntracked(inits.get(i).getRight(), ls);
                     r.set(i, val);
                 }
             }
@@ -741,11 +831,177 @@ public class ProgramState extends State {
         if (inits != null && !inits.isEmpty()) {
             final LocalState ls = EMPTY_LOCAL_STATE;
             for (int i = 0; i < inits.size(); i++) {
-                ILconst val = inits.get(i).getRight().evaluate(this, ls);
+                ILconst val = evaluateUntracked(inits.get(i).getRight(), ls);
                 r.set(i, val);
             }
         }
         return r;
+    }
+
+    @Override
+    public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {
+        if (untrackedWriteDepth > 0) {
+            setArrayValUntracked(v, indexes, val);
+            return;
+        }
+        String key = genericStaticKey(v);
+        super.setArrayVal(v, indexes, val);
+        if (key != null) {
+            modifiedGenericArrays.add(key);
+            modifiedGenericArrayIndexes.computeIfAbsent(key, ignored -> new HashSet<>())
+                .add(Collections.unmodifiableList(new ArrayList<>(indexes)));
+            genericArrayTypeArguments.computeIfAbsent(key, ignored -> genericStaticTypeArguments(v));
+        }
+    }
+
+    private List<ImTypeArgument> genericStaticTypeArguments(ImVar v) {
+        ImClass owner = genericStaticOwner.get(v);
+        if (owner == null) {
+            return Collections.emptyList();
+        }
+
+        ImClassType receiver = currentReceiverInstantiationFor(owner);
+        if (receiver != null && receiver.getClassDef() == owner) {
+            return copyTypeArguments(receiver.getTypeArguments());
+        }
+
+        List<ImTypeArgument> result = new ArrayList<>();
+        for (ImTypeVar typeVar : owner.getTypeVariables()) {
+            ImType resolved = resolveType(JassIm.ImTypeVarRef(typeVar));
+            if (resolved instanceof ImTypeVarRef) {
+                return Collections.emptyList();
+            }
+            result.add(JassIm.ImTypeArgument(resolved, Collections.emptyMap()));
+        }
+        return result;
+    }
+
+    private static List<ImTypeArgument> copyTypeArguments(ImTypeArguments typeArguments) {
+        List<ImTypeArgument> result = new ArrayList<>(typeArguments.size());
+        for (ImTypeArgument typeArgument : typeArguments) {
+            result.add(typeArgument.copy());
+        }
+        return result;
+    }
+
+    /** Snapshot of an array's explicitly initialized entries for compiletime migration. */
+    public ILconstArray getArrayValue(ImVar v) {
+        return getArray(v);
+    }
+
+    public static final class ArrayState {
+        private final ILconstArray value;
+        private final List<ImTypeArgument> typeArguments;
+        private final boolean generic;
+        private final Set<List<Integer>> modifiedIndexes;
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments) {
+            this(value, typeArguments, !typeArguments.isEmpty(), Collections.emptySet());
+        }
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments, boolean generic) {
+            this(value, typeArguments, generic, Collections.emptySet());
+        }
+
+        public ArrayState(ILconstArray value, List<ImTypeArgument> typeArguments, boolean generic,
+                          Set<List<Integer>> modifiedIndexes) {
+            this.value = value;
+            this.typeArguments = Collections.unmodifiableList(new ArrayList<>(typeArguments));
+            this.generic = generic;
+            Set<List<Integer>> indexSnapshot = new HashSet<>();
+            for (List<Integer> indexes : modifiedIndexes) {
+                indexSnapshot.add(Collections.unmodifiableList(new ArrayList<>(indexes)));
+            }
+            this.modifiedIndexes = Collections.unmodifiableSet(indexSnapshot);
+        }
+
+        public ILconstArray getValue() {
+            return value;
+        }
+
+        public List<ImTypeArgument> getTypeArguments() {
+            return typeArguments;
+        }
+
+        public boolean isGeneric() {
+            return generic;
+        }
+
+        public Set<List<Integer>> getModifiedIndexes() {
+            return modifiedIndexes;
+        }
+    }
+
+    public static final class ScalarState {
+        private final ILconst value;
+        private final List<ImTypeArgument> typeArguments;
+        private final boolean generic;
+
+        private ScalarState(ILconst value, List<ImTypeArgument> typeArguments, boolean generic) {
+            this.value = value;
+            this.typeArguments = Collections.unmodifiableList(new ArrayList<>(typeArguments));
+            this.generic = generic;
+        }
+
+        public ILconst getValue() {
+            return value;
+        }
+
+        public List<ImTypeArgument> getTypeArguments() {
+            return typeArguments;
+        }
+
+        public boolean isGeneric() {
+            return generic;
+        }
+    }
+
+    public Set<ImVar> getModifiedScalars() {
+        return Collections.unmodifiableSet(modifiedScalars);
+    }
+
+    public Collection<ScalarState> getScalarStates(ImVar v) {
+        String prefix = v.getName() + "|";
+        List<String> keys = new ArrayList<>(modifiedGenericScalars);
+        Collections.sort(keys);
+        List<ScalarState> result = new ArrayList<>();
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                ILconst value = genericStaticScalarVals.get(key);
+                if (value != null) {
+                    result.add(new ScalarState(value,
+                        genericScalarTypeArguments.getOrDefault(key, Collections.emptyList()), true));
+                }
+            }
+        }
+        if (result.isEmpty() && genericStaticKey(v) == null) {
+            ILconst value = getVal(v);
+            if (value != null) {
+                result.add(new ScalarState(value, Collections.emptyList(), false));
+            }
+        }
+        return result;
+    }
+
+    public Collection<ArrayState> getArrayStates(ImVar v) {
+        String prefix = v.getName() + "|";
+        List<String> keys = new ArrayList<>(modifiedGenericArrays);
+        Collections.sort(keys);
+        List<ArrayState> result = new ArrayList<>();
+        for (String key : keys) {
+            if (key.startsWith(prefix)) {
+                ILconstArray value = genericStaticArrays.get(key);
+                if (value != null) {
+                    result.add(new ArrayState(value,
+                        genericArrayTypeArguments.getOrDefault(key, Collections.emptyList()), true,
+                        modifiedGenericArrayIndexes.getOrDefault(key, Collections.emptySet())));
+                }
+            }
+        }
+        if (result.isEmpty() && genericStaticKey(v) == null) {
+            result.add(new ArrayState(getArray(v), Collections.emptyList(), false, getModifiedArrayIndexes(v)));
+        }
+        return result;
     }
 
 

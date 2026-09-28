@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.intermediatelang.ILaddress;
@@ -72,11 +73,13 @@ public class RunStatement {
 
 
     public static void run(ImVarargLoop loop, ProgramState globalState, LocalState localState) {
+        Preconditions.checkState(loop.getLoopVars().size() == 1,
+            "Expected one vararg loop variable in the interpreter.");
         ImFunction func = loop.getNearestFunc();
         ImVar varargParam = func.getParameters().get(func.getParameters().size() - 1);
         VarargArray val = (VarargArray) localState.getVal(varargParam);
         for (int i = 0; i < val.size(); i++) {
-            localState.setVal(loop.getLoopVar(), val.get(i));
+            localState.setVal(loop.getLoopVars().get(0).getVar(), val.get(i));
             loop.getBody().runStatements(globalState, localState);
         }
     }

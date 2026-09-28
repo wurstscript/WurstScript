@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
@@ -27,6 +28,8 @@ import static de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberF
  * this attribute find the variable definition for every variable reference
  */
 public class AttrFuncDef {
+    public static final String REDUNDANT_TO_STRING_WARNING =
+        "Explicit .toString() is redundant in this string concatenation.";
 
     // TODO just use the attr function signature to get the def
 
@@ -67,7 +70,126 @@ public class AttrFuncDef {
 
 
     public static @Nullable FuncLink calculate(ExprBinary node) {
-        return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        FuncLink overloadedOperator = getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
+        if (overloadedOperator != null && matchesArguments(node, overloadedOperator,
+                Collections.singletonList(node.getRight().attrTyp()))) {
+            return overloadedOperator;
+        }
+        if (implicitToStringForConcatOperand(node, node.getLeft()) != null
+                || implicitToStringForConcatOperand(node, node.getRight()) != null) {
+            return null;
+        }
+        return overloadedOperator;
+    }
+
+    /** Returns the implicit conversion for a non-string operand next to a string in a + expression. */
+    public static @Nullable FuncLink implicitToStringForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+
+        return findToStringConversion(operand);
+    }
+
+    /** Resolves the same zero-argument string conversion that an explicit operand.toString() call would use. */
+    public static @Nullable FuncLink findToStringConversion(Expr operand) {
+        return resolveToStringConversion(operand).conversion;
+    }
+
+    /** Whether replacing the right operand with the given type could expose a left-hand plus overload. */
+    public static boolean hasApplicablePlusOverload(Expr leftOperand, WurstType rightType) {
+        List<WurstType> argumentTypes = Collections.singletonList(rightType);
+        for (FuncLink candidate : leftOperand.lookupMemberFuncs(leftOperand.attrTyp(), overloadingPlus)) {
+            if (matchesArguments(leftOperand, candidate, argumentTypes)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Returns why an otherwise applicable implicit conversion cannot be selected. */
+    public static @Nullable String implicitToStringErrorForConcatOperand(ExprBinary concat, Expr operand) {
+        if (concat.getOp() != WurstOperator.PLUS || operand.attrTyp() instanceof WurstTypeString) {
+            return null;
+        }
+        Expr other = concat.getLeft() == operand ? concat.getRight() : concat.getLeft();
+        if (!(other.attrTyp() instanceof WurstTypeString)) {
+            return null;
+        }
+        return resolveToStringConversion(operand).error;
+    }
+
+    private static ToStringConversionResolution resolveToStringConversion(Expr operand) {
+        Collection<FuncLink> raw = NameResolution.lookupMemberFuncs(
+            operand, operand.attrTyp(), "toString", false);
+        List<FuncLink> methods = new ArrayList<>();
+        List<FuncLink> extensions = new ArrayList<>();
+        for (FuncLink candidate : raw) {
+            if (!isVisible(candidate)
+                    || (candidate.getDef() instanceof FuncDef && ((FuncDef) candidate.getDef()).attrIsStatic())) {
+                continue;
+            }
+            FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+                .matchAgainstArgs(Collections.emptyList(), operand);
+            if (matched == null) {
+                continue;
+            }
+            if (isExtension(candidate)) {
+                if (!extensions.contains(candidate)) {
+                    extensions.add(candidate);
+                }
+            } else {
+                if (!methods.contains(candidate)) {
+                    methods.add(candidate);
+                }
+            }
+        }
+
+        if (!methods.isEmpty()) {
+            return selectToStringConversion(
+                keepMostSpecificReceivers(methods, FuncLink::getReceiverType, operand), operand);
+        }
+        if (!extensions.isEmpty()) {
+            return selectToStringConversion(
+                keepMostSpecificReceivers(extensions, FuncLink::getReceiverType, operand), operand);
+        }
+        return new ToStringConversionResolution(null, null);
+    }
+
+    private static ToStringConversionResolution selectToStringConversion(List<FuncLink> candidates, Expr operand) {
+        if (candidates.size() != 1) {
+            return new ToStringConversionResolution(null,
+                "Call to function toString is ambiguous. Alternatives are:\n" + Utils.printAlternatives(candidates));
+        }
+        FuncLink candidate = candidates.get(0);
+        FunctionSignature matched = FunctionSignature.fromNameLink(candidate)
+            .matchAgainstArgs(Collections.emptyList(), operand);
+        if (matched == null) {
+            return new ToStringConversionResolution(null, null);
+        }
+        if (matched.getMapping().hasUnboundTypeVars()) {
+            return new ToStringConversionResolution(null,
+                "Cannot infer type for type parameter " + matched.getMapping().printUnboundTypeVars());
+        }
+        if (!matched.getReturnType().isSubtypeOf(WurstTypeString.instance(), operand)) {
+            return new ToStringConversionResolution(null, null);
+        }
+        return new ToStringConversionResolution(
+            candidate.withTypeArgBinding(operand, matched.getMapping()), null);
+    }
+
+    private static class ToStringConversionResolution {
+        private final @Nullable FuncLink conversion;
+        private final @Nullable String error;
+
+        private ToStringConversionResolution(@Nullable FuncLink conversion, @Nullable String error) {
+            this.conversion = conversion;
+            this.error = error;
+        }
     }
 
     public static @Nullable FuncLink calculate(final ExprMemberMethod node) {
@@ -75,9 +197,8 @@ public class AttrFuncDef {
         var raw = NameResolution.lookupMemberFuncs(node, recvT, node.getFuncName(), /*showErrors=*/false);
 
         java.util.ArrayList<FuncLink> visible = new java.util.ArrayList<>(raw.size());
-        java.util.ArrayList<FuncLink> hidden  = new java.util.ArrayList<>(raw.size());
         for (var f : raw) {
-            if (isVisible(f)) visible.add(f); else hidden.add(f);
+            if (isVisible(f)) visible.add(f);
         }
 
         if (!raw.isEmpty() && visible.isEmpty()) {
@@ -171,6 +292,9 @@ public class AttrFuncDef {
         if (isConstructorThisCall(node)) {
             return null;
         }
+        if (CompilerIntrinsics.isNew(node)) {
+            return findIntrinsicDeclaration(node);
+        }
         FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
         if (result == null) {
@@ -184,6 +308,22 @@ public class AttrFuncDef {
             }
         }
         return result;
+    }
+
+    private static @Nullable FuncLink findIntrinsicDeclaration(ExprFunctionCall node) {
+        for (FuncLink candidate : node.lookupFuncs(node.getFuncName())) {
+            if (!CompilerIntrinsics.isDeclaration(candidate.getDef())
+                || candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (node.getTypeArgs().size() == signature.getDefinitionTypeVariables().size()
+                && signature.matchAgainstArgs(argumentTypesPre(node), node) != null) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private static boolean isConstructorThisCall(ExprFunctionCall node) {
@@ -386,12 +526,51 @@ public class AttrFuncDef {
         return result;
     }
 
+    /** Checks whether normal overload resolution has an applicable visible function before a compiler fallback. */
+    public static boolean hasApplicableUserFunction(ExprFunctionCall node) {
+        ImmutableCollection<FuncLink> candidates = node.lookupFuncs(node.getFuncName());
+        if (candidates.isEmpty()) {
+            return false;
+        }
+        List<WurstType> argumentTypes = argumentTypesPre(node);
+        for (FuncLink candidate : candidates) {
+            // A @compilerintrinsic declaration is an IDE-visible contract for an operation which
+            // is still lowered by the compiler. It must not shadow that lowering like an ordinary
+            // user function with the same name does.
+            if (CompilerIntrinsics.isDeclaration(candidate.getDef())) {
+                continue;
+            }
+            if (candidate.getVisibility() == Visibility.PRIVATE_OTHER
+                || candidate.getVisibility() == Visibility.PROTECTED_OTHER) {
+                continue;
+            }
+            FunctionSignature signature = FunctionSignature.fromNameLink(candidate);
+            if (!node.getTypeArgs().isEmpty()
+                && node.getTypeArgs().size() != signature.getDefinitionTypeVariables().size()) {
+                continue;
+            }
+            if (signature.matchAgainstArgs(argumentTypes, node) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     private static FuncLink searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
         if (node == null) {
             return null;
         }
         ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
+        if (node instanceof ExprFunctionCall
+            && hasApplicableUserFunction((ExprFunctionCall) node)) {
+            ImmutableList<FuncLink> ordinaryFunctions = funcs1.stream()
+                .filter(f -> !CompilerIntrinsics.isDeclaration(f.getDef()))
+                .collect(Utils.toImmutableList());
+            if (!ordinaryFunctions.isEmpty()) {
+                funcs1 = ordinaryFunctions;
+            }
+        }
         if (funcs1.size() == 0) {
             if (funcName.startsWith("InitTrig_")) {
                 // ignore error

@@ -6,7 +6,6 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.TempDir;
 import net.moonlightflower.wc3libs.bin.Wc3BinOutputStream;
 import net.moonlightflower.wc3libs.bin.app.IMP;
 
@@ -297,9 +296,7 @@ public class ImportFile {
         try {
             File projectFolder = mapFile.getParentFile();
             File importDirectory = getImportDirectory(projectFolder);
-            File tempMap = getCopyOfMap(mapFile);
-
-            extractImportsFrom(importDirectory, tempMap, runArgs);
+            extractImportsFrom(importDirectory, mapFile, runArgs);
         } catch (Exception e) {
             WLogger.severe(e);
             JOptionPane.showMessageDialog(null, "Could not export objects (2): " + e.getMessage());
@@ -549,13 +546,6 @@ public class ImportFile {
             duration, filesProcessed, filesUpdated, filesDeleted));
 
         return new ImportResult(filesProcessed, filesUpdated, filesDeleted, duration, !importsChanged);
-    }
-
-    private static File getCopyOfMap(File mapFile) throws IOException {
-        File mapTemp = File.createTempFile("temp", "w3x", TempDir.get());
-        mapTemp.deleteOnExit();
-        Files.copy(mapFile, mapTemp);
-        return mapTemp;
     }
 
     private static File getImportDirectory(File projectFolder) {

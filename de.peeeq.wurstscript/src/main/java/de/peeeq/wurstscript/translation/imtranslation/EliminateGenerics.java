@@ -1,8 +1,12 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -10,6 +14,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.lua.translation.RemoveGarbage;
+import de.peeeq.wurstscript.types.TypesHelper;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,26 +29,47 @@ public class EliminateGenerics {
 
     private final ImTranslator translator;
     private final ImProg prog;
+    private boolean genericNewOnly;
+    private boolean specializeTupleValueTypes;
     private final Deque<GenericUse> genericsUses = new ArrayDeque<>();
+    /**
+     * Call sites already rewritten to a specialisation.
+     * <p>
+     * Collection has to be repeatable, because specialising one call is what makes the next one
+     * concrete. It is not naturally idempotent: a member call whose type arguments were consumed
+     * has them re-derived from its receiver, which would collect and specialise it again forever.
+     */
+    private final Set<Element> specializedCallSites = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<Element> recordedErasedStaticAllocations =
+        Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ImFunction> scannedFixedStaticCallees =
+        Collections.newSetFromMap(new IdentityHashMap<>());
     private final Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
+    /** The class each function was moved out of, for calls which name their target without a receiver. */
+    private final Map<ImFunction, ImClass> functionOwners = new IdentityHashMap<>();
     private final Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private final Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
+    /** Concrete generic identities named by runtime instanceof checks. */
+    private final Table<ImClass, GenericTypes, Boolean> runtimeTypeSpecializations = HashBasedTable.create();
+    private record RuntimeTypeUse(ImClass clazz, GenericTypes generics) {
+    }
     private final Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
     // Track concrete generic arguments for specialized functions to simplify later lookups
     private final Map<ImFunction, GenericTypes> specializedFunctionGenerics = new IdentityHashMap<>();
+    private final Set<ImFunction> unspecializedGenericClassMethods =
+        Collections.newSetFromMap(new IdentityHashMap<>());
 
     // NEW: Track specialized global variables for generic static fields
     // Key: (original generic global var, concrete type instantiation) -> specialized var
-    private final Table<ImVar, String, ImVar> specializedGlobals = HashBasedTable.create();
-
-    private static String gKey(GenericTypes g) {
-        return g.makeName();
-    }
+    private final Table<ImVar, GenericTypes, ImVar> specializedGlobals = HashBasedTable.create();
+    /** Last specialized initializer emitted for each original initializer, preserving discovery order. */
+    private final Map<ImStmt, ImStmt> specializedInitializerTails = new IdentityHashMap<>();
 
     // NEW: Track which global vars belong to which generic class
     // This helps us know which globals need specialization
-    private final Map<ImVar, ImClass> globalToClass = new HashMap<>();
+    /** Generic statics in source/program order; specialization emission must be deterministic. */
+    private final Map<ImVar, ImClass> globalToClass = new LinkedHashMap<>();
 
     // NEW: which functions touch generic globals (identity-based)
     private final Map<ImFunction, Set<ImClass>> functionToGenericGlobalOwners = new IdentityHashMap<>();
@@ -72,6 +99,9 @@ public class EliminateGenerics {
         eliminateGenericUses();
         dbg(summary("after eliminateGenericUses"));
 
+        eliminateRemainingGenericNewCalls();
+        eliminateGenericUses();
+
         dbgMethodsByName("after eliminateGenericUses");
 
         makeNullAssignmentsSafe();
@@ -82,10 +112,920 @@ public class EliminateGenerics {
         removeGenericConstructs();
         dbg(summary("after removeGenericConstructs"));
 
+        assertNoGenericNewMarkers();
+
         dbg(checkDanglingMethodRefs("end"));
 
         // TODO fix or remove this check
 //        assertNoUnspecializedGenericGlobals();
+    }
+
+    /**
+     * Lua normally erases generics. Generic construction and scalar storage for tuple type arguments,
+     * bounded dispatch, and parameterized runtime identity are the operations which need the concrete
+     * type, so only specialize paths leading to those operations. All other generic calls and classes
+     * keep the Lua backend's erased representation.
+     */
+    public void transformGenericNewOnly() {
+        transformGenericNewOnly(false);
+    }
+
+    public void transformGenericNewOnly(boolean specializeTupleValueTypes) {
+        genericNewOnly = true;
+        this.specializeTupleValueTypes = specializeTupleValueTypes;
+        identifyGenericGlobals();
+        if (specializeTupleValueTypes || !globalToClass.isEmpty()) {
+            addMemberTypeArguments();
+        }
+        indexGenericGlobalUses();
+        collectUnspecializedGenericClassMethods();
+        // Specialising a constructor makes its result type concrete, which is what lets a method
+        // call on that result resolve. Repeat until a pass finds nothing new; collection is
+        // idempotent, so this terminates once every reachable site has been rewritten.
+        while (true) {
+            if (specializeTupleValueTypes) {
+                collectRuntimeTypeSpecializations();
+            }
+            collectGenericNewRoots();
+            if (genericsUses.isEmpty()) {
+                break;
+            }
+            eliminateGenericUses();
+        }
+        eliminateRemainingGenericNewCalls();
+        assertNoReachableGenericNewMarkers();
+        bindSpecialisedMethodsToTheAllocatedClass();
+        settleRemainingDispatches();
+    }
+
+    public boolean hasGenericStatics() {
+        identifyGenericGlobals();
+        return !globalToClass.isEmpty();
+    }
+
+    /**
+     * Moves a specialisation's methods to the class its objects are actually allocated from.
+     * <p>
+     * Specialising a method leaves the copy on the specialised class. That is where the object comes
+     * from when a construction on this path was redirected there, and a virtual call finds the slot
+     * through the object as usual. Otherwise the object stays erased — which is this target's normal
+     * representation — and is allocated from the class the method was declared on, so the slot the
+     * call names resolves to nothing and the call fails at runtime rather than at compile time.
+     * <p>
+     * Decided from what the program allocates rather than from the shape of the class, because one
+     * class can be reached both ways: a container whose constructor was specialised is allocated from
+     * the copy, while an ordinary generic object beside it is not. A specialised name carries its
+     * instantiation, so two specialisations of one method stay distinct on the erased class.
+     * <p>
+     * When both are allocated the methods stay where they are. Giving the erased class a copy of its
+     * own looks safer and is not: a copy is a dispatch group of its own, so it is named separately and
+     * the binding lands under a name no call site asks for, and joining it to the method it came from
+     * to share the name merges two groups which are deliberately distinct. The one shape reaching this
+     * is a closure, where each class binds its own implementation under the same slot names already
+     * and the erased allocation is dead. Left alone rather than fixed blind.
+     */
+    private void bindSpecialisedMethodsToTheAllocatedClass() {
+        Map<ImClass, ImClass> erasedOf = new IdentityHashMap<>();
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell : specializedClasses.cellSet()) {
+            erasedOf.put(cell.getValue(), cell.getRowKey());
+        }
+        Set<ImClass> allocated = allocatedClasses();
+        // Walked in program order rather than over the specialisation table, whose iteration is
+        // hash-ordered: what ends up on a class, and in which order, decides its emitted slot names.
+        for (ImClass specialized : new ArrayList<>(prog.getClasses())) {
+            ImClass erased = erasedOf.get(specialized);
+            if (erased == null || erased == specialized || !allocated.contains(erased)) {
+                continue;
+            }
+            if (allocated.contains(specialized)) {
+                continue;
+            }
+            for (ImMethod method : specialized.getMethods().removeAll()) {
+                method.setMethodClass(JassIm.ImClassType(erased, JassIm.ImTypeArguments()));
+                erased.getMethods().add(method);
+            }
+        }
+    }
+
+    /** Every class the program allocates an instance of. */
+    private Set<ImClass> allocatedClasses() {
+        Set<ImClass> result = Collections.newSetFromMap(new IdentityHashMap<>());
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                result.add(alloc.getClazz().getClassDef());
+            }
+        });
+        return result;
+    }
+
+    /**
+     * Neutralises the dispatches left in functions that were specialized.
+     * <p>
+     * Such a function is dead: every reachable call to it was rewritten to its specialization, so a
+     * dispatch still sitting in the original can never run. This backend keeps generics rather than
+     * removing them wholesale, so those originals are still translated and the dispatch would reach
+     * a backend with no way to express it.
+     * <p>
+     * Anything else is left alone. A dispatch may legitimately remain in a bounded generic that is
+     * merely declared and never called, and garbage removal deletes those later; deciding here
+     * would mean duplicating reachability. One which survives that far and still reaches the
+     * backend is reported there, where it is known to be both reachable and unresolvable.
+     */
+    private void settleRemainingDispatches() {
+        List<ImTypeVarDispatch> remaining = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                super.visit(dispatch);
+                remaining.add(dispatch);
+            }
+        });
+        for (ImTypeVarDispatch dispatch : remaining) {
+            ImFunction owner = dispatch.getNearestFunc();
+            if (owner != null && specializedFunctions.containsRow(owner)) {
+                dispatch.replaceBy(defaultValueFor(dispatch.getTypeClassFunc().getReturnType()));
+            }
+        }
+    }
+
+    private static ImExpr defaultValueFor(ImType type) {
+        return JassIm.ImNull(type.copy());
+    }
+
+
+    private void collectGenericNewRoots() {
+        classByFunction = null;
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                collectGenericNewUse(alloc);
+            }
+
+            @Override
+            public void visit(ImMemberAccess memberAccess) {
+                super.visit(memberAccess);
+                collectGenericNewUse(memberAccess);
+            }
+
+            @Override
+            public void visit(ImDealloc dealloc) {
+                super.visit(dealloc);
+                collectGenericNewUse(dealloc);
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                collectGenericNewUse(instanceOf);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj typeId) {
+                super.visit(typeId);
+                collectGenericNewUse(typeId);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfClass typeId) {
+                super.visit(typeId);
+                collectGenericNewUse(typeId);
+            }
+        });
+    }
+
+    /**
+     * Records parameterized classes whose runtime identity is observed. Lua normally erases
+     * generics, but an instanceof target must denote the same concrete class as allocations of that
+     * instantiation; otherwise a tuple-specialized object is also an instance of every erased
+     * non-tuple instantiation.
+     */
+    private void collectRuntimeTypeSpecializations() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                super.visit(instanceOf);
+                ImClassType clazz = instanceOf.getClazz();
+                if (!clazz.getTypeArguments().isEmpty()
+                    && !typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+                    GenericTypes generics = new GenericTypes(clazz.getTypeArguments());
+                    ImClass original = clazz.getClassDef();
+                    if (runtimeTypeSpecializations.put(original, generics, true) == null) {
+                        rewriteExistingRuntimeTypeSuperEdges();
+                    }
+                }
+            }
+        });
+    }
+
+    private void rewriteExistingRuntimeTypeSuperEdges() {
+        for (Table.Cell<ImClass, GenericTypes, ImClass> cell
+            : new ArrayList<>(specializedClasses.cellSet())) {
+            if (needsRuntimeTypeSpecialization(cell.getRowKey(), cell.getColumnKey(),
+                new HashSet<>())) {
+                rewriteRuntimeTypeSuperEdges(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+            }
+        }
+    }
+
+    /** Redirects concrete inheritance edges to the same class identity used by instanceof. */
+    private void rewriteRuntimeTypeSuperEdges(ImClass original, GenericTypes generics,
+                                              ImClass specialized) {
+        for (ImClass clazz : prog.getClasses()) {
+            clazz.getSuperClasses().replaceAll(superType -> {
+                if (superType.getClassDef() != original
+                    || typeArgumentsContainTypeVariable(superType.getTypeArguments())
+                    || !new GenericTypes(superType.getTypeArguments()).equals(generics)) {
+                    return superType;
+                }
+                return JassIm.ImClassType(specialized, JassIm.ImTypeArguments());
+            });
+        }
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClassType clazz) {
+        if (typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+            return false;
+        }
+        return needsRuntimeTypeSpecialization(clazz.getClassDef(),
+            new GenericTypes(clazz.getTypeArguments()),
+            new HashSet<>());
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClass clazz, GenericTypes generics,
+                                                   Set<RuntimeTypeUse> visited) {
+        if (!visited.add(new RuntimeTypeUse(clazz, generics))) {
+            return false;
+        }
+        if (runtimeTypeSpecializations.contains(clazz, generics)) {
+            return true;
+        }
+        if (generics.getTypeArguments().size() != clazz.getTypeVariables().size()) {
+            return false;
+        }
+        for (ImClassType superType : clazz.getSuperClasses()) {
+            ImClassType concreteSuper = (ImClassType) transformType(superType, generics,
+                clazz.getTypeVariables());
+            if (!typeArgumentsContainTypeVariable(concreteSuper.getTypeArguments())
+                && needsRuntimeTypeSpecialization(concreteSuper.getClassDef(),
+                    new GenericTypes(concreteSuper.getTypeArguments()), visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImClass clazz,
+                                                   ImTypeArguments typeArguments) {
+        int classArgumentCount = clazz.getTypeVariables().size();
+        if (classArgumentCount == 0 || typeArguments.size() < classArgumentCount) {
+            return false;
+        }
+        List<ImTypeArgument> classArguments = new ArrayList<>(classArgumentCount);
+        for (int i = 0; i < classArgumentCount; i++) {
+            ImTypeArgument argument = typeArguments.get(i);
+            if (containsTypeVariable(argument.getType())) {
+                return false;
+            }
+            classArguments.add(argument);
+        }
+        return needsRuntimeTypeSpecialization(clazz, new GenericTypes(classArguments),
+            new HashSet<>());
+    }
+
+    private boolean needsRuntimeTypeSpecialization(ImFunctionCall call) {
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null
+            && needsRuntimeTypeSpecialization(owner, call.getTypeArguments());
+    }
+
+    private void collectGenericNewUse(ImClassRelatedExprWithClass expression) {
+        ImClassType clazz = expression.getClazz();
+        if (clazz.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())
+            || (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+                && !needsRuntimeTypeSpecialization(clazz))) {
+            return;
+        }
+        genericsUses.add(new GenericClazzUse(expression));
+    }
+
+    private void collectGenericNewUses(Element element) {
+        element.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                super.visit(call);
+                collectGenericNewUse(call);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                super.visit(alloc);
+                collectGenericNewUse(alloc);
+            }
+
+            @Override
+            public void visit(ImMemberAccess memberAccess) {
+                super.visit(memberAccess);
+                collectGenericNewUse(memberAccess);
+            }
+        });
+    }
+
+    private void collectGenericNewUse(ImFunctionCall call) {
+        if (specializedCallSites.contains(call)) {
+            return;
+        }
+        if (translator.isGenericNewMarker(call.getFunc())) {
+            if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+                genericsUses.add(new GenericNewCall(call));
+            }
+            return;
+        }
+        recordErasedConstructorAllocation(call);
+        if (!call.getTypeArguments().isEmpty()
+            && (shouldSpecializeTupleArguments(call.getTypeArguments())
+                || needsRuntimeTypeSpecialization(call)
+                || functionNeedsSpecialization(call.getFunc(), Collections.newSetFromMap(new IdentityHashMap<>())))) {
+            if (!typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+                genericsUses.add(new GenericImFunctionCall(call));
+            }
+            return;
+        }
+        if (call.getTypeArguments().isEmpty()) {
+            collectCallThroughGenericReceiver(call);
+        } else if (!typeArgumentsContainTypeVariable(call.getTypeArguments())
+            && !(call.getFunc().getTrace() instanceof ConstructorDef)) {
+            // The generic callee remains erased, so its body is skipped by collectGenericNewRoots.
+            // Fixed concrete allocations inside it still name real per-instantiation statics and
+            // must be registered without cloning the caller for unrelated type arguments.
+            recordFixedErasedStaticAllocations(call.getFunc());
+        }
+    }
+
+    private void recordFixedErasedStaticAllocations(ImFunction function) {
+        if (!scannedFixedStaticCallees.add(function)) {
+            return;
+        }
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall nestedCall) {
+                super.visit(nestedCall);
+                collectGenericNewUse(nestedCall);
+            }
+
+            @Override
+            public void visit(ImMethodCall nestedCall) {
+                super.visit(nestedCall);
+                collectGenericNewUse(nestedCall);
+            }
+        });
+    }
+
+    private void recordErasedConstructorAllocation(ImFunctionCall call) {
+        if (call.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(call.getTypeArguments())
+            || !(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !(call.getFunc().getReturnType() instanceof ImClassType)
+            || shouldSpecializeTupleArguments(call.getTypeArguments())
+            || needsRuntimeTypeSpecialization(call)) {
+            return;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        if (owner != null && classOwnsGenericGlobals(owner)
+            && !functionNeedsSpecialization(call.getFunc(),
+            Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            recordErasedStaticInstantiation(call, owner, call.getTypeArguments());
+        }
+    }
+
+    private void recordErasedStaticInstantiation(Element site, ImClass owner,
+                                                  List<ImTypeArgument> typeArguments) {
+        if (!recordedErasedStaticAllocations.add(site)) {
+            return;
+        }
+        GenericTypes generics = new GenericTypes(typeArguments);
+        translator.recordErasedGenericAllocation(owner, typeArguments);
+        genericsUses.add(() -> specializeClass(owner, generics));
+    }
+
+    /**
+     * Collects a call which names a function of a generic class outright, taking the instantiation
+     * from the receiver it was handed.
+     * <p>
+     * {@code super.m()} is the case that shows why: the call names its target, so there is no receiver
+     * to read type arguments from, and this target never lifts the class's type variables onto the
+     * function, so nothing on the call says which instantiation to specialise for and the erased
+     * original is reached instead — where the dispatch it contains is dead. The receiver is still the
+     * first argument, and the class it is used as gives the same answer the lift gives elsewhere. A
+     * constructor's own body is reached the same way, its {@code this} being that first argument.
+     * <p>
+     * Only for a target which reaches one of the operations needing a concrete type. Being able to
+     * read an instantiation off a receiver says nothing about whether anything wants it, and this
+     * target keeps generics erased: specialising every call into a generic superclass would make a
+     * copy per instantiation of functions with no dispatch and no construction in them.
+     */
+    private void collectCallThroughGenericReceiver(ImFunctionCall call) {
+        ImClass owningClass = classOwning(call.getFunc());
+        if (owningClass == null || owningClass.getTypeVariables().isEmpty()
+            || !call.getFunc().getTypeVariables().isEmpty()) {
+            return;
+        }
+        if (call.getArguments().isEmpty()
+            || !(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(receiverType, owningClass);
+        if (classType == null
+            || classType.getTypeArguments().size() != owningClass.getTypeVariables().size()
+            || typeArgumentsContainTypeVariable(classType.getTypeArguments())) {
+            return;
+        }
+        if (!shouldSpecializeTupleArguments(classType.getTypeArguments())
+            && !functionNeedsSpecialization(call.getFunc(),
+                Collections.newSetFromMap(new IdentityHashMap<>()))) {
+            return;
+        }
+        genericsUses.add(new GenericClassFunctionCall(call, owningClass,
+            new GenericTypes(classType.getTypeArguments())));
+    }
+
+    /**
+     * The class a function belongs to, whether as a method's implementation or as a function of its
+     * own, and null when it belongs to none.
+     * <p>
+     * Rebuilt per collection pass rather than kept, because specialising adds more. This target leaves
+     * both on their classes, so there is no owner map of the kind moving them out builds.
+     */
+    private @Nullable ImClass classOwning(ImFunction function) {
+        if (classByFunction == null) {
+            classByFunction = new IdentityHashMap<>();
+            Map<ClassDef, ImClass> classBySource = new IdentityHashMap<>();
+            for (ImClass imClass : prog.getClasses()) {
+                if (imClass.getTrace() instanceof ClassDef sourceClass) {
+                    classBySource.put(sourceClass, imClass);
+                }
+                for (ImFunction f : imClass.getFunctions()) {
+                    classByFunction.putIfAbsent(f, imClass);
+                }
+                for (ImMethod method : imClass.getMethods()) {
+                    if (method.getImplementation() != null) {
+                        classByFunction.putIfAbsent(method.getImplementation(),
+                            method.getMethodClass().getClassDef());
+                    }
+                }
+            }
+            for (ImFunction f : prog.getFunctions()) {
+                ClassDef sourceClass = f.attrTrace() == null
+                    ? null : f.attrTrace().attrNearestClassDef();
+                if (sourceClass != null) {
+                    ImClass owner = classBySource.get(sourceClass);
+                    if (owner != null) {
+                        classByFunction.putIfAbsent(f, owner);
+                    }
+                }
+            }
+        }
+        return classByFunction.get(function);
+    }
+
+    private @Nullable Map<ImFunction, ImClass> classByFunction;
+
+    /**
+     * A construction states an instantiation that no call site has to mention. A closure is the case
+     * that needs it: its class is built from the enclosing type variables and reached through its
+     * interface, so the call carries no type arguments at all and only the allocation knows what the
+     * body dispatches on. Restricted to classes that actually dispatch on a bound, so this stays a
+     * targeted specialisation rather than general monomorphisation on Lua.
+     */
+    private void collectGenericNewUse(ImAlloc alloc) {
+        ImClassType clazz = alloc.getClazz();
+        if (clazz.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(clazz.getTypeArguments())) {
+            return;
+        }
+        if (!shouldSpecializeTupleArguments(clazz.getTypeArguments())
+            && !needsRuntimeTypeSpecialization(clazz)
+            && !isConstructionOnlyInstantiation(clazz.getClassDef())) {
+            if (classOwnsGenericGlobals(clazz.getClassDef())) {
+                recordErasedStaticInstantiation(alloc, clazz.getClassDef(), clazz.getTypeArguments());
+            }
+            return;
+        }
+        genericsUses.add(new GenericClazzUse(alloc));
+    }
+
+    /**
+     * Whether the construction is the only place a class's instantiation is stated.
+     * <p>
+     * A class the user writes is used through calls that carry its type arguments, and those already
+     * specialise what they need onto the erased class. A closure has no such call: it is reached
+     * through the interface it implements, which is not generic, so the allocation is the only thing
+     * that knows what the body dispatches on. Widening this beyond that case makes the two
+     * mechanisms disagree — the object comes from the specialised class while its methods were bound
+     * to the erased one.
+     */
+    private boolean isConstructionOnlyInstantiation(ImClass classDef) {
+        return classDef.attrTrace() instanceof ExprClosure closure
+            && !isInsideAnotherClosure(closure)
+            && classReachesDispatch(classDef);
+    }
+
+    /**
+     * A closure written inside another one is left alone.
+     * <p>
+     * Its captured environment is reached through a receiver belonging to the enclosing closure,
+     * which by then has been specialised itself, and specialising the owner again with what is
+     * left over fails inside the rewrite. Supporting that is a further step; until it is taken,
+     * saying the bound could not be resolved - which is what happens without any of this - is
+     * better than an error about generics of the wrong size.
+     */
+    private static boolean isInsideAnotherClosure(ExprClosure closure) {
+        de.peeeq.wurstscript.ast.Element parent = closure.getParent();
+        return parent != null && parent.attrNearestExprClosure() != null;
+    }
+
+    /**
+     * Whether anything the class does ends in a dispatch on a bound, including through the
+     * functions it calls. `classNeedsSpecialization` asks only whether a dispatch sits in the class
+     * itself, which is the wrong question here: a closure whose body is `() -> helper(x)` has no
+     * dispatch of its own, and the instantiation it needs is still only known at its construction.
+     * That question is kept as it is, because widening it would change what gets specialised on
+     * paths that have nothing to do with closures.
+     */
+    private boolean classReachesDispatch(ImClass classDef) {
+        for (ImFunction f : classDef.getFunctions()) {
+            if (functionNeedsSpecialization(f, Collections.newSetFromMap(new IdentityHashMap<>()),
+                Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return true;
+            }
+        }
+        for (ImMethod m : classDef.getMethods()) {
+            if (m.getImplementation() != null
+                && functionNeedsSpecialization(m.getImplementation(),
+                    Collections.newSetFromMap(new IdentityHashMap<>()),
+                    Collections.newSetFromMap(new IdentityHashMap<>()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A field of a class specialised from a construction has to be reached on the copy. The write
+     * that captures a closure's environment is the case that needs it: it names the field of the
+     * generic class, which nothing allocates any more once the construction was redirected.
+     */
+    private void collectGenericNewUse(ImMemberAccess memberAccess) {
+        ImVar field = memberAccess.getVar();
+        if (field.getParent() == null || !(field.getParent().getParent() instanceof ImClass owningClass)) {
+            return;
+        }
+        // A class that has already been specialised has nothing left to select, and asking the
+        // receiver to adapt to it fails outright: the receiver is still typed by the generic class
+        // the specialised one was copied from, which is not a superclass of it.
+        if (owningClass.getTypeVariables().isEmpty()) {
+            return;
+        }
+        if (memberAccess.getTypeArguments().isEmpty()) {
+            // The access names a field, not an instantiation; the receiver is what knows which one.
+            addMemberTypeArguments(memberAccess, owningClass);
+        }
+        if (memberAccess.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(memberAccess.getTypeArguments())) {
+            return;
+        }
+        if (!shouldSpecializeTupleArguments(memberAccess.getTypeArguments())
+            && !isConstructionOnlyInstantiation(owningClass)) {
+            return;
+        }
+        genericsUses.add(new GenericMemberAccess(memberAccess));
+    }
+
+    private void collectGenericNewUse(ImMethodCall call) {
+        if (specializedCallSites.contains(call)) {
+            return;
+        }
+        ImMethod method = call.getMethod();
+        ImTranslator.Specialisation existing = translator.specialisationOf(method);
+        if (existing != null && existing.original() instanceof ImMethod) {
+            // The owning class created this concrete method. Its type arguments were consumed by
+            // that structural class specialisation; collecting it again invents a second generic
+            // boundary with no type variables and loses the phase invariant.
+            call.getTypeArguments().removeAll();
+            specializedCallSites.add(call);
+            return;
+        }
+        if (isMissingClassTypeArguments(call, method)) {
+            addMemberTypeArguments(call, method.attrClass());
+        }
+        if (typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+            // A call directly on a fresh generic construction gets its concrete class arguments
+            // from that construction before deciding between specialization and fixed-body scan.
+            useConstructionTypeArguments(call);
+        }
+        boolean needsSpecialization = methodNeedsSpecialization(method,
+            Collections.newSetFromMap(new IdentityHashMap<>()),
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+        if (!shouldSpecializeTupleArguments(call.getTypeArguments()) && !needsSpecialization) {
+            if (!call.getTypeArguments().isEmpty()
+                && !typeArgumentsContainTypeVariable(call.getTypeArguments())
+                && method.getImplementation() != null) {
+                recordFixedErasedStaticAllocations(method.getImplementation());
+            }
+            return;
+        }
+        if (!call.getTypeArguments().isEmpty()
+            && !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+            genericsUses.add(new GenericMethodCall(call));
+        }
+    }
+
+    /**
+     * Whether a call is short of the type arguments belonging to the receiver's class.
+     * <p>
+     * A specialisation is matched against the class's type variables followed by the method's own, so
+     * a method declaring parameters of its own leaves the call supplying the shorter list rather than
+     * an empty one. Reading a non-empty list as "already has them" is what rejected a bounded type
+     * parameter on a method of a generic class here, while the same program compiles on Jass, where
+     * lifting the class's variables onto the method gives the call both at once.
+     */
+    private static boolean isMissingClassTypeArguments(ImMethodCall call, ImMethod method) {
+        ImFunction implementation = method.getImplementation();
+        int own = implementation == null ? 0 : implementation.getTypeVariables().size();
+        return call.getTypeArguments().size() == own
+            && !method.getMethodClass().getClassDef().getTypeVariables().isEmpty();
+    }
+
+    /**
+     * Replaces a member call's still-generic type arguments with those of the constructor call that
+     * produced its receiver, as in {@code new Box<int>().render(x)}.
+     */
+    private void useConstructionTypeArguments(ImMethodCall call) {
+        if (!(call.getReceiver() instanceof ImFunctionCall construction)
+            || construction.getTypeArguments().isEmpty()
+            || typeArgumentsContainTypeVariable(construction.getTypeArguments())) {
+            return;
+        }
+        List<ImTypeArgument> fromConstruction = new ArrayList<>();
+        for (ImTypeArgument ta : construction.getTypeArguments()) {
+            fromConstruction.add(ta.copy());
+        }
+        call.getTypeArguments().removeAll();
+        call.getTypeArguments().addAll(fromConstruction);
+    }
+
+    private boolean typeArgumentsContainTypeVariable(ImTypeArguments typeArguments) {
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (containsTypeVariable(typeArgument.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean typeArgumentsContainTuple(Iterable<ImTypeArgument> typeArguments) {
+        for (ImTypeArgument typeArgument : typeArguments) {
+            if (TypesHelper.typeContainsTuples(typeArgument.getType())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldSpecializeTupleArguments(ImTypeArguments typeArguments) {
+        return specializeTupleValueTypes && typeArgumentsContainTuple(typeArguments);
+    }
+
+    private boolean genericTypesContainTuple(GenericTypes generics) {
+        return typeArgumentsContainTuple(generics.getTypeArguments());
+    }
+
+    private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visited) {
+        return functionNeedsSpecialization(function, visited,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    /**
+     * Whether a function must be specialised even on Lua, which otherwise keeps generics erased.
+     * <p>
+     * Concrete type arguments are needed when constructing a value of them, dispatching on a type
+     * class bound, or constructing a generic class whose static storage is per instantiation.
+     * Specialising these paths keeps a bounded generic as cheap on Lua as it is on Jass, at the cost
+     * of one copy per instantiation actually used.
+     */
+    private boolean functionNeedsSpecialization(ImFunction function, Set<ImFunction> visitedFunctions,
+                                               Set<ImMethod> visitedMethods) {
+        if (needsGlobalSpecialization(function)) {
+            return true;
+        }
+        if (!visitedFunctions.add(function)) {
+            return false;
+        }
+        boolean[] found = {false};
+        function.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
+            }
+
+            @Override
+            public void visit(ImInstanceof instanceOf) {
+                if (typeArgumentsContainTypeVariable(instanceOf.getClazz().getTypeArguments())) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(instanceOf);
+            }
+
+            @Override
+            public void visit(ImAlloc alloc) {
+                // Constructing a class whose methods dispatch has to be specialised as well:
+                // otherwise the constructor keeps a generic result type, and a method call on that
+                // result never becomes concrete enough to resolve.
+                if (classNeedsSpecialization(alloc.getClazz().getClassDef())) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(alloc);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                // Empty arguments may be supplied implicitly by the enclosing generic receiver.
+                // Only an explicit, already-concrete call is independent of the caller context.
+                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
+                if (constructsClassOwningGenericGlobals(function, call)
+                    || translator.isGenericNewMarker(call.getFunc())
+                    || (dependsOnCaller
+                    && functionNeedsSpecialization(call.getFunc(), visitedFunctions, visitedMethods))) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+
+            @Override
+            public void visit(ImMethodCall call) {
+                boolean dependsOnCaller = call.getTypeArguments().isEmpty()
+                    || typeArgumentsContainTypeVariable(call.getTypeArguments());
+                if (dependsOnCaller
+                    && methodNeedsSpecialization(call.getMethod(), visitedFunctions, visitedMethods)) {
+                    found[0] = true;
+                    return;
+                }
+                super.visit(call);
+            }
+        });
+        return found[0];
+    }
+
+    /**
+     * A generic caller containing {@code new Box<T>()} must be revisited after {@code T} becomes
+     * concrete so each constructed instantiation can register its own static storage. Detect the
+     * constructor call at the caller boundary; marking the constructor implementation itself would
+     * unnecessarily redirect ordinary objects away from Lua's erased representation.
+     */
+    private boolean constructsClassOwningGenericGlobals(ImFunction enclosingFunction,
+                                                         ImFunctionCall call) {
+        if (!(call.getFunc().getTrace() instanceof ConstructorDef)
+            || !typeArgumentsContainTypeVariable(call.getTypeArguments())) {
+            return false;
+        }
+        // A lowered constructor wrapper calls the class initializer carrying the same source
+        // ConstructorDef. That call implements the current allocation; it is not another generic
+        // allocation hidden inside this function and direct callers register it themselves.
+        if (enclosingFunction.getTrace() == call.getFunc().getTrace()) {
+            return false;
+        }
+        ImClass owner = classOwning(call.getFunc());
+        return owner != null && classOwnsGenericGlobals(owner);
+    }
+
+    private boolean methodNeedsSpecialization(ImMethod method, Set<ImFunction> visitedFunctions,
+                                             Set<ImMethod> visitedMethods) {
+        if (!visitedMethods.add(method)) {
+            return false;
+        }
+        if (method.getImplementation() != null
+            && functionNeedsSpecialization(method.getImplementation(), visitedFunctions, visitedMethods)) {
+            return true;
+        }
+        for (ImMethod subMethod : method.getSubMethods()) {
+            if (methodNeedsSpecialization(subMethod, visitedFunctions, visitedMethods)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether constructing this class requires the concrete type argument, because one of its own
+     * or inherited members dispatches on a type class bound.
+     * <p>
+     * Deliberately a property of the class alone, not of the path that asked. An earlier version
+     * threaded the caller's visited set through here and memoised the answer, so a query made while
+     * one of the class's own functions was already being visited recorded a negative result that
+     * then stood for every later query.
+     */
+    private boolean classNeedsSpecialization(ImClass classDef) {
+        Boolean cached = classNeedsSpecializationCache.get(classDef);
+        if (cached != null) {
+            return cached;
+        }
+        classNeedsSpecializationCache.put(classDef, false);
+        boolean result = classDispatchesOnBound(classDef,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+        classNeedsSpecializationCache.put(classDef, result);
+        return result;
+    }
+
+    private boolean classDispatchesOnBound(ImClass classDef, Set<ImClass> visited) {
+        if (!visited.add(classDef)) {
+            return false;
+        }
+        for (ImFunction f : classDef.getFunctions()) {
+            if (containsDispatch(f)) {
+                return true;
+            }
+        }
+        for (ImMethod m : classDef.getMethods()) {
+            if (m.getImplementation() != null && containsDispatch(m.getImplementation())) {
+                return true;
+            }
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            if (classDispatchesOnBound(superType.getClassDef(), visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether this function body dispatches on a bound, without following calls out of it. */
+    private static boolean containsDispatch(ImFunction f) {
+        boolean[] found = {false};
+        f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeVarDispatch dispatch) {
+                found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    private final Map<ImClass, Boolean> classNeedsSpecializationCache = new IdentityHashMap<>();
+
+    private void assertNoReachableGenericNewMarkers() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    throw new CompileError(call, CompilerIntrinsics.NEW
+                        + " requires its type argument to resolve to a concrete class.");
+                }
+                super.visit(call);
+            }
+        });
     }
 
     private void assertNoUnspecializedGenericGlobals() {
@@ -100,6 +1040,21 @@ public class EliminateGenerics {
                 super.visit(vaa);
                 if (globalToClass.containsKey(vaa.getVar())) {
                     throw new CompileError(vaa, "Unspecialized generic global array still used: " + vaa.getVar().getName());
+                }
+            }
+        });
+    }
+
+    private void assertNoGenericNewMarkers() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    ImFunction owner = enclosingFunction(call);
+                    throw new CompileError(call, "Internal error: " + CompilerIntrinsics.NEW
+                        + " was not lowered in " + (owner == null ? "<unknown>" : owner.getName())
+                        + ".");
                 }
             }
         });
@@ -142,6 +1097,29 @@ public class EliminateGenerics {
         return o != null && !o.isEmpty();
     }
 
+    private boolean classOwnsGenericGlobals(ImClass clazz) {
+        return classOwnsGenericGlobals(clazz,
+            Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private boolean classOwnsGenericGlobals(ImClass clazz, Set<ImClass> visited) {
+        if (!visited.add(clazz)) {
+            return false;
+        }
+        ImClass canonical = translator.canonical(clazz);
+        for (ImClass owner : globalToClass.values()) {
+            if (translator.canonical(owner) == canonical) {
+                return true;
+            }
+        }
+        for (ImClassType superClass : clazz.getSuperClasses()) {
+            if (classOwnsGenericGlobals(superClass.getClassDef(), visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private ImFunction enclosingFunction(Element e) {
         Element cur = e;
         while (cur != null) {
@@ -159,6 +1137,22 @@ public class EliminateGenerics {
         ownersOf(f).add(owner);
     }
 
+    private void indexGenericGlobalUses() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                recordGenericGlobalUse(access, access.getVar());
+                super.visit(access);
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                recordGenericGlobalUse(access, access.getVar());
+                super.visit(access);
+            }
+        });
+    }
+
     private void dbgMethodsByName(String phase) {
         Map<String, Integer> counts = new HashMap<>();
         for (ImMethod m : prog.getMethods()) {
@@ -168,9 +1162,6 @@ public class EliminateGenerics {
     }
 
     private String checkDanglingMethodRefs(String phase) {
-        IdentityHashMap<ImMethod, Boolean> inProg = new IdentityHashMap<>();
-        for (ImMethod m : prog.getMethods()) inProg.put(m, Boolean.TRUE);
-
         final int[] dangling = {0};
 
         prog.accept(new Element.DefaultVisitor() {
@@ -284,7 +1275,9 @@ public class EliminateGenerics {
             List<ImSet> inits = prog.getGlobalInits().remove(imVar);
             if (inits != null) {
                 for (ImSet init : inits) {
-                    init.replaceBy(ImHelper.nullExpr());
+                    if (init.getParent() != null) {
+                        init.replaceBy(ImHelper.nullExpr());
+                    }
                 }
             }
         }
@@ -300,43 +1293,74 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                handle(mc, mc.getMethod().attrClass());
+                addMemberTypeArguments(mc, mc.getMethod().attrClass());
             }
 
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                handle(ma, (ImClass) ma.getVar().getParent().getParent());
+                addMemberTypeArguments(ma, (ImClass) ma.getVar().getParent().getParent());
             }
 
-            private void handle(ImMemberOrMethodAccess ma, ImClass owningClass) {
-                ImType receiverType = ma.getReceiver().attrTyp();
-                if (!(receiverType instanceof ImClassType)) return;
-
-                ImClassType rt = (ImClassType) receiverType;
-                ImClassType ct = adaptToSuperclass(rt, owningClass);
-                if (ct == null) {
-//                    dbg("addMemberTA FAIL: owning=" + owningClass.getName() + " recv=" + rt + " in " + ma);
-                    throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass + " in member access " + ma);
-                }
-
-//                dbg("addMemberTA: kind=" + ma.getClass().getSimpleName()
-//                    + " owning=" + owningClass.getName() + " " + id(owningClass)
-//                    + " recvType=" + rt
-//                    + " adapted=" + ct
-//                    + " beforeTA=" + shortTypeArgs(ma.getTypeArguments()));
-
-                // existing code...
-                List<ImTypeArgument> typeArgs = new ArrayList<>();
-                for (ImTypeArgument imTypeArgument : ct.getTypeArguments()) {
-                    typeArgs.add(imTypeArgument.copy());
-                }
-                ma.getTypeArguments().addAll(0, typeArgs);
-
-//                dbg("addMemberTA: afterTA=" + shortTypeArgs(ma.getTypeArguments()));
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                addReceiverTypeArguments(call);
             }
-
         });
+    }
+
+    /**
+     * Gives a call which reaches a class function directly the type arguments of the class.
+     * <p>
+     * Moving a function out of its class lifts the class's type variables onto the function, and a
+     * call through a receiver gets them back from the receiver's type. A call which names its target
+     * outright has no receiver to read - {@code super.m()} and {@code super()} are both of this kind -
+     * so it is left asking for a function with type variables while supplying none, and nothing
+     * specialises it. The receiver is still there as the first argument, so the class it is used as
+     * gives the same type arguments the receiver would have.
+     */
+    private void addReceiverTypeArguments(ImFunctionCall call) {
+        ImClass owningClass = functionOwners.get(call.getFunc());
+        if (owningClass == null || call.getArguments().isEmpty()) {
+            return;
+        }
+        // The class's variables are lifted onto the front of the function's own, so what a call is
+        // short of is that prefix. A method with type parameters of its own already supplies theirs,
+        // which is a shorter list rather than an empty one.
+        int missing = call.getFunc().getTypeVariables().size() - call.getTypeArguments().size();
+        if (missing != owningClass.getTypeVariables().size()) {
+            return;
+        }
+        if (!(call.getArguments().get(0).attrTyp() instanceof ImClassType receiverType)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(receiverType, owningClass);
+        if (classType == null || classType.getTypeArguments().size() != missing) {
+            return;
+        }
+        List<ImTypeArgument> typeArgs = new ArrayList<>();
+        for (ImTypeArgument typeArgument : classType.getTypeArguments()) {
+            typeArgs.add(typeArgument.copy());
+        }
+        call.getTypeArguments().addAll(0, typeArgs);
+    }
+
+    private void addMemberTypeArguments(ImMemberOrMethodAccess access, ImClass owningClass) {
+        ImType receiverType = access.getReceiver().attrTyp();
+        if (!(receiverType instanceof ImClassType rt)) {
+            return;
+        }
+        ImClassType classType = adaptToSuperclass(rt, owningClass);
+        if (classType == null) {
+            throw new CompileError(access, "Could not adapt receiver " + rt + " to superclass "
+                + owningClass + " in member access " + access);
+        }
+        List<ImTypeArgument> typeArgs = new ArrayList<>();
+        for (ImTypeArgument typeArgument : classType.getTypeArguments()) {
+            typeArgs.add(typeArgument.copy());
+        }
+        access.getTypeArguments().addAll(0, typeArgs);
     }
 
     private static ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
@@ -390,10 +1414,14 @@ public class EliminateGenerics {
         List<ImFunction> functions = c.getFunctions().removeAll();
         for (ImFunction f : functions) {
             prog.getFunctions().add(f);
+            functionOwners.put(f, c);
 
             List<ImTypeVar> newTypeVars = new ArrayList<>();
             for (ImTypeVar imTypeVar : c.getTypeVariables()) {
                 ImTypeVar copy = imTypeVar.copy();
+                // One source parameter becomes several nodes here. Recorded so the two can be
+                // recognised as the same parameter without falling back to comparing names.
+                translator.recordSpecialisation(copy, imTypeVar);
                 newTypeVars.add(copy);
             }
             f.getTypeVariables().addAll(0, newTypeVars);
@@ -426,11 +1454,15 @@ public class EliminateGenerics {
      * These are the "static" fields that need specialization
      */
     private void identifyGenericGlobals() {
-        // Only include "relevant" classes: new-generic or subclass of new-generic.
-        Map<String, ImClass> relevantClassMap = buildRelevantClassMap();
+        Map<ClassDef, ImClass> genericClassesBySource = new IdentityHashMap<>();
+        for (ImClass imClass : prog.getClasses()) {
+            if (!imClass.getTypeVariables().isEmpty() && imClass.getTrace() instanceof ClassDef sourceClass) {
+                genericClassesBySource.put(sourceClass, imClass);
+            }
+        }
 
         for (ImVar global : prog.getGlobals()) {
-            ImClass owner = resolveOwningClassFromTrace(global, relevantClassMap);
+            ImClass owner = resolveOwningClassFromTrace(global, genericClassesBySource);
             if (owner == null) {
                 continue; // not defined inside a class (package/global constant, etc.)
             }
@@ -443,43 +1475,13 @@ public class EliminateGenerics {
         }
     }
 
-    /**
-     * Build a map of class-name -> ImClass, but only for "relevant" classes:
-     * - the class is new-generic (has typeVariables)
-     * - OR any of its superclasses is new-generic (transitively)
-     */
-    private Map<String, ImClass> buildRelevantClassMap() {
-        Map<String, ImClass> m = new HashMap<>();
-        IdentityHashMap<ImClass, Boolean> memo = new IdentityHashMap<>();
-
-        for (ImClass c : prog.getClasses()) {
-            if (!c.getTypeVariables().isEmpty()) {
-                m.put(c.getName(), c);
-            }
-        }
-        return m;
-    }
-
-    /**
-     * Resolve owning class for a global via trace:
-     * - if the global's trace source is inside a class, return the matching ImClass (if relevant)
-     * - otherwise return null
-     */
-    private @Nullable ImClass resolveOwningClassFromTrace(ImVar global, Map<String, ImClass> relevantClassMap) {
+    /** Resolve a generic static's owner through its source class identity. */
+    private @Nullable ImClass resolveOwningClassFromTrace(
+            ImVar global, Map<ClassDef, ImClass> genericClassesBySource) {
         if (global.getTrace() == null) return null;
-
-        // This is the only assumption you may need to adapt if your ImTrace API differs:
-        de.peeeq.wurstscript.ast.Element srcObj = global.getTrace(); // expected to be a wurst AST Element
-        if (srcObj == null) return null;
-
-        @Nullable ClassDef classDef = srcObj.attrNearestClassDef();
+        @Nullable ClassDef classDef = global.getTrace().attrNearestClassDef();
         if (classDef == null) return null;
-
-        // Get the class name from the AST (no global-name parsing).
-        String className = classDef.getNameId().getName();
-
-        // Only accept if it is one of the relevant classes (new-generic or inherits new-generic).
-        return relevantClassMap.get(className);
+        return genericClassesBySource.get(classDef);
     }
 
     /**
@@ -501,6 +1503,51 @@ public class EliminateGenerics {
         }
     }
 
+    private void eliminateRemainingGenericNewCalls() {
+        List<ImFunctionCall> calls = new ArrayList<>();
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImFunction function) {
+                if (!function.getTypeVariables().isEmpty()
+                    || unspecializedGenericClassMethods.contains(function)) {
+                    return;
+                }
+                super.visit(function);
+            }
+
+            @Override
+            public void visit(ImFunctionCall call) {
+                super.visit(call);
+                if (translator.isGenericNewMarker(call.getFunc())) {
+                    calls.add(call);
+                }
+            }
+        });
+        for (ImFunctionCall call : calls) {
+            new GenericNewCall(call).eliminate();
+        }
+    }
+
+    private void collectUnspecializedGenericClassMethods() {
+        for (ImMethod method : prog.getMethods()) {
+            collectUnspecializedGenericClassMethod(method);
+        }
+        for (ImClass imClass : prog.getClasses()) {
+            if (!imClass.getTypeVariables().isEmpty()) {
+                for (ImMethod method : imClass.getMethods()) {
+                    collectUnspecializedGenericClassMethod(method);
+                }
+            }
+        }
+    }
+
+    private void collectUnspecializedGenericClassMethod(ImMethod method) {
+        if (method.getImplementation() != null
+            && !method.getMethodClass().getClassDef().getTypeVariables().isEmpty()) {
+            unspecializedGenericClassMethods.add(method.getImplementation());
+        }
+    }
+
     private void fixCalleesInSpecializedFunction(ImFunction newF, GenericTypes generics) {
         newF.accept(new Element.DefaultVisitor() {
 
@@ -510,6 +1557,7 @@ public class EliminateGenerics {
 
                 ImFunction callee = fc.getFunc();
                 if (callee == null) return;
+                if (translator.isGenericNewMarker(callee)) return;
 
                 boolean calleeIsGeneric = !callee.getTypeVariables().isEmpty();
                 boolean calleeNeedsGlobals = needsGlobalSpecialization(callee);
@@ -558,6 +1606,17 @@ public class EliminateGenerics {
         boolean needsGlobals = needsGlobalSpecialization(f);
 
         if (!isGeneric && !needsGlobals) {
+            // A function of a generic class declares no type variables of its own: it uses the
+            // class's, which this target does not lift onto it. The call already says which
+            // instantiation it is for, so match against the class's variables rather than treating
+            // the function as nothing to specialise, strip the arguments and leave the dispatch
+            // inside it with no concrete type. A constructor is the case that needs this - the call
+            // running it is the only place its instantiation is stated, there being no receiver yet.
+            ImClass owner = genericNewOnly ? classOwning(f) : null;
+            if (owner != null && !owner.getTypeVariables().isEmpty()
+                && owner.getTypeVariables().size() == generics.getTypeArguments().size()) {
+                return specializeClassFunction(f, owner, f, generics);
+            }
             return f;
         }
         if (generics.containsTypeVariable()) {
@@ -570,9 +1629,13 @@ public class EliminateGenerics {
         prog.getFunctions().add(newF);
 
         // concrete clone => no type vars
+        translator.recordSpecialisation(newF, f, generics.getTypeArguments());
+        recordCopiedTypeVars(f.getTypeVariables(), newF.getTypeVariables());
         newF.getTypeVariables().removeAll();
 
-        newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
+        newF.setName(genericNewOnly
+            ? f.getName() + "_specialized"
+            : f.getName() + "⟪" + generics.makeName() + "⟫");
 
         // Only rewrite type variables if the function actually has them
         if (isGeneric) {
@@ -580,13 +1643,76 @@ public class EliminateGenerics {
             rewriteGenerics(newF, generics, typeVars);
         }
 
-        // Fix calls inside this specialized function so they also point to specialized callees
-        fixCalleesInSpecializedFunction(newF, generics);
+        if (genericNewOnly && (needsGlobalSpecialization(f)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
+            ImClass owner = classOwning(f);
+            if (owner != null && !owner.getTypeVariables().isEmpty()) {
+                GenericTypes ownerGenerics = generics.take(owner.getTypeVariables().size());
+                specializeClass(owner, ownerGenerics);
+                rewriteOwnedGenericGlobals(newF, owner, ownerGenerics);
+            }
+        }
 
-        // Then collect further generic uses inside the now-specialized body (incl. generic globals)
-        collectGenericUsages(newF);
+        // Fix calls inside this specialized function so they also point to specialized callees
+        if (genericNewOnly) {
+            collectGenericNewUses(newF);
+        } else {
+            fixCalleesInSpecializedFunction(newF, generics);
+
+            // Then collect further generic uses inside the now-specialized body (incl. generic globals)
+            collectGenericUsages(newF);
+        }
 
         return newF;
+    }
+
+    private void rewriteOwnedGenericGlobals(Element copy, ImClass owner, GenericTypes ownerGenerics) {
+        copy.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess access) {
+                super.visit(access);
+                access.setVar(specializedGlobal(access.getVar()));
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess access) {
+                super.visit(access);
+                access.setVar(specializedGlobal(access.getVar()));
+            }
+
+            private ImVar specializedGlobal(ImVar original) {
+                ImClass globalOwner = globalToClass.get(original);
+                if (globalOwner == null) {
+                    return original;
+                }
+                GenericTypes globalGenerics = adaptGenericsToOwner(owner, ownerGenerics, globalOwner);
+                if (globalGenerics == null) {
+                    return original;
+                }
+                ImVar result = ensureSpecializedGlobal(original, globalOwner, globalGenerics);
+                return result == null ? original : result;
+            }
+        });
+    }
+
+    /** Maps a concrete subclass instantiation onto the type arguments of a static's declaring class. */
+    private @Nullable GenericTypes adaptGenericsToOwner(ImClass concreteOwner,
+                                                        GenericTypes concreteGenerics,
+                                                        ImClass declaringOwner) {
+        if (translator.canonical(concreteOwner) == translator.canonical(declaringOwner)) {
+            return concreteGenerics;
+        }
+        ImTypeArguments arguments = JassIm.ImTypeArguments();
+        for (ImTypeArgument argument : concreteGenerics.getTypeArguments()) {
+            arguments.add(argument.copy());
+        }
+        ImClassType adapted = adaptToSuperclass(
+            JassIm.ImClassType(concreteOwner, arguments), declaringOwner);
+        if (adapted == null || adapted.getTypeArguments().size() != declaringOwner.getTypeVariables().size()
+            || typeArgumentsContainTypeVariable(adapted.getTypeArguments())) {
+            return null;
+        }
+        return new GenericTypes(adapted.getTypeArguments());
     }
 
     /**
@@ -609,21 +1735,77 @@ public class EliminateGenerics {
 
         ImMethod newM = m.copyWithRefs();
         specializedMethods.put(m, generics, newM);
-        prog.getMethods().add(newM);
+        if (!genericNewOnly) {
+            prog.getMethods().add(newM);
+        }
 
         ImClassType newClassType = newM.getMethodClass().copy();
         for (int i = 0; i < newClassType.getTypeArguments().size(); i++) {
             newClassType.getTypeArguments().set(i, generics.getTypeArguments().get(i).copy());
         }
         newM.setMethodClass(specializeType(newClassType));
+        if (genericNewOnly) {
+            newM.getMethodClass().getClassDef().getMethods().add(newM);
+        }
 
-        newM.setName(m.getName() + "⟪" + generics.makeName() + "⟫");
-        newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
-        adaptSubmethods(m.getSubMethods(), newM);
+        newM.setName(genericNewOnly
+            ? m.getName() + "_specialized_" + generics.makeName()
+            : m.getName() + "⟪" + generics.makeName() + "⟫");
+        newM.setImplementation(genericNewOnly
+            ? specializeMethodImplementation(m, generics)
+            : specializeFunction(newM.getImplementation(), generics));
+        adaptSubmethods(m.getSubMethods(), newM, generics);
         return newM;
     }
 
-    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM) {
+    private ImFunction specializeMethodImplementation(ImMethod method, GenericTypes generics) {
+        return specializeClassFunction(method.getImplementation(),
+            method.getMethodClass().getClassDef(), method, generics);
+    }
+
+    /**
+     * Specialises a function belonging to a generic class, whether it implements a method or is a
+     * function of the class in its own right - a constructor and the body it runs are the latter.
+     * <p>
+     * This target does not lift a class's type variables onto its functions, so such a function uses
+     * them where they are declared and the arguments to match are the class's followed by any the
+     * function declares itself.
+     */
+    private ImFunction specializeClassFunction(ImFunction function, ImClass owningClass,
+                                               Element blameFor, GenericTypes generics) {
+        ImFunction specialized = specializedFunctions.get(function, generics);
+        if (specialized != null) {
+            return specialized;
+        }
+
+        List<ImTypeVar> typeVariables = new ArrayList<>(owningClass.getTypeVariables());
+        typeVariables.addAll(function.getTypeVariables());
+        if (typeVariables.size() != generics.getTypeArguments().size()) {
+            throw new CompileError(blameFor, "Generics should match class method type variables for "
+                + function.getName() + ": expected " + typeVariables.size() + " but found "
+                + generics.getTypeArguments().size() + ".");
+        }
+
+        ImFunction newImplementation = function.copyWithRefs();
+        specializedFunctions.put(function, generics, newImplementation);
+        specializedFunctionGenerics.put(newImplementation, generics);
+        prog.getFunctions().add(newImplementation);
+        translator.recordSpecialisation(newImplementation, function, generics.getTypeArguments());
+        recordCopiedTypeVars(function.getTypeVariables(), newImplementation.getTypeVariables());
+        newImplementation.getTypeVariables().removeAll();
+        newImplementation.setName(function.getName() + "_specialized");
+        rewriteGenerics(newImplementation, generics, typeVariables);
+        if (needsGlobalSpecialization(function)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics))) {
+            GenericTypes ownerGenerics = generics.take(owningClass.getTypeVariables().size());
+            specializeClass(owningClass, ownerGenerics);
+            rewriteOwnedGenericGlobals(newImplementation, owningClass, ownerGenerics);
+        }
+        collectGenericNewUses(newImplementation);
+        return newImplementation;
+    }
+
+    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM, GenericTypes generics) {
         newM.setSubMethods(new ArrayList<>());
         ImClassType newClassT = newM.getMethodClass();
         ImClass newMClass = newClassT.getClassDef();
@@ -631,6 +1813,19 @@ public class EliminateGenerics {
             ImClassType subClassT = subMethod.getMethodClass();
             ImClass subClass = subClassT.getClassDef();
             if (isGenericType(subClassT)) {
+                if (genericNewOnly
+                    && subClass.getTypeVariables().size() == generics.getTypeArguments().size()) {
+                    ImMethod specializedSubMethod = specializeMethod(subMethod, generics);
+                    // Lua keeps ordinary generic objects erased. Bind the concrete implementation
+                    // to that erased class so interface dispatch on an existing object can reach it.
+                    specializedSubMethod.getMethodClass().getClassDef().getMethods()
+                        .remove(specializedSubMethod);
+                    specializedSubMethod.setMethodClass(
+                        JassIm.ImClassType(subClass, JassIm.ImTypeArguments()));
+                    subClass.getMethods().add(specializedSubMethod);
+                    newM.getSubMethods().add(specializedSubMethod);
+                    continue;
+                }
                 onSpecializeClass(subClass, (subGenerics, specializedSubClass) -> {
                     if (specializedSubClass.isSubclassOf(newMClass)) {
                         ImMethod specializedSubMethod = specializeMethod(subMethod, subGenerics);
@@ -667,7 +1862,9 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeArgument ta) {
-                ta.setType(transformType(ta.getType(), generics, typeVars));
+                ImType original = ta.getType();
+                ta.setType(transformType(original, generics, typeVars));
+                inheritTypeClassBinding(ta, original, generics, typeVars);
             }
 
             @Override
@@ -725,7 +1922,133 @@ public class EliminateGenerics {
                 super.visit(e);
             }
 
+            @Override
+            public void visit(ImTypeVarDispatch e) {
+                super.visit(e);
+                resolveTypeClassDispatch(e, generics, typeVars);
+            }
+
         });
+    }
+
+    /**
+     * Replaces a type class dispatch by a direct call once the type variable it dispatches on has
+     * been substituted by a concrete type argument.
+     * <p>
+     * This is what keeps bounded generics free of runtime cost: after specialisation the call is an
+     * ordinary static call to the instance function, with no lookup and no indirection left.
+     */
+    /**
+     * Carries a type class binding down into a nested call.
+     * <p>
+     * When a bounded generic passes its own type parameter on to another bounded generic, the inner
+     * call site cannot know the instance: the parameter is still abstract there. Substituting the
+     * outer parameter also supplies the instance it was specialised with, which is what makes a
+     * chain of bounded generics resolve without any runtime dictionary.
+     */
+    private void inheritTypeClassBinding(ImTypeArgument ta, ImType original,
+                                         GenericTypes generics, List<ImTypeVar> typeVars) {
+        if (!ta.getTypeClassBinding().isEmpty() || !(original instanceof ImTypeVarRef ref)) {
+            return;
+        }
+        int index = indexOfTypeVar(typeVars, ref.getTypeVariable());
+        if (index < 0 || index >= generics.getTypeArguments().size()) {
+            return;
+        }
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> outer =
+            generics.getTypeArguments().get(index).getTypeClassBinding();
+        if (!outer.isEmpty()) {
+            ta.setTypeClassBinding(new LinkedHashMap<>(outer));
+        }
+    }
+
+    /**
+     * A type variable can be represented by more than one node for the same source type parameter,
+     * so match on the name as the rest of this pass does.
+     */
+    private static String enclosingFunctionName(Element e) {
+        Element cur = e;
+        while (cur != null && !(cur instanceof ImFunction)) {
+            cur = cur.getParent();
+        }
+        return cur == null ? "?" : ((ImFunction) cur).getName();
+    }
+
+    /**
+     * Where {@code target} sits in {@code typeVars}, comparing what each was copied from rather than
+     * the nodes themselves: moving a function out of its class copies the class's type variables onto
+     * it, so one source parameter is several nodes. Comparing names instead would make two parameters
+     * which merely share a name look like one.
+     */
+    /**
+     * Pairs a copy's type variables with the ones they were copied from, index by index.
+     * <p>
+     * Copying a function or a class copies its type variables with it, and the references inside the
+     * copy point at the new nodes. The copy's list is then emptied, which leaves those nodes with no
+     * owner at all - so a reference reached later has nothing to compare against but a name. Recorded
+     * before that happens, the copy still leads back to the parameter it stands for.
+     */
+    private void recordCopiedTypeVars(List<ImTypeVar> originals, List<ImTypeVar> copies) {
+        for (int i = 0; i < originals.size() && i < copies.size(); i++) {
+            translator.recordSpecialisation(copies.get(i), originals.get(i));
+        }
+    }
+
+    private int indexOfTypeVar(List<ImTypeVar> typeVars, ImTypeVar target) {
+        ImTypeVar wanted = translator.canonical(target);
+        for (int i = 0; i < typeVars.size(); i++) {
+            if (translator.canonical(typeVars.get(i)) == wanted) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void resolveTypeClassDispatch(ImTypeVarDispatch e, GenericTypes generics, List<ImTypeVar> typeVars) {
+        int index = indexOfTypeVar(typeVars, e.getTypeVariable());
+        if (index >= 0 && index >= generics.getTypeArguments().size()) {
+            // Fewer arguments than variables: the variables and the arguments are not in
+            // correspondence here, so position says nothing. Reading one anyway would dispatch
+            // through whichever type happened to sit at that index.
+            return;
+        }
+        if (index < 0) {
+            // dispatching on a variable of some enclosing generic; it is resolved when that one is
+            // specialised.
+            return;
+        }
+        ImTypeArgument typeArgument = generics.getTypeArguments().get(index);
+        Either<ImMethod, ImFunction> impl = typeArgument.getTypeClassBinding().get(e.getTypeClassFunc());
+        if (impl == null) {
+            ImFunction fromRegistry = translator.lookupTypeClassImpl(e.getTypeClassFunc(), typeArgument.getType());
+            if (fromRegistry != null) {
+                impl = Either.right(fromRegistry);
+            }
+        }
+        if (impl == null) {
+            if (containsTypeVariable(typeArgument.getType())) {
+                // Not an instantiation: passes which only rename or move type variables, such as
+                // lifting a class's variables onto its functions, substitute one variable for
+                // another. The dispatch is resolved once a concrete type argument arrives.
+                return;
+            }
+            throw new CompileError(e.attrTrace().attrSource(),
+                "No type class instance bound for " + e.getTypeClassFunc().getName()
+                    + " on type argument " + typeArgument.getType()
+                    + " (type variable " + e.getTypeVariable().getName()
+                    + ", index " + index + " of " + typeVars.size()
+                    + ", in " + enclosingFunctionName(e) + ").");
+        }
+        ImExprs args = e.getArguments();
+        args.setParent(null);
+        if (impl.isRight()) {
+            e.replaceBy(JassIm.ImFunctionCall(e.getTrace(), impl.get(), JassIm.ImTypeArguments(), args,
+                false, CallType.NORMAL));
+        } else {
+            ImMethod method = impl.getLeft();
+            e.replaceBy(JassIm.ImFunctionCall(e.getTrace(), method.getImplementation(), JassIm.ImTypeArguments(),
+                args, false, CallType.NORMAL));
+        }
     }
 
     private static ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
@@ -748,22 +2071,96 @@ public class EliminateGenerics {
         }
         ImClass newC = c.copyWithRefs();
         newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
+        // The copy is structural, so field i of the copy is field i of the original. Nothing will
+        // refer to the copies, so this is the only record that they are the same fields.
+        for (int i = 0; i < c.getFields().size() && i < newC.getFields().size(); i++) {
+            translator.recordSpecialisation(newC.getFields().get(i), c.getFields().get(i), generics.getTypeArguments());
+        }
+        for (int i = 0; i < c.getMethods().size() && i < newC.getMethods().size(); i++) {
+            ImMethod originalMethod = c.getMethods().get(i);
+            ImMethod copiedMethod = newC.getMethods().get(i);
+            translator.recordSpecialisation(copiedMethod, originalMethod, generics.getTypeArguments());
+            if (originalMethod.getImplementation() != null && copiedMethod.getImplementation() != null) {
+                translator.recordSpecialisation(copiedMethod.getImplementation(),
+                    originalMethod.getImplementation(), generics.getTypeArguments());
+            }
+        }
+        for (int i = 0; i < c.getFunctions().size() && i < newC.getFunctions().size(); i++) {
+            translator.recordSpecialisation(newC.getFunctions().get(i), c.getFunctions().get(i),
+                generics.getTypeArguments());
+        }
+        translator.recordSpecialisation(newC, c, generics.getTypeArguments());
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
+        recordCopiedTypeVars(c.getTypeVariables(), newC.getTypeVariables());
         newC.getTypeVariables().removeAll();
 
-        newC.setName(c.getName() + "⟪" + generics.makeName() + "⟫");
+        newC.setName(genericNewOnly
+            ? c.getName() + "_specialized_" + generics.makeName()
+            : c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
+        if (needsRuntimeTypeSpecialization(c, generics, new HashSet<>())) {
+            rewriteRuntimeTypeSuperEdges(c, generics, newC);
+        }
 
         // NEW: Create specialized global variables for this class instantiation
         createSpecializedGlobals(c, generics, typeVars);
+        if (genericNewOnly && (classOwnsGenericGlobals(c)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
+            rewriteOwnedGenericGlobals(newC, c, generics);
+        }
 
+        if (genericNewOnly && (isConstructionOnlyInstantiation(c)
+            || (specializeTupleValueTypes && genericTypesContainTuple(generics)))) {
+            attachSpecializedClassMethods(c, newC, generics);
+        }
 
         onSpecializedClassTriggers.get(c).forEach(consumer ->
             consumer.accept(generics, newC));
         return newC;
+    }
+
+    /**
+     * Makes the methods of a class specialised from a construction reachable.
+     * <p>
+     * A class specialised because a call named its instantiation is reached through that call.
+     * One specialised because it was constructed is not: the receiver is held as its interface, so
+     * dispatch goes through the root method, whose submethods still list only the generic original.
+     * Each copy is bound to the same roots, and the original's implementation is recorded as having
+     * a specialisation so the dispatch left behind in it settles instead of reaching the backend.
+     */
+    private void attachSpecializedClassMethods(ImClass original, ImClass specialized, GenericTypes generics) {
+        List<ImMethod> originalMethods = original.getMethods();
+        List<ImMethod> specializedMethods = specialized.getMethods();
+        if (originalMethods.size() != specializedMethods.size()) {
+            // The copy is structural, so this cannot happen; bail rather than pair the wrong ones.
+            return;
+        }
+        Map<ImMethod, ImMethod> specializationOf = new IdentityHashMap<>();
+        for (int i = 0; i < originalMethods.size(); i++) {
+            ImMethod copy = specializedMethods.get(i);
+            copy.setMethodClass(JassIm.ImClassType(specialized, JassIm.ImTypeArguments()));
+            specializationOf.put(originalMethods.get(i), copy);
+
+            ImFunction implementation = originalMethods.get(i).getImplementation();
+            ImFunction copyImplementation = copy.getImplementation();
+            if (implementation != null && copyImplementation != null && implementation != copyImplementation
+                && specializedFunctions.get(implementation, generics) == null) {
+                specializedFunctions.put(implementation, generics, copyImplementation);
+            }
+        }
+        for (ImClass c : new ArrayList<>(prog.getClasses())) {
+            for (ImMethod root : c.getMethods()) {
+                for (ImMethod sub : new ArrayList<>(root.getSubMethods())) {
+                    ImMethod copy = specializationOf.get(sub);
+                    if (copy != null && !root.getSubMethods().contains(copy)) {
+                        root.getSubMethods().add(copy);
+                    }
+                }
+            }
+        }
     }
 
     private ImExpr rewriteGenericGlobalsInExpr(ImExpr e, ImClass owningClass, GenericTypes generics) {
@@ -774,7 +2171,7 @@ public class EliminateGenerics {
                 ImClass owner = globalToClass.get(v);
                 if (owner == null) return;
 
-                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                GenericTypes g = adaptGenericsToOwner(owningClass, generics, owner);
                 if (g == null || g.containsTypeVariable()) return;
 
                 ImVar sg = ensureSpecializedGlobal(v, owner, g);
@@ -787,7 +2184,7 @@ public class EliminateGenerics {
                 ImClass owner = globalToClass.get(v);
                 if (owner == null) return;
 
-                GenericTypes g = normalizeToClassArity(generics, owner, "init-rhs");
+                GenericTypes g = adaptGenericsToOwner(owningClass, generics, owner);
                 if (g == null || g.containsTypeVariable()) return;
 
                 ImVar sg = ensureSpecializedGlobal(v, owner, g);
@@ -798,24 +2195,25 @@ public class EliminateGenerics {
     }
 
     private void createSpecializedGlobals(ImClass originalClass, GenericTypes generics, List<ImTypeVar> typeVars) {
-        String key = gKey(generics);
-
         // Collect "insert specialized init right after original init" operations per parent ImStmts
         // Using identity maps because IM nodes use identity semantics for parent/ownership.
         Map<ImStmts, IdentityHashMap<ImStmt, List<ImStmt>>> insertsByParent = new IdentityHashMap<>();
+        List<Map.Entry<ImVar, ImVar>> newlyCreated = new ArrayList<>();
 
+        // Establish the complete declaration environment before translating any initializer. An
+        // initializer may refer to a later static of the same class; interleaving declaration and
+        // initializer lowering would make correctness depend on global iteration order.
         for (Map.Entry<ImVar, ImClass> entry : globalToClass.entrySet()) {
             ImVar originalGlobal = entry.getKey();
             ImClass owningClass = entry.getValue();
 
-            // be robust: sometimes class objects differ; name match is good enough here
-            if (owningClass != originalClass && !owningClass.getName().equals(originalClass.getName())) continue;
+            if (translator.canonical(owningClass) != translator.canonical(originalClass)) continue;
 
-            if (specializedGlobals.contains(originalGlobal, key)) continue;
+            if (specializedGlobals.contains(originalGlobal, generics)) continue;
 
             ImType specializedType = transformType(originalGlobal.getType(), generics, typeVars);
 
-            String specializedName = originalGlobal.getName() + "⟪" + key + "⟫";
+            String specializedName = originalGlobal.getName() + "⟪" + generics.makeName() + "⟫";
             ImVar specializedGlobal = JassIm.ImVar(
                 originalGlobal.getTrace(),
                 specializedType,
@@ -825,24 +2223,47 @@ public class EliminateGenerics {
 
             // Create + register global
             translator.addGlobal(specializedGlobal);
-            specializedGlobals.put(originalGlobal, key, specializedGlobal);
+            // Both halves of what the interpreter used to read out of the name: what this was copied
+            // from, and which class it belongs to.
+            translator.recordSpecialisation(specializedGlobal, originalGlobal, generics.getTypeArguments());
+            translator.recordGenericStaticOwner(specializedGlobal, originalClass);
+            translator.recordGenericStaticOwner(originalGlobal, originalClass);
+            specializedGlobals.put(originalGlobal, generics, specializedGlobal);
             dbg("Created specialized global: " + specializedName + " type=" + specializedType);
+            newlyCreated.add(Map.entry(originalGlobal, specializedGlobal));
+        }
+
+        for (Map.Entry<ImVar, ImVar> specialization : newlyCreated) {
+            ImVar originalGlobal = specialization.getKey();
+            ImVar specializedGlobal = specialization.getValue();
+            ImType specializedType = specializedGlobal.getType();
 
             // If original has init(s), create corresponding specialized init(s) and schedule insertion
             List<ImSet> originalInits = prog.getGlobalInits().get(originalGlobal);
             if (originalInits != null && !originalInits.isEmpty()) {
 
-                ImSet firstOrig = originalInits.getFirst();
-                if (!(firstOrig.getParent() instanceof ImStmts parentStmts)) {
-                    throw new CompileError(originalGlobal,
-                        "Initializer for global " + originalGlobal.getName() + " is not inside ImStmts.");
-                }
-                // ensure all original init sets share the same parent statement list
+                ImStmts parentStmts = null;
+                boolean hasDetachedInits = false;
                 for (ImSet s : originalInits) {
-                    if (s.getParent() != parentStmts) {
+                    if (s.getParent() == null) {
+                        hasDetachedInits = true;
+                        continue;
+                    }
+                    if (!(s.getParent() instanceof ImStmts)) {
+                        throw new CompileError(originalGlobal,
+                            "Initializer for global " + originalGlobal.getName() + " is not inside ImStmts.");
+                    }
+                    ImStmts currParent = (ImStmts) s.getParent();
+                    if (parentStmts == null) {
+                        parentStmts = currParent;
+                    } else if (parentStmts != currParent) {
                         throw new CompileError(originalGlobal,
                             "Initializer statements for global " + originalGlobal.getName() + " are not in the same ImStmts.");
                     }
+                }
+                if (hasDetachedInits && parentStmts != null) {
+                    throw new CompileError(originalGlobal,
+                        "Initializer statements for global " + originalGlobal.getName() + " are inconsistently attached.");
                 }
 
                 // Helper: rebuild LHS as ImLExpr for specialized global
@@ -878,10 +2299,16 @@ public class EliminateGenerics {
                     ImLExpr newLeft = specializeLhs.apply(origSet.getLeft());
                     ImSet specSet = JassIm.ImSet(originalGlobal.attrTrace(), newLeft, rhs);
 
-                    // schedule insertion right after origSet in its parent ImStmts
-                    IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
-                        insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
-                    byStmt.computeIfAbsent(origSet, k -> new ArrayList<>(1)).add(specSet);
+                    // Append after earlier specializations of this initializer. Each invocation of
+                    // createSpecializedGlobals has its own insertion batch; always inserting after
+                    // origSet would therefore reverse specialization discovery/initializer order.
+                    if (parentStmts != null) {
+                        ImStmt insertionPoint = specializedInitializerTails.getOrDefault(origSet, origSet);
+                        IdentityHashMap<ImStmt, List<ImStmt>> byStmt =
+                            insertsByParent.computeIfAbsent(parentStmts, k -> new IdentityHashMap<>());
+                        byStmt.computeIfAbsent(insertionPoint, k -> new ArrayList<>(1)).add(specSet);
+                        specializedInitializerTails.put(origSet, specSet);
+                    }
 
                     // keep prog.getGlobalInits consistent, but do NOT reuse the tree-attached node elsewhere
                     specializedInitsForMap.add((ImSet) specSet.copy());
@@ -961,6 +2388,10 @@ public class EliminateGenerics {
             @Override
             public void visit(ImFunctionCall f) {
                 super.visit(f);
+                if (translator.isGenericNewMarker(f.getFunc())) {
+                    genericsUses.add(new GenericNewCall(f));
+                    return;
+                }
                 if (!f.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericImFunctionCall(f));
                 }
@@ -1276,6 +2707,99 @@ public class EliminateGenerics {
             }
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
+            specializedCallSites.add(fc);
+        }
+    }
+
+    /**
+     * A call naming a function of a generic class, rewritten to the copy specialised for the
+     * instantiation the call is for. That instantiation came from the receiver it was handed or from
+     * the type the result is stored in, rather than from the call, so there are no type arguments on
+     * the call to clear.
+     */
+    class GenericClassFunctionCall implements GenericUse {
+        private final ImFunctionCall call;
+        private final ImClass owningClass;
+        private final GenericTypes generics;
+
+        GenericClassFunctionCall(ImFunctionCall call, ImClass owningClass, GenericTypes generics) {
+            this.call = call;
+            this.owningClass = owningClass;
+            this.generics = generics;
+        }
+
+        @Override
+        public void eliminate() {
+            call.setFunc(specializeClassFunction(call.getFunc(), owningClass, call, generics));
+            specializedCallSites.add(call);
+        }
+    }
+
+    class GenericNewCall implements GenericUse {
+        private final ImFunctionCall call;
+
+        GenericNewCall(ImFunctionCall call) {
+            this.call = call;
+        }
+
+        @Override
+        public void eliminate() {
+            if (call.getTypeArguments().size() != 1) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " expects exactly one type argument and no value arguments.");
+            }
+
+            ImType targetType = call.getTypeArguments().get(0).getType();
+            if (containsTypeVariable(targetType)) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " requires its type argument to resolve to a concrete class.");
+            }
+            if (!(targetType instanceof ImClassType classType)) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " requires a concrete, non-abstract class type, but found " + targetType + ".");
+            }
+
+            ImClass imClass = classType.getClassDef();
+            if (!(imClass.getTrace() instanceof ClassDef classDef)) {
+                String kind = imClass.getTrace() instanceof InterfaceDef ? "interface" : "type";
+                throw new CompileError(call, CompilerIntrinsics.NEW + " cannot construct " + kind + " "
+                    + imClass.getName() + ".");
+            }
+            if (classDef.attrIsAbstract()) {
+                throw new CompileError(call, CompilerIntrinsics.NEW + " cannot construct abstract class "
+                    + classDef.getName() + ".");
+            }
+            ConstructorDef constructor = zeroArgumentConstructor(classDef);
+            if (constructor == null) {
+                throw new CompileError(call, CompilerIntrinsics.NEW + " requires class " + classDef.getName()
+                    + " to have a zero-argument constructor.");
+            }
+            de.peeeq.wurstscript.ast.Element source = call.getTrace();
+            if (constructor.attrIsPrivate() && (source == null || !source.isSubtreeOf(classDef))) {
+                throw new CompileError(call, CompilerIntrinsics.NEW
+                    + " cannot access the zero-argument constructor of class " + classDef.getName() + ".");
+            }
+
+            ImFunction constructorFunction = translator.getConstructNewFunc(constructor);
+            ImTypeArguments constructorTypeArguments = JassIm.ImTypeArguments();
+            for (ImTypeArgument argument : classType.getTypeArguments()) {
+                constructorTypeArguments.add(argument.copy());
+            }
+            ImFunctionCall replacement = JassIm.ImFunctionCall(call.getTrace(), constructorFunction,
+                constructorTypeArguments, JassIm.ImExprs(), false, CallType.NORMAL);
+            call.replaceBy(replacement);
+            if (!genericNewOnly && !constructorTypeArguments.isEmpty()) {
+                genericsUses.addFirst(new GenericImFunctionCall(replacement));
+            }
+        }
+
+        private ConstructorDef zeroArgumentConstructor(ClassDef classDef) {
+            for (ConstructorDef constructor : classDef.getConstructors()) {
+                if (constructor.getParameters().isEmpty()) {
+                    return constructor;
+                }
+            }
+            return null;
         }
     }
 
@@ -1305,6 +2829,7 @@ public class EliminateGenerics {
 
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
+            specializedCallSites.add(mc);
         }
     }
 
@@ -1349,19 +2874,18 @@ public class EliminateGenerics {
         concreteGenerics = normalizeToClassArity(concreteGenerics, owningClass, "ensureSpecializedGlobal:" + originalGlobal.getName());
         if (concreteGenerics == null) return null;
 
-        String key = gKey(concreteGenerics);
-        ImVar sg = specializedGlobals.get(originalGlobal, key);
+        ImVar sg = specializedGlobals.get(originalGlobal, concreteGenerics);
         if (sg != null) return sg;
 
         // Ensure class specialization exists (this should also call createSpecializedGlobals)
         specializeClass(owningClass, concreteGenerics);
 
-        sg = specializedGlobals.get(originalGlobal, key);
+        sg = specializedGlobals.get(originalGlobal, concreteGenerics);
         if (sg != null) return sg;
 
-        // Absolute fallback: force-create (in case specializeClass was short-circuited)
-        createSpecializedGlobals(owningClass, concreteGenerics, owningClass.getTypeVariables());
-        return specializedGlobals.get(originalGlobal, key);
+        throw new CompileError(originalGlobal,
+            "Generic static specialization was not created for " + originalGlobal.getName()
+                + " in " + owningClass.getName() + " with " + concreteGenerics + ".");
     }
 
     /**
@@ -1432,10 +2956,7 @@ public class EliminateGenerics {
         return r;
     }
 
-    /**
-     * NEW: Infer generic types from the enclosing function context
-     * For specialized functions, the name contains the type information
-     */
+    /** Infer class type arguments from the enclosing function's structural specialization context. */
     private GenericTypes inferGenericsFromFunction(Element element, ImClass owningClass) {
         Element current = element;
         while (current != null) {
@@ -1457,10 +2978,10 @@ public class EliminateGenerics {
                         ImClassType ct = (ImClassType) rt;
                         ImClass raw = ct.getClassDef();
 
-                        boolean matches =
-                            raw.getName().equals(owningClass.getName()) ||
-                                raw.getName().startsWith(owningClass.getName() + "⟪") ||
-                                raw.isSubclassOf(owningClass);
+                        ImClass canonicalRaw = translator.canonical(raw);
+                        ImClass canonicalOwner = translator.canonical(owningClass);
+                        boolean matches = canonicalRaw == canonicalOwner
+                            || canonicalRaw.isSubclassOf(canonicalOwner);
 
                         if (matches) {
                             if (!ct.getTypeArguments().isEmpty()) {
@@ -1471,9 +2992,12 @@ public class EliminateGenerics {
                                 return normalizeToClassArity(new GenericTypes(copied), owningClass, "receiverTypeArgs:" + func.getName());
                             }
 
-                            GenericTypes fromName = extractGenericsFromClassName(raw.getName());
-                            if (fromName != null && !fromName.getTypeArguments().isEmpty()) {
-                                return normalizeToClassArity(fromName, owningClass, "className:" + raw.getName());
+                            ImTranslator.Specialisation classSpecialisation = translator.specialisationOf(raw);
+                            if (classSpecialisation != null
+                                && !classSpecialisation.typeArguments().isEmpty()) {
+                                return normalizeToClassArity(
+                                    new GenericTypes(classSpecialisation.typeArguments()), owningClass,
+                                    "receiverSpecialisation:" + func.getName());
                             }
                         }
                     }
@@ -1485,89 +3009,6 @@ public class EliminateGenerics {
         }
         return null;
     }
-
-
-
-    /**
-     * NEW: Extract generic types from a specialized class name like "Box⟪integer⟫"
-     */
-    private GenericTypes extractGenericsFromClassName(String className) {
-        int start = className.indexOf('⟪');
-        int end   = className.lastIndexOf('⟫');
-        if (start < 0 || end < 0 || end <= start + 1) return null;
-
-        String payload = className.substring(start + 1, end).trim();
-        List<String> parts = splitTopLevel(payload); // comma-split with bracket depth
-        List<ImTypeArgument> args = new ArrayList<>(parts.size());
-        for (String p : parts) {
-            ImType t = parseTypeAtom(p.trim());
-            args.add(JassIm.ImTypeArgument(t, Collections.emptyMap()));
-        }
-        return new GenericTypes(args);
-    }
-
-    /** split by commas at top level, respecting both ⟪⟫ and ⦅⦆ */
-    private List<String> splitTopLevel(String s) {
-        List<String> res = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        int depthAngle = 0, depthTuple = 0;
-        for (int i = 0; i < s.length(); i++) {
-            char ch = s.charAt(i);
-            if (ch == '⟪') depthAngle++;
-            else if (ch == '⟫') depthAngle--;
-            else if (ch == '⦅') depthTuple++;
-            else if (ch == '⦆') depthTuple--;
-
-            if (ch == ',' && depthAngle == 0 && depthTuple == 0) {
-                res.add(cur.toString());
-                cur.setLength(0);
-                continue;
-            }
-            cur.append(ch);
-        }
-        if (cur.length() > 0) res.add(cur.toString());
-        return res;
-    }
-
-    /** parse simple atoms and tuples like ⦅integer, integer⦆ (can nest) */
-    private ImType parseTypeAtom(String s) {
-        s = s.trim();
-        // tuple
-        if (s.startsWith("⦅") && s.endsWith("⦆")) {
-            String inner = s.substring(1, s.length() - 1).trim();
-            List<String> elems = splitTopLevel(inner);
-            List<ImType> tt = new ArrayList<>();
-            List<String> names = Lists.newArrayList();
-            int i = 1;
-            for (String e : elems) {
-                tt.add(parseTypeAtom(e));
-                names.add("" + i++);
-            }
-            return JassIm.ImTupleType(tt, names);
-        }
-
-        // common simples
-        switch (s) {
-            case "integer":
-            case "int":    return JassIm.ImSimpleType("integer");
-            case "real":   return JassIm.ImSimpleType("real");
-            case "boolean":
-            case "bool":   return JassIm.ImSimpleType("boolean");
-            case "string": return JassIm.ImSimpleType("string");
-        }
-
-        // class type without visible args here
-        for (ImClass c : prog.getClasses()) {
-            if (c.getName().equals(s)) {
-                return JassIm.ImClassType(c, JassIm.ImTypeArguments());
-            }
-        }
-        // fallback: simple type with this name
-        return JassIm.ImSimpleType(s);
-    }
-
-
-
     class GenericVar implements GenericUse {
         private final ImVar mc;
 

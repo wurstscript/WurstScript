@@ -5,8 +5,10 @@ import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
@@ -64,6 +66,7 @@ public class CyclicFunctionRemover {
         prog.getFunctions().add(newFunc);
         newFunc.getParameters().add(choiceVar);
         newFunc.getParameters().addAll(newParameters);
+        checkMergedSignatureFits(funcs, newFunc);
 
         ImStmts stmts = newFunc.getBody();
 
@@ -206,18 +209,19 @@ public class CyclicFunctionRemover {
             // first argument is the choice index
             arguments.add(JassIm.ImIntVal(funcToIndex.get(oldFunc)));
 
-            // now for the actual arguments
+            // now for the actual arguments: each one goes to the slot its parameter was given, and
+            // every slot this function does not use gets a default. Walking the two in step instead
+            // would require the slots to be handed out in parameter order, which is a constraint on
+            // how tightly they can be shared and not one this rewriting needs.
             List<ImExpr> oldArgs = fc.getArguments().removeAll();
-            int pos = 0;
+            Map<ImVar, ImExpr> argumentBySlot = new IdentityHashMap<>();
+            for (int i = 0; i < oldArgs.size() && i < oldFunc.getParameters().size(); i++) {
+                argumentBySlot.put(oldToNewVar.get(oldFunc.getParameters().get(i)), oldArgs.get(i));
+            }
             for (int i = 1; i < newFunc.getParameters().size(); i++) {
                 ImVar p = newFunc.getParameters().get(i);
-                if (pos < oldArgs.size() && oldToNewVar.get(oldFunc.getParameters().get(pos)) == p) {
-                    arguments.add(oldArgs.get(pos));
-                    pos++;
-                } else {
-                    // use default value
-                    arguments.add(tr.getDefaultValueForJassType(p.getType()));
-                }
+                ImExpr argument = argumentBySlot.get(p);
+                arguments.add(argument != null ? argument : tr.getDefaultValueForJassType(p.getType()));
             }
 
 
@@ -273,27 +277,73 @@ public class CyclicFunctionRemover {
         return "cyc_" + funcs.get(0).getName();
     }
 
+    /**
+     * Builds the parameters the merged function takes: one slot per parameter which needs to exist at
+     * the same time as another, shared by every function in the cycle which can use it.
+     * <p>
+     * Two parameters of the same function are live at once and so can never share a slot, which is the
+     * only constraint here. This used to be enforced by searching for a slot from a position which only
+     * moved forwards, which enforces rather more than that: a parameter matching a slot late in the
+     * union puts every parameter after it past everything already allocated, so it allocates again. The
+     * cost is per function and accumulates along the cycle, and three functions taking the same
+     * parameters in different orders already came out at fifteen slots where nine were needed.
+     * <p>
+     * That is how a merged function ends up over the Jass parameter limit without any function in the
+     * source being anywhere near it. Remembering which slots this function has already claimed says the
+     * same thing about liveness without the ordering, and needs one slot per type per position at which
+     * some function in the cycle uses that type, which is the fewest this scheme can use.
+     */
     private void calculateNewParameters(List<ImFunction> funcs,
                                         List<ImVar> newParameters, Map<ImVar, ImVar> oldToNewVar) {
         for (ImFunction f : funcs) {
-            int pos = 0;
-            withNextParameter:
+            Set<ImVar> claimedByThisFunction = Collections.newSetFromMap(new IdentityHashMap<>());
             for (ImVar v : f.getParameters()) {
-                // first check if we can reuse a parameter from the newParameters
-                for (int i = pos; i < newParameters.size(); i++) {
-                    if (newParameters.get(i).getType().translateType().equals(v.getType().translateType())) {
-                        // found a var we can reuse
-                        oldToNewVar.put(v, newParameters.get(i));
-                        pos = i + 1;
-                        continue withNextParameter;
-                    }
+                ImVar slot = firstFreeSlotOfType(newParameters, claimedByThisFunction, v);
+                if (slot == null) {
+                    slot = JassIm.ImVar(v.getTrace(), v.getType().copy(), v.getName(), false);
+                    newParameters.add(slot);
                 }
-                // otherwise, we have to create a new var:
-                ImVar newVar = JassIm.ImVar(v.getTrace(), v.getType().copy(), v.getName(), false);
-                oldToNewVar.put(v, newVar);
-                newParameters.add(newVar);
-                pos = newParameters.size() + 1;
+                claimedByThisFunction.add(slot);
+                oldToNewVar.put(v, slot);
             }
+        }
+    }
+
+    /** The first slot this function has not claimed which holds the same Jass type, if there is one. */
+    private @Nullable ImVar firstFreeSlotOfType(List<ImVar> newParameters, Set<ImVar> claimed, ImVar v) {
+        for (ImVar candidate : newParameters) {
+            if (!claimed.contains(candidate)
+                    && candidate.getType().translateType().equals(v.getType().translateType())) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Refuses a merged function the game could not load, rather than emitting one.
+     * <p>
+     * With slots shared as tightly as they can be this needs a cycle whose functions genuinely need
+     * more than 31 Jass parameters live at once, which no reachable source has produced - but the
+     * failure it replaces is silent, and a script the game rejects at load is the worst way to find out.
+     * Passing the excess through an array indexed by recursion depth would lift the limit, and is worth
+     * doing only once something hits this.
+     */
+    private void checkMergedSignatureFits(List<ImFunction> funcs, ImFunction newFunc) {
+        int jassParameterCount = newFunc.getParameters().stream()
+            .mapToInt(p -> ImHelper.flattenedJassArity(p.getType()))
+            .sum();
+        if (jassParameterCount > ImHelper.JASS_MAX_PARAMETERS) {
+            StringBuilder names = new StringBuilder();
+            for (ImFunction f : funcs) {
+                names.append(names.length() == 0 ? "" : ", ").append(f.getName());
+            }
+            throw new CompileError(newFunc.getTrace(), "These functions call each other in a cycle: "
+                + names + ". Jass cannot declare a function before it is defined, so they are compiled"
+                + " into one function taking the parameters of all of them, which comes to "
+                + jassParameterCount + " Jass parameters and the maximum is "
+                + ImHelper.JASS_MAX_PARAMETERS + " (a tuple counts as one per component). Break the"
+                + " cycle, or pass fewer values through it.");
         }
     }
 

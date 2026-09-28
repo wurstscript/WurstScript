@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.lua.translation.LuaAssertions;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.RecycleCodeGeneratorQueue;
 import de.peeeq.wurstscript.utils.Utils;
@@ -39,6 +40,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -47,6 +51,21 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     public static final String TEST_OUTPUT_PATH = "./test-output/";
+
+    /** Generous enough for the slowest test program, short enough that a loop fails the run. */
+    private static final int LUA_EXECUTION_TIMEOUT_SECONDS = 60;
+
+    /**
+     * How much of a program's output is kept for the failure message. Draining never stops - that
+     * is what deadlocks the run - but retaining everything from a program that loops while printing
+     * would exhaust the worker before the timeout fires.
+     */
+    private static final int RETAINED_OUTPUT_LIMIT = 64 * 1024;
+
+    /** Overridden by the tests covering the runner itself, so they need seconds rather than a minute. */
+    protected int luaExecutionTimeoutSeconds() {
+        return LUA_EXECUTION_TIMEOUT_SECONDS;
+    }
     private static volatile String resolvedLuaExecutable;
     private static volatile String resolvedLuacExecutable;
     private static volatile String extractedLuaWin;
@@ -62,9 +81,18 @@ public class WurstScriptTest {
         return false;
     }
 
+    /**
+     * How many Wurst tests the last run executed. Tests are stripped by the time the second pass
+     * happens, so this keeps the largest either saw. Zero means the program held none, which a
+     * caller expecting some needs to hear about: "every test passed" and "there were no tests" are
+     * otherwise the same green.
+     */
+    private int testsRun;
+
     @BeforeMethod(alwaysRun = true)
     public void _clearBefore() {
         GlobalCaches.clearAll();
+        testsRun = 0;
     }
 
     @AfterMethod(alwaysRun = true)
@@ -79,6 +107,7 @@ public class WurstScriptTest {
         private boolean withStdLib;
         private boolean executeProg;
         private boolean executeTests;
+        private int minimumTestsExpected;
         private boolean executeProgOnlyAfterTransforms;
         private String expectedError;
         private String expectedWarning;
@@ -87,6 +116,9 @@ public class WurstScriptTest {
         private final List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
+        private boolean optimize;
+        private boolean inline;
+        private boolean stacktraces;
         private boolean testLua = false;
         private boolean luaOnly = false;
         private boolean uncheckedDispatch = false;
@@ -119,8 +151,26 @@ public class WurstScriptTest {
             return this;
         }
 
+        /** Fails when fewer than this many Wurst tests ran, so a program holding none is not green. */
+        public TestConfig expectAtLeastTests(int minimum) {
+            this.executeTests = true;
+            this.minimumTestsExpected = minimum;
+            return this;
+        }
+
         public TestConfig executeTests(boolean b) {
             this.executeTests = b;
+            return this;
+        }
+
+        /** Enables the IM inliner (-inline), which is a separate option from -opt. */
+        TestConfig inline() {
+            this.inline = true;
+            return this;
+        }
+
+        TestConfig optimize() {
+            this.optimize = true;
             return this;
         }
 
@@ -131,6 +181,18 @@ public class WurstScriptTest {
 
         TestConfig expectWarning(String expectedWarning) {
             this.expectedWarning = expectedWarning;
+            return this;
+        }
+
+        /**
+         * Emit stack traces, as a release build does by default.
+         *
+         * <p>Worth testing on the Lua path: stack-trace injection appends a parameter to every
+         * affected function there, so a lowering which recognises a function by its exact
+         * signature stops matching once it has run.
+         */
+        public TestConfig stacktraces() {
+            this.stacktraces = true;
             return this;
         }
 
@@ -181,6 +243,11 @@ public class WurstScriptTest {
         CompilationResult run() {
             try {
                 CompilationResult res = testScript();
+                if (minimumTestsExpected > 0 && testsRun < minimumTestsExpected) {
+                    fail("expected at least " + minimumTestsExpected + " Wurst tests to run, but "
+                        + testsRun + " did. A program which holds no tests passes every one of them,"
+                        + " so this would otherwise be green while checking nothing.");
+                }
                 if (expectedError != null) {
                     if (res.getGui().getErrorCount() == 0) {
                         fail("No errors were discovered");
@@ -230,6 +297,12 @@ public class WurstScriptTest {
             }
             if (runCompiletimeFunctions) {
                 runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+            if (optimize) {
+                runArgs = runArgs.with("-opt");
+            }
+            if (inline) {
+                runArgs = runArgs.with("-inline");
             }
             if (legacyJassTypeChecks) {
                 runArgs.setLegacyJassTypeChecks(true);
@@ -282,7 +355,7 @@ public class WurstScriptTest {
 
             if (testLua) {
                 // test lua translation
-                runArgs = runArgs.with("-lua");
+                runArgs = stacktraces ? runArgs.with("-lua", "-stacktraces") : runArgs.with("-lua");
                 compiler.setRunArgs(runArgs);
                 translateAndTestLua(name, executeProg, gui, model, compiler);
             }
@@ -383,6 +456,24 @@ public class WurstScriptTest {
         String name = UtilsIO.getMethodName(WurstScriptTest.class.getName());
         name = this.getClass().getSimpleName() + "_" + name;
         return new TestConfig(name);
+    }
+
+    /**
+     * Like {@link #test()} but with an explicit name for the files written under
+     * {@link #TEST_OUTPUT_PATH}.
+     *
+     * <p>{@link #test()} names those files after the first frame outside WurstScriptTest, which is
+     * the *helper* whenever a test reaches it through one of its own methods. That is deliberate -
+     * DeterministicChecks relies on one test method producing several differently named outputs -
+     * but it means two test methods sharing a helper get the same name, and therefore the same
+     * file. Gradle runs test classes in parallel forks, so when those two methods live in
+     * different suites the JVMs race on one .j file and pjass parses a spliced result.
+     *
+     * <p>Pass an explicit name in that situation. {@code name} is prefixed with the test class,
+     * exactly as {@link #test()} does.
+     */
+    public TestConfig testNamed(String name) {
+        return new TestConfig(this.getClass().getSimpleName() + "_" + name);
     }
 
     void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
@@ -500,6 +591,7 @@ public class WurstScriptTest {
             compiler.runCompiletime(WurstProjectConfigData.empty(), false, false);
 
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
+            LuaAssertions.assertNamesAreValidIdentifiers(luaCode);
             checkLuaRootPurity(luaCode);
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);
@@ -525,7 +617,6 @@ public class WurstScriptTest {
                     throw new org.testng.SkipException(
                         "Skipped Lua execution (translation and luac syntax check still ran): " + e.getMessage());
                 }
-                String line;
                 // Preload the WC3 Lua runtime (Reforged blizzard.j dump + native shim)
                 // when available, so tests execute against real BJ implementations.
                 // The generated script only installs fallbacks for natives that are
@@ -540,6 +631,11 @@ public class WurstScriptTest {
                     }
                 }
                 chunk.append("dofile('").append(luaFile.getPath().replace('\\', '/')).append("');");
+                // Success is read off stdout, so testSuccess has to print. A program with no
+                // standard library gets a generated fallback which does; one with the library gets
+                // the library's own, which is empty - so without this, a test on that target can
+                // only ever be reported as not having succeeded, whatever it did.
+                chunk.append("testSuccess = function() print('testSuccess') os.exit() end;");
                 chunk.append("main()");
                 String[] args = {
                     luaExecutable,
@@ -548,29 +644,27 @@ public class WurstScriptTest {
                 Process p = Runtime.getRuntime().exec(args);
                 StringBuilder errors = new StringBuilder();
                 StringBuilder output = new StringBuilder();
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        System.err.println(line);
-                        errors.append(line);
-                        errors.append("\n");
-                    }
+                // Both pipes must be drained while the program runs, and the wait must end: a
+                // generated program that loops forever would otherwise hang the whole suite,
+                // and one that fills the stdout pipe would deadlock against a stderr-first read.
+                java.util.concurrent.atomic.AtomicBoolean sawTestSuccess =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+                Thread outCollector = collectStreamAsync(p.getInputStream(), output, "testSuccess", sawTestSuccess);
+                Thread errCollector = collectStreamAsync(p.getErrorStream(), errors);
+                if (!p.waitFor(luaExecutionTimeoutSeconds(), TimeUnit.SECONDS)) {
+                    p.destroyForcibly();
+                    throw new Error(currentTestEnv + ": Lua program did not terminate within "
+                        + luaExecutionTimeoutSeconds() + "s: " + luaFile.getName());
                 }
+                outCollector.join();
+                errCollector.join();
 
                 if (errors.length() > 0) {
+                    System.err.print(errors);
                     throw new TestFailException(errors.toString());
                 }
 
-                boolean success = false;
-                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    while ((line = input.readLine()) != null) {
-                        if (line.equals("testSuccess")) {
-                            success = true;
-                        }
-                        output.append(line);
-                        output.append("\n");
-                    }
-                }
-                if (!success) {
+                if (!sawTestSuccess.get()) {
                     throw new Error(currentTestEnv + ": Succeed function not called");
                 }
             }
@@ -619,11 +713,65 @@ public class WurstScriptTest {
     }
 
     private Thread collectStreamAsync(InputStream stream, StringBuilder out) {
+        return collectStreamAsync(stream, out, null, null);
+    }
+
+    /**
+     * Drains {@code stream} into {@code out}, keeping only the first {@link #RETAINED_OUTPUT_LIMIT}
+     * characters. Reading never stops — that is what blocks the process and deadlocks the run — but
+     * a program that loops while printing would fill the heap before the timeout could fire.
+     * <p>
+     * Whatever the caller is looking for is recognised here rather than read back out of
+     * {@code out} afterwards, because it may arrive after the limit: a program that prints a
+     * million lines and then succeeds has still succeeded.
+     */
+    private Thread collectStreamAsync(InputStream stream, StringBuilder out,
+                                      String watchedLine, java.util.concurrent.atomic.AtomicBoolean sawWatchedLine) {
         Thread t = new Thread(() -> {
-            try (BufferedReader input = new BufferedReader(new InputStreamReader(stream))) {
-                String line;
-                while ((line = input.readLine()) != null) {
-                    out.append(line).append("\n");
+            // Fixed-size chunks rather than lines: a line is only bounded by what the program
+            // chose to print, and reading one materialises all of it before any limit here could
+            // apply. Nothing below holds more than the retained limit plus one chunk.
+            char[] chunk = new char[8 * 1024];
+            StringBuilder pendingLine = new StringBuilder();
+            boolean lineIsLongerThanWatched = false;
+            boolean truncated = false;
+            try (Reader input = new InputStreamReader(stream)) {
+                int read;
+                while ((read = input.read(chunk)) >= 0) {
+                    if (watchedLine != null) {
+                        for (int i = 0; i < read; i++) {
+                            char c = chunk[i];
+                            if (c == '\n') {
+                                if (!lineIsLongerThanWatched && pendingLine.length() == watchedLine.length()
+                                    && watchedLine.contentEquals(pendingLine)) {
+                                    sawWatchedLine.set(true);
+                                }
+                                pendingLine.setLength(0);
+                                lineIsLongerThanWatched = false;
+                            } else if (c != '\r' && !lineIsLongerThanWatched) {
+                                // Only ever as long as what is being looked for; past that the
+                                // line cannot be it, so there is no reason to keep any of it.
+                                if (pendingLine.length() == watchedLine.length()) {
+                                    lineIsLongerThanWatched = true;
+                                    pendingLine.setLength(0);
+                                } else {
+                                    pendingLine.append(c);
+                                }
+                            }
+                        }
+                    }
+                    int room = RETAINED_OUTPUT_LIMIT - out.length();
+                    if (room > 0) {
+                        out.append(chunk, 0, Math.min(read, room));
+                    }
+                    // Said as soon as anything is dropped, including when that happens part way
+                    // through the last chunk there is: otherwise the output ends at exactly the
+                    // limit and reads as though that were all the program had to say.
+                    if (read > room && !truncated) {
+                        truncated = true;
+                        out.append("\n... further output dropped after ")
+                            .append(RETAINED_OUTPUT_LIMIT).append(" characters\n");
+                    }
                 }
             } catch (IOException ignored) {
             }
@@ -633,7 +781,7 @@ public class WurstScriptTest {
         return t;
     }
 
-    private String getLuaExecutable() {
+    protected String getLuaExecutable() {
         if (resolvedLuaExecutable != null) {
             return resolvedLuaExecutable;
         }
@@ -662,6 +810,10 @@ public class WurstScriptTest {
             candidates.add("lua53.exe");
             candidates.add("lua");
         } else {
+            // Prefer the distribution's versioned Lua 5.3 binary when present.
+            // The checked-in portable binary may depend on an older system
+            // readline ABI on newer Linux runner images.
+            candidates.add("lua5.3");
             if (bundledLuaUnix.exists()) {
                 // best effort in case execute bit was lost by checkout settings
                 // (e.g. core.filemode false on some environments)
@@ -722,6 +874,7 @@ public class WurstScriptTest {
             candidates.add("luac.exe");
             candidates.add("luac");
         } else {
+            candidates.add("luac5.3");
             if (bundledLuacUnix.exists()) {
                 bundledLuacUnix.setExecutable(true);
                 if (bundledLuacUnix.canExecute()) {
@@ -929,7 +1082,7 @@ public class WurstScriptTest {
         if (!executeProgOnlyAfterTransforms) {
             // we want to test that the interpreter works correctly before transforming the program in the translation step
             if (executeTests) {
-                executeTests(gui, compiler.getImTranslator(), imProg);
+                testsRun = Math.max(testsRun, executeTests(gui, compiler.getImTranslator(), imProg));
             }
             if (executeProg) {
                 WLogger.info("Executing imProg before jass transformation");
@@ -948,7 +1101,7 @@ public class WurstScriptTest {
         }
 
         if (executeTests) {
-            executeTests(gui, compiler.getImTranslator(), imProg);
+            testsRun = Math.max(testsRun, executeTests(gui, compiler.getImTranslator(), imProg));
         }
         if (executeProg) {
             WLogger.info("Executing imProg after jass transformation");
@@ -1013,11 +1166,47 @@ public class WurstScriptTest {
     }
 
 
+    /**
+     * Scripts already checked by pjass in this JVM, by content hash.
+     *
+     * <p>pjass parses every file it is given as one program, so independent test scripts cannot be
+     * batched into a single invocation - each one costs a process spawn plus a re-parse of
+     * common.j and blizzard.j (~15k lines). About a third of the scripts this suite emits are
+     * byte-identical to one already checked (the same source compiled under several optimisation
+     * levels, and near-identical fixtures within a test class), and pjass is a pure function of its
+     * input, so checking those again cannot tell us anything new. Spawning is the dominant cost on
+     * Windows, where CreateProcess is an order of magnitude dearer than fork/exec.
+     *
+     * <p>Only successes are recorded: a failure re-runs so the reported message names the file the
+     * caller actually passed.
+     */
+    private static final Set<String> pjassCheckedScripts = ConcurrentHashMap.newKeySet();
+
     private void runPjass(File outputFile) throws Error {
+        String digest = scriptDigest(outputFile);
+        if (digest != null && pjassCheckedScripts.contains(digest)) {
+            return;
+        }
         Result pJassResult = Pjass.runPjass(outputFile);
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
             throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
+        }
+        // Only a real pass may be recorded. An "IO Exception" result is deliberately not fatal, but
+        // it means pjass never validated this script - caching it would make every later identical
+        // script skip validation too, after a failure that may well have been transient.
+        if (digest != null && pJassResult.isOk()) {
+            pjassCheckedScripts.add(digest);
+        }
+    }
+
+    /** Content hash of a generated script, or null if it cannot be read - in which case pjass runs. */
+    private static String scriptDigest(File file) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(md.digest(java.nio.file.Files.readAllBytes(file.toPath())));
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return null;
         }
     }
 
@@ -1059,13 +1248,43 @@ public class WurstScriptTest {
         throw new Error(currentTestEnv + ": Succeed function not called");
     }
 
-    private void executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {
+    /** @return how many tests ran, so a caller can tell "all passed" from "there were none". */
+    private int executeTests(WurstGui gui, ImTranslator translator, ImProg imProg) {
         RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty());
         RunTests.TestResult res = runTests.runTests(translator, imProg, Optional.empty(), Optional.empty());
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
-                    gui.getErrors());
+                    describeFailures(runTests) + gui.getErrors());
         }
+        return res.getTotalTests();
+    }
+
+    /**
+     * Names the tests which failed, and says how each one did.
+     * <p>
+     * The count alone does not say which of several hundred it was, and the name is only printed to
+     * stdout, which a CI run does not keep - so a failure on a runner one does not have says that one
+     * test of the library failed and nothing else. Ahead of the warnings deliberately: a library
+     * compiles with hundreds of them, and a report which truncates a long message cuts off the end,
+     * which is where the name would otherwise sit.
+     */
+    private static String describeFailures(RunTests runTests) {
+        List<RunTests.TestFailure> failures = runTests.getFailTests();
+        if (failures.isEmpty()) {
+            // The counts disagreed without a recorded failure, which is itself worth saying rather
+            // than leaving a blank where the explanation belongs.
+            return "no failure was recorded, which is the thing to look at\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (RunTests.TestFailure failure : failures) {
+            sb.append("FAILED ").append(failure.getFunction().getName());
+            String message = failure.getMessage();
+            if (message != null && !message.isEmpty()) {
+                sb.append(": ").append(message);
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
     }
 
     /**

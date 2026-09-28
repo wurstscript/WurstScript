@@ -18,13 +18,18 @@ public class ILconstUnsafeDefault extends ILconstAbstract {
         return "unsafe-default<" + typeVariable.getName() + ">";
     }
 
+    public ImTypeVar getTypeVariable() {
+        return typeVariable;
+    }
+
     public WurstType getType() {
         return WurstTypeInfer.instance();
     }
 
     @Override
     public boolean isEqualTo(ILconst other) {
+        // Comparing this against a real value is refused by WurstOperator, which can see both
+        // operands; doing it here would depend on which side the stand-in happened to land on.
         return other instanceof ILconstUnsafeDefault;
     }
-
 }

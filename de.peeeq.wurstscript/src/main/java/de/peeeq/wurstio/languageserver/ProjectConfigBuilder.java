@@ -43,6 +43,13 @@ public class ProjectConfigBuilder {
                                                      File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data,
                                                      String outputScriptName) throws IOException {
+        return apply(projectConfig, targetMap, targetMap, mapScript, buildDir, runArgs, w3data, outputScriptName);
+    }
+
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File sourceMap,
+                                                     File mapScript, File buildDir,
+                                                     RunArgs runArgs, W3InstallationData w3data,
+                                                     String outputScriptName) throws IOException {
         if (projectConfig.projectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
@@ -70,8 +77,10 @@ public class ProjectConfigBuilder {
                 configNeedsApplying = true;
             }
 
-            // Extract w3i
-            w3I = new W3I(mpq.extractFile("war3map.w3i"));
+            // Start from the original map metadata. The cached map can already contain a
+            // downgraded W3I from an earlier target patch, which would permanently lose
+            // fields if a later build targets a newer patch or removes the pin.
+            w3I = readW3I(sourceMap);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -98,16 +107,18 @@ public class ProjectConfigBuilder {
             // else result.script stays as mapScript (no wurst.build name configured)
         }
 
-        result.w3i = new File(buildDir, "war3map.w3i");
-        if (runArgs.isLua()) {
-            WLogger.info("Applying lua w3i config");
-            w3I.setScriptLang(W3I.ScriptLang.LUA);
-            w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+        // The source W3I above is deliberately reloaded each build so downgrading a cached map
+        // cannot discard fields. Reapply configured map data even when the config hash is cached.
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            prepareW3I(projectConfig, w3I);
         }
+
+        result.w3i = new File(buildDir, "war3map.w3i");
+        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua());
         w3I.write(result.w3i);
 
         // Apply map header (this is cheap, so we always do it)
-        applyMapHeader(projectConfig, targetMap);
+        applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size(), w3I.getMapName(), w3I.getFlags().toInt());
 
         // Update the manifest with new config hash (must open writable to insert)
         try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(targetMap), false)) {
@@ -119,6 +130,15 @@ public class ProjectConfigBuilder {
         }
 
         return result;
+    }
+
+    static W3I readW3I(File map) throws Exception {
+        if (map.isDirectory()) {
+            return new W3I(java.nio.file.Files.readAllBytes(new File(map, "war3map.w3i").toPath()));
+        }
+        try (MpqEditor mpq = MpqEditorFactory.getEditor(Optional.of(map), true)) {
+            return new W3I(mpq.extractFile("war3map.w3i"));
+        }
     }
 
     /**
@@ -193,8 +213,6 @@ public class ProjectConfigBuilder {
     private static void applyBuildMapData(WurstProjectConfigData projectConfig, File mapScript, File buildDir,
                                           W3InstallationData w3data, W3I w3I, MapRequest.CompilationResult result,
                                           String configHash, String outputScriptName) throws IOException {
-        // Apply w3i config values
-        prepareW3I(projectConfig, w3I);
         result.script = new File(buildDir, outputScriptName);
 
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
@@ -221,6 +239,43 @@ public class ProjectConfigBuilder {
         return buildConfig.configuredGameVersion()
             .or(() -> w3data.getWc3PatchVersion())
             .orElseGet(buildConfig::fallbackGameVersion);
+    }
+
+    static void applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
+        if (lua) {
+            WLogger.info("Applying lua w3i config");
+            w3I.setScriptLang(W3I.ScriptLang.LUA);
+        }
+
+        // Keep the version from the source map unless the project pins a target patch.
+        // In that case, emit the newest W3I format supported by that patch.
+        buildConfig.configuredGameVersion().ifPresent(version -> {
+            int maxVersion = maxW3IVersionFor(version);
+            w3I.setFileVersion(lua
+                ? Math.max(maxVersion, W3I.EncodingFormat.W3I_0x1F.getVersion())
+                : maxVersion);
+        });
+
+        // Lua map metadata needs the script-language field, which is absent in older formats.
+        if (lua && w3I.getFileVersion() < W3I.EncodingFormat.W3I_0x1F.getVersion()) {
+            w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+        }
+    }
+
+    private static int maxW3IVersionFor(GameVersion version) {
+        if (version.compareTo(new GameVersion("1.31")) < 0) {
+            return W3I.EncodingFormat.W3I_0x19.getVersion();
+        }
+        if (version.compareTo(new GameVersion("1.32")) < 0) {
+            return W3I.EncodingFormat.W3I_0x1C.getVersion();
+        }
+        if (version.compareTo(new GameVersion("2.0")) < 0) {
+            return W3I.EncodingFormat.W3I_0x1F.getVersion();
+        }
+        if (version.compareTo(new GameVersion("3.0")) < 0) {
+            return W3I.EncodingFormat.W3I_0x21.getVersion();
+        }
+        return W3I.EncodingFormat.W3I_0x27.getVersion();
     }
 
     private static WurstBuildConfig buildConfigFromBuildDir(File buildDir) {
@@ -356,20 +411,50 @@ public class ProjectConfigBuilder {
         }
     }
 
-    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap,
+                                       int existingPlayerCount, String existingMapName,
+                                       int existingMapFlags) throws IOException {
         boolean shouldWrite = false;
-        MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        if (!projectConfig.buildMapData().players().isEmpty()) {
-            mapHeader.setMaxPlayersCount(projectConfig.buildMapData().players().size());
-            shouldWrite = true;
+        WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        if (buildMapData.players().isEmpty() && StringUtils.isBlank(buildMapData.name())) {
+            return;
         }
-        if (StringUtils.isNotBlank(projectConfig.buildMapData().name())) {
-            mapHeader.setMapName(projectConfig.buildMapData().name());
+
+        // A Warcraft III map may omit the optional 512-byte HM3W prefix and start
+        // directly with its MPQ archive. MapHeader.ofFile only reads the prefix,
+        // so use a new header in that case; writeToMapFile will insert it before
+        // the archive.
+        boolean hasNoMapHeader = startsWithMpqArchive(targetMap);
+        MapHeader mapHeader = hasNoMapHeader
+            ? new MapHeader()
+            : MapHeader.ofFile(targetMap);
+        if (!buildMapData.players().isEmpty()) {
+            mapHeader.setMaxPlayersCount(buildMapData.players().size());
+            shouldWrite = true;
+        } else if (hasNoMapHeader) {
+            mapHeader.setMaxPlayersCount(existingPlayerCount);
+        }
+        if (hasNoMapHeader && StringUtils.isBlank(buildMapData.name())) {
+            mapHeader.setMapName(existingMapName);
+        }
+        if (hasNoMapHeader) {
+            mapHeader.setFlags(existingMapFlags);
+        }
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            mapHeader.setMapName(buildMapData.name());
             shouldWrite = true;
         }
         if (shouldWrite) {
             WLogger.info("Applying map header");
             mapHeader.writeToMapFile(targetMap);
+        }
+    }
+
+    private static boolean startsWithMpqArchive(File targetMap) throws IOException {
+        try (InputStream input = new FileInputStream(targetMap)) {
+            byte[] startToken = input.readNBytes(4);
+            return startToken.length == 4
+                && new String(startToken, StandardCharsets.US_ASCII).startsWith("MPQ");
         }
     }
 }

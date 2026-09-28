@@ -27,14 +27,24 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private final @Nullable Map<FuncDef, FuncLink> typeConstraintFunctions;
     private boolean indexInitialized = false;
     private final Element context;
+    /**
+     * True when this stands for the type parameter itself rather than a value of it, as in the
+     * receiver of {@code T.toIndex(x)}. Only this form exposes the methods required by the bounds.
+     */
+    private final boolean staticRef;
 
     public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
+        this(def, baseType, context, false);
+    }
+
+    private WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context, boolean staticRef) {
         if (baseType instanceof WurstTypeIntLiteral) {
             baseType = WurstTypeInt.instance();
         }
         this.typeParamDef = def;
         this.baseType = baseType;
         this.context = context;
+        this.staticRef = staticRef;
         if (def.getTypeParamConstraints() instanceof NoTypeParamConstraints) {
             this.typeConstraintFunctions = null;
         } else {
@@ -42,8 +52,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
         }
     }
 
+    /** The same binding, seen as the type parameter itself rather than as a value of it. */
+    public WurstTypeBoundTypeParam asStaticRef() {
+        return staticRef ? this : new WurstTypeBoundTypeParam(typeParamDef, baseType, context, true);
+    }
+
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        if (TypeClassConstraints.hasHandleBound(typeParamDef) && other instanceof WurstTypeHandle) {
+            return mapping;
+        }
         return baseType.matchAgainstSupertypeIntern(other, location, mapping, NONE);
     }
 
@@ -92,17 +110,27 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public void addMemberMethods(Element node, String name,
                                  List<FuncLink> result) {
+        if (staticRef) {
+            // The requirements are the parameter's own, so a module cannot reach a bound its
+            // parameter did not declare; their types come from the argument it is bound to, which
+            // is what the copied body was rewritten to speak in.
+            TypeClassConstraints.addRequirementMethods(typeParamDef, baseType, this, node, name, result);
+            return;
+        }
         baseType.addMemberMethods(node, name, result);
     }
 
     @Override
     public Stream<FuncLink> getMemberMethods(Element node) {
+        if (staticRef) {
+            return TypeClassConstraints.requirementMethods(typeParamDef, baseType, this, node);
+        }
         return baseType.getMemberMethods(node);
     }
 
     @Override
     public boolean isStaticRef() {
-        return baseType.isStaticRef();
+        return staticRef || baseType.isStaticRef();
     }
 
     @Override
@@ -113,7 +141,10 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     public WurstType normalize() {
-        return baseType.normalize();
+        // A static reference denotes the parameter, not a value of what it is bound to. Normalising
+        // it away would leave the argument type, which knows nothing of the bounds the requirements
+        // are read from.
+        return staticRef ? this : baseType.normalize();
     }
 
     public FuncDef getFromIndex() {
@@ -178,7 +209,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         if (t == baseType) {
             return this;
         }
-        return new WurstTypeBoundTypeParam(typeParamDef, t, context);
+        return new WurstTypeBoundTypeParam(typeParamDef, t, context, staticRef);
     }
 
     public TypeParamDef getTypeParamDef() {
@@ -199,9 +230,40 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
-        ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-        // TODO add type class binding
-        return JassIm.ImTypeArgument(t, typeClassBinding);
+        return JassIm.ImTypeArgument(imTranslateType(tr), imTypeClassBinding(tr));
+    }
+
+    /**
+     * Binds every requirement of this type parameter's bounds to the function supplied by the
+     * instance chosen for the type it is bound to.
+     * <p>
+     * Used for both function and class type arguments, so that a bound on a generic class works the
+     * same way as one on a generic function. Stays empty while the bound type is itself abstract:
+     * the enclosing generic is specialised first, and the binding is inherited at that point.
+     */
+    public Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> imTypeClassBinding(ImTranslator tr) {
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> binding = new HashMap<>();
+        List<InterfaceDef> bounds = TypeClassConstraints.boundInterfaces(typeParamDef);
+        if (bounds.isEmpty()) {
+            return binding;
+        }
+        WurstType concrete = baseType.normalize();
+        if (concrete instanceof WurstTypeTypeParam || concrete instanceof WurstTypeBoundTypeParam) {
+            return binding;
+        }
+        for (InterfaceDef iface : bounds) {
+            InstanceDecl instance = TypeClassInstances.find(iface, concrete);
+            if (instance == null) {
+                // the validator reports the unsatisfied bound; do not fail translation as well
+                continue;
+            }
+            for (FuncDef requirement : iface.getMethods()) {
+                FuncDef impl = TypeClassInstances.findImplementation(instance, requirement, concrete);
+                if (impl != null) {
+                    binding.put(tr.getTypeClassFunc(requirement), Either.right(tr.getFuncFor(impl)));
+                }
+            }
+        }
+        return binding;
     }
 }

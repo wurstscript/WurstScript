@@ -1,4 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
+import de.peeeq.wurstscript.CompilerIntrinsics;
+import de.peeeq.wurstscript.ast.FuncDef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
@@ -94,6 +96,11 @@ public class StackTraceInjector2 {
             }
         });
 
+        // A compiler-owned declaration has to come out of here exactly as it went in - see
+        // checkCompilerOwnedUntouched.
+        Map<ImFunction, Integer> compilerOwnedArity = new LinkedHashMap<>();
+        compilerOwnedFunctions(prog).forEach(f -> compilerOwnedArity.put(f, f.getParameters().size()));
+
         de.peeeq.wurstscript.ast.Element trace = prog.attrTrace();
         stackSize = JassIm.ImVar(trace, TypesHelper.imInt(), "wurst_stack_depth", false);
         prog.getGlobals().add(stackSize);
@@ -128,6 +135,12 @@ public class StackTraceInjector2 {
         }
 
 
+        // After both branches, and after the seeding from stackTraceGets above: a declaration
+        // the compiler owns is never instrumented, however it came to be in the set. Filtering
+        // only what each branch adds would miss one seeded there by its own use of a stack trace,
+        // and would then trip the check below rather than doing nothing.
+        affectedFuncs.removeIf(StackTraceInjector2::isCompilerOwned);
+
         passStacktraceParams(calls, affectedFuncs);
         addStackTracePush(calls, affectedFuncs);
         addStackTracePop(affectedFuncs);
@@ -135,6 +148,55 @@ public class StackTraceInjector2 {
         rewriteErrorStatements(stackTraceGets);
         rewriteMethodCalls(affectedFuncs);
 
+        checkCompilerOwnedUntouched(compilerOwnedArity);
+
+    }
+
+    /**
+     * Declarations the compiler owns rather than the user.
+     *
+     * <p>These are not instrumented. Their bodies are plumbing or a placeholder that a lowering
+     * replaces, so a frame for one says nothing about where a program went wrong - and the cost of
+     * the frame lands on whatever the lowering produced, which on Lua is often meant to be nothing
+     * at all.
+     *
+     * <p>The stronger reason is that instrumenting one changes its signature. Every lowering
+     * identifies a compiler-owned declaration by its exact signature, so a function carrying an
+     * extra trace parameter is no longer recognised, and the lowering silently does not happen.
+     * On Lua that is not a corner: every non-native function is affected there, and a release
+     * build emits stack traces by default.
+     */
+    private static boolean isCompilerOwned(ImFunction f) {
+        return f.attrTrace() instanceof FuncDef fd
+            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION);
+    }
+
+    private static Stream<ImFunction> compilerOwnedFunctions(ImProg prog) {
+        return Stream.concat(
+                prog.getFunctions().stream(),
+                prog.getClasses().stream().flatMap(c -> c.getFunctions().stream()))
+            .filter(StackTraceInjector2::isCompilerOwned);
+    }
+
+    /**
+     * Fails loudly if a compiler-owned declaration was instrumented after all.
+     *
+     * <p>The failure this guards against is silent by nature: the lowering that should have
+     * recognised the declaration simply does not fire, and what ships is the unlowered body. That
+     * cost a correctness bug once already - a keyed set on Lua kept its Jass body, whose key
+     * projection is never lowered there, so every element shared one key.
+     */
+    private void checkCompilerOwnedUntouched(Map<ImFunction, Integer> arityBefore) {
+        for (Map.Entry<ImFunction, Integer> e : arityBefore.entrySet()) {
+            int now = e.getKey().getParameters().size();
+            if (now != e.getValue()) {
+                throw new CompileError(e.getKey().attrTrace().attrErrorPos(),
+                    "Stack trace injection changed the signature of the compiler-owned function "
+                        + e.getKey().getName() + " from " + e.getValue() + " to " + now
+                        + " parameters. Lowerings recognise it by that signature and would stop"
+                        + " matching it.");
+            }
+        }
     }
 
     private Set<ImFunction> getFunctionsReachableFrom(String functionName, Multimap<ImFunction, ImFunction> directCalls) {

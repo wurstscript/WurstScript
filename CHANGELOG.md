@@ -1,5 +1,75 @@
 ## 1.9 (in progress)
 
+- Added type class bounds for `T:` generics. A bound requires operations of the type it is bound to, so a
+  generic can do more than store and return values, without giving up static dispatch:
+
+        public interface Indexable<T:>
+            function toIndex(T x) returns int
+            function fromIndex(int i) returns T
+
+        implements Indexable<vec2>
+            function toIndex(vec2 v) returns int
+                ...
+            function fromIndex(int i) returns vec2
+                ...
+
+        class HashMap<K: Indexable, V: Indexable>
+            function get(K key) returns V
+                return V.fromIndex(loadInt(K.toIndex(key)))
+
+    A bound names the interface unapplied, so `<K: Indexable>` means "there is an instance of `Indexable<K>`",
+    and several combine with `and`. Requirements are called on the type parameter (`K.toIndex(key)`), which
+    keeps operations that produce a value of the type, such as `fromIndex`, in the same form as the rest.
+
+    Unlike an interface used as a supertype, a bound is satisfiable by `int`, `real`, `string`, tuples and
+    handle types, and costs nothing at runtime: after specialisation each requirement is a direct call to the
+    instance function, on both Jass and Lua.
+
+    An instance of `I` for type `X` may only be declared in the package declaring `I` or the one declaring
+    `X`, and only once, so `I` for `X` means the same thing throughout a program regardless of imports.
+
+- A type class bound is now usable from inside a closure, so a bounded generic can hand work to one:
+
+        interface Producer
+            function produce() returns int
+
+        function indexLater<T: Indexable>(T x) returns Producer
+            return () -> T.toIndex(x)
+
+    Substituting a type variable now carries the instance chosen for it along with the type, rather than the
+    type alone, so lifting a body into a class of its own no longer loses it. This works on both targets.
+    Lua reaches such a class through the interface it implements, so no call names the instantiation and the
+    construction is what the specialisation is taken from.
+
+- A module's type parameter may now carry a type class bound, and the class using the module supplies the
+  argument:
+
+        module Shower<T: Show>
+            T held
+            function shown() returns string
+                return T.show(held)
+
+        class Holder<K: Show>
+            use Shower<K>
+
+    Using a module copies its body into the class and replaces the module's type parameters wherever they
+    are used as types. The receiver in `T.show(held)` is a name rather than a type, so the replacement never
+    reached it and the bound was rejected. The instantiation now declares the parameters and records the
+    arguments chosen for them, so that name resolves and says what it stands for. The argument must satisfy
+    the bound, which is reported at the `use`. This works on both targets.
+
+- On the Lua target, a bounded generic class can now be subclassed, and a requirement can be dispatched
+  from inside a constructor. A generic object stays erased there and only the paths needing a concrete
+  type are specialised, so the concrete type has to reach those paths rather than the object: a
+  specialised method is bound to the class its objects are allocated from, a call which names its target
+  — `super.m()` is one — takes the instantiation from the class its receiver is used as, and a function
+  of a generic class is matched against that class's type variables rather than being read as having
+  none of its own. A specialisation nothing allocates is no longer emitted at all.
+
+    One shape remains unsupported on Lua: a method combining its own type parameters with those of the
+    generic class owning it, though it is no longer rejected outright — the arity check it tripped over
+    counted the class's type arguments against a call that had only supplied the method's.
+
 - Added new pseudo-natives for debugging memory leaks:
 
         // returns the maximum type id, can be usd to

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_ABORT_THREAD_SENTINEL;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -46,7 +47,21 @@ public class StmtTranslation {
     }
 
     public static void translate(ImLoop s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaWhile(LuaAst.LuaExprBoolVal(true), tr.translateStatements(s.getBody())));
+        LuaNumericFor counted = LuaNumericFor.match(s);
+        if (counted == null) {
+            res.add(LuaAst.LuaWhile(LuaAst.LuaExprBoolVal(true), tr.translateStatements(s.getBody())));
+            return;
+        }
+        LuaVariable counter = tr.luaVar.getFor(counted.counter);
+        LuaExpr from = takeCounterInitialisation(res, counter);
+        LuaExprOpt step = counted.step == 1
+            ? LuaAst.LuaNoExpr()
+            : LuaAst.LuaExprIntVal("" + counted.step);
+        LuaStatements body = LuaAst.LuaStatements();
+        for (ImStmt stmt : counted.innerStatements()) {
+            stmt.translateStmtToLua(body, tr);
+        }
+        res.add(LuaAst.LuaFor(counter, from, counted.bound.translateToLua(tr), step, body));
     }
 
     public static void translate(ImIf s, List<LuaStatement> res, LuaTranslator tr) {
@@ -79,8 +94,51 @@ public class StmtTranslation {
     }
 
 
+    /**
+     * The counter's initial assignment was translated just before the loop, possibly followed by
+     * the cached bound; it becomes the start value of the numeric for. It is only moved past the
+     * bound's assignment when it is a literal, which no evaluation order can observe: a start
+     * expression with a call or a variable read would otherwise run after the bound instead of
+     * before it. Otherwise the loop starts from the counter variable itself.
+     */
+    private static LuaExpr takeCounterInitialisation(List<LuaStatement> res, LuaVariable counter) {
+        for (int index = res.size() - 1, skipped = 0; index >= 0 && skipped <= 1; index--, skipped++) {
+            if (!(res.get(index) instanceof LuaAssignment assignment)
+                || !(assignment.getLeft() instanceof LuaExprVarAccess target)) {
+                break;
+            }
+            if (target.getVar() == counter) {
+                LuaExpr from = assignment.getRight();
+                if (skipped > 0 && (!(from instanceof LuaExprIntVal)
+                    || reads(((LuaAssignment) res.get(index + 1)).getRight(), counter))) {
+                    // The skipped bound assignment reads the counter (for i = 0 to i + n), so the
+                    // literal has to be stored before it after all.
+                    return LuaAst.LuaExprVarAccess(counter);
+                }
+                res.remove(index);
+                from.setParent(null);
+                return from;
+            }
+        }
+        return LuaAst.LuaExprVarAccess(counter);
+    }
+
+    private static boolean reads(de.peeeq.wurstscript.luaAst.Element e, LuaVariable var) {
+        if (e instanceof LuaExprVarAccess access && access.getVar() == var) {
+            return true;
+        }
+        for (int i = 0; i < e.size(); i++) {
+            if (reads(e.get(i), var)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void translate(ImVarargLoop loop, List<LuaStatement> res, LuaTranslator tr) {
-        LuaVariable loopVar = tr.luaVar.getFor(loop.getLoopVar());
+        List<ImVar> loopVars = loop.getLoopVars().stream()
+            .map(ImVarargLoopVar::getVar)
+            .collect(Collectors.toList());
         // The loop is built from real AST nodes (a while loop) instead of literal
         // 'for ... do' / 'end' lines: the printer stops printing a statement list
         // after a return/break (Lua forbids trailing statements), which would
@@ -90,10 +148,12 @@ public class StmtTranslation {
         res.add(args);
         res.add(i);
         LuaStatements body = LuaAst.LuaStatements();
-        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(i),
-            LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
-        body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(loopVar),
-            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(args), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        for (ImVar loopVar : loopVars) {
+            body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(i),
+                LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpPlus(), LuaAst.LuaExprIntVal("1"))));
+            body.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(loopVar)),
+                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(args), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(i)))));
+        }
         tr.translateStatements(body, loop.getBody());
         res.add(LuaAst.LuaWhile(
             LuaAst.LuaExprBinary(LuaAst.LuaExprVarAccess(i), LuaAst.LuaOpLess(),

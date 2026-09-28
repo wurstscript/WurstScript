@@ -119,6 +119,54 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
+    public void jassModuloUsesTruncatingIntegerRemainder() throws IOException {
+        test().executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassModulo takes integer a, integer b returns integer",
+                "\treturn a % b",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassModulo(5, 3) == 2 and jassModulo(-5, 3) == -2 and jassModulo(5, -3) == 2 and jassModulo(-5, -3) == -2",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+        String compiled = Files.toString(new File(TEST_OUTPUT_PATH
+            + "BugTests_jassModuloUsesTruncatingIntegerRemainder_no_opts.j"), Charsets.UTF_8);
+        Assert.assertTrue(compiled.contains("return a % b"), compiled);
+    }
+
+    @Test
+    public void jassModuloUsesTruncatingIntegerRemainderInLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(
+            compilationUnit("input.j",
+                "function jassModulo takes integer a, integer b returns integer",
+                "\treturn a % b",
+                "endfunction"),
+            compilationUnit("test.wurst",
+                "package test",
+                "\tnative testSuccess()",
+                "\tinit",
+                "\t\tif jassModulo(5, 3) == 2 and jassModulo(-5, 3) == -2 and jassModulo(5, -3) == 2 and jassModulo(-5, -3) == -2",
+                "\t\t\ttestSuccess()",
+                "endpackage"));
+        String compiled = Files.toString(new File(TEST_OUTPUT_PATH
+            + "lua/BugTests_jassModuloUsesTruncatingIntegerRemainderInLua.lua"), Charsets.UTF_8);
+        Assert.assertTrue(compiled.contains("return math.fmod(a, b)"), compiled);
+    }
+
+    @Test
+    public void jassModuloRejectsRealOperands() {
+        test().executeProg(false)
+            .expectError("Operator % is not defined for operands real and real")
+            .compilationUnits(compilationUnit("input.j",
+                "function jassModulo takes real a, real b returns real",
+                "\treturn a % b",
+                "endfunction"));
+    }
+
+    @Test
     public void test_init_order_jass_warning() {
         testAssertErrorsLines(false, "Variable b may not have been initialized",
                 "function foo takes nothing returns integer",
@@ -880,7 +928,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void unreadVarWarning3() { // #380
-        testAssertErrorsLines(true, "closure-captured variable",
+        testAssertErrorsLines(true, "does not propagate outside the closure because closures capture locals by value",
             "package test",
             "@annotation public function annotation()",
             "@annotation public function extern()",
@@ -915,6 +963,110 @@ public class BugTests extends WurstScriptTest {
             result.getGui().getWarningList().stream()
                 .noneMatch(w -> w.getMessage().contains("The parameter bar is never read")),
             "Unexpected unused warning for parameter bar: " + result.getGui().getWarningList()
+        );
+    }
+
+    /** A local read by the loop variable's start expression is read, whichever way the loop counts. */
+    @Test
+    public void forRangeStartReadsLocal() {
+        for (String direction : new String[]{"downto 0", "to 20"}) {
+            CompilationResult result = test()
+                .setStopOnFirstError(false)
+                .executeProg(false)
+                .lines(
+                    "package test",
+                    "native testSuccess()",
+                    "init",
+                    "    let a = 10",
+                    "    for i = a " + direction,
+                    "        skip",
+                    "endpackage"
+                );
+
+            Assert.assertTrue(
+                result.getGui().getWarningList().stream()
+                    .noneMatch(w -> w.getMessage().contains("assignment to local variable a is never read")),
+                "Unexpected never-read warning for 'a' with 'for i = a " + direction + "': "
+                    + result.getGui().getWarningList()
+            );
+        }
+    }
+
+    /**
+     * The start expression runs once before the loop, so a write in the body is not read by it.
+     * The CFG back edge revisits the loop statement, which would otherwise mark the body write as
+     * read and hide this warning.
+     */
+    @Test
+    public void forRangeStartDoesNotCountBodyReassignmentAsRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    var a = 10",
+                "    for i = a to 20",
+                "        a = 5",
+                "endpackage"
+            );
+
+        Assert.assertTrue(
+            result.getGui().getWarningList().stream()
+                .anyMatch(w -> w.getMessage().contains("assignment to local variable a is never read")),
+            "Expected the dead body assignment to 'a' to still warn, got: " + result.getGui().getWarningList()
+        );
+    }
+
+    /**
+     * "to" is hoisted into a temporary before the loop just like the start value, so a body write
+     * to a local it reads is equally dead. Same shape as the start expression, different slot.
+     */
+    @Test
+    public void forRangeToBoundDoesNotCountBodyReassignmentAsRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    var n = 20",
+                "    for i = 0 to n",
+                "        n = 5",
+                "endpackage"
+            );
+
+        Assert.assertTrue(
+            result.getGui().getWarningList().stream()
+                .anyMatch(w -> w.getMessage().contains("assignment to local variable n is never read")),
+            "Expected the dead body assignment to 'n' to still warn, got: " + result.getGui().getWarningList()
+        );
+    }
+
+    /** A body write that is genuinely read later must not warn. */
+    @Test
+    public void forRangeBodyReassignmentReadAfterLoopDoesNotWarn() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package test",
+                "native testSuccess()",
+                "@extern native I2S(int x) returns string",
+                "init",
+                "    var a = 10",
+                "    for i = a to 20",
+                "        a = 5",
+                "    I2S(a)",
+                "endpackage"
+            );
+
+        Assert.assertTrue(
+            result.getGui().getWarningList().stream()
+                .noneMatch(w -> w.getMessage().contains("assignment to local variable a is never read")),
+            "Unexpected never-read warning when 'a' is read after the loop: " + result.getGui().getWarningList()
         );
     }
 

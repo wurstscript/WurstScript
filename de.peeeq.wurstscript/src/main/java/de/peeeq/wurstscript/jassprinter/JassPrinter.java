@@ -245,6 +245,11 @@ public class JassPrinter {
             }
 
             @Override
+            public Integer case_JassOpMod(@SuppressWarnings("null") JassOpMod jassOpMod) {
+                return 4;
+            }
+
+            @Override
             public Integer case_JassOpLess(@SuppressWarnings("null") JassOpLess jassOpLess) {
                 return 2;
             }

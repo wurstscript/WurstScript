@@ -22,6 +22,7 @@ import java.util.Set;
 
 public class TempMerger implements OptimizerPass {
     private int totalMerged = 0;
+    private @Nullable LocalPlayerContextAnalyzer localPlayerContextAnalyzer;
 
 
     @Override
@@ -35,6 +36,7 @@ public class TempMerger implements OptimizerPass {
     @Override
     public int optimize(ImTranslator trans) {
         ImProg prog = trans.getImProg();
+        localPlayerContextAnalyzer = new LocalPlayerContextAnalyzer(prog);
         totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
         prog.clearAttributes();
@@ -389,6 +391,12 @@ public class TempMerger implements OptimizerPass {
         private boolean isMergable(ImVar left, ImExpr e) {
             if (left.isGlobal()) {
                 // never merge globals
+                return false;
+            }
+
+            if (localPlayerContextAnalyzer != null
+                    && (localPlayerContextAnalyzer.isLocalPlayerDependent(left)
+                    || localPlayerContextAnalyzer.isLocalPlayerDependent(e))) {
                 return false;
             }
 

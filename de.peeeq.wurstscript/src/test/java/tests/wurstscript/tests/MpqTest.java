@@ -10,6 +10,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
 import java.util.Optional;
 
 public class MpqTest {
@@ -72,6 +76,40 @@ public class MpqTest {
         try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             Assert.assertFalse(edit.hasFile("test.txt"));
         }
+    }
+
+    @Test
+    public void test_stagedChangesAreVisibleBeforeClose() throws Exception {
+        byte[] contents = "staged contents".getBytes(StandardCharsets.UTF_8);
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
+            edit.insertFile("staged.txt", contents);
+            Assert.assertTrue(edit.hasFile("staged.txt"));
+            Assert.assertEquals(edit.extractFile("STAGED.TXT"), contents);
+
+            edit.deleteFile("staged.txt");
+            Assert.assertFalse(edit.hasFile("staged.txt"));
+        }
+    }
+
+    @Test
+    public void test_readOnlyMembershipDoesNotRequireWriter() throws Exception {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)), true)) {
+            Assert.assertTrue(edit.hasFile("war3map.j"));
+            Assert.assertFalse(edit.hasFile("missing.txt"));
+        }
+    }
+
+    @Test
+    public void test_preservesPosixPermissions() throws Exception {
+        Path map = new File(TEST_W3X).toPath();
+        if (!java.nio.file.Files.getFileStore(map).supportsFileAttributeView("posix")) {
+            return;
+        }
+        Set<PosixFilePermission> permissions = java.nio.file.Files.getPosixFilePermissions(map);
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
+            edit.insertFile("permissions.txt", "permissions".getBytes(StandardCharsets.UTF_8));
+        }
+        Assert.assertEquals(java.nio.file.Files.getPosixFilePermissions(map), permissions);
     }
 
 }

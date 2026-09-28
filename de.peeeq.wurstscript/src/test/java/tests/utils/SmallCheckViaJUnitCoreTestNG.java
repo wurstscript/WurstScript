@@ -1,5 +1,6 @@
 package tests.utils;
 
+import tests.wurstscript.tests.CompilerFuzzTestsSC;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
@@ -11,13 +12,20 @@ import java.util.stream.Collectors;
 public class SmallCheckViaJUnitCoreTestNG {
 
   @Test
-  public void runGraphInterpreterTestsSC() {
+  public void runSmallCheckSuite() {
     Result r = JUnitCore.runClasses(GraphInterpreterTestsSC.class);
+    assertNoFailures(r, "GraphInterpreter");
+
+    Result compilerFuzz = JUnitCore.runClasses(CompilerFuzzTestsSC.class);
+    assertNoFailures(compilerFuzz, "CompilerFuzz");
+  }
+
+  private void assertNoFailures(Result r, String suiteName) {
     if (!r.wasSuccessful()) {
       String msg = r.getFailures().stream()
-          .map(Failure::toString)
+          .map(Failure::getTrace)
           .collect(Collectors.joining("\n\n"));
-      Assert.fail("SmallCheck failures:\n" + msg);
+      Assert.fail("SmallCheck failures (" + suiteName + "):\n" + msg);
     }
   }
 }

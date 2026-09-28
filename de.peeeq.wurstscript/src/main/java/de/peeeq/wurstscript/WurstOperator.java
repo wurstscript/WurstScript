@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript;
 
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
@@ -27,6 +28,7 @@ public enum WurstOperator {
     DIV_INT("div", 2),
     MOD_REAL("%", 2),
     MOD_INT("mod", 2),
+    JASS_MOD_INT("%", 2),
     NOT("not", 1),
     UNARY_MINUS("-", 1);
 
@@ -75,6 +77,8 @@ public enum WurstOperator {
             case MOD_INT:
             case MOD_REAL:
                 throw new Error("Cannot translate modulo");
+            case JASS_MOD_INT:
+                return JassAst.JassOpMod();
             case MULT:
                 return JassAst.JassOpMult();
             case NOTEQ:
@@ -110,6 +114,7 @@ public enum WurstOperator {
             case MOD_REAL:
                 return LuaAst.LuaOpMod();
             case MOD_INT:
+            case JASS_MOD_INT:
                 throw new Error("Cannot translate modulo int");
             case MULT:
                 return LuaAst.LuaOpMult();
@@ -125,6 +130,28 @@ public enum WurstOperator {
         throw new Error("cannot translate " + this);
     }
 
+    /**
+     * Refuses to compare the stand-in for a type parameter's default, whichever side it is on.
+     * <p>
+     * The stand-in exists because the default of a value is computed by a static attribute, which
+     * cannot see what the parameter is bound to. It answers "equal" only for another stand-in, so
+     * comparing one against a real value is a wrong answer rather than an error. Doing this here
+     * rather than in the value itself keeps it independent of operand order: only the left operand
+     * gets asked, so `0 == unresolved` would otherwise go quietly false while `unresolved == 0`
+     * complained.
+     */
+    private static void rejectUnresolvedDefault(ILconst left, ILconst right) {
+        ILconstUnsafeDefault unresolved = left instanceof ILconstUnsafeDefault leftDefault ? leftDefault
+            : right instanceof ILconstUnsafeDefault rightDefault ? rightDefault : null;
+        if (unresolved == null || (left instanceof ILconstUnsafeDefault && right instanceof ILconstUnsafeDefault)) {
+            return;
+        }
+        throw new InterpreterException("The default value of type parameter "
+            + unresolved.getTypeVariable().getName()
+            + " is not known here, so it cannot be compared to "
+            + (unresolved == left ? right : left).print() + ".");
+    }
+
     public ILconst evaluateBinaryOperator(ILconst left,
                                           Supplier<ILconst> right) {
         switch (this) {
@@ -136,8 +163,11 @@ public enum WurstOperator {
                 return new ILconstInt(((ILconstInt) left).getVal() / ((ILconstInt) right.get()).getVal());
             case DIV_REAL:
                 return new ILconstReal(getReal(left) / getReal(right.get()));
-            case EQ:
-                return ILconstBool.instance(left.equals(right.get()));
+            case EQ: {
+                ILconst rightVal = right.get();
+                rejectUnresolvedDefault(left, rightVal);
+                return ILconstBool.instance(left.equals(rightVal));
+            }
             case GREATER:
                 return ((ILconstNum) left).greater((ILconstNum) right.get());
             case GREATER_EQ:
@@ -150,12 +180,17 @@ public enum WurstOperator {
                 return ((ILconstNum) left).sub((ILconstNum) right.get());
             case MOD_INT:
                 return new ILconstInt(moduloInteger(((ILconstInt) left).getVal(), ((ILconstInt) right.get()).getVal()));
+            case JASS_MOD_INT:
+                return new ILconstInt(jassModuloInteger(((ILconstInt) left).getVal(), ((ILconstInt) right.get()).getVal()));
             case MOD_REAL:
                 return new ILconstReal(moduloReal(getReal(left), getReal(right.get())));
             case MULT:
                 return ((ILconstNum) left).mul((ILconstNum) right.get());
-            case NOTEQ:
-                return ILconstBool.instance(!left.equals(right.get()));
+            case NOTEQ: {
+                ILconst rightVal = right.get();
+                rejectUnresolvedDefault(left, rightVal);
+                return ILconstBool.instance(!left.equals(rightVal));
+            }
             case PLUS:
                 return ((ILconstAddable) left).add((ILconstAddable) right.get());
             case NOT:
@@ -178,6 +213,11 @@ public enum WurstOperator {
             r += b;
         }
         return r;
+    }
+
+    /** Native Jass {@code %}: integer-only remainder truncated toward zero. */
+    public static int jassModuloInteger(int a, int b) {
+        return a % b;
     }
 
     /** Reference semantics for Wurst's real {@code mod}; see {@link #moduloInteger}. */

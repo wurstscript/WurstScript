@@ -7,15 +7,20 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.BranchMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediatelang.optimizer.DispatchCheckDeduplicator;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerAwareOptimizerPass;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalPlayerContextAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.validation.NamePreservation;
+
+import java.util.stream.Collectors;
 
 import java.util.*;
 
@@ -63,32 +68,134 @@ public class ImOptimizer {
         removeGarbage();
     }
 
-    private int optCount = 1;
+    /**
+     * Lowers and inlines the monomorphic method calls that inlining moves into a loop, until no
+     * more are exposed. Inlining {@code op_index} into a loop leaves its call to {@code get} there,
+     * inlining {@code get} may expose the next delegation, and so on down the chain.
+     *
+     * <p>Each exposed call remembers the chain of functions whose inlining exposed it, and a call
+     * whose callee is already in its own chain is left as a direct call: that is a cycle, and
+     * inlining it would unroll the recursion forever. Every round extends a chain of distinct
+     * functions by one, so the loop ends without an arbitrary depth limit.
+     *
+     * <p>A copy made by inlining is reconsidered as well, direct calls included: when two chains
+     * overlap in one round, inlining the outer callee copies a call its body makes which is itself
+     * a candidate, already lowered, and only the original would otherwise be inlined. Candidates
+     * are kept in program order, so the result does not depend on hash order.
+     */
+    public int inlineExposedLoopCalls() {
+        ImProg prog = trans.getImProg();
+        Map<ImMethodCall, List<ImFunction>> exposedBy = new IdentityHashMap<>();
+        List<ImFunctionCall> copiedCalls = new ArrayList<>();
+        Map<ImFunctionCall, List<ImFunction>> copiedChains = new IdentityHashMap<>();
+        int total = 0;
+        while (true) {
+            Map<ImFunctionCall, List<ImFunction>> chainOf = new IdentityHashMap<>();
+            List<ImFunctionCall> candidates = new ArrayList<>();
+            for (LuaMethodCallLowering.Lowered lowered : LuaMethodCallLowering.lowerLoopCalls(prog)) {
+                List<ImFunction> chain = exposedBy.getOrDefault(lowered.from(), Collections.emptyList());
+                if (chain.contains(lowered.to().getFunc())) {
+                    continue;
+                }
+                chainOf.put(lowered.to(), chain);
+                candidates.add(lowered.to());
+            }
+            for (ImFunctionCall copied : copiedCalls) {
+                List<ImFunction> chain = copiedChains.get(copied);
+                if (copied.getParent() == null || copied.getNearestFunc() == null
+                    || chain.contains(copied.getFunc()) || chainOf.containsKey(copied)) {
+                    continue;
+                }
+                chainOf.put(copied, chain);
+                candidates.add(copied);
+            }
+            exposedBy.clear();
+            copiedCalls.clear();
+            copiedChains.clear();
+            if (candidates.isEmpty()) {
+                break;
+            }
+            int inlined = new ImInliner(trans).inlineCalls(candidates, (call, replacement) -> {
+                List<ImFunction> chain = new ArrayList<>(chainOf.get(call));
+                chain.add(call.getFunc());
+                replacement.accept(new Element.DefaultVisitor() {
+                    @Override
+                    public void visit(ImMethodCall methodCall) {
+                        super.visit(methodCall);
+                        exposedBy.put(methodCall, chain);
+                    }
 
+                    @Override
+                    public void visit(ImFunctionCall functionCall) {
+                        super.visit(functionCall);
+                        if (!copiedChains.containsKey(functionCall)) {
+                            copiedCalls.add(functionCall);
+                        }
+                        copiedChains.put(functionCall, chain);
+                    }
+                });
+            });
+            trans.assertProperties();
+            if (inlined == 0) {
+                break;
+            }
+            total += inlined;
+        }
+        if (total > 0) {
+            removeGarbage();
+        }
+        return total;
+    }
+
+    public int inlineLuaDivModHelpersWithinLocalBudget() {
+        return new ImInliner(trans).inlineLuaDivModHelpersWithinLocalBudget();
+    }
     public void localOptimizations() {
         totalCount.clear();
 
         removeGarbage();
 
-        int finalItr = 0;
-        for (int i = 1; i <= 10 && optCount > 0; i++) {
-            optCount = 0;
-            for (OptimizerPass pass : localPasses) {
-                int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
-                optCount += count;
-                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
-            }
-
-            if (optCount > 0) {
-                removeGarbage();
-                trans.getImProg().flatten(trans);
-            }
-
-            finalItr = i;
-            WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
+        int optCount = runLocalOptimizationSweep();
+        if (optCount > 0) {
+            removeGarbage();
+            trans.getImProg().flatten(trans);
         }
-        WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
+
+        int cleanupCount = runLocalOptimizationSweep();
+        if (cleanupCount > 0) {
+            removeGarbage();
+            trans.getImProg().flatten(trans);
+        }
+
+        WLogger.info("=== Local optimization passes done! Opts: " + (optCount + cleanupCount) + " ===");
         totalCount.forEach((k, v) -> WLogger.info("== " + k + ":   " + v));
+    }
+
+    private int runLocalOptimizationSweep() {
+        int optCount = 0;
+        LocalPlayerContextAnalyzer localPlayerContextAnalyzer = null;
+        for (OptimizerPass pass : localPasses) {
+            int count;
+            if (pass instanceof LocalPlayerAwareOptimizerPass) {
+                if (localPlayerContextAnalyzer == null) {
+                    localPlayerContextAnalyzer =
+                        new LocalPlayerContextAnalyzer(trans.getImProg());
+                }
+                LocalPlayerContextAnalyzer analyzer = localPlayerContextAnalyzer;
+                LocalPlayerAwareOptimizerPass localPlayerAwarePass =
+                    (LocalPlayerAwareOptimizerPass) pass;
+                count = timeTaker.measure(
+                    pass.getName(),
+                    () -> localPlayerAwarePass.optimize(trans, analyzer));
+            } else {
+                count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
+                // A general mutating pass may invalidate dependency edges.
+                localPlayerContextAnalyzer = null;
+            }
+            optCount += count;
+            totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
+        }
+        return optCount;
     }
 
     public void doNullsetting() {
@@ -131,8 +238,15 @@ public class ImOptimizer {
                 totalFunctionsRemoved += classFunctionsBefore - classFunctionsAfter;
                 allFunctions.addAll(c.getFunctions());
 
+                // A field of a specialised class is a copy which nothing refers to, an access made
+                // before specialisation still naming the original's variable. It is live exactly
+                // when the field it was copied from is; dropping it leaves an instance allocated
+                // with no fields while the emitted code goes on reading them.
                 int classFieldsBefore = c.getFields().size();
-                changes |= c.getFields().retainAll(readVars);
+                changes |= c.getFields().retainAll(c.getFields().stream()
+                    .filter(field -> readVars.contains(field)
+                        || readVars.contains(trans.canonical(field)))
+                    .collect(Collectors.toSet()));
                 int classFieldsAfter = c.getFields().size();
                 totalGlobalsRemoved += classFieldsBefore - classFieldsAfter;
             }
@@ -146,13 +260,13 @@ public class ImOptimizer {
                         super.visit(e);
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if (e.getLeft() instanceof ImVarArrayAccess) {
                             ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> exprs = new ArrayList<>();
                                 for (ImExpr index : va.getIndexes()) {
                                     exprs.addAll(collectSideEffects(index, sideEffectAnalyzer));
@@ -162,13 +276,13 @@ public class ImOptimizer {
                             }
                         } else if (e.getLeft() instanceof ImTupleSelection) {
                             ImVar var = TypesHelper.getTupleVar((ImTupleSelection) e.getLeft());
-                            if(var != null && !readVars.contains(var) && !TRVEHelper.protectedVariables.contains(var.getName())) {
+                            if(var != null && !readVars.contains(var) && !NamePreservation.isPreserved(var)) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }
                         } else if(e.getLeft() instanceof ImMemberAccess) {
                             ImMemberAccess va = ((ImMemberAccess) e.getLeft());
-                            if (!readVars.contains(va.getVar()) && !TRVEHelper.protectedVariables.contains(va.getVar().getName())) {
+                            if (!readVars.contains(va.getVar()) && !NamePreservation.isPreserved(va.getVar())) {
                                 List<ImExpr> sideEffects = collectSideEffects(e.getRight(), sideEffectAnalyzer);
                                 replacements.add(Pair.create(e, sideEffects));
                             }
@@ -211,6 +325,14 @@ public class ImOptimizer {
         if (expr == null) {
             return Collections.emptyList();
         }
+        if (expr instanceof ImFunctionCall call && trans.isTrapFreeLuaIntrinsicCall(call)) {
+            // Prints as a pure operator; only its operands can still matter.
+            List<ImExpr> operandEffects = new ArrayList<>();
+            for (ImExpr argument : call.getArguments()) {
+                operandEffects.addAll(collectSideEffects(argument, analyzer));
+            }
+            return operandEffects;
+        }
         if (mayTrapAtRuntime(expr)) {
             return Collections.singletonList(expr);
         }
@@ -241,7 +363,8 @@ public class ImOptimizer {
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opCall = (ImOperatorCall) elem;
             WurstOperator op = opCall.getOp();
-            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT) && opCall.getArguments().size() >= 2) {
+            if ((op == WurstOperator.DIV_INT || op == WurstOperator.MOD_INT || op == WurstOperator.JASS_MOD_INT)
+                && opCall.getArguments().size() >= 2) {
                 ImExpr denominator = opCall.getArguments().get(1);
                 // Preserve integer div/mod unless denominator is provably non-zero.
                 if (!(denominator instanceof ImIntVal) || ((ImIntVal) denominator).getValI() == 0) {

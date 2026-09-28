@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -11,10 +10,16 @@ public class EliminateLocalTypes {
     private static final ImType localBoolType = JassIm.ImSimpleType("localSimpleTypeBool");
     private static final ImType localStringType = JassIm.ImSimpleType("localSimpleTypeString");
 
+    /** True for an integer, before or after its local type has been erased to the merged form. */
+    public static boolean isIntegerOrLocalInteger(ImType t) {
+        return TypesHelper.isIntType(t)
+            || (t instanceof ImSimpleType simple && simple.equalsType(localIntType));
+    }
+
     public static void eliminateLocalTypesProg(ImProg imProg, ImTranslator translator) {
         // While local types are still there, perform transformation, such that the lua translator does not need to know variable types
         // null string -> "" (avoids type dependency in null translation)
-        // string1 + string2 -> stringConcat(string1, string2) (avoids type dependency in operator translation)
+        // String concatenation was already lowered by LuaNativeLowering before optimization.
         // int castTo int -> remove cast (avoids type dependency in cast translation)
         transformProgram(imProg, translator);
         // Eliminates local types to be able to merge more locals in Lua.
@@ -32,6 +37,11 @@ public class EliminateLocalTypes {
                 local.setType(canonicalizeSimpleLocalType((ImSimpleType) t));
             }
         }
+    }
+
+    /** The type a local of type {@code t} has after this pass, so a later local can merge with it. */
+    public static ImType localTypeFor(ImType t) {
+        return t instanceof ImSimpleType simple ? canonicalizeSimpleLocalType(simple) : t.copy();
     }
 
     private static ImType canonicalizeSimpleLocalType(ImSimpleType t) {
@@ -52,17 +62,6 @@ public class EliminateLocalTypes {
 
     private static void transformProgram(ImProg imProg, ImTranslator translator) {
         imProg.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImOperatorCall imOperatorCall) {
-                super.visit(imOperatorCall);
-                ImExprs args = imOperatorCall.getArguments();
-                if (imOperatorCall.getOp() == WurstOperator.PLUS) {
-                    if(args.size() == 2 && TypesHelper.isStringType(args.get(0).attrTyp()) && TypesHelper.isStringType(args.get(1).attrTyp()) ) {
-                        imOperatorCall.replaceBy(JassIm.ImFunctionCall(imOperatorCall.attrTrace(), translator.stringConcatFunc, JassIm.ImTypeArguments(), imOperatorCall.getArguments().copy(), false, CallType.NORMAL));
-                    }
-                }
-            }
-
             @Override
             public void visit(ImNull imNull) {
                 super.visit(imNull);

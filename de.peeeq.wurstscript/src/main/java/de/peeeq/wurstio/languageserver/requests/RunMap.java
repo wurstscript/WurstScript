@@ -53,12 +53,9 @@ public class RunMap extends MapRequest {
 
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
-        WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
-            + ",\n map = " + map
-            + ",\n compileArgs = " + compileArgs
-            + ",\n workspaceRoot = " + workspaceRoot
-            + ",\n runArgs = " + compileArgs
-        );
+        WLogger.info("Execute RunMap: map=" + map.map(File::getName).orElse("none")
+            + ", wc3Path=" + wc3Path.orElse("default")
+            + ", args=" + compileArgs);
 
         if (modelManager.hasErrors()) {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.\n" + modelManager.getFirstErrorDescription());
@@ -72,6 +69,7 @@ public class RunMap extends MapRequest {
         // TODO use normal compiler for this, avoid code duplication
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
+            warnAboutRunOptimizations(gui);
             String ok = compileMap(modelManager, gui, projectConfig);
             if (ok != null) return ok;
         } catch (CompileError e) {
@@ -89,6 +87,17 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    private void warnAboutRunOptimizations(WurstGui gui) {
+        if (!runArgs.isOptimize() && !runArgs.isInline() && !runArgs.isLocalOptimizations()) {
+            return;
+        }
+        String message = "Run map is using compiler optimizations (opt/inline/localOptimizations), "
+            + "which can significantly slow the build. Put these options behind '+' in wurst_run.args "
+            + "or use Build Map to produce an optimized release map.";
+        WLogger.warning(message);
+        gui.sendProgress(message);
     }
 
     @Nullable
@@ -187,18 +196,35 @@ public class RunMap extends MapRequest {
         // now start the map
         File gameExe = launchData.getGameExe()
             .orElseThrow(() -> new RequestFailedException(MessageType.Error, wc3Path + " does not exist."));
-        List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion);
+        List<String> cmd = buildLaunchCommand(gameExe, path, detectedGameVersion, launchData.isVersionHeuristic());
 
         gui.sendProgress("running " + cmd);
         Runtime.getRuntime().exec(cmd.toArray(new String[0]));
     }
 
-    private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion) {
+    private List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
+                                            boolean versionHeuristic) {
+        return buildLaunchCommand(
+            gameExe,
+            mapPath,
+            detectedGameVersion,
+            versionHeuristic,
+            langServer.getConfigProvider().getWc3RunArgs(),
+            buildConfig
+        );
+    }
+
+    private static List<String> buildLaunchCommand(File gameExe, String mapPath, Optional<GameVersion> detectedGameVersion,
+                                                    boolean versionHeuristic, Optional<String> wc3RunArgs,
+                                                    WurstBuildConfig buildConfig) {
         List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
-        Optional<String> wc3RunArgs = langServer.getConfigProvider().getWc3RunArgs();
         if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
             if (buildConfig.shouldUseReforgedLaunchArgs(detectedGameVersion)) {
                 cmd.add("-launch");
+            }
+            Optional<GameVersion> exactGameVersion = versionHeuristic ? Optional.empty() : detectedGameVersion;
+            if (buildConfig.shouldUseEditorLaunchArg(exactGameVersion)) {
+                cmd.add("-editor");
             }
             if (buildConfig.shouldUseClassicWindowArg(detectedGameVersion)) {
                 cmd.add("-window");

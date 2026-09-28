@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
@@ -12,12 +13,20 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class AttrFunctionSignature {
 
     public static FunctionSignature calculate(StmtCall fc) {
+        if (fc instanceof ExprFunctionCall call && CompilerIntrinsics.isNew(call)) {
+            WurstType returnType = call.getTypeArgs().size() == 1
+                ? call.getTypeArgs().get(0).attrTyp()
+                : WurstTypeUnknown.instance();
+            return new FunctionSignature(null, VariableBinding.emptyMapping(), null,
+                CompilerIntrinsics.NEW, Collections.emptyList(), Collections.emptyList(), returnType);
+        }
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
         List<WurstType> at = argTypes(fc);
 

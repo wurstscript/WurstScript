@@ -5,6 +5,8 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class ILconstArray extends ILconstAbstract {
@@ -70,6 +72,13 @@ public class ILconstArray extends ILconstAbstract {
         v = defaultValue.get();
         values.put(index, v);
         return v;
+    }
+
+    /** Returns the explicitly stored entries in deterministic index order. */
+    public List<Int2ObjectMap.Entry<ILconst>> entries() {
+        List<Int2ObjectMap.Entry<ILconst>> result = new ArrayList<>(values.int2ObjectEntrySet());
+        result.sort(java.util.Comparator.comparingInt(Int2ObjectMap.Entry::getIntKey));
+        return result;
     }
 
     private void checkIndex(int index) {

@@ -236,6 +236,7 @@ public class PrettyPrinter {
             case DIV_REAL:
             case MOD_INT:
             case MOD_REAL:
+            case JASS_MOD_INT:
                 return 4;
 
             case PLUS:
@@ -634,6 +635,20 @@ public class PrettyPrinter {
         sb.append("init");
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+    }
+
+    public static void prettyPrint(InstanceDecl e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
+        // InstanceDecl is not a Documentable (it has no name), so inline the printStuff steps:
+        printCommentsBefore(sb, e, indent);
+        printHotDoc(e.getModifiers(), spacer, sb, indent);
+        printIndent(sb, indent);
+        e.getModifiers().prettyPrint(spacer, sb, indent);
+        sb.append("implements");
+        spacer.addSpace(sb);
+        e.getImplementedInterface().prettyPrint(spacer, sb, indent);
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
+        printCommentsAfter(sb, e, indent);
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -1294,8 +1309,8 @@ public class PrettyPrinter {
         sb.append("public");
     }
 
-    public static void prettyPrint(VisibilityPublicread e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("publicread");
+    public static void prettyPrint(ModReadonly e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("readonly");
     }
 
     public static void prettyPrint(WBlock wBlock, Spacer spacer, StringBuilder sb, int indent) {

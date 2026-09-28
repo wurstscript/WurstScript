@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class ObjectExportService {
@@ -54,6 +56,22 @@ public final class ObjectExportService {
             }
             return written;
         }
+    }
+
+    /**
+     * Reads every object data file (war3map.* and war3mapSkin.*) present in a map archive or map folder,
+     * keyed by file name. The source is opened only for the duration of this call.
+     */
+    public static Map<String, byte[]> readObjectFiles(File source) throws Exception {
+        Map<String, byte[]> result = new LinkedHashMap<>();
+        try (ObjectFileSource objectSource = openSource(source)) {
+            for (ObjectFileType fileType : ObjectFileType.values()) {
+                for (String name : List.of("war3map." + fileType.getExt(), "war3mapSkin." + fileType.getExt())) {
+                    objectSource.read(name).ifPresent(data -> result.put(name, data));
+                }
+            }
+        }
+        return result;
     }
 
     private static void clearStaleExports(Path outDir) throws IOException {
@@ -96,7 +114,8 @@ public final class ObjectExportService {
         return new WTS();
     }
 
-    private static ObjMod<? extends ObjMod.Obj> readObjectFile(ObjectFileType fileType, byte[] main, byte[] skin) throws Exception {
+    public static ObjMod<? extends ObjMod.Obj> readObjectFile(ObjectFileType fileType, byte[] main, byte[] skin)
+            throws IOException, InterruptedException {
         switch (fileType) {
             case UNITS: {
                 W3U data = main != null ? readW3U(main) : new W3U();

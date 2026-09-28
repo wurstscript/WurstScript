@@ -12,6 +12,7 @@ import net.moonlightflower.wc3libs.misc.ObjId;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.testng.Assert.*;
@@ -132,6 +133,7 @@ public class ExportToWurstTest extends WurstScriptTest {
                 "Eah1", ObjMod.ValType.UNREAL, 1, 1, 0.1, "..setDamageDealttoAttackers(1, 0.1)"}
         };
 
+        List<String> exports = new ArrayList<>();
         for (Object[] c : cases) {
             W3A w3a = new W3A();
             String newId = (String) c[0];
@@ -147,8 +149,12 @@ public class ExportToWurstTest extends WurstScriptTest {
             assertTrue(out.contains((String) c[9]), baseId + " export:\n" + out);
             assertFalse(out.contains("new " + implementationCodeClass + "("), baseId + " must not export via implementation-code class:\n" + out);
             assertFalse(out.contains("createObjectDefinition"), baseId + " must not fall back to raw export:\n" + out);
-            assertExportCompiles(out, "import AbilityObjEditing");
+            exports.add(out);
         }
+        // All five at once: each is a compile against the whole standard library, and the cases
+        // declare different objects, so compiling them together checks the same code for a fifth
+        // of the time.
+        assertExportCompiles(String.join("\n", exports), "import AbilityObjEditing");
     }
 
     @Test
@@ -679,6 +685,7 @@ public class ExportToWurstTest extends WurstScriptTest {
             {"AHca", "Hca4", 4, "AbilityDefinitionRangerColdArrows", "setStackFlags", "Zh04"},
         };
 
+        List<String> exports = new ArrayList<>();
         for (Object[] c : cases) {
             W3A w3a = new W3A();
             W3A.Obj obj = w3a.addObj(ObjId.valueOf((String) c[5]), ObjId.valueOf((String) c[0]));
@@ -688,8 +695,10 @@ public class ExportToWurstTest extends WurstScriptTest {
 
             assertTrue(out.contains("new " + c[3] + "('" + c[5] + "')"), out);
             assertTrue(out.contains(".." + c[4] + "(1, 0)"), out);
-            assertExportCompiles(out, "import AbilityObjEditing");
+            exports.add(out);
         }
+        // One compile for all five, as above.
+        assertExportCompiles(String.join("\n", exports), "import AbilityObjEditing");
     }
 
     // -------------------------------------------------------------------------

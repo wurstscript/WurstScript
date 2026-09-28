@@ -959,6 +959,25 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void genericToIndexFieldAssignment() { // #647
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class C<T>",
+            "    T x",
+            "function stringToIndex(string s) returns int",
+            "    return 42",
+            "function stringFromIndex(int i) returns string",
+            "    return \"42\"",
+            "init",
+            "    C<string> c = new C<string>",
+            "    c.x = \"42\"",
+            "    if c.x == \"42\"",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
     public void extensionFunc() { // #718
         testAssertOkLines(false,
             "package test",

@@ -68,6 +68,23 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         testCompletions(testData, "foo");
     }
 
+    @Test
+    public void compilerIntrinsicDeclarationIsDiscoverable() {
+        CompletionTestData testData = input(
+                "package test",
+                "    @annotation function annotation()",
+                "    @annotation function compilerintrinsic()",
+                "    interface DocumentedFieldCallback",
+                "        function apply(string name, int value)",
+                "    @compilerintrinsic function wurstForFields(DocumentedFieldCallback callback)",
+                "    init",
+                "        wurstForFi|",
+                "endpackage"
+        );
+
+        testCompletions(testData, "wurstForFields");
+    }
+
 
     @Test
     public void testWithParentheses() {

@@ -1,20 +1,46 @@
 package de.peeeq.wurstio.mpq;
 
 import com.google.common.base.Preconditions;
-import systems.crigges.jmpq3.JMpqEditor;
-import systems.crigges.jmpq3.JMpqException;
-import systems.crigges.jmpq3.MPQOpenOption;
+import org.inwc3.jmpq.MpqArchive;
+import org.inwc3.jmpq.MpqArchiveWriter;
+import org.inwc3.jmpq.MpqOpenOptions;
+import org.inwc3.jmpq.MpqWriteOptions;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 class Jmpq3BasedEditor implements MpqEditor {
-    private final JMpqEditor editor;
+    private final File mpqArchive;
+    private final boolean readonly;
+    private final MpqArchive archive;
+    private final List<Consumer<MpqArchiveWriter>> changes = new ArrayList<>();
+    private final Map<String, StagedFile> stagedFiles = new HashMap<>();
+    private final Set<String> deletedFiles = new HashSet<>();
+    private MpqArchiveWriter stagingWriter;
+    private boolean stagingWriterAvailable;
+    private boolean keepHeaderOffset = true;
+    private boolean archiveClosed;
+    private boolean closed;
 
-    private JMpqEditor getEditor() {
-        return editor;
+    private MpqArchiveWriter getStagingWriter() throws IOException {
+        if (stagingWriter == null) {
+            stagingWriter = MpqArchiveWriter.from(archive,
+                MpqWriteOptions.defaults().withPrefix(keepHeaderOffset));
+        }
+        return stagingWriter;
     }
 
     public Jmpq3BasedEditor(File mpqArchive, boolean readonly) throws Exception {
@@ -22,78 +48,193 @@ class Jmpq3BasedEditor implements MpqEditor {
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.editor = new JMpqEditor(mpqArchive, readonly ? MPQOpenOption.READ_ONLY : MPQOpenOption.FORCE_V0);
-
+        Path resolvedArchive = mpqArchive.toPath().toRealPath();
+        this.mpqArchive = resolvedArchive.toFile();
+        this.readonly = readonly;
+        this.archive = MpqArchive.open(resolvedArchive, MpqOpenOptions.warcraft3());
+        if (!readonly) {
+            try {
+                getStagingWriter();
+                stagingWriterAvailable = true;
+            } catch (IOException e) {
+                stagingWriterAvailable = false;
+            }
+        }
     }
 
     static void createEmptyArchive(File mpqArchive) throws IOException {
-        try {
-            JMpqEditor.class.getMethod("createEmptyArchive", File.class).invoke(null, mpqArchive);
-        } catch (NoSuchMethodException e) {
-            throw new IOException("JMPQ3 is missing createEmptyArchive(File); update the JMPQ3 dependency.", e);
-        } catch (IllegalAccessException e) {
-            throw new IOException("Cannot access JMPQ3 createEmptyArchive(File).", e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof IOException) {
-                throw (IOException) cause;
-            }
-            throw new IOException("JMPQ3 could not create an empty MPQ archive.", cause);
-        }
+        MpqArchiveWriter.create(MpqWriteOptions.defaults()).save(mpqArchive.toPath());
     }
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) {
-        getEditor().deleteFile(filenameInMpq);
-        getEditor().insertByteArray(filenameInMpq, contents);
+        ensureWritable();
+        byte[] copy = contents.clone();
+        stage(filenameInMpq, new StagedFile(copy, null), writer -> writer.put(filenameInMpq, copy));
     }
 
     @Override
     public void insertFile(String filenameInMpq, File contents) throws Exception {
-        getEditor().deleteFile(filenameInMpq);
-        getEditor().insertFile(filenameInMpq, contents);
+        ensureWritable();
+        Path path = contents.toPath();
+        stage(filenameInMpq, new StagedFile(null, path), writer -> writer.put(filenameInMpq, path));
     }
 
     @Override
     public boolean canWrite() {
-        return editor.isCanWrite();
+        Path archivePath = mpqArchive.toPath().toAbsolutePath();
+        Path parent = archivePath.getParent();
+        return !readonly
+            && stagingWriterAvailable
+            && Files.isWritable(archivePath)
+            && parent != null
+            && Files.isWritable(parent);
     }
 
     @Override
     public byte[] extractFile(String fileToExtract) throws Exception {
-        return getEditor().extractFileAsBytes(fileToExtract);
+        String key = stagedKey(fileToExtract);
+        StagedFile staged = stagedFiles.get(key);
+        if (staged != null) {
+            return staged.read();
+        }
+        if (deletedFiles.contains(key)) {
+            throw new FileNotFoundException("not found in staged MPQ: " + fileToExtract);
+        }
+        return archive.read(fileToExtract);
     }
 
     @Override
     public void deleteFile(String filenameInMpq) {
-        getEditor().deleteFile(filenameInMpq);
+        ensureWritable();
+        String key = stagedKey(filenameInMpq);
+        stagedFiles.remove(key);
+        deletedFiles.add(key);
+        addChange(writer -> writer.remove(filenameInMpq));
     }
 
     @Override
     public void close() throws IOException {
-        try {
-            editor.close();
-        } catch (JMpqException e) {
-            throw new IOException(e);
+        if (closed) return;
+        if (readonly) {
+            closeArchive();
+            closed = true;
+            return;
         }
+        if (changes.isEmpty()) {
+            closeArchive();
+            closed = true;
+            return;
+        }
+        save(MpqWriteOptions.defaults());
     }
 
     @Override
     public boolean hasFile(String fileName) {
-        return getEditor().hasFile(fileName);
+        String key = stagedKey(fileName);
+        if (deletedFiles.contains(key)) {
+            return false;
+        }
+        if (stagedFiles.containsKey(key)) {
+            return true;
+        }
+        return stagingWriter != null
+            ? stagingWriter.contains(fileName)
+            : archive.contains(fileName);
     }
 
     @Override
     public void setKeepHeaderOffset(boolean flag) {
-        editor.setKeepHeaderOffset(flag);
+        keepHeaderOffset = flag;
     }
 
     @Override
     public void closeWithCompression() throws IOException {
+        if (closed) return;
+        if (readonly) {
+            closeArchive();
+            closed = true;
+            return;
+        }
+        if (changes.isEmpty()) {
+            closeArchive();
+            closed = true;
+            return;
+        }
+        save(MpqWriteOptions.recompressed().withPrefix(keepHeaderOffset));
+    }
+
+    private void save(MpqWriteOptions options) throws IOException {
+        MpqArchiveWriter writer = MpqArchiveWriter.from(archive, options.withPrefix(keepHeaderOffset));
+        for (Consumer<MpqArchiveWriter> change : changes) {
+            change.accept(writer);
+        }
+        Path temporaryArchive = null;
+        boolean installed = false;
         try {
-            editor.close(true, false, true);
-        } catch (JMpqException e) {
-            throw new IOException(e);
+            Path parent = mpqArchive.toPath().toAbsolutePath().getParent();
+            temporaryArchive = Files.createTempFile(parent, ".wurst-mpq-", ".tmp");
+            writer.save(temporaryArchive);
+            copyPosixPermissions(mpqArchive.toPath(), temporaryArchive);
+            closeArchive();
+            Files.move(temporaryArchive, mpqArchive.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            installed = true;
+        } finally {
+            closeArchive();
+            closed = true;
+            if (!installed && temporaryArchive != null) {
+                Files.deleteIfExists(temporaryArchive);
+            }
+        }
+    }
+
+    private static void copyPosixPermissions(Path source, Path target) throws IOException {
+        PosixFileAttributeView sourceView = Files.getFileAttributeView(source, PosixFileAttributeView.class);
+        PosixFileAttributeView targetView = Files.getFileAttributeView(target, PosixFileAttributeView.class);
+        if (sourceView != null && targetView != null) {
+            var attributes = sourceView.readAttributes();
+            targetView.setPermissions(attributes.permissions());
+            targetView.setGroup(attributes.group());
+        }
+    }
+
+    private void ensureWritable() {
+        if (!canWrite()) {
+            throw new IllegalStateException("MPQ archive is not writable: " + mpqArchive);
+        }
+    }
+
+    private void closeArchive() {
+        if (!archiveClosed) {
+            archive.close();
+            archiveClosed = true;
+        }
+    }
+
+    private void stage(String filename, StagedFile staged, Consumer<MpqArchiveWriter> change) {
+        String key = stagedKey(filename);
+        stagedFiles.put(key, staged);
+        deletedFiles.remove(key);
+        addChange(change);
+    }
+
+    private void addChange(Consumer<MpqArchiveWriter> change) {
+        changes.add(change);
+        try {
+            getStagingWriter();
+            change.accept(stagingWriter);
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not stage MPQ change", e);
+        }
+    }
+
+    private static String stagedKey(String filename) {
+        return filename.replace('/', '\\').toLowerCase(Locale.ROOT);
+    }
+
+    private record StagedFile(byte[] bytes, Path path) {
+        private byte[] read() throws IOException {
+            return path == null ? bytes.clone() : Files.readAllBytes(path);
         }
     }
 

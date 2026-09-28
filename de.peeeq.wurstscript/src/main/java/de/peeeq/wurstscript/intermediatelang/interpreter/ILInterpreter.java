@@ -18,6 +18,9 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.translation.imtranslation.JassKeyOfLowering;
+import de.peeeq.wurstscript.translation.imtranslation.JassKeyedMapLowering;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.validation.GlobalCaches;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -32,7 +35,7 @@ import static de.peeeq.wurstscript.translation.imoptimizer.UselessFunctionCallsR
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_CACHE;
 import static de.peeeq.wurstscript.validation.GlobalCaches.LOCAL_STATE_NOARG_CACHE;
 
-public class ILInterpreter implements AbstractInterpreter {
+public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
     private ImProg prog;
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
@@ -46,6 +49,132 @@ public class ILInterpreter implements AbstractInterpreter {
 
     public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
+    }
+
+    /**
+     * Records the call's type arguments against the callee's type variables, so that a type class
+     * dispatch inside the body can find the instance chosen at the call site. Only relevant when
+     * interpreting a program which still has generics.
+     */
+    private static void bindTypeArguments(ProgramState globalState, LocalState localState, ImFunction f,
+                                          @Nullable Element caller, ILconst[] args) {
+        Map<ImTypeVar, ImTypeArgument> binding = new HashMap<>();
+
+        // A bound may belong to the owning class rather than to the method, as in
+        // class Box<T: Show>. The receiver carries the arguments the class was created with.
+        if (args.length > 0 && args[0] instanceof ILconstObject receiver) {
+            bindClassTypeArguments(globalState, binding, receiver.getType(),
+                Collections.newSetFromMap(new IdentityHashMap<>()));
+        }
+
+        ImTypeArguments typeArgs = null;
+        if (caller instanceof ImFunctionCall call) {
+            typeArgs = call.getTypeArguments();
+        } else if (caller instanceof ImMethodCall call) {
+            typeArgs = call.getTypeArguments();
+        }
+        if (typeArgs != null) {
+            List<ImTypeVar> typeVars = f.getTypeVariables();
+            for (int i = 0; i < Math.min(typeVars.size(), typeArgs.size()); i++) {
+                binding.putIfAbsent(typeVars.get(i), inheritIfStillAbstract(globalState, typeArgs.get(i)));
+            }
+            // A generic class holds its type variables on the class, not on its functions, so a
+            // constructor is called with arguments it has no variable of its own to bind. Only do
+            // this when the function has no type parameters, because then the arguments are the
+            // class's; a method with its own parameters is called with those instead, and the
+            // class's mapping already came from the receiver, which must not be overwritten.
+            if (typeVars.isEmpty()) {
+                ImClass owner = owningClass(f);
+                if (owner != null) {
+                    ImTypeVars classVars = owner.getTypeVariables();
+                    for (int i = 0; i < Math.min(classVars.size(), typeArgs.size()); i++) {
+                        binding.putIfAbsent(classVars.get(i),
+                            inheritIfStillAbstract(globalState, typeArgs.get(i)));
+                    }
+                }
+            }
+        }
+
+        if (!binding.isEmpty()) {
+            localState.setTypeArguments(binding);
+        }
+    }
+
+    /**
+     * Binds the type variables of the receiver's class and of every class it inherits from.
+     * <p>
+     * A subclass may fix its parent's parameter, as in {@code class Child extends Parent<int>}.
+     * The bound then belongs to {@code Parent}, while the receiver is a {@code Child} carrying no
+     * arguments of its own, so the supertype chain is where the concrete type is recorded.
+     */
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClassType classType, Set<ImClass> visited) {
+        bindClassTypeArguments(globalState, binding, classType.getClassDef(),
+            new ArrayList<>(classType.getTypeArguments()), visited);
+    }
+
+    private static void bindClassTypeArguments(ProgramState globalState,
+                                               Map<ImTypeVar, ImTypeArgument> binding,
+                                               ImClass classDef, List<ImTypeArgument> classArgs,
+                                               Set<ImClass> visited) {
+        if (!visited.add(classDef)) {
+            return;
+        }
+        ImTypeVars classVars = classDef.getTypeVariables();
+        for (int i = 0; i < Math.min(classVars.size(), classArgs.size()); i++) {
+            binding.putIfAbsent(classVars.get(i), inheritIfStillAbstract(globalState, classArgs.get(i)));
+        }
+        for (ImClassType superType : classDef.getSuperClasses()) {
+            // A subclass may forward its own parameter, as in class Child<U: Show> extends
+            // Parent<U>. The supertype is written in terms of the subclass's variables, so resolve
+            // them against what this class was instantiated with before descending.
+            List<ImTypeArgument> superArgs = new ArrayList<>();
+            for (ImTypeArgument superArg : superType.getTypeArguments()) {
+                superArgs.add(resolveAgainst(binding, superArg));
+            }
+            bindClassTypeArguments(globalState, binding, superType.getClassDef(), superArgs, visited);
+        }
+    }
+
+    /** Replaces a type argument that is still a variable by whatever that variable is bound to. */
+    private static ImTypeArgument resolveAgainst(Map<ImTypeVar, ImTypeArgument> binding,
+                                                 ImTypeArgument arg) {
+        if (!(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument known = binding.get(ref.getTypeVariable());
+        if (known == null) {
+            // One source type parameter can be several nodes, so fall back to the name.
+            for (Map.Entry<ImTypeVar, ImTypeArgument> e : binding.entrySet()) {
+                if (e.getKey().getName().equals(ref.getTypeVariable().getName())) {
+                    known = e.getValue();
+                    break;
+                }
+            }
+        }
+        return known != null ? known : arg;
+    }
+
+    private static @Nullable ImClass owningClass(ImFunction f) {
+        Element owner = f.getParent();
+        while (owner != null && !(owner instanceof ImClass)) {
+            owner = owner.getParent();
+        }
+        return (ImClass) owner;
+    }
+
+    /**
+     * When a bounded generic passes its own type parameter to another one, the inner call site
+     * carries no instance because the parameter is still abstract there. The caller's frame knows
+     * what it was called with, so take the argument from there.
+     */
+    private static ImTypeArgument inheritIfStillAbstract(ProgramState globalState, ImTypeArgument arg) {
+        if (!arg.getTypeClassBinding().isEmpty() || !(arg.getType() instanceof ImTypeVarRef ref)) {
+            return arg;
+        }
+        ImTypeArgument fromCaller = globalState.getCurrentTypeArgument(ref.getTypeVariable());
+        return fromCaller != null ? fromCaller : arg;
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
@@ -89,11 +218,43 @@ public class ILInterpreter implements AbstractInterpreter {
                 return runBuiltinFunction(globalState, f, args);
             }
 
+            // --- key projection intrinsic ---
+            // Its source body is a placeholder: a `T:` parameter cannot be projected to an integer
+            // in Wurst, which is why JassKeyOfLowering supplies one after generic elimination. That
+            // pass runs inside transformProgToJass, so running the body here would give compiletime
+            // evaluation and -runTests a constant key for every element.
+            if (JassKeyOfLowering.isUnloweredKeyOf(f)) {
+                return new LocalState(keyOfValue(globalState, args[0]));
+            }
+
+            // --- generic keyed-map value intrinsics ---
+            // Placeholders too: JassKeyedMapLowering gives them their bodies after generic elimination,
+            // and their source bodies only raise an error. Run them the way that pass compiles them,
+            // through the int fallback, with the value in its integer representation.
+            if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
+                // Looked up first: it checks the intrinsic's shape before any argument is read.
+                ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                JassKeyedMapLowering.checkSpecialization(f,
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()),
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(2).getType()));
+                runFunc(globalState, put, caller, args[0], args[1], keyedMapIntValue(globalState, args[2]));
+                return new LocalState();
+            }
+            if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
+                ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImType valueType = keyedMapCallType(globalState, f, caller, f.getReturnType());
+                JassKeyedMapLowering.checkSpecialization(f,
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(1).getType()), valueType);
+                ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
+                return new LocalState(keyedMapValueOfInt(globalState, stored, valueType));
+            }
+
             // --- local state & bind parameters ---
             LocalState localState = new LocalState();
             for (int i = 0; i < f.getParameters().size(); i++) {
                 localState.setVal(f.getParameters().get(i), args[i]);
             }
+            bindTypeArguments(globalState, localState, f, caller, args);
 
             // --- stacktrace bookkeeping ---
             if (f.getBody().isEmpty()) {
@@ -217,6 +378,7 @@ public class ILInterpreter implements AbstractInterpreter {
             }
             WPos pos = (caller != null) ? caller.attrTrace().attrErrorPos() : f.attrTrace().attrErrorPos();
             globalState.pushStackframeWithTypes(f, receiverObj, args, pos, normalized);
+            globalState.pushTypeArguments(localState.getTypeArguments());
 
             ILconst retVal = null;
             boolean didReturn = false;
@@ -233,6 +395,7 @@ public class ILInterpreter implements AbstractInterpreter {
                 retVal = adjustTypeOfConstant(e.getVal(), f.getReturnType());
                 didReturn = true;
             } finally {
+                globalState.popTypeArguments();
                 globalState.popStackframe();
             }
 
@@ -340,6 +503,84 @@ public class ILInterpreter implements AbstractInterpreter {
     private static final int MAX_CACHE_PER_FUNC = 2048;
 
     private static final LocalState EMPTY_LOCAL_STATE = new LocalState();
+
+    /**
+     * The integer key of a runtime value, matching what JassKeyOfLowering compiles the intrinsic
+     * to: an int and a class instance are their own key, and a handle is keyed by its id.
+     */
+    private static ILconst keyOfValue(ProgramState globalState, ILconst value) {
+        if (value instanceof ILconstInt) {
+            return value;
+        }
+        if (value instanceof ILconstObject obj) {
+            return ILconstInt.create(obj.getObjectId());
+        }
+        if (value instanceof ILconstNull) {
+            // A null class instance is integer 0 on Jass, and so is GetHandleId of a null handle.
+            return ILconstInt.create(0);
+        }
+        if (value instanceof IlConstHandle) {
+            for (NativesProvider natives : globalState.getNativeProviders()) {
+                try {
+                    return natives.invoke("GetHandleId", new ILconst[]{value});
+                } catch (NoSuchNativeException e) {
+                    // Not this provider's native - the next one may have it.
+                }
+            }
+        }
+        throw new InterpreterException(globalState, "Cannot compute a keyed-set key for "
+            + value.print() + ": only int, class instances and handles have a stable integer key.");
+    }
+
+    /** The integer a keyed-map value is stored as on Jass: an int is itself, a class instance its id. */
+    private static ILconst keyedMapIntValue(ProgramState globalState, ILconst value) {
+        if (value instanceof ILconstInt) {
+            return value;
+        }
+        if (value instanceof ILconstObject obj) {
+            return ILconstInt.create(obj.getObjectId());
+        }
+        if (value instanceof ILconstNull) {
+            return ILconstInt.create(0);
+        }
+        throw new InterpreterException(globalState, "keyedMapPutNative stores only int and class values, not "
+            + value.print() + ".");
+    }
+
+    /**
+     * A type the keyed-map intrinsic declares, as this call instantiates it: a type variable is taken
+     * from the call's type arguments and resolved through the calling frames.
+     */
+    private static ImType keyedMapCallType(ProgramState globalState, ImFunction f, @Nullable Element caller,
+                                           ImType declared) {
+        if (declared instanceof ImTypeVarRef ref && caller instanceof ImFunctionCall call) {
+            int index = f.getTypeVariables().indexOf(ref.getTypeVariable());
+            if (index >= 0 && index < call.getTypeArguments().size()) {
+                return globalState.resolveType(call.getTypeArguments().get(index).getType());
+            }
+        }
+        return globalState.resolveType(declared);
+    }
+
+    /**
+     * Turns a stored integer back into the requested value type, as the Jass lowering reads it. A null
+     * class reference is the integer 0 here, as it is on Jass, and an id without a live object stays
+     * the integer the Jass build would read.
+     */
+    private static ILconst keyedMapValueOfInt(ProgramState globalState, ILconst stored, ImType valueType) {
+        if (TypesHelper.isIntType(valueType)) {
+            return stored;
+        }
+        if (valueType instanceof ImClassType classType && stored instanceof ILconstInt id) {
+            if (id.getVal() == 0) {
+                return valueType.defaultValue();
+            }
+            ILconstObject obj = globalState.getObjectByIndex(id.getVal(), classType);
+            return obj == null ? stored : obj;
+        }
+        throw new InterpreterException(globalState, "keyedMapGetNative reads only int and class values, not "
+            + valueType + ".");
+    }
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
         // Delegate to the array overload to avoid double-allocations.
@@ -494,7 +735,7 @@ public class ILInterpreter implements AbstractInterpreter {
         ILconst[] args = {};
         if (!f.getParameters().isEmpty()) {
             // this should only happen because of added stacktrace parameter
-            args = new ILconstString[]{new ILconstString("initial call")};
+            args = new ILconstString[]{ILconstString.fromText("initial call")};
         }
         runFunc(globalState, f, trace, args);
     }
@@ -569,5 +810,15 @@ public class ILInterpreter implements AbstractInterpreter {
             }
         }
         return (int) count;
+    }
+
+    /**
+     * Closes the interpreter by shutting down its global ProgramState and releasing registered native provider resources.
+     */
+    @Override
+    public void close() {
+        if (globalState != null) {
+            globalState.close();
+        }
     }
 }

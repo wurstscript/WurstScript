@@ -163,7 +163,6 @@ public class ControlFlowGraph {
                 result.stmt = null;
             } else if (s instanceof ImVarargLoop) {
                 result.setName("vararg loop");
-                result.stmt = null;
             }
         }
         return result;

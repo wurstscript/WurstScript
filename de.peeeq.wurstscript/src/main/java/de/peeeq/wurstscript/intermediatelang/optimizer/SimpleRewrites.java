@@ -205,10 +205,10 @@ public class SimpleRewrites implements OptimizerPass {
                 opc.replaceBy(JassIm.ImBoolVal(result));
             } else if (left instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) left).getValB();
-                wasViable = replaceBoolTerm(opc, right, b1);
+                wasViable = replaceBoolTerm(opc, right, b1, true);
             } else if (right instanceof ImBoolVal) {
                 boolean b2 = ((ImBoolVal) right).getValB();
-                wasViable = replaceBoolTerm(opc, left, b2);
+                wasViable = replaceBoolTerm(opc, left, b2, false);
             } else if (isNumberLiteral(left) && isNumberLiteral(right)) {
                 // If any side is real (or the op is a real op), fold as real; otherwise fold as int.
                 boolean foldAsReal =
@@ -382,12 +382,9 @@ public class SimpleRewrites implements OptimizerPass {
             opc.replaceBy(JassIm.ImBoolVal(result));
             return true;
         } else if (isArithmetic) {
-            String s = floatToStringWithDecimalDigits(resultVal, 4);
-            if (Float.parseFloat(s) != resultVal) {
-                s = floatToStringWithDecimalDigits(resultVal, 9);
-                if (Float.parseFloat(s) != resultVal) {
-                    return false;
-                }
+            String s = exactRealLiteral(resultVal);
+            if (s == null) {
+                return false;
             }
             opc.replaceBy(JassIm.ImRealVal(s));
             return true;
@@ -481,19 +478,11 @@ public class SimpleRewrites implements OptimizerPass {
         if (isConditional) {
             opc.replaceBy(JassIm.ImBoolVal(result));
         } else if (isArithmetic) {
-            // convert result to string, using 4 decimal digits
-            String s = floatToStringWithDecimalDigits(resultVal, 4);
-            // String s = new BigDecimal(resultVal).toPlainString();
-            // check if the string representation is exact
-            if (Float.parseFloat(s) == resultVal) {
+            String s = exactRealLiteral(resultVal);
+            if (s != null) {
                 opc.replaceBy(JassIm.ImRealVal(s));
             } else {
-                s = floatToStringWithDecimalDigits(resultVal, 9);
-                if (Float.parseFloat(s) == resultVal) {
-                    opc.replaceBy(JassIm.ImRealVal(s));
-                } else {
-                    wasViable = false;
-                }
+                wasViable = false;
             }
         } else {
             wasViable = false;
@@ -551,18 +540,21 @@ public class SimpleRewrites implements OptimizerPass {
                     isArithmetic = true;
                 }
                 break;
+            case JASS_MOD_INT:
+                if (i2 != 0) {
+                    resultVal = WurstOperator.jassModuloInteger(i1, i2);
+                    isArithmetic = true;
+                }
+                break;
             case MOD_REAL: {
                 float f1 = i1;
                 float f2 = i2;
                 if (f2 != 0f) {
                     float resultF = WurstOperator.moduloReal(f1, f2);
-                    String s = floatToStringWithDecimalDigits(resultF, 4);
-                    if (Float.parseFloat(s) != resultF) {
-                        s = floatToStringWithDecimalDigits(resultF, 9);
-                        if (Float.parseFloat(s) != resultF) {
-                            wasViable = false;
-                            break;
-                        }
+                    String s = exactRealLiteral(resultF);
+                    if (s == null) {
+                        wasViable = false;
+                        break;
                     }
                     opc.replaceBy(JassIm.ImRealVal(s));
                     // keep wasViable as-is (true) so the caller counts this rewrite
@@ -576,13 +568,10 @@ public class SimpleRewrites implements OptimizerPass {
                 float f2 = i2;
                 if (f2 != 0f) {
                     float resultF = f1 / f2;
-                    String s = floatToStringWithDecimalDigits(resultF, 4);
-                    if (Float.parseFloat(s) != resultF) {
-                        s = floatToStringWithDecimalDigits(resultF, 9);
-                        if (Float.parseFloat(s) != resultF) {
-                            wasViable = false;
-                            break;
-                        }
+                    String s = exactRealLiteral(resultF);
+                    if (s == null) {
+                        wasViable = false;
+                        break;
                     }
                     opc.replaceBy(JassIm.ImRealVal(s));
                     // keep wasViable as-is (true) so the caller counts this rewrite
@@ -613,10 +602,16 @@ public class SimpleRewrites implements OptimizerPass {
         return wasViable;
     }
 
-    private boolean replaceBoolTerm(ImOperatorCall opc, ImExpr expr, boolean b2) {
+    private boolean replaceBoolTerm(ImOperatorCall opc, ImExpr expr, boolean constant, boolean constantOnLeft) {
         switch (opc.getOp()) {
             case OR:
-                if (b2) {
+                if (constant) {
+                    if (!constantOnLeft) {
+                        // x or true still evaluates x. Replacing the expression
+                        // with true would discard calls, traps, allocations, and
+                        // local-player-dependent reads.
+                        return false;
+                    }
                     opc.replaceBy(JassIm.ImBoolVal(true));
                 } else {
                     expr.setParent(null);
@@ -624,10 +619,14 @@ public class SimpleRewrites implements OptimizerPass {
                 }
                 break;
             case AND:
-                if (b2) {
+                if (constant) {
                     expr.setParent(null);
                     opc.replaceBy(expr);
                 } else {
+                    if (!constantOnLeft) {
+                        // x and false still evaluates x.
+                        return false;
+                    }
                     opc.replaceBy(JassIm.ImBoolVal(false));
                 }
                 break;
@@ -661,6 +660,25 @@ public class SimpleRewrites implements OptimizerPass {
             default:
                 throw new Error("operator " + op + " does not have an opposite.");
         }
+    }
+
+    /**
+     * The shortest literal of at most 9 decimal digits which reads back as exactly {@code value},
+     * or null when there is none. A non-finite result (an overflow to infinity, or NaN) has no
+     * literal at all: the formatter would print "∞" or "NaN", which neither Jass nor this
+     * pass can parse, so the operation is left for the game to evaluate.
+     */
+    private static @org.eclipse.jdt.annotation.Nullable String exactRealLiteral(float value) {
+        if (!Float.isFinite(value)) {
+            return null;
+        }
+        for (int digits : new int[] {4, 9}) {
+            String s = floatToStringWithDecimalDigits(value, digits);
+            if (Float.parseFloat(s) == value) {
+                return s;
+            }
+        }
+        return null;
     }
 
     private static String floatToStringWithDecimalDigits(float resultVal, int digits) {

@@ -75,8 +75,25 @@ public class ModuleExpander {
 
             WPos source = moduleUse.getSource().artificial();
             WPos idSource = moduleUse.getModuleNameId().getSource().artificial();
+            // The instantiation declares the module's type parameters, so a name inside the copied
+            // body still resolves to something. Types have already been replaced by the arguments;
+            // what is left needing a name is a requirement called on the parameter itself.
+            TypeParamDefs instanciationTypeParams = Ast.TypeParamDefs();
+            for (TypeParamDef moduleParam : usedModule.getTypeParameters()) {
+                instanciationTypeParams.add(moduleParam.copy());
+            }
+            // Resolved rather than copied: an argument names something in the user's scope, and a
+            // module instantiation resolves names in the module's own. Resolving here keeps the type
+            // and needs no scope afterwards, which is what TypeExprResolved is for.
+            TypeExprList instanciationTypeArgs = Ast.TypeExprList();
+            for (int i = 0; i < numTypeArgs; i++) {
+                TypeExpr arg = moduleUse.getTypeArgs().get(i);
+                instanciationTypeArgs.add(Ast.TypeExprResolved(arg.getSource().artificial(), arg.attrTyp()));
+            }
             ModuleInstanciation mi = Ast.ModuleInstanciation(source, Ast.Modifiers(),
                     Ast.Identifier(idSource, usedModule.getName()),
+                    instanciationTypeParams,
+                    instanciationTypeArgs,
                     smartCopy(usedModule.getInnerClasses(), typeReplacements),
                     smartCopy(usedModule.getMethods(), typeReplacements),
                     smartCopy(usedModule.getVars(), typeReplacements),

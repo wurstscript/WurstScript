@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
@@ -16,6 +17,431 @@ public class ClassesTests extends WurstScriptTest {
 
     private static final String TEST_DIR = "./testscripts/valid/classes/";
     private static final String TEST_DIR2 = "./testscripts/concept/";
+
+    @Test
+    public void warnsWhenClassFieldHasNoInitializerOrConstructorAssignment() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        int oldValue = value",
+                "        value = 42"
+            );
+    }
+
+    @Test
+    public void doesNotWarnWhenEveryConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    function get() returns int",
+                "        return value",
+                "    function setAndGet() returns int",
+                "        value = 42",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")));
+    }
+
+    @Test
+    public void warnsWhenConstructorOnlyAssignsOtherInstanceField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(Counter other)",
+                "        other.value = 1",
+                "        int _observed = this.value"
+            );
+
+        assertEquals(result.getGui().getWarningList().stream()
+            .filter(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned"))
+            .count(), 1);
+    }
+
+    @Test
+    public void warnsWhenConstructorReadsFieldBeforeAssigningIt() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        int oldValue = value",
+                "        value = 1"
+            );
+    }
+
+    @Test
+    public void warnsWhenUnqualifiedArrayFieldHasNoInitializer() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int values[2]",
+                "    construct()",
+                "        int first = values[0]"
+            );
+    }
+
+    @Test
+    public void warnsWhenFieldIsReadOnRightHandSideBeforeAssignment() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        value = value + 1",
+                "        skip"
+            );
+    }
+
+    @Test
+    public void warnsWhenOtherInstanceFieldIsReadInConstructor() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(Counter other)",
+                "        let _observed = other.value"
+            );
+    }
+
+    @Test
+    public void warnsWhenOnlyOneArrayElementWasAssigned() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("no explicit initializer and is not definitely assigned")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int values[2]",
+                "    construct()",
+                "        values[0] = 1",
+                "        int observed = values[1]"
+            );
+    }
+
+    @Test
+    public void doesNotWarnWhenDelegatingConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    construct()",
+                "        this(1)",
+                "    function get() returns int",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")));
+    }
+
+    @Test
+    public void doesNotWarnAfterDelegatingConstructorBeforeLaterRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    construct(int value)",
+                "        this.value = value",
+                "    construct()",
+                "        this(1)",
+                "        int observed = value",
+                "        value = observed",
+                "    function get() returns int",
+                "        return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer")));
+    }
+
+    @Test
+    public void warnsWhenFieldInitializerReadsUninitializedField() {
+        test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .expectWarning("read from a field initializer without an explicit initializer")
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "    int copy = value"
+            );
+    }
+
+    @Test
+    public void doesNotWarnWhenModuleConstructorAssignsClassField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "module Values",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "    function get() returns int",
+                "        return value",
+                "class Counter",
+                "    use Values"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotTreatDeferredClosureInitializerAsImmediateFieldRead() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "interface Reader",
+                "    function read() returns int",
+                "class Counter",
+                "    int value",
+                "    Reader reader = () -> value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("read from a field initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForExplicitReceiverWithGuaranteedConstructorAssignment() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Source",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Holder",
+                "    Source source = new Source()",
+                "    int copy = source.value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("read from a field initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForInitializedExplicitReceiverInsideConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Source",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Holder",
+                "    construct(Source source)",
+                "        int copy = source.value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForUninitializedFieldReadFromPackageFunction() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Counter",
+                "    int value",
+                "function read(Counter counter) returns int",
+                "    return counter.value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForClosureReadAfterPriorAssignment() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "interface Reader",
+                "    function read() returns int",
+                "function consume(Reader reader)",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "        consume(() -> value)"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForClosureReadAfterClosureAssignment() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "interface Reader",
+                "    function read() returns int",
+                "function consume(Reader reader)",
+                "class Counter",
+                "    int value",
+                "    construct()",
+                "        consume() ->",
+                "            value = 1",
+                "            return value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForInheritedFieldAfterSuperclassConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Base",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Child extends Base",
+                "    construct()",
+                "        int copy = value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForInheritedFieldAfterGrandparentConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class GrandBase",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Base extends GrandBase",
+                "    construct()",
+                "class Child extends Base",
+                "    construct()",
+                "        int copy = value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnForInheritedFieldInitializerAfterSuperclassConstructor() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "class Base",
+                "    int value",
+                "    construct()",
+                "        value = 1",
+                "class Child extends Base",
+                "    int copy = value"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("read from a field initializer")),
+            result.getGui().getWarningList().toString());
+    }
+
+    @Test
+    public void doesNotWarnWhenClassConstructorAssignsModuleField() {
+        CompilationResult result = test()
+            .setStopOnFirstError(false)
+            .executeProg(false)
+            .lines(
+                "package Test",
+                "module Values",
+                "    int value",
+                "    function get() returns int",
+                "        return value",
+                "class Counter",
+                "    use Values",
+                "    construct()",
+                "        value = 1"
+            );
+
+        assertFalse(result.getGui().getWarningList().stream()
+            .anyMatch(w -> w.getMessage().contains("no explicit initializer and is not definitely assigned")),
+            result.getGui().getWarningList().toString());
+    }
 
     @Test
     public void classes1() throws IOException {
@@ -1851,6 +2277,174 @@ public class ClassesTests extends WurstScriptTest {
             "    let a = new A()",
             "    if a.get() == 1",
             "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyMemberCanBeReadExternallyAndWrittenByOwner() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Counter",
+            "    public readonly int value",
+            "    function setValue(int newValue)",
+            "        value = newValue",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.setValue(1)",
+            "    counter.setValue(42)",
+            "    if counter.value == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsExternalAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Counter",
+            "    public readonly int value",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.value = 42"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsExternalIncrement() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Counter",
+            "    public readonly int value",
+            "init",
+            "    let counter = new Counter()",
+            "    counter.value++"
+        );
+    }
+
+    @Test
+    public void readonlyMemberRejectsSubclassAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring class",
+            "package test",
+            "class Parent",
+            "    public readonly int value",
+            "class Child extends Parent",
+            "    function mutate()",
+            "        value = 42",
+            "init",
+            "    new Child().mutate()"
+        );
+    }
+
+    @Test
+    public void readonlyStaticArrayCanOnlyBeWrittenByOwner() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "class Values",
+            "    public static readonly int array entries",
+            "    static function put(int index, int value)",
+            "        entries[index] = value",
+            "init",
+            "    Values.put(3, 42)",
+            "    if Values.entries[3] == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyStaticArrayRejectsExternalElementAssignment() {
+        testAssertErrorsLines(false, "Readonly member entries can only be assigned from its declaring class",
+            "package test",
+            "class Values",
+            "    public static readonly int array entries",
+            "init",
+            "    Values.entries[3] = 42"
+        );
+    }
+
+    @Test
+    public void publicreadIsNoLongerReserved() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "init",
+            "    let publicread = 42",
+            "    if publicread == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyPackageVariableCanBeReadExternallyAndWrittenByOwner() {
+        test().executeProg().compilationUnits(
+            compilationUnit("owner.wurst",
+                "package owner",
+                "public readonly int value",
+                "public function setValue(int newValue)",
+                "    value = newValue",
+                "endpackage"),
+            compilationUnit("consumer.wurst",
+                "package consumer",
+                "import owner",
+                "native testSuccess()",
+                "init",
+                "    setValue(42)",
+                "    if value == 42",
+                "        testSuccess()",
+                "endpackage")
+        );
+    }
+
+    @Test
+    public void readonlyPackageVariableRejectsExternalAssignment() {
+        test().executeProg(false)
+            .expectError("Readonly variable value can only be assigned from its declaring package")
+            .compilationUnits(
+                compilationUnit("owner.wurst",
+                    "package owner",
+                    "public readonly int value",
+                    "endpackage"),
+                compilationUnit("consumer.wurst",
+                    "package consumer",
+                    "import owner",
+                    "init",
+                    "    value = 42",
+                    "endpackage")
+            );
+    }
+
+    @Test
+    public void readonlyModuleMemberCanBeWrittenByModuleMethod() {
+        test().testLua(true).executeProg().lines(
+            "package test",
+            "native testSuccess()",
+            "module Values",
+            "    public readonly int value",
+            "    function setValue(int newValue)",
+            "        value = newValue",
+            "class C",
+            "    use Values",
+            "init",
+            "    let c = new C()",
+            "    c.setValue(42)",
+            "    if c.value == 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void readonlyModuleMemberRejectsConsumingClassAssignment() {
+        testAssertErrorsLines(false, "Readonly member value can only be assigned from its declaring module",
+            "package test",
+            "module Values",
+            "    public readonly int value",
+            "class C",
+            "    use Values",
+            "    function mutate()",
+            "        value = 42",
+            "init",
+            "    new C().mutate()"
         );
     }
 

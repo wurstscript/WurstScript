@@ -40,6 +40,48 @@ public class DeterministicChecks extends WurstScriptTest {
         assertEquals(script1, script2);
     }
 
+    /**
+     * The same source has to emit the same script whatever was compiled before it. Names of
+     * generated temporaries used to be counted per thread and never reset, so a program compiled
+     * alone got {@code temp0} and the same program compiled after other work got {@code temp70} —
+     * which is what made generated Jass impossible to compare across runs. Compiling something
+     * else in between is the part that matters here; two runs on their own would agree either way.
+     * The inlining configuration is the one that emits a temporary for this source.
+     */
+    @Test
+    public void temporaryNamesDoNotDependOnEarlierCompilations() throws IOException {
+        ErrorHandler.outputTestSource = true;
+        try {
+            usesTemporaries();
+            String first = Files.toString(
+                new File("test-output/DeterministicChecks_usesTemporaries_inl.j"), Charsets.UTF_8);
+
+            exampleCode();
+            cycleExample();
+
+            usesTemporaries();
+            String afterOtherWork = Files.toString(
+                new File("test-output/DeterministicChecks_usesTemporaries_inl.j"), Charsets.UTF_8);
+
+            assertEquals(first, afterOtherWork);
+        } finally {
+            ErrorHandler.outputTestSource = false;
+        }
+    }
+
+    /** Nested calls in one expression are what makes the flattener allocate temporaries. */
+    private void usesTemporaries() {
+        testAssertOkLines(false,
+            "package test",
+            "native testSuccess()",
+            "function f(int x) returns int",
+            "    return x + 1",
+            "init",
+            "    if f(f(1)) + f(f(2)) == 8",
+            "        testSuccess()"
+        );
+    }
+
     private void exampleCode() {
         testAssertOkLines(false,
             "package test",

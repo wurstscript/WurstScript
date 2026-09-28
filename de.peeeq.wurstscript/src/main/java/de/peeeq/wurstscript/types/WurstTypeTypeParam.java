@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -10,12 +11,25 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.List;
+import java.util.stream.Stream;
+
 public class WurstTypeTypeParam extends WurstType {
 
     private final TypeParamDef def;
+    /**
+     * True when this stands for the type parameter itself rather than a value of it, as in the
+     * receiver of {@code T.toIndex(x)}. Only this form exposes the methods required by the bounds.
+     */
+    private final boolean staticRef;
 
     public WurstTypeTypeParam(TypeParamDef t) {
+        this(t, false);
+    }
+
+    public WurstTypeTypeParam(TypeParamDef t, boolean staticRef) {
         this.def = t;
+        this.staticRef = staticRef;
     }
 
     @Override
@@ -37,6 +51,9 @@ public class WurstTypeTypeParam extends WurstType {
                 return mapping;
             }
         }
+        if (TypeClassConstraints.hasHandleBound(def) && other instanceof WurstTypeHandle) {
+            return mapping;
+        }
         return null;
     }
 
@@ -55,6 +72,16 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
+    public boolean isStaticRef() {
+        return staticRef;
+    }
+
+    /** The same type parameter, seen as the type itself rather than as a value of it. */
+    public WurstTypeTypeParam asStaticRef() {
+        return staticRef ? this : new WurstTypeTypeParam(def, true);
+    }
+
+    @Override
     public VariableBinding getTypeArgBinding() {
         return VariableBinding.emptyMapping();
     }
@@ -65,6 +92,23 @@ public class WurstTypeTypeParam extends WurstType {
             return typeParamBounds.get(def).get();
         }
         return this;
+    }
+
+    @Override
+    public void addMemberMethods(Element node, String name, List<FuncLink> result) {
+        if (!staticRef) {
+            return;
+        }
+        // The parameter stands for itself, so a requirement keeps the shape it was declared with.
+        TypeClassConstraints.addRequirementMethods(def, new WurstTypeTypeParam(def), this, node, name, result);
+    }
+
+    @Override
+    public Stream<FuncLink> getMemberMethods(Element node) {
+        if (!staticRef) {
+            return Stream.empty();
+        }
+        return TypeClassConstraints.requirementMethods(def, new WurstTypeTypeParam(def), this, node);
     }
 
     @Override
@@ -93,7 +137,7 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     protected boolean isNullable() {
-        return !hasTypeConstraints();
+        return !hasTypeConstraints() || TypeClassConstraints.hasHandleBound(def);
     }
 
 }

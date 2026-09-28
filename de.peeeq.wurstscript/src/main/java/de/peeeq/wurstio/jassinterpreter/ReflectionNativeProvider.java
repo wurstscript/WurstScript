@@ -10,10 +10,14 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class ReflectionNativeProvider implements NativesProvider {
     private final HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
+    /** Providers that print to the interpreter output, so that redirecting it reaches them. */
+    private final List<OutputProvider> outputProviders = new ArrayList<>();
 
     public ReflectionNativeProvider(AbstractInterpreter interpreter) {
         addProvider(new AbilityProvider(interpreter));
@@ -51,6 +55,9 @@ public class ReflectionNativeProvider implements NativesProvider {
     }
 
     private void addProvider(Provider provider) {
+        if (provider instanceof OutputProvider) {
+            outputProviders.add((OutputProvider) provider);
+        }
         for (Method method : provider.getClass().getMethods()) {
             Implements annotation = method.getAnnotation(Implements.class);
             if (annotation != null) {
@@ -103,6 +110,8 @@ public class ReflectionNativeProvider implements NativesProvider {
 
     @Override
     public void setOutStream(PrintStream outStream) {
-
+        for (OutputProvider provider : outputProviders) {
+            provider.setOutStream(outStream);
+        }
     }
 }

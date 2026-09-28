@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
@@ -8,9 +9,11 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -38,6 +41,9 @@ public class EvaluateExpr {
         mark(e, globalState);
 
         ImFunction f = e.getFunc();
+        if (CompilerIntrinsics.NEW_MARKER.equals(f.getName()) && f.getParent() == null) {
+            return evaluateGenericNew(e, globalState);
+        }
         ImExprs arguments = e.getArguments();
 
         ILconst[] args = new ILconst[arguments.size()];
@@ -46,6 +52,41 @@ public class EvaluateExpr {
         }
 
         return ILInterpreter.runFunc(globalState, f, e, args).getReturnVal();
+    }
+
+    private static ILconst evaluateGenericNew(ImFunctionCall markerCall, ProgramState globalState) {
+        if (markerCall.getTypeArguments().size() != 1) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " expects exactly one type argument.");
+        }
+        ImType resolved = globalState.resolveType(markerCall.getTypeArguments().get(0).getType());
+        if (!(resolved instanceof ImClassType classType)) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " requires a concrete class type, but found " + resolved + ".");
+        }
+
+        ImFunction constructor = null;
+        for (ImFunction candidate : classType.getClassDef().getFunctions()) {
+            if (candidate.getTrace() instanceof de.peeeq.wurstscript.ast.ConstructorDef
+                && candidate.getParameters().isEmpty()
+                && !(candidate.getReturnType() instanceof ImVoid)) {
+                constructor = candidate;
+                break;
+            }
+        }
+        if (constructor == null) {
+            throw new InterpreterException(markerCall.attrTrace(),
+                CompilerIntrinsics.NEW + " could not find the zero-argument constructor for "
+                    + classType.getClassDef().getName() + ".");
+        }
+
+        ImTypeArguments constructorTypeArguments = JassIm.ImTypeArguments();
+        for (ImTypeArgument argument : classType.getTypeArguments()) {
+            constructorTypeArguments.add(argument.copy());
+        }
+        ImFunctionCall constructorCall = JassIm.ImFunctionCall(markerCall.getTrace(), constructor,
+            constructorTypeArguments, JassIm.ImExprs(), false, CallType.NORMAL);
+        return ILInterpreter.runFunc(globalState, constructor, constructorCall, new ILconst[0]).getReturnVal();
     }
 
     public static @Nullable ILconst evaluateFunc(ProgramState globalState,
@@ -101,7 +142,7 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImStringVal e, ProgramState globalState, LocalState localState) {
-        return new ILconstString(e.getValS());
+        return ILconstString.fromText(e.getValS());
     }
 
     public static ILconst eval(ImTupleExpr e, ProgramState globalState, LocalState localState) {
@@ -136,11 +177,11 @@ public class EvaluateExpr {
             if (r == null) {
                 List<ImSet> initExpr = globalState.getProg().getGlobalInits().get(var);
                 if (initExpr != null) {
-                    r = initExpr.get(0).getRight().evaluate(globalState, localState);
+                    r = globalState.evaluateUntracked(initExpr.get(0).getRight(), localState);
                 } else {
                     throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initialized.");
                 }
-                globalState.setVal(var, r);
+                globalState.setValUntracked(var, r);
             }
             return r;
         } else {
@@ -182,9 +223,9 @@ public class EvaluateExpr {
         }
 
         if (e.getVar().isGlobal()) {
-            return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return globalState.resolveDefault(notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
         } else {
-            return notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return globalState.resolveDefault(notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false));
         }
     }
 
@@ -251,7 +292,8 @@ public class EvaluateExpr {
             Integer val = ((ILconstInt) i.evaluate(globalState, localState)).getVal();
             indexes.add(val);
         }
-        return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
+        return globalState.resolveDefault(
+            receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue()));
     }
 
     public static ILconst eval(ImAlloc e, ProgramState globalState, LocalState localState) {
@@ -292,7 +334,7 @@ public class EvaluateExpr {
                                LocalState localState) {
         StringBuilder sb = new StringBuilder();
         globalState.getStackFrames().appendTo(sb);
-        return new ILconstString(sb.toString());
+        return ILconstString.fromText(sb.toString());
     }
 
     public static ILconst eval(ImCompiletimeExpr expr, ProgramState globalState, LocalState localState) {
@@ -449,8 +491,27 @@ public class EvaluateExpr {
 
 
     public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
-        // TODO store type arguments in localState with the required dispatch functions
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
+        mark(e, globalState);
+        ImTypeArgument typeArgument = localState.getTypeArgument(e.getTypeVariable());
+        if (typeArgument == null) {
+            throw new InterpreterException(e.attrTrace(),
+                "No type argument bound for " + e.getTypeVariable().getName()
+                    + ", so " + e.getTypeClassFunc().getName() + " cannot be dispatched.");
+        }
+        Either<ImMethod, ImFunction> impl = typeArgument.getTypeClassBinding().get(e.getTypeClassFunc());
+        if (impl == null) {
+            throw new InterpreterException(e.attrTrace(),
+                "No type class instance bound for " + e.getTypeClassFunc().getName()
+                    + " on type argument " + typeArgument.getType() + ".");
+        }
+        ImFunction target = impl.isRight() ? impl.get() : impl.getLeft().getImplementation();
+
+        ImExprs arguments = e.getArguments();
+        ILconst[] args = new ILconst[arguments.size()];
+        for (int i = 0; i < arguments.size(); i++) {
+            args[i] = arguments.get(i).evaluate(globalState, localState);
+        }
+        return ILInterpreter.runFunc(globalState, target, e, args).getReturnVal();
     }
 
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {

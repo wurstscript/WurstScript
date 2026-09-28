@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
-import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -53,8 +52,6 @@ public abstract class OverloadingResolver<F extends Element, C> {
         if (size == 1) {
             return Optional.of(Utils.getFirst(alternativeFunctions));
         }
-        List<String> hints = new NotNullList<>();
-
         Map<F, Integer> numMatches = new HashMap<>();
         for (F f : alternativeFunctions) {
             if (!hasValidParameterCount(f, caller)) {
@@ -68,8 +65,6 @@ public abstract class OverloadingResolver<F extends Element, C> {
                         && expectedParamType instanceof WurstTypeTypeParam) {
                     // should be ok!
                 } else if (!getArgumentType(caller, i).isSubtypeOf(expectedParamType, f)) {
-                    hints.add("Expected " + expectedParamType
-                            + " as parameter " + i + " ,but found " + getArgumentType(caller, i) + ".");
                     continue;
                 }
                 matches++;

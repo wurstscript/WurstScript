@@ -52,6 +52,22 @@ public class Flatten {
     private static final ThreadLocal<Integer> andLeftVarCounter = ThreadLocal.withInitial(() -> 0);
     private static final ThreadLocal<Integer> tupleTempVarCounter = ThreadLocal.withInitial(() -> 0);
 
+    /**
+     * Starts temporary names from zero again for a new compilation.
+     * <p>
+     * The counters are per thread and were never reset, so the name a temporary got depended on how
+     * many programs had been compiled before it on that thread — the same source emitted {@code
+     * temp0} alone and {@code temp70} after other work, which is why generated Jass could not be
+     * compared across runs. They still run on through one compilation, because flattening happens
+     * again after each optimisation and restarting mid-compilation would name two locals of one
+     * function alike.
+     */
+    public static void resetTempVarCounters() {
+        tempVarCounter.set(0);
+        andLeftVarCounter.set(0);
+        tupleTempVarCounter.set(0);
+    }
+
     private static String getTempVarName() {
         int count = tempVarCounter.get();
         tempVarCounter.set(count + 1);
@@ -70,8 +86,14 @@ public class Flatten {
         return TUPLE_TEMP_VAR_NAMES[count % TUPLE_TEMP_VAR_NAMES.length];
     }
 
-    public static Result flatten(ImTypeVarDispatch imTypeVarDispatch, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("called too early");
+    /**
+     * A type class dispatch behaves like a call: only its arguments need flattening. The dispatch
+     * itself survives until generic elimination replaces it with a direct call.
+     */
+    public static Result flatten(ImTypeVarDispatch e, ImTranslator t, ImFunction f) {
+        MultiResult r = flattenExprs(t, f, e.getArguments());
+        return new Result(r.stmts,
+            ImTypeVarDispatch(e.getTrace(), e.getTypeClassFunc(), ImExprs(r.exprs), e.getTypeVariable()));
     }
 
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
@@ -113,7 +135,8 @@ public class Flatten {
         public Result(List<ImStmt> stmts, ImExpr expr) {
             Preconditions.checkArgument(expr.getParent() == null, "expression must not have a parent");
             boolean b = true;
-            for (ImStmt s : stmts) {
+            for (int i = 0; i < stmts.size(); i++) {
+                ImStmt s = stmts.get(i);
                 if (s.getParent() != null) {
                     b = false;
                     break;
@@ -263,8 +286,8 @@ public class Flatten {
     }
 
     private static void flattenStatementsInto(List<ImStmt> result, ImStmts statements, ImTranslator t, ImFunction f) {
-        for (ImStmt s : statements) {
-            s.flatten(t, f).intoStatements(result, t, f);
+        for (int i = 0; i < statements.size(); i++) {
+            statements.get(i).flatten(t, f).intoStatements(result, t, f);
         }
     }
 
@@ -469,37 +492,54 @@ public class Flatten {
 
     public static void flattenProg(ImProg imProg, ImTranslator translator) {
         // Choose execution strategy based on flags and size
+        List<ImClass> classes = imProg.getClasses();
         if (USE_PARALLEL_EXECUTION) {
             int total = imProg.getFunctions().size();
-            for (ImClass c : imProg.getClasses()) {
-                total += c.getFunctions().size();
+            for (int i = 0; i < classes.size(); i++) {
+                total += classes.get(i).getFunctions().size();
             }
             if (total >= PARALLEL_THRESHOLD) {
                 // Collect once for parallel traversal.
                 List<ImFunction> allFunctions = new ArrayList<>(total);
-                allFunctions.addAll(imProg.getFunctions());
-                for (ImClass c : imProg.getClasses()) {
-                    allFunctions.addAll(c.getFunctions());
+                List<ImFunction> functions = imProg.getFunctions();
+                for (int i = 0; i < functions.size(); i++) {
+                    allFunctions.add(functions.get(i));
+                }
+                for (int i = 0; i < classes.size(); i++) {
+                    List<ImFunction> classFunctions = classes.get(i).getFunctions();
+                    for (int j = 0; j < classFunctions.size(); j++) {
+                        allFunctions.add(classFunctions.get(j));
+                    }
                 }
                 allFunctions.parallelStream().forEach(f -> f.flatten(translator));
             } else {
-                for (ImFunction f : imProg.getFunctions()) {
-                    f.flatten(translator);
+                List<ImFunction> functions = imProg.getFunctions();
+                for (int i = 0; i < functions.size(); i++) {
+                    ImFunction function = functions.get(i);
+                    function.flatten(translator);
                 }
-                for (ImClass c : imProg.getClasses()) {
-                    for (ImFunction f : c.getFunctions()) {
-                        f.flatten(translator);
+                for (int i = 0; i < classes.size(); i++) {
+                    ImClass c = classes.get(i);
+                    List<ImFunction> classFunctions = c.getFunctions();
+                    for (int j = 0; j < classFunctions.size(); j++) {
+                        ImFunction function = classFunctions.get(j);
+                        function.flatten(translator);
                     }
                 }
             }
         } else {
             // Sequential processing avoids intermediate list/lambda overhead.
-            for (ImFunction f : imProg.getFunctions()) {
-                f.flatten(translator);
+            List<ImFunction> functions = imProg.getFunctions();
+            for (int i = 0; i < functions.size(); i++) {
+                ImFunction function = functions.get(i);
+                function.flatten(translator);
             }
-            for (ImClass c : imProg.getClasses()) {
-                for (ImFunction f : c.getFunctions()) {
-                    f.flatten(translator);
+            for (int i = 0; i < classes.size(); i++) {
+                ImClass c = classes.get(i);
+                List<ImFunction> classFunctions = c.getFunctions();
+                for (int j = 0; j < classFunctions.size(); j++) {
+                    ImFunction function = classFunctions.get(j);
+                    function.flatten(translator);
                 }
             }
         }
@@ -637,7 +677,17 @@ public class Flatten {
 
     public static Result flatten(ImVarargLoop s, ImTranslator translator, ImFunction f) {
         return new Result(Collections.singletonList(
-            JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
+            JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f),
+                copyVarargLoopVars(s.getLoopVars()))));
+    }
+
+    private static ImVarargLoopVars copyVarargLoopVars(ImVarargLoopVars loopVars) {
+        int n = loopVars.size();
+        List<ImVarargLoopVar> copiedVars = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            copiedVars.add(JassIm.ImVarargLoopVar(loopVars.get(i).getVar()));
+        }
+        return JassIm.ImVarargLoopVars(copiedVars);
     }
 
 

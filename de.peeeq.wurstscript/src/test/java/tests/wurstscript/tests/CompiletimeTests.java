@@ -1,9 +1,26 @@
 package tests.wurstscript.tests;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
+
+import java.util.List;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class CompiletimeTests extends WurstScriptTest {
 
+    @Test
+    public void compiletimeAnnotationWarnsOnInstanceFields() {
+        test().expectWarning("has no effect on instance fields")
+            .lines("package Test",
+                   "class C",
+                   "    @compiletime int value");
+    }
 
     @Test
     public void testSimpleCompiletime() {
@@ -62,12 +79,378 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
+    @Test
+    public void testUnsupportedCompiletimeArrayWarningIsAggregatedAndReadable() {
+        Logger logger = (Logger) LoggerFactory.getLogger("default");
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            test().withStdLib().testLua(true).luaOnly(true).runCompiletimeFunctions(true)
+                .lines("package Test",
+                    "@compiletime player array source",
+                    "@compiletime function fill()",
+                    "    source[0] = Player(0)",
+                    "init",
+                    "    source[0] = Player(0)");
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        List<String> playerWarnings = appender.list.stream()
+            .map(ILoggingEvent::getFormattedMessage)
+            .filter(message -> message.contains("Test_source"))
+            .toList();
+        assertEquals(playerWarnings.size(), 1, "expected one warning for the entire array");
+        String warning = playerWarnings.get(0);
+        assertTrue(warning.contains("1 unsupported compiletime entries"), warning);
+        assertTrue(warning.contains("IlConstHandle"), warning);
+        assertFalse(warning.contains("GlobalVarDef"), warning);
+    }
+
+    @Test
+    public void testCompiletimePackageScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "@compiletime public int source = 1",
+                   "@compiletime function fill()",
+                   "    source = 42",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int observed = source",
+                   "init",
+                   "    if source == 42 and observed == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectAndNullScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class A",
+                   "    int value",
+                   "@compiletime A source",
+                   "@compiletime string cleared = \"value\"",
+                   "@compiletime function fill()",
+                   "    source = new A",
+                   "    source.value = 42",
+                   "    cleared = null",
+                   "init",
+                   "    if source.value == 42 and cleared == null",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeScalarReplayOnlyWrittenValues() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int seed = 1",
+                   "init",
+                   "    seed = 2",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "int observed = seed",
+                   "@compiletime int migrated = 0",
+                   "@compiletime function fill()",
+                   "    let snapshot = observed",
+                   "    migrated = snapshot + 41",
+                   "init",
+                   "    if observed == 2 and migrated == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testLazyScalarInitializerSideEffectsAreNotReplayed() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "int counter = 0",
+                   "function bump() returns int",
+                   "    counter++",
+                   "    return counter",
+                   "int observed = bump()",
+                   "@compiletime int migrated",
+                   "@compiletime function fill()",
+                   "    let _snapshot = observed",
+                   "    migrated = 42",
+                   "init",
+                   "    if counter == 1 and observed == 1 and migrated == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeScalarRuntimeWriteRemainsAuthoritative() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime int source = 1",
+                   "@compiletime function fill()",
+                   "    source = 42",
+                   "init",
+                   "    source = 7",
+                   "    if source == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeClassStaticScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Counter",
+                   "    @compiletime static int value = 1",
+                   "    static function setValue(int newValue)",
+                   "        value = newValue",
+                   "    static function getValue() returns int",
+                   "        return value",
+                   "int observed = Counter.getValue()",
+                   "@compiletime function fill()",
+                   "    Counter.setValue(42)",
+                   "init",
+                   "    if Counter.getValue() == 42 and observed == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericClassStaticScalarState() {
+        test().testLua(true).luaOnly(false).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Counter<T:>",
+                   "    @compiletime static T value",
+                   "    static function setValue(T newValue)",
+                   "        value = newValue",
+                   "    static function getValue() returns T",
+                   "        return value",
+                   "@compiletime function fill()",
+                   "    Counter<int>.setValue(42)",
+                   "init",
+                   "    if Counter<int>.getValue() == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime int array source",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                       "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAfterSourceInitializer() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime int array source = [1]",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime int array source = [1]",
+                   "@compiletime function fill()",
+                   "    source[0] = 42",
+                   "init",
+                   "    if source[0] == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Box<T:>",
+                   "    @compiletime static T array store",
+                   "    static function set(int index, T value)",
+                   "        store[index] = value",
+                   "    static function get(int index) returns T",
+                   "        return store[index]",
+                   "@compiletime function fill()",
+                   "    Box<int>.set(0, 42)",
+                   "init",
+                   "    if Box<int>.get(0) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeGenericArrayStateLua() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class Box<T:>",
+                   "    @compiletime static T array store",
+                   "    static function set(int index, T value)",
+                   "        store[index] = value",
+                   "    static function get(int index) returns T",
+                   "        return store[index]",
+                   "@compiletime function fill()",
+                   "    Box<int>.set(0, 42)",
+                   "init",
+                   "    if Box<int>.get(0) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeObjectArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "class A",
+                   "    int value",
+                   "@compiletime A array source",
+                   "@compiletime function fill()",
+                   "    source[0] = new A",
+                   "    source[0].value = 42",
+                   "init",
+                   "    if source[0].value == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeHashtableArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("type agent extends handle",
+                   "type hashtable extends agent",
+                   "package Test",
+                   "native testSuccess()",
+                   "@extern native InitHashtable() returns hashtable",
+                   "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+                   "@extern native SaveInteger(hashtable h, int p, int c, int i)",
+                   "@compiletime hashtable array source",
+                   "@compiletime function fill()",
+                   "    source[0] = InitHashtable()",
+                   "    SaveInteger(source[0], 2, 3, 42)",
+                   "init",
+                   "    if LoadInteger(source[0], 2, 3) == 42",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeNullArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime string array source = [\"value\"]",
+                   "@compiletime function clear()",
+                   "    source[0] = null",
+                   "init",
+                   "    if source[0] == null",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeTupleArrayState() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "tuple pair(int left, int right)",
+                   "@compiletime pair array source",
+                   "@compiletime function fill()",
+                   "    source[0] = pair(42, 7)",
+                   "init",
+                   "    if source[0].left == 42 and source[0].right == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAcrossPackages() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "@compiletime public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayStateAcrossPackagesWithTwoInitializers() {
+        test().executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "@compiletime public int array source = [1]",
+                   "@compiletime function fillA()",
+                   "    source[0] = 42",
+                   "init",
+                   "    source[0] = 7",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "@compiletime int array other = [2]",
+                   "@compiletime function fillB()",
+                   "    other[0] = 9",
+                   "native testSuccess()",
+                   "init",
+                   "    if source[0] == 7 and other[0] == 9",
+                   "        testSuccess()",
+                   "endpackage");
+    }
+
+    @Test
+    public void testCompiletimeArrayReplayPrecedesDependentInitializer() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package Test",
+                   "native testSuccess()",
+                   "@compiletime int array first = [1]",
+                   "int observed = first[0]",
+                   "@compiletime int array second = [2]",
+                   "@compiletime function fill()",
+                   "    first[0] = 42",
+                   "    second[0] = 9",
+                   "init",
+                   "    if observed == 42 and first[0] == 42 and second[0] == 9",
+                   "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeArrayReplayOnlyWrittenEntries() {
+        test().testLua(true).executeProg(true).executeProgOnlyAfterTransforms().runCompiletimeFunctions(true)
+            .lines("package A",
+                   "public int seed = 1",
+                   "init",
+                   "    seed = 2",
+                   "endpackage",
+                   "package B",
+                   "import A",
+                   "native testSuccess()",
+                   "@compiletime int array source = [seed, 0]",
+                   "@compiletime function fill()",
+                   "    source[1] = 42",
+                   "init",
+                   "    if source[0] == 2 and source[1] == 42",
+                   "        testSuccess()");
+    }
 
     @Test
     public void testCompiletimeHashtable() {
-        test().executeProg(true)
+        test().executeProg(true).executeProgOnlyAfterTransforms()
                 .runCompiletimeFunctions(true)
-                .executeProgOnlyAfterTransforms()
                 .lines("type agent extends handle",
                         "type hashtable extends agent",
                         "package Test",
@@ -175,6 +558,26 @@ public class CompiletimeTests extends WurstScriptTest {
                         "init",
                         "    if a.x == \"schwardemage\" and a.y == 42",
                         "        testSuccess()");
+    }
+
+    @Test
+    public void testPersistCompiletimeNewGenericClass() {
+        // Translation is the assertion here: executing the synthesized generic
+        // runtime global through the interpreter still needs a separate attachment fix.
+        test()
+                .runCompiletimeFunctions(true)
+                .lines("package Test",
+                        "class PureMap<T:>",
+                        "    T value",
+                        "    function put(T value)",
+                        "        this.value = value",
+                        "    function get() returns T",
+                        "        return value",
+                        "function compiletime<T:>(T value) returns T",
+                        "    return value",
+                        "PureMap<int> map = compiletime(new PureMap<int>)",
+                        "@compiletime function populate()",
+                        "    map.put(42)");
     }
 
     @Test
@@ -434,54 +837,171 @@ public class CompiletimeTests extends WurstScriptTest {
                         "@extern native sqlite_prepare(int conn, string q) returns int",
                         "@extern native sqlite_step(int stmt) returns boolean",
                         "@extern native sqlite_column_string(int stmt, int idx) returns string",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_real(int stmt, int idx) returns real",
                         "@extern native sqlite_column_count(int stmt) returns int",
                         "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_real(int stmt, int idx, real value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
                         "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
                         "",
-                        "class SqlResult",
-                        "    string v1 = \"\"",
-                        "    string v2 = \"\"",
-                        "    string v3 = \"\"",
-                        "    string v4 = \"\"",
-                        "",
-                        "function sqlite_select(int db, string query) returns LinkedList<SqlResult>",
-                        "    let list = new LinkedList<SqlResult>()",
-                        "    let stmt = sqlite_prepare(db, query)",
-                        "    let cols = sqlite_column_count(stmt)",
-                        "    while sqlite_step(stmt)",
-                        "        let row = new SqlResult()",
-                        "        if cols > 0",
-                        "            row.v1 = sqlite_column_string(stmt, 0)",
-                        "        if cols > 1",
-                        "            row.v2 = sqlite_column_string(stmt, 1)",
-                        "        if cols > 2",
-                        "            row.v3 = sqlite_column_string(stmt, 2)",
-                        "        if cols > 3",
-                        "            row.v4 = sqlite_column_string(stmt, 3)",
-                        "        list.add(row)",
-                        "    sqlite_finalize(stmt)",
-                        "    return list",
-                        "",
-                        "function testSelect() returns int",
+                        "function testFullSQLiteApi() returns int",
                         "    let db = sqlite_open(\":memory:\")",
-                        "    sqlite_exec(db, \"CREATE TABLE Jobs (id INTEGER, name TEXT, desc TEXT, val TEXT)\")",
-                        "    sqlite_exec(db, \"INSERT INTO Jobs VALUES (1, 'Warrior', 'Melee C', 'A')\")",
-                        "    sqlite_exec(db, \"INSERT INTO Jobs VALUES (2, 'Mage', 'Ranged C', 'B')\")",
-                        "    let res = sqlite_select(db, \"SELECT * FROM Jobs ORDER BY id ASC\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT, price REAL)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    sqlite_bind_real(insert, 3, 15.5)",
+                        "    let s1 = sqlite_step(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_reset(insert)",
+                        "    sqlite_bind_int(insert, 1, 102)",
+                        "    sqlite_bind_string(insert, 2, \"Shield\")",
+                        "    sqlite_bind_real(insert, 3, 25.0)",
+                        "    let s3 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let query = sqlite_prepare(db, \"SELECT id, name, price FROM Items ORDER BY id ASC\")",
+                        "    let cols = sqlite_column_count(query)",
                         "    int count = 0",
-                        "    if res.size() == 2",
-                        "        let first = res.get(0)",
-                        "        if first.v1 == \"1\" and first.v2 == \"Warrior\"",
+                        "    if not s1 and not s2 and not s3 and cols == 3 and sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 101 and sqlite_column_string(query, 1) == \"Sword\" and sqlite_column_real(query, 2) == 15.5",
                         "            count++",
-                        "        let second = res.get(1)",
-                        "        if second.v1 == \"2\" and second.v2 == \"Mage\"",
+                        "    if sqlite_step(query)",
+                        "        if sqlite_column_int(query, 0) == 102 and sqlite_column_string(query, 1) == \"Shield\" and sqlite_column_real(query, 2) == 25.0",
                         "            count++",
+                        "    sqlite_finalize(query)",
+                        "    sqlite_close(db)",
                         "    return count",
                         "",
-                        "let c = compiletime(testSelect())",
+                        "let c = compiletime(testFullSQLiteApi())",
                         "init",
                         "    if c == 2",
                         "        testSuccess()");
     }
 
+    @Test
+    public void testCompiletimeSQLiteResetPreservesBindings() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_bind_string(int stmt, int idx, string value)",
+                        "@extern native sqlite_reset(int stmt)",
+                        "@extern native sqlite_clear_bindings(int stmt)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testResetPreservesBindings() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        "    sqlite_exec(db, \"CREATE TABLE Items (id INTEGER, name TEXT)\")",
+                        "    let insert = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert, 1, 101)",
+                        "    sqlite_bind_string(insert, 2, \"Sword\")",
+                        "    let s1 = sqlite_step(insert)",
+                        // reset then step again WITHOUT rebinding: bindings must be preserved,
+                        // so the same row (101, Sword) is inserted a second time.
+                        "    sqlite_reset(insert)",
+                        "    let s2 = sqlite_step(insert)",
+                        "    sqlite_finalize(insert)",
+                        "    let count = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 101 AND name = 'Sword'\")",
+                        "    int preserved = 0",
+                        "    if not s1 and not s2 and sqlite_step(count)",
+                        "        preserved = sqlite_column_int(count, 0)",
+                        "    sqlite_finalize(count)",
+                        // sqlite_clear_bindings clears parameters back to NULL, so the next insert
+                        // writes a NULL id that will not match the id = 999 filter.
+                        "    let insert2 = sqlite_prepare(db, \"INSERT INTO Items VALUES (?, ?)\")",
+                        "    sqlite_bind_int(insert2, 1, 999)",
+                        "    sqlite_bind_string(insert2, 2, \"Cleared\")",
+                        "    sqlite_clear_bindings(insert2)",
+                        "    let s3 = sqlite_step(insert2)",
+                        "    sqlite_finalize(insert2)",
+                        "    let cleared = sqlite_prepare(db, \"SELECT COUNT(*) FROM Items WHERE id = 999\")",
+                        "    int clearedCount = 1",
+                        "    if not s3 and sqlite_step(cleared)",
+                        "        clearedCount = sqlite_column_int(cleared, 0)",
+                        "    sqlite_finalize(cleared)",
+                        "    sqlite_close(db)",
+                        // expect 2 rows preserved by reset and 0 rows for id 999 after clear_bindings
+                        "    if preserved == 2 and clearedCount == 0",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testResetPreservesBindings())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
+
+    @Test
+    public void testCompiletimeSQLiteExecMultiStatementAndNulls() {
+        test().withStdLib()
+                .executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "@extern native sqlite_open(string path) returns int",
+                        "@extern native sqlite_prepare(int conn, string q) returns int",
+                        "@extern native sqlite_step(int stmt) returns boolean",
+                        "@extern native sqlite_column_int(int stmt, int idx) returns int",
+                        "@extern native sqlite_column_is_null(int stmt, int idx) returns boolean",
+                        "@extern native sqlite_exec(int conn, string q)",
+                        "@extern native sqlite_bind_int(int stmt, int idx, int value)",
+                        "@extern native sqlite_finalize(int stmt)",
+                        "@extern native sqlite_close(int conn)",
+                        "",
+                        "function testExecMultiAndNulls() returns int",
+                        "    let db = sqlite_open(\":memory:\")",
+                        // multi-statement exec must create BOTH tables (only the first runs
+                        // under a naive Statement.execute)
+                        "    sqlite_exec(db, \"CREATE TABLE A (id INTEGER); CREATE TABLE B (id INTEGER, name TEXT)\")",
+                        // multi-statement DML: both inserts must run
+                        "    sqlite_exec(db, \"INSERT INTO A VALUES (1); INSERT INTO A VALUES (2)\")",
+                        "    let ca = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA = 0",
+                        "    if sqlite_step(ca)",
+                        "        countA = sqlite_column_int(ca, 0)",
+                        "    sqlite_finalize(ca)",
+                        // rebind WITHOUT an intervening sqlite_reset must force re-execution,
+                        // so both id 3 and id 4 get inserted (4 rows total in A)
+                        "    let ins = sqlite_prepare(db, \"INSERT INTO A VALUES (?)\")",
+                        "    sqlite_bind_int(ins, 1, 3)",
+                        "    let b1 = sqlite_step(ins)",
+                        "    sqlite_bind_int(ins, 1, 4)",
+                        "    let b2 = sqlite_step(ins)",
+                        "    sqlite_finalize(ins)",
+                        "    let ca2 = sqlite_prepare(db, \"SELECT COUNT(*) FROM A\")",
+                        "    int countA2 = 0",
+                        "    if sqlite_step(ca2)",
+                        "        countA2 = sqlite_column_int(ca2, 0)",
+                        "    sqlite_finalize(ca2)",
+                        // NULL detection: a genuine SQL NULL must be distinguishable
+                        "    sqlite_exec(db, \"INSERT INTO B VALUES (7, NULL)\")",
+                        "    let q = sqlite_prepare(db, \"SELECT id, name FROM B WHERE id = 7\")",
+                        "    boolean idNotNull = false",
+                        "    boolean nameIsNull = false",
+                        "    if not b1 and not b2 and sqlite_step(q)",
+                        "        idNotNull = not sqlite_column_is_null(q, 0)",
+                        "        nameIsNull = sqlite_column_is_null(q, 1)",
+                        "    sqlite_finalize(q)",
+                        "    sqlite_close(db)",
+                        "    if countA == 2 and countA2 == 4 and idNotNull and nameIsNull",
+                        "        return 1",
+                        "    return 0",
+                        "",
+                        "let c = compiletime(testExecMultiAndNulls())",
+                        "init",
+                        "    if c == 1",
+                        "        testSuccess()");
+    }
 }

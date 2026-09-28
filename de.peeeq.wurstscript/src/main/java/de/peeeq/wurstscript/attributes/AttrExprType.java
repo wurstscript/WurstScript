@@ -74,7 +74,12 @@ public class AttrExprType {
             return WurstTypeUnknown.instance();
         }
         if (!(varDef instanceof OtherLink) && varDef.getDef() instanceof VarDef) {
-            if (Utils.getParentVarDef(Optional.of(term)) == Optional.of((VarDef) varDef.getDef())) {
+            // Compare the enclosing VarDef to the one this access resolves to. Both sides used
+            // to be wrapped in fresh Optionals and compared with ==, which is never true, so
+            // this check silently did nothing. getParentVarDef returns null (not empty) when
+            // there is no enclosing VarDef, hence the explicit null guard.
+            Optional<VarDef> enclosingVarDef = Utils.getParentVarDef(Optional.of(term));
+            if (enclosingVarDef != null && enclosingVarDef.orElse(null) == varDef.getDef()) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
@@ -285,6 +290,21 @@ public class AttrExprType {
                 if (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString) {
                     return WurstTypeString.instance();
                 }
+                if (term.attrFuncLink() != null) {
+                    return handleOperatorOverloading(term);
+                }
+                if (AttrFuncDef.implicitToStringForConcatOperand(term, term.getLeft()) != null
+                        || AttrFuncDef.implicitToStringForConcatOperand(term, term.getRight()) != null) {
+                    return WurstTypeString.instance();
+                }
+                String conversionError = AttrFuncDef.implicitToStringErrorForConcatOperand(term, term.getLeft());
+                if (conversionError == null) {
+                    conversionError = AttrFuncDef.implicitToStringErrorForConcatOperand(term, term.getRight());
+                }
+                if (conversionError != null) {
+                    term.addError(conversionError);
+                    return WurstTypeUnknown.instance();
+                }
                 if (bothTypesRealOrInt(term)) {
                     return caseMathOperation(term);
                 } else {
@@ -315,7 +335,15 @@ public class AttrExprType {
                         "operands " + leftType + " and " + rightType);
                 return WurstTypeUnknown.instance();
             case MOD_INT:
+            case JASS_MOD_INT:
             case DIV_INT:
+                // The left operand's type is returned deliberately, so that `real r = 7 div 2` compiles.
+                // caseMathOperation below does the opposite for + - * /, collapsing two int literals to
+                // int precisely so that `real r = 1 + 1` is an error, and the difference between the two
+                // is easy to read as an oversight here. It is not: these operators are integer-only, an
+                // int literal is a subtype of real, and narrowing the result would break assignments
+                // which compile today. ExpressionTests.integerDivisionOfLiteralsIsStillAssignableToReal
+                // pins it, and OptimizerTests.realFormatting_consistent_fromIntOps depends on it.
                 if (leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
                     return leftType;
                 }

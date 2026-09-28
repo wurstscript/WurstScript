@@ -1,0 +1,287 @@
+<!-- WURST_LANGUAGE_AGENT_DOC_VERSION: 2026-09-27 -->
+# WurstScript language digest
+
+This is the compact, agent-oriented language reference shipped with the WurstScript compiler. It covers language semantics and compiler-facing syntax; standard-library APIs, dependency conventions, UI rules, and object-editor policies belong to the project or dependency documentation.
+
+## File and block structure
+
+Every Wurst source file is inside a package. Blocks are indentation-based; use tabs or four spaces consistently and never mix indentation styles.
+
+```wurst
+package Example
+
+init
+	print("loaded")
+```
+
+Statements normally end at a newline. A newline can continue after `(`, `[`, or an operator, and before `.`, `..`, `)`, `]`, or `begin`.
+
+## Declarations and expressions
+
+Use `let` for immutable locals and `var` when mutation is required. Type inference is preferred when the type is clear. Explicit types remain useful at public boundaries and for lambda target types.
+
+```wurst
+let immutable = 5
+var mutable = 10
+constant int SOME_ID = 'A000'
+int array values = [1, 2, 3]
+
+function max(int a, int b) returns int
+	if a > b
+		return a
+	return b
+```
+
+Primitive types include `boolean`, `int`, `real`, and `string`; Warcraft values usually use nullable handle types such as `unit`, `group`, `effect`, and `player`.
+
+Operators include arithmetic (`+`, `-`, `*`, `/`), integer division (`div`), modulo (`%`, `mod`), boolean operators (`and`, `or`, `not`), comparisons, and the conditional expression `condition ? ifTrue : ifFalse`.
+
+`/` is real division even when both operands are integers. Use `div` for integer division. WC3 integers are signed 32-bit and overflow silently, so convert before a large multiplication: `worth.toReal() * count`, never `(worth * count).toReal()`.
+
+Control flow uses `if`/`else if`/`else`, `switch`/`case`/`default`, `while`, and `for`:
+
+```wurst
+for i = 0 to 10
+	...
+for i = 10 downto 0
+	...
+for unit u in group
+	...
+```
+
+`continue` skips the current loop iteration. `skip` is a no-op statement.
+
+## Null-safe access
+
+`?.` accesses a member only when its receiver is non-null. The receiver is evaluated once, and method arguments are not evaluated when it is null.
+
+```wurst
+target?.kill()
+let owner = target?.getOwner()
+if node?.next?.next == null
+	...
+```
+
+The receiver must have a nullable type; `int`, `real`, and `boolean` cannot use `?.`. If the accessed member returns a non-nullable value such as `int`, a null-safe call can only be used as a standalone statement. `?.` is not an assignment target.
+
+## Modern Wurst best practices
+
+- Prefer `?.` when the null case is simply a no-op: `target?.kill()`. Use an explicit `if target != null` when the null case needs different handling or when you need to consume a non-nullable return value.
+- Use `readonly` for package, class, and module variables that callers or consumers may read but only the declaring owner may write. This is an encapsulation boundary, not a replacement for `let`/`constant` immutability.
+
+  ```wurst
+  package Score
+  public readonly int value
+
+  public function setValue(int next)
+      value = next
+  ```
+
+- String concatenation automatically infers `.toString()` for a non-string operand. Write `"score: " + score`, not `"score: " + score.toString()`. Keep an explicit call only when you intentionally need a standalone string or a particular overload; redundant calls produce a compiler warning.
+- Enums are non-nullable value types. Do not compare an enum with `null`; use an enum member such as `Unknown`/`None` when the domain needs a sentinel, or keep a separate boolean for “has a value”.
+
+## Functions, packages, and imports
+
+Functions omit Jass-style `takes` and `returns nothing`:
+
+```wurst
+function printMax(int a, int b)
+	print(max(a, b).toString())
+```
+
+Package members are private by default; use `public` for exports. Class members are public by default; use `private` or `protected` to restrict them. Every package implicitly imports `Wurst` unless it imports `NoWurst`.
+
+`import` makes names available locally. `import public` also re-exports those names. Package initialization runs top-to-bottom, with imported packages initialized before their importers. Avoid `initlater` except to break an unavoidable initialization cycle.
+
+Use `UpperCamelCase` for packages and classes, `lowerCamelCase` for functions, members, locals, and tuples, and `UPPER_SNAKE_CASE` for top-level constants.
+
+## Cascade and extension syntax
+
+The cascade operator calls methods on the same receiver and returns that receiver, which is useful for setup:
+
+```wurst
+CreateTrigger()
+	..registerAnyUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER)
+	..addCondition(Condition(function condition))
+	..addAction(function action)
+```
+
+Extension functions use `this` as their receiver:
+
+```wurst
+public function unit.getX2() returns real
+	return GetUnitX(this)
+```
+
+Prefer extension APIs and value tuples such as `vec2` over raw handle plumbing when the standard library provides them. Avoid unchecked `castTo`; prefer interfaces, modules, or explicit data modeling.
+
+## Lambdas and closures
+
+Every lambda needs a target type; standalone lambda expressions cannot infer one:
+
+```wurst
+Predicate<int> even = x -> x mod 2 == 0
+
+doAfter(1.) ->
+	print("later")
+```
+
+Locals captured by a closure are captured by value. Assigning to a captured local inside a callback does not update the outer local afterwards. Keep dependent work inside the callback that creates the value, store shared mutable state in an owning class, or use `reference(value)` deliberately and destroy the reference when finished.
+
+Lambdas used as the Jass `code` type cannot accept parameters or capture locals.
+
+## Classes, interfaces, modules, and tuples
+
+Objects created with `new` generally need `destroy`; tuples are value types and must not be destroyed. Destructors (`ondestroy`) remain explicit for Lua output—Lua garbage collection does not replace Wurst ownership and cleanup.
+
+```wurst
+class Missile
+	function onCollide(unit target)
+
+class Fireball extends Missile
+	override function onCollide(unit target)
+		...
+```
+
+`super(...)` must be the first constructor statement. Overridden methods require `override`. Interfaces declare required methods; modules (`use`) inject reusable members.
+
+Prefer `T:` generics for performance-sensitive or instance-heavy containers:
+
+```wurst
+class Box<T:>
+	T value
+```
+
+The older unconstrained `T` form erases through integer casts and can share storage in surprising ways.
+
+## Type class bounds
+
+A `T:` type parameter can require operations on the type it is bound to. The requirements are an ordinary generic `interface` with exactly one type parameter, and a top-level `implements` block binds them to one concrete type:
+
+```wurst
+public interface Indexable<T:>
+	function toIndex(T x) returns int
+	function fromIndex(int i) returns T
+
+implements Indexable<vec2>
+	function toIndex(vec2 v) returns int
+		return ...
+	function fromIndex(int i) returns vec2
+		return ...
+
+class HashMap<K: Indexable, V: Indexable>
+	function put(K key, V value)
+		saveInt(K.toIndex(key), V.toIndex(value))
+	function get(K key) returns V
+		return V.fromIndex(loadInt(K.toIndex(key)))
+```
+
+A bound names the interface without type arguments; `<K: Indexable>` means "there is an instance of `Indexable<K>`". Combine several with `and`: `<Q: Plus and Times>`.
+
+Call a requirement on the type parameter, not on the value: `K.toIndex(key)`, never `key.toIndex()`. The value is an ordinary argument, so requirements which produce a value rather than consume one (`fromIndex`) need no special form.
+
+Unlike an interface used as a supertype, an interface bound can be implemented for primitive, tuple, or handle types. This is still an ordinary type-class instance: every concrete type needs its own explicit `implements` block. There are no blanket instances for all handle subtypes or generic instances. After specialisation, each requirement is a direct call to the selected instance function on both Jass and Lua.
+
+The built-in `<T: handle>` bound is different: `handle` is a native supertype constraint, not an interface type class. It accepts native handle subtypes such as `unit`, `timer`, `player`, and `item`, without per-type instance declarations; it rejects integers and class references. A handle-bound type parameter can be passed to an intrinsic parameter declared as `handle`, and generic forwarding is valid only when the forwarded type parameter carries the handle bound too. The specialized parameter keeps its native handle representation.
+
+A bare `null` is not a concrete type argument for `<T: handle>`: `f(null)` must not specialize `T` to `WurstTypeNull`, whose lowered representation is not a native handle. Report an inference error and ask for a concrete type. Null remains a valid nullable value after the type is chosen, as in `f<unit>(null)` or a call on a receiver already specialized with `K = unit`.
+
+### New generics and native representations
+
+New-style generics specialize each concrete type argument into its native representation, with a separate specialization/type-id space. Do not apply the legacy `castTo int` pattern to a new generic value: that conversion belongs to the older erased generic model, where unrelated values share integer storage. For example, a specialized `V:` can represent an `int` or a class reference directly, without boxing. But a generic `V:` cannot be passed through an intrinsic whose declared parameter and return type are fixed `int`; type checking happens before specialization. A generic-value intrinsic must declare its value parameter and result as `V:` so each specialization reaches the backend with the matching native type. Keep fixed-int operations for APIs that really store and return only integers.
+
+### KeyedMap intrinsic representation
+
+The compiler-owned `keyedMapPut`/`keyedMapGet` intrinsics have a map handle stored as `int`, a key represented by the native handle (or supported primitive key), and a value represented by its specialized native type. Keep their intrinsic declarations and signatures aligned with the shapes recognized by `LuaKeyedMap`; changing the declaration shape can prevent intrinsic recognition. A wrapper such as `KeyedMap<K: handle, V:>` should forward `K` and `V` directly, without `GetHandleId`, integer casts, or class-to-index boxing on the Lua path.
+
+On Lua, the recognized operations lower to a native table keyed by the handle object itself: put is one `t[k] = v` store and get is one `t[k]` read (with typed defaults for primitive results). Do not introduce handle-id conversion or an index registry on this path. The source/Jass fallback still uses the hashtable-backed `Table` API and `GetHandleId`, because Jass has no Lua table identity keys. Jass supports only `int` and class-reference values through the existing int representation; other specializations are rejected rather than boxed. Generic reference values must be non-null; use `remove` for absence. Destroy releases the Jass `Table` and clears the Lua table in place, since aliases to a destroyed Lua object may still retain its store. `LuaKeyedMapTests` covers intrinsic recognition, direct Lua table access, native handle identity, generic integer/class values, Jass fallback, and retained-alias destruction; extend it when changing this lowering contract.
+
+Instances are unique and must be declared next to what they relate. An instance of `I` for type `X` may only live in the package declaring `I` or the package declaring `X`, and there may be only one. This makes `I` for `X` mean the same thing everywhere, independent of imports. Instances have no type parameters of their own in this version, so there is no way to write "every `List<T>` is `Indexable` when `T` is".
+
+An instance must implement each requirement with the signature it has after the interface's type parameter is replaced by the instance type; a matching name is not enough. An interface used as a bound must not extend another interface, because the requirements of a bound are the interface's own functions.
+
+A requirement can also be dispatched from inside a closure written in a bounded generic. The closure captures the type parameter along with the values it uses, so the instance is still chosen by the caller's type argument:
+
+```wurst
+function foo<Q: ToIndex>(Q x) returns int
+	Producer p = () -> Q.toIndex(x)
+	return p.produce()
+```
+
+A generic which passes its own type parameter to another bounded generic must declare that bound itself:
+
+```wurst
+function inner<Q: Show>(Q x) returns string
+	return Q.show(x)
+
+function outer<R: Show>(R x) returns string   // <R:> alone would not compile
+	return inner(x)
+```
+
+A module's type parameter may carry a bound, and the class using the module supplies the argument:
+
+```wurst
+module Shower<T: Show>
+	T held
+	function shown() returns string
+		return T.show(held)
+
+class Holder<K: Show>
+	use Shower<K>          // K must declare the bound it is asked to supply
+	construct(K k)
+		held = k
+```
+
+A class with a bounded type parameter can be subclassed, and the subclass may reach the superclass through `super`:
+
+```wurst
+class SubBox extends Box<int>
+	construct(int k)
+		super(k)
+
+	override function size(int extra) returns int
+		return super.size(extra) + 100
+```
+
+This works on both targets.
+
+A requirement may be dispatched from a method, a constructor, a closure, or a `super` call, on both targets.
+
+One shape is not guaranteed on Lua: a method which combines its own type parameters with those of the generic class owning it. Write it as a free generic function, or parameterise the method only by its owning class.
+
+## Strings
+
+A string is a sequence of bytes on both targets, as it is in the game. `.length()` counts bytes rather than characters and `.substring()` takes byte offsets, so a slice can stop between the bytes of one character:
+
+```wurst
+"ä".length()            // 2, not 1
+"ä".substring(0, 1)     // half a character
+```
+
+The standard library's `String` package handles this explicitly — `isCharBoundary` and `isMultibytePartial` — when `ENABLE_MULTIBYTE_SUPPORT` is on, which it is by default. Compiletime code sees the same semantics, so a length computed while building the map is the length the game agrees with. One thing does not carry across: a compiletime expression cannot return half a character, because a generated script has no way to write that byte down.
+
+## Lua and Jass targets
+
+The target is selected by the project `wurst.build` `scriptMode` field. `wc3Patch` separately selects the compatible core Jass and standard-library era.
+
+Lua has no practical Jass operation limit; do not add `execute()` as a workaround. Use timers only for actual asynchronous delay. Jass has an operation limit per thread; `execute()` starts a new thread and heavy work may need chunking across ticks.
+
+## Compiletime
+
+Compiletime functions run while building the map and can generate object-editor data or constants:
+
+```wurst
+let value = compiletime(factorial(5))
+
+@compiletime function createSpell()
+	new AbilityDefinitionMountainKingThunderBolt(SPELL_ID)
+		..setName("Wurst Bolt")
+```
+
+Use stable ID helpers and wrappers. Generated object definitions should use real melee objects as bases, not other custom generated objects; inherited object fields must be audited by the project’s object-data guidance.
+
+## Formatting and diagnostics
+
+Use spaces around binary operators, no space before call parentheses, and no spaces around `.`, `..`, or `?.`. Put doc comments (`/** ... */`) on public APIs when they should appear in autocomplete. Prefix intentionally unused variables with `_`.
+
+When unsure, search the compiler’s tests and nearby working code. A successful parse is not proof of correct Wurst semantics: check ownership, closure capture, target mode, and the generated behavior as well.

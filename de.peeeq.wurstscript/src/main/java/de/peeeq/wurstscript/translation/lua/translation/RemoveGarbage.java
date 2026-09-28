@@ -3,12 +3,18 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import de.peeeq.wurstscript.validation.TRVEHelper;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.validation.NamePreservation;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -18,12 +24,23 @@ import java.util.Set;
 public class RemoveGarbage {
 
     private static class Used {
+        private final ImTranslator translator;
         private final Set<ImFunction> functions = new HashSet<>();
         private final Set<ImMethod> methods = new HashSet<>();
         // methods that will be added once the class is used:
         private final Multimap<ImClass, ImMethod> waitingMethods = HashMultimap.create();
         private final Set<ImClass> classes = new HashSet<>();
+        /** Classes whose reachable runtime objects may dispatch virtual methods. */
+        private final Set<ImClass> dispatchClasses = new HashSet<>();
+        /** Classes which reachable code actually allocates, excluding nominal type-only references. */
+        private final Set<ImClass> instantiatedClasses = new HashSet<>();
         private final Set<ImVar> vars = new HashSet<>();
+        private final Set<ImSet> ignoredInitializers;
+
+        private Used(ImTranslator translator, Set<ImSet> ignoredInitializers) {
+            this.translator = translator;
+            this.ignoredInitializers = ignoredInitializers;
+        }
 
         public void addMethod(ImMethod m) {
             methods.add(m);
@@ -31,7 +48,7 @@ public class RemoveGarbage {
 
         public void maybeVisitMethod(ImMethod m) {
             ImClass c = m.attrClass();
-            if (classes.contains(c)) {
+            if (dispatchClasses.contains(c)) {
                 visitMethod(m, this);
             } else {
                 waitingMethods.put(c, m);
@@ -50,6 +67,10 @@ public class RemoveGarbage {
             return classes;
         }
 
+        public Set<ImClass> getInstantiatedClasses() {
+            return instantiatedClasses;
+        }
+
         public Set<ImVar> getVars() {
             return vars;
         }
@@ -62,39 +83,160 @@ public class RemoveGarbage {
             vars.add(var);
         }
 
-        public void addClass(ImClass c) {
-            classes.add(c);
-            Collection<ImMethod> imMethods = waitingMethods.get(c);
-            Iterator<ImMethod> it = imMethods.iterator();
-            while (it.hasNext()) {
-                ImMethod m = it.next();
-                visitMethod(m, this);
-                it.remove();
+        public boolean addClass(ImClass c, boolean dispatchReachable) {
+            boolean newClass = classes.add(c);
+            boolean newDispatchClass = dispatchReachable && dispatchClasses.add(c);
+            if (newClass) {
+                ImClass nominalClass = translator.canonical(c);
+                if (nominalClass != c) {
+                    // A targeted specialization has a distinct storage layout but keeps the source
+                    // class's nominal type id and instanceof identity. The canonical class is therefore
+                    // a metadata dependency, not evidence that erased instances can dispatch.
+                    visitClass(nominalClass, this, false);
+                }
+            }
+            if (newDispatchClass) {
+                Collection<ImMethod> imMethods = waitingMethods.get(c);
+                // This is a HashMultimap set view, not an indexed list. Keep the one iterator:
+                // taking an array snapshot here allocates one entry for every waiting method.
+                Iterator<ImMethod> iterator = imMethods.iterator();
+                while (iterator.hasNext()) {
+                    ImMethod method = iterator.next();
+                    visitMethod(method, this);
+                    iterator.remove();
+                }
+            }
+            return newClass || newDispatchClass;
+        }
+
+        public void addInstantiatedClass(ImClass c) {
+            if (!instantiatedClasses.add(c)) {
+                return;
+            }
+            List<ImClassType> superClasses = c.getSuperClasses();
+            for (int i = 0; i < superClasses.size(); i++) {
+                addInstantiatedClass(superClasses.get(i).getClassDef());
             }
         }
     }
 
-    public static void removeGarbage(ImProg prog) {
-        Used used = new Used();
-        for (ImFunction f : ImHelper.calculateFunctionsOfProg(prog)) {
+    public static void removeGarbage(ImProg prog, ImTranslator translator) {
+        Used used = collectUsed(prog, translator);
+
+        prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
+        prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !NamePreservation.isPreserved(g));
+        prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
+        prog.getMethods().removeIf(m -> !used.getMethods().contains(m));
+        List<ImMethod> methods = prog.getMethods();
+        for (int i = 0; i < methods.size(); i++) {
+            methods.get(i).getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+        }
+        // A field of a specialised class is a copy which nothing refers to, an access made before
+        // specialisation still naming the original's variable. It is live exactly when the field it
+        // was copied from is; dropping it leaves an instance of the specialised class allocated with
+        // no fields at all while the emitted code goes on reading them.
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            ImClass c = classes.get(i);
+            c.getFields().removeIf(g -> !used.getVars().contains(g)
+                && !used.getVars().contains(translator.canonical(g)));
+            c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
+            c.getMethods().removeIf(m -> !used.getMethods().contains(m));
+            List<ImMethod> classMethods = c.getMethods();
+            for (int j = 0; j < classMethods.size(); j++) {
+                classMethods.get(j).getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+            }
+        }
+
+    }
+
+    private static Used collectUsed(ImProg prog, ImTranslator translator) {
+        return collectUsed(prog, translator, Collections.emptySet());
+    }
+
+    private static Used collectUsed(ImProg prog, ImTranslator translator,
+                                    Set<ImSet> ignoredInitializers) {
+        Used used = new Used(translator, ignoredInitializers);
+        visitRootFunctions(prog.getFunctions(), used);
+        List<ImClass> classes = prog.getClasses();
+        for (int i = 0; i < classes.size(); i++) {
+            visitRootFunctions(classes.get(i).getFunctions(), used);
+        }
+        return used;
+    }
+
+    private static void visitRootFunctions(List<ImFunction> functions, Used used) {
+        for (int i = 0; i < functions.size(); i++) {
+            ImFunction f = functions.get(i);
             if (f.getName().equals("main")
-                || f.getName().equals("config")) {
+                || f.getName().equals("config")
+                || NamePreservation.isPreserved(f)) {
                 visitFunction(f, used);
             }
         }
+    }
 
-        prog.getClasses().removeIf(c -> !used.getClasses().contains(c));
-        prog.getGlobals().removeIf(g -> !used.getVars().contains(g) && !TRVEHelper.protectedVariables.contains(g.getName()));
-        prog.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
-        for (ImClass c : prog.getClasses()) {
-            c.getFields().removeIf(g -> !used.getVars().contains(g));
-            c.getFunctions().removeIf(f -> !used.getFunctions().contains(f));
-            c.getMethods().removeIf(m -> !used.getMethods().contains(m));
-            for (ImMethod m : c.getMethods()) {
-                m.getSubMethods().removeIf(sm -> !used.getMethods().contains(sm));
+    public static void removePhantomGenericStaticInitializers(ImProg prog, ImTranslator translator) {
+        Map<ImVar, List<ImSet>> candidates = new LinkedHashMap<>();
+        List<ImVar> globals = prog.getGlobals();
+        for (int i = 0; i < globals.size(); i++) {
+            ImVar global = globals.get(i);
+            ImTranslator.Specialisation specialization = translator.specialisationOf(global);
+            if (specialization != null && specialization.original() instanceof ImVar original
+                && translator.genericStaticOwnerOf(original) != null) {
+                List<ImSet> initializers = prog.getGlobalInits().get(original);
+                if (initializers != null) {
+                    candidates.putIfAbsent(original, initializers);
+                }
             }
         }
 
+        // First ignore every erased initializer, then mark the originals referenced by real roots.
+        // Re-enable initializers of marked originals until their transitive dependencies are marked.
+        // This is graph reachability rather than deletion order, so unreachable initializer cycles
+        // cannot keep themselves alive.
+        Set<ImVar> liveOriginals = new LinkedHashSet<>();
+        boolean changed;
+        do {
+            Set<ImSet> ignored = Collections.newSetFromMap(new IdentityHashMap<>());
+            for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+                if (!liveOriginals.contains(candidate.getKey())) {
+                    List<ImSet> initializers = candidate.getValue();
+                    for (int i = 0; i < initializers.size(); i++) {
+                        ignored.add(initializers.get(i));
+                    }
+                }
+            }
+            Used used = collectUsed(prog, translator, ignored);
+            changed = false;
+            for (ImVar original : candidates.keySet()) {
+                ImClass owner = translator.genericStaticOwnerOf(original);
+                boolean erasedInstantiationNeedsOriginal = used.getInstantiatedClasses().contains(owner)
+                    && translator.hasErasedAllocationWithoutStaticSpecialization(owner, original);
+                if ((used.getVars().contains(original) || erasedInstantiationNeedsOriginal)
+                    && liveOriginals.add(original)) {
+                    changed = true;
+                }
+            }
+        } while (changed);
+
+        for (Map.Entry<ImVar, List<ImSet>> candidate : candidates.entrySet()) {
+            if (liveOriginals.contains(candidate.getKey())) {
+                continue;
+            }
+            prog.getGlobalInits().remove(candidate.getKey());
+            List<ImSet> initSetters = candidate.getValue();
+            for (int j = 0; j < initSetters.size(); j++) {
+                ImSet initializer = initSetters.get(j);
+                if (initializer.getParent() == null) {
+                    continue;
+                }
+                if (!(initializer.getParent() instanceof ImStmts statements)) {
+                    throw new IllegalStateException("Global initializer is not attached to an ImStmts node.");
+                }
+                statements.remove(initializer);
+            }
+        }
     }
 
     private static void visitFunction(ImFunction f, Used used) {
@@ -102,9 +244,15 @@ public class RemoveGarbage {
             return;
         }
         used.addFunction(f);
-
         visitType(f.getReturnType(), used);
         f.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImSet e) {
+                if (!used.ignoredInitializers.contains(e)) {
+                    super.visit(e);
+                }
+            }
+
             @Override
             public void visit(ImFunctionCall e) {
                 super.visit(e);
@@ -144,31 +292,32 @@ public class RemoveGarbage {
             @Override
             public void visit(ImAlloc e) {
                 super.visit(e);
+                used.addInstantiatedClass(e.getClazz().getClassDef());
                 visitClass(e.getClazz().getClassDef(), used);
             }
 
             @Override
             public void visit(ImDealloc e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImInstanceof e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImTypeIdOfObj e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
             public void visit(ImTypeIdOfClass e) {
                 super.visit(e);
-                visitClass(e.getClazz().getClassDef(), used);
+                visitClass(e.getClazz().getClassDef(), used, false);
             }
 
             @Override
@@ -190,23 +339,28 @@ public class RemoveGarbage {
             return;
         }
         used.addMethod(m);
-        visitClass(m.getMethodClass().getClassDef(), used);
+        visitClass(m.getMethodClass().getClassDef(), used, false);
         if (m.getImplementation() != null) {
             // abstract methods can have no implementation
             visitFunction(m.getImplementation(), used);
         }
-        for (ImMethod subMethod : m.getSubMethods()) {
-            used.maybeVisitMethod(subMethod);
+        List<ImMethod> subMethods = m.getSubMethods();
+        for (int i = 0; i < subMethods.size(); i++) {
+            used.maybeVisitMethod(subMethods.get(i));
         }
     }
 
     private static void visitClass(ImClass c, Used used) {
-        if (used.getClasses().contains(c)) {
+        visitClass(c, used, true);
+    }
+
+    private static void visitClass(ImClass c, Used used, boolean dispatchReachable) {
+        if (!used.addClass(c, dispatchReachable)) {
             return;
         }
-        used.addClass(c);
-        for (ImClassType superClass : c.getSuperClasses()) {
-            visitClass(superClass.getClassDef(), used);
+        List<ImClassType> superClasses = c.getSuperClasses();
+        for (int i = 0; i < superClasses.size(); i++) {
+            visitClass(superClasses.get(i).getClassDef(), used, dispatchReachable);
         }
     }
 
@@ -220,8 +374,9 @@ public class RemoveGarbage {
 
             @Override
             public void case_ImTupleType(ImTupleType tt) {
-                for (ImType type : tt.getTypes()) {
-                    visitType(type, used);
+                List<ImType> types = tt.getTypes();
+                for (int i = 0; i < types.size(); i++) {
+                    visitType(types.get(i), used);
                 }
             }
 
@@ -247,9 +402,10 @@ public class RemoveGarbage {
 
             @Override
             public void case_ImClassType(ImClassType tt) {
-                visitClass(tt.getClassDef(), used);
-                for (ImTypeArgument ta : tt.getTypeArguments()) {
-                    visitType(ta.getType(), used);
+                visitClass(tt.getClassDef(), used, false);
+                List<ImTypeArgument> tArgs = tt.getTypeArguments();
+                for (int i = 0; i < tArgs.size(); i++) {
+                    visitType(tArgs.get(i).getType(), used);
                 }
             }
 

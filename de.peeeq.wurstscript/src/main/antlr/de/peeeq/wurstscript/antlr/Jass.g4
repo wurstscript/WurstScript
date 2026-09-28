@@ -163,7 +163,7 @@ PLUS: '+';
 MINUS: '-';
 MULT: '*';
 DIV_REAL: '/';
-MOD_REAL: '%';
+MOD_INT: '%';
 PAREN_LEFT: '(';
 PAREN_RIGHT: ')';
 BRACKET_LEFT: '[';

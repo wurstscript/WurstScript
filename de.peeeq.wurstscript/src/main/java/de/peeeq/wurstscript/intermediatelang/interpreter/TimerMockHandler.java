@@ -10,7 +10,7 @@ import java.util.PriorityQueue;
  */
 public class TimerMockHandler {
     private float virtualTime = 0;
-    private final PriorityQueue<RunTask> nextRunnable = new PriorityQueue<>(Comparator.comparing(r -> r.time));
+    private final PriorityQueue<RunTask> nextRunnable = new PriorityQueue<>(Comparator.comparingDouble(r -> r.time));
 
     public void cancelTask(RunTask runTask) {
         nextRunnable.remove(runTask);

@@ -12,96 +12,13 @@ class LuaPolyfillSetup {
 
     private LuaPolyfillSetup() {}
 
-    static void createArrayInitFunction(LuaTranslator tr) {
-        // Table-typed defaults (nested arrays, tuples) need a fresh value per
-        // slot that is stored on first read, so slot identity is stable.
-        // Immutable defaults (numbers, strings, booleans, nil) are returned
-        // without storing: storing would permanently materialize an entry for
-        // every slot that is merely READ, growing sparse arrays unboundedly.
-        String[] code = {
-            "local t = {}",
-            "local dv = d()",
-            "local mt",
-            "if type(dv) == \"table\" then",
-            "    mt = {__index = function (table, key)",
-            "        local v = d()",
-            "        table[key] = v",
-            "        return v",
-            "    end}",
-            "else",
-            "    mt = {__index = function (table, key)",
-            "        return dv",
-            "    end}",
-            "end",
-            "setmetatable(t, mt)",
-            "return t"
-        };
-
-        tr.arrayInitFunction.getParams().add(LuaAst.LuaVariable("d", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            tr.arrayInitFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        tr.luaModel.add(tr.arrayInitFunction);
-    }
-
-    /**
-     * Integer division and modulo helpers matching the Jass runtime:
-     * div truncates toward zero (JASS integer division) and mod follows
-     * Blizzard.j's ModuloInteger/ModuloReal (truncated remainder, plus
-     * divisor when the remainder is negative). Lua's native {@code //} and
-     * {@code %} are floored and disagree for negative operands.
-     */
-    static void createDivModFunctions(LuaTranslator tr) {
-        tr.intDivFunction.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-        tr.intDivFunction.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-        String[] divCode = {
-            "local q = a // b",
-            "if q < 0 and q * b ~= a then",
-            "    q = q + 1",
-            "end",
-            "return q"
-        };
-        for (String c : divCode) {
-            tr.intDivFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        tr.luaModel.add(tr.intDivFunction);
-
-        tr.modFunction.getParams().add(LuaAst.LuaVariable("a", LuaAst.LuaNoExpr()));
-        tr.modFunction.getParams().add(LuaAst.LuaVariable("b", LuaAst.LuaNoExpr()));
-        String[] modCode = {
-            "local r = math.fmod(a, b)",
-            "if r < 0 then",
-            "    r = r + b",
-            "end",
-            "return r"
-        };
-        for (String c : modCode) {
-            tr.modFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        tr.luaModel.add(tr.modFunction);
-    }
-
-    static void createStringConcatFunction(LuaTranslator tr) {
-        String[] code = {
-            "if x then",
-            "    if y then return x .. y else return x end",
-            "else",
-            "    return y",
-            "end"
-        };
-
-        tr.stringConcatFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.stringConcatFunction.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));
-        for (String c : code) {
-            tr.stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
-        }
-        tr.luaModel.add(tr.stringConcatFunction);
-    }
-
     static void createInstanceOfFunction(LuaTranslator tr) {
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
         tr.instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
-        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("return x ~= nil and x." + WURST_SUPERTYPES + "[A]"));
+        // Reading a nil key is a nil result, not an error, so one lookup covers the nil object too.
+        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral("local descriptor = __wurst_objectClass[x]"));
+        tr.instanceOfFunction.getBody().add(LuaAst.LuaLiteral(
+            "return descriptor ~= nil and descriptor." + WURST_SUPERTYPES + "[A] == true"));
         tr.luaModel.add(tr.instanceOfFunction);
     }
 
@@ -177,6 +94,36 @@ class LuaPolyfillSetup {
         }
     }
 
+    /** The sentinel an old-generics int value 0 is stored as (see ExprTranslation.translate(ImCast)). */
+    static LuaVariable createOldGenericsZero(LuaTranslator tr) {
+        LuaVariable zero = LuaAst.LuaVariable("__wurst_oldGenericsZero", LuaAst.LuaLiteral("math.mininteger"));
+        tr.luaModel.add(zero);
+        return zero;
+    }
+
+    record OldGenericsHelpers(LuaFunction toInt, LuaFunction fromInt) {
+    }
+
+    /**
+     * The old-generics int casts as functions: nil -> 0, 0 -> sentinel, n -> n, and back. Only a
+     * fallback: LuaOldGenericsCasts gives every such cast a variable operand, which is inlined.
+     */
+    static OldGenericsHelpers createOldGenericsCastFunctions(LuaTranslator tr) {
+        String zero = tr.oldGenericsZero().getName();
+        LuaFunction toInt = LuaAst.LuaFunction("__wurst_oldGenericsToInt",
+            LuaAst.LuaParams(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
+        toInt.getBody().add(LuaAst.LuaLiteral("if x == 0 then return " + zero + " end"));
+        toInt.getBody().add(LuaAst.LuaLiteral("return x or 0"));
+        tr.luaModel.add(toInt);
+        LuaFunction fromInt = LuaAst.LuaFunction("__wurst_oldGenericsFromInt",
+            LuaAst.LuaParams(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr())), LuaAst.LuaStatements());
+        fromInt.getBody().add(LuaAst.LuaLiteral("if i == " + zero + " then return 0 end"));
+        fromInt.getBody().add(LuaAst.LuaLiteral("if i == 0 then return nil end"));
+        fromInt.getBody().add(LuaAst.LuaLiteral("return i"));
+        tr.luaModel.add(fromInt);
+        return new OldGenericsHelpers(toInt, fromInt);
+    }
+
     static void createStringIndexFunctions(LuaTranslator tr) {
         LuaVariable map = LuaAst.LuaVariable("__wurst_string_index_map", LuaAst.LuaExprNull());
         tr.luaModel.add(map);
@@ -237,29 +184,4 @@ class LuaPolyfillSetup {
         }
     }
 
-    static void createEnsureTypeFunctions(LuaTranslator tr) {
-        tr.ensureIntFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0 end"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("local i = math.tointeger(n)"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("if i == nil then return 0 end"));
-        tr.ensureIntFunction.getBody().add(LuaAst.LuaLiteral("return i"));
-        tr.luaModel.add(tr.ensureIntFunction);
-
-        tr.ensureBoolFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return false end"));
-        tr.ensureBoolFunction.getBody().add(LuaAst.LuaLiteral("return x"));
-        tr.luaModel.add(tr.ensureBoolFunction);
-
-        tr.ensureRealFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("local n = tonumber(x)"));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("if n == nil then return 0.0 end"));
-        tr.ensureRealFunction.getBody().add(LuaAst.LuaLiteral("return n"));
-        tr.luaModel.add(tr.ensureRealFunction);
-
-        tr.ensureStrFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-        tr.ensureStrFunction.getBody().add(LuaAst.LuaLiteral("if x == nil then return \"\" end"));
-        tr.ensureStrFunction.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
-        tr.luaModel.add(tr.ensureStrFunction);
-    }
 }

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.jassIm.*;
 
@@ -11,14 +10,11 @@ import java.util.stream.Collectors;
 /**
  * wraps an imType and adds a hashmap and equals method
  */
-class GenericTypes {
+public class GenericTypes {
     private final List<ImTypeArgument> typeArguments;
 
 
     public GenericTypes(List<ImTypeArgument> typeArguments) {
-        for (ImTypeArgument ta : typeArguments) {
-            Preconditions.checkArgument(!EliminateGenerics.isGenericType(ta.getType()), "Type arguments must not be generic: " + typeArguments);
-        }
         this.typeArguments = ImmutableList.copyOf(typeArguments);
     }
 
@@ -36,16 +32,72 @@ class GenericTypes {
             for (int i = 0; i < typeArguments.size(); i++) {
                 ImTypeArgument t1 = typeArguments.get(i);
                 ImTypeArgument t2 = ot.typeArguments.get(i);
-                if (!t1.getType().equalsType(t2.getType())) {
+                if (!equalTypeIgnoringBindings(t1.getType(), t2.getType())) {
                     return false;
                 }
-                if (!t1.getTypeClassBinding().equals(t2.getTypeClassBinding())) {
+                // Deliberately not comparing the type class binding. It is only a fast path for
+                // resolving a dispatch; the implementation for a type is looked up by that type, so
+                // two arguments with the same type denote the same specialisation whether or not
+                // the binding survived. Comparing it also contradicted hashCode, which has always
+                // hashed the types alone, and produced two specialisations of the same class.
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Type-class bindings are dispatch metadata, not part of a specialization's structural type.
+     * Unlike the general IM type equality operation, this comparison therefore ignores bindings
+     * on every nested class-type argument, not just on the arguments wrapped by this key.
+     */
+    private static boolean equalTypeIgnoringBindings(ImType left, ImType right) {
+        if (left instanceof ImArrayType) {
+            return right instanceof ImArrayType
+                && equalTypeIgnoringBindings(((ImArrayType) left).getEntryType(),
+                ((ImArrayType) right).getEntryType());
+        }
+        if (left instanceof ImArrayTypeMulti) {
+            return right instanceof ImArrayTypeMulti
+                && equalTypeIgnoringBindings(((ImArrayTypeMulti) left).getEntryType(),
+                ((ImArrayTypeMulti) right).getEntryType());
+        }
+        if (left instanceof ImTupleType) {
+            if (!(right instanceof ImTupleType)) {
+                return false;
+            }
+            ImTupleType leftTuple = (ImTupleType) left;
+            ImTupleType rightTuple = (ImTupleType) right;
+            if (leftTuple.getTypes().size() != rightTuple.getTypes().size()) {
+                return false;
+            }
+            for (int i = 0; i < leftTuple.getTypes().size(); i++) {
+                if (!equalTypeIgnoringBindings(leftTuple.getTypes().get(i),
+                    rightTuple.getTypes().get(i))) {
                     return false;
                 }
             }
             return true;
         }
-        return false;
+        if (left instanceof ImClassType) {
+            if (!(right instanceof ImClassType)) {
+                return false;
+            }
+            ImClassType leftClass = (ImClassType) left;
+            ImClassType rightClass = (ImClassType) right;
+            if (leftClass.getClassDef() != rightClass.getClassDef()
+                || leftClass.getTypeArguments().size() != rightClass.getTypeArguments().size()) {
+                return false;
+            }
+            for (int i = 0; i < leftClass.getTypeArguments().size(); i++) {
+                if (!equalTypeIgnoringBindings(leftClass.getTypeArguments().get(i).getType(),
+                    rightClass.getTypeArguments().get(i).getType())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return left.equalsType(right);
     }
 
     @Override

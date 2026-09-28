@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateLocalTypes;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.LuaMethodCallLowering;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
@@ -47,60 +50,23 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImDealloc e, LuaTranslator tr) {
-        // Deliberate no-op: Lua instances are garbage collected, so 'destroy'
-        // only runs onDestroy (emitted separately) and drops nothing here.
-        // KNOWN DIVERGENCE from the Jass backend: a destroyed object stays
-        // fully usable (fields, dispatch, instanceof, typeId), whereas the
-        // Jass backend recycles the instance id and (with runtime checks)
-        // errors on use-after-destroy. Use-after-destroy bugs therefore stay
-        // silent on Lua but crash on Jass.
-        return LuaAst.LuaExprNull();
+        return LuaAst.LuaExprFunctionCall(tr.objectDealloc,
+            LuaAst.LuaExprlist(e.getObj().translateToLua(tr)));
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
-//        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
-//         alternative: use xpcall to get stacktraces (did not work)
-        boolean returnsValue = !(e.getFunc().getReturnType() instanceof ImVoid);
-        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-        LuaStatements callbackBody = LuaAst.LuaStatements();
-        if (returnsValue) {
-            LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
-            callbackBody.add(tempRes);
-            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprFunctionAbstraction(
-                        LuaAst.LuaParams(dots.copy()),
-                        LuaAst.LuaStatements(
-                            LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
-                                LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))))
-                    ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
-                    LuaAst.LuaExprVarAccess(dots.copy())
-                )
-            ));
-            callbackBody.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes)));
-        } else {
-            callbackBody.add(LuaAst.LuaExprFunctionCallByName("xpcall",
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprFunctionAbstraction(
-                        LuaAst.LuaParams(dots.copy()),
-                        LuaAst.LuaStatements(
-                            LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(dots.copy())))
-                        )
-                    ),
-                    LuaAst.LuaLiteral("function(err) if err == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"lua callback error: \" .. tostring(err)) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) if err2 == \"" + WURST_ABORT_THREAD_SENTINEL + "\" then return end BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end"),
-                    LuaAst.LuaExprVarAccess(dots.copy())
-                )
-            ));
-        }
-        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots), callbackBody);
+        return LuaAst.LuaExprFuncRef(tr.callbackAdapterFor(e.getFunc()));
     }
 
     static String callErrorFunc(LuaTranslator tr, String msg) {
+        return callErrorFunc(tr, msg, "<lua error>");
+    }
+
+    static String callErrorFunc(LuaTranslator tr, String msg, String stackPos) {
         LuaFunction ef = tr.getErrorFunc();
         if (ef != null) {
             if (ef.getParams().size() == 2) {
-                return ef.getName() + "(" + msg + ", \"<lua error>\")";
+                return ef.getName() + "(" + msg + ", \"" + stackPos + "\")";
             }
             return ef.getName() + "(" + msg + ")";
         }
@@ -109,15 +75,24 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
         // String concatenation is lowered to imTr.stringConcatFunc at the IM level
-        // (see EliminateLocalTypes); route it explicitly to the Lua polyfill instead
-        // of relying on both sides happening to print the same function name.
-        if (e.getFunc() == tr.imTr.stringConcatFunc) {
-            return LuaAst.LuaExprFunctionCall(tr.stringConcatFunction, tr.translateExprList(e.getArguments()));
-        }
+        // (see EliminateLocalTypes). It is a plain, portable, uniquely-named IM
+        // function now (see LuaEnsureFunctions), so it needs no special-casing
+        // here - the generic function-call translation below handles it, the same
+        // way it handles any other Wurst-internal function.
         String tcFunc = tr.getTypeCastingFunctionName(e.getFunc());
         if (tcFunc != null && !e.getArguments().isEmpty()) {
             LuaExpr arg = e.getArguments().get(0).translateToLua(tr);
-            if (tcFunc.equals("stringToIndex")) {
+            ImType argumentType = e.getArguments().get(0).attrTyp();
+            ImType resultType = e.attrTyp();
+            if (argumentType instanceof ImClassType && TypesHelper.isIntType(resultType)) {
+                return classToIndex(arg);
+            } else if (TypesHelper.isIntType(argumentType) && resultType instanceof ImClassType) {
+                return classFromIndex(arg, tr);
+            } else if (tcFunc.equals("objectToIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("objectFromIndex")) {
+                return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(arg));
+            } else if (tcFunc.equals("stringToIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(arg));
             } else if (tcFunc.equals("stringFromIndex")) {
                 return LuaAst.LuaExprFunctionCall(tr.stringFromIndexFunction, LuaAst.LuaExprlist(arg));
@@ -128,12 +103,42 @@ public class ExprTranslation {
             }
         }
 
-        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         // Use the immutable ImFunction name rather than f.getName(), because f is a cached
         // LuaFunction object shared across all call sites of this native. The setName() calls
         // below mutate it, so f.getName() changes after the first translation and can no longer
         // be relied upon for sentinel checks.
         String imFuncName = e.getFunc().getName();
+        String unaryIntrinsic = unaryIntrinsicName(e.getFunc(), tr);
+        if (unaryIntrinsic != null && e.getArguments().size() == 1) {
+            LuaExprlist argument = LuaAst.LuaExprlist(e.getArguments().get(0).translateToLua(tr));
+            int dot = unaryIntrinsic.indexOf('.');
+            if (dot < 0) {
+                return LuaAst.LuaExprFunctionCallByName(unaryIntrinsic, argument);
+            }
+            // A library function: a field of the library table, which is a plain identifier.
+            return LuaAst.LuaExprFunctionCallE(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(tr.luaLibrary(unaryIntrinsic.substring(0, dot))),
+                unaryIntrinsic.substring(dot + 1)), argument);
+        }
+        if (isBackendIntrinsic(e.getFunc(), tr)) {
+            if (e.getArguments().size() != 2) {
+                throw new CompileError(e.attrTrace().attrSource(),
+                    imFuncName + " expects exactly two arguments");
+            }
+            LuaExpr left = e.getArguments().get(0).translateToLua(tr);
+            LuaExpr right = e.getArguments().get(1).translateToLua(tr);
+            if (e.getFunc() == tr.imTr.luaRawFloorDivIntFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpFloorDiv(), right);
+            }
+            if (e.getFunc() == tr.imTr.luaRawFloorModIntFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpMod(), right);
+            }
+            if (e.getFunc() == tr.imTr.luaRawConcatFunc) {
+                return LuaAst.LuaExprBinary(left, LuaAst.LuaOpConcatString(), right);
+            }
+            return LuaAst.LuaExprFunctionCallByName("math.fmod", LuaAst.LuaExprlist(left, right));
+        }
+        LuaFunction f = tr.luaFunc.getFor(e.getFunc());
         if ("I2S".equals(imFuncName) && isIntentionalThreadAbortCall(e)) {
             return LuaAst.LuaExprFunctionCallByName("error", LuaAst.LuaExprlist(
                 LuaAst.LuaExprStringVal(WURST_ABORT_THREAD_SENTINEL),
@@ -146,6 +151,54 @@ public class ExprTranslation {
             f.setName("tostring");
         }
         return LuaAst.LuaExprFunctionCall(f, tr.translateExprList(e.getArguments()));
+    }
+
+    /**
+     * Compiler-synthesised natives which the backend prints as an operator instead of a call.
+     * Recognised by node identity: an ordinary function of the same name keeps its definition.
+     */
+    static boolean isBackendIntrinsic(ImFunction function, LuaTranslator tr) {
+        return unaryIntrinsicName(function, tr) != null
+            || function == tr.imTr.luaRawFloorDivIntFunc
+            || function == tr.imTr.luaRawFmodIntFunc
+            || function == tr.imTr.luaRawFmodRealFunc
+            || function == tr.imTr.luaRawFloorModIntFunc
+            || function == tr.imTr.luaRawConcatFunc;
+    }
+
+    /**
+     * The Lua builtin a one-argument conversion native is printed as, or null. The ensure helpers
+     * call these on every erased-generic read; a wrapper function around each would cost a Lua
+     * call on top of the builtin.
+     */
+    static @org.eclipse.jdt.annotation.Nullable String unaryIntrinsicName(ImFunction function, LuaTranslator tr) {
+        if (function == tr.imTr.luaRawToNumberIntFunc || function == tr.imTr.luaRawToNumberRealFunc) {
+            return "tonumber";
+        }
+        if (function == tr.imTr.luaRawToIntegerFunc) {
+            return "math.tointeger";
+        }
+        if (function == tr.imTr.luaRawToStringFunc) {
+            return "tostring";
+        }
+        return null;
+    }
+
+    /** {@code classToIndex}: nil is 0, an instance id stays itself; evaluates x once. */
+    static LuaExpr classToIndex(LuaExpr x) {
+        return LuaAst.LuaExprBinary(x, LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0"));
+    }
+
+    /** {@code classFromIndex}: 0 is nil. Inline for a variable, else the helper evaluates it once. */
+    static LuaExpr classFromIndex(LuaExpr i, LuaTranslator tr) {
+        if (!(i instanceof LuaExprVarAccess)) {
+            return LuaAst.LuaExprFunctionCall(tr.classFromIndex, LuaAst.LuaExprlist(i));
+        }
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(i, LuaAst.LuaOpUnequals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaOpAnd(), i.copy()),
+            LuaAst.LuaOpOr(), LuaAst.LuaExprNull());
     }
 
     private static boolean isIntentionalThreadAbortCall(ImFunctionCall e) {
@@ -181,7 +234,9 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImMemberAccess e, LuaTranslator tr) {
-        LuaExpr res = LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), e.getVar().getName());
+        LuaExpr res = LuaAst.LuaExprArrayAccess(
+            LuaAst.LuaExprVarAccess(tr.fieldStorage(e.getVar())),
+            LuaAst.LuaExprlist(e.getReceiver().translateToLua(tr)));
         if (!e.getIndexes().isEmpty()) {
             LuaExprlist indexes = LuaAst.LuaExprlist();
             for (ImExpr index : e.getIndexes()) {
@@ -194,9 +249,7 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImMethodCall e, LuaTranslator tr) {
         ImMethod method = e.getMethod();
-        if (!method.getIsAbstract()
-            && method.getImplementation() != null
-            && method.getSubMethods().isEmpty()) {
+        if (LuaMethodCallLowering.canLowerDirectly(method)) {
             LuaExprlist args = LuaAst.LuaExprlist();
             args.add(e.getReceiver().translateToLua(tr));
             for (ImExpr arg : e.getArguments()) {
@@ -204,7 +257,39 @@ public class ExprTranslation {
             }
             return LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(method.getImplementation()), args);
         }
-        return LuaAst.LuaExprMethodCall(e.getReceiver().translateToLua(tr), tr.luaMethod.getFor(e.getMethod()), tr.translateExprList(e.getArguments()));
+        LuaExpr receiver = e.getReceiver().translateToLua(tr);
+        LuaExprlist args = LuaAst.LuaExprlist(receiver);
+        args.addAll(tr.translateExprList(e.getArguments()).removeAll());
+        if (isRepeatableRead(receiver)) {
+            // Evaluating the receiver twice has no side effect and costs less than a stub call
+            // which forwards varargs, so the descriptor lookup can sit at the call site.
+            return tr.inlineDispatchCall(method, receiver, args);
+        }
+        return LuaAst.LuaExprFunctionCall(tr.luaDispatchFunc.getFor(method), args);
+    }
+
+    /** A variable, a literal, or a table read / arithmetic built from those: safe and cheap to evaluate twice. */
+    private static boolean isRepeatableRead(LuaExpr e) {
+        if (e instanceof LuaExprVarAccess || e instanceof LuaExprIntVal) {
+            return true;
+        }
+        if (e instanceof LuaExprArrayAccess access) {
+            if (!(access.getLeft() instanceof LuaExprVarAccess)) {
+                return false;
+            }
+            for (LuaExpr index : access.getIndexes()) {
+                if (!isRepeatableRead(index)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (e instanceof LuaExprBinary binary) {
+            LuaOpBinary op = binary.getOp();
+            return (op instanceof LuaOpPlus || op instanceof LuaOpMinus || op instanceof LuaOpMult)
+                && isRepeatableRead(binary.getLeftExpr()) && isRepeatableRead(binary.getRight());
+        }
+        return false;
     }
 
     public static LuaExpr translate(ImNull e, LuaTranslator tr) {
@@ -220,15 +305,18 @@ public class ExprTranslation {
             } else if (e.getOp() == WurstOperator.NOTEQ) {
                 return LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), translateEquals(left, right, tr));
             }
+            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL
+                || e.getOp() == WurstOperator.JASS_MOD_INT || e.getOp() == WurstOperator.DIV_INT) {
+                // LuaNativeLowering.lowerDivMod rewrites every DIV_INT/MOD_INT/MOD_REAL/JASS_MOD_INT
+                // into a call against a portable IM function before the optimizer runs
+                // (so it can be inlined/constant-folded there). It should never survive
+                // to here - falling through to the default binary-op path below would
+                // silently use Lua's floored // and % instead of the truncating/
+                // Blizzard.j semantics Jass requires.
+                throw new Error("unexpected " + e.getOp() + " in Lua backend - should have been lowered by LuaNativeLowering.lowerDivMod");
+            }
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
-            if (e.getOp() == WurstOperator.MOD_INT || e.getOp() == WurstOperator.MOD_REAL) {
-                // Lua's % is floored; Wurst mod follows Blizzard.j's ModuloInteger/ModuloReal.
-                return LuaAst.LuaExprFunctionCall(tr.modFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            } else if (e.getOp() == WurstOperator.DIV_INT) {
-                // Lua's // is floored; Jass integer division truncates toward zero.
-                return LuaAst.LuaExprFunctionCall(tr.intDivFunction, LuaAst.LuaExprlist(leftExpr, rightExpr));
-            }
             LuaOpBinary op = e.getOp().luaTranslateBinary();
             return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
         } else if (e.getArguments().size() == 1) {
@@ -355,6 +443,39 @@ public class ExprTranslation {
         return translateEquals(leftExpr, rightExpr, t, tr);
     }
 
+    /** {@code nil -> 0, 0 -> sentinel, n -> n}; see {@link #translate(ImCast, LuaTranslator)}. */
+    private static LuaExpr oldGenericsToInt(LuaExpr x, LuaTranslator tr) {
+        if (!(x instanceof LuaExprVarAccess)) {
+            // LuaOldGenericsCasts gives every such cast a variable operand; this is a fallback.
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().toInt(), LuaAst.LuaExprlist(x));
+        }
+        // (x == 0 and sentinel or (x or 0))
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(x, LuaAst.LuaOpEquals(), LuaAst.LuaExprIntVal("0")),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(x.copy(), LuaAst.LuaOpOr(), LuaAst.LuaExprIntVal("0")));
+    }
+
+    /** {@code 0 -> nil, sentinel -> 0, n -> n}; the inverse of {@link #oldGenericsToInt}. */
+    private static LuaExpr oldGenericsFromInt(LuaExpr i, LuaTranslator tr) {
+        if (!(i instanceof LuaExprVarAccess)) {
+            return LuaAst.LuaExprFunctionCall(tr.oldGenericsHelpers().fromInt(), LuaAst.LuaExprlist(i));
+        }
+        // (i == sentinel and 0 or (i ~= 0 and i or nil))
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(i, LuaAst.LuaOpEquals(), LuaAst.LuaExprVarAccess(tr.oldGenericsZero())),
+                LuaAst.LuaOpAnd(), LuaAst.LuaExprIntVal("0")),
+            LuaAst.LuaOpOr(),
+            LuaAst.LuaExprBinary(
+                LuaAst.LuaExprBinary(
+                    LuaAst.LuaExprBinary(i.copy(), LuaAst.LuaOpUnequals(), LuaAst.LuaExprIntVal("0")),
+                    LuaAst.LuaOpAnd(), i.copy()),
+                LuaAst.LuaOpOr(), LuaAst.LuaExprNull()));
+    }
+
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
         if (t instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) t;
@@ -420,16 +541,19 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeIdOfObj e, LuaTranslator tr) {
-        return LuaAst.LuaExprFieldAccess(e.getObj().translateToLua(tr), TYPE_ID);
+        return LuaAst.LuaExprFieldAccess(
+            LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.objectClass),
+                LuaAst.LuaExprlist(e.getObj().translateToLua(tr))),
+            TYPE_ID);
     }
 
     public static LuaExpr translate(ImVarAccess e, LuaTranslator tr) {
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
+    /** Primitive-typed arrays carry their Wurst defaults through metatables, so every read is raw. */
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
-        LuaExpr access = translateArrayAccessRaw(e, tr);
-        return ensureByType(access, e.attrTyp(), tr);
+        return translateArrayAccessRaw(e, tr);
     }
 
     public static LuaExpr translateArrayAccessRaw(ImVarArrayAccess e, LuaTranslator tr) {
@@ -438,31 +562,6 @@ public class ExprTranslation {
             indexes.add(ie.translateToLua(tr));
         }
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
-    }
-
-    /**
-     * Wraps primitive-typed array reads in a type-normalizing helper call.
-     * NOTE (perf): the defaultArray metatable already guarantees a typed,
-     * non-nil default on every miss, so this is defensive hardening against
-     * values written from outside typed Wurst code. It costs a function call
-     * per array read; if that ever shows up in profiles, this is the place to
-     * reconsider (a regression test asserts the current behavior:
-     * LuaTranslationTests.stringArrayReadIsEnsured).
-     */
-    private static LuaExpr ensureByType(LuaExpr expr, ImType type, LuaTranslator tr) {
-        if (TypesHelper.isStringType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureStrFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isIntType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureIntFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isBoolType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureBoolFunction, LuaAst.LuaExprlist(expr));
-        }
-        if (TypesHelper.isRealType(type)) {
-            return LuaAst.LuaExprFunctionCall(tr.ensureRealFunction, LuaAst.LuaExprlist(expr));
-        }
-        return expr;
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
@@ -475,18 +574,56 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeVarDispatch imTypeVarDispatch, LuaTranslator tr) {
-        throw new Error("not implemented");
+        // Reaching the backend means specialization never supplied a concrete type for this
+        // dispatch and the code is reachable, since unreachable functions have been removed by now.
+        throw new CompileError(imTypeVarDispatch.attrTrace().attrSource(),
+            "Type class dispatch of " + imTypeVarDispatch.getTypeClassFunc().getName()
+                + " could not be resolved for the Lua target: the concrete type is not available"
+                + " where it is used.");
     }
 
+    /**
+     * Casts between {@code int} and an old-generics type parameter ({@code ImAnyType}). Such a value
+     * is already an int or nil when it enters generic code, because the call site converts it
+     * (handles to their object index, strings, reals and booleans through their TypeCasting
+     * functions; class instances are ids). The general object index helpers are for erased
+     * new-generics values, which are raw; applied to an int they box it into a wrapper table and an
+     * index entry that are never freed, so every distinct key or value a HashMap, HashList or
+     * HashSet ever saw stayed in memory.
+     *
+     * <p>What the boxing also did has to be kept. Null is nil in generic code and 0 as an int, and a
+     * class-typed caller uses the result as is, so 0 must come back as nil. An int value 0 is not
+     * null in generic code, so it must not become 0: it maps to one reserved sentinel, the smallest
+     * Lua integer, which truncates to 0 if it ever reaches a 32-bit native. Every other int passes
+     * through unchanged.
+     */
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
+        ImType fromType = imCast.getExpr().attrTyp();
         if (TypesHelper.isIntType(imCast.getToType())) {
-            if (TypesHelper.isStringType(imCast.getExpr().attrTyp())) {
+            if (TypesHelper.isStringType(fromType)) {
                 return LuaAst.LuaExprFunctionCall(tr.stringToIndexFunction, LuaAst.LuaExprlist(translated));
             }
+            if (fromType instanceof ImClassType) {
+                return classToIndex(translated);
+            }
+            if (fromType instanceof ImAnyType) {
+                return oldGenericsToInt(translated, tr);
+            }
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
-        } else if (imCast.getToType() instanceof ImClassType
-            || imCast.getToType() instanceof ImAnyType) {
+        } else if (imCast.getToType() instanceof ImClassType) {
+            if (imCast.getExpr().attrTyp() instanceof ImClassType) {
+                // Both sides are integer ids (or nil); nothing to normalise.
+                return translated;
+            }
+            return classFromIndex(translated, tr);
+        } else if (imCast.getToType() instanceof ImAnyType) {
+            if (fromType instanceof ImAnyType) {
+                return translated;
+            }
+            if (EliminateLocalTypes.isIntegerOrLocalInteger(fromType) || fromType instanceof ImClassType) {
+                return oldGenericsFromInt(translated, tr);
+            }
             return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
         } else {
             return translated;

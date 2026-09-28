@@ -25,7 +25,7 @@ public class WurstflectionProvider extends Provider {
         int typeIdInt = typeId.getVal();
         for (Map.Entry<ImClass, Integer> e : prog.attrTypeId().entrySet()) {
             if (e.getValue() == typeIdInt) {
-                ILconstString iLconstString = new ILconstString(calculateClassName(e.getKey()));
+                ILconstString iLconstString = ILconstString.fromText(calculateClassName(e.getKey()));
                 return Optional.of(iLconstString)
                     .orElseGet(() -> {
                         throw new InterpreterException("Could not determine type name for id " + typeId);
