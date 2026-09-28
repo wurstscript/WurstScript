@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
@@ -18,7 +19,8 @@ public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
     private int totalRewrites = 0;
     private final boolean showRewrites = false;
-    /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}), Lua's is exact. */
+    /** Jass {@code ==} on reals has a tolerance ({@link WurstOperator#JASS_REAL_EQUALITY_TOLERANCE}) and Jass
+     *  does not read every real literal exactly ({@link #foldRealForJass}); Lua is exact in both. */
     private boolean jassTarget;
 
     private static boolean isNumberLiteral(ImExpr e) {
@@ -330,7 +332,115 @@ public class SimpleRewrites implements OptimizerPass {
             && opc.getArguments().stream().anyMatch(arg -> TypesHelper.isRealType(arg.attrTyp()));
     }
 
+    /** The literal with the most decimals, and the largest one, measured to read exactly in Jass. */
+    private static final int MAX_EXACT_JASS_REAL_DECIMALS = 5;
+    private static final BigDecimal MAX_EXACT_JASS_REAL = new BigDecimal("2147483520");
+
+    /**
+     * Folds a real operation for Jass only where the game computes exactly the folded value.
+     * Measured on the 3.0.0 client, the Jass literal parser does not round to the nearest float:
+     * {@code 0.1} reads one float high and {@code 1.1} one float low, while short exact binary
+     * fractions such as {@code 0.5}, {@code 0.75}, {@code 123456.78125} and {@code 2147483520.0}
+     * read exactly. So both operands must be such literals, and an arithmetic result must be exact
+     * and printable as one; otherwise the map would compute a different float than the folded one.
+     * Two distinct such operands differ by at least 1/32, so the tolerance of Jass {@code ==} never
+     * decides a folded comparison.
+     */
+    private boolean foldRealForJass(ImOperatorCall opc, ImExpr left, ImExpr right) {
+        BigDecimal a = exactJassReal(left);
+        BigDecimal b = exactJassReal(right);
+        if (a == null || b == null) {
+            return false;
+        }
+        int cmp = a.compareTo(b);
+        BigDecimal exact;
+        switch (opc.getOp()) {
+            case GREATER:
+                opc.replaceBy(JassIm.ImBoolVal(cmp > 0));
+                return true;
+            case GREATER_EQ:
+                opc.replaceBy(JassIm.ImBoolVal(cmp >= 0));
+                return true;
+            case LESS:
+                opc.replaceBy(JassIm.ImBoolVal(cmp < 0));
+                return true;
+            case LESS_EQ:
+                opc.replaceBy(JassIm.ImBoolVal(cmp <= 0));
+                return true;
+            case EQ:
+                opc.replaceBy(JassIm.ImBoolVal(cmp == 0));
+                return true;
+            case NOTEQ:
+                opc.replaceBy(JassIm.ImBoolVal(cmp != 0));
+                return true;
+            case PLUS:
+                exact = a.add(b);
+                break;
+            case MINUS:
+                exact = a.subtract(b);
+                break;
+            case MULT:
+                exact = a.multiply(b);
+                break;
+            case DIV_INT:
+            case DIV_REAL:
+                if (b.signum() == 0) {
+                    return false;
+                }
+                try {
+                    exact = a.divide(b);
+                } catch (ArithmeticException nonTerminating) {
+                    return false;
+                }
+                break;
+            default:
+                // MOD_REAL becomes ModuloReal, several float operations in game
+                return false;
+        }
+        if (exact.signum() == 0 && (a.signum() < 0 || b.signum() < 0 || opc.getOp() == WurstOperator.MINUS)) {
+            // the sign of this zero depends on the game's rounding
+            return false;
+        }
+        if (!isExactJassReal(exact)) {
+            return false;
+        }
+        BigDecimal plain = exact.stripTrailingZeros();
+        opc.replaceBy(JassIm.ImRealVal((plain.scale() < 1 ? plain.setScale(1) : plain).toPlainString()));
+        return true;
+    }
+
+    /** The value of a number literal that Jass reads exactly, or null; see {@link #foldRealForJass}. */
+    private static @org.eclipse.jdt.annotation.Nullable BigDecimal exactJassReal(ImExpr e) {
+        if (e instanceof ImIntVal i) {
+            // up to 2^24 an int converts to a real exactly
+            return Math.abs((long) i.getValI()) <= (1 << 24) ? BigDecimal.valueOf(i.getValI()) : null;
+        }
+        if (e instanceof ImRealVal r) {
+            String text = r.getValR();
+            int dot = text.indexOf('.');
+            if (dot >= 0 && text.length() - dot - 1 > MAX_EXACT_JASS_REAL_DECIMALS) {
+                return null;
+            }
+            try {
+                BigDecimal value = new BigDecimal(text);
+                return isExactJassReal(value) ? value : null;
+            } catch (NumberFormatException notDecimal) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isExactJassReal(BigDecimal value) {
+        return value.abs().compareTo(MAX_EXACT_JASS_REAL) <= 0
+            && value.stripTrailingZeros().scale() <= MAX_EXACT_JASS_REAL_DECIMALS
+            && new BigDecimal(value.floatValue()).compareTo(value) == 0;
+    }
+
     private boolean optimizeRealRealMixed(ImOperatorCall opc, boolean wasViable, ImExpr left, ImExpr right) {
+        if (jassTarget) {
+            return foldRealForJass(opc, left, right);
+        }
         float f1 = asFloat(left);
         float f2 = asFloat(right);
         boolean isConditional = false;
@@ -356,10 +466,6 @@ public class SimpleRewrites implements OptimizerPass {
                 isConditional = true;
                 break;
             case EQ:
-                if (jassTarget && f1 != f2 && WurstOperator.jassRealEquals(f1, f2)) {
-                    // Jass counts these as equal, but its exact cutoff was not measured: leave them for the game
-                    return false;
-                }
                 result = f1 == f2;
                 isConditional = true;
                 break;

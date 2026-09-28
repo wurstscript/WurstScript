@@ -2363,8 +2363,8 @@ public class OptimizerTests extends WurstScriptTest {
             "    print(b)"
         );
         String out = Files.toString(new File("test-output/OptimizerTests_realRealMixed_precision_oneThird_literal_opt.j"), Charsets.UTF_8);
-        // Common 32-bit float for 1/3 is 0.33333334 — accept either a or b presence
-        assertTrue(out.contains("0.33333334"));
+        // Jass reads the literal 0.333333343 one float low, so 1/3 is left for the game
+        assertFalse(out.contains("0.33333334"), out);
         // Also guard against scientific notation
         assertFalse(out.matches("(?s).*E[-+]?\\d+.*"));
     }
@@ -2473,8 +2473,8 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(out.contains("exitwhen ( not (a == b))") && out.contains("exitwhen ( not (a != b))"), out);
     }
 
-    /** Real literals closer than 0.001 are equal in Jass but not in Lua, and where exactly the Jass
-     *  cutoff lies was not measured, so the Jass build leaves them for the game to compare. */
+    /** Real literals closer than 0.001 are equal in Jass but not in Lua. Jass does not read these
+     *  literals exactly, so the Jass build leaves them for the game to compare. */
     @Test
     public void nearlyEqualRealLiteralsAreNotFoldedForJass() throws Exception {
         test().executeProg(true).testLua(false).lines(
@@ -2491,8 +2491,40 @@ public class OptimizerTests extends WurstScriptTest {
             "        testFail(\"folded\")"
         );
         String out = Files.toString(new File("test-output/OptimizerTests_nearlyEqualRealLiteralsAreNotFoldedForJass_opt.j"), Charsets.UTF_8);
-        assertTrue(out.contains("1.0 == 1.0005"), out);
-        assertFalse(out.contains("1.002") || out.contains("!="), out);
+        assertTrue(out.contains("1.0 == 1.0005") && out.contains("1.0 == 1.002") && out.contains("1.0 != 1.0005"), out);
+    }
+
+    /** Measured on the 3.0.0 client, Jass reads 0.1 one float high and 1.1 one float low but short exact
+     *  binary fractions exactly, so real folding for Jass only reads and writes those, and only where
+     *  the operation is exact. */
+    @Test
+    public void jassRealFoldingOnlyUsesExactLiterals() throws Exception {
+        test().lines(
+            "package test",
+            "native print(real r)",
+            "native printb(boolean b)",
+            "init",
+            "    print(1.0 / 3.0)",
+            "    print(0.1 + 0.2)",
+            "    print(1.1 * 2.0)",
+            "    print(16777216.0 + 1.0)",
+            "    print(1.0 + 0.015625)",
+            "    print(5.5 % 2.0)",
+            "    printb(0.1 < 0.2)",
+            "    print(2.5 * 0.5)",
+            "    print(1.0 + 0.03125)",
+            "    print(0.5 - 2.0)",
+            "    print(3 / 4)",
+            "    printb(0.5 < 0.75)"
+        );
+        String out = Files.toString(new File("test-output/OptimizerTests_jassRealFoldingOnlyUsesExactLiterals_opt.j"), Charsets.UTF_8);
+        for (String unfolded : new String[] {"1.0 / 3.0", "0.1 + 0.2", "1.1 * 2.0", "16777216.0 + 1.0",
+                "1.0 + 0.015625", "ModuloReal(5.5, 2.0)", "0.1 < 0.2"}) {
+            assertTrue(out.contains(unfolded), unfolded + " must be left for the game:\n" + out);
+        }
+        for (String folded : new String[] {"print(1.25)", "print(1.03125)", "print(-1.5)", "print(0.75)", "printb(true)"}) {
+            assertTrue(out.contains(folded), folded + " should be folded:\n" + out);
+        }
     }
 
     @Test
