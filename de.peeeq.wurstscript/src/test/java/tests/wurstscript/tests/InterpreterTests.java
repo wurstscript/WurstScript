@@ -863,6 +863,36 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** The same handle cast to int twice gives the same index. Only an old-generics value can hold a
+     *  raw handle here, and pjass rejects such a program (a hashtable passed as an integer), so the
+     *  cast runs at compiletime on the Lua path. */
+    @Test
+    public void castHandleToIntIsStable() {
+        test().testLua(true).luaOnly(true).executeProg(true).runCompiletimeFunctions(true).lines(
+            "type agent extends handle",
+            "type hashtable extends agent",
+            "package Test",
+            "native testSuccess()",
+            "@extern native InitHashtable() returns hashtable",
+            "class Box<T>",
+            "    T val",
+            "    construct(T v)",
+            "        val = v",
+            "    function index() returns int",
+            "        return val castTo int",
+            "function indexOf<S: handle>(S h) returns int",
+            "    return new Box<S>(h).index()",
+            "@compiletime boolean stable = false",
+            "@compiletime function check()",
+            "    let a = InitHashtable()",
+            "    let b = InitHashtable()",
+            "    stable = indexOf(a) == indexOf(a) and indexOf(a) != indexOf(b)",
+            "init",
+            "    if stable",
+            "        testSuccess()"
+        );
+    }
+
     /** Lua compares reals exactly with == too, so here the backends differ on purpose. */
     @Test
     public void luaRealEqualityIsExact() {

@@ -33,7 +33,7 @@ public class ProgramState extends State implements AutoCloseable {
     private ImProg prog;
     private final Map<ImClass, Object> classKeyLookup = new HashMap<>();
     private final Map<Object, ObjectIdSpace> objectIdSpaces = new HashMap<>();
-    private final Int2ObjectOpenHashMap<IlConstHandle> handleMap = new Int2ObjectOpenHashMap<>();
+    private final Map<IlConstHandle, ILconstInt> handleIndexes = new HashMap<>();
     private final Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private final Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private final boolean isCompiletime;
@@ -619,12 +619,9 @@ public class ProgramState extends State implements AutoCloseable {
         return found;
     }
 
-    public Map<Integer, IlConstHandle> getHandleMap() {
-        return handleMap;
-    }
-
-    public ILconst getHandleByIndex(int val) {
-        return handleMap.get(val);
+    /** The index a handle is cast to: the same handle always gets the same index. */
+    public ILconstInt getHandleIndex(IlConstHandle handle) {
+        return handleIndexes.computeIfAbsent(handle, h -> ILconstInt.create(handleIndexes.size() + 1));
     }
 
     public ILconstObject ensureObject(ImClassType clazz, int objectId, Element trace) {

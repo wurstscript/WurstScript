@@ -523,20 +523,14 @@ public class EvaluateExpr {
                 return ILconstInt.create(((ILconstObject) res).getObjectId());
             }
             if (res instanceof IlConstHandle) {
-                int id = globalState.getHandleMap().size() + 1;
-                globalState.getHandleMap().put(id, (IlConstHandle) res);
-                return ILconstInt.create(id);
+                return globalState.getHandleIndex((IlConstHandle) res);
             }
         }
-        if (res instanceof ILconstInt) {
-            if (targetType instanceof ImClassType) {
-                // 0 is the null reference, and an id without a live object stays the integer, as on Jass.
-                ILconstObject obj = globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
-                return obj == null ? res : obj;
-            }
-            if (targetType instanceof IlConstHandle) {
-                return globalState.getHandleByIndex(((ILconstInt) res).getVal());
-            }
+        // No cast to a handle type type-checks, so an int only ever becomes an object here.
+        if (res instanceof ILconstInt && targetType instanceof ImClassType) {
+            // 0 is the null reference, and an id without a live object stays the integer, as on Jass.
+            ILconstObject obj = globalState.getObjectByIndex(((ILconstInt) res).getVal(), (ImClassType) targetType);
+            return obj == null ? res : obj;
         }
         return res;
     }
