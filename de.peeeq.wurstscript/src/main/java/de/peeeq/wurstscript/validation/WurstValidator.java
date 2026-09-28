@@ -971,6 +971,12 @@ public class WurstValidator {
 
 
 
+    /** True when the nearest generic declaration around e has the NEW flavor, as flavorOf would say. */
+    private boolean isInsideNewGenericOwner(Element e) {
+        AstElementWithTypeParameters owner = nearestGenericOwner(e);
+        return owner != null && owner.getTypeParameters().stream().anyMatch(WurstValidator::isTypeParamNewGeneric);
+    }
+
     /** Walk up and find the *nearest* generic declaration owning the current node (class/interface/func). */
     private @Nullable AstElementWithTypeParameters nearestGenericOwner(Element e) {
         Element p = e;
@@ -2921,6 +2927,10 @@ public class WurstValidator {
             if (isTypeParamNewGeneric(tp)) {
                 checkBoundsSatisfied(e, tp, typ);
             } else { // old style generics
+                // A type written inside a new-generic declaration already gets the flavor error.
+                if (!(e instanceof ModuleUse) && !(e instanceof TypeExpr && isInsideNewGenericOwner(e))) {
+                    checkOldGenericArgument(e, tp, typ);
+                }
 
                 if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
                     String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
@@ -3004,9 +3014,36 @@ public class WurstValidator {
         if (mapping == null) {
             return;
         }
+        FunctionDefinition callee = sig.getDef();
         for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
             checkBoundsSatisfied(call, t._1(), t._2().getBaseType());
+            // A generic function's own parameters are bound here, often by inference. Those of the
+            // receiver's class are not: they were checked where the receiver's type was chosen.
+            if (!isTypeParamNewGeneric(t._1()) && callee instanceof AstElementWithTypeParameters owner
+                    && owner.getTypeParameters().contains(t._1())) {
+                checkOldGenericArgument(call, t._1(), t._2().getBaseType());
+            }
         }
+    }
+
+    /**
+     * An old-style generic stores its type parameter as an integer, converting other types through
+     * their toIndex and fromIndex functions. Those are chosen before new-style generics are
+     * specialised, so a new-style type parameter would reach it unconverted. None is guaranteed to
+     * be stored as an integer: even an unbounded one may be instantiated with a handle or a real.
+     */
+    private void checkOldGenericArgument(Element location, TypeParamDef tp, WurstType typ) {
+        TypeParamDef arg = asTypeParam(typ.normalize());
+        if (arg == null || !isTypeParamNewGeneric(arg)) {
+            return;
+        }
+        String generic = ((NameDef) tp.getParent().getParent()).getName();
+        String reason = TypeClassConstraints.hasHandleBound(arg)
+                ? arg.getName() + " is a handle type"
+                : arg.getName() + " may be a handle, real or string";
+        location.addError("Old-style generic " + generic + " cannot be instantiated with the new-style type parameter "
+                + arg.getName() + ": " + generic + " stores " + tp.getName() + " as an integer, but " + reason
+                + ".\nMake " + generic + " new-style by declaring its type parameter as <" + tp.getName() + ":>.");
     }
 
     /**
