@@ -51,7 +51,7 @@ public class GenAbilities {
 
         public FieldData(String id, String displayName, String type, int data, boolean useLevels) {
             this.id = id;
-            this.displayName = displayName;
+            this.displayName = displayName.trim();
             this.type = INTEGER_STORAGE_FIELDS.contains(id) ? "int" : type;
             this.data = data;
             this.useLevels = useLevels;
