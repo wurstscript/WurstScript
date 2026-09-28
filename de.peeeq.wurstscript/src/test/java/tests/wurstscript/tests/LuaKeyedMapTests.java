@@ -675,6 +675,39 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertTrue("one untyped get stub, not one per lowering pass (" + stubs + ")", stubs <= 1);
     }
 
+    /** A read reached through a delegating index operator is typed too, once inlining exposes it. */
+    @Test
+    public void delegatedFastKeyedMapIntReadsAreTyped() throws IOException {
+        test().testLua(true).inline().executeProg(true).withStdLib().lines(fastKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "class Outer<K: handle, V:>",
+            "    FastKeyedMap<K, V> inner = new FastKeyedMap<K, V>()",
+            "    function op_index(K key) returns V",
+            "        return inner.get(key)",
+            "timer array keys",
+            "int total = 0",
+            "function readAll(Outer<timer, int> m)",
+            "    for i = 0 to 2",
+            "        total += m[keys[i]]",
+            "init",
+            "    for i = 0 to 2",
+            "        keys[i] = CreateTimer()",
+            "    let outer = new Outer<timer, int>()",
+            "    outer.inner.put(keys[0], 40)",
+            "    outer.inner.put(keys[1], 2)",
+            "    readAll(outer)",
+            "    if total != 42",
+            "        testFail(\"ints \" + I2S(total))",
+            "    testSuccess()",
+            "endpackage"));
+
+        String init = getFunctionBody(compiled("delegatedFastKeyedMapIntReadsAreTyped"), "init_Test");
+        assertTrue("the delegated int read is the typed read: " + init, init.contains("__wurst_keyedMapGetInt("));
+        assertFalse("no ensure left on the delegated int read: " + init,
+            init.contains("math.tointeger") || init.contains("__wurst_ensureInt("));
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;
