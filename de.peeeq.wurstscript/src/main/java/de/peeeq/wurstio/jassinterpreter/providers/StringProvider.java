@@ -105,8 +105,12 @@ public class StringProvider extends Provider {
      * engine does, which is what shows at nine digits: its R2SW(r, 1, 9) is not the exact decimal.
      */
     private static long[] roundedParts(float value, int precision) {
-        long whole = (long) value;
-        float fraction = value - whole;
+        // Math.floor is exact for any float, and the integer part is wrapped to 32 bits by remainder
+        // rather than by a cast to long, which would saturate above Long.MAX_VALUE. Past 2^56 every
+        // float is a multiple of 2^32, so its wrapped part is 0.
+        double floor = Math.floor(value);
+        long whole = (long) (floor % 4294967296.0);
+        float fraction = (float) (value - floor);
         long limit = (long) Math.pow(10, precision);
         long digits = (long) (fraction * (float) limit + 0.5f);
         if (digits >= limit) {

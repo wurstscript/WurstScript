@@ -436,6 +436,8 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2S wraps\", R2S(3000000000.), \"-1294967296.000\")",
             "    measured(\"R2S negative wraps\", R2S(-3000000000.), \"1294967296.000\")",
             "    measured(\"R2S 1e10\", R2S(10000000000.), \"1410065408.000\")",
+            // Past 2^56 a real is a multiple of 2^32, so its integer part wraps to 0.
+            "    measured(\"R2S and R2SW beyond the long range\", R2S(100000000000000000000.) + \",\" + R2SW(100000000000000000000., 1, 2), \"0.000,0.00\")",
             "    measured(\"R2SW padded\", R2SW(1.5, 8, 2), \"     1.50\")",
             "    measured(\"R2SW negative padded\", R2SW(-1.5, 8, 3), \"-    1.500\")",
             "    measured(\"R2SW precision 0\", R2SW(1.5, 2, 0), \" 2.0\")",
