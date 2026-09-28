@@ -234,13 +234,17 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
                 // Looked up first: it checks the intrinsic's shape before any argument is read.
                 ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                JassKeyedMapLowering.checkIntRepresented(f,
+                    keyedMapCallType(globalState, f, caller, f.getParameters().get(2).getType()));
                 runFunc(globalState, put, caller, args[0], args[1], keyedMapIntValue(globalState, args[2]));
                 return new LocalState();
             }
             if (JassKeyedMapLowering.isUnloweredGetNative(f)) {
                 ImFunction get = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
+                ImType valueType = keyedMapCallType(globalState, f, caller, f.getReturnType());
+                JassKeyedMapLowering.checkIntRepresented(f, valueType);
                 ILconst stored = runFunc(globalState, get, caller, args[0], args[1]).getReturnVal();
-                return new LocalState(keyedMapValueOfInt(globalState, stored, keyedMapValueType(globalState, f, caller)));
+                return new LocalState(keyedMapValueOfInt(globalState, stored, valueType));
             }
 
             // --- local state & bind parameters ---
@@ -541,9 +545,12 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             + value.print() + ".");
     }
 
-    /** The value type a keyedMapGetNative call returns, resolved through the calling frames. */
-    private static ImType keyedMapValueType(ProgramState globalState, ImFunction f, @Nullable Element caller) {
-        ImType declared = f.getReturnType();
+    /**
+     * A type the keyed-map intrinsic declares, as this call instantiates it: a type variable is taken
+     * from the call's type arguments and resolved through the calling frames.
+     */
+    private static ImType keyedMapCallType(ProgramState globalState, ImFunction f, @Nullable Element caller,
+                                           ImType declared) {
         if (declared instanceof ImTypeVarRef ref && caller instanceof ImFunctionCall call) {
             int index = f.getTypeVariables().indexOf(ref.getTypeVariable());
             if (index >= 0 && index < call.getTypeArguments().size()) {

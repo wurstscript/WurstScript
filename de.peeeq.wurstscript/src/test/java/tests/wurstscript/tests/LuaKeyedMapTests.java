@@ -505,6 +505,23 @@ public class LuaKeyedMapTests extends WurstScriptTest {
         assertFalse(failure.getMessage(), failure.getMessage().contains("ArrayIndexOutOfBounds"));
     }
 
+    /** A handle-valued specialization is rejected in the interpreter too, even with a null value. */
+    @Test
+    public void handleValuedGenericPutIsReportedWhenInterpreted() {
+        Error failure = expectThrows(Error.class, () -> test().withStdLib().executeTests().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapPut(int map, handle key, int value)",
+            "    (map castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int map, K key, V value)",
+            "    skip",
+            "@Test function putANullUnit()",
+            "    keyedMapPutNative<unit, unit>((new Table()) castTo int, CreateUnit(Player(0), 'hfoo', 0., 0., 0.), null)",
+            "endpackage"));
+        assertTrue(failure.getMessage(), failure.getMessage()
+            .contains("keyedMapPutNative requires an int map, a handle key, and an int-represented value"));
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;

@@ -68,6 +68,20 @@ public final class JassKeyedMapLowering {
         return findFallback(prog, packageOf(f), f, put ? PUT : GET_INT, put);
     }
 
+    /**
+     * Raises this pass's diagnostic unless valueType, the value type a call resolves to, has Jass's
+     * integer representation: an int or a class reference. The interpreter checks each call with it,
+     * so a specialization the Jass build rejects cannot pass there.
+     */
+    public static void checkIntRepresented(ImFunction f, ImType valueType) {
+        if (TypesHelper.isIntType(valueType) || valueType instanceof ImClassType) {
+            return;
+        }
+        throw invalidSpecialization(f, PUT_NATIVE.equals(intrinsicName(f))
+            ? "keyedMapPutNative requires an int map, a handle key, and an int-represented value"
+            : "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+    }
+
     private static void lowerPut(ImProg prog, ImFunction f) {
         if (f.getParameters().size() != 3 || !(f.getReturnType() instanceof ImVoid)
             || !TypesHelper.isIntType(f.getParameters().get(0).getType())
