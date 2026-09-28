@@ -957,8 +957,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // Calls outside loops keep their established method/slot representation.
             beginPhase(5, "lower monomorphic Lua method calls");
             LuaMethodCallLowering.transform(imProg);
-            // The lowered calls expose typed keyed-map reads behind wrappers such as FastKeyedMap.get.
-            LuaTypedKeyedReads.transform(imProg, imTranslator2);
             imTranslator.assertProperties();
             timeTaker.endPhase();
 

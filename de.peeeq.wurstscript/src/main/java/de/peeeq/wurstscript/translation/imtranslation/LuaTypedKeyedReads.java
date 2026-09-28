@@ -33,8 +33,10 @@ import java.util.Set;
  * whole. Each wrapper gets a typed twin per type, whose other statements stay as they are and whose
  * returned value is the typed read or the next twin, called directly. This has to happen before
  * inlining: the inliner expands the ensure in its first round, before a later round exposes the read
- * behind a delegation. Only an ensured function call starts a chain, not a dispatching method call:
- * {@link LuaMethodCallLowering} turns the hot ones into function calls, and this runs again after it.
+ * behind a delegation. A chain starts at an ensured function call, or at an ensured method call that
+ * cannot dispatch anywhere else, in a loop or not: such a call becomes a direct call of the twin, the
+ * way the Lua emitter prints it anyway. A read in a function a hot loop calls, such as a map lookup in
+ * a library, is folded too. A method call that can dispatch is left alone.
  *
  * <p>Stubs are matched by identity, through the registry {@link LuaNativeLowering#lowerKeyedTables}
  * fills, never by their generated names.
@@ -99,19 +101,22 @@ public final class LuaTypedKeyedReads {
         }
 
         private void plan(ImExpr ensured, ImExpr value, String stubName, List<Runnable> rewrites) {
-            if (!(value instanceof ImFunctionCall read)) {
-                return;
+            // The replacement copies the arguments when it runs, after the rewrites of reads nested in them.
+            if (value instanceof ImFunctionCall read) {
+                ImFunction target;
+                if (read.getFunc() == untypedGet) {
+                    target = typedStub(stubName);
+                } else if (isWrapper(read.getFunc())) {
+                    target = twin(read.getFunc(), stubName);
+                } else {
+                    return;
+                }
+                rewrites.add(() -> ensured.replaceBy(call(read.attrTrace(), target,
+                    read.getTypeArguments().copy(), read.getArguments().copy())));
+            } else if (value instanceof ImMethodCall m && isReadSource(m)) {
+                ImFunction target = twin(m.getMethod().getImplementation(), stubName);
+                rewrites.add(() -> ensured.replaceBy(directCall(m, target)));
             }
-            ImFunction target;
-            if (read.getFunc() == untypedGet) {
-                target = typedStub(stubName);
-            } else if (isWrapper(read.getFunc())) {
-                target = twin(read.getFunc(), stubName);
-            } else {
-                return;
-            }
-            rewrites.add(() -> ensured.replaceBy(call(read.attrTrace(), target,
-                read.getTypeArguments().copy(), read.getArguments().copy())));
         }
 
         private boolean isWrapper(ImFunction f) {
@@ -171,12 +176,8 @@ public final class LuaTypedKeyedReads {
                 replacement = call(c.attrTrace(), twin(c.getFunc(), stubName), c.getTypeArguments().copy(),
                     c.getArguments().copy());
             } else {
-                // A method call nothing overrides, called directly as LuaMethodCallLowering would.
                 ImMethodCall m = (ImMethodCall) source;
-                ImExprs args = JassIm.ImExprs(m.getReceiver().copy());
-                args.addAll(m.getArguments().copy().removeAll());
-                replacement = call(m.attrTrace(), twin(m.getMethod().getImplementation(), stubName),
-                    m.getTypeArguments().copy(), args);
+                replacement = directCall(m, twin(m.getMethod().getImplementation(), stubName));
             }
             source.replaceBy(replacement);
             additions.add(copy);
@@ -187,6 +188,13 @@ public final class LuaTypedKeyedReads {
     private static ImFunctionCall call(de.peeeq.wurstscript.ast.Element trace, ImFunction f, ImTypeArguments typeArgs,
                                        ImExprs args) {
         return JassIm.ImFunctionCall(trace, f, typeArgs, args, false, CallType.NORMAL);
+    }
+
+    /** A call of f in place of a method call nothing overrides, receiver first, as LuaMethodCallLowering lowers it. */
+    private static ImFunctionCall directCall(ImMethodCall m, ImFunction f) {
+        ImExprs args = JassIm.ImExprs(m.getReceiver().copy());
+        args.addAll(m.getArguments().copy().removeAll());
+        return call(m.attrTrace(), f, m.getTypeArguments().copy(), args);
     }
 
     private static @Nullable String typedStubForEnsure(@Nullable ImFunction f, ImTranslator translator) {
