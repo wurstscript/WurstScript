@@ -334,6 +334,9 @@ public class InterpreterTests extends WurstScriptTest {
             "    RemoveUnit(w)",
             "    if BlzIsUnitSelectable(w)",
             "        testFail(\"removed\")",
+            // As in game, where a removed unit reads alive until the removal is reported.
+            "    if not UnitAlive(w)",
+            "        testFail(\"removed unit alive in the instant it is removed\")",
             "    if BlzIsUnitSelectable(null) or UnitAlive(null)",
             "        testFail(\"null\")",
             "    testSuccess()"

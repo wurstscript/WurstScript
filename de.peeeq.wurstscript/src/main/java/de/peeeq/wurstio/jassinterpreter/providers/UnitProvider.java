@@ -443,6 +443,9 @@ public class UnitProvider extends Provider {
                 && !unitMock.locust && isAlive(unitMock));
     }
 
+    /** Measured on the 3.0.0 client: a removed unit still reads alive in the instant it is removed, before
+     *  the engine reports the removal, just as it keeps its type id ({@link #RemoveUnit} models that same
+     *  instant). It is unselectable and hidden by then, which {@link #BlzIsUnitSelectable} reflects. */
     public ILconstBool UnitAlive(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
         return ILconstBool.instance(unitMock != null && isAlive(unitMock));
