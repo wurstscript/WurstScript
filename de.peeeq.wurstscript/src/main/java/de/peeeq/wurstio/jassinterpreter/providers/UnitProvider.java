@@ -26,6 +26,7 @@ import java.util.WeakHashMap;
 
 public class UnitProvider extends Provider {
     private static final Map<String, Integer> ORDER_IDS = new LinkedHashMap<>();
+    private static final int LOCUST_ABILITY_ID = 0x416c6f63; // 'Aloc'
     private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
     private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
     private final Set<UnitMock> units;
@@ -202,7 +203,12 @@ public class UnitProvider extends Provider {
 
     public void ShowUnit(IlConstHandle unit, ILconstBool show) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) unitMock.hidden = !show.getVal();
+        if (unitMock == null) return;
+        // Showing a hidden unit that no longer has Locust is what clears the Locust state in game.
+        if (show.getVal() && unitMock.hidden && !unitMock.abilityLevels.containsKey(LOCUST_ABILITY_ID)) {
+            unitMock.locust = false;
+        }
+        unitMock.hidden = !show.getVal();
     }
 
     public ILconstBool IsUnitHidden(IlConstHandle unit) {
@@ -423,6 +429,23 @@ public class UnitProvider extends Provider {
         if (unitMock != null) unitMock.invulnerable = flag.getVal();
     }
 
+    /** Measured on the 3.0.0 client: hidden, dead and removed units are unselectable, and so is a unit
+     *  that had Locust, even after the ability is removed again. */
+    public ILconstBool BlzIsUnitSelectable(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstBool.instance(unitMock != null && !unitMock.removed && !unitMock.hidden
+                && !unitMock.locust && isAlive(unitMock));
+    }
+
+    public ILconstBool UnitAlive(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstBool.instance(unitMock != null && isAlive(unitMock));
+    }
+
+    private static boolean isAlive(UnitMock unitMock) {
+        return unitMock.states.get("unitstate0").getVal() > 0;
+    }
+
     public ILconstBool BlzIsUnitInvulnerable(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
         return ILconstBool.instance(unitMock != null && unitMock.invulnerable);
@@ -500,6 +523,9 @@ public class UnitProvider extends Provider {
             return ILconstBool.FALSE;
         }
         unitMock.abilityLevels.putIfAbsent(abilityId.getVal(), ILconstInt.create(1));
+        if (abilityId.getVal() == LOCUST_ABILITY_ID) {
+            unitMock.locust = true;
+        }
         return ILconstBool.TRUE;
     }
 
