@@ -248,4 +248,33 @@ public class DeterministicChecks extends WurstScriptTest {
         }
     }
 
+    @Test
+    public void packageFunctionAndClosureNamingIsDeterministic() throws IOException {
+        test().testLua(true).compilationUnits(
+            compilationUnit("PkgA.wurst",
+                "package PkgA",
+                "interface Callback",
+                "    function run()",
+                "public function update()",
+                "    Callback cb = () -> begin",
+                "        int x = 1",
+                "    end",
+                "    cb.run()",
+                "init",
+                "    update()"
+            ),
+            compilationUnit("PkgB.wurst",
+                "package PkgB",
+                "public function update()",
+                "init",
+                "    update()"
+            )
+        );
+
+        String output = Files.toString(new File("test-output/lua/DeterministicChecks_packageFunctionAndClosureNamingIsDeterministic.lua"), Charsets.UTF_8);
+        AssertJUnit.assertTrue(output.contains("PkgA__update"));
+        AssertJUnit.assertTrue(output.contains("PkgB__update"));
+        AssertJUnit.assertTrue(output.contains("Callback_L"));
+    }
+
 }

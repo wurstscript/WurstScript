@@ -180,6 +180,15 @@ public class LuaTranslator {
             String name = a.getName();
             if (!a.isExtern() && !a.isBj() && !a.isNative()
                 && !isFixedEntryPoint(a) && !NamePreservation.isPreserved(a)) {
+                if (a.getTrace() instanceof FunctionDefinition) {
+                    FunctionDefinition fd = (FunctionDefinition) a.getTrace();
+                    if (fd.attrNearestStructureDef() == null && fd.attrNearestPackage() instanceof WPackage) {
+                        String pkgName = ((WPackage) fd.attrNearestPackage()).getName();
+                        if (!name.startsWith(pkgName + "__") && !name.startsWith(pkgName + "_")) {
+                            name = pkgName + "__" + name;
+                        }
+                    }
+                }
                 name = uniqueName(name);
             } else if (isFixedEntryPoint(a) || NamePreservation.isPreserved(a)) {
                 usedNames.add(name);

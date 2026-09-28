@@ -1331,6 +1331,10 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         } else if (e instanceof OnDestroyDef) {
             return "ondestroy_" + e.attrNearestClassDef().getName();
         } else if (e instanceof ExprClosure) {
+            de.peeeq.wurstscript.parser.WPos pos = e.attrSource();
+            if (pos != null) {
+                return e.attrNearestNamedScope().getName() + "__closure_L" + pos.getLine() + "_C" + pos.getStartColumn();
+            }
             return e.attrNearestNamedScope().getName() + "_closure";
         }
         throw new RuntimeException("unhandled case: " + e.getClass().getName());
