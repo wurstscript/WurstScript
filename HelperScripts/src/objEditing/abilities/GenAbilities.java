@@ -38,6 +38,11 @@ public class GenAbilities {
     }
 
     static class FieldData {
+        // AbilityMetaSLK labels several integer-backed flag/enum fields as strings.
+        // ObjectDefinition's typed setters and the game object format store these as ints.
+        private static final Set<String> INTEGER_STORAGE_FIELDS = Sets.newHashSet(
+                "Eme2", "Hca4", "Hsb3", "Ncl2", "Ncl3", "Nsi1", "Poa5", "Poi4", "Rej3", "Spo4", "irl3");
+
         String id;
         String displayName;
         String type;
@@ -47,7 +52,7 @@ public class GenAbilities {
         public FieldData(String id, String displayName, String type, int data, boolean useLevels) {
             this.id = id;
             this.displayName = displayName;
-            this.type = type;
+            this.type = INTEGER_STORAGE_FIELDS.contains(id) ? "int" : type;
             this.data = data;
             this.useLevels = useLevels;
         }
@@ -204,7 +209,9 @@ public class GenAbilities {
         System.err.println("Common fields: " + commonData.size());
         System.err.println("Specific ability groups: " + specificData.keySet().size());
 
-        ExistingAbilityData existingAbilityData = readExistingAbilityData();
+        Set<String> currentAbilityIds = new java.util.HashSet<>(abilityNames.keySet());
+        currentAbilityIds.addAll(specificData.keySet());
+        ExistingAbilityData existingAbilityData = readExistingAbilityData(currentAbilityIds);
         Set<String> basePresetFunctionNames = existingAbilityData.basePresetFunctionNames;
 
         // Propagate specific fields to child abilities via inheritance (alias -> code parent).
@@ -256,9 +263,10 @@ public class GenAbilities {
             for (String spell : allSpells) {
                 String spellName = abilityNames.get(spell);
                 if (spellName == null) spellName = spell;
-                String constantName = resolveConstantName(toCamelCase(spellName), spell, existingAbilityData.constantToId);
+                String constantName = resolveConstantName(toCamelCase(spellName), spell,
+                        existingAbilityData.constantToId, existingAbilityData.constantNameById);
                 String className = resolveClassName("AbilityDefinition" + spellName, spell,
-                        existingAbilityData.classNameToId);
+                        existingAbilityData.classNameToId, existingAbilityData.classNameById);
                 spellToConstant.put(spell, constantName);
                 spellToClassName.put(spell, className);
             }
@@ -275,7 +283,7 @@ public class GenAbilities {
             String spellName = abilityNames.getOrDefault(spell, spell);
             String constantName = spellToConstant.getOrDefault(spell, toCamelCase(spellName));
             String className = spellToClassName.getOrDefault(spell, resolveClassName("AbilityDefinition" + spellName,
-                    spell, existingAbilityData.classNameToId));
+                    spell, existingAbilityData.classNameToId, existingAbilityData.classNameById));
 
             // Main HelperScripts output (standalone, uses raw id)
             println("");
@@ -355,11 +363,13 @@ public class GenAbilities {
     private static class ExistingAbilityData {
         Map<String, String> constantToId = new HashMap<>();
         Map<String, String> originalConstantToId = new HashMap<>();
+        Map<String, String> constantNameById = new HashMap<>();
         Map<String, String> classNameToId = new HashMap<>();
+        Map<String, String> classNameById = new HashMap<>();
         Set<String> basePresetFunctionNames = Sets.newHashSet();
     }
 
-    private static ExistingAbilityData readExistingAbilityData() throws IOException {
+    private static ExistingAbilityData readExistingAbilityData(Set<String> currentAbilityIds) throws IOException {
         File stdlibAbilityIds = new File("../../WurstStdlib2/wurst/_wurst/assets/AbilityIds.wurst");
         File stdlibAbilityEditing = new File("../../WurstStdlib2/wurst/objediting/AbilityObjEditing.wurst");
         if (!stdlibAbilityIds.isFile() || !stdlibAbilityEditing.isFile()) {
@@ -374,6 +384,12 @@ public class GenAbilities {
         while (idMatcher.find()) {
             result.constantToId.put(idMatcher.group(1), idMatcher.group(2));
         }
+        // Keep stable public names only for IDs that still exist in the current game data.
+        // Older patch-only entries belong to their patch-specific stdlib branches.
+        result.constantToId.entrySet().removeIf(entry -> !currentAbilityIds.contains(entry.getValue()));
+        for (Map.Entry<String, String> entry : result.constantToId.entrySet()) {
+            result.constantNameById.putIfAbsent(entry.getValue(), entry.getKey());
+        }
         result.originalConstantToId.putAll(result.constantToId);
 
         String source = Files.toString(stdlibAbilityEditing, Charsets.UTF_8);
@@ -384,7 +400,10 @@ public class GenAbilities {
             Matcher classIdMatcher = classIdPattern.matcher(classMatcher.group(2));
             if (classIdMatcher.find()) {
                 String rawId = result.constantToId.get(classIdMatcher.group(1));
-                if (rawId != null) result.classNameToId.put(classMatcher.group(1), rawId);
+                if (rawId != null) {
+                    result.classNameToId.put(classMatcher.group(1), rawId);
+                    result.classNameById.putIfAbsent(rawId, classMatcher.group(1));
+                }
             }
         }
 
@@ -401,7 +420,10 @@ public class GenAbilities {
         return result;
     }
 
-    private static String resolveConstantName(String preferred, String rawId, Map<String, String> knownIds) {
+    private static String resolveConstantName(String preferred, String rawId, Map<String, String> knownIds,
+            Map<String, String> namesById) {
+        String existingName = namesById.get(rawId);
+        if (existingName != null) return existingName;
         String candidate = preferred;
         String candidateId = knownIds.get(candidate);
         if (candidateId != null && !candidateId.equals(rawId)) {
@@ -414,10 +436,14 @@ public class GenAbilities {
             candidateId = knownIds.get(candidate);
         }
         knownIds.putIfAbsent(candidate, rawId);
+        namesById.putIfAbsent(rawId, candidate);
         return candidate;
     }
 
-    private static String resolveClassName(String preferred, String rawId, Map<String, String> knownClasses) {
+    private static String resolveClassName(String preferred, String rawId, Map<String, String> knownClasses,
+            Map<String, String> namesById) {
+        String existingName = namesById.get(rawId);
+        if (existingName != null) return existingName;
         String candidate = preferred;
         String candidateId = knownClasses.get(candidate);
         if (candidateId != null && !candidateId.equals(rawId)) {
@@ -430,6 +456,7 @@ public class GenAbilities {
             candidateId = knownClasses.get(candidate);
         }
         knownClasses.putIfAbsent(candidate, rawId);
+        namesById.putIfAbsent(rawId, candidate);
         return candidate;
     }
 
