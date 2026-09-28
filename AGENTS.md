@@ -253,7 +253,7 @@ Recent fixes established additional rules for backend work. Follow these for all
 ### Reference semantics for arithmetic
 
 * Integer/real division and modulo semantics are centralized: `WurstOperator.moduloInteger/moduloReal` implement the Blizzard.j formula (truncated remainder, plus divisor if negative) and Jass `div` truncates toward zero.
-* The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`, `ConstantAndCopyPropagation`) must all stay consistent with those helpers — never reimplement div/mod locally.
+* The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`) must all stay consistent with those helpers — never reimplement div/mod locally.
 * Jass `==` on reals allows a difference of 0.001 (`WurstOperator.jassRealEquals`), while `!=` and the orderings are exact, so on the Jass target `not (a == b)` is not `a != b` for reals. Lua compares exactly. Both interpreters use that helper; the optimiser must not swap one for the other or fold nearly equal reals on Jass.
 
 ### Interpreter native mocks

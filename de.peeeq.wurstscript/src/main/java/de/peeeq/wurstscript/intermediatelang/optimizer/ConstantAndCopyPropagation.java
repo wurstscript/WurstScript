@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.NodeWorklist;
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
@@ -13,8 +12,6 @@ import io.vavr.collection.HashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
-
-import static de.peeeq.wurstscript.WurstOperator.*;
 
 public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass {
     private int totalPropagated = 0;
@@ -421,176 +418,5 @@ public class ConstantAndCopyPropagation implements LocalPlayerAwareOptimizerPass
                 }
             }
         }
-    }
-
-    /**
-     * Try to constant-fold an expression using known values.
-     * Returns the folded constant expression, or null if folding is not possible.
-     */
-    private @Nullable ImExpr tryConstantFold(ImExpr expr, HashMap<ImVar, Value> knowledge) {
-        // Binary operations
-        if (expr instanceof ImOperatorCall) {
-            ImOperatorCall op = (ImOperatorCall) expr;
-            if (op.getArguments().size() == 2) {
-                ImExpr left = op.getArguments().get(0);
-                ImExpr right = op.getArguments().get(1);
-
-                // Resolve variables to their constant values
-                ImConst leftConst = resolveToConstant(left, knowledge);
-                ImConst rightConst = resolveToConstant(right, knowledge);
-
-                if (leftConst != null && rightConst != null) {
-                    return foldBinaryOp(op.getOp(), leftConst, rightConst);
-                }
-            }
-        }
-
-        // Unary operations
-        if (expr instanceof ImOperatorCall) {
-            ImOperatorCall op = (ImOperatorCall) expr;
-            if (op.getArguments().size() == 1) {
-                ImExpr arg = op.getArguments().get(0);
-                ImConst argConst = resolveToConstant(arg, knowledge);
-                if (argConst != null) {
-                    return foldUnaryOp(op.getOp(), argConst);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private @Nullable ImConst resolveToConstant(ImExpr expr, HashMap<ImVar, Value> knowledge) {
-        if (expr instanceof ImConst) {
-            return (ImConst) expr;
-        }
-        if (expr instanceof ImVarAccess) {
-            ImVar var = ((ImVarAccess) expr).getVar();
-            Value val = knowledge.get(var).getOrNull();
-            if (val != null && val.constantValue != null) {
-                return val.constantValue;
-            }
-        }
-        return null;
-    }
-
-    private @Nullable ImExpr foldBinaryOp(WurstOperator op, ImConst left, ImConst right) {
-        try {
-            if (left instanceof ImIntVal && right instanceof ImIntVal) {
-                int l = ((ImIntVal) left).getValI();
-                int r = ((ImIntVal) right).getValI();
-
-                switch (op) {
-                    case PLUS: return JassIm.ImIntVal(l + r);
-                    case MINUS: return JassIm.ImIntVal(l - r);
-                    case MULT: return JassIm.ImIntVal(l * r);
-                    case DIV_INT: if (r != 0) return JassIm.ImIntVal(l / r); break;
-                    case MOD_INT: if (r != 0) return JassIm.ImIntVal(WurstOperator.moduloInteger(l, r)); break;
-                    case JASS_MOD_INT: if (r != 0) return JassIm.ImIntVal(WurstOperator.jassModuloInteger(l, r)); break;
-                    // IMPORTANT: Return ImBoolVal for comparisons, not ImIntVal!
-                    case EQ: return JassIm.ImBoolVal(l == r);
-                    case NOTEQ: return JassIm.ImBoolVal(l != r);
-                    case LESS: return JassIm.ImBoolVal(l < r);
-                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
-                    case GREATER: return JassIm.ImBoolVal(l > r);
-                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
-                    // Bitwise/logical operations
-                    case AND: return JassIm.ImIntVal(l & r);
-                    case OR: return JassIm.ImIntVal(l | r);
-                }
-            } else if (left instanceof ImRealVal && right instanceof ImRealVal) {
-                double l = Double.parseDouble(((ImRealVal) left).getValR());
-                double r = Double.parseDouble(((ImRealVal) right).getValR());
-
-                switch (op) {
-                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
-                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
-                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
-                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
-                    // IMPORTANT: Return ImBoolVal for comparisons!
-                    case EQ: return JassIm.ImBoolVal(l == r);
-                    case NOTEQ: return JassIm.ImBoolVal(l != r);
-                    case LESS: return JassIm.ImBoolVal(l < r);
-                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
-                    case GREATER: return JassIm.ImBoolVal(l > r);
-                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
-                }
-            } else if (left instanceof ImBoolVal && right instanceof ImBoolVal) {
-                // Handle boolean operations
-                boolean l = ((ImBoolVal) left).getValB();
-                boolean r = ((ImBoolVal) right).getValB();
-
-                switch (op) {
-                    case EQ: return JassIm.ImBoolVal(l == r);
-                    case NOTEQ: return JassIm.ImBoolVal(l != r);
-                    case AND: return JassIm.ImBoolVal(l && r);
-                    case OR: return JassIm.ImBoolVal(l || r);
-                }
-            } else if (left instanceof ImIntVal && right instanceof ImRealVal) {
-                // int op real -> real
-                double l = ((ImIntVal) left).getValI();
-                double r = Double.parseDouble(((ImRealVal) right).getValR());
-
-                switch (op) {
-                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
-                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
-                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
-                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
-                    // Comparisons return bool
-                    case EQ: return JassIm.ImBoolVal(l == r);
-                    case NOTEQ: return JassIm.ImBoolVal(l != r);
-                    case LESS: return JassIm.ImBoolVal(l < r);
-                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
-                    case GREATER: return JassIm.ImBoolVal(l > r);
-                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
-                }
-            } else if (left instanceof ImRealVal && right instanceof ImIntVal) {
-                // real op int -> real
-                double l = Double.parseDouble(((ImRealVal) left).getValR());
-                double r = ((ImIntVal) right).getValI();
-
-                switch (op) {
-                    case PLUS: return JassIm.ImRealVal(String.valueOf(l + r));
-                    case MINUS: return JassIm.ImRealVal(String.valueOf(l - r));
-                    case MULT: return JassIm.ImRealVal(String.valueOf(l * r));
-                    case DIV_REAL: if (r != 0.0) return JassIm.ImRealVal(String.valueOf(l / r)); break;
-                    // Comparisons return bool
-                    case EQ: return JassIm.ImBoolVal(l == r);
-                    case NOTEQ: return JassIm.ImBoolVal(l != r);
-                    case LESS: return JassIm.ImBoolVal(l < r);
-                    case LESS_EQ: return JassIm.ImBoolVal(l <= r);
-                    case GREATER: return JassIm.ImBoolVal(l > r);
-                    case GREATER_EQ: return JassIm.ImBoolVal(l >= r);
-                }
-            }
-        } catch (Exception e) {
-            // Folding failed, return null
-        }
-        return null;
-    }
-
-    private @Nullable ImExpr foldUnaryOp(WurstOperator op, ImConst arg) {
-        try {
-            if (arg instanceof ImIntVal) {
-                int val = ((ImIntVal) arg).getValI();
-                switch (op) {
-                    case UNARY_MINUS: return JassIm.ImIntVal(-val);
-                    case NOT: return JassIm.ImBoolVal(val == 0); // Return ImBoolVal!
-                }
-            } else if (arg instanceof ImRealVal) {
-                double val = Double.parseDouble(((ImRealVal) arg).getValR());
-                switch (op) {
-                    case UNARY_MINUS: return JassIm.ImRealVal(String.valueOf(-val));
-                }
-            } else if (arg instanceof ImBoolVal) {
-                boolean val = ((ImBoolVal) arg).getValB();
-                switch (op) {
-                    case NOT: return JassIm.ImBoolVal(!val);
-                }
-            }
-        } catch (Exception e) {
-            // Folding failed
-        }
-        return null;
     }
 }
