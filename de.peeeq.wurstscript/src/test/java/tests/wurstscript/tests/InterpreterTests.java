@@ -364,6 +364,10 @@ public class InterpreterTests extends WurstScriptTest {
             "    SetUnitState(u, UNIT_STATE_LIFE, 70.0)",
             "    if GetUnitState(u, UNIT_STATE_MANA) != 42.0",
             "        testFail(\"setting life changed mana\")",
+            // As in game, where a null state is id 0, UNIT_STATE_LIFE.
+            "    SetUnitState(u, null, 55.0)",
+            "    if GetUnitState(u, UNIT_STATE_LIFE) != 55.0 or GetUnitState(u, null) != 55.0",
+            "        testFail(\"a null state is not life\")",
             "    KillUnit(u)",
             "    if not IsUnitType(u, UNIT_TYPE_DEAD)",
             "        testFail(\"killed unit not dead\")",

@@ -488,17 +488,23 @@ public class UnitProvider extends Provider {
 
     public ILconstReal GetUnitState(IlConstHandle unit, IlConstHandle unitstate) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock == null || unitstate == null) {
+        if (unitMock == null) {
             return ILconstReal.create(0);
         }
-        return unitMock.states.getOrDefault(unitstate.print(), ILconstReal.create(0));
+        return unitMock.states.getOrDefault(unitStateKey(unitstate), ILconstReal.create(0));
     }
 
     public void SetUnitState(IlConstHandle unit, IlConstHandle unitstate, ILconstReal value) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null && unitstate != null) {
-            unitMock.states.put(unitstate.print(), value);
+        if (unitMock != null) {
+            unitMock.states.put(unitStateKey(unitstate), value);
         }
+    }
+
+    /** Measured on the 3.0.0 client: a null unit state reads and writes life. The engine takes a null
+     *  enum handle as id 0, which is UNIT_STATE_LIFE. */
+    private static String unitStateKey(IlConstHandle unitstate) {
+        return unitstate == null ? "unitstate0" : unitstate.print();
     }
 
     public ILconstReal GetWidgetLife(IlConstHandle widget) {

@@ -257,9 +257,9 @@ Recent fixes established additional rules for backend work. Follow these for all
 
 ### Interpreter native mocks
 
-* The mocks in `wurstio/jassinterpreter/providers` model what the game does. Where the behaviour is not obvious, measure it in game (the wc3-e2e-harness canary) before mocking it, and say in the mock that it was measured.
+* The mocks in `wurstio/jassinterpreter/providers` model what the game does. Where the behaviour is not obvious, measure it in game before mocking it, and say in the mock that it was measured.
 * Death is life at or below 0.405, never life at zero: a unit left with 0.3 life is dead. Use `UnitProvider.DEATH_LIFE_THRESHOLD` through `isAlive` for every life test, and cover a fractional life in the test.
-* common.j and blizzard.j constants carry their `ConvertX` handles in every interpreter run, the translated Jass program included (`JassInterpreter` evaluates their initialisers on first read). A mock must never read a null argument as one of those constants.
+* common.j and blizzard.j constants carry their `ConvertX` handles in every interpreter run, the translated Jass program included (`JassInterpreter` evaluates their initialisers on first read). The engine reads a null enum argument as id 0 (a null unit state is `UNIT_STATE_LIFE`); a mock does the same only where that was measured.
 
 ### Error behavior parity expectations
 
