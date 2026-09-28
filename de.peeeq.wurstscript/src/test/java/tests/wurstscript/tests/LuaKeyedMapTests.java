@@ -399,14 +399,18 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
         String lua = compiled("nativeIntegerGetterThroughGenericWrapperUsesRawLuaStub");
         String init = getFunctionBody(lua, "init_Test");
-        assertTrue("the generic wrapper result is normalized to Wurst's int default: " + init,
-            init.contains("__wurst_ensureInt(readNative(map, u))"));
-        assertTrue("the generic getter still reaches the raw table stub", lua.contains("return t[k]"));
+        // Used as an int, the wrapper's read is the typed read (LuaTypedKeyedReads): a typed copy of
+        // the wrapper returns __wurst_keyedMapGetInt, which answers Wurst's int default itself, so no
+        // ensure is left around the call.
+        assertTrue("the generic wrapper is read through its typed copy: " + init,
+            init.contains("readNative_int(map, u)") && !init.contains("__wurst_ensureInt"));
+        assertTrue("the typed copy returns the typed read: " + getFunctionBody(lua, "readNative_int"),
+            getFunctionBody(lua, "readNative_int").contains("__wurst_keyedMapGetInt("));
         assertFalse("integer get must not leave the failing source fallback body",
             lua.contains("function keyedMapGetNative_unit_int") && lua.contains("return nil"));
-        String getStub = getFunctionBody(lua, "__wurst_keyedMapGet");
-        assertTrue("generic get is one direct table read: " + getStub,
-            getStub.contains("return t[k]") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
+        String getStub = getFunctionBody(lua, "__wurst_keyedMapGetInt");
+        assertTrue("the typed get is one direct table read with the int default: " + getStub,
+            getStub.contains("return t[k] or 0") && getStub.indexOf("t[k]") == getStub.lastIndexOf("t[k]"));
     }
 
     /**
@@ -537,6 +541,104 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "endpackage"));
         assertTrue(failure.getMessage(), failure.getMessage()
             .contains("keyedMapGetNative requires an int map, a handle key, and an int-represented result"));
+    }
+
+    /** The generic value intrinsics and a typed wrapper over them, as the standard library declares them. */
+    private static String[] fastKeyedMapSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedMap",
+            "import Table",
+            "import ErrorHandling",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int map, handle key, int value)",
+            "    if key == null",
+            "        return",
+            "    (map castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapGetInt(int map, handle key) returns int",
+            "    return (map castTo Table).loadInt(GetHandleId(key))",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int map, K key, V value)",
+            "    if key == null",
+            "        return",
+            "    error(\"keyedMapPutNative requires compiler keyed-map intrinsic support\")",
+            "@compilerintrinsic public function keyedMapGetNative<K: handle, V:>(int map, K key) returns V",
+            "    error(\"keyedMapGetNative requires compiler keyed-map intrinsic support\")",
+            "    return null",
+            "public class FastKeyedMap<K: handle, V:>",
+            "    private int map",
+            "    construct()",
+            "        map = keyedMapCreate()",
+            "    function put(K key, V value)",
+            "        keyedMapPutNative<K, V>(map, key, value)",
+            "    function get(K key) returns V",
+            "        return keyedMapGetNative<K, V>(map, key)",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    /**
+     * An erased read used as a primitive is the typed read, not the untyped read plus an ensure: the
+     * hot int loop calls __wurst_keyedMapGetInt with no tonumber or math.tointeger, and every type
+     * still reads back its values and its default for a missing key.
+     */
+    @Test
+    public void fastKeyedMapReadsUsedAsPrimitivesAreTyped() throws IOException {
+        test().testLua(true).inline().executeProg(true).withStdLib().lines(fastKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "timer array keys",
+            "int total = 0",
+            "function readAll(FastKeyedMap<timer, int> m)",
+            "    for i = 0 to 2",
+            "        total += m.get(keys[i])",
+            "init",
+            "    for i = 0 to 2",
+            "        keys[i] = CreateTimer()",
+            "    let ints = new FastKeyedMap<timer, int>()",
+            "    ints.put(keys[0], 40)",
+            "    ints.put(keys[1], 2)",
+            "    readAll(ints)",
+            "    let reals = new FastKeyedMap<timer, real>()",
+            "    reals.put(keys[0], 1.5)",
+            "    let bools = new FastKeyedMap<timer, boolean>()",
+            "    bools.put(keys[0], true)",
+            "    bools.put(keys[1], false)",
+            "    let strings = new FastKeyedMap<timer, string>()",
+            "    strings.put(keys[0], \"a\")",
+            "    if total != 42",
+            "        testFail(\"ints \" + I2S(total))",
+            "    if reals.get(keys[0]) != 1.5 or reals.get(keys[1]) != 0.",
+            "        testFail(\"reals\")",
+            "    if not bools.get(keys[0]) or bools.get(keys[1]) or bools.get(keys[2])",
+            "        testFail(\"bools\")",
+            "    if strings.get(keys[0]) != \"a\" or strings.get(keys[1]) != \"\"",
+            "        testFail(\"strings\")",
+            "    testSuccess()",
+            "endpackage"));
+
+        // readAll is inlined into init, so its loop is cut out of init by the global it updates.
+        String init = getFunctionBody(compiled("fastKeyedMapReadsUsedAsPrimitivesAreTyped"), "init_Test");
+        String[] lines = init.split("\n");
+        int update = -1;
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].contains("Test_total = (")) {
+                update = i;
+            }
+        }
+        assertTrue("the read loop is in init: " + init, update >= 0);
+        int start = update;
+        while (start > 0 && !lines[start].startsWith("\tfor ")) {
+            start--;
+        }
+        int end = update;
+        while (end < lines.length - 1 && !lines[end].equals("\tend")) {
+            end++;
+        }
+        String loop = String.join("\n", java.util.Arrays.copyOfRange(lines, start, end + 1));
+        assertTrue("the int read is the typed read: " + loop, loop.contains("__wurst_keyedMapGetInt("));
+        assertFalse("no ensure left on the int read: " + loop,
+            loop.contains("tonumber") || loop.contains("math.tointeger") || loop.contains("__wurst_keyedMapGet("));
     }
 
     @Test
