@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.testng.Assert.expectThrows;
 import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.assertTrue;
 import static org.testng.AssertJUnit.fail;
@@ -484,6 +485,24 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "        testFail(\"direct call\")",
             "    testSuccess()",
             "endpackage");
+    }
+
+    /** A malformed intrinsic gets the lowering's diagnostic in the interpreter, not a crash on its arguments. */
+    @Test
+    public void malformedGenericPutIsReportedWhenInterpreted() {
+        Error failure = expectThrows(Error.class, () -> test().withStdLib().executeTests().lines(
+            "package KeyedMap",
+            "import Table",
+            "@compilerintrinsic public function keyedMapPut(int map, handle key, int value)",
+            "    (map castTo Table).saveInt(GetHandleId(key), value)",
+            "@compilerintrinsic public function keyedMapPutNative<K: handle, V:>(int map, K key)",
+            "    skip",
+            "@Test function putWithoutAValue()",
+            "    keyedMapPutNative<unit, int>((new Table()) castTo int, CreateUnit(Player(0), 'hfoo', 0., 0., 0.))",
+            "endpackage"));
+        assertTrue(failure.getMessage(), failure.getMessage()
+            .contains("keyedMapPutNative requires an int map, a handle key, and an int-represented value"));
+        assertFalse(failure.getMessage(), failure.getMessage().contains("ArrayIndexOutOfBounds"));
     }
 
     @Test

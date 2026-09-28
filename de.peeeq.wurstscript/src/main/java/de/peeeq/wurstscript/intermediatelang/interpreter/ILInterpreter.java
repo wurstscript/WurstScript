@@ -232,6 +232,7 @@ public class ILInterpreter implements AbstractInterpreter, AutoCloseable {
             // and their source bodies only raise an error. Run them the way that pass compiles them,
             // through the int fallback, with the value in its integer representation.
             if (JassKeyedMapLowering.isUnloweredPutNative(f)) {
+                // Looked up first: it checks the intrinsic's shape before any argument is read.
                 ImFunction put = JassKeyedMapLowering.fallbackOf(globalState.getProg(), f);
                 runFunc(globalState, put, caller, args[0], args[1], keyedMapIntValue(globalState, args[2]));
                 return new LocalState();
