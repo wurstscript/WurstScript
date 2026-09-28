@@ -256,6 +256,7 @@ Recent fixes established additional rules for backend work. Follow these for all
 * The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`) must all stay consistent with those helpers — never reimplement div/mod locally.
 * Jass `==` on reals allows a difference of 0.001 (`WurstOperator.jassRealEquals`), while `!=` and the orderings are exact, so on the Jass target `not (a == b)` is not `a != b` for reals. Lua compares exactly. Both interpreters use that helper; the optimiser must not swap one for the other or fold nearly equal reals on Jass.
 * The Jass literal parser does not round to the nearest float (measured: `0.1` reads one float high, `1.1` one float low), but short exact binary fractions read exactly. So Jass real folding (`SimpleRewrites.foldRealForJass`) only reads and writes those, and only folds an operation whose exact result is one.
+* Lua reals are doubles, and the game's natives receive them unrounded (measured: `R2I(0.7 + 0.1 + 0.1 + 0.1)` is 0 on Lua). So Lua real folding (`SimpleRewrites.foldRealForLua`) computes in double and prints `Double.toString`'s shortest round-trip digits; never fold Lua reals in 32-bit floats.
 
 ### Interpreter native mocks
 
