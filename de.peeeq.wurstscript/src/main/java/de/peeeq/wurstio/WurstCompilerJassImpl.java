@@ -917,7 +917,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // operations are recognised by would stop matching - silently leaving their Jass bodies on
         // Lua, where wurstKeyOf answers with its placeholder and every element shares one key.
         beginPhase(4, "lower keyed tables");
-        LuaNativeLowering.lowerKeyedTables(imProg);
+        LuaNativeLowering.lowerKeyedTables(imProg, getImTranslator());
         timeTaker.endPhase();
 
         if (runArgs.isNoDebugMessages()) {
@@ -947,6 +947,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // so the optimizer can inline and eliminate the nil-safety checks and remapped stubs.
         beginPhase(4, "lua native lowering");
         LuaNativeLowering.transform(imProg, imTranslator2);
+        LuaTypedKeyedReads.transform(imProg, imTranslator2);
         timeTaker.endPhase();
 
         // inliner
@@ -956,6 +957,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // Calls outside loops keep their established method/slot representation.
             beginPhase(5, "lower monomorphic Lua method calls");
             LuaMethodCallLowering.transform(imProg);
+            // The lowered calls expose typed keyed-map reads behind wrappers such as FastKeyedMap.get.
+            LuaTypedKeyedReads.transform(imProg, imTranslator2);
             imTranslator.assertProperties();
             timeTaker.endPhase();
 
