@@ -36,6 +36,54 @@ public final class JassKeyedMapLowering {
         }
     }
 
+    /**
+     * Whether f is the generic put intrinsic as the interpreter meets it: still generic, so this pass
+     * has not given it its body yet. The type-variable test comes first, because the interpreter asks
+     * on every call and it rules out almost everything.
+     */
+    public static boolean isUnloweredPutNative(ImFunction f) {
+        return !f.getTypeVariables().isEmpty() && PUT_NATIVE.equals(intrinsicName(f));
+    }
+
+    /** Whether f is the generic get intrinsic, not yet lowered. */
+    public static boolean isUnloweredGetNative(ImFunction f) {
+        return !f.getTypeVariables().isEmpty() && GET_NATIVE.equals(intrinsicName(f));
+    }
+
+    /**
+     * The int fallback that the lowered put or get calls, found the way this pass finds it. Checks the
+     * (map, key[, value]) shape first and raises this pass's diagnostic when it is wrong, so running the
+     * program before the lowering cannot bypass it.
+     */
+    public static ImFunction fallbackOf(ImProg prog, ImFunction f) {
+        boolean put = PUT_NATIVE.equals(intrinsicName(f));
+        boolean shaped = f.getParameters().size() == (put ? 3 : 2)
+            && TypesHelper.isIntType(f.getParameters().get(0).getType())
+            && (!put || f.getReturnType() instanceof ImVoid);
+        if (!shaped) {
+            throw invalidSpecialization(f, put
+                ? "keyedMapPutNative requires an int map, a handle key, and an int-represented value"
+                : "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+        }
+        return findFallback(prog, packageOf(f), f, put ? PUT : GET_INT, put);
+    }
+
+    /**
+     * Raises this pass's diagnostic unless a call's resolved types are the ones it lowers: a handle
+     * key, and a value with Jass's integer representation, an int or a class reference. The
+     * interpreter checks each call with it, so a specialization the Jass build rejects cannot pass
+     * there.
+     */
+    public static void checkSpecialization(ImFunction f, ImType keyType, ImType valueType) {
+        if (LuaNativeLowering.isHandleType(keyType)
+            && (TypesHelper.isIntType(valueType) || valueType instanceof ImClassType)) {
+            return;
+        }
+        throw invalidSpecialization(f, PUT_NATIVE.equals(intrinsicName(f))
+            ? "keyedMapPutNative requires an int map, a handle key, and an int-represented value"
+            : "keyedMapGetNative requires an int map, a handle key, and an int-represented result");
+    }
+
     private static void lowerPut(ImProg prog, ImFunction f) {
         if (f.getParameters().size() != 3 || !(f.getReturnType() instanceof ImVoid)
             || !TypesHelper.isIntType(f.getParameters().get(0).getType())
