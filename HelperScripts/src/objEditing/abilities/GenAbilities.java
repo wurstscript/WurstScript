@@ -52,7 +52,8 @@ public class GenAbilities {
             this.useLevels = useLevels;
         }
 
-        public String printFunc(Set<String> usedFuncs, Set<String> inheritedFuncs, Set<String> inheritedPresets) {
+        public String printFunc(Set<String> usedFuncs, Set<String> inheritedFuncs, Set<String> inheritedPresets,
+                boolean includePresetSupport) {
             println("");
             String funcName = camelize(displayName);
             int i = 0;
@@ -83,7 +84,7 @@ public class GenAbilities {
                 print("0, " + data + ", ");
             }
             println("value)");
-            if (useLevels) {
+            if (useLevels && includePresetSupport) {
                 print(presetFunction(funcName, inheritedPresets.contains(funcName)));
             }
             return funcName;
@@ -239,7 +240,7 @@ public class GenAbilities {
         Set<String> usedNames = Sets.newHashSet();
         Set<String> commonPresetFunctionNames = Sets.newHashSet();
         for (FieldData fd : commonData) {
-            String funcName = fd.printFunc(usedNames, Sets.newHashSet(), Sets.newHashSet());
+            String funcName = fd.printFunc(usedNames, Sets.newHashSet(), Sets.newHashSet(), false);
             if (fd.useLevels) commonPresetFunctionNames.add(funcName);
         }
         Set<String> commonFunctionNames = Sets.newHashSet(usedNames);
@@ -284,7 +285,7 @@ public class GenAbilities {
             println("\tconstruct(int newAbilityId)");
             println("\t\tsuper(newAbilityId, '" + spell + "')");
             for (FieldData fd : specificData.get(spell)) {
-                fd.printFunc(usedNames, commonFunctionNames, commonPresetFunctionNames);
+                fd.printFunc(usedNames, commonFunctionNames, commonPresetFunctionNames, false);
             }
 
             // Additions file (for stdlib) uses AbilityIds reference
