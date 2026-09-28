@@ -26,6 +26,13 @@ import java.util.WeakHashMap;
 
 public class UnitProvider extends Provider {
     private static final Map<String, Integer> ORDER_IDS = new LinkedHashMap<>();
+    private static final int LOCUST_ABILITY_ID = 0x416c6f63; // 'Aloc'
+    /**
+     * Warcraft counts a unit as dead once its life is 0.405 or less, not at zero: a unit left with 0.3
+     * life is dead. The stdlib's {@code widget.isAlive()} uses the same cutoff. Every life test in the
+     * interpreter goes through {@link #isAlive(UnitMock)}; never compare life against zero.
+     */
+    public static final float DEATH_LIFE_THRESHOLD = 0.405f;
     private static final Map<AbstractInterpreter, Set<UnitMock>> unitsByInterpreter = new WeakHashMap<>();
     private final LinkedHashMap<IlConstHandle, ILconstInt> userDataMap = new LinkedHashMap<>();
     private final Set<UnitMock> units;
@@ -202,7 +209,12 @@ public class UnitProvider extends Provider {
 
     public void ShowUnit(IlConstHandle unit, ILconstBool show) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) unitMock.hidden = !show.getVal();
+        if (unitMock == null) return;
+        // Showing a hidden unit that no longer has Locust is what clears the Locust state in game.
+        if (show.getVal() && unitMock.hidden && !unitMock.abilityLevels.containsKey(LOCUST_ABILITY_ID)) {
+            unitMock.locust = false;
+        }
+        unitMock.hidden = !show.getVal();
     }
 
     public ILconstBool IsUnitHidden(IlConstHandle unit) {
@@ -332,7 +344,7 @@ public class UnitProvider extends Provider {
         UnitMock unitMock = unitOrNull(whichUnit);
         if (unitMock == null || whichUnitType == null) return ILconstBool.FALSE;
         if ("unittype1".equals(whichUnitType.print())) {
-            return ILconstBool.instance(unitMock.states.get("unitstate0").getVal() <= 0);
+            return ILconstBool.instance(!isAlive(unitMock));
         }
         return ILconstBool.instance(unitMock.unitTypes.contains(whichUnitType.print()));
     }
@@ -423,6 +435,27 @@ public class UnitProvider extends Provider {
         if (unitMock != null) unitMock.invulnerable = flag.getVal();
     }
 
+    /** Measured on the 3.0.0 client: hidden, dead and removed units are unselectable, and so is a unit
+     *  that had Locust, even after the ability is removed again. */
+    public ILconstBool BlzIsUnitSelectable(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstBool.instance(unitMock != null && !unitMock.removed && !unitMock.hidden
+                && !unitMock.locust && isAlive(unitMock));
+    }
+
+    /** Measured on the 3.0.0 client: a removed unit still reads alive in the instant it is removed, before
+     *  the engine reports the removal, just as it keeps its type id ({@link #RemoveUnit} models that same
+     *  instant). It is unselectable and hidden by then, which {@link #BlzIsUnitSelectable} reflects. */
+    public ILconstBool UnitAlive(IlConstHandle unit) {
+        UnitMock unitMock = unitOrNull(unit);
+        return ILconstBool.instance(unitMock != null && isAlive(unitMock));
+    }
+
+    /** Alive means life above {@link #DEATH_LIFE_THRESHOLD}, the engine's death cutoff. */
+    private static boolean isAlive(UnitMock unitMock) {
+        return unitMock.states.get("unitstate0").getVal() > DEATH_LIFE_THRESHOLD;
+    }
+
     public ILconstBool BlzIsUnitInvulnerable(IlConstHandle unit) {
         UnitMock unitMock = unitOrNull(unit);
         return ILconstBool.instance(unitMock != null && unitMock.invulnerable);
@@ -500,6 +533,9 @@ public class UnitProvider extends Provider {
             return ILconstBool.FALSE;
         }
         unitMock.abilityLevels.putIfAbsent(abilityId.getVal(), ILconstInt.create(1));
+        if (abilityId.getVal() == LOCUST_ABILITY_ID) {
+            unitMock.locust = true;
+        }
         return ILconstBool.TRUE;
     }
 

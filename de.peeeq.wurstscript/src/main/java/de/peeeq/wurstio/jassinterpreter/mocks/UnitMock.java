@@ -16,6 +16,9 @@ public class UnitMock {
     public ILconstReal face;
     public boolean removed;
     public boolean hidden;
+    /** Set by adding Locust. Warcraft keeps a unit out of range and rect enumeration, and unselectable,
+     *  after Locust is removed again, until the unit is hidden and shown without it. */
+    public boolean locust;
     public boolean paused;
     public boolean invulnerable;
     public boolean pathing = true;

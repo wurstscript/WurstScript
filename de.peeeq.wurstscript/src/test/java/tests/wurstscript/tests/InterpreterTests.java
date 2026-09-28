@@ -284,6 +284,65 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** Mirrors what the 3.0.0 client does: Locust keeps a unit unselectable after the ability is removed,
+     *  until the unit is hidden and shown again without it; hidden, dead and removed units are unselectable. */
+    @Test
+    public void unitSelectableAndAliveNatives() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    if not BlzIsUnitSelectable(u) or not UnitAlive(u)",
+            "        testFail(\"new unit\")",
+            "    UnitAddAbility(u, 'Aloc')",
+            "    if BlzIsUnitSelectable(u)",
+            "        testFail(\"locust\")",
+            "    UnitRemoveAbility(u, 'Aloc')",
+            "    if BlzIsUnitSelectable(u)",
+            "        testFail(\"locust removed\")",
+            "    ShowUnit(u, true)",
+            "    if BlzIsUnitSelectable(u)",
+            "        testFail(\"shown without being hidden\")",
+            "    ShowUnit(u, false)",
+            "    if BlzIsUnitSelectable(u)",
+            "        testFail(\"hidden\")",
+            "    ShowUnit(u, true)",
+            "    if not BlzIsUnitSelectable(u)",
+            "        testFail(\"hidden and shown after locust\")",
+            "    let v = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    UnitAddAbility(v, 'Aloc')",
+            "    ShowUnit(v, false)",
+            "    ShowUnit(v, true)",
+            "    if BlzIsUnitSelectable(v)",
+            "        testFail(\"shown while still locust\")",
+            "    SetWidgetLife(u, 0.41)",
+            "    if not UnitAlive(u) or IsUnitType(u, ConvertUnitType(1))",
+            "        testFail(\"life just above the death threshold\")",
+            "    SetWidgetLife(u, 0.3)",
+            "    if UnitAlive(u)",
+            "        testFail(\"alive below the death threshold\")",
+            "    if BlzIsUnitSelectable(u)",
+            "        testFail(\"selectable below the death threshold\")",
+            // common.j constants are null in these test programs, so the dead type is built directly.
+            "    if not IsUnitType(u, ConvertUnitType(1))",
+            "        testFail(\"not dead below the death threshold\")",
+            "    SetWidgetLife(u, 100.0)",
+            "    KillUnit(u)",
+            "    if BlzIsUnitSelectable(u) or UnitAlive(u)",
+            "        testFail(\"dead\")",
+            "    let w = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    RemoveUnit(w)",
+            "    if BlzIsUnitSelectable(w)",
+            "        testFail(\"removed\")",
+            // As in game, where a removed unit reads alive until the removal is reported.
+            "    if not UnitAlive(w)",
+            "        testFail(\"removed unit alive in the instant it is removed\")",
+            "    if BlzIsUnitSelectable(null) or UnitAlive(null)",
+            "        testFail(\"null\")",
+            "    testSuccess()"
+        );
+    }
+
     @Test
     public void getOwningPlayerNullUnitReturnsWurstNull() {
         test().withStdLib().executeProg(true).testLua(false).lines(
