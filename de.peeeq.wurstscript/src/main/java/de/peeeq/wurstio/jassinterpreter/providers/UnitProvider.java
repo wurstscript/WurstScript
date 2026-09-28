@@ -488,16 +488,16 @@ public class UnitProvider extends Provider {
 
     public ILconstReal GetUnitState(IlConstHandle unit, IlConstHandle unitstate) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock == null) {
+        if (unitMock == null || unitstate == null) {
             return ILconstReal.create(0);
         }
-        return unitMock.states.getOrDefault(unitStateKey(unitstate), ILconstReal.create(0));
+        return unitMock.states.getOrDefault(unitstate.print(), ILconstReal.create(0));
     }
 
     public void SetUnitState(IlConstHandle unit, IlConstHandle unitstate, ILconstReal value) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null) {
-            unitMock.states.put(unitStateKey(unitstate), value);
+        if (unitMock != null && unitstate != null) {
+            unitMock.states.put(unitstate.print(), value);
         }
     }
 
@@ -989,9 +989,5 @@ public class UnitProvider extends Provider {
     private ItemMock itemOrNull(IlConstHandle item) {
         if (item == null || !(item.getObj() instanceof ItemMock)) return null;
         return (ItemMock) item.getObj();
-    }
-
-    private String unitStateKey(IlConstHandle unitstate) {
-        return unitstate == null ? "unitstate0" : unitstate.print();
     }
 }

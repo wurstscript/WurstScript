@@ -316,15 +316,14 @@ public class InterpreterTests extends WurstScriptTest {
             "    if BlzIsUnitSelectable(v)",
             "        testFail(\"shown while still locust\")",
             "    SetWidgetLife(u, 0.41)",
-            "    if not UnitAlive(u) or IsUnitType(u, ConvertUnitType(1))",
+            "    if not UnitAlive(u) or IsUnitType(u, UNIT_TYPE_DEAD)",
             "        testFail(\"life just above the death threshold\")",
             "    SetWidgetLife(u, 0.3)",
             "    if UnitAlive(u)",
             "        testFail(\"alive below the death threshold\")",
             "    if BlzIsUnitSelectable(u)",
             "        testFail(\"selectable below the death threshold\")",
-            // common.j constants are null in these test programs, so the dead type is built directly.
-            "    if not IsUnitType(u, ConvertUnitType(1))",
+            "    if not IsUnitType(u, UNIT_TYPE_DEAD)",
             "        testFail(\"not dead below the death threshold\")",
             "    SetWidgetLife(u, 100.0)",
             "    KillUnit(u)",
@@ -339,6 +338,56 @@ public class InterpreterTests extends WurstScriptTest {
             "        testFail(\"removed unit alive in the instant it is removed\")",
             "    if BlzIsUnitSelectable(null) or UnitAlive(null)",
             "        testFail(\"null\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** common.j constants are initialised by the game, not by the map script, so the interpreter must
+     *  evaluate their ConvertX initialisers itself. */
+    @Test
+    public void commonJConstantsCarryTheirHandles() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    if UNIT_TYPE_DEAD == null",
+            "        testFail(\"dead type null\")",
+            "    if UNIT_STATE_MANA == null",
+            "        testFail(\"mana state null\")",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    if IsUnitType(u, UNIT_TYPE_DEAD)",
+            "        testFail(\"new unit dead\")",
+            "    SetUnitState(u, UNIT_STATE_MANA, 42.0)",
+            "    if GetUnitState(u, UNIT_STATE_MANA) != 42.0",
+            "        testFail(\"mana\")",
+            "    if GetUnitState(u, UNIT_STATE_LIFE) != 100.0 or GetWidgetLife(u) != 100.0",
+            "        testFail(\"setting mana changed life\")",
+            "    SetUnitState(u, UNIT_STATE_LIFE, 70.0)",
+            "    if GetUnitState(u, UNIT_STATE_MANA) != 42.0",
+            "        testFail(\"setting life changed mana\")",
+            "    KillUnit(u)",
+            "    if not IsUnitType(u, UNIT_TYPE_DEAD)",
+            "        testFail(\"killed unit not dead\")",
+            "    testSuccess()"
+        );
+    }
+
+    /** `grill test` and compiletime evaluation run the IM interpreter, which reads the constants too. */
+    @Test
+    public void commonJConstantsInTestsAndCompiletime() {
+        test().withStdLib().executeTests(true).executeProg(true).runCompiletimeFunctions(true).testLua(false).lines(
+            "package Test",
+            "@compiletime function checkConstants()",
+            "    if UNIT_TYPE_DEAD == null or UNIT_STATE_MANA == null",
+            "        compileError(\"common.j constant null in a compiletime function\")",
+            "constant deadTypeAtCompiletime = compiletime(UNIT_TYPE_DEAD != null)",
+            "@test function deadTypeInTest()",
+            "    let u = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    KillUnit(u)",
+            "    if not IsUnitType(u, UNIT_TYPE_DEAD)",
+            "        testFail(\"killed unit not dead in a test\")",
+            "init",
+            "    if not deadTypeAtCompiletime",
+            "        testFail(\"dead type null in a compiletime expression\")",
             "    testSuccess()"
         );
     }
