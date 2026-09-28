@@ -1254,6 +1254,7 @@
     "ASDw": "AbilityDefinitionItemSpellCritDamage15",
     "Asdx": "AbilityDefinitionItemScepterOfDarknessSpellcast",
     "Asea": "AbilityDefinitionClericHeal",
+    "Asel": "AbilityDefinitionSellUnitAsel",
     "Asfs": "AbilityDefinitionInquisitorFlamestrike",
     "Asg1": "AbilityDefinitionItemSanctifiedGauntletsImpale",
     "Asg2": "AbilityDefinitionItemSanctifiedGauntletsAttack",
@@ -1490,6 +1491,7 @@
     "BT6a": "AbilityDefinitionLeonidPlusStrAgiTalent",
     "BT6b": "AbilityDefinitionLeonidMagicResistTalent",
     "BT6c": "AbilityDefinitionLeonidManaEfficiencyTalent",
+    "Buns": "AbilityDefinitionUnsummonBuns",
     "GT1a": "AbilityDefinitionGarekTalentTier1a",
     "GT1b": "AbilityDefinitionGarekTalentTier1b",
     "GT1c": "AbilityDefinitionGarekTalentTier1c",
@@ -1624,6 +1626,7 @@
     "AbilityDefinitionAndb": "AbilityDefinition",
     "AbilityDefinitionAnimateDead": "AbilityDefinition",
     "AbilityDefinitionAnimateDeadcreep": "AbilityDefinition",
+    "AbilityDefinitionAnimateDeadCreep": "AbilityDefinition",
     "AbilityDefinitionAnimateDeaditemspecial": "AbilityDefinition",
     "AbilityDefinitionAntimagicShield": "AbilityDefinition",
     "AbilityDefinitionAntimagicShieldAIxs": "AbilityDefinition",
@@ -1689,6 +1692,7 @@
     "AbilityDefinitionAttackMod": "AbilityDefinition",
     "AbilityDefinitionAttackSpeedIncrease": "AbilityDefinition",
     "AbilityDefinitionAttackSpeedIncreaseGreater": "AbilityDefinition",
+    "AbilityDefinitionAttackSpeedIncreaseGreaterAIs2": "AbilityDefinition",
     "AbilityDefinitionAttackSpeedIncreaseGreaterAisy": "AbilityDefinition",
     "AbilityDefinitionAttackTargetPriority": "AbilityDefinition",
     "AbilityDefinitionAttributeModifierSkill": "AbilityDefinition",
@@ -1760,6 +1764,7 @@
     "AbilityDefinitionBlizzardcreep": "AbilityDefinition",
     "AbilityDefinitionBloodlust": "AbilityDefinition",
     "AbilityDefinitionBloodlustCreep": "AbilityDefinition",
+    "AbilityDefinitionBloodlustCreepACbl": "AbilityDefinition",
     "AbilityDefinitionBloodlustCreepHotkeyB": "AbilityDefinition",
     "AbilityDefinitionBloodMageBanish": "AbilityDefinition",
     "AbilityDefinitionBloodMageFlameStrike": "AbilityDefinition",
@@ -1875,6 +1880,7 @@
     "AbilityDefinitionCycloneCenarius": "AbilityDefinition",
     "AbilityDefinitionCyclonecreep": "AbilityDefinition",
     "AbilityDefinitionCycloneNaga": "AbilityDefinition",
+    "AbilityDefinitionCycloneSCc1": "AbilityDefinition",
     "AbilityDefinitionDarkCommandersAura": "AbilityDefinition",
     "AbilityDefinitionDarkConversionFast": "AbilityDefinition",
     "AbilityDefinitionDarkMistressAura": "AbilityDefinition",
@@ -1926,6 +1932,7 @@
     "AbilityDefinitionDetonate": "AbilityDefinition",
     "AbilityDefinitionDevour": "AbilityDefinition",
     "AbilityDefinitionDevourCreep": "AbilityDefinition",
+    "AbilityDefinitionDevourDragonCreep": "AbilityDefinition",
     "AbilityDefinitionDevourMagic": "AbilityDefinition",
     "AbilityDefinitionDevourMagiccreep": "AbilityDefinition",
     "AbilityDefinitionDisenchantNew": "AbilityDefinition",
@@ -1949,6 +1956,7 @@
     "AbilityDefinitionElunesGrace": "AbilityDefinition",
     "AbilityDefinitionEndlessFlaskRejuvenation": "AbilityDefinition",
     "AbilityDefinitionEnsnare": "AbilityDefinition",
+    "AbilityDefinitionEnsnareACen": "AbilityDefinition",
     "AbilityDefinitionEnsnareCreep": "AbilityDefinition",
     "AbilityDefinitionEnsnareNaga": "AbilityDefinition",
     "AbilityDefinitionEntangle": "AbilityDefinition",
@@ -1963,6 +1971,7 @@
     "AbilityDefinitionEtherealForm": "AbilityDefinition",
     "AbilityDefinitionEvasion": "AbilityDefinition",
     "AbilityDefinitionEvasioncreep": "AbilityDefinition",
+    "AbilityDefinitionEvasionCreep": "AbilityDefinition",
     "AbilityDefinitionEvasioncreep100": "AbilityDefinition",
     "AbilityDefinitionEvasionStackable": "AbilityDefinition",
     "AbilityDefinitionEvilIllidanMetamorphosis": "AbilityDefinition",
@@ -2100,12 +2109,14 @@
     "AbilityDefinitionHeal": "AbilityDefinition",
     "AbilityDefinitionHealCreepHigh": "AbilityDefinition",
     "AbilityDefinitionHealCreepNormal": "AbilityDefinition",
+    "AbilityDefinitionHealCreepNormalAnh1": "AbilityDefinition",
     "AbilityDefinitionHealCreepNormalAnhe": "AbilityDefinition",
     "AbilityDefinitionHealingModifier": "AbilityDefinition",
     "AbilityDefinitionHealingWard": "AbilityDefinition",
     "AbilityDefinitionHealingWard1": "AbilityDefinition",
     "AbilityDefinitionHealingWardAIhw": "AbilityDefinition",
     "AbilityDefinitionHealingWardcreep": "AbilityDefinition",
+    "AbilityDefinitionHealingWardCreep": "AbilityDefinition",
     "AbilityDefinitionHealingWaveCreep": "AbilityDefinition",
     "AbilityDefinitionHealReductionBonus": "AbilityDefinition",
     "AbilityDefinitionHeartOfTheFirebenderBoF": "AbilityDefinition",
@@ -2159,6 +2170,7 @@
     "AbilityDefinitionInciteUnholyFrenzy": "AbilityDefinition",
     "AbilityDefinitionInfectiousClaws": "AbilityDefinition",
     "AbilityDefinitionInferno": "AbilityDefinition",
+    "AbilityDefinitionInfernoSNin": "AbilityDefinition",
     "AbilityDefinitionInnerFire": "AbilityDefinition",
     "AbilityDefinitionInnerFireCreep": "AbilityDefinition",
     "AbilityDefinitionInquisitorFlamestrike": "AbilityDefinition",
@@ -2802,6 +2814,7 @@
     "AbilityDefinitionPhalanxShieldAura": "AbilityDefinition",
     "AbilityDefinitionPhaseShift": "AbilityDefinition",
     "AbilityDefinitionPhoenix": "AbilityDefinition",
+    "AbilityDefinitionPhoenixAHpx": "AbilityDefinition",
     "AbilityDefinitionPhoenixFire": "AbilityDefinition",
     "AbilityDefinitionPillage": "AbilityDefinition",
     "AbilityDefinitionPilotTankMortarTeam": "AbilityDefinition",
@@ -2885,6 +2898,7 @@
     "AbilityDefinitionResistantSkinCreep": "AbilityDefinition",
     "AbilityDefinitionRestoration": "AbilityDefinition",
     "AbilityDefinitionResurrection": "AbilityDefinition",
+    "AbilityDefinitionResurrectionAHre": "AbilityDefinition",
     "AbilityDefinitionResurrectionItem": "AbilityDefinition",
     "AbilityDefinitionRetrain": "AbilityDefinition",
     "AbilityDefinitionReturnGold": "AbilityDefinition",
@@ -2940,6 +2954,7 @@
     "AbilityDefinitionSelfDestructClockwerkGoblins": "AbilityDefinition",
     "AbilityDefinitionSellItem": "AbilityDefinition",
     "AbilityDefinitionSellUnit": "AbilityDefinition",
+    "AbilityDefinitionSellUnitAsel": "AbilityDefinition",
     "AbilityDefinitionSentinel": "AbilityDefinition",
     "AbilityDefinitionSentinelNoResearch": "AbilityDefinition",
     "AbilityDefinitionSentryWard": "AbilityDefinition",
@@ -3113,6 +3128,7 @@
     "AbilityDefinitionUnholyFrenzyWarlock": "AbilityDefinition",
     "AbilityDefinitionUnstableConcoction": "AbilityDefinition",
     "AbilityDefinitionUnsummon": "AbilityDefinition",
+    "AbilityDefinitionUnsummonBuns": "AbilityDefinition",
     "AbilityDefinitionUnyieldingGuard": "AbilityDefinition",
     "AbilityDefinitionUnyieldingGuardT1DamageReflect": "AbilityDefinition",
     "AbilityDefinitionUnyieldingGuardT2SWCDReduce": "AbilityDefinition",
@@ -3152,6 +3168,7 @@
     "AbilityDefinitionWeb": "AbilityDefinition",
     "AbilityDefinitionWebcreep": "AbilityDefinition",
     "AbilityDefinitionWindWalk": "AbilityDefinition",
+    "AbilityDefinitionWindWalkAOwk": "AbilityDefinition",
     "AbilityDefinitionWispHarvest": "AbilityDefinition",
     "AbilityDefinitionWispHarvestInvulnerable": "AbilityDefinition",
     "AbilityDefinitionWitheringFire": "AbilityDefinition",
@@ -4681,6 +4698,29 @@
       ]
     },
     "AbilityDefinitionAnimateDeadcreep": {
+      "Cad1:1": [
+        "setNumberofCorpsesRaised",
+        true,
+        false,
+        "Int",
+        "int"
+      ],
+      "Hre2:2": [
+        "setRaisedUnitsAreInvulnerable",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ],
+      "Uan3:3": [
+        "setInheritUpgrades",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
+    "AbilityDefinitionAnimateDeadCreep": {
       "Cad1:1": [
         "setNumberofCorpsesRaised",
         true,
@@ -6349,6 +6389,15 @@
         "Int",
         "int"
       ],
+      "Isx1:1": [
+        "setAttackSpeedIncrease",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
+    "AbilityDefinitionAttackSpeedIncreaseGreaterAIs2": {
       "Isx1:1": [
         "setAttackSpeedIncrease",
         true,
@@ -8403,6 +8452,29 @@
       ]
     },
     "AbilityDefinitionBloodlustCreep": {
+      "Blo1:1": [
+        "setAttackSpeedIncrease",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Blo2:2": [
+        "setMovementSpeedIncrease",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Blo3:3": [
+        "setScalingFactor",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
+    "AbilityDefinitionBloodlustCreepACbl": {
       "Blo1:1": [
         "setAttackSpeedIncrease",
         true,
@@ -10816,6 +10888,15 @@
         "bool"
       ]
     },
+    "AbilityDefinitionCycloneSCc1": {
+      "cyc1:1": [
+        "setCanBeDispelled",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
     "AbilityDefinitionDarkConversionFast": {
       "Ndc1:1": [
         "setRacetoConvert",
@@ -11917,6 +11998,15 @@
         "int"
       ]
     },
+    "AbilityDefinitionDevourDragonCreep": {
+      "Dev1:1": [
+        "setMaxCreepLevel",
+        true,
+        false,
+        "Int",
+        "int"
+      ]
+    },
     "AbilityDefinitionDevourMagic": {
       "dvm1:1": [
         "setLifePerUnit",
@@ -12417,6 +12507,57 @@
         "bool"
       ]
     },
+    "AbilityDefinitionEnsnareACen": {
+      "Ens1:1": [
+        "setAirUnitLowerDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens2:2": [
+        "setAirUnitHeight",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens3:3": [
+        "setMeleeAttackRange",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens4:4": [
+        "setStunDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens5:5": [
+        "setAttackSpeedReductionPercent",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens6:6": [
+        "setBonusDamageTakenPercent",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ens7:7": [
+        "setSilencesWhenEnsnared",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
     "AbilityDefinitionEnsnareCreep": {
       "Ens1:1": [
         "setAirUnitLowerDuration",
@@ -12650,6 +12791,15 @@
       ]
     },
     "AbilityDefinitionEvasioncreep": {
+      "Eev1:1": [
+        "setChancetoEvade",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
+    "AbilityDefinitionEvasionCreep": {
       "Eev1:1": [
         "setChancetoEvade",
         true,
@@ -16082,6 +16232,15 @@
         "real"
       ]
     },
+    "AbilityDefinitionHealCreepNormalAnh1": {
+      "Hea1:1": [
+        "setHitPointsGained",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ]
+    },
     "AbilityDefinitionHealCreepNormalAnhe": {
       "Hea1:1": [
         "setHitPointsGained",
@@ -16128,6 +16287,15 @@
       ]
     },
     "AbilityDefinitionHealingWardcreep": {
+      "hwdu:0": [
+        "setWardUnitType",
+        true,
+        false,
+        "String",
+        "string"
+      ]
+    },
+    "AbilityDefinitionHealingWardCreep": {
       "hwdu:0": [
         "setWardUnitType",
         true,
@@ -18169,6 +18337,36 @@
       ]
     },
     "AbilityDefinitionInferno": {
+      "Uin1:1": [
+        "setDamage",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Uin2:2": [
+        "setDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Uin3:3": [
+        "setImpactDelay",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Uin4:0": [
+        "setSummonedUnit",
+        true,
+        false,
+        "String",
+        "string"
+      ]
+    },
+    "AbilityDefinitionInfernoSNin": {
       "Uin1:1": [
         "setDamage",
         true,
@@ -32927,6 +33125,43 @@
         "string"
       ]
     },
+    "AbilityDefinitionPhoenixAHpx": {
+      "Eme1:1": [
+        "setNormalFormUnit",
+        true,
+        false,
+        "String",
+        "string"
+      ],
+      "Eme2:2": [
+        "setMorphingFlags",
+        true,
+        false,
+        "String",
+        "string"
+      ],
+      "Eme3:3": [
+        "setAltitudeAdjustmentDuration",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Eme4:4": [
+        "setLandingDelayTime",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Emeu:0": [
+        "setAlternateFormUnit",
+        true,
+        false,
+        "String",
+        "string"
+      ]
+    },
     "AbilityDefinitionPhoenixFire": {
       "pxf1:1": [
         "setInitialDamage",
@@ -35430,6 +35665,22 @@
       ]
     },
     "AbilityDefinitionResurrection": {
+      "Hre1:1": [
+        "setNumberofCorpsesRaised",
+        true,
+        false,
+        "Int",
+        "int"
+      ],
+      "Hre2:2": [
+        "setRaisedUnitsAreInvulnerable",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
+    "AbilityDefinitionResurrectionAHre": {
       "Hre1:1": [
         "setNumberofCorpsesRaised",
         true,
@@ -41564,6 +41815,22 @@
         "int"
       ]
     },
+    "AbilityDefinitionUnsummonBuns": {
+      "Sal1:1": [
+        "setSalvageCostRatio",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Sal2:2": [
+        "setAccumulationStep",
+        true,
+        false,
+        "Int",
+        "int"
+      ]
+    },
     "AbilityDefinitionUnyieldingGuard": {
       "bld1:1": [
         "setDamageReduction",
@@ -42600,6 +42867,43 @@
       ],
       "Owk5:5": [
         "setStartCooldownWhenDecloak",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ]
+    },
+    "AbilityDefinitionWindWalkAOwk": {
+      "Owk1:1": [
+        "setTransitionTime",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Owk2:2": [
+        "setMovementSpeedIncrease",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Owk3:3": [
+        "setBackstabDamage",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Owk4:4": [
+        "setBackstabDamage1",
+        true,
+        true,
+        "Boolean",
+        "bool"
+      ],
+      "Owk5:5": [
+        "setStartCooldownwhenDecloak",
         true,
         true,
         "Boolean",

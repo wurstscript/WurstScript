@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import utils.WEStrings;
 
@@ -49,7 +51,7 @@ public class GenAbilities {
             this.useLevels = useLevels;
         }
 
-        public void printFunc(Set<String> usedFuncs, Set<String> inheritedFuncs) {
+        public String printFunc(Set<String> usedFuncs, Set<String> inheritedFuncs, Set<String> inheritedPresets) {
             println("");
             String funcName = camelize(displayName);
             int i = 0;
@@ -80,6 +82,36 @@ public class GenAbilities {
                 print("0, " + data + ", ");
             }
             println("value)");
+            if (useLevels) {
+                print(presetFunction(funcName, inheritedPresets.contains(funcName)));
+            }
+            return funcName;
+        }
+
+        public String presetFunction(String funcName, boolean isOverride) {
+            StringBuilder result = new StringBuilder();
+            result.append("\n\t");
+            if (isOverride) result.append("override ");
+            result.append("function preset").append(funcName).append("(")
+                    .append(levelClosureType()).append(" lc)\n");
+            result.append("\t\tdef.setLevelsData").append(typePost())
+                    .append("(\"").append(id).append("\", lvls, ").append(data).append(", lc)\n");
+            result.append("\t\taddTooltipProperty(\"").append(escapeWurstString(displayName)).append("\", lc)\n");
+            return result.toString();
+        }
+
+        private String levelClosureType() {
+            switch (type) {
+                case "bool":    return "BooleanLevelClosure";
+                case "int":     return "IntLevelClosure";
+                case "real":
+                case "unreal": return "RealLevelClosure";
+                default:        return "StringLevelClosure";
+            }
+        }
+
+        private String escapeWurstString(String value) {
+            return value.replace("\\", "\\\\").replace("\"", "\\\"");
         }
 
         private String type() {
@@ -170,6 +202,8 @@ public class GenAbilities {
         System.err.println("Common fields: " + commonData.size());
         System.err.println("Specific ability groups: " + specificData.keySet().size());
 
+        Set<String> basePresetFunctionNames = readBasePresetFunctionNames();
+
         // Propagate specific fields to child abilities via inheritance (alias -> code parent).
         // e.g. ACpa (Parasite Eredar) has code=ANpa, so inherits ANpa's specific fields.
         // Also handles partial inheritance: Afbt has fbk5 own + inherits fbk1-4 from Afbk.
@@ -201,8 +235,10 @@ public class GenAbilities {
         println("\t\tdef = createObjectDefinition(\"w3a\", newAbilityId, origAbilityId)");
 
         Set<String> usedNames = Sets.newHashSet();
+        Set<String> commonPresetFunctionNames = Sets.newHashSet();
         for (FieldData fd : commonData) {
-            fd.printFunc(usedNames, Sets.newHashSet());
+            String funcName = fd.printFunc(usedNames, Sets.newHashSet(), Sets.newHashSet());
+            if (fd.useLevels) commonPresetFunctionNames.add(funcName);
         }
         Set<String> commonFunctionNames = Sets.newHashSet(usedNames);
 
@@ -242,7 +278,7 @@ public class GenAbilities {
             println("\tconstruct(int newAbilityId)");
             println("\t\tsuper(newAbilityId, '" + spell + "')");
             for (FieldData fd : specificData.get(spell)) {
-                fd.printFunc(usedNames, commonFunctionNames);
+                fd.printFunc(usedNames, commonFunctionNames, commonPresetFunctionNames);
             }
 
             // Additions file (for stdlib) uses AbilityIds reference
@@ -269,6 +305,9 @@ public class GenAbilities {
                 if (fd.useLevels) classesBlock.append("level, ").append(fd.data).append(", ");
                 else classesBlock.append("0, ").append(fd.data).append(", ");
                 classesBlock.append("value)\n");
+                if (fd.useLevels) {
+                    classesBlock.append(fd.presetFunction(funcName, basePresetFunctionNames.contains(funcName)));
+                }
             }
         }
 
@@ -305,6 +344,27 @@ public class GenAbilities {
 
         System.out.println(sb.toString());
         Files.write(sb, new File("./AbilityObjEditing.wurst"), Charsets.UTF_8);
+    }
+
+    private static Set<String> readBasePresetFunctionNames() throws IOException {
+        File stdlibAbilityEditing = new File("../../WurstStdlib2/wurst/objediting/AbilityObjEditing.wurst");
+        if (!stdlibAbilityEditing.isFile()) {
+            throw new IOException("Could not find WurstStdlib2's AbilityObjEditing.wurst needed to mark preset overrides: "
+                    + stdlibAbilityEditing.getPath());
+        }
+        String source = Files.toString(stdlibAbilityEditing, Charsets.UTF_8);
+        String baseMarker = "public class AbilityDefinition";
+        int baseStart = source.indexOf(baseMarker);
+        int nextClass = source.indexOf("\npublic class ", baseStart + baseMarker.length());
+        if (baseStart < 0 || nextClass < 0) {
+            throw new IOException("Could not find the AbilityDefinition base class in " + stdlibAbilityEditing.getPath());
+        }
+        String baseClass = source.substring(baseStart, nextClass);
+        Matcher matcher = Pattern.compile("(?m)^\\s*(?:override\\s+)?function preset(\\w+)\\s*\\(")
+                .matcher(baseClass);
+        Set<String> result = Sets.newHashSet();
+        while (matcher.find()) result.add(matcher.group(1));
+        return result;
     }
 
     /**
