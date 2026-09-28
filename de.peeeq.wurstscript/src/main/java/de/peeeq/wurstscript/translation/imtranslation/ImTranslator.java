@@ -1518,6 +1518,27 @@ private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, @Nullabl
         for (ImVar global : imProg.getGlobals()) {
             if (NamePreservation.isPreserved(global)) readVariables.add(global);
         }
+
+        // The game initialises common.j and blizzard.j globals itself, so their initialisers are in no
+        // function body, and the interpreters evaluate them when the global is first read. A read one
+        // keeps what its initialiser reads: bj_DEGTORAD keeps bj_PI.
+        ArrayDeque<ImVar> bjGlobals = new ArrayDeque<>(readVariables);
+        while (!bjGlobals.isEmpty()) {
+            ImVar global = bjGlobals.removeLast();
+            if (!global.getIsBJ()) {
+                continue;
+            }
+            for (ImSet init : imProg.getGlobalInits().getOrDefault(global, Collections.emptyList())) {
+                for (ImVar read : UsedVariables.calculateReadVars(init.getRight())) {
+                    if (includeUsedVariables) {
+                        usedVariables.add(read);
+                    }
+                    if (readVariables.add(read)) {
+                        bjGlobals.add(read);
+                    }
+                }
+            }
+        }
     }
 
     private void calculateCallRelations(ImFunction rootFunction, boolean includeUsedVariables) {

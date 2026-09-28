@@ -20,6 +20,12 @@ public class UsedVariables {
         return result;
     }
 
+    public static Set<ImVar> calculateReadVars(ImExpr e) {
+        Set<ImVar> result = Sets.newLinkedHashSet();
+        e.accept(new ReadVarCollector(result));
+        return result;
+    }
+
     // Fastest: Direct recursive collection without visitor overhead
     private static void collectAllVars(Element e, Set<ImVar> result) {
         if (e instanceof ImVarAccess) {

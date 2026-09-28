@@ -375,6 +375,20 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** A blizzard.j constant defined from another one, and constants whose ConvertX had no mock. */
+    @Test
+    public void derivedAndLessCommonConstants() {
+        test().withStdLib().executeProg(true).testLua(false).lines(
+            "package Test",
+            "init",
+            "    if bj_DEGTORAD < 0.0174 or bj_DEGTORAD > 0.0175",
+            "        testFail(\"bj_DEGTORAD\")",
+            "    if ANIM_TYPE_BIRTH == null or FRAMEPOINT_CENTER == null or ABILITY_BF_HERO_ABILITY == null",
+            "        testFail(\"constant null\")",
+            "    testSuccess()"
+        );
+    }
+
     /** `grill test` and compiletime evaluation run the IM interpreter, which reads the constants too. */
     @Test
     public void commonJConstantsInTestsAndCompiletime() {
