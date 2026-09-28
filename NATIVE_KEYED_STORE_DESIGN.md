@@ -45,9 +45,10 @@ conversion or `GetHandleId` round trip.
 
 Use a distinct backing store per map instance. On Jass, create and destroy/flush its `Table`; on Lua,
 create a fresh table and clear it in place on destroy, since class destruction does not make aliases
-unreachable. Lifecycle tests must inspect the destroyed map before allocating another object of the
-same class: Jass may recycle the old map object's numeric identity, so reading a stale map alias after
-that allocation can observe the new map. Post-destroy access through such an alias is unsupported.
+unreachable. Test teardown separately by target. On Lua, retain an alias and verify `has(alias, key)`
+is false after destroy. On Jass, destroy the first map, create a second map (which may reuse IDs), and
+verify the new map is empty; never read through the stale first-map alias after destroy, because that
+access is unsupported and may reach the second map after ID reuse.
 
 The Jass probing path is for behavioral parity, not a speed claim over Warcraft's native `Table`.
 Lua target selection alone does not expose concrete `K` and `V`; keyed operations must seed the
@@ -66,8 +67,9 @@ probing behavior described here.
   nullable values, null-key behavior, and `put(key, null)` removal.
 - Check that a stored `0` or `false` still makes `has(key)` true, and that removing it makes `has`
   false, on both backends.
-- Cover identity-key behavior, stable hashing while stored, removal before key/value destruction, and
-  teardown before any same-class allocation can reuse the map ID.
+- Cover identity-key behavior, stable hashing while stored, and removal before key/value destruction.
+  For teardown, use the Lua retained-alias check and the Jass create/destroy/create check described
+  above; never assert through a stale Jass map alias.
 - Inspect emitted Lua for direct key table operations, typed unboxed values, and no key conversion.
   Verify specialized `put`/`get` calls reach the intrinsic lowering; keep the Jass fallback covered.
 - Keep structural `FastHashMap` keys on the existing probing implementation.
