@@ -708,6 +708,44 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             init.contains("math.tointeger") || init.contains("__wurst_ensureInt("));
     }
 
+    /**
+     * A read outside any loop is typed too, like a library's lookup in a function that hot code calls:
+     * the method call cannot dispatch anywhere else, so it becomes a direct call of the typed twin.
+     */
+    @Test
+    public void fastKeyedMapReadsOutsideLoopsAreTyped() throws IOException {
+        test().testLua(true).inline().executeProg(true).withStdLib().lines(fastKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "let ids = new FastKeyedMap<timer, int>()",
+            "let scales = new FastKeyedMap<timer, real>()",
+            "@noinline function idOf(timer t) returns int",
+            "    let id = ids.get(t)",
+            "    if id == 0",
+            "        return -1",
+            "    return id",
+            "@noinline function scaleOf(timer t) returns real",
+            "    return scales.get(t) * 2.",
+            "init",
+            "    let a = CreateTimer()",
+            "    let b = CreateTimer()",
+            "    ids.put(a, 42)",
+            "    scales.put(a, 1.5)",
+            "    if idOf(a) != 42 or idOf(b) != -1",
+            "        testFail(\"ids\")",
+            "    if scaleOf(a) != 3. or scaleOf(b) != 0.",
+            "        testFail(\"scales\")",
+            "    testSuccess()",
+            "endpackage"));
+
+        String lua = compiled("fastKeyedMapReadsOutsideLoopsAreTyped");
+        for (String function : new String[] {"idOf", "scaleOf"}) {
+            String body = getFunctionBody(lua, function);
+            assertFalse("no ensure left on the read in " + function + ": " + body,
+                body.contains("tonumber") || body.contains("math.tointeger") || body.contains("__wurst_ensure"));
+        }
+    }
+
     @Test
     public void handleBoundGenericValuesKeepJassHashtableFallback() throws IOException {
         ErrorHandler.outputTestSource = true;
