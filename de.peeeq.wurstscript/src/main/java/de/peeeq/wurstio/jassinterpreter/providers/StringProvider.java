@@ -91,9 +91,12 @@ public class StringProvider extends Provider {
                     + ", width up to " + R2SW_MAX_WIDTH + ").");
         }
         long[] parts = roundedParts(Math.abs(x), digits);
-        String whole = StringUtils.leftPad(Integer.toString((int) parts[0]), (int) Math.max(0, padding));
+        // The signed value wraps to 32 bits, as in R2S; the sign is printed ahead of the padding.
+        int wrapped = (int) (x < 0 ? -parts[0] : parts[0]);
+        String sign = wrapped < 0 || (wrapped == 0 && x < 0) ? "-" : "";
+        String whole = StringUtils.leftPad(Long.toString(Math.abs((long) wrapped)), (int) Math.max(0, padding));
         String fraction = digits == 0 ? "0" : StringUtils.leftPad(Long.toString(parts[1]), digits, '0');
-        return ILconstString.fromText((x < 0 ? "-" : "") + whole + "." + fraction);
+        return ILconstString.fromText(sign + whole + "." + fraction);
     }
 
     private static final int R2SW_MAX_PRECISION = 18;
@@ -123,7 +126,10 @@ public class StringProvider extends Provider {
     /** Measured on the 3.0.0 client: truncates, and wraps to 32 bits rather than saturating
      *  (1e10 is 1410065408). */
     public ILconstInt R2I(ILconstReal i) {
-        return new ILconstInt((int) (long) i.getVal());
+        double value = i.getVal();
+        // Truncated in double and wrapped by remainder: a cast to long would saturate above its range.
+        double truncated = value < 0 ? Math.ceil(value) : Math.floor(value);
+        return new ILconstInt((int) (long) (truncated % 4294967296.0));
     }
 
     public ILconstReal I2R(ILconstInt i) {

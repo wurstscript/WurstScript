@@ -446,9 +446,12 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2SW negative to zero\", R2SW(-0.4, 1, 0), \"-0.0\")",
             "    measured(\"R2SW integer\", R2SW(7., 4, 0), \"   7.0\")",
             "    measured(\"R2SW carry\", R2SW(0.9996, 1, 3), \"1.000\")",
+            // Wraps like R2S: 3e9 is measured, and -3e9 wraps to the positive value R2S prints for it.
+            "    measured(\"R2SW wraps\", R2SW(3000000000., 1, 1) + \",\" + R2SW(-3000000000., 1, 3), \"-1294967296.0,1294967296.000\")",
             "    measured(\"R2SW smallest width\", R2SW(1., -2147483647 - 1, 1), \"1.0\")",
             "    measured(\"R2I truncates\", I2S(R2I(1.9)) + \",\" + I2S(R2I(-1.9)), \"1,-1\")",
             "    measured(\"R2I wraps\", I2S(R2I(10000000000.)) + \",\" + I2S(R2I(-10000000000.)), \"1410065408,-1410065408\")",
+            "    measured(\"R2I beyond the long range\", I2S(R2I(100000000000000000000.)) + \",\" + I2S(R2I(-100000000000000000000.)), \"0,0\")",
             "    measured(\"SubString end before start\", SubString(\"abcdef\", 3, 1), \"def\")",
             "    measured(\"SubString empty range\", SubString(\"abcdef\", 3, 3), \"\")",
             "    measured(\"SubString at the end\", SubString(\"abcdef\", 6, 8), \"\")",
