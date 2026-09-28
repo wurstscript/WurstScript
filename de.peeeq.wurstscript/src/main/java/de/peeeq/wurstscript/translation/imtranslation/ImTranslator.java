@@ -590,40 +590,60 @@ public class ImTranslator implements SpecialisationLookup {
 
 
     private <T extends Element> void sortList(List<T> list) {
-        List<T> classes = removeAll(list);
-        Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
-        classes.sort(comparator);
-        list.addAll(classes);
+        List<T> elements = new ArrayList<>(list);
+        list.clear();
+        Comparator<T> comparator = Comparator.comparing(this::getSortKey);
+        elements.sort(comparator);
+        list.addAll(elements);
     }
 
-    public <T> List<T> removeAll(List<T> list) {
-        List<T> result = new ArrayList<>();
-        while (!list.isEmpty()) {
-            result.add(0, list.remove(list.size() - 1));
+    private String getSortKey(Element c) {
+        StringBuilder sb = new StringBuilder();
+        de.peeeq.wurstscript.ast.Element trace = c.attrTrace();
+        String scope = getScopePrefix(trace);
+        if (!scope.isEmpty()) {
+            sb.append(scope).append("::");
         }
-        return result;
+        if (c instanceof ImFunction) {
+            ImFunction f = (ImFunction) c;
+            sb.append("fn::").append(f.getName()).append("(");
+            for (int i = 0; i < f.getParameters().size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(f.getParameters().get(i).getType());
+            }
+            sb.append(")->").append(f.getReturnType());
+        } else if (c instanceof ImVar) {
+            ImVar v = (ImVar) c;
+            sb.append("var::").append(v.getName()).append(":").append(v.getType());
+        } else if (c instanceof ImClass) {
+            ImClass cls = (ImClass) c;
+            sb.append("class::").append(cls.getName());
+        } else if (c instanceof ImMethod) {
+            ImMethod m = (ImMethod) c;
+            sb.append("method::").append(m.getName());
+        } else {
+            sb.append(c.getClass().getSimpleName());
+        }
+        if (trace != null) {
+            de.peeeq.wurstscript.parser.WPos pos = trace.attrSource();
+            if (pos != null) {
+                sb.append("@L").append(pos.getLine()).append("C").append(pos.getStartColumn());
+            }
+        }
+        return sb.toString();
     }
 
-    private String getQualifiedClassName(Element c) {
-        return getQualifiedClassName(c.attrTrace());
-    }
-
-
-    private String getQualifiedClassName(de.peeeq.wurstscript.ast.Element e) {
-        String result = "";
-        if (e instanceof NamedScope) {
-            NamedScope ns = (NamedScope) e;
-            result = ns.getName();
+    private String getScopePrefix(de.peeeq.wurstscript.ast.Element e) {
+        if (e == null) {
+            return "";
         }
-        de.peeeq.wurstscript.ast.Element parent = e.getParent();
-        if (parent == null) {
-            return result;
+        NamedScope ns = e instanceof NamedScope ? (NamedScope) e : e.attrNearestNamedScope();
+        if (ns == null) {
+            return "";
         }
-        parent = parent.attrNearestNamedScope();
-        if (parent == null) {
-            return result;
-        }
-        return getQualifiedClassName(parent) + "_" + result;
+        de.peeeq.wurstscript.ast.Element parent = ns.getParent();
+        String parentScope = parent != null ? getScopePrefix(parent) : "";
+        return parentScope.isEmpty() ? ns.getName() : parentScope + "_" + ns.getName();
     }
 
 
