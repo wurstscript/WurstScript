@@ -51,7 +51,7 @@ public class GenAbilities {
 
         public FieldData(String id, String displayName, String type, int data, boolean useLevels) {
             this.id = id;
-            this.displayName = displayName;
+            this.displayName = displayName.trim();
             this.type = INTEGER_STORAGE_FIELDS.contains(id) ? "int" : type;
             this.data = data;
             this.useLevels = useLevels;
@@ -150,6 +150,20 @@ public class GenAbilities {
         return val == null ? null : val.toString();
     }
 
+    static String resolveDisplayName(String id, String displayName, String fallback) {
+        if (displayName == null || displayName.startsWith("WESTRING_")) {
+            displayName = fallback;
+        }
+        // The generic metadata label for Tau2 is wrong; World Editor names this field "Prefer Friendlies".
+        if ("Tau2".equals(id)) {
+            displayName = "Prefer Friendlies";
+        }
+        if (displayName == null || displayName.isEmpty()) {
+            displayName = id;
+        }
+        return displayName;
+    }
+
     public static void main(String[] args) throws IOException {
         // Load ability names and parent codes from abilitydata.slk
         Map<String, String> abilityNames = new HashMap<>();
@@ -170,13 +184,7 @@ public class GenAbilities {
             if (id == null || id.isEmpty()) continue;
 
             String displayNameKey = safeGet(metaObj, "displayName");
-            String displayName = strings.get(displayNameKey);
-            if (displayName == null || displayName.startsWith("WESTRING_")) {
-                displayName = safeGet(metaObj, "field");
-            }
-            if (displayName == null || displayName.isEmpty()) {
-                displayName = id;
-            }
+            String displayName = resolveDisplayName(id, strings.get(displayNameKey), safeGet(metaObj, "field"));
 
             String type = safeGet(metaObj, "type");
             if (type == null) type = "string";

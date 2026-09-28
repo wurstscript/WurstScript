@@ -1612,6 +1612,7 @@
     "AbilityDefinitionAlchemistChemicalRage": "AbilityDefinition",
     "AbilityDefinitionAlchemistHealingSpray": "AbilityDefinition",
     "AbilityDefinitionAlchemistTransmute": "AbilityDefinition",
+    "AbilityDefinitionAlliedBuilding": "AbilityDefinitionShopSharing",
     "AbilityDefinitionAllPlus1": "AbilityDefinition",
     "AbilityDefinitionAllPlus2": "AbilityDefinition",
     "AbilityDefinitionAllPlus3": "AbilityDefinition",
@@ -1660,6 +1661,7 @@
     "AbilityDefinitionArchMageBrillianceAura": "AbilityDefinition",
     "AbilityDefinitionArchMageMassTeleport": "AbilityDefinition",
     "AbilityDefinitionArchMageSummonWaterElemental": "AbilityDefinition",
+    "AbilityDefinitionArmorBonus": "AbilityDefinitionDefenseBonusPlus1",
     "AbilityDefinitionAroo": "AbilityDefinition",
     "AbilityDefinitionArtn": "AbilityDefinition",
     "AbilityDefinitionAspx": "AbilityDefinition",
@@ -1737,6 +1739,7 @@
     "AbilityDefinitionBeastMasterSummonQuilbeast": "AbilityDefinition",
     "AbilityDefinitionBerserk": "AbilityDefinition",
     "AbilityDefinitionBerserkerUpgrade": "AbilityDefinition",
+    "AbilityDefinitionBeserk": "AbilityDefinitionBerserk",
     "AbilityDefinitionBeserkItem": "AbilityDefinition",
     "AbilityDefinitionBlackArrowMeleeCreep": "AbilityDefinition",
     "AbilityDefinitionBladeMasterBladestorm": "AbilityDefinition",
@@ -1836,6 +1839,7 @@
     "AbilityDefinitionClericSacredFlameLightSMercy": "AbilityDefinition",
     "AbilityDefinitionCloudofFog": "AbilityDefinition",
     "AbilityDefinitionCloudofFogItem": "AbilityDefinition",
+    "AbilityDefinitionColdArrows": "AbilityDefinitionRangerColdArrows",
     "AbilityDefinitionColdArrowscreep": "AbilityDefinition",
     "AbilityDefinitionConsecration": "AbilityDefinition",
     "AbilityDefinitionControlMagic": "AbilityDefinition",
@@ -1865,6 +1869,7 @@
     "AbilityDefinitionCursecreep": "AbilityDefinition",
     "AbilityDefinitionCursedGoldenRingCrit": "AbilityDefinition",
     "AbilityDefinitionCyclone": "AbilityDefinition",
+    "AbilityDefinitionCyclone1": "AbilityDefinitionCyclone",
     "AbilityDefinitionCycloneAIcy": "AbilityDefinition",
     "AbilityDefinitionCycloneCenarius": "AbilityDefinition",
     "AbilityDefinitionCyclonecreep": "AbilityDefinition",
@@ -2096,6 +2101,7 @@
     "AbilityDefinitionHealCreepNormalAnhe": "AbilityDefinition",
     "AbilityDefinitionHealingModifier": "AbilityDefinition",
     "AbilityDefinitionHealingWard": "AbilityDefinition",
+    "AbilityDefinitionHealingWard1": "AbilityDefinitionHealingWard",
     "AbilityDefinitionHealingWardAIhw": "AbilityDefinition",
     "AbilityDefinitionHealingWardcreep": "AbilityDefinition",
     "AbilityDefinitionHealingWaveCreep": "AbilityDefinition",
@@ -2266,6 +2272,7 @@
     "AbilityDefinitionItemBrimstoneAttack2": "AbilityDefinition",
     "AbilityDefinitionItemBrimstoneSpell1": "AbilityDefinition",
     "AbilityDefinitionItemBrimstoneSpell2": "AbilityDefinition",
+    "AbilityDefinitionItemChainLightning": "AbilityDefinitionChainLightningcreep",
     "AbilityDefinitionItemChangeTOD": "AbilityDefinition",
     "AbilityDefinitionItemChillAttack3": "AbilityDefinition",
     "AbilityDefinitionItemChillAttack5": "AbilityDefinition",
@@ -2960,6 +2967,7 @@
     "AbilityDefinitionSleepAlways": "AbilityDefinition",
     "AbilityDefinitionSleepcreep": "AbilityDefinition",
     "AbilityDefinitionSlow": "AbilityDefinition",
+    "AbilityDefinitionSlow1": "AbilityDefinitionSlowCreep",
     "AbilityDefinitionSlow2": "AbilityDefinition",
     "AbilityDefinitionSlowAIos": "AbilityDefinition",
     "AbilityDefinitionSlowCreep": "AbilityDefinition",
@@ -8696,6 +8704,13 @@
         "Unreal",
         "real"
       ],
+      "Ocr2:2": [
+        "setDamageMultiplier",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
       "Ocr3:3": [
         "setDamageBonus",
         true,
@@ -9331,7 +9346,7 @@
         "int"
       ],
       "Tau2:2": [
-        "setPreferHostiles1",
+        "setPreferFriendlies",
         true,
         false,
         "Int",
@@ -9506,6 +9521,13 @@
     "AbilityDefinitionChenDrunkenBrawler": {
       "Ocr1:1": [
         "setChancetoCriticalStrike",
+        true,
+        false,
+        "Unreal",
+        "real"
+      ],
+      "Ocr2:2": [
+        "setDamageMultiplier",
         true,
         false,
         "Unreal",
