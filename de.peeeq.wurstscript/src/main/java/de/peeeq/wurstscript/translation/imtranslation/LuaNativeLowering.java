@@ -451,10 +451,10 @@ public final class LuaNativeLowering {
      * wherever the result is a 32-bit integer, which is the range it covers. NaN, the infinities and
      * everything outside that range call the native, so their results are the engine's.
      *
-     * <p>On Lua {@code R2I} is an engine call. Measured on the 3.0.0 client, it truncates the double it
-     * is given, without rounding it to a 32-bit real first, so an in-range result is the same either
-     * way. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is printed
-     * as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
+     * <p>On Lua {@code R2I} is an engine call. Measured on the 3.0.0 client, the engine and this
+     * arithmetic return the same for every value probed, the 32-bit edges and values outside the range
+     * included. The helper returns one intrinsic call, so it inlines anywhere, and the intrinsic is
+     * printed as a single Lua expression ({@code ExprTranslation#realToInt}) with no call in range.
      */
     private static void lowerRealToInt(ImProg prog, ImTranslator translator) {
         ImFunction[] shim = {null};

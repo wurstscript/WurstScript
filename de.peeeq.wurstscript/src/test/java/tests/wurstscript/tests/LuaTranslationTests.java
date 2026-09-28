@@ -373,6 +373,26 @@ public class LuaTranslationTests extends WurstScriptTest {
                 && compiled.split("__wurst_R2I\\(", -1).length - 1 <= 1);
     }
 
+    /** An R2I of an expression is Lua arithmetic too, and computes the same under Lua. */
+    @Test
+    public void realToIntOfAnExpressionIsLuaArithmetic() throws IOException {
+        test().testLua(true).withStdLib().inline().executeProg(true).lines(
+            "package Test",
+            "real array operands",
+            "init",
+            "    operands[0] = 2.",
+            "    operands[1] = 0.5",
+            "    if R2I(operands[0] + operands[1]) == 2 and R2I(-operands[0] - operands[1]) == -2",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"R2I\")"
+        );
+        String compiled = Files.toString(new File("test-output/lua/LuaTranslationTests_realToIntOfAnExpressionIsLuaArithmetic.lua"), Charsets.UTF_8);
+        assertTrue("R2I of an expression is not called through a helper:\n" + compiled,
+            compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1
+                && compiled.split("__wurst_R2I\\(", -1).length - 1 <= 1);
+    }
+
     @Test
     public void noContinueDoesNotEmitContinueFlagInLua() throws IOException {
         test().testLua(true).lines(

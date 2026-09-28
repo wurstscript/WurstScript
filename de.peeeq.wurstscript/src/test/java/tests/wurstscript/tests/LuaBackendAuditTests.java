@@ -312,6 +312,26 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("Test_CONFIGURABLE"));
     }
 
+    /**
+     * An R2I of an expression stays Lua arithmetic in an optimised build. The printer takes only a
+     * variable or a constant in place, so the temp merger must leave the argument's temporary alone.
+     */
+    @Test
+    public void realToIntOfAnExpressionStaysArithmeticWhenOptimized() {
+        String compiled = compileOptimizedLuaWithStdLib(
+            "realToIntOfAnExpressionStaysArithmeticWhenOptimized",
+            "package Test",
+            "native consume(int value)",
+            "real array operands",
+            "init",
+            "    operands[0] = 2.",
+            "    operands[1] = 0.5",
+            "    consume(R2I(operands[0] + operands[1]))"
+        );
+        assertTrue("R2I of an expression is printed in place, without a call:\n" + compiled,
+            compiled.contains("// 1) | 0)") && compiled.split("__wurst_rawR2I\\(", -1).length - 1 <= 1);
+    }
+
     private String compileOptimizedLuaWithStdLib(String testName, String... lines) {
         RunArgs runArgs = new RunArgs().with("-lua", "-inline", "-localOptimizations",
             "-runcompiletimefunctions", "-lib", StdLib.getLib());
