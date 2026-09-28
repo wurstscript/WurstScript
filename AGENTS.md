@@ -255,6 +255,11 @@ Recent fixes established additional rules for backend work. Follow these for all
 * Integer/real division and modulo semantics are centralized: `WurstOperator.moduloInteger/moduloReal` implement the Blizzard.j formula (truncated remainder, plus divisor if negative) and Jass `div` truncates toward zero.
 * The Lua polyfills (`intDiv`/`wurstMod`), the interpreter's `MathProvider` mocks, and constant folding (`SimpleRewrites`, `ConstantAndCopyPropagation`) must all stay consistent with those helpers — never reimplement div/mod locally.
 
+### Interpreter native mocks
+
+* The mocks in `wurstio/jassinterpreter/providers` model what the game does. Where the behaviour is not obvious, measure it in game (the wc3-e2e-harness canary) before mocking it, and say in the mock that it was measured.
+* Death is life at or below 0.405, never life at zero: a unit left with 0.3 life is dead. Use `UnitProvider.DEATH_LIFE_THRESHOLD` through `isAlive` for every life test, and cover a fractional life in the test.
+
 ### Error behavior parity expectations
 
 * Prefer matching Jass behavior semantically in Lua output.
