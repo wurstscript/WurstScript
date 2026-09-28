@@ -75,7 +75,8 @@ try {
     const suffix = `/${name}`.toLowerCase();
     const matches = paths.filter(path => path.toLowerCase().endsWith(suffix));
     const preferred = preferredPaths.get(name);
-    return matches.length === 1 || (preferred && matches.includes(preferred))
+    const preferredMatch = preferred && matches.some(path => path.toLowerCase() === preferred.toLowerCase());
+    return matches.length === 1 || preferredMatch
       ? []
       : [`${name}: ${matches.join(', ') || '(missing)'}`];
   });
@@ -87,8 +88,10 @@ try {
   for (const name of requiredFiles) {
     const suffix = `/${name}`.toLowerCase();
     const matches = paths.filter(path => path.toLowerCase().endsWith(suffix));
-    const path = preferredPaths.get(name) ?? matches[0];
-    if (matches.length !== 1 && !preferredPaths.has(name)) {
+    const preferred = preferredPaths.get(name);
+    const preferredMatch = preferred && matches.find(path => path.toLowerCase() === preferred.toLowerCase());
+    const path = preferredMatch ?? matches[0];
+    if (matches.length !== 1 && !preferredMatch) {
       throw new Error(`Expected one CASC path for ${name}, found ${matches.length}: ${matches.join(', ')}`);
     }
     const data = await storage.readFileAsync(path);
