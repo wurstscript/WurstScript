@@ -26,6 +26,19 @@ public class InterpreterTests extends WurstScriptTest {
         );
     }
 
+    /** What the game prints for a precision this large was not measured; the interpreter says so. */
+    @Test(expectedExceptions = {InterpreterException.class})
+    public void r2swBeyondTheModelledRange() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "@extern native R2SW(real r, integer width, integer precision) returns string",
+            "init",
+            "    if R2SW(1.0, 1, 100) != \"\"",
+            "        testSuccess()"
+        );
+    }
+
     @Test(expectedExceptions = {InterpreterException.class})
     public void arrayDefaultTestFail() {
         test().executeProg(true).testLua(false).lines(
@@ -431,6 +444,7 @@ public class InterpreterTests extends WurstScriptTest {
             "    measured(\"R2SW negative to zero\", R2SW(-0.4, 1, 0), \"-0.0\")",
             "    measured(\"R2SW integer\", R2SW(7., 4, 0), \"   7.0\")",
             "    measured(\"R2SW carry\", R2SW(0.9996, 1, 3), \"1.000\")",
+            "    measured(\"R2SW smallest width\", R2SW(1., -2147483647 - 1, 1), \"1.0\")",
             "    measured(\"R2I truncates\", I2S(R2I(1.9)) + \",\" + I2S(R2I(-1.9)), \"1,-1\")",
             "    measured(\"R2I wraps\", I2S(R2I(10000000000.)) + \",\" + I2S(R2I(-10000000000.)), \"1410065408,-1410065408\")",
             "    measured(\"SubString end before start\", SubString(\"abcdef\", 3, 1), \"def\")",
@@ -595,6 +609,15 @@ public class InterpreterTests extends WurstScriptTest {
             "    let m = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
             "    BlzSetUnitMaxHP(m, 0)",
             "    measured(\"max hp 0\", death(m), \"false,true,0.000\")",
+            "    let rh = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
+            "    BlzSetUnitMaxHP(rh, 0)",
+            "    ReviveHero(rh, 0.0, 0.0, false)",
+            "    measured(\"revived with max hp 0\", death(rh), \"false,true,0.000\")",
+            "    let mm = CreateUnit(Player(0), 'hfoo', 0.0, 0.0, 0.0)",
+            "    BlzSetUnitMaxMana(mm, 50)",
+            "    SetUnitState(mm, UNIT_STATE_MANA, 20.0)",
+            "    BlzSetUnitMaxMana(mm, -1)",
+            "    measured(\"negative max mana\", R2S(GetUnitState(mm, UNIT_STATE_MANA)), \"0.000\")",
             "    let h = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
             "    measured(\"hero type and null type\", bs(IsUnitType(h, UNIT_TYPE_HERO)) + \",\" + bs(IsUnitType(h, null)) + \",\" + bs(IsUnitType(u, UNIT_TYPE_HERO)), \"true,true,false\")",
             "    testSuccess()"
@@ -652,6 +675,12 @@ public class InterpreterTests extends WurstScriptTest {
             "    let big = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
             "    SetHeroXP(big, 2147483647, false)",
             "    measured(\"largest XP\", I2S(GetHeroXP(big)), \"2147483647\")",
+            "    let top = CreateUnit(Player(0), 'Hpal', 0.0, 0.0, 0.0)",
+            "    SetHeroLevel(top, 2147483647, false)",
+            "    SetHeroXP(top, 1, false)",
+            "    SetHeroXP(top, 2147483647, false)",
+            "    if GetHeroLevel(top) >= 2147483647 or GetHeroXP(top) <= 0",
+            "        testFail(\"largest level\")",
             "    testSuccess()"
         );
     }

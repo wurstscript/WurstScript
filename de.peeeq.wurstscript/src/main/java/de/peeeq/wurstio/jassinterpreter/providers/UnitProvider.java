@@ -562,7 +562,7 @@ public class UnitProvider extends Provider {
         UnitMock unitMock = unitOrNull(unit);
         if (unitMock != null) {
             unitMock.states.put("unitstate3", ILconstReal.create(mana.getVal()));
-            unitMock.states.put("unitstate2", ILconstReal.create(Math.min(unitMock.states.get("unitstate2").getVal(), mana.getVal())));
+            unitMock.states.put("unitstate2", ILconstReal.create(Math.max(0, Math.min(unitMock.states.get("unitstate2").getVal(), mana.getVal()))));
         }
     }
 
@@ -682,10 +682,10 @@ public class UnitProvider extends Provider {
      *  the XP to what the new level needs. */
     public void SetHeroLevel(IlConstHandle unit, ILconstInt level, ILconstBool showEyeCandy) {
         UnitMock unitMock = unitOrNull(unit);
-        if (unitMock != null && isHero(unitMock) && level.getVal() > unitMock.level.getVal()) {
-            raiseHeroLevel(unitMock, level.getVal());
-            long xp = Math.max(unitMock.heroXp.getVal(), heroXpForLevel(level.getVal()));
-            unitMock.heroXp = ILconstInt.create((int) Math.min(xp, Integer.MAX_VALUE));
+        int target = Math.min(level.getVal(), MAX_HERO_LEVEL);
+        if (unitMock != null && isHero(unitMock) && target > unitMock.level.getVal()) {
+            raiseHeroLevel(unitMock, target);
+            unitMock.heroXp = ILconstInt.create((int) Math.max(unitMock.heroXp.getVal(), heroXpForLevel(target)));
         }
     }
 
@@ -703,7 +703,7 @@ public class UnitProvider extends Provider {
         }
         unitMock.heroXp = xp;
         int level = unitMock.level.getVal();
-        while (heroXpForLevel(level + 1) <= xp.getVal()) {
+        while (level < MAX_HERO_LEVEL && heroXpForLevel(level + 1) <= xp.getVal()) {
             level++;
         }
         if (level > unitMock.level.getVal()) {
@@ -712,8 +712,11 @@ public class UnitProvider extends Provider {
     }
 
     /** The XP a hero needs for a level with the default gameplay constants: 200, 500, 900, 1400, 2000, ... */
+    /** The highest level whose XP still fits an int. The mock does not know the map's maximum hero
+     *  level; this only keeps levels and their XP representable. */
+    private static final int MAX_HERO_LEVEL = 6553;
+
     private static long heroXpForLevel(int level) {
-        // In long: from about level 6500 the threshold no longer fits an int.
         return level <= 1 ? 0 : 50L * level * (level + 1) - 100;
     }
 
@@ -766,7 +769,8 @@ public class UnitProvider extends Provider {
         if (m == null) return ILconstBool.FALSE;
         m.x = x; m.y = y;
         m.dead = false;
-        m.states.put("unitstate0", m.states.get("unitstate1"));
+        // Through setLife, so that a maximum at or below the death threshold leaves the hero dead.
+        setLife(m, m.states.get("unitstate1").getVal());
         return ILconstBool.TRUE;
     }
 

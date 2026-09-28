@@ -83,11 +83,21 @@ public class StringProvider extends Provider {
     public ILconstString R2SW(ILconstReal r, ILconstInt width, ILconstInt precision) {
         float x = r.getVal();
         int digits = Math.max(0, precision.getVal());
+        long padding = (long) width.getVal() - digits;
+        if (digits > R2SW_MAX_PRECISION || padding > R2SW_MAX_WIDTH) {
+            // What the game prints there was not measured, and padding that far could exhaust memory.
+            throw new InterpreterException("R2SW called with width " + width + " and precision " + precision
+                    + ", beyond what the interpreter models (precision up to " + R2SW_MAX_PRECISION
+                    + ", width up to " + R2SW_MAX_WIDTH + ").");
+        }
         long[] parts = roundedParts(Math.abs(x), digits);
-        String whole = StringUtils.leftPad(Integer.toString((int) parts[0]), width.getVal() - digits);
+        String whole = StringUtils.leftPad(Integer.toString((int) parts[0]), (int) Math.max(0, padding));
         String fraction = digits == 0 ? "0" : StringUtils.leftPad(Long.toString(parts[1]), digits, '0');
         return ILconstString.fromText((x < 0 ? "-" : "") + whole + "." + fraction);
     }
+
+    private static final int R2SW_MAX_PRECISION = 18;
+    private static final int R2SW_MAX_WIDTH = 1000;
 
     /**
      * The whole part and the fraction digits of a non-negative value, rounded half up at the given
