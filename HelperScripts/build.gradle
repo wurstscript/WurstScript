@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.inwc3:wc3libs:a69318d921'
+    implementation 'com.github.inwc3:wc3libs:9a11e1f089'
     implementation 'com.google.guava:guava:31.1-jre'
 }
 
@@ -18,7 +18,7 @@ application {
 }
 
 run {
-    workingDir = file('.')
+    workingDir = project.projectDir
 }
 
 sourceSets {
