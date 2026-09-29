@@ -2683,6 +2683,130 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             compiled.contains("arithmetic("));
     }
 
+    /**
+     * The nil check around every native with a handle parameter returns early, and an inlined
+     * early return used to leave a done flag with two tests and a dead default write behind. A
+     * return that ends its branch needs none of that: the inlined call is one if with an else.
+     */
+    @Test
+    public void inlinedNilCheckWrapperLeavesNoDoneFlag() {
+        String compiled = compileOptimizedLuaWithStdLib("inlinedNilCheckWrapperLeavesNoDoneFlag",
+            popularStdlibHelpersProgram());
+        String caller = functionBody(compiled, "caller1");
+        assertFalse("no done flag is left behind:\n" + caller, caller.contains("inlineDone"));
+        assertFalse("nor a test of one:\n" + caller, caller.contains("not(inlineDone"));
+        assertTrue("the guard picks between the default and the native:\n" + caller,
+            caller.contains("if (u == nil) then") && caller.contains("else\n\t\tthis")
+                && caller.contains("= GetUnitX(u)"));
+    }
+
+    /**
+     * An early return inlines without a flag when it ends its path, and with one when what follows
+     * it would have to be written twice or it leaves a loop. Both must return what the function
+     * returned, and run what follows it only when the function did not return.
+     */
+    @Test
+    public void inlinedEarlyReturnsKeepTheirMeaning() throws IOException {
+        test().testLua(true).inline().localOptimizations().executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "int trace = 0",
+            "int failures = 0",
+            "@noinline function id(int x) returns int",
+            "    return x",
+            "@noinline function check(bool ok)",
+            "    if not ok",
+            "        failures++",
+            "@inline function guard(int x) returns int",
+            "    if x < 0",
+            "        return -1",
+            "    trace += 1",
+            "    return x * 2",
+            "@inline function nested(int x, int y) returns int",
+            "    if x < 0",
+            "        if y < 0",
+            "            return 1",
+            "        trace += 10",
+            "        return 2",
+            "    trace += 100",
+            "    if y < 0",
+            "        return 3",
+            "    return 4",
+            "@inline function bothBranches(int x) returns int",
+            "    if x > 0",
+            "        return 1",
+            "    else",
+            "        return 2",
+            "@inline function elseGuard(int x) returns int",
+            "    if x > 0",
+            "        trace += 1",
+            "    else",
+            "        return 7",
+            "    trace += 20",
+            "    return x",
+            "@inline function voidGuard(int x)",
+            "    if x < 0",
+            "        return",
+            "    trace += x",
+            "    if x > 100",
+            "        return",
+            "    trace += 1000",
+            "@inline function bothFallThrough(int x) returns int",
+            "    if x < 0",
+            "        if x < -5",
+            "            return 1",
+            "        trace += 1",
+            "    else",
+            "        if x > 5",
+            "            return 2",
+            "        trace += 2",
+            "    trace += 10000",
+            "    return 3",
+            "@inline function inLoop(int x) returns int",
+            "    for i = 0 to 9",
+            "        if i == x",
+            "            return i * 10",
+            "    return -1",
+            "@inline function doubleGuard(int x) returns int",
+            "    if x < 0",
+            "        return 0",
+            "    if x > 10",
+            "        return 10",
+            "    return x",
+            "init",
+            "    check(guard(id(-3)) == -1 and trace == 0)",
+            "    check(guard(id(4)) == 8 and trace == 1)",
+            "    trace = 0",
+            "    check(nested(id(-1), id(-1)) == 1 and trace == 0)",
+            "    check(nested(id(-1), id(1)) == 2 and trace == 10)",
+            "    trace = 0",
+            "    check(nested(id(1), id(-1)) == 3 and trace == 100)",
+            "    check(nested(id(1), id(1)) == 4 and trace == 200)",
+            "    check(bothBranches(id(5)) == 1 and bothBranches(id(-5)) == 2)",
+            "    trace = 0",
+            "    check(elseGuard(id(-2)) == 7 and trace == 0)",
+            "    check(elseGuard(id(3)) == 3 and trace == 21)",
+            "    trace = 0",
+            "    voidGuard(id(-4))",
+            "    check(trace == 0)",
+            "    voidGuard(id(200))",
+            "    check(trace == 200)",
+            "    voidGuard(id(5))",
+            "    check(trace == 1205)",
+            "    trace = 0",
+            "    check(bothFallThrough(id(-9)) == 1 and trace == 0)",
+            "    check(bothFallThrough(id(-2)) == 3 and trace == 10001)",
+            "    trace = 0",
+            "    check(bothFallThrough(id(9)) == 2 and trace == 0)",
+            "    check(bothFallThrough(id(3)) == 3 and trace == 10002)",
+            "    check(inLoop(id(4)) == 40 and inLoop(id(12)) == -1)",
+            "    check(doubleGuard(id(-1)) == 0 and doubleGuard(id(11)) == 10 and doubleGuard(id(6)) == 6)",
+            "    if failures == 0",
+            "        testSuccess()");
+        String compiled = compiledLua("inlinedEarlyReturnsKeepTheirMeaning");
+        assertTrue("the shapes that need a flag keep one:\n" + compiled, compiled.contains("inlineDone"));
+    }
+
     @Test
     public void tinyMonomorphicMethodsInlineOnLua() {
         String compiled = compileOptimizedLua(
