@@ -383,12 +383,20 @@ public abstract class MapRequest extends UserRequest<Object> {
             WLogger.debug("dep: " + dep.getPath());
         }
         print("Dependencies done.");
-        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty && !runArgs.isIncremental()) {
             // it is safer to rebuild the project, instead of taking the current editor state
             gui.sendProgress("Cleaning project");
             modelManager.clean();
             gui.sendProgress("Building project");
             modelManager.buildProject();
+        } else if (runArgs.isIncremental()) {
+            if (modelManager.getModel() == null) {
+                gui.sendProgress("Building project");
+                modelManager.buildProject();
+            } else {
+                gui.sendProgress("Syncing project files");
+                modelManager.syncProjectFiles();
+            }
         }
 
         replaceBaseScriptWithConfig(modelManager, scriptFile);
@@ -746,20 +754,24 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
             }
 
-            // CRITICAL: Import files into THIS mpq editor instance
-            gui.sendProgress("Importing resource files");
-            timeTaker.beginPhase("Importing files");
-            try {
-                ImportFile.ImportResult importResult = ImportFile.importFilesFromImports(
-                    workspaceRoot.getFile(),
-                    mpqEditor
-                );
-                WLogger.info("Import result: " + importResult.toString());
-            } catch (Exception e) {
-                WLogger.severe("Failed to import files: " + e.getMessage());
-                throw e;
+            if (!runArgs.isIncremental()) {
+                // CRITICAL: Import files into THIS mpq editor instance
+                gui.sendProgress("Importing resource files");
+                timeTaker.beginPhase("Importing files");
+                try {
+                    ImportFile.ImportResult importResult = ImportFile.importFilesFromImports(
+                        workspaceRoot.getFile(),
+                        mpqEditor
+                    );
+                    WLogger.info("Import result: " + importResult.toString());
+                } catch (Exception e) {
+                    WLogger.severe("Failed to import files: " + e.getMessage());
+                    throw e;
+                }
+                timeTaker.endPhase();
+            } else {
+                WLogger.info("Incremental build: patching script directly into cached map, skipping resource re-import");
             }
-            timeTaker.endPhase();
         }
 
         timeTaker.endPhase();

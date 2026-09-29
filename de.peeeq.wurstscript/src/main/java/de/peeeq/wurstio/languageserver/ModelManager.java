@@ -41,6 +41,10 @@ public interface ModelManager {
     Changes syncDependencyCompilationUnits();
 
     Changes syncCompilationUnit(WFile changedFilePath);
+ 
+    default Changes syncProjectFiles() {
+        return Changes.empty();
+    }
 
     Changes syncCompilationUnitContent(WFile filename, String contents);
 
