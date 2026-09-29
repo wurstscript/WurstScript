@@ -344,6 +344,17 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return t[k] ~= nil"));
         });
+        addNative("__wurst_codeListCreate", f ->
+            f.getBody().add(LuaAst.LuaLiteral("return {}")));
+        addNative("__wurst_codeListAdd", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t[#t + 1] = c"));
+        });
+        addNative("__wurst_codeListRun", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("for i = 1, #t do t[i]() end"));
+        });
         addNative("__wurst_keyedMapRemove", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("k", LuaAst.LuaNoExpr()));
