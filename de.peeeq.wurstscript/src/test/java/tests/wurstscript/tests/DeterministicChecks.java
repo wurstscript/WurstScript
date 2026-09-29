@@ -1,6 +1,7 @@
 package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
+import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import org.testng.AssertJUnit;
@@ -497,6 +498,231 @@ public class DeterministicChecks extends WurstScriptTest {
                     "    destroy g"
                 )
             );
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void multiPackageShuffledCompilationUnitOrderIsBitExact() throws IOException {
+        CU cuA = compilationUnit("PkgA.wurst",
+            "package PkgA",
+            "public interface Formatter",
+            "    function format(string s) returns string",
+            "public class UpperFormatter implements Formatter",
+            "    override function format(string s) returns string",
+            "        return s",
+            "public int counter = 0",
+            "public function inc()",
+            "    counter++"
+        );
+        CU cuB = compilationUnit("PkgB.wurst",
+            "package PkgB",
+            "import PkgA",
+            "public class FancyFormatter extends UpperFormatter",
+            "    override function format(string s) returns string",
+            "        return super.format(s) + \"!\"",
+            "public function runAction(Formatter f, string text) returns string",
+            "    inc()",
+            "    return f.format(text)"
+        );
+        CU cuC = compilationUnit("PkgC.wurst",
+            "package PkgC",
+            "public interface Transformer",
+            "    function transform(int x) returns int",
+            "public function applyTransformer(int val, Transformer t) returns int",
+            "    return t.transform(val)"
+        );
+        CU cuD = compilationUnit("PkgD.wurst",
+            "package PkgD",
+            "import PkgB",
+            "import PkgC",
+            "public function compute(int val) returns int",
+            "    Transformer t = (int x) -> begin",
+            "        return x * 2 + 1",
+            "    end",
+            "    return applyTransformer(val, t)"
+        );
+        CU cuE = compilationUnit("PkgE.wurst",
+            "package PkgE",
+            "import PkgA",
+            "import PkgB",
+            "import PkgD",
+            "native testSuccess()",
+            "init",
+            "    FancyFormatter ff = new FancyFormatter()",
+            "    let resStr = runAction(ff, \"test\")",
+            "    let resNum = compute(10)",
+            "    if resStr == \"test!\" and resNum == 21 and counter == 1",
+            "        testSuccess()",
+            "    destroy ff"
+        );
+
+        // 1. Standard Lua translation: Pass 1 in order [A, B, C, D, E]
+        test().testLua(true).executeProg().compilationUnits(cuA, cuB, cuC, cuD, cuE);
+        File outFile = new File("test-output/lua/DeterministicChecks_multiPackageShuffledCompilationUnitOrderIsBitExact.lua");
+        String outputStd1 = Files.toString(outFile, Charsets.UTF_8);
+        String hashStd1 = Hashing.sha256().hashString(outputStd1, Charsets.UTF_8).toString();
+
+        // Standard Lua translation: Pass 2 in shuffled order [D, A, E, C, B]
+        test().testLua(true).executeProg().compilationUnits(cuD, cuA, cuE, cuC, cuB);
+        String outputStd2 = Files.toString(outFile, Charsets.UTF_8);
+        String hashStd2 = Hashing.sha256().hashString(outputStd2, Charsets.UTF_8).toString();
+
+        assertEquals(hashStd1, hashStd2, "SHA-256 hash must be identical across shuffled compilation unit order");
+        assertEquals(outputStd1, outputStd2, "Output must be bit-for-bit identical across shuffled compilation unit order");
+
+        // 2. Incremental Lua translation: Shuffled order with disk chunk cache
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_cache_shuffled").toFile();
+        try {
+            // Cold build with order [B, C, A, E, D]
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuB, cuC, cuA, cuE, cuD);
+            String outputInc1 = Files.toString(outFile, Charsets.UTF_8);
+            String hashInc1 = Hashing.sha256().hashString(outputInc1, Charsets.UTF_8).toString();
+
+            // Re-run with reverse order [D, E, A, C, B]
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath()).compilationUnits(cuD, cuE, cuA, cuC, cuB);
+            String outputInc2 = Files.toString(outFile, Charsets.UTF_8);
+            String hashInc2 = Hashing.sha256().hashString(outputInc2, Charsets.UTF_8).toString();
+
+            assertEquals(hashInc1, hashInc2, "Incremental build SHA-256 hash must be identical across shuffled compilation unit order");
+            assertEquals(outputInc1, outputInc2, "Incremental build output must be bit-for-bit identical across shuffled compilation unit order");
+        } finally {
+            de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
+        }
+    }
+
+    @Test
+    public void incrementalRebuildBenchmarkingAndSelectiveInvalidation() throws IOException, InterruptedException {
+        File tempCacheDir = java.nio.file.Files.createTempDirectory("wurst_bench_cache").toFile();
+        try {
+            CU cuMath = compilationUnit("LibMath.wurst",
+                "package LibMath",
+                "public function calcSquare(int x) returns int",
+                "    return x * x",
+                "public function calcCube(int x) returns int",
+                "    return x * x * x"
+            );
+            CU cuString = compilationUnit("LibString.wurst",
+                "package LibString",
+                "public function wrapTag(string tag, string content) returns string",
+                "    return \"<\" + tag + \">\" + content + \"</\" + tag + \">\""
+            );
+            CU cuEntity = compilationUnit("LibEntity.wurst",
+                "package LibEntity",
+                "public interface Entity",
+                "    function getScore() returns int",
+                "public class UnitEntity implements Entity",
+                "    int kills = 5",
+                "    override function getScore() returns int",
+                "        return kills * 10"
+            );
+            CU cuLogicV1 = compilationUnit("GameLogic.wurst",
+                "package GameLogic",
+                "import LibMath",
+                "import LibString",
+                "import LibEntity",
+                "public function computeBonus() returns int",
+                "    return 42",
+                "public function evaluateGame() returns int",
+                "    Entity e = new UnitEntity()",
+                "    int s = e.getScore() + calcSquare(3) + computeBonus()",
+                "    destroy e",
+                "    return s"
+            );
+            CU cuMain = compilationUnit("Main.wurst",
+                "package Main",
+                "import GameLogic",
+                "import LibString",
+                "native testSuccess()",
+                "init",
+                "    int total = evaluateGame()",
+                "    string tag = wrapTag(\"score\", \"ok\")",
+                "    if total > 0 and tag == \"<score>ok</score>\"",
+                "        testSuccess()"
+            );
+
+            // 1. Cold build: populate chunk cache for all 5 packages
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath())
+                .compilationUnits(cuMath, cuString, cuEntity, cuLogicV1, cuMain);
+
+            File[] cachedChunks1 = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedChunks1);
+            AssertJUnit.assertEquals(5, cachedChunks1.length);
+
+            Map<String, Long> timestamps1 = new HashMap<>();
+            Map<String, String> hashes1 = new HashMap<>();
+            String logicChunkName1 = null;
+            for (File f : cachedChunks1) {
+                timestamps1.put(f.getName(), f.lastModified());
+                hashes1.put(f.getName(), Files.asByteSource(f).hash(Hashing.sha256()).toString());
+                if (f.getName().startsWith("GameLogic_")) {
+                    logicChunkName1 = f.getName();
+                }
+            }
+            AssertJUnit.assertNotNull("GameLogic chunk must be present in cache", logicChunkName1);
+
+            // Verify cold build output
+            File outFile = new File("test-output/lua/DeterministicChecks_incrementalRebuildBenchmarkingAndSelectiveInvalidation.lua");
+            String outputV1 = Files.toString(outFile, Charsets.UTF_8);
+            AssertJUnit.assertTrue(outputV1.contains("42"));
+
+            // Sleep briefly to ensure filesystem timestamp resolution ticks
+            Thread.sleep(60);
+
+            // 2. Warm rebuild: Modify ONLY the function body of computeBonus in GameLogic
+            CU cuLogicV2 = compilationUnit("GameLogic.wurst",
+                "package GameLogic",
+                "import LibMath",
+                "import LibString",
+                "import LibEntity",
+                "public function computeBonus() returns int",
+                "    return 100",
+                "public function evaluateGame() returns int",
+                "    Entity e = new UnitEntity()",
+                "    int s = e.getScore() + calcSquare(3) + computeBonus()",
+                "    destroy e",
+                "    return s"
+            );
+
+            long startRebuild = System.currentTimeMillis();
+            test().incremental().executeProg().cachePath(tempCacheDir.getAbsolutePath())
+                .compilationUnits(cuMath, cuString, cuEntity, cuLogicV2, cuMain);
+            long elapsedRebuildMs = System.currentTimeMillis() - startRebuild;
+
+            // 3. Performance assertion: incremental rebuild and assembly must complete in <500ms
+            System.out.println("Incremental warm rebuild turnaround: " + elapsedRebuildMs + "ms");
+            AssertJUnit.assertTrue("Incremental rebuild should be rapid (<500ms), but took: " + elapsedRebuildMs + "ms",
+                elapsedRebuildMs < 500);
+
+            // 4. Cache hit/miss validation
+            File[] cachedChunks2 = tempCacheDir.listFiles((dir, name) -> name.endsWith(".lua"));
+            AssertJUnit.assertNotNull(cachedChunks2);
+            // Cache contains 6 files: 4 untouched packages + old GameLogic chunk + new GameLogic chunk
+            AssertJUnit.assertEquals(6, cachedChunks2.length);
+
+            // All untouched packages (LibMath, LibString, LibEntity, Main) must hit the cache exactly
+            int touchedCount = 0;
+            int untouchedHitCount = 0;
+            for (File f : cachedChunks2) {
+                String name = f.getName();
+                if (name.startsWith("GameLogic_")) {
+                    touchedCount++;
+                } else {
+                    untouchedHitCount++;
+                    // Must be an exact cache hit (same timestamp and same content hash)
+                    AssertJUnit.assertEquals("Untouched chunk " + name + " must maintain same timestamp (cache hit)",
+                        timestamps1.get(name), (Long) f.lastModified());
+                    AssertJUnit.assertEquals("Untouched chunk " + name + " must have identical hash (cache hit)",
+                        hashes1.get(name), Files.asByteSource(f).hash(Hashing.sha256()).toString());
+                }
+            }
+            AssertJUnit.assertEquals("Should have 2 chunks for modified package (old and new)", 2, touchedCount);
+            AssertJUnit.assertEquals("Should have 4 exact chunk cache hits for untouched packages", 4, untouchedHitCount);
+
+            // 5. Output lua must reflect the updated function body
+            String outputV2 = Files.toString(outFile, Charsets.UTF_8);
+            AssertJUnit.assertTrue("Rebuilt script should contain updated value 100", outputV2.contains("100"));
         } finally {
             de.peeeq.wurstio.utils.FileUtils.deleteRecursively(tempCacheDir);
         }

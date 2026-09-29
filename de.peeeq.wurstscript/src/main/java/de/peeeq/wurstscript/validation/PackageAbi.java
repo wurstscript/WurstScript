@@ -144,13 +144,13 @@ public class PackageAbi {
             }
         }
         for (FuncDef m : c.getMethods()) {
-            if (ModifiersHelper.isPublic(m)) {
+            if (!ModifiersHelper.isPrivate(m)) {
                 sb.append("  ");
                 appendFuncDef(sb, m);
             }
         }
         for (GlobalVarDef v : c.getVars()) {
-            if (ModifiersHelper.isPublic(v)) {
+            if (!ModifiersHelper.isPrivate(v)) {
                 sb.append("  ");
                 appendGlobalVar(sb, v);
             }
@@ -206,18 +206,9 @@ public class PackageAbi {
             sb.append(":tp:").append(tp.getName());
         }
         sb.append("\n");
-        for (FuncDef method : m.getMethods()) {
-            if (ModifiersHelper.isPublic(method)) {
-                sb.append("  ");
-                appendFuncDef(sb, method);
-            }
-        }
-        for (GlobalVarDef v : m.getVars()) {
-            if (ModifiersHelper.isPublic(v)) {
-                sb.append("  ");
-                appendGlobalVar(sb, v);
-            }
-        }
+        // Modules are expanded directly into using classes; any changes to the module AST affect instantiating classes.
+        sb.append(de.peeeq.wurstscript.utils.Utils.prettyPrint(m));
+        sb.append("\n");
     }
 
     private static void appendModifiers(StringBuilder sb, Modifiers modifiers) {

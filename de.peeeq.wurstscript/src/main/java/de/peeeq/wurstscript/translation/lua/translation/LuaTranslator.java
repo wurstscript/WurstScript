@@ -492,6 +492,17 @@ public class LuaTranslator {
         // 2. Discover packages and topological order
         List<WPackage> packages = determineTopologicalPackageOrder();
 
+        // Pre-register class method names deterministically across all packages (cached or new)
+        List<ImClass> sortedClasses = new ArrayList<>(prog.getClasses());
+        sortedClasses.sort(Comparator.comparing(ImClass::getName));
+        for (ImClass c : sortedClasses) {
+            List<ImFunction> classFuncs = new ArrayList<>(c.getFunctions());
+            classFuncs.sort(Comparator.comparing(ImFunction::getName));
+            for (ImFunction f : classFuncs) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            }
+        }
+
         // 3. For packages not in cache: translate their AST elements
         Map<WPackage, LuaCompilationUnit> newlyEmittedCus = new LinkedHashMap<>();
         List<PackageChunk> chunks = new ArrayList<>();
@@ -539,10 +550,19 @@ public class LuaTranslator {
             }
         }
 
-        // Initialize class tables for all classes to populate complete dispatch slots
-        for (ImClass c : prog.getClasses()) {
-            initClassTables(c);
+        // Initialize class tables for all classes: emit bootstrap code only for newly translated packages
+        for (ImClass c : sortedClasses) {
+            WPackage pkgOfClass = getPackageOf(c);
+            boolean shouldEmit = (pkgOfClass != null && newlyEmittedCus.containsKey(pkgOfClass))
+                || (pkgOfClass == null);
+            if (shouldEmit) {
+                currentPackage = pkgOfClass != null ? pkgOfClass.getName() : null;
+                initClassTables(c, true);
+            } else {
+                initClassTables(c, false);
+            }
         }
+        currentPackage = null;
 
         // 4. Resolve dispatch slots for all classes
         resolveDispatchSlots();
@@ -652,6 +672,14 @@ public class LuaTranslator {
         return nearest == p;
     }
 
+    private static @Nullable WPackage getPackageOf(ImClass c) {
+        if (c.getTrace() == null) {
+            return null;
+        }
+        PackageOrGlobal nearest = c.getTrace().attrNearestPackage();
+        return nearest instanceof WPackage ? (WPackage) nearest : null;
+    }
+
     private List<WPackage> determineTopologicalPackageOrder() {
         Set<WPackage> ordered = new LinkedHashSet<>();
         List<WPackage> allPackages = new ArrayList<>();
@@ -671,7 +699,9 @@ public class LuaTranslator {
         if (visited.contains(p)) {
             return;
         }
-        for (WPackage dep : p.attrInitDependencies()) {
+        List<WPackage> deps = new ArrayList<>(p.attrInitDependencies());
+        deps.sort(Comparator.comparing(WPackage::getName));
+        for (WPackage dep : deps) {
             collectTopological(dep, visited);
         }
         visited.add(p);
@@ -1594,7 +1624,9 @@ public class LuaTranslator {
         // translate functions
         for (ImFunction f : c.getFunctions()) {
             translateFunc(f);
-            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            if (!isModularMode) {
+                luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+            }
         }
 
         createClassInitFunction(c, classVar, initMethod);
@@ -1661,33 +1693,41 @@ public class LuaTranslator {
     }
 
     private void initClassTables(ImClass c) {
+        initClassTables(c, true);
+    }
+
+    private void initClassTables(ImClass c, boolean emitStatements) {
         LuaVariable classVar = luaClassVar.getFor(c);
         // create methods:
-        createMethods(c, classVar);
+        createMethods(c, classVar, emitStatements);
 
-        // set supertype metadata:
-        LuaTableFields superClasses = LuaAst.LuaTableFields();
-        collectSuperClasses(superClasses, c, new HashSet<>());
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            WURST_SUPERTYPES),
-            LuaAst.LuaTableConstructor(superClasses)
-        ));
+        if (emitStatements) {
+            // set supertype metadata:
+            LuaTableFields superClasses = LuaAst.LuaTableFields();
+            collectSuperClasses(superClasses, c, new HashSet<>());
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                WURST_SUPERTYPES),
+                LuaAst.LuaTableConstructor(superClasses)
+            ));
 
-        // set typeid metadata:
-        // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
-        // retains this canonical metadata dependency before emission.
-        ImClass typeIdClass = imTr.canonical(c);
-        deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-            LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.TYPE_ID),
-            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
-        ));
-
-
+            // set typeid metadata:
+            // Targeted Lua specialization changes storage, not nominal identity. Garbage reachability
+            // retains this canonical metadata dependency before emission.
+            ImClass typeIdClass = imTr.canonical(c);
+            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                ExprTranslation.TYPE_ID),
+                LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(typeIdClass))
+            ));
+        }
     }
 
     private void createMethods(ImClass c, LuaVariable classVar) {
+        createMethods(c, classVar, true);
+    }
+
+    private void createMethods(ImClass c, LuaVariable classVar, boolean emitStatements) {
         List<ImMethod> allMethods = collectMethodsInHierarchy(c);
         Map<String, List<ImMethod>> groupedMethods = new TreeMap<>();
         for (ImMethod method : allMethods) {
@@ -1787,11 +1827,13 @@ public class LuaTranslator {
                 continue;
             }
             registerDispatchSlot(c, e.getKey(), dispatchGroupOf(impl));
-            deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-                LuaAst.LuaExprVarAccess(classVar),
-                e.getKey()),
-                LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
-            ));
+            if (emitStatements) {
+                deferMainInit(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                    LuaAst.LuaExprVarAccess(classVar),
+                    e.getKey()),
+                    LuaAst.LuaExprFuncRef(luaFunc.getFor(impl.getImplementation()))
+                ));
+            }
         }
 
     }

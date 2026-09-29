@@ -106,6 +106,11 @@ public class ModelManagerImpl implements ModelManager {
             }
             GlobalCaches.clearLookupCacheFor(toRemove);
             toRemove.forEach(SyntacticSugar::restoreDirectFieldIterations);
+            for (CompilationUnit cu : toRemove) {
+                for (WPackage p : cu.getPackages()) {
+                    packageAbiHashes.remove(p.getName());
+                }
+            }
             model2.removeAll(toRemove);
         }
 
@@ -472,6 +477,8 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
             if (!updated) {
+                Set<CompilationUnit> mustUpdate = calculateCUsToUpdate(Collections.singletonList(cu), Collections.emptySet(), model2);
+                clearCompilationUnits(mustUpdate);
                 model2.add(cu);
             }
         }
