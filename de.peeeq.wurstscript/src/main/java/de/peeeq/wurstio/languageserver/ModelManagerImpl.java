@@ -760,6 +760,13 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackageNames = changes.getAffectedPackageNames().toJavaSet();
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
+        boolean jassFileChanged = changes.getAffectedFiles().toJavaSet().stream()
+            .anyMatch(file -> file.getUriString().endsWith(".j"));
+        if (jassFileChanged) {
+            // A removed Jass CU is no longer in the model, so calculateCUsToUpdate
+            // cannot see it among the changed compilation units.
+            toCheckRec.addAll(model2);
+        }
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);
         partialTypecheck(model2, toCheckRec, gui, comp);
