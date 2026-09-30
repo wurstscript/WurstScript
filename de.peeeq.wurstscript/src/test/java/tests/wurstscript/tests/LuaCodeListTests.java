@@ -72,7 +72,7 @@ public class LuaCodeListTests extends WurstScriptTest {
         assertTrue("create is a bare table", getFunctionBody(compiled, "__wurst_codeListCreate").contains("return {}"));
         assertTrue("add appends", getFunctionBody(compiled, "__wurst_codeListAdd").contains("t[#t + 1] = c"));
         assertTrue("run calls each in order",
-            getFunctionBody(compiled, "__wurst_codeListRun").contains("for i = 1, #t do t[i]() end"));
+            getFunctionBody(compiled, "__wurst_codeListRun").contains("while c do c() i = i + 1 c = t[i] end"));
         String init = getFunctionBody(compiled, "init_Test");
         assertTrue("the caller calls the stubs: " + init,
             init.contains("__wurst_codeListAdd(") && init.contains("__wurst_codeListRun("));
@@ -119,6 +119,39 @@ public class LuaCodeListTests extends WurstScriptTest {
             "            testSuccess()",
             "        else",
             "            testFail(\"nested run gave order=\" + order.toString())",
+            "endpackage"));
+    }
+
+    /**
+     * A trigger's conditions added while it evaluates run in that same evaluation (measured in the
+     * game), so a value added while the list runs is reached in the same run and in this order.
+     */
+    @Test
+    public void valueAddedWhileTheListRunsIsReachedInTheSameRun() {
+        test().testLua(true).executeProg(true).withStdLib().lines(withCodeList(
+            "package Test",
+            "import CodeList",
+            "int order = 0",
+            "int list = 0",
+            "bool added = false",
+            "function late()",
+            "    order = order * 10 + 9",
+            "function first()",
+            "    order = order * 10 + 1",
+            "function adder()",
+            "    order = order * 10 + 5",
+            "    if not added",
+            "        added = true",
+            "        codeListAdd(list, function late)",
+            "init",
+            "    list = codeListCreate()",
+            "    codeListAdd(list, function adder)",
+            "    codeListAdd(list, function first)",
+            "    codeListRun(list)",
+            "    if order == 519",
+            "        testSuccess()",
+            "    else",
+            "        testFail(\"first run gave order=\" + order.toString())",
             "endpackage"));
     }
 

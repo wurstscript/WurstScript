@@ -18,13 +18,15 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * {@code code} value is a function, a list is a table of them and running is one call each; a
  * trigger round trip through the engine costs about thirty times that, which is what an event with
  * a few listeners pays on every dispatch. The list is one table per list, and running walks its
- * array part, so the order is the order of adding and does not depend on any hash layout.
+ * array part, so the order is the order of adding and does not depend on any hash layout. A value
+ * added while the list runs is reached in the same run, and the result of a value is ignored: both as
+ * for a trigger's conditions, measured in the game for the second (it runs every condition after one
+ * that returned false).
  *
  * <p>Matching is by declaration, as for the keyed maps: the function has to be annotated
  * {@code @compilerintrinsic} and have the exact signature the stub assumes. The values run must
  * not wait, as a condition must not; run as direct calls they make no promise about what a wait
- * does. The result of a value is ignored on Lua, so a value must not return false: behind a trigger
- * that may end the evaluation of the ones after it, and the list promises nothing about it. An error in one is reported by the callback adapter around every function reference, so
+ * does. An error in one is reported by the callback adapter around every function reference, so
  * the next one still runs, as it does behind a trigger.
  */
 public final class LuaCodeList {

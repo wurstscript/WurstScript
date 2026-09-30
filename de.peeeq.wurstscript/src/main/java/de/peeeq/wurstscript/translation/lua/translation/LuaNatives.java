@@ -353,7 +353,9 @@ public class LuaNatives {
         });
         addNative("__wurst_codeListRun", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("for i = 1, #t do t[i]() end"));
+            // Re-reads the next slot each time, so a value added while the list runs is reached in the same run,
+            // as it is behind a trigger.
+            f.getBody().add(LuaAst.LuaLiteral("local i = 1 local c = t[1] while c do c() i = i + 1 c = t[i] end"));
         });
         addNative("__wurst_keyedMapRemove", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
