@@ -667,6 +667,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // translate wurst to intermediate lang:
         imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
         imProg = getImTranslator().translateProg();
+        // Before any compile-time function runs: the library asks whether this compiler lowers CodeList.
+        CodeListSupport.markSupported(imProg);
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");
         timeTaker.endPhase();

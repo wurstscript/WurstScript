@@ -111,7 +111,8 @@ public final class LuaNativeLowering {
      * functions, most of which are unreachable in any given program).
      */
     /**
-     * Replaces the KeyedTable operations with their Lua stubs, and empties the destroy operation.
+     * Replaces the KeyedTable, KeyedMap and CodeList operations with their Lua stubs, and empties
+     * the destroy operations.
      *
      * <p>Separate from {@link #transform} so it can run <b>before</b> stack-trace injection. That
      * pass appends a parameter to every affected function, and on Lua every non-native function is
@@ -157,6 +158,9 @@ public final class LuaNativeLowering {
                 String stubName = LuaKeyedTable.nativeStubFor(f);
                 if (stubName == null) {
                     stubName = LuaKeyedMap.nativeStubFor(f);
+                }
+                if (stubName == null) {
+                    stubName = LuaCodeList.nativeStubFor(f);
                 }
                 if (stubName == null) {
                     return;
