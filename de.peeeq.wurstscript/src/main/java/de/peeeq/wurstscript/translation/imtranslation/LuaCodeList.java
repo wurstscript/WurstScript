@@ -23,7 +23,8 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * <p>Matching is by declaration, as for the keyed maps: the function has to be annotated
  * {@code @compilerintrinsic} and have the exact signature the stub assumes. The values run must
  * not wait, as a condition must not; run as direct calls they make no promise about what a wait
- * does. An error in one is reported by the callback adapter around every function reference, so
+ * does. The result of a value is ignored on Lua, so a value must not return false: behind a trigger
+ * that may end the evaluation of the ones after it, and the list promises nothing about it. An error in one is reported by the callback adapter around every function reference, so
  * the next one still runs, as it does behind a trigger.
  */
 public final class LuaCodeList {

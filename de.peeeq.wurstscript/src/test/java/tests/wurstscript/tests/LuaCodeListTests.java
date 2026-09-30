@@ -82,7 +82,7 @@ public class LuaCodeListTests extends WurstScriptTest {
 
     @Test
     public void codeListRunsItsCodeInOrderOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(withCodeList(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(withCodeList(
             "package Test",
             "import CodeList",
             "int count = 0",
@@ -148,7 +148,7 @@ public class LuaCodeListTests extends WurstScriptTest {
     /** Functions of these names without the annotation, or of another shape, are left alone. */
     @Test
     public void otherFunctionsNamedLikeListOperationsAreNotLowered() throws IOException {
-        test().testLua(true).executeProg(true).withStdLib().lines(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
             "package Test",
             "int total = 0",
             "function codeListRun(int n)",
