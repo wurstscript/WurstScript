@@ -2818,6 +2818,9 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
         String compiled = compiledLua("inlinedEarlyReturnsKeepTheirMeaning");
         assertTrue("the shapes that need a flag keep one:\n" + compiled, compiled.contains("inlineDone"));
+    }
+
+    /**
      * A function reference taken at startup may run right then, and what it calls through an
      * interface can only be a class something has created. Package A hands out a reference to a
      * function that dispatches on a callback; B implements the callback, reads its own constant, and
