@@ -2707,7 +2707,7 @@ public class LuaBackendAuditTests extends WurstScriptTest {
      */
     @Test
     public void inlinedEarlyReturnsKeepTheirMeaning() throws IOException {
-        test().testLua(true).inline().localOptimizations().executeProg().lines(
+        test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg().lines(
             "package Test",
             "native testSuccess()",
             "int trace = 0",
