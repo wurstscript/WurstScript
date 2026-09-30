@@ -57,6 +57,36 @@ public class LanguageWorkerTest {
     }
 
     @Test
+    public void watcherChangedForMissingFileRemovesCompilationUnit() throws Exception {
+        Path tmp = Files.createTempDirectory("wurst-lw-missing-file");
+        File wurstFolder = tmp.resolve("wurst").toFile();
+        //noinspection ResultOfMethodCallIgnored
+        wurstFolder.mkdirs();
+        File packageFile = tmp.resolve("wurst").resolve("Unit_config.wurst").toFile();
+        File mainFile = tmp.resolve("wurst").resolve("Main.wurst").toFile();
+        Files.writeString(packageFile.toPath(), "package Unit_config\n");
+        Files.writeString(mainFile.toPath(), "package Main\nimport Unit_config\n");
+        WFile wFile = WFile.create(packageFile);
+
+        LanguageWorker worker = new LanguageWorker();
+        ModelManagerImpl mm = new ModelManagerImpl(tmp.toFile(), worker.getBufferManager());
+        mm.buildProject();
+        worker.modelManager = mm;
+
+        try {
+            Files.delete(packageFile.toPath());
+            worker.handleFileChanged(new DidChangeWatchedFilesParams(Collections.singletonList(
+                new FileEvent(wFile.getUriString(), FileChangeType.Changed)
+            )));
+
+            assertTrue(waitUntil(() -> mm.getCompilationUnit(wFile) == null, 2000),
+                "watcher update for a missing file should remove its compilation unit");
+        } finally {
+            worker.stop();
+        }
+    }
+
+    @Test
     public void dependencyDidChangeUsesIncrementalSync() throws Exception {
         Path tmp = Files.createTempDirectory("wurst-lw-dep-reconcile");
         File file = tmp.resolve("_build").resolve("dependencies").resolve("depA").resolve("wurst").resolve("Lib.wurst").toFile();
