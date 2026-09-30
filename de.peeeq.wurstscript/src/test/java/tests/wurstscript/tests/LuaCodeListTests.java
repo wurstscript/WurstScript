@@ -178,6 +178,27 @@ public class LuaCodeListTests extends WurstScriptTest {
             init.contains("CreateTrigger") || init.contains("TriggerEvaluate"));
     }
 
+    /** An annotated declaration with type parameters is another function, and keeps its own body. */
+    @Test
+    public void genericDeclarationsNamedLikeListOperationsAreNotLowered() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
+            "package Test",
+            "int total = 0",
+            "@compilerintrinsic function codeListRun<T:>(int list)",
+            "    total += 1000",
+            "@compilerintrinsic function codeListCreate<T:>() returns int",
+            "    total += 1",
+            "    return 5",
+            "init",
+            "    codeListRun<int>(0)",
+            "    if codeListCreate<int>() == 5 and total == 1001",
+            "        testSuccess()",
+            "endpackage");
+
+        String compiled = compiled("genericDeclarationsNamedLikeListOperationsAreNotLowered");
+        assertFalse("neither is replaced by a stub", compiled.contains("__wurst_codeList"));
+    }
+
     /** Functions of these names without the annotation, or of another shape, are left alone. */
     @Test
     public void otherFunctionsNamedLikeListOperationsAreNotLowered() throws IOException {

@@ -21,7 +21,8 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * array part, so the order is the order of adding and does not depend on any hash layout. A value
  * added while the list runs is reached in the same run, and the result of a value is ignored: both as
  * for a trigger's conditions, measured in the game for the second (it runs every condition after one
- * that returned false).
+ * that returned false). The list is not a trigger a value can observe: GetTriggeringTrigger and the
+ * trigger counters are not supported inside one.
  *
  * <p>Matching is by declaration, as for the keyed maps: the function has to be annotated
  * {@code @compilerintrinsic} and have the exact signature the stub assumes. The values run must
@@ -46,7 +47,10 @@ public final class LuaCodeList {
     /** The {@code __wurst_} stub {@code f} is lowered to on Lua, or null if it is not a list operation. */
     public static String nativeStubFor(ImFunction f) {
         if (!(f.attrTrace() instanceof FuncDef fd)
-            || !fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)) {
+            || !fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
+            // A declaration with type parameters is a different function; its specialisations would be
+            // replaced by stubs which do not know them.
+            || !fd.getTypeParameters().isEmpty()) {
             return null;
         }
         int params = f.getParameters().size();
