@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -21,7 +20,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * and stops the build.
  *
  * <p>Matching is by declaration, as for the list operations: the annotation, the name, no
- * parameters, no type parameters and a boolean result.
+ * parameters and a boolean result, of a plain package function (see {@link IntrinsicDeclarations}).
  */
 public final class CodeListSupport {
 
@@ -44,10 +43,9 @@ public final class CodeListSupport {
     }
 
     static boolean isProbe(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
+        FuncDef fd = IntrinsicDeclarations.plainIntrinsic(f);
+        return fd != null
             && PROBE.equals(fd.getName())
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
-            && fd.getTypeParameters().isEmpty()
             && f.getParameters().isEmpty()
             && TypesHelper.isBoolType(f.getReturnType());
     }

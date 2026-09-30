@@ -199,6 +199,32 @@ public class LuaCodeListTests extends WurstScriptTest {
         assertFalse("neither is replaced by a stub", compiled.contains("__wurst_codeList"));
     }
 
+    /**
+     * A vararg declaration and a static function of a class keep their own bodies: they are not the
+     * library's package functions, whatever their parameter types look like.
+     */
+    @Test
+    public void varargAndClassFunctionsNamedLikeListOperationsAreNotLowered() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
+            "package Test",
+            "int total = 0",
+            "@compilerintrinsic function codeListRun(vararg int lists)",
+            "    for l in lists",
+            "        total += l",
+            "class Holder",
+            "    @compilerintrinsic static function codeListCreate() returns int",
+            "        total += 1000",
+            "        return 7",
+            "init",
+            "    codeListRun(1, 2, 3)",
+            "    if Holder.codeListCreate() == 7 and total == 1006",
+            "        testSuccess()",
+            "endpackage");
+
+        String compiled = compiled("varargAndClassFunctionsNamedLikeListOperationsAreNotLowered");
+        assertFalse("neither is replaced by a stub", compiled.contains("__wurst_codeList"));
+    }
+
     /** Functions of these names without the annotation, or of another shape, are left alone. */
     @Test
     public void otherFunctionsNamedLikeListOperationsAreNotLowered() throws IOException {

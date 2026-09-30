@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -46,11 +45,8 @@ public final class LuaCodeList {
 
     /** The {@code __wurst_} stub {@code f} is lowered to on Lua, or null if it is not a list operation. */
     public static String nativeStubFor(ImFunction f) {
-        if (!(f.attrTrace() instanceof FuncDef fd)
-            || !fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
-            // A declaration with type parameters is a different function; its specialisations would be
-            // replaced by stubs which do not know them.
-            || !fd.getTypeParameters().isEmpty()) {
+        FuncDef fd = IntrinsicDeclarations.plainIntrinsic(f);
+        if (fd == null) {
             return null;
         }
         int params = f.getParameters().size();
