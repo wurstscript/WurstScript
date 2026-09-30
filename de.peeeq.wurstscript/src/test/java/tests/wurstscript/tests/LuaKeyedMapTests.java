@@ -91,7 +91,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
     @Test
     public void keyedMapAgreesOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(keyedMapSource(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(keyedMapSource(
             "package Test",
             "import KeyedMap",
             "init",
@@ -887,7 +887,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
      */
     @Test
     public void handleKeyedMapAgreesOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
             "package KeyedMap",
             "import Table",
             "@compilerintrinsic public function keyedMapCreate() returns int",
@@ -980,5 +980,83 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
         String compiled = compiled("varargAndClassFunctionsNamedLikeMapOperationsAreNotLowered");
         assertFalse("none of them is replaced by a stub", compiled.contains("__wurst_keyedMap"));
+    }
+
+    /**
+     * An int key and a class-typed value: what a library keeping one object per ability id declares.
+     * The Jass bodies go through the integer object id, so the source is correct on any compiler.
+     */
+    private static String[] classValuedIntKeyedMapSource(String... usage) {
+        java.util.List<String> lines = new java.util.ArrayList<>(java.util.Arrays.asList(
+            "package KeyedMap",
+            "import Table",
+            "public class Listeners",
+            "    int id",
+            "    construct(int id)",
+            "        this.id = id",
+            "@compilerintrinsic public function keyedMapCreate() returns int",
+            "    return (new Table()) castTo int",
+            "@compilerintrinsic public function keyedMapPut(int tbl, int key, Listeners value)",
+            "    (tbl castTo Table).saveInt(key, value castTo int)",
+            "@compilerintrinsic public function keyedMapGet(int tbl, int key) returns Listeners",
+            "    return (tbl castTo Table).loadInt(key) castTo Listeners",
+            "@compilerintrinsic public function keyedMapHas(int tbl, int key) returns boolean",
+            "    return (tbl castTo Table).hasInt(key)",
+            "@compilerintrinsic public function keyedMapRemove(int tbl, int key)",
+            "    (tbl castTo Table).removeInt(key)",
+            "endpackage"));
+        lines.addAll(java.util.Arrays.asList(usage));
+        return lines.toArray(new String[0]);
+    }
+
+    @Test
+    public void intKeyedClassMapLowersToSingleLuaIndexes() throws IOException {
+        test().testLua(true).inline().withStdLib().lines(classValuedIntKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let m = keyedMapCreate()",
+            "    keyedMapPut(m, 'A000', new Listeners(3))",
+            "    if keyedMapHas(m, 'A000')",
+            "        print(keyedMapGet(m, 'A000').id.toString())",
+            "    keyedMapRemove(m, 'A000')",
+            "endpackage"));
+
+        String compiled = compiled("intKeyedClassMapLowersToSingleLuaIndexes");
+        String init = getFunctionBody(compiled, "init_Test");
+        assertTrue("the operations lower to the keyed-map stubs: " + init,
+            init.contains("__wurst_keyedMapPut") && init.contains("__wurst_keyedMapGet")
+                && init.contains("__wurst_keyedMapHas") && init.contains("__wurst_keyedMapRemove"));
+        assertFalse("the object must be stored as itself: " + init,
+            init.contains("__wurst_objectToIndex") || init.contains("__wurst_classToIndex")
+                || init.contains("__wurst_classFromIndex"));
+    }
+
+    /** Runtime parity: the interpreter runs the Table bodies, Lua runs the stubs. */
+    @Test
+    public void intKeyedClassMapAgreesOnBothBackends() {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(classValuedIntKeyedMapSource(
+            "package Test",
+            "import KeyedMap",
+            "init",
+            "    let m = keyedMapCreate()",
+            "    let a = new Listeners(1)",
+            "    let b = new Listeners(2)",
+            "    if keyedMapHas(m, 'A000') or keyedMapGet(m, 'A000') != null",
+            "        testFail(\"empty map reported an entry\")",
+            "    keyedMapPut(m, 'A000', a)",
+            "    keyedMapPut(m, 'A001', b)",
+            "    if keyedMapGet(m, 'A000') != a or keyedMapGet(m, 'A001') != b or not keyedMapHas(m, 'A001')",
+            "        testFail(\"keys did not get distinct entries\")",
+            "    if keyedMapGet(m, 'A000').id != 1",
+            "        testFail(\"the stored object is not the one that was put\")",
+            "    keyedMapPut(m, 'A000', b)",
+            "    if keyedMapGet(m, 'A000') != b",
+            "        testFail(\"put must replace\")",
+            "    keyedMapRemove(m, 'A000')",
+            "    if keyedMapHas(m, 'A000') or keyedMapGet(m, 'A000') != null or keyedMapGet(m, 'A001') != b",
+            "        testFail(\"remove did not clear only its key\")",
+            "    testSuccess()",
+            "endpackage"));
     }
 }
