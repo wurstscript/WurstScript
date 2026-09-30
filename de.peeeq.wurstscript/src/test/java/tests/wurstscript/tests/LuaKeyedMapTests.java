@@ -973,7 +973,8 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "        return true",
             "init",
             "    keyedMapDestroy(1, 2, 3)",
-            "    if Holder.keyedMapCreate() == 7 and Holder.keyedMapHas(0, 1) and total == 11006",
+            "    keyedMapDestroy(4)",
+            "    if Holder.keyedMapCreate() == 7 and Holder.keyedMapHas(0, 1) and total == 11010",
             "        testSuccess()",
             "endpackage");
 

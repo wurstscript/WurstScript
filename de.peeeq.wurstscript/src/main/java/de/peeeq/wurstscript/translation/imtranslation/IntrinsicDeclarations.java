@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 
 /**
@@ -39,9 +40,19 @@ final class IntrinsicDeclarations {
         if (f.attrTrace() instanceof FuncDef fd
             && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
             && fd.attrNearestNamedScope() instanceof WPackage
-            && !f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+            && !hasVarargParameter(fd)) {
             return fd;
         }
         return null;
+    }
+
+    /**
+     * Read off the source declaration, not the IM function: the fixed-arity copies the vararg
+     * eliminator makes keep their trace but drop IS_VARARG, so a vararg function called with one
+     * argument would otherwise look like a plain one-parameter declaration.
+     */
+    private static boolean hasVarargParameter(FuncDef fd) {
+        WParameters params = fd.getParameters();
+        return params.size() >= 1 && params.get(params.size() - 1).attrIsVararg();
     }
 }

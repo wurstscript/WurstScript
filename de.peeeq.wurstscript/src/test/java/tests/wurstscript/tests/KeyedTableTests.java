@@ -243,7 +243,8 @@ public class KeyedTableTests extends WurstScriptTest {
             "        return true",
             "init",
             "    keyedTableDestroy(1, 2, 3)",
-            "    if Holder.keyedTableCreate() == 7 and Holder.keyedTableContains(0, 1) and total == 11006",
+            "    keyedTableDestroy(4)",
+            "    if Holder.keyedTableCreate() == 7 and Holder.keyedTableContains(0, 1) and total == 11010",
             "        testSuccess()",
             "endpackage");
 
