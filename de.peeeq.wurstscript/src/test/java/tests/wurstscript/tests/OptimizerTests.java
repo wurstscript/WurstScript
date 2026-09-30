@@ -1419,13 +1419,58 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(inlined.contains("call e("), "Expected e() to be inlined.");
     }
 
+    /** The generated Jass of the test's {@code init test} function, from a test-output file. */
+    private static String initFunctionOf(String outputFile) throws IOException {
+        String jass = Files.toString(new File("test-output/" + outputFile), Charsets.UTF_8);
+        int start = jass.indexOf("function init_test ");
+        assertTrue(start >= 0, "Expected init_test in " + outputFile);
+        return jass.substring(start, jass.indexOf("endfunction", start));
+    }
+
+    /**
+     * A return that ends its path writes the result variable on every path, so the inlined call has
+     * no done flag and no default write; both branches assign before the read.
+     */
     @Test
-    public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
+    public void inlinerGuardClauseAssignsTheResultOnEveryPath() throws IOException {
         testAssertOkLinesWithStdLib(true,
             "package test",
             "@inline function chooseLoc(boolean c, location a, location b) returns location",
             "    if c",
-                "        return a",
+            "        return a",
+            "    return b",
+            "init",
+            "    location la = Location(0., 0.)",
+            "    location lb = Location(1., 1.)",
+            "    location picked = chooseLoc(GetRandomInt(0, 1) == 0, la, lb)",
+            "    RemoveLocation(picked)",
+            "    RemoveLocation(la)",
+            "    RemoveLocation(lb)",
+            "    testSuccess()",
+            "endpackage"
+        );
+
+        // Only this test's own function: the linked stdlib has flag-shaped inlines of its own.
+        String inlined = initFunctionOf("OptimizerTests_inlinerGuardClauseAssignsTheResultOnEveryPath_inl.j");
+        assertFalse(inlined.contains("call chooseLoc("), "Expected chooseLoc() to be inlined.");
+        assertFalse(inlined.contains("inlineDone"), "Expected no done flag for a return that ends its path.");
+        assertFalse(inlined.contains("set inlineRet = null"), "Expected no default write when every path assigns.");
+        int thenIdx = inlined.indexOf("set inlineRet = a");
+        int elseIdx = inlined.indexOf("set inlineRet = b");
+        int useIdx = inlined.indexOf("set picked = inlineRet");
+        assertTrue(thenIdx >= 0 && elseIdx > thenIdx, "Expected inlineRet to be assigned in both branches.");
+        assertTrue(useIdx > elseIdx, "Expected inlineRet to be assigned before use.");
+    }
+
+    @Test
+    public void inlinerLocationLocalsAreInitializedBeforeUse() throws IOException {
+        // The return sits in a loop, which keeps the done flag and with it the default write.
+        testAssertOkLinesWithStdLib(true,
+            "package test",
+            "@inline function chooseLoc(boolean c, location a, location b) returns location",
+            "    for i = 0 to 1",
+            "        if c",
+            "            return a",
             "    return b",
             "init",
             "    location la = Location(0., 0.)",
@@ -1472,8 +1517,9 @@ public class OptimizerTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(true,
             "package test",
             "@inline function maybeAbs(int x) returns int",
-            "    if x > 0",
-            "        return x",
+            "    for i = 0 to 0",
+            "        if x > 0",
+            "            return x",
             "    return 0 - x",
             "init",
             "    let y = maybeAbs(GetRandomInt(-5, 5))",
@@ -1482,8 +1528,8 @@ public class OptimizerTests extends WurstScriptTest {
             "endpackage"
         );
 
-        String inl = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inl.j"), Charsets.UTF_8);
-        String inlopt = Files.toString(new File("test-output/OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inlopt.j"), Charsets.UTF_8);
+        String inl = initFunctionOf("OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inl.j");
+        String inlopt = initFunctionOf("OptimizerTests_inlinerMultiReturnRewriteIsExplicitInInlAndInloptOutput_inlopt.j");
 
         for (String generated : java.util.List.of(inl, inlopt)) {
             assertFalse(generated.contains("call maybeAbs("), "Expected maybeAbs() to be fully inlined.");
