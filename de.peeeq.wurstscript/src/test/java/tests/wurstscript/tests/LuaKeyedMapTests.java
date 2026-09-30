@@ -91,7 +91,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
 
     @Test
     public void keyedMapAgreesOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(keyedMapSource(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(keyedMapSource(
             "package Test",
             "import KeyedMap",
             "init",
@@ -887,7 +887,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
      */
     @Test
     public void handleKeyedMapAgreesOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
             "package KeyedMap",
             "import Table",
             "@compilerintrinsic public function keyedMapCreate() returns int",
@@ -1035,7 +1035,7 @@ public class LuaKeyedMapTests extends WurstScriptTest {
     /** Runtime parity: the interpreter runs the Table bodies, Lua runs the stubs. */
     @Test
     public void intKeyedClassMapAgreesOnBothBackends() {
-        test().testLua(true).executeProg(true).withStdLib().lines(classValuedIntKeyedMapSource(
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(classValuedIntKeyedMapSource(
             "package Test",
             "import KeyedMap",
             "init",
