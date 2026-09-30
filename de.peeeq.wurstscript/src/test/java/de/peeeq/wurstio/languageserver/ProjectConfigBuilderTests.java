@@ -16,7 +16,7 @@ public class ProjectConfigBuilderTests {
         assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x1C.getVersion());
         assertW3IVersion("1.32", W3I.EncodingFormat.W3I_0x1F.getVersion());
         assertW3IVersion("2.0", W3I.EncodingFormat.W3I_0x21.getVersion());
-        assertW3IVersion("3.0", W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertW3IVersion("3.0", W3I.EncodingFormat.W3I_0x21.getVersion());
     }
 
     @Test

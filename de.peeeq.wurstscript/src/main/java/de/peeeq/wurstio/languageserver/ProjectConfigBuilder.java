@@ -8,6 +8,7 @@ import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3InstallationData;
+import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import net.moonlightflower.wc3libs.bin.app.MapFlag;
@@ -201,6 +202,9 @@ public class ProjectConfigBuilder {
             WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
             sb.append("scriptMode:").append(buildConfig.scriptMode()).append("\n");
             sb.append("wc3Patch:").append(buildConfig.wc3PatchName()).append("\n");
+            // Reapply metadata after compiler upgrades; W3I serialization rules can change
+            // without any project configuration changing.
+            sb.append("compilerVersion:").append(CompileTimeInfo.version).append("\n");
 
             return ImportFile.calculateHash(sb.toString().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -241,19 +245,21 @@ public class ProjectConfigBuilder {
             .orElseGet(buildConfig::fallbackGameVersion);
     }
 
-    static void applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
+    public static void applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
         if (lua) {
             WLogger.info("Applying lua w3i config");
             w3I.setScriptLang(W3I.ScriptLang.LUA);
         }
 
-        // Keep the version from the source map unless the project pins a target patch.
-        // In that case, emit the newest W3I format supported by that patch.
+        // Keep the source format when applying a target patch. A target patch can cap the
+        // format, but upgrading metadata alone leaves its game-version fields inconsistent.
         buildConfig.configuredGameVersion().ifPresent(version -> {
             int maxVersion = maxW3IVersionFor(version);
+            int sourceVersion = w3I.getFileVersion();
+            int targetVersion = Math.min(sourceVersion, maxVersion);
             w3I.setFileVersion(lua
-                ? Math.max(maxVersion, W3I.EncodingFormat.W3I_0x1F.getVersion())
-                : maxVersion);
+                ? Math.max(targetVersion, W3I.EncodingFormat.W3I_0x1F.getVersion())
+                : targetVersion);
         });
 
         // Lua map metadata needs the script-language field, which is absent in older formats.
@@ -275,7 +281,7 @@ public class ProjectConfigBuilder {
         if (version.compareTo(new GameVersion("3.0")) < 0) {
             return W3I.EncodingFormat.W3I_0x21.getVersion();
         }
-        return W3I.EncodingFormat.W3I_0x27.getVersion();
+        return W3I.EncodingFormat.W3I_0x21.getVersion();
     }
 
     private static WurstBuildConfig buildConfigFromBuildDir(File buildDir) {

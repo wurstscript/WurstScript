@@ -1,12 +1,14 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstBuildConfig;
 import de.peeeq.wurstio.languageserver.requests.MapRequest;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstio.utils.W3InstallationData;
+import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.testng.annotations.Test;
 
@@ -39,6 +41,28 @@ public class MapRequestPatchTargetTests {
 
         assertEquals(request.detectedVersion().orElseThrow(), new GameVersion("2.0"));
         assertFalse(request.gameExe().isPresent(), "Pinned build requests should not need a Warcraft executable");
+    }
+
+    @Test
+    public void pinnedV3BuildKeepsFormat33SourceForJassAndLua() throws Exception {
+        Path project = projectWithPatch("v3.0");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        int format33 = W3I.EncodingFormat.W3I_0x21.getVersion();
+
+        for (boolean lua : List.of(false, true)) {
+            W3I source = new W3I();
+            source.setFileVersion(format33);
+            Path sourceMap = Files.createTempDirectory("w3i-v3-source");
+            source.write(sourceMap.resolve(W3I.GAME_PATH.getName()).toFile());
+
+            W3I built = new W3I(Files.readAllBytes(sourceMap.resolve(W3I.GAME_PATH.getName())));
+            ProjectConfigBuilder.applyW3IVersion(config, built, lua);
+            Path output = Files.createTempFile("w3i-v3-built", ".w3i");
+            built.write(output.toFile());
+
+            assertEquals(new W3I(Files.readAllBytes(output)).getFileVersion(), format33,
+                "v3.0 must preserve a format-33 source W3I (lua=" + lua + ")");
+        }
     }
 
     @Test
