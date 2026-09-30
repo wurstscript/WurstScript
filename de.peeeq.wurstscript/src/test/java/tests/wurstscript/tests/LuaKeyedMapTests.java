@@ -951,4 +951,33 @@ public class LuaKeyedMapTests extends WurstScriptTest {
             "    testSuccess()",
             "endpackage");
     }
+
+    /**
+     * A vararg declaration and a static function of a class keep their own bodies: they are not the
+     * library's package functions, whatever their parameter types look like.
+     */
+    @Test
+    public void varargAndClassFunctionsNamedLikeMapOperationsAreNotLowered() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
+            "package Test",
+            "int total = 0",
+            "@compilerintrinsic function keyedMapDestroy(vararg int maps)",
+            "    for m in maps",
+            "        total += m",
+            "class Holder",
+            "    @compilerintrinsic static function keyedMapCreate() returns int",
+            "        total += 1000",
+            "        return 7",
+            "    @compilerintrinsic static function keyedMapHas(int map, int key) returns boolean",
+            "        total += 10000",
+            "        return true",
+            "init",
+            "    keyedMapDestroy(1, 2, 3)",
+            "    if Holder.keyedMapCreate() == 7 and Holder.keyedMapHas(0, 1) and total == 11006",
+            "        testSuccess()",
+            "endpackage");
+
+        String compiled = compiled("varargAndClassFunctionsNamedLikeMapOperationsAreNotLowered");
+        assertFalse("none of them is replaced by a stub", compiled.contains("__wurst_keyedMap"));
+    }
 }

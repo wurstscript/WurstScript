@@ -1,6 +1,13 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.IOException;
+
+import static org.testng.AssertJUnit.assertFalse;
 
 /**
  * The Jass side of the keyed-table intrinsics.
@@ -213,5 +220,36 @@ public class KeyedTableTests extends WurstScriptTest {
             "    if k > 0",
             "        skip",
             "endpackage"));
+    }
+
+    /**
+     * A vararg declaration and a static function of a class keep their own bodies on Lua: they are
+     * not the library's package functions, whatever their parameter types look like.
+     */
+    @Test
+    public void varargAndClassFunctionsNamedLikeTableOperationsAreNotLowered() throws IOException {
+        test().testLua(true).luaOnly(false).executeProg(true).withStdLib().lines(
+            "package Test",
+            "int total = 0",
+            "@compilerintrinsic function keyedTableDestroy(vararg int tables)",
+            "    for t in tables",
+            "        total += t",
+            "class Holder",
+            "    @compilerintrinsic static function keyedTableCreate() returns int",
+            "        total += 1000",
+            "        return 7",
+            "    @compilerintrinsic static function keyedTableContains(int table, int key) returns boolean",
+            "        total += 10000",
+            "        return true",
+            "init",
+            "    keyedTableDestroy(1, 2, 3)",
+            "    if Holder.keyedTableCreate() == 7 and Holder.keyedTableContains(0, 1) and total == 11006",
+            "        testSuccess()",
+            "endpackage");
+
+        String compiled = Files.toString(new File(
+            "test-output/lua/KeyedTableTests_varargAndClassFunctionsNamedLikeTableOperationsAreNotLowered.lua"),
+            Charsets.UTF_8);
+        assertFalse("none of them is replaced by a stub", compiled.contains("__wurst_keyedTable"));
     }
 }

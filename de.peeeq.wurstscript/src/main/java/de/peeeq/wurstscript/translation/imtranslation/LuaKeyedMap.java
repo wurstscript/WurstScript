@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.CompilerIntrinsics;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.jassIm.ImAnyType;
 import de.peeeq.wurstscript.jassIm.ImClassType;
@@ -25,9 +24,10 @@ import de.peeeq.wurstscript.types.TypesHelper;
  * key inside the stub, so a caller declared to return {@code int} needs no nil normalisation.
  * The untyped {@code keyedMapGet} is for values whose default is nil (class instances, handles).
  *
- * <p>Matching is by declaration: the function has to be annotated {@code @compilerintrinsic} and
- * its IM signature has to be the one the stub assumes. A user function of the same name and a
- * different shape is left alone. No iteration is offered, for the reason given on the keyed table:
+ * <p>Matching is by declaration: the function has to be an annotated {@code @compilerintrinsic}
+ * package function without a vararg parameter (see {@link IntrinsicDeclarations}) and its IM
+ * signature has to be the one the stub assumes. A user function of the same name and a different
+ * shape is left alone. No iteration is offered, for the reason given on the keyed table:
  * {@code pairs()} order is not the same on every client.
  */
 public final class LuaKeyedMap {
@@ -64,8 +64,8 @@ public final class LuaKeyedMap {
      * compiler-owned KeyedMap operation of the expected shape.
      */
     public static String nativeStubFor(ImFunction f) {
-        if (!(f.attrTrace() instanceof FuncDef fd)
-            || !fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)) {
+        FuncDef fd = IntrinsicDeclarations.packageIntrinsic(f);
+        if (fd == null) {
             return null;
         }
         ImType result = f.getReturnType();
@@ -90,9 +90,9 @@ public final class LuaKeyedMap {
 
     /** Whether {@code f} frees a keyed map; see {@link LuaKeyedTable#isDestroy}. */
     public static boolean isDestroy(ImFunction f) {
-        return f.attrTrace() instanceof FuncDef fd
+        FuncDef fd = IntrinsicDeclarations.packageIntrinsic(f);
+        return fd != null
             && DESTROY.equals(fd.getName())
-            && fd.attrHasAnnotation(CompilerIntrinsics.ANNOTATION)
             && f.getParameters().size() == 1
             && TypesHelper.isIntType(f.getParameters().get(0).getType())
             && f.getReturnType() instanceof ImVoid;
