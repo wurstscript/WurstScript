@@ -404,10 +404,23 @@ public class LuaBackendAuditTests extends WurstScriptTest {
     }
 
     private String compileLuaWithRunArgs(String testName, RunArgs runArgs, boolean withStdLib, String... lines) {
+        return compileLuaUnits(runArgs, withStdLib,
+            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))));
+    }
+
+    /** Each array of lines is one package, compiled together. */
+    private String compileOptimizedLuaPackages(String testName, String[]... packages) {
+        List<CU> units = new ArrayList<>();
+        for (int i = 0; i < packages.length; i++) {
+            units.add(new CU(testName + i + ".wurst", String.join("\n", packages[i])));
+        }
+        return compileLuaUnits(new RunArgs().with("-lua", "-inline", "-localOptimizations"), false, units);
+    }
+
+    private String compileLuaUnits(RunArgs runArgs, boolean withStdLib, List<CU> units) {
         WurstGuiCliImpl gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
-        WurstModel model = parseFiles(Collections.emptyList(),
-            Collections.singletonList(new CU(testName + ".wurst", String.join("\n", lines))), withStdLib, compiler);
+        WurstModel model = parseFiles(Collections.emptyList(), units, withStdLib, compiler);
         assertTrue("unexpected parse/type errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
         compiler.checkProg(model);
         assertTrue("unexpected compile errors: " + gui.getErrorList(), gui.getErrorList().isEmpty());
@@ -2805,6 +2818,117 @@ public class LuaBackendAuditTests extends WurstScriptTest {
             "        testSuccess()");
         String compiled = compiledLua("inlinedEarlyReturnsKeepTheirMeaning");
         assertTrue("the shapes that need a flag keep one:\n" + compiled, compiled.contains("inlineDone"));
+     * A function reference taken at startup may run right then, and what it calls through an
+     * interface can only be a class something has created. Package A hands out a reference to a
+     * function that dispatches on a callback; B implements the callback, reads its own constant, and
+     * creates the only instance after A's initializer ran. Before that instance exists no B code can
+     * run, so the constant is written before anything reads it and folds.
+     */
+    @Test
+    public void constantsOfAnUninstantiatedImplementationFoldDespiteStartupDispatch() {
+        String compiled = compileOptimizedLuaPackages("constantsOfAnUninstantiatedImplementationFold",
+            new String[] {
+                "package A",
+                "native registerHook(code hook)",
+                "public interface Callback",
+                "    function run() returns int",
+                "public Callback current = null",
+                "public function fire() returns int",
+                "    return current.run()",
+                "init",
+                "    registerHook(function fire)"},
+            new String[] {
+                "package B",
+                "import A",
+                "native consume(int value)",
+                "constant int LIMIT = 9",
+                "class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT",
+                "init",
+                "    current = new Impl()",
+                "    consume(fire())"});
+        assertFalse("B's constant folds:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /**
+     * The inverse of the test above. A imports B with initlater, so A's initializer runs first and
+     * creates B's class itself, then dispatches on it: B's implementation runs before B's initializer
+     * has written LIMIT, and the read has to stay a global read.
+     */
+    @Test
+    public void constantsReadThroughAnImplementationCreatedAtStartupStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadThroughAnImplementationCreatedAtStartup",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native consume(int value)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = new Impl()",
+                "init",
+                "    consume(current.run())"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT"});
+        assertTrue("LIMIT is read before its write:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /**
+     * A reference to a dispatching function is taken first and the class is created afterwards: the
+     * reference may run from then on, so the read counts once the instance exists.
+     */
+    @Test
+    public void constantsReadByAnImplementationCreatedAfterTheReferenceStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadByAnImplementationCreatedAfterTheReference",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native registerHook(code hook)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = null",
+                "function fire() returns int",
+                "    return current.run()",
+                "init",
+                "    registerHook(function fire)",
+                "    current = new Impl()"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Impl implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT"});
+        assertTrue("LIMIT may be read once the instance exists:\n" + compiled, compiled.contains("B_LIMIT"));
+    }
+
+    /** An implementation inherited from a class whose subclass is the one created is still live. */
+    @Test
+    public void constantsReadByAnInheritedImplementationStayGlobals() {
+        String compiled = compileOptimizedLuaPackages("constantsReadByAnInheritedImplementation",
+            new String[] {
+                "package A",
+                "import initlater B",
+                "native consume(int value)",
+                "public interface Callback",
+                "    function run() returns int",
+                "Callback current = new Sub()",
+                "init",
+                "    consume(current.run())"},
+            new String[] {
+                "package B",
+                "import A",
+                "public constant int LIMIT = 9",
+                "public class Base implements Callback",
+                "    override function run() returns int",
+                "        return LIMIT",
+                "public class Sub extends Base"});
+        assertTrue("LIMIT is read before its write:\n" + compiled, compiled.contains("B_LIMIT"));
     }
 
     @Test
