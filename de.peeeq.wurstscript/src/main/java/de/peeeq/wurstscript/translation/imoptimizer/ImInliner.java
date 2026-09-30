@@ -367,7 +367,7 @@ public class ImInliner {
      */
     private boolean returnsCanBeStructured(ImFunction f) {
         List<ImStmt> body = f.getBody();
-        return (f.getReturnType() instanceof ImVoid || alwaysReturns(body)) && endsInTailReturns(body);
+        return (f.getReturnType() instanceof ImVoid || alwaysReturns(body)) && endsInTailReturns(body, 0);
     }
 
     private boolean alwaysReturns(List<ImStmt> stmts) {
@@ -383,7 +383,15 @@ public class ImInliner {
         return false;
     }
 
-    private boolean endsInTailReturns(List<ImStmt> stmts) {
+    /**
+     * Each if that holds a return moves what follows it into one branch, copying that suffix, and
+     * nests the rest of the function one level deeper. A long run of guard clauses would copy the
+     * suffix once per guard and nest as deep as it is long, so past a small depth the function keeps
+     * the flat done-flag form, which is linear.
+     */
+    private static final int MAX_STRUCTURED_RETURN_DEPTH = 16;
+
+    private boolean endsInTailReturns(List<ImStmt> stmts, int depth) {
         for (int i = 0; i < stmts.size(); i++) {
             ImStmt s = stmts.get(i);
             if (s instanceof ImReturn) {
@@ -395,14 +403,17 @@ public class ImInliner {
             if (!(s instanceof ImIf imIf)) {
                 return false;
             }
+            if (depth >= MAX_STRUCTURED_RETURN_DEPTH) {
+                return false;
+            }
             List<ImStmt> rest = stmts.subList(i + 1, stmts.size());
             boolean thenReturns = alwaysReturns(imIf.getThenBlock());
             boolean elseReturns = alwaysReturns(imIf.getElseBlock());
             if (!thenReturns && !elseReturns && !rest.isEmpty()) {
                 return false;
             }
-            return endsInTailReturns(thenReturns ? imIf.getThenBlock() : concat(imIf.getThenBlock(), rest))
-                && endsInTailReturns(elseReturns ? imIf.getElseBlock() : concat(imIf.getElseBlock(), rest));
+            return endsInTailReturns(thenReturns ? imIf.getThenBlock() : concat(imIf.getThenBlock(), rest), depth + 1)
+                && endsInTailReturns(elseReturns ? imIf.getElseBlock() : concat(imIf.getElseBlock(), rest), depth + 1);
         }
         return true;
     }

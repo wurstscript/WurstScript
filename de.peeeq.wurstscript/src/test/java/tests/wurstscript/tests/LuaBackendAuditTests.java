@@ -2934,6 +2934,68 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         assertTrue("LIMIT is read before its write:\n" + compiled, compiled.contains("B_LIMIT"));
     }
 
+    private static String[] guardChainProgram(int guards) {
+        List<String> lines = new ArrayList<>(List.of(
+            "package Test",
+            "native consume(int value)",
+            "@inline function chain(int x) returns int"));
+        for (int i = 1; i <= guards; i++) {
+            lines.add("    if x == " + i);
+            lines.add("        return " + i + " * 10");
+        }
+        lines.add("    return -1");
+        lines.add("@noinline function caller(int x)");
+        lines.add("    consume(chain(x))");
+        lines.add("init");
+        lines.add("    caller(3)");
+        return lines.toArray(String[]::new);
+    }
+
+    /**
+     * Each guard clause moves the rest of the function into the other branch, which copies that
+     * suffix and nests one level deeper. A short chain becomes nested ifs with no done flag; a long
+     * one keeps the flat, linear flag form instead of copying the suffix once per guard.
+     */
+    @Test
+    public void shortGuardChainsInlineWithoutAFlagAndLongOnesKeepIt() {
+        String shortChain = compileOptimizedLua("shortGuardChain", guardChainProgram(8));
+        assertFalse("a short chain needs no done flag:\n" + shortChain,
+            functionBody(shortChain, "caller").contains("inlineDone"));
+        String longChain = compileOptimizedLua("longGuardChain", guardChainProgram(40));
+        assertTrue("a long chain keeps the flag:\n" + longChain,
+            functionBody(longChain, "caller").contains("inlineDone"));
+    }
+
+    @Test
+    public void guardChainsReturnTheSameFromEitherForm() {
+        for (int guards : new int[] {8, 40}) {
+            List<String> lines = new ArrayList<>(List.of(
+                "package Test",
+                "native testSuccess()",
+                "int failures = 0",
+                "@noinline function id(int x) returns int",
+                "    return x",
+                "@noinline function check(bool ok)",
+                "    if not ok",
+                "        failures++",
+                "@inline function chain(int x) returns int"));
+            for (int i = 1; i <= guards; i++) {
+                lines.add("    if x == " + i);
+                lines.add("        return " + i + " * 10");
+            }
+            lines.add("    return -1");
+            lines.add("init");
+            lines.add("    check(chain(id(1)) == 10)");
+            lines.add("    check(chain(id(" + guards + ")) == " + guards * 10 + ")");
+            lines.add("    check(chain(id(" + (guards / 2) + ")) == " + (guards / 2) * 10 + ")");
+            lines.add("    check(chain(id(0)) == -1 and chain(id(" + (guards + 1) + ")) == -1)");
+            lines.add("    if failures == 0");
+            lines.add("        testSuccess()");
+            test().testLua(true).luaOnly(false).inline().localOptimizations().executeProg()
+                .lines(lines.toArray(String[]::new));
+        }
+    }
+
     @Test
     public void tinyMonomorphicMethodsInlineOnLua() {
         String compiled = compileOptimizedLua(
