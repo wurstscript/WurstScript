@@ -578,7 +578,10 @@ public class ModelManagerImpl implements ModelManager {
         try {
             contents = readCompilationUnitContents(f, true);
             if (contents == null) {
-                return Changes.empty();
+                // A watcher can report a change for a path that has already
+                // disappeared (for example, during a move). Keep the removal
+                // changes so dependents of the old packages are reconciled.
+                return removeCompilationUnit(f);
             }
         } catch (IOException e) {
             WLogger.severe(e);
@@ -611,7 +614,6 @@ public class ModelManagerImpl implements ModelManager {
             return null;
         }
         if (!file.exists()) {
-            removeCompilationUnit(filename);
             return null;
         }
         String contents = Files.toString(file, Charsets.UTF_8);
@@ -758,6 +760,13 @@ public class ModelManagerImpl implements ModelManager {
         }
         Set<String> oldPackageNames = changes.getAffectedPackageNames().toJavaSet();
         Collection<CompilationUnit> toCheckRec = calculateCUsToUpdate(toCheck1, oldPackageNames, model2);
+        boolean jassFileChanged = changes.getAffectedFiles().toJavaSet().stream()
+            .anyMatch(file -> file.getUriString().endsWith(".j"));
+        if (jassFileChanged) {
+            // A removed Jass CU is no longer in the model, so calculateCUsToUpdate
+            // cannot see it among the changed compilation units.
+            toCheckRec.addAll(model2);
+        }
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl comp = getCompiler(gui);
         partialTypecheck(model2, toCheckRec, gui, comp);

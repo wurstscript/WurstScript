@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -57,17 +58,29 @@ public class BufferManager {
                 file = uri.getFile();
             } catch (FileNotFoundException e) {
                 WLogger.info("URI " + uri + " cannot be opened by Wurst: " + e);
+                forget(uri);
                 return "";
             }
             String str = Files.toString(file, StandardCharsets.UTF_8);
             StringBuilder sb = buffer(uri);
             sb.replace(0, sb.length(), str);
             return sb.toString();
+        } catch (FileNotFoundException | NoSuchFileException e) {
+            // A watcher can report a change after the file has disappeared.
+            // Drop stale disk-backed contents and let the worker process the
+            // filesystem event as a compilation-unit removal.
+            forget(uri);
+            return "";
         } catch (IOException e) {
             WLogger.severe("Could not read file " + uri);
             WLogger.severe(e);
             throw new RuntimeException(e);
         }
+    }
+
+    private void forget(WFile uri) {
+        currentBuffer.remove(uri);
+        latestVersion.remove(uri);
     }
 
     synchronized void handleChange(DidChangeTextDocumentParams params) {
