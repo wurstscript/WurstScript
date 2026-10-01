@@ -11,11 +11,11 @@ import static org.testng.Assert.assertEquals;
 public class ProjectConfigBuilderTests {
 
     @Test
-    public void pinnedPatchSelectsNewestSupportedW3iFormat() throws Exception {
-        assertW3IVersion("1.30", W3I.EncodingFormat.W3I_0x19.getVersion());
-        assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x1C.getVersion());
-        assertW3IVersion("1.32", W3I.EncodingFormat.W3I_0x1F.getVersion());
-        assertW3IVersion("2.0", W3I.EncodingFormat.W3I_0x21.getVersion());
+    public void pinnedPatchDoesNotChangeSourceW3iFormat() throws Exception {
+        assertW3IVersion("1.30", W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertW3IVersion("1.32", W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertW3IVersion("2.0", W3I.EncodingFormat.W3I_0x27.getVersion());
         assertW3IVersion("3.0", W3I.EncodingFormat.W3I_0x27.getVersion());
     }
 
