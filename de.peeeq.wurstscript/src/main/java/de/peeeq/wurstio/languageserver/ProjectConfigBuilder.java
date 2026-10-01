@@ -118,12 +118,15 @@ public class ProjectConfigBuilder {
 
         // The source W3I above is deliberately reloaded each build so downgrading a cached map
         // cannot discard fields. Reapply configured map data even when the config hash is cached.
-        if (StringUtils.isNotBlank(buildMapData.name())) {
+        boolean hasW3IOverrides = StringUtils.isNotBlank(buildMapData.name())
+            || StringUtils.isNotBlank(buildMapData.gameDataVersion());
+        if (hasW3IOverrides) {
             prepareW3I(projectConfig, w3I);
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");
-        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(), warningConsumer);
+        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(),
+            StringUtils.isNotBlank(buildMapData.gameDataVersion()), warningConsumer);
         w3I.write(result.w3i, W3I.EncodingFormat.AS_DEFINED);
 
         // Apply map header (this is cheap, so we always do it)
@@ -161,6 +164,7 @@ public class ProjectConfigBuilder {
 
             sb.append("name:").append(buildMapData.name()).append("\n");
             sb.append("author:").append(buildMapData.author()).append("\n");
+            sb.append("gameDataVersion:").append(buildMapData.gameDataVersion()).append("\n");
 
             // Scenario data
             WurstProjectBuildScenarioData scenario = buildMapData.scenarioData();
@@ -259,12 +263,30 @@ public class ProjectConfigBuilder {
 
     static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua,
                                             Consumer<String> warningConsumer) {
+        return applyW3IVersion(buildConfig, w3I, lua, false, warningConsumer);
+    }
+
+    static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua,
+                                            boolean gameDataVersionConfigured, Consumer<String> warningConsumer) {
         Optional<GameVersion> targetVersion = buildConfig.configuredGameVersion();
         if (lua && targetVersion.filter(version -> version.compareTo(new GameVersion("1.32")) < 0).isPresent()) {
             GameVersion version = targetVersion.orElseThrow();
             String targetName = buildConfig.wc3PatchName().orElse(version.toString());
             throw new RequestFailedException(MessageType.Error,
                 "Cannot target Warcraft III " + targetName + " with Lua: Lua map scripts require Warcraft III 1.32 or newer.");
+        }
+
+        if (gameDataVersionConfigured) {
+            int v3Format = W3I.EncodingFormat.W3I_0x27.getVersion();
+            if (targetVersion.filter(version -> maxW3IVersionFor(buildConfig, version) < v3Format).isPresent()) {
+                String targetName = buildConfig.wc3PatchName().orElse(targetVersion.orElseThrow().toString());
+                throw new RequestFailedException(MessageType.Error,
+                    "wurst.build buildMapData.gameDataVersion requires Warcraft III 3.0 or newer; target "
+                        + targetName + " supports W3I format " + maxW3IVersionFor(buildConfig, targetVersion.orElseThrow()) + ".");
+            }
+            // gameDataVersion is only present in W3I format 39. Promote older source maps so the
+            // configured value is actually serialized instead of silently disappearing.
+            w3I.setFileVersion(Math.max(w3I.getFileVersion(), v3Format));
         }
 
         Optional<String> downgradeWarning = w3iDowngradeWarning(buildConfig, w3I);
@@ -330,6 +352,7 @@ public class ProjectConfigBuilder {
 
     private static void prepareW3I(WurstProjectConfigData projectConfig, W3I w3I) {
         WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        applyGameDataVersion(buildMapData, w3I);
         if (StringUtils.isNotBlank(buildMapData.name())) {
             w3I.setMapName(buildMapData.name());
         }
@@ -345,6 +368,24 @@ public class ProjectConfigBuilder {
             applyForces(projectConfig, w3I);
         }
         applyOptionFlags(projectConfig, w3I);
+    }
+
+    static void applyGameDataVersion(WurstProjectBuildMapData buildMapData, W3I w3I) {
+        if (StringUtils.isBlank(buildMapData.gameDataVersion())) {
+            return;
+        }
+        try {
+            W3I.GameDataVersion version = W3I.GameDataVersion.valueOf(
+                buildMapData.gameDataVersion().trim().toUpperCase(java.util.Locale.ROOT));
+            if (version == W3I.GameDataVersion.UNKNOWN) {
+                throw new IllegalArgumentException("Unknown W3I game-data version");
+            }
+            w3I.setGameDataVersion(version);
+        } catch (IllegalArgumentException e) {
+            throw new RequestFailedException(MessageType.Error,
+                "Invalid wurst.build buildMapData.gameDataVersion '" + buildMapData.gameDataVersion()
+                    + "'. Supported values are ROC, TFT, and FORSAKEN_KINGDOM.");
+        }
     }
 
     private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {

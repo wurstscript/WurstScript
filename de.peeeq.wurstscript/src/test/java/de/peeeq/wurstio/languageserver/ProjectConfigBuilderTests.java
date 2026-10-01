@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import net.moonlightflower.wc3libs.bin.app.W3I;
+import org.wurstscript.projectconfig.WurstProjectBuildMapData;
 import org.testng.annotations.Test;
 
 import java.nio.file.Files;
@@ -13,6 +14,7 @@ import java.util.Optional;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.expectThrows;
 
 public class ProjectConfigBuilderTests {
 
@@ -120,6 +122,56 @@ public class ProjectConfigBuilderTests {
 
         assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x1F.getVersion());
         assertEquals(w3i.getScriptLang(), W3I.ScriptLang.LUA);
+    }
+
+    @Test
+    public void configuredV3GameDataPromotesAndRoundTripsW3iFormat39() throws Exception {
+        Path project = Files.createTempDirectory("w3i-v3-data-target");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 3.0\n");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        W3I source = new W3I();
+        source.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+        Path oldFile = Files.createTempFile("w3i-v2-source", ".w3i");
+        source.write(oldFile.toFile(), W3I.EncodingFormat.W3I_0x1F);
+        W3I w3i = new W3I(Files.readAllBytes(oldFile));
+        WurstProjectBuildMapData mapData = new WurstProjectBuildMapData(
+            "", "", "", null, null, List.of(), List.of(), "FORSAKEN_KINGDOM"
+        );
+
+        ProjectConfigBuilder.applyGameDataVersion(mapData, w3i);
+        ProjectConfigBuilder.applyW3IVersion(config, w3i, false, true, ignored -> {});
+
+        assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion());
+        Path file = Files.createTempFile("w3i-v3-data", ".w3i");
+        w3i.write(file.toFile(), W3I.EncodingFormat.AS_DEFINED);
+        W3I written = new W3I(Files.readAllBytes(file));
+        assertEquals(written.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertEquals(written.getGameDataVersion(), W3I.GameDataVersion.FORSAKEN_KINGDOM);
+    }
+
+    @Test
+    public void configuredGameDataVersionRequiresATargetSupportingW3i39() throws Exception {
+        Path project = Files.createTempDirectory("w3i-v3-target");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 2.0\n");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        W3I w3i = new W3I();
+
+        RuntimeException error = expectThrows(RuntimeException.class,
+            () -> ProjectConfigBuilder.applyW3IVersion(config, w3i, false, true, ignored -> {}));
+
+        assertTrue(error.getMessage().contains("gameDataVersion requires Warcraft III 3.0 or newer"));
+    }
+
+    @Test
+    public void invalidConfiguredGameDataVersionHasAnActionableError() {
+        WurstProjectBuildMapData mapData = new WurstProjectBuildMapData(
+            "", "", "", null, null, List.of(), List.of(), "FUTURE_VERSION"
+        );
+
+        RuntimeException error = expectThrows(RuntimeException.class,
+            () -> ProjectConfigBuilder.applyGameDataVersion(mapData, new W3I()));
+
+        assertTrue(error.getMessage().contains("Supported values are ROC, TFT, and FORSAKEN_KINGDOM"));
     }
 
     private static void assertW3IVersion(String patch, int expected) throws Exception {
