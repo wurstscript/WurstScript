@@ -246,9 +246,17 @@ public class ProjectConfigBuilder {
     }
 
     public static void applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
+        Optional<GameVersion> targetVersion = buildConfig.configuredGameVersion();
+        if (lua && targetVersion.filter(version -> version.compareTo(new GameVersion("1.32")) < 0).isPresent()) {
+            GameVersion version = targetVersion.orElseThrow();
+            String targetName = buildConfig.wc3PatchName().orElse(version.toString());
+            throw new RequestFailedException(MessageType.Error,
+                "Cannot target Warcraft III " + targetName + " with Lua: Lua map scripts require Warcraft III 1.32 or newer.");
+        }
+
         w3iDowngradeWarning(buildConfig, w3I).ifPresent(warning -> {
             WLogger.warning(warning);
-            w3I.setFileVersion(maxW3IVersionFor(buildConfig.configuredGameVersion().orElseThrow()));
+            w3I.setFileVersion(maxW3IVersionFor(targetVersion.orElseThrow()));
         });
 
         if (lua) {

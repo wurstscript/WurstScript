@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import org.testng.annotations.Test;
 
@@ -42,6 +43,29 @@ public class ProjectConfigBuilderTests {
         w3i.write(downgradedW3i.toFile(), W3I.EncodingFormat.AS_DEFINED);
         W3I written = new W3I(Files.readAllBytes(downgradedW3i));
         assertEquals(written.getFileVersion(), W3I.EncodingFormat.W3I_0x19.getVersion());
+    }
+
+    @Test
+    public void rejectsLuaForTargetsThatDoNotSupportItBeforeChangingW3i() throws Exception {
+        for (String patch : new String[]{"1.30", "1.31"}) {
+            Path project = Files.createTempDirectory("w3i-lua-old-target");
+            Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: " + patch + "\n");
+            WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+            W3I w3i = new W3I();
+            w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
+
+            RequestFailedException error;
+            try {
+                ProjectConfigBuilder.applyW3IVersion(config, w3i, true);
+                throw new AssertionError("Expected Lua build to fail for target " + patch);
+            } catch (RequestFailedException e) {
+                error = e;
+            }
+
+            assertTrue(error.getMessage().contains("Lua map scripts require Warcraft III 1.32 or newer"));
+            assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion(),
+                "unsupported Lua target must fail before changing source map metadata");
+        }
     }
 
     @Test
