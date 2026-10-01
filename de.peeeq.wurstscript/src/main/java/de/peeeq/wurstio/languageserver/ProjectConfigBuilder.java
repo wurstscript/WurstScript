@@ -256,7 +256,7 @@ public class ProjectConfigBuilder {
 
         w3iDowngradeWarning(buildConfig, w3I).ifPresent(warning -> {
             WLogger.warning(warning);
-            w3I.setFileVersion(maxW3IVersionFor(targetVersion.orElseThrow()));
+            w3I.setFileVersion(maxW3IVersionFor(buildConfig, targetVersion.orElseThrow()));
         });
 
         if (lua) {
@@ -274,9 +274,9 @@ public class ProjectConfigBuilder {
 
     static Optional<String> w3iDowngradeWarning(WurstBuildConfig buildConfig, W3I w3I) {
         return buildConfig.configuredGameVersion()
-            .filter(target -> w3I.getFileVersion() > maxW3IVersionFor(target))
+            .filter(target -> w3I.getFileVersion() > maxW3IVersionFor(buildConfig, target))
             .map(target -> {
-                int maxVersion = maxW3IVersionFor(target);
+                int maxVersion = maxW3IVersionFor(buildConfig, target);
                 String targetName = buildConfig.wc3PatchName().orElse(target.toString());
                 return "The input map uses W3I format " + w3I.getFileVersion()
                     + ", newer than the selected Warcraft III target " + targetName
@@ -285,7 +285,10 @@ public class ProjectConfigBuilder {
             });
     }
 
-    private static int maxW3IVersionFor(GameVersion version) {
+    private static int maxW3IVersionFor(WurstBuildConfig buildConfig, GameVersion version) {
+        if (buildConfig.isReignOfChaosTarget()) {
+            return W3I.EncodingFormat.W3I_0x12.getVersion();
+        }
         if (version.compareTo(new GameVersion("1.31")) < 0) {
             return W3I.EncodingFormat.W3I_0x19.getVersion();
         }

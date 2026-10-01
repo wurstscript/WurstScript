@@ -46,6 +46,22 @@ public class ProjectConfigBuilderTests {
     }
 
     @Test
+    public void reignOfChaosTargetDowngradesToItsSupportedW3iFormat() throws Exception {
+        Path project = Files.createTempDirectory("w3i-roc-downgrade");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: ROC-v1.28.5.7680\n");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        W3I w3i = new W3I();
+        w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
+
+        Optional<String> warning = ProjectConfigBuilder.w3iDowngradeWarning(config, w3i);
+        ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
+
+        assertTrue(config.isReignOfChaosTarget());
+        assertTrue(warning.orElseThrow().contains("supports (format 18)"));
+        assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x12.getVersion());
+    }
+
+    @Test
     public void rejectsLuaForTargetsThatDoNotSupportItBeforeChangingW3i() throws Exception {
         for (String patch : new String[]{"1.30", "1.31"}) {
             Path project = Files.createTempDirectory("w3i-lua-old-target");

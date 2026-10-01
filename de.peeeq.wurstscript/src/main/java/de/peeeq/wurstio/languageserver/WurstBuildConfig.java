@@ -75,6 +75,10 @@ public final class WurstBuildConfig {
         return sharedConfig.wc3Patch().map(Wc3PatchTarget::name);
     }
 
+    public boolean isReignOfChaosTarget() {
+        return sharedConfig.wc3Patch().map(Wc3PatchTarget::isReignOfChaos).orElse(false);
+    }
+
     public Optional<GameVersion> configuredGameVersion() {
         return sharedConfig.wc3Patch()
             .map(Wc3PatchTarget::gameVersion)
