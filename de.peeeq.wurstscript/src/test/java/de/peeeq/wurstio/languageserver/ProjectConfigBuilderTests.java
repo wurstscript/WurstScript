@@ -5,18 +5,43 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 
 public class ProjectConfigBuilderTests {
 
     @Test
-    public void pinnedPatchDoesNotChangeSourceW3iFormat() throws Exception {
-        assertW3IVersion("1.30", W3I.EncodingFormat.W3I_0x27.getVersion());
-        assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x27.getVersion());
-        assertW3IVersion("1.32", W3I.EncodingFormat.W3I_0x27.getVersion());
-        assertW3IVersion("2.0", W3I.EncodingFormat.W3I_0x27.getVersion());
+    public void pinnedPatchDowngradesSourceFormatWhenItIsTooNew() throws Exception {
+        assertW3IVersion("1.30", W3I.EncodingFormat.W3I_0x19.getVersion());
+        assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x1C.getVersion());
+        assertW3IVersion("1.32", W3I.EncodingFormat.W3I_0x1F.getVersion());
+        assertW3IVersion("2.0", W3I.EncodingFormat.W3I_0x21.getVersion());
         assertW3IVersion("3.0", W3I.EncodingFormat.W3I_0x27.getVersion());
+    }
+
+    @Test
+    public void olderTargetWarnsBeforeDiscardingNewerW3iInformation() throws Exception {
+        Path project = Files.createTempDirectory("w3i-downgrade-warning");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 1.30\n");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        W3I w3i = new W3I();
+        w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
+
+        Optional<String> warning = ProjectConfigBuilder.w3iDowngradeWarning(config, w3i);
+        ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
+
+        assertTrue(warning.isPresent());
+        assertTrue(warning.orElseThrow().contains("selected Warcraft III target 1.30"));
+        assertTrue(warning.orElseThrow().contains("information added in newer patches may be lost"));
+        assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x19.getVersion());
+
+        Path downgradedW3i = Files.createTempFile("w3i-downgraded", ".w3i");
+        w3i.write(downgradedW3i.toFile(), W3I.EncodingFormat.AS_DEFINED);
+        W3I written = new W3I(Files.readAllBytes(downgradedW3i));
+        assertEquals(written.getFileVersion(), W3I.EncodingFormat.W3I_0x19.getVersion());
     }
 
     @Test
@@ -26,6 +51,7 @@ public class ProjectConfigBuilderTests {
 
         ProjectConfigBuilder.applyW3IVersion(WurstBuildConfig.empty(), w3i, false);
 
+        assertFalse(ProjectConfigBuilder.w3iDowngradeWarning(WurstBuildConfig.empty(), w3i).isPresent());
         assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion());
     }
 
@@ -61,8 +87,11 @@ public class ProjectConfigBuilderTests {
         W3I w3i = new W3I();
         w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
 
+        Optional<String> warning = ProjectConfigBuilder.w3iDowngradeWarning(config, w3i);
         ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
 
         assertEquals(w3i.getFileVersion(), expected, "unexpected W3I format for patch " + patch);
+        assertEquals(warning.isPresent(), expected < W3I.EncodingFormat.W3I_0x27.getVersion(),
+            "unexpected downgrade warning for patch " + patch);
     }
 }
