@@ -104,7 +104,7 @@ public class ProjectConfigBuilder {
 
         if (configNeedsApplying && hasW3IOverrides) {
             WLogger.info("Applying buildMapData config");
-            applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
+            applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName, runArgs.isLua());
         } else if (!configNeedsApplying) {
             WLogger.info("Using cached w3i configuration");
             // Prefer the previously-injected script (with correct config() body) over the
@@ -118,7 +118,7 @@ public class ProjectConfigBuilder {
                 result.script = cachedInjectedScript;
             } else if (hasW3IOverrides) {
                 WLogger.info("war3map.j changed or cached script missing, re-injecting config");
-                applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
+                applyBuildMapData(mapScript, buildDir, w3data, w3I, result, outputScriptName, runArgs.isLua());
             }
             // else result.script stays as mapScript (no configured W3I overrides)
         }
@@ -228,9 +228,9 @@ public class ProjectConfigBuilder {
         }
     }
 
-    private static void applyBuildMapData(WurstProjectConfigData projectConfig, File mapScript, File buildDir,
-                                          W3InstallationData w3data, W3I w3I, MapRequest.CompilationResult result,
-                                          String configHash, String outputScriptName) throws IOException {
+    private static void applyBuildMapData(File mapScript, File buildDir, W3InstallationData w3data, W3I w3I,
+                                          MapRequest.CompilationResult result, String outputScriptName,
+                                          boolean isLua) throws IOException {
         result.script = new File(buildDir, outputScriptName);
 
         try (FileInputStream inputStream = new FileInputStream(mapScript)) {
@@ -245,7 +245,11 @@ public class ProjectConfigBuilder {
             } else {
                 WLogger.info("Failed to determine installed game version. Falling back to default patch target: " + version);
             }
-            w3I.injectConfigsInJassScript(inputStream, sw, version);
+            if (isLua) {
+                w3I.injectConfigsInLuaScript(inputStream, sw);
+            } else {
+                w3I.injectConfigsInJassScript(inputStream, sw, version);
+            }
 
             byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
             Files.write(scriptBytes, result.script);
@@ -455,6 +459,7 @@ public class ProjectConfigBuilder {
         w3I.setFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE));
         w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES, optionsFlags.showWavesOnCliffShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES));
         w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES, optionsFlags.showWavesOnRollingShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES));
+        w3I.setFlag(MapFlag.USE_ITEM_CLASSIFICATION_SYSTEM, optionsFlags.useItemClassificationSystem() || w3I.getFlag(MapFlag.USE_ITEM_CLASSIFICATION_SYSTEM));
         w3I.setFlag(MapFlag.USE_ALPHA_TILE_MINIMAP_COLOR, optionsFlags.useAlphaTileMinimapColor() || w3I.getFlag(MapFlag.USE_ALPHA_TILE_MINIMAP_COLOR));
         w3I.setFlag(MapFlag.USE_DYNAMIC_MINIMAP, optionsFlags.useDynamicMinimap() || w3I.getFlag(MapFlag.USE_DYNAMIC_MINIMAP));
         w3I.setFlag(MapFlag.USE_WATER_OVERRIDE_COLOR, optionsFlags.useWaterOverrideColor() || w3I.getFlag(MapFlag.USE_WATER_OVERRIDE_COLOR));
