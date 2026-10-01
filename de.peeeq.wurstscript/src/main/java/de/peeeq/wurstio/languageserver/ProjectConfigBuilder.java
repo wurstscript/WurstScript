@@ -94,8 +94,15 @@ public class ProjectConfigBuilder {
             throw new RuntimeException(e);
         }
 
-        // Only apply buildMapData if config changed or name is present
-        if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.name())) {
+        // Apply metadata before regenerating script config: generated player setup is derived from W3I.
+        boolean hasW3IOverrides = hasW3IOverrides(buildMapData);
+        if (hasW3IOverrides) {
+            prepareW3I(projectConfig, w3I);
+        }
+        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(),
+            requiresReforgedV3Data(buildMapData), warningConsumer);
+
+        if (configNeedsApplying && hasW3IOverrides) {
             WLogger.info("Applying buildMapData config");
             applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
         } else if (!configNeedsApplying) {
@@ -109,21 +116,14 @@ public class ProjectConfigBuilder {
                 || mapScript.lastModified() > cachedInjectedScript.lastModified();
             if (!cachedScriptStale) {
                 result.script = cachedInjectedScript;
-            } else if (StringUtils.isNotBlank(buildMapData.name())) {
+            } else if (hasW3IOverrides) {
                 WLogger.info("war3map.j changed or cached script missing, re-injecting config");
                 applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
             }
-            // else result.script stays as mapScript (no wurst.build name configured)
-        }
-
-        // The source W3I above is deliberately reloaded each build so downgrading a cached map
-        // cannot discard fields. Reapply configured map data even when the config hash is cached.
-        if (StringUtils.isNotBlank(buildMapData.name())) {
-            prepareW3I(projectConfig, w3I);
+            // else result.script stays as mapScript (no configured W3I overrides)
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");
-        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(), warningConsumer);
         w3I.write(result.w3i, W3I.EncodingFormat.AS_DEFINED);
 
         // Apply map header (this is cheap, so we always do it)
@@ -161,6 +161,8 @@ public class ProjectConfigBuilder {
 
             sb.append("name:").append(buildMapData.name()).append("\n");
             sb.append("author:").append(buildMapData.author()).append("\n");
+            sb.append("gameDataVersion:").append(buildMapData.gameDataVersion()).append("\n");
+            sb.append("v3ReforgedData:").append(buildMapData.v3ReforgedData()).append("\n");
 
             // Scenario data
             WurstProjectBuildScenarioData scenario = buildMapData.scenarioData();
@@ -183,6 +185,7 @@ public class ProjectConfigBuilder {
                     .append(",").append(player.race())
                     .append(",").append(player.controller())
                     .append(",").append(player.fixedStartLoc())
+                    .append(",").append(player.hudSkin())
                     .append("\n");
             }
 
@@ -206,6 +209,9 @@ public class ProjectConfigBuilder {
             sb.append("flags:").append(flags.forcesFixed())
                 .append(",").append(flags.showWavesOnCliffShores())
                 .append(",").append(flags.showWavesOnRollingShores())
+                .append(",").append(flags.useWaterOverrideColor())
+                .append(",").append(flags.useAlphaTileMinimapColor())
+                .append(",").append(flags.useDynamicMinimap())
                 .append("\n");
             WurstBuildConfig buildConfig = buildConfigFromBuildDir(buildDir);
             sb.append("scriptMode:").append(buildConfig.scriptMode()).append("\n");
@@ -259,12 +265,30 @@ public class ProjectConfigBuilder {
 
     static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua,
                                             Consumer<String> warningConsumer) {
+        return applyW3IVersion(buildConfig, w3I, lua, false, warningConsumer);
+    }
+
+    static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua,
+                                            boolean requiresW3IV39, Consumer<String> warningConsumer) {
         Optional<GameVersion> targetVersion = buildConfig.configuredGameVersion();
         if (lua && targetVersion.filter(version -> version.compareTo(new GameVersion("1.32")) < 0).isPresent()) {
             GameVersion version = targetVersion.orElseThrow();
             String targetName = buildConfig.wc3PatchName().orElse(version.toString());
             throw new RequestFailedException(MessageType.Error,
                 "Cannot target Warcraft III " + targetName + " with Lua: Lua map scripts require Warcraft III 1.32 or newer.");
+        }
+
+        if (requiresW3IV39) {
+            int v3Format = W3I.EncodingFormat.W3I_0x27.getVersion();
+            if (targetVersion.filter(version -> maxW3IVersionFor(buildConfig, version) < v3Format).isPresent()) {
+                String targetName = buildConfig.wc3PatchName().orElse(targetVersion.orElseThrow().toString());
+                throw new RequestFailedException(MessageType.Error,
+                    "wurst.build buildMapData.v3ReforgedData and other Reforged 3 settings require Warcraft III 3.0 or newer; target "
+                        + targetName + " is older and cannot use these settings.");
+            }
+            // These settings are only present in W3I format 39. Promote older source maps so the
+            // configured values are actually serialized instead of silently disappearing.
+            w3I.setFileVersion(Math.max(w3I.getFileVersion(), v3Format));
         }
 
         Optional<String> downgradeWarning = w3iDowngradeWarning(buildConfig, w3I);
@@ -328,8 +352,10 @@ public class ProjectConfigBuilder {
     }
 
 
-    private static void prepareW3I(WurstProjectConfigData projectConfig, W3I w3I) {
+    static void prepareW3I(WurstProjectConfigData projectConfig, W3I w3I) {
         WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
+        applyGameDataVersion(buildMapData, w3I);
+        applyReforgedV3Data(buildMapData.v3ReforgedData(), w3I);
         if (StringUtils.isNotBlank(buildMapData.name())) {
             w3I.setMapName(buildMapData.name());
         }
@@ -347,6 +373,81 @@ public class ProjectConfigBuilder {
         applyOptionFlags(projectConfig, w3I);
     }
 
+    static boolean hasW3IOverrides(WurstProjectBuildMapData data) {
+        WurstProjectBuildOptionFlagsData flags = data.optionsFlags();
+        WurstProjectBuildScenarioData scenario = data.scenarioData();
+        WurstProjectBuildLoadingScreenData loadingScreen = scenario.loadingScreen();
+        return StringUtils.isNotBlank(data.name())
+            || StringUtils.isNotBlank(data.author())
+            || StringUtils.isNotBlank(data.gameDataVersion())
+            || data.v3ReforgedData().isConfigured()
+            || !data.players().isEmpty()
+            || !data.forces().isEmpty()
+            || StringUtils.isNotBlank(scenario.description())
+            || StringUtils.isNotBlank(scenario.suggestedPlayers())
+            || (loadingScreen != null && (StringUtils.isNotBlank(loadingScreen.model())
+                || StringUtils.isNotBlank(loadingScreen.background())
+                || StringUtils.isNotBlank(loadingScreen.title())
+                || StringUtils.isNotBlank(loadingScreen.subTitle())
+                || StringUtils.isNotBlank(loadingScreen.text())))
+            || flags.hideMinimapPreview()
+            || flags.forcesFixed()
+            || flags.maskedAreasPartiallyVisible()
+            || flags.showWavesOnCliffShores()
+            || flags.showWavesOnRollingShores()
+            || flags.useItemClassificationSystem()
+            || flags.useAlphaTileMinimapColor()
+            || flags.useDynamicMinimap()
+            || flags.useWaterOverrideColor();
+    }
+
+    static boolean requiresReforgedV3Data(WurstProjectBuildMapData data) {
+        return StringUtils.isNotBlank(data.gameDataVersion())
+            || data.v3ReforgedData().isConfigured()
+            || data.players().stream().anyMatch(player -> player.hudSkin() != null)
+            || data.optionsFlags().useAlphaTileMinimapColor()
+            || data.optionsFlags().useDynamicMinimap()
+            || data.optionsFlags().useWaterOverrideColor();
+    }
+
+    private static void applyReforgedV3Data(WurstProjectBuildV3ReforgedData data, W3I w3I) {
+        if (data.loadingScreenCrestRace() != null) w3I.setLoadingScreenCrestRace(data.loadingScreenCrestRace());
+        if (data.terrainFogStyle() != null) w3I.setTerrainFogStyle(data.terrainFogStyle());
+        if (data.drawTerrainFogOverSky() != null) w3I.setDrawTerrainFogOverSky(data.drawTerrainFogOverSky());
+        if (data.terrainFogLinearStart() != null) w3I.setTerrainFogLinearStart(data.terrainFogLinearStart());
+        if (data.terrainFogLinearEnd() != null) w3I.setTerrainFogLinearEnd(data.terrainFogLinearEnd());
+        if (data.terrainFogMaxOpacity() != null) w3I.setTerrainFogMaxOpacity(data.terrainFogMaxOpacity());
+        if (data.terrainFogHeight() != null) w3I.setTerrainFogHeight(data.terrainFogHeight());
+        if (data.waterMinOpacity() != null) w3I.setWaterMinOpacity(data.waterMinOpacity());
+        if (data.waterMaxOpacity() != null) w3I.setWaterMaxOpacity(data.waterMaxOpacity());
+        if (data.waterReflectivity() != null) w3I.setWaterReflectivity(data.waterReflectivity());
+        if (data.waterEmissivity() != null) w3I.setWaterEmissivity(data.waterEmissivity());
+        if (data.waterEdgeSoftness() != null) w3I.setWaterEdgeSoftness(data.waterEdgeSoftness());
+        if (data.waterWavesVertexDisplacement() != null) w3I.setWaterWavesVertexDisplacement(data.waterWavesVertexDisplacement());
+        if (data.waterWavesNormalMapStrength() != null) w3I.setWaterWavesNormalMapStrength(data.waterWavesNormalMapStrength());
+        if (data.waterOverrideColor() != null) w3I.setWaterOverrideColor(data.waterOverrideColor());
+        if (data.waterEnvMapReflectivity() != null) w3I.setWaterEnvMapReflectivity(data.waterEnvMapReflectivity());
+        if (data.waterUnknown() != null) w3I.setWaterUnknown(data.waterUnknown());
+    }
+
+    static void applyGameDataVersion(WurstProjectBuildMapData buildMapData, W3I w3I) {
+        if (StringUtils.isBlank(buildMapData.gameDataVersion())) {
+            return;
+        }
+        try {
+            W3I.GameDataVersion version = W3I.GameDataVersion.valueOf(
+                buildMapData.gameDataVersion().trim().toUpperCase(java.util.Locale.ROOT));
+            if (version == W3I.GameDataVersion.UNKNOWN) {
+                throw new IllegalArgumentException("Unknown W3I game-data version");
+            }
+            w3I.setGameDataVersion(version);
+        } catch (IllegalArgumentException e) {
+            throw new RequestFailedException(MessageType.Error,
+                "Invalid wurst.build buildMapData.gameDataVersion '" + buildMapData.gameDataVersion()
+                    + "'. Supported values are ROC, TFT, and FORSAKEN_KINGDOM.");
+        }
+    }
+
     private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {
         WurstProjectBuildOptionFlagsData optionsFlags = projectConfig.buildMapData().optionsFlags();
         w3I.setFlag(MapFlag.HIDE_MINIMAP, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.HIDE_MINIMAP));
@@ -354,6 +455,9 @@ public class ProjectConfigBuilder {
         w3I.setFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE, optionsFlags.forcesFixed() || w3I.getFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE));
         w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES, optionsFlags.showWavesOnCliffShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES));
         w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES, optionsFlags.showWavesOnRollingShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES));
+        w3I.setFlag(MapFlag.USE_ALPHA_TILE_MINIMAP_COLOR, optionsFlags.useAlphaTileMinimapColor() || w3I.getFlag(MapFlag.USE_ALPHA_TILE_MINIMAP_COLOR));
+        w3I.setFlag(MapFlag.USE_DYNAMIC_MINIMAP, optionsFlags.useDynamicMinimap() || w3I.getFlag(MapFlag.USE_DYNAMIC_MINIMAP));
+        w3I.setFlag(MapFlag.USE_WATER_OVERRIDE_COLOR, optionsFlags.useWaterOverrideColor() || w3I.getFlag(MapFlag.USE_WATER_OVERRIDE_COLOR));
     }
 
     private static void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
@@ -428,6 +532,9 @@ public class ProjectConfigBuilder {
         player.setStartPosFixed(oldPlayer.getStartPosFixed());
         player.setAllyLowPrioFlags(oldPlayer.getAllyLowPrioFlags());
         player.setAllyHighPrioFlags(oldPlayer.getAllyHighPrioFlags());
+        player.setEnemyLowPrioFlags(oldPlayer.getEnemyLowPrioFlags());
+        player.setEnemyHighPrioFlags(oldPlayer.getEnemyHighPrioFlags());
+        player.setHudSkin(oldPlayer.getHudSkin());
     }
 
     private static void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
@@ -449,6 +556,9 @@ public class ProjectConfigBuilder {
         }
         if (wplayer.fixedStartLoc() != null) {
             player.setStartPosFixed(wplayer.fixedStartLoc() ? 1 : 0);
+        }
+        if (wplayer.hudSkin() != null) {
+            player.setHudSkin(wplayer.hudSkin());
         }
     }
 
