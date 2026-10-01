@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
@@ -51,6 +52,13 @@ public class ProjectConfigBuilder {
                                                      File mapScript, File buildDir,
                                                      RunArgs runArgs, W3InstallationData w3data,
                                                      String outputScriptName) throws IOException {
+        return apply(projectConfig, targetMap, sourceMap, mapScript, buildDir, runArgs, w3data, outputScriptName, ignored -> {});
+    }
+
+    public static MapRequest.CompilationResult apply(WurstProjectConfigData projectConfig, File targetMap, File sourceMap,
+                                                     File mapScript, File buildDir,
+                                                     RunArgs runArgs, W3InstallationData w3data,
+                                                     String outputScriptName, Consumer<String> warningConsumer) throws IOException {
         if (projectConfig.projectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
@@ -115,7 +123,7 @@ public class ProjectConfigBuilder {
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");
-        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua());
+        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(), warningConsumer);
         w3I.write(result.w3i, W3I.EncodingFormat.AS_DEFINED);
 
         // Apply map header (this is cheap, so we always do it)
@@ -245,7 +253,12 @@ public class ProjectConfigBuilder {
             .orElseGet(buildConfig::fallbackGameVersion);
     }
 
-    public static void applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
+    public static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua) {
+        return applyW3IVersion(buildConfig, w3I, lua, ignored -> {});
+    }
+
+    static Optional<String> applyW3IVersion(WurstBuildConfig buildConfig, W3I w3I, boolean lua,
+                                            Consumer<String> warningConsumer) {
         Optional<GameVersion> targetVersion = buildConfig.configuredGameVersion();
         if (lua && targetVersion.filter(version -> version.compareTo(new GameVersion("1.32")) < 0).isPresent()) {
             GameVersion version = targetVersion.orElseThrow();
@@ -254,8 +267,9 @@ public class ProjectConfigBuilder {
                 "Cannot target Warcraft III " + targetName + " with Lua: Lua map scripts require Warcraft III 1.32 or newer.");
         }
 
-        w3iDowngradeWarning(buildConfig, w3I).ifPresent(warning -> {
-            WLogger.warning(warning);
+        Optional<String> downgradeWarning = w3iDowngradeWarning(buildConfig, w3I);
+        downgradeWarning.ifPresent(warning -> {
+            warningConsumer.accept(warning);
             w3I.setFileVersion(maxW3IVersionFor(buildConfig, targetVersion.orElseThrow()));
         });
 
@@ -270,6 +284,7 @@ public class ProjectConfigBuilder {
         if (lua && w3I.getFileVersion() < W3I.EncodingFormat.W3I_0x1F.getVersion()) {
             w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
         }
+        return downgradeWarning;
     }
 
     static Optional<String> w3iDowngradeWarning(WurstBuildConfig buildConfig, W3I w3I) {

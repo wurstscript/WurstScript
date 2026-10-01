@@ -6,6 +6,8 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.testng.Assert.assertEquals;
@@ -31,10 +33,11 @@ public class ProjectConfigBuilderTests {
         W3I w3i = new W3I();
         w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
 
-        Optional<String> warning = ProjectConfigBuilder.w3iDowngradeWarning(config, w3i);
-        ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
+        List<String> warnings = new ArrayList<>();
+        Optional<String> warning = ProjectConfigBuilder.applyW3IVersion(config, w3i, false, warnings::add);
 
         assertTrue(warning.isPresent());
+        assertEquals(warnings, List.of(warning.orElseThrow()));
         assertTrue(warning.orElseThrow().contains("selected Warcraft III target 1.30"));
         assertTrue(warning.orElseThrow().contains("information added in newer patches may be lost"));
         assertEquals(w3i.getFileVersion(), W3I.EncodingFormat.W3I_0x19.getVersion());
@@ -53,8 +56,7 @@ public class ProjectConfigBuilderTests {
         W3I w3i = new W3I();
         w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
 
-        Optional<String> warning = ProjectConfigBuilder.w3iDowngradeWarning(config, w3i);
-        ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
+        Optional<String> warning = ProjectConfigBuilder.applyW3IVersion(config, w3i, false);
 
         assertTrue(config.isReignOfChaosTarget());
         assertTrue(warning.orElseThrow().contains("supports (format 18)"));
