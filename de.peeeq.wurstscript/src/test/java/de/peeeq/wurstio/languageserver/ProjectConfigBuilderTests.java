@@ -1,8 +1,13 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
+import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import org.wurstscript.projectconfig.WurstProjectBuildMapData;
+import org.wurstscript.projectconfig.WurstProjectBuildOptionFlagsData;
+import org.wurstscript.projectconfig.WurstProjectBuildPlayer;
+import org.wurstscript.projectconfig.WurstProjectBuildV3ReforgedData;
+import org.wurstscript.projectconfig.WurstProjectConfigData;
 import org.testng.annotations.Test;
 
 import java.nio.file.Files;
@@ -150,6 +155,62 @@ public class ProjectConfigBuilderTests {
     }
 
     @Test
+    public void configuredW3IV39FieldsPromoteAndRoundTrip() throws Exception {
+        Path project = Files.createTempDirectory("w3i-v39-settings");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 3.0\n");
+        WurstBuildConfig buildConfig = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        WurstProjectBuildV3ReforgedData reforgedV3Data = new WurstProjectBuildV3ReforgedData(
+            4, 2, true, 1200.5f, 4000.25f, 0.75f, 80.0f,
+            4, 96, 12, 3, 42, 15, 90, 112233, 77, -1
+        );
+        WurstProjectBuildOptionFlagsData flags = new WurstProjectBuildOptionFlagsData(
+            false, false, false, false, false, false, true, true, true
+        );
+        WurstProjectBuildPlayer player = new WurstProjectBuildPlayer(0, null, null, null, null, 64);
+        WurstProjectBuildMapData mapData = new WurstProjectBuildMapData(
+            "", "", "", null, flags, List.of(player), List.of(), "FORSAKEN_KINGDOM", reforgedV3Data
+        );
+        WurstProjectConfigData projectConfig = new WurstProjectConfigData("test", List.of(), mapData, null, "3.0");
+
+        W3I source = new W3I();
+        source.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+        Path oldFile = Files.createTempFile("w3i-v2-settings", ".w3i");
+        source.write(oldFile.toFile(), W3I.EncodingFormat.W3I_0x1F);
+        W3I w3i = new W3I(Files.readAllBytes(oldFile));
+        ProjectConfigBuilder.prepareW3I(projectConfig, w3i);
+        assertTrue(ProjectConfigBuilder.requiresReforgedV3Data(mapData));
+        ProjectConfigBuilder.applyW3IVersion(buildConfig, w3i, false,
+            ProjectConfigBuilder.requiresReforgedV3Data(mapData), ignored -> {});
+
+        Path file = Files.createTempFile("w3i-v39-settings", ".w3i");
+        w3i.write(file.toFile(), W3I.EncodingFormat.AS_DEFINED);
+        W3I written = new W3I(Files.readAllBytes(file));
+        assertEquals(written.getFileVersion(), W3I.EncodingFormat.W3I_0x27.getVersion());
+        assertEquals(written.getGameDataVersion(), W3I.GameDataVersion.FORSAKEN_KINGDOM);
+        assertEquals(written.getLoadingScreenCrestRace(), 4);
+        assertEquals(written.getTerrainFogStyle(), 2);
+        assertTrue(written.getDrawTerrainFogOverSky());
+        assertEquals(written.getTerrainFogLinearStart(), 1200.5f);
+        assertEquals(written.getTerrainFogLinearEnd(), 4000.25f);
+        assertEquals(written.getTerrainFogMaxOpacity(), 0.75f);
+        assertEquals(written.getTerrainFogHeight(), 80.0f);
+        assertEquals(written.getWaterMinOpacity(), 4);
+        assertEquals(written.getWaterMaxOpacity(), 96);
+        assertEquals(written.getWaterReflectivity(), 12);
+        assertEquals(written.getWaterEmissivity(), 3);
+        assertEquals(written.getWaterEdgeSoftness(), 42);
+        assertEquals(written.getWaterWavesVertexDisplacement(), 15);
+        assertEquals(written.getWaterWavesNormalMapStrength(), 90);
+        assertEquals(written.getWaterOverrideColor(), 112233);
+        assertEquals(written.getWaterEnvMapReflectivity(), 77);
+        assertEquals(written.getWaterUnknown(), -1);
+        assertTrue(written.getFlag(MapFlag.USE_ALPHA_TILE_MINIMAP_COLOR));
+        assertTrue(written.getFlag(MapFlag.USE_DYNAMIC_MINIMAP));
+        assertTrue(written.getFlag(MapFlag.USE_WATER_OVERRIDE_COLOR));
+        assertEquals(written.getPlayers().get(0).getHudSkin(), 64);
+    }
+
+    @Test
     public void configuredGameDataVersionRequiresATargetSupportingW3i39() throws Exception {
         Path project = Files.createTempDirectory("w3i-v3-target");
         Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 2.0\n");
@@ -159,7 +220,29 @@ public class ProjectConfigBuilderTests {
         RuntimeException error = expectThrows(RuntimeException.class,
             () -> ProjectConfigBuilder.applyW3IVersion(config, w3i, false, true, ignored -> {}));
 
-        assertTrue(error.getMessage().contains("gameDataVersion requires Warcraft III 3.0 or newer"));
+        assertTrue(error.getMessage().contains("v3ReforgedData and other Reforged 3 settings require Warcraft III 3.0 or newer"));
+    }
+
+    @Test
+    public void configuredReforgedV3MetadataRequiresATargetSupportingReforged3() throws Exception {
+        Path project = Files.createTempDirectory("w3i-v39-target");
+        Files.writeString(project.resolve(ProjectConfigBuilder.FILE_NAME), "wc3Patch: 2.0\n");
+        WurstBuildConfig config = WurstBuildConfig.fromWorkspaceRoot(WFile.create(project.toFile()));
+        W3I w3i = new W3I();
+        WurstProjectBuildMapData mapData = new WurstProjectBuildMapData(
+            "", "", "", null, null, List.of(), List.of(), null,
+            new WurstProjectBuildV3ReforgedData(null, 2, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null)
+        );
+
+        assertTrue(ProjectConfigBuilder.requiresReforgedV3Data(mapData));
+
+        RuntimeException error = expectThrows(RuntimeException.class,
+            () -> ProjectConfigBuilder.applyW3IVersion(config, w3i, false,
+                ProjectConfigBuilder.requiresReforgedV3Data(mapData), ignored -> {}));
+
+        assertTrue(error.getMessage().contains("v3ReforgedData and other Reforged 3 settings require Warcraft III 3.0 or newer"));
+        assertTrue(error.getMessage().contains("target 2.0 is older and cannot use these settings"));
     }
 
     @Test
