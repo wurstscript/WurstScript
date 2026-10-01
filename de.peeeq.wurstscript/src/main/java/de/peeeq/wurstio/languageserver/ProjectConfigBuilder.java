@@ -94,8 +94,15 @@ public class ProjectConfigBuilder {
             throw new RuntimeException(e);
         }
 
-        // Only apply buildMapData if config changed or name is present
-        if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.name())) {
+        // Apply metadata before regenerating script config: generated player setup is derived from W3I.
+        boolean hasW3IOverrides = hasW3IOverrides(buildMapData);
+        if (hasW3IOverrides) {
+            prepareW3I(projectConfig, w3I);
+        }
+        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(),
+            requiresReforgedV3Data(buildMapData), warningConsumer);
+
+        if (configNeedsApplying && hasW3IOverrides) {
             WLogger.info("Applying buildMapData config");
             applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
         } else if (!configNeedsApplying) {
@@ -109,23 +116,14 @@ public class ProjectConfigBuilder {
                 || mapScript.lastModified() > cachedInjectedScript.lastModified();
             if (!cachedScriptStale) {
                 result.script = cachedInjectedScript;
-            } else if (StringUtils.isNotBlank(buildMapData.name())) {
+            } else if (hasW3IOverrides) {
                 WLogger.info("war3map.j changed or cached script missing, re-injecting config");
                 applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
             }
-            // else result.script stays as mapScript (no wurst.build name configured)
-        }
-
-        // The source W3I above is deliberately reloaded each build so downgrading a cached map
-        // cannot discard fields. Reapply configured map data even when the config hash is cached.
-        boolean hasW3IOverrides = hasW3IOverrides(buildMapData);
-        if (hasW3IOverrides) {
-            prepareW3I(projectConfig, w3I);
+            // else result.script stays as mapScript (no configured W3I overrides)
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");
-        applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua(),
-            requiresReforgedV3Data(buildMapData), warningConsumer);
         w3I.write(result.w3i, W3I.EncodingFormat.AS_DEFINED);
 
         // Apply map header (this is cheap, so we always do it)
@@ -375,14 +373,29 @@ public class ProjectConfigBuilder {
         applyOptionFlags(projectConfig, w3I);
     }
 
-    private static boolean hasW3IOverrides(WurstProjectBuildMapData data) {
+    static boolean hasW3IOverrides(WurstProjectBuildMapData data) {
         WurstProjectBuildOptionFlagsData flags = data.optionsFlags();
+        WurstProjectBuildScenarioData scenario = data.scenarioData();
+        WurstProjectBuildLoadingScreenData loadingScreen = scenario.loadingScreen();
         return StringUtils.isNotBlank(data.name())
             || StringUtils.isNotBlank(data.author())
             || StringUtils.isNotBlank(data.gameDataVersion())
             || data.v3ReforgedData().isConfigured()
             || !data.players().isEmpty()
             || !data.forces().isEmpty()
+            || StringUtils.isNotBlank(scenario.description())
+            || StringUtils.isNotBlank(scenario.suggestedPlayers())
+            || (loadingScreen != null && (StringUtils.isNotBlank(loadingScreen.model())
+                || StringUtils.isNotBlank(loadingScreen.background())
+                || StringUtils.isNotBlank(loadingScreen.title())
+                || StringUtils.isNotBlank(loadingScreen.subTitle())
+                || StringUtils.isNotBlank(loadingScreen.text())))
+            || flags.hideMinimapPreview()
+            || flags.forcesFixed()
+            || flags.maskedAreasPartiallyVisible()
+            || flags.showWavesOnCliffShores()
+            || flags.showWavesOnRollingShores()
+            || flags.useItemClassificationSystem()
             || flags.useAlphaTileMinimapColor()
             || flags.useDynamicMinimap()
             || flags.useWaterOverrideColor();

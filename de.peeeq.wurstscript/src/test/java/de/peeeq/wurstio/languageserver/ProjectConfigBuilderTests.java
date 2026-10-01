@@ -12,6 +12,8 @@ import org.testng.annotations.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -208,6 +210,33 @@ public class ProjectConfigBuilderTests {
         assertTrue(written.getFlag(MapFlag.USE_DYNAMIC_MINIMAP));
         assertTrue(written.getFlag(MapFlag.USE_WATER_OVERRIDE_COLOR));
         assertEquals(written.getPlayers().get(0).getHudSkin(), 64);
+    }
+
+    @Test
+    public void playerOnlyOverridesRegenerateScriptConfigFromConfiguredMetadata() throws Exception {
+        WurstProjectBuildMapData mapData = new WurstProjectBuildMapData(
+            "", "", "", null, null,
+            List.of(new WurstProjectBuildPlayer(0, null, null, null, null, 64)), List.of()
+        );
+        WurstProjectConfigData projectConfig = new WurstProjectConfigData("test", List.of(), mapData, null, "3.0");
+        W3I w3i = new W3I();
+        w3i.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
+
+        assertTrue(ProjectConfigBuilder.hasW3IOverrides(mapData));
+        ProjectConfigBuilder.prepareW3I(projectConfig, w3i);
+        ProjectConfigBuilder.applyW3IVersion(
+            WurstBuildConfig.empty(), w3i, false, ProjectConfigBuilder.requiresReforgedV3Data(mapData), ignored -> {}
+        );
+
+        StringWriter generatedScript = new StringWriter();
+        w3i.injectConfigsInJassScript(
+            new ByteArrayInputStream("function main takes nothing returns nothing\nendfunction\n".getBytes()),
+            generatedScript,
+            new net.moonlightflower.wc3libs.port.GameVersion("3.0")
+        );
+
+        assertTrue(generatedScript.toString().contains(
+            "SetPlayerRaceSkin(Player ( 0 ), ConvertRacePref ( 64 ))"), generatedScript.toString());
     }
 
     @Test
