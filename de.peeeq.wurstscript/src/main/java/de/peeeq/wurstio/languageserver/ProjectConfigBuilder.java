@@ -116,7 +116,7 @@ public class ProjectConfigBuilder {
 
         result.w3i = new File(buildDir, "war3map.w3i");
         applyW3IVersion(WurstBuildConfig.fromProject(projectConfig, null), w3I, runArgs.isLua());
-        w3I.write(result.w3i);
+        w3I.write(result.w3i, W3I.EncodingFormat.AS_DEFINED);
 
         // Apply map header (this is cheap, so we always do it)
         applyMapHeader(projectConfig, targetMap, w3I.getPlayers().size(), w3I.getMapName(), w3I.getFlags().toInt());
@@ -251,37 +251,13 @@ public class ProjectConfigBuilder {
             w3I.setScriptLang(W3I.ScriptLang.LUA);
         }
 
-        // Keep the source format when applying a target patch. A target patch can cap the
-        // format, but upgrading metadata alone leaves its game-version fields inconsistent.
-        buildConfig.configuredGameVersion().ifPresent(version -> {
-            int maxVersion = maxW3IVersionFor(version);
-            int sourceVersion = w3I.getFileVersion();
-            int targetVersion = Math.min(sourceVersion, maxVersion);
-            w3I.setFileVersion(lua
-                ? Math.max(targetVersion, W3I.EncodingFormat.W3I_0x1F.getVersion())
-                : targetVersion);
-        });
-
-        // Lua map metadata needs the script-language field, which is absent in older formats.
+        // wc3Patch selects the target game version; it does not select the W3I encoding.
+        // Keep the source encoding so binary fields read from the map remain available.
+        // When build config adds fields that require a newer W3I format, promote the format
+        // at the point where those fields are applied.
         if (lua && w3I.getFileVersion() < W3I.EncodingFormat.W3I_0x1F.getVersion()) {
             w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1F.getVersion());
         }
-    }
-
-    private static int maxW3IVersionFor(GameVersion version) {
-        if (version.compareTo(new GameVersion("1.31")) < 0) {
-            return W3I.EncodingFormat.W3I_0x19.getVersion();
-        }
-        if (version.compareTo(new GameVersion("1.32")) < 0) {
-            return W3I.EncodingFormat.W3I_0x1C.getVersion();
-        }
-        if (version.compareTo(new GameVersion("2.0")) < 0) {
-            return W3I.EncodingFormat.W3I_0x1F.getVersion();
-        }
-        if (version.compareTo(new GameVersion("3.0")) < 0) {
-            return W3I.EncodingFormat.W3I_0x21.getVersion();
-        }
-        return W3I.EncodingFormat.W3I_0x21.getVersion();
     }
 
     private static WurstBuildConfig buildConfigFromBuildDir(File buildDir) {
