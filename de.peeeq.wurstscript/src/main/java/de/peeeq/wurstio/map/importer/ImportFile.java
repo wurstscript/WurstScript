@@ -269,9 +269,10 @@ public class ImportFile {
      * PUBLIC API: Main entry point for importing files with intelligent caching
      */
     public static ImportResult importFilesFromImports(File projectFolder, MpqEditor ed) {
-        LinkedList<File> folders = new LinkedList<>();
+        // A later folder replaces a file of the same path from an earlier one, so the project's own imports
+        // come last and win over what its dependencies ship.
+        LinkedList<File> folders = new LinkedList<>(Arrays.asList(getTransientImportDirectories(projectFolder)));
         folders.add(getImportDirectory(projectFolder));
-        folders.addAll(Arrays.asList(getTransientImportDirectories(projectFolder)));
 
         folders.removeIf(folder -> !folder.exists());
 
@@ -443,7 +444,9 @@ public class ImportFile {
         int filesDeleted = 0;
 
         // 1. Gather all current files and their info
-        Map<String, File> allFiles = new HashMap<>();
+        Map<String, File> allFiles = new LinkedHashMap<>();
+        // MPQ names are case insensitive, so two spellings of one path are one file in the map
+        Map<String, String> spellingByMpqName = new HashMap<>();
         for (File directory : directories) {
             LinkedList<File> filesInDir = new LinkedList<>();
             getFilesOfDirectory(directory, filesInDir);
@@ -451,6 +454,10 @@ public class ImportFile {
             for (File f : filesInDir) {
                 Path relativePath = directory.toPath().relativize(f.toPath());
                 String normalizedWc3Path = relativePath.toString().replace("/", "\\");
+                String earlierSpelling = spellingByMpqName.put(mpqName(normalizedWc3Path), normalizedWc3Path);
+                if (earlierSpelling != null) {
+                    allFiles.remove(earlierSpelling);
+                }
                 allFiles.put(normalizedWc3Path, f);
             }
         }
@@ -502,7 +509,9 @@ public class ImportFile {
 
         // 3. Process deletions (files in old manifest but not in current file list)
         Set<String> deletedFiles = new HashSet<>(oldManifest.importFiles.keySet());
-        deletedFiles.removeAll(allFiles.keySet());
+        // A file that only changed its capitalisation is still imported, and deleting its old spelling
+        // would delete the copy that was just inserted.
+        deletedFiles.removeIf(old -> spellingByMpqName.containsKey(mpqName(old)));
 
         for (String deletedPath : deletedFiles) {
             WLogger.info("Deleting import: " + deletedPath);
@@ -548,6 +557,10 @@ public class ImportFile {
         return new ImportResult(filesProcessed, filesUpdated, filesDeleted, duration, !importsChanged);
     }
 
+    private static String mpqName(String path) {
+        return path.toLowerCase(Locale.ROOT);
+    }
+
     private static File getImportDirectory(File projectFolder) {
         return new File(projectFolder, "imports");
     }
@@ -556,7 +569,8 @@ public class ImportFile {
         ArrayList<Path> paths = new ArrayList<>();
         Path dependencies = projectFolder.toPath().resolve("_build").resolve("dependencies");
         try (Stream<Path> spaths = java.nio.file.Files.list(dependencies)) {
-            spaths.forEach(dependency -> {
+            // listing order is unspecified; a fixed order keeps it deterministic which dependency wins a clash
+            spaths.sorted().forEach(dependency -> {
                 if (java.nio.file.Files.exists(dependency.resolve("imports"))) {
                     paths.add(dependency.resolve("imports"));
                 }
